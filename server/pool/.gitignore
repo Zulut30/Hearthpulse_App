@@ -1,0 +1,3 @@
+# Local test database and build output from wrangler dev
+.wrangler/
+node_modules/
