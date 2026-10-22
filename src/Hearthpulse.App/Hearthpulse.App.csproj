@@ -11,7 +11,7 @@
     <AssemblyName>Hearthpulse</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\hearthpulse.ico</ApplicationIcon>
-    <Version>0.7.9</Version>
+    <Version>0.8.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- PerMonitorV2 is declared in app.manifest for WPF; the WinForms analyzer only covers the tray icon. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
