@@ -494,7 +494,7 @@ public sealed partial class OverlayViewModel : Observable
 
         // Lobby-adjusted numbers only mean something once the tribes are known.
         var lobbyKnown = view.Races.Count >= 4;
-        Replace(nameof(HeroPicks), view.HeroOptions, h => $"{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = view.HeroOptions
+        Replace(nameof(HeroPicks), view.HeroOptions, h => $"{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = !view.HeroOptions.Any(h => h.Meta is not null) ? [] : view.HeroOptions
             .Select(h =>
             {
                 var adjusted = h.Meta is not null && lobbyKnown;
@@ -515,7 +515,7 @@ public sealed partial class OverlayViewModel : Observable
             })
             .ToList());
 
-        Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{t.CardId}{t.Meta?.AveragePlacement:0.000}{highlight && t.Recommended}", () => TrinketPicks = view.TrinketOptions
+        Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{t.CardId}{t.Meta?.AveragePlacement:0.000}{highlight && t.Recommended}", () => TrinketPicks = !view.TrinketOptions.Any(t => t.Meta is not null) ? [] : view.TrinketOptions
             .Select(t => new TrinketBadge(
                 t.CardId,
                 t.Name,
@@ -617,10 +617,10 @@ public sealed partial class OverlayViewModel : Observable
             ? "Your choice, kept for the next games. Click to clear it: then no comp is targeted until you choose one."
             : "Lock keeps this comp as your plan for this game, even if you pick up cards for another one. Click again to unlock and let Hearthpulse choose.";
         PlanTooltip = manual
-            ? "Comps from Firestone data that fit this lobby's tribes, with how players who played them placed. Click one to make it your plan: the tavern and Discover hints then count its cards. Your choice is kept for the next games."
+            ? "Comps that fit this lobby's tribes, with how players who played them placed. Click one to make it your plan: the tavern and Discover hints then count its cards. Your choice is kept for the next games."
             : ShowBestBadges
-                ? "Hearthpulse suggests a comp from Firestone data: the strongest one for this lobby's tribes, or the one you have already started. The tavern badges then show what to buy for it."
-                : "Comps from Firestone data that fit this lobby's tribes. Click one to lock your plan on it for this game.";
+                ? "Hearthpulse suggests a comp: the strongest one for this lobby's tribes, or the one you have already started. The tavern badges then show what to buy for it."
+                : "Comps that fit this lobby's tribes. Click one to lock your plan on it for this game.";
         CompRowTooltip = manual ? "Make this comp your plan (kept for the next games)" : "Switch your plan to this comp and lock it there";
         CompListTitle = Target is not null
             ? manual ? "Other comps  ·  click to choose" : "Other comps  ·  click to switch"
