@@ -9,7 +9,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>Hearthpulse.Desktop</RootNamespace>
     <AssemblyName>Hearthpulse</AssemblyName>
-    <Version>0.8.0</Version>
+    <Version>0.8.1</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\Hearthpulse.UI\Assets\hearthpulse.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
