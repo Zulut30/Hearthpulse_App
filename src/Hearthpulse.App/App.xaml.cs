@@ -335,6 +335,13 @@ public partial class App : Application
                 try
                 {
                     var info = await UpdateService.CheckAsync(_http);
+                    if (info is not null && AppPaths.IsPortable)
+                    {
+                        // The setup would install a second copy; the portable one only says a new version is out.
+                        Notify("Hearthpulse update available", $"{info.Version} is out. Get the portable zip from the GitHub releases page.");
+                        return;
+                    }
+
                     if (info is not null && await UpdateService.DownloadAsync(_http, info) is not null)
                     {
                         _stagedUpdate = info;

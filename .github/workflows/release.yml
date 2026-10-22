@@ -61,7 +61,7 @@ jobs:
         env:
           V: ${{ steps.v.outputs.version }}
         run: |
-          for f in "Hearthpulse-Setup-$V-win-x64.exe" "Hearthpulse-Preview-$V-win-x64.zip" \
+          for f in "Hearthpulse-Setup-$V-win-x64.exe" "Hearthpulse-Portable-$V-win-x64.zip" "Hearthpulse-Preview-$V-win-x64.zip" \
                    "hearthpulse_${V}_amd64.deb" "hearthpulse_${V}_arm64.deb" \
                    "hearthpulse-$V-1.x86_64.rpm" "hearthpulse-$V-1.aarch64.rpm" \
                    "Hearthpulse-$V-linux-x64.tar.gz" "Hearthpulse-$V-linux-arm64.tar.gz" \

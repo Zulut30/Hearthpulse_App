@@ -3,12 +3,19 @@ namespace Hearthpulse.Core;
 public static class AppPaths
 {
     /// <summary>
+    /// The portable zip ships a portable.txt next to the app: all data then lives in a "data" folder beside it.
+    /// Declared before <see cref="Root"/>, which reads it.
+    /// </summary>
+    public static bool IsPortable { get; } = File.Exists(Path.Combine(AppContext.BaseDirectory, "portable.txt"));
+
+    /// <summary>
     /// Data folder: %APPDATA%\Hearthpulse on Windows, ~/Library/Application Support/Hearthpulse on macOS,
     /// ~/.local/share/Hearthpulse on Linux, the app's private files on Android. HEARTHPULSE_DATA overrides it.
     /// The folder of the app's former name (Hearthlens) is copied here on first start, so history and settings carry over.
     /// </summary>
     public static string Root { get; } = Ensure(Environment.GetEnvironmentVariable("HEARTHPULSE_DATA") is { Length: > 0 } custom
         ? custom
+        : IsPortable ? Path.Combine(AppContext.BaseDirectory, "data")
         : MigrateLegacy(Path.Combine(DefaultParent(), "Hearthlens"), Path.Combine(DefaultParent(), "Hearthpulse")));
 
     public static string Cache { get; } = Ensure(Path.Combine(Root, "cache"));
