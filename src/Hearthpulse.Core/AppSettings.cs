@@ -94,6 +94,12 @@ public sealed class AppSettings
 
     public string MetaPeriod { get; set; } = "past-7";
 
+    /// <summary>Whether the player shares Battlegrounds results with the stats pool; null until they answer.</summary>
+    public bool? PoolConsent { get; set; }
+
+    /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
+    public string? PoolEndpoint { get; set; }
+
     // One bool per option of the two choices above, for the settings page's segmented radio buttons. Setting false is
     // ignored: the radio group unchecks the old option after the new one is checked.
 

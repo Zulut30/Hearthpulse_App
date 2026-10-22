@@ -28,6 +28,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private readonly object _pipelineGate = new();
     private readonly MemoryPoller _memoryPoller;
     private int _gameGeneration;
+    private IReadOnlyList<string>? _offeredHeroes;
+    private int _offeredGeneration = -1;
 
     private volatile CardDb _cards = CardDb.Empty;
     private PowerParser? _parser;
@@ -453,7 +455,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         if (record.Result == "Win") _sessionWins++;
         else if (record.Result == "Loss") _sessionLosses++;
 
-        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId);
+        var offered = _offeredGeneration == _gameGeneration ? _offeredHeroes : null;
+        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered);
         GameFinished?.Invoke(_lastOutcome);
         _dirty = true;
     }
@@ -663,6 +666,12 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             if (inGame && game!.IsBattlegrounds)
             {
                 battlegrounds = _battlegrounds.BuildView(game);
+                if (battlegrounds.IsHeroSelection && battlegrounds.HeroOptions.Count > 1)
+                {
+                    _offeredHeroes = battlegrounds.HeroOptions.Select(h => h.CardId).ToList();
+                    _offeredGeneration = _gameGeneration;
+                }
+
                 var rating = _rating is null ? (int?)null : game.IsDuos ? _rating.Duos : _rating.Solo;
                 battlegrounds = Advisor.Enrich(battlegrounds, rating, _cards);
             }

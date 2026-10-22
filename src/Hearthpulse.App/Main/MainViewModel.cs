@@ -5,6 +5,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.App.Main;
@@ -92,6 +93,7 @@ public sealed partial class MainViewModel : Observable
             RebuildMeta();
         });
         InstallUpdate = new RelayCommand(() => UpdateRequested?.Invoke());
+        AnswerPool = new RelayCommand(p => PoolSharing = p as string == "yes");
     }
 
     public RelayCommand SetCardTier { get; }
@@ -136,6 +138,43 @@ public sealed partial class MainViewModel : Observable
     };
 
     public AppSettings Settings { get; }
+
+    // ---- stats pool -----------------------------------------------------------------------
+
+    private bool _poolAvailable;
+
+    /// <summary>The stats pool is set up; the first start banner and the Settings switch only show then.</summary>
+    public bool PoolAvailable
+    {
+        get => _poolAvailable;
+        set
+        {
+            if (Set(ref _poolAvailable, value))
+            {
+                Raise(nameof(AskPoolConsent));
+            }
+        }
+    }
+
+    /// <summary>The player has not said yet whether to share their Battlegrounds results.</summary>
+    public bool AskPoolConsent => _poolAvailable && Settings.PoolConsent is null;
+
+    public bool PoolSharing
+    {
+        get => Settings.PoolConsent == true;
+        set
+        {
+            Settings.PoolConsent = value;
+            Raise();
+            Raise(nameof(AskPoolConsent));
+            PoolConsentChanged?.Invoke();
+        }
+    }
+
+    /// <summary>The banner's buttons: "yes" shares results, anything else declines.</summary>
+    public RelayCommand AnswerPool { get; }
+
+    public event Action? PoolConsentChanged;
 
     public RelayCommand SetBracket { get; }
 
@@ -217,7 +256,19 @@ public sealed partial class MainViewModel : Observable
     public IReadOnlyList<RatingPoint> RatingPoints { get => _ratingPoints; private set => Set(ref _ratingPoints, value); }
     public IReadOnlyList<PlacementBar> Placements { get => _placements; private set => Set(ref _placements, value); }
     public IReadOnlyList<HeroRow> MyHeroes { get => _myHeroes; private set => Set(ref _myHeroes, value); }
-    public IReadOnlyList<MetaHeroRow> HeroTiers { get => _heroTiers; private set => Set(ref _heroTiers, value); }
+    public IReadOnlyList<MetaHeroRow> HeroTiers
+    {
+        get => _heroTiers;
+        private set
+        {
+            if (Set(ref _heroTiers, value))
+            {
+                Raise(nameof(HasHeroTiers));
+            }
+        }
+    }
+
+    public bool HasHeroTiers => _heroTiers.Count > 0;
     public IReadOnlyList<MetaCompRow> CompTiers { get => _compTiers; private set => Set(ref _compTiers, value); }
 
     private IReadOnlyList<MetaTrinketRow> _trinketTiers = Array.Empty<MetaTrinketRow>();
@@ -446,7 +497,7 @@ public sealed partial class MainViewModel : Observable
             heroes = meta.HeroesByBracket.GetValueOrDefault(100) ?? new Dictionary<string, MetaHero>();
         }
 
-        var ranked = heroes.Values.Where(h => h.DataPoints is 0 or >= 50).OrderBy(h => h.AveragePosition).ToList();
+        var ranked = heroes.Values.Where(h => h.DataPoints is 0 or >= PoolClient.MinGames).OrderBy(h => h.AveragePosition).ToList();
         var best = ranked.Count > 0 ? ranked[0].AveragePosition : 3.5;
         var worst = ranked.Count > 0 ? ranked[^1].AveragePosition : 5.5;
         HeroTiers = ranked.Select((h, i) => new MetaHeroRow(

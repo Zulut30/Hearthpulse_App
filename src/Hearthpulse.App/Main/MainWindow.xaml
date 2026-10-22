@@ -1580,6 +1580,9 @@
                                     <CheckBox Style="{StaticResource Switch}" Content="Keep running in the tray when closed" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
                                     <CheckBox Style="{StaticResource Switch}" Content="Install updates automatically" IsChecked="{Binding Settings.AutoUpdate}" Click="OnSettingChanged"
                                               ToolTip="Hearthpulse checks GitHub for a newer version and installs it when you close the app" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Share my Battlegrounds results with the stats pool" IsChecked="{Binding PoolSharing}"
+                                              Visibility="{Binding PoolAvailable, Converter={StaticResource Vis}}" Margin="0,0,0,14"
+                                              ToolTip="After each game: the hero you picked, the heroes you were offered, your placement and your rating rounded to 500. No name, BattleTag or account." />
                                     <CheckBox Style="{StaticResource Switch}" Content="Start with Windows" IsChecked="{Binding Settings.StartWithWindows}" Click="OnSettingChanged" Margin="0,0,0,14" />
                                     <CheckBox Style="{StaticResource Switch}" Content="Start minimized" IsChecked="{Binding Settings.StartMinimized}" Margin="0,0,0,18" />
                                     <StackPanel Orientation="Horizontal">
@@ -1606,6 +1609,35 @@
                             </Border>
                         </StackPanel>
                     </ScrollViewer>
+
+                    <!-- ===== First start: ask before sharing results with the stats pool ===== -->
+                    <Border Grid.Row="1" VerticalAlignment="Top" Margin="24,2,24,0" CornerRadius="16" Background="{StaticResource Surface3}" Panel.ZIndex="5"
+                            BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12"
+                            Visibility="{Binding AskPoolConsent, Converter={StaticResource Vis}}">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.35" Color="Black" />
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid Width="46" Height="46">
+                                <c:Scallop Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
+                                <TextBlock Text="&#xF0849;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                            </Grid>
+                            <StackPanel Grid.Column="1" Margin="14,0,20,0" VerticalAlignment="Center">
+                                <TextBlock Text="Share your Battlegrounds results?" FontWeight="Bold" FontSize="14.5" />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,3,0,0"
+                                           Text="After each game Hearthpulse sends the hero you picked, the heroes you were offered, your placement and your rating rounded to 500. No name, BattleTag or account. Everyone's games build the hero tier list. You can change this in Settings." />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource GhostButton}" Content="No thanks" Command="{Binding AnswerPool}" CommandParameter="no" Margin="0,0,8,0" />
+                                <Button Style="{StaticResource PrimaryButton}" Content="Share results" Command="{Binding AnswerPool}" CommandParameter="yes" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
 
                     <!-- ===== Floating live bar (like a now-playing bar) ===== -->
                     <Border Grid.Row="1" VerticalAlignment="Bottom" Margin="24,0,24,18" CornerRadius="12" Background="{StaticResource Surface3}"

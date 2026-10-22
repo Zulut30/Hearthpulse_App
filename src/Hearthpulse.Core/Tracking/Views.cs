@@ -298,7 +298,8 @@ public sealed record SessionSummary(int? StartRating, int? CurrentRating, int Ga
     public int? Delta => StartRating is { } s && CurrentRating is { } c ? c - s : null;
 }
 
-public sealed record GameOutcome(string Mode, string Result, int Placement, int? RatingBefore, int? RatingAfter, string HeroCardId)
+/// <param name="OfferedHeroes">Battlegrounds heroes offered at the start of the game, when they were seen live.</param>
+public sealed record GameOutcome(string Mode, string Result, int Placement, int? RatingBefore, int? RatingAfter, string HeroCardId, IReadOnlyList<string>? OfferedHeroes = null)
 {
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 }

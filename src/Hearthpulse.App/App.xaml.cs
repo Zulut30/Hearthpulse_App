@@ -12,6 +12,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -162,6 +163,12 @@ public partial class App : Application
         };
 
         _mainViewModel.ThemeChanged += OnThemeChanged;
+        _mainViewModel.PoolAvailable = PoolClient.Available(_settings);
+        _mainViewModel.PoolConsentChanged += () =>
+        {
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+        };
         _mainViewModel.ConstructedMetaRequested += () =>
         {
             _settingsDebounce.Stop();
@@ -372,8 +379,24 @@ public partial class App : Application
         Quit();
     }
 
+    /// <summary>
+    /// Community stats: the stats pool when one is set up and has data (games players chose to share), otherwise
+    /// Firestone's with the Hearthpulse API as the fallback.
+    /// </summary>
     private async Task LoadMetaAsync()
     {
+        if (PoolClient.Available(_settings))
+        {
+            var pooled = await PoolClient.LoadHeroesAsync(_http, PoolClient.Endpoint(_settings));
+            if (pooled is not null && pooled.HeroesByBracket[100].Count > 0)
+            {
+                _meta = pooled;
+                _session.SetMeta(pooled);
+                _mainViewModel.SetMeta(pooled);
+                return;
+            }
+        }
+
         try
         {
             var meta = await BattlegroundsMeta.LoadAsync(_http, fallback: new HearthpulseData(_api));
@@ -533,6 +556,13 @@ public partial class App : Application
 
     private void OnGameFinished(GameOutcome outcome)
     {
+        // The event fires again once the new rating is read; share the game only the first time.
+        if (outcome.RatingAfter is null && _settings.PoolConsent == true && PoolClient.Available(_settings)
+            && PoolGame.From(outcome, _cards.BaseHeroId) is { } game)
+        {
+            _ = PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), game);
+        }
+
         if (_settings.ShowGameToasts && _settings.OverlayEnabled)
         {
             _overlayViewModel.ShowOutcome(outcome);

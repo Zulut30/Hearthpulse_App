@@ -56,6 +56,9 @@ public sealed class BattlegroundsMeta
 {
     public const string Attribution = "Community stats: Firestone (zerotoheroes.com)";
 
+    /// <summary>Attribution of stats read from the stats pool (<see cref="Pool.PoolClient"/>).</summary>
+    public const string PoolAttribution = "Community stats: Hearthpulse players who share their games";
+
     private static readonly int[] Brackets = [100, 50, 25, 10, 1];
     private static readonly TimeSpan MaxAge = TimeSpan.FromHours(6);
     private const string Root = "https://static.zerotoheroes.com/";
@@ -155,7 +158,7 @@ public sealed class BattlegroundsMeta
     public DateTime Updated { get; }
 
     /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/> unless a fallback was used).</summary>
-    public string Source { get; private init; } = Attribution;
+    public string Source { get; internal init; } = Attribution;
 
     /// <summary>Tightest MMR bracket (top X%) whose floor the rating reaches.</summary>
     public int BracketFor(int? rating)
