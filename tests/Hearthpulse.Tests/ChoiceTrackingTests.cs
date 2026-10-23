@@ -7,7 +7,73 @@ namespace Hearthpulse.Tests;
 
 public sealed class ChoiceTrackingTests
 {
-    // Live check against the player's own logs; skipped on machines without Hearthstone logs.
+    private const int Me = 5;
+
+    [Fact]
+    public void A_discover_pick_and_a_play_are_recorded()
+    {
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        var tracker = new BattlegroundsTracker { Cards = CardDb.Empty };
+        parser.AddListener(tracker);
+        Feed(parser,
+        [
+            "DebugPrintPower() - CREATE_GAME",
+            "DebugPrintPower() -     GameEntity EntityID=4",
+            "DebugPrintPower() -         tag=CARDTYPE value=GAME",
+            "DebugPrintPower() -         tag=TURN value=5",
+            $"DebugPrintPower() -     Player EntityID=14 PlayerID={Me} GameAccountId=[hi=144115198130930503 lo=11]",
+            $"DebugPrintPower() -         tag=CONTROLLER value={Me}",
+            "DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+            "DebugPrintGame() - GameType=GT_BATTLEGROUNDS",
+            $"DebugPrintGame() - PlayerID={Me}, PlayerName=Me#1234",
+            .. Entity(30, "BG_SOURCE", "PLAY"),
+            .. Entity(40, "BG_A", "SETASIDE"),
+            .. Entity(41, "BG_B", "SETASIDE"),
+            .. Entity(42, "BG_C", "SETASIDE"),
+            .. Entity(50, "BG_PLAYED", "HAND"),
+            "DebugPrintEntityChoices() - id=7 Player=Me#1234 TaskList=12 ChoiceType=GENERAL CountMin=1 CountMax=1",
+            $"DebugPrintEntityChoices() -   Source={Ref(30, "BG_SOURCE", "PLAY")}",
+            $"DebugPrintEntityChoices() -   Entities[0]={Ref(40, "BG_A", "SETASIDE")}",
+            $"DebugPrintEntityChoices() -   Entities[1]={Ref(41, "BG_B", "SETASIDE")}",
+            $"DebugPrintEntityChoices() -   Entities[2]={Ref(42, "BG_C", "SETASIDE")}",
+            "DebugPrintEntitiesChosen() - id=7 Player=Me#1234 EntitiesCount=1",
+            $"DebugPrintEntitiesChosen() -   Entities[0]={Ref(41, "BG_B", "SETASIDE")}",
+            $"DebugPrintPower() - TAG_CHANGE Entity={Ref(50, "BG_PLAYED", "HAND")} tag=ZONE value=PLAY ",
+        ]);
+
+        var view = tracker.BuildView(parser.Game!);
+
+        var choice = Assert.Single(view.Choices);
+        Assert.Equal("discover", choice.Kind);
+        Assert.Equal("BG_SOURCE", choice.Source);
+        Assert.Equal(["BG_A", "BG_B", "BG_C"], choice.Offered);
+        Assert.Equal(["BG_B"], choice.Picked);
+        Assert.Equal("BG_PLAYED", Assert.Single(view.Plays).CardId);
+    }
+
+    private static void Feed(PowerParser parser, params string[] bodies)
+    {
+        foreach (var body in bodies)
+        {
+            parser.Feed("D 12:30:00.0000000 GameState." + body);
+        }
+
+        parser.Flush();
+    }
+
+    private static string[] Entity(int id, string cardId, string zone) =>
+    [
+        $"DebugPrintPower() - FULL_ENTITY - Creating ID={id} CardID={cardId}",
+        $"DebugPrintPower() -     tag=ZONE value={zone}",
+        $"DebugPrintPower() -     tag=CONTROLLER value={Me}",
+        "DebugPrintPower() -     tag=CARDTYPE value=MINION",
+    ];
+
+    private static string Ref(int id, string cardId, string zone) =>
+        $"[entityName=X id={id} zone={zone} zonePos=0 cardId={cardId} player={Me}]";
+
+    // Live check against the player's own newest Battlegrounds log; a no-op on machines without Hearthstone logs.
+    // The deterministic check is A_discover_pick_and_a_play_are_recorded.
     [Fact]
     public void Picks_and_plays_are_recorded_from_a_real_game()
     {
@@ -46,7 +112,11 @@ public sealed class ChoiceTrackingTests
 
         Assert.NotNull(best);
         Assert.NotEmpty(best!.Plays);
-        Assert.Contains(best.Choices, c => c.Picked.Count > 0);
+        // A short game can end before any Discover, triple reward or trinket (hero picks are not recorded).
+        if (best.Choices.Count > 0)
+        {
+            Assert.Contains(best.Choices, c => c.Picked.Count > 0);
+        }
         Assert.All(best.Choices, c => Assert.All(c.Picked, p => Assert.Contains(p, c.Offered)));
     }
 
