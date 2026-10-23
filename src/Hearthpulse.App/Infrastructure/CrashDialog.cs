@@ -95,12 +95,12 @@ internal static class CrashDialog
     {
         try
         {
-            Process.Start(new ProcessStartInfo(AppPaths.LogFile) { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(AppPaths.LogFile) { UseShellExecute = true })?.Dispose();
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
         {
             // No app for .log files: show the folder instead.
-            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{AppPaths.LogFile}\"") { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{AppPaths.LogFile}\"") { UseShellExecute = true })?.Dispose();
         }
     }
 

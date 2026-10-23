@@ -197,16 +197,25 @@ public sealed class HearthstoneMemory : IDisposable
                 return (null, null, "Cannot open Hearthstone process (run as the same user)", true);
             }
 
-            using (ProcessMemory.Budget(AttachReadBudget, AttachTimeBudget))
+            try
             {
-                var runtime = MonoRuntime.Attach(memory, out var error);
-                if (runtime is null || ProcessMemory.BudgetExhausted)
+                using (ProcessMemory.Budget(AttachReadBudget, AttachTimeBudget))
                 {
-                    memory.Dispose();
-                    return (null, null, runtime is null ? error : "Attaching took too long, retrying", true);
-                }
+                    var runtime = MonoRuntime.Attach(memory, out var error);
+                    if (runtime is null || ProcessMemory.BudgetExhausted)
+                    {
+                        memory.Dispose();
+                        return (null, null, runtime is null ? error : "Attaching took too long, retrying", true);
+                    }
 
-                return (memory, runtime, $"Attached · {runtime.ClassCount:N0} classes", true);
+                    return (memory, runtime, $"Attached · {runtime.ClassCount:N0} classes", true);
+                }
+            }
+            catch
+            {
+                // The process handle has no finalizer: a failed attach (retried every few seconds) leaked one each time.
+                memory.Dispose();
+                throw;
             }
         }
         finally

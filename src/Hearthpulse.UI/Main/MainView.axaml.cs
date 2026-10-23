@@ -44,7 +44,7 @@ public partial class MainView : UserControl
 
     /// <summary>Opens the data folder; hosts can replace it (e.g. on mobile, where there is no file manager).</summary>
     public Action<string>? OpenFolder { get; set; } = path =>
-        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
 
     private async void OnCopyAccountCode(object? sender, RoutedEventArgs e)
     {

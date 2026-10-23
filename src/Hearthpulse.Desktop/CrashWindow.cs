@@ -89,7 +89,7 @@ internal sealed class CrashWindow : Window
     {
         try
         {
-            Process.Start(new ProcessStartInfo(AppPaths.LogFile) { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(AppPaths.LogFile) { UseShellExecute = true })?.Dispose();
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
         {

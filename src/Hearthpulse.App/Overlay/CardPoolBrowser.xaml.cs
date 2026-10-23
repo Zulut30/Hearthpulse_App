@@ -34,8 +34,12 @@ public partial class CardPoolBrowser : UserControl
             else
             {
                 _escape.Stop();
+                // A hidden scroller never reaches the glide's target, and CompositionTarget.Rendering is static: the
+                // handler would run every frame and keep this browser alive after the overlay window is gone.
+                StopGlide();
             }
         };
+        Unloaded += (_, _) => StopGlide();
     }
 
     private OverlayViewModel? ViewModel => DataContext as OverlayViewModel;

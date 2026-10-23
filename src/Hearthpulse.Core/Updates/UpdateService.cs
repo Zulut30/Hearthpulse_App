@@ -386,7 +386,7 @@ public static class UpdateService
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 WorkingDirectory = Path.GetTempPath(),
-            });
+            })?.Dispose();
             Diag.Info($"Update {info.Version} will install when Hearthpulse closes.");
             return true;
         }
@@ -456,19 +456,19 @@ public static class UpdateService
         {
             if (OperatingSystem.IsMacOS())
             {
-                Process.Start("open", path);
+                Process.Start("open", path)?.Dispose();
                 return true;
             }
 
             if (OperatingSystem.IsLinux())
             {
-                Process.Start("xdg-open", path);
+                Process.Start("xdg-open", path)?.Dispose();
                 return true;
             }
 
             if (OperatingSystem.IsWindows())
             {
-                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
                 return true;
             }
         }
