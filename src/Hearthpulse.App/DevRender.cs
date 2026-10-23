@@ -124,12 +124,29 @@ public partial class App
             }
 
             await RenderCountersAsync(folder);
-            // The mulligan guide over the newest kept Standard game's opening hand.
-            if (_installDir is not null && await MulliganReplay.LatestAsync(_installDir, _cards, new HearthpulseData(_api), _constructedMeta) is { } mulligan)
+            // The mulligan strip over the newest kept Standard games' opening hands: 3 cards going first, 4 on the coin.
+            foreach (var (offered, name) in new[] { (3, "overlay-mulligan.png"), (4, "overlay-mulligan-4.png") })
             {
-                var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan };
-                _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
-                await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-mulligan.png"), 1920, 1080, 0);
+                if (_installDir is not null && await MulliganReplay.LatestAsync(_installDir, _cards, new HearthpulseData(_api), _constructedMeta, offered) is { } mulligan)
+                {
+                    var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan };
+                    _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                    await _overlay.RenderToFileAsync(Path.Combine(folder, name), 1920, 1080, 0);
+                    if (offered == 4)
+                    {
+                        // The strip stays under the cards at any overlay scale; only its badges grow or shrink.
+                        var scale = _settings.OverlayScale;
+                        foreach (var (s, suffix) in new[] { (0.6, "60"), (1.6, "160") })
+                        {
+                            _settings.OverlayScale = s;
+                            _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                            await _overlay.RenderToFileAsync(Path.Combine(folder, $"overlay-mulligan-4-scale{suffix}.png"), 1920, 1080, 0);
+                        }
+
+                        _settings.OverlayScale = scale;
+                        _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                    }
+                }
             }
             await RenderConstructedOverlayAsync(folder);
             await RenderCardPoolAsync(folder);

@@ -165,6 +165,7 @@ public sealed class CardDb
                 Set = Str(e, "set"),
                 Races = StrArray(e, "races") is { Count: > 0 } races ? races : Str(e, "race") is { Length: > 0 } race ? [race] : Array.Empty<string>(),
                 Mechanics = StrArray(e, "mechanics"),
+                Runes = RunesOf(e),
                 Collectible = Bool(e, "collectible"),
                 TechLevel = Int(e, "techLevel"),
                 IsBattlegroundsPoolMinion = Bool(e, "isBattlegroundsPoolMinion"),
@@ -283,6 +284,7 @@ public sealed class CardDb
             Set = card.Set,
             Races = races,
             Mechanics = mechanics,
+            Runes = card.Runes,
             Collectible = card.Collectible,
             TechLevel = techLevel,
             IsBattlegroundsPoolMinion = poolMinion,
@@ -386,5 +388,25 @@ public sealed class CardDb
         }
 
         return list;
+    }
+
+    /// <summary>The rune types of <c>runeCost</c> ({"blood": 1, "frost": 0, "unholy": 2}) with a count above 0, upper case.</summary>
+    internal static IReadOnlyList<string> RunesOf(JsonElement e)
+    {
+        if (!e.TryGetProperty("runeCost", out var cost) || cost.ValueKind != JsonValueKind.Object)
+        {
+            return Array.Empty<string>();
+        }
+
+        var runes = new List<string>(3);
+        foreach (var rune in cost.EnumerateObject())
+        {
+            if (rune.Value.ValueKind == JsonValueKind.Number && rune.Value.TryGetInt32(out var count) && count > 0)
+            {
+                runes.Add(rune.Name.ToUpperInvariant());
+            }
+        }
+
+        return runes;
     }
 }

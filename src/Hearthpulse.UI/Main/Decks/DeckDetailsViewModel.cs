@@ -59,10 +59,13 @@ public sealed record DeckCardStatRow(
     int PlayedSign,
     string AverageTurn);
 
-/// <summary>A card whose copies differ from the main version: "+2 Card" or "−1 Card".</summary>
-public sealed record CardDiffRow(string CardId, string Text, int Sign);
+/// <summary>A card whose copies differ between two lists: its tile, name and "+2" / "−1" (the sign colours it).</summary>
+public sealed record CardDiffRow(string CardId, string Name, string Count, int Sign);
 
-/// <summary>A version of the deck with its own results and its cards against the main version.</summary>
+/// <summary>
+/// A version of the deck with its own results and its cards against the main version. <see cref="Few"/>: too few games
+/// to tell, the win bar is faded. <see cref="DiffOpen"/>: its cards against the main version are shown.
+/// </summary>
 public sealed record DeckVersionRow(
     string Key,
     string Name,
@@ -71,22 +74,44 @@ public sealed record DeckVersionRow(
     string Record,
     string WinRate,
     double WinFraction,
+    int Games,
+    bool Few,
+    string Changes,
     IReadOnlyList<CardDiffRow> Diff,
-    bool CanManage);
+    bool DiffOpen,
+    bool CanManage)
+{
+    public bool CanMakeMain => CanManage && !IsMain;
 
-/// <summary>Another deck that looks like a version of this one.</summary>
-public sealed record DeckSuggestionRow(string FirstKey, string SecondKey, string Title, string Detail);
+    public bool HasDiff => Diff.Count > 0;
+
+    public string DiffAction => DiffOpen ? DeckVersionsText.HideDiff : DeckVersionsText.ShowDiff;
+}
+
+/// <summary>
+/// Another deck that looks like a version of this one. On the deck page it also has its cards against this deck's main
+/// version (<see cref="Changes"/> "+2 / −2 cards", <see cref="Diff"/>), shown while <see cref="DiffOpen"/>.
+/// </summary>
+public sealed record DeckSuggestionRow(string FirstKey, string SecondKey, string Title, string Detail)
+{
+    public string Changes { get; init; } = string.Empty;
+
+    public IReadOnlyList<CardDiffRow> Diff { get; init; } = [];
+
+    public bool DiffOpen { get; init; }
+}
+
+/// <summary>A deck of the same class and format that can be added to this one by hand (most alike first).</summary>
+public sealed record MergeCandidateRow(string Key, string Name, string HeroCardId, string Detail, string Shared, bool Dismissed, bool Selected);
 
 /// <summary>A recent game of the deck.</summary>
 public sealed record DeckGameRow(string Key, string When, string Result, string Opponent, string OpponentHeroCardId, string Detail);
 
-/// <summary>Another deck of the class, to merge with by hand.</summary>
-public sealed record DeckChoice(string Key, string Label);
-
 /// <summary>
 /// The deck page: one deck family's results, matchups, personal mulligan, card performance, versions and recent
 /// games. A selected matchup filters every block but the matchups. Family changes (merge, split, rename, main
-/// version) go to the history and the page is shown again from the reloaded families.
+/// version) go to the history and the page is shown again from the reloaded families. The Versions card's text comes
+/// from <see cref="DeckVersionsText"/>.
 /// </summary>
 public sealed class DeckDetailsViewModel : Observable
 {
@@ -94,6 +119,8 @@ public sealed class DeckDetailsViewModel : Observable
     private DeckFamily? _family;
     private IReadOnlyList<DeckFamily> _families = [];
     private IReadOnlyList<MergeSuggestion> _suggestions = [];
+    private IReadOnlySet<(string, string)> _dismissed = new HashSet<(string, string)>();
+    private readonly HashSet<string> _openDiffs = new(StringComparer.Ordinal);
     private ConstructedMeta? _meta;
     private CardDb _cards = CardDb.Empty;
     private string? _matchup;
@@ -117,8 +144,13 @@ public sealed class DeckDetailsViewModel : Observable
     private string _cardsNote = string.Empty;
     private IReadOnlyList<DeckVersionRow> _versions = [];
     private IReadOnlyList<DeckSuggestionRow> _suggestionRows = [];
-    private IReadOnlyList<DeckChoice> _mergeChoices = [];
-    private DeckChoice? _mergeChoice;
+    private bool _renaming;
+    private string _undoText = string.Empty;
+    private bool _pickerOpen;
+    private string _search = string.Empty;
+    private string? _chosen;
+    private IReadOnlyList<MergeCandidateRow> _candidates = [];
+    private string _candidatesEmpty = string.Empty;
     private IReadOnlyList<DeckGameRow> _games = [];
 
     public DeckDetailsViewModel(MainViewModel owner)
@@ -141,16 +173,50 @@ public sealed class DeckDetailsViewModel : Observable
             _sortByWinRate = p as string == "WinRate";
             Rebuild();
         });
-        Rename = new RelayCommand(() => _owner.RenameDeck(_family, EditName));
+        StartRename = new RelayCommand(() =>
+        {
+            EditName = _family?.Name ?? string.Empty;
+            Renaming = true;
+        });
+        CancelRename = new RelayCommand(() => Renaming = false);
+        Rename = new RelayCommand(() =>
+        {
+            Renaming = false;
+            _owner.RenameDeck(_family, EditName);
+        });
         SetMain = new RelayCommand(p => _owner.SetMainVersion(_family, p as string));
         Split = new RelayCommand(p => _owner.SplitVersion(_family, p as string));
+        ToggleDiff = new RelayCommand(p =>
+        {
+            if (p is string key && !_openDiffs.Remove(key))
+            {
+                _openDiffs.Add(key);
+            }
+
+            ShowOpenDiffs(Versions, Suggestions);
+        });
         Merge = new RelayCommand(p => _owner.MergeDecks(p as DeckSuggestionRow));
         Dismiss = new RelayCommand(p => _owner.DismissDecks(p as DeckSuggestionRow));
-        MergeChosen = new RelayCommand(() =>
+        UndoMerge = new RelayCommand(_owner.UndoMerge);
+        TogglePicker = new RelayCommand(() =>
         {
-            if (_family is not null && MergeChoice is { } choice)
+            PickerOpen = !PickerOpen;
+            _chosen = null;
+            _search = string.Empty;
+            Raise(nameof(Search));
+            RefreshCandidates();
+        });
+        Choose = new RelayCommand(p =>
+        {
+            _chosen = p as string;
+            RefreshCandidates();
+        });
+        AddChosen = new RelayCommand(() =>
+        {
+            if (_family is not null && _chosen is { } key)
             {
-                _owner.MergeDecks(new DeckSuggestionRow(_family.Key, choice.Key, string.Empty, string.Empty));
+                PickerOpen = false;
+                _owner.MergeDecks(new DeckSuggestionRow(_family.Key, key, string.Empty, string.Empty));
             }
         });
         OpenGame = new RelayCommand(p =>
@@ -171,7 +237,12 @@ public sealed class DeckDetailsViewModel : Observable
     /// <summary>"Games" or "WinRate".</summary>
     public RelayCommand SortMatchups { get; }
 
+    /// <summary>Saves <see cref="EditName"/> as the deck's name.</summary>
     public RelayCommand Rename { get; }
+
+    public RelayCommand StartRename { get; }
+
+    public RelayCommand CancelRename { get; }
 
     public RelayCommand SetMain { get; }
 
@@ -179,9 +250,22 @@ public sealed class DeckDetailsViewModel : Observable
 
     public RelayCommand Merge { get; }
 
+    /// <summary>"Not the same deck": the pair is never suggested again.</summary>
     public RelayCommand Dismiss { get; }
 
-    public RelayCommand MergeChosen { get; }
+    /// <summary>Shows or hides the cards of a version (its key) or of a suggested deck (its key) against the main version.</summary>
+    public RelayCommand ToggleDiff { get; }
+
+    public RelayCommand UndoMerge { get; }
+
+    /// <summary>Opens or closes the list of decks to add to this family.</summary>
+    public RelayCommand TogglePicker { get; }
+
+    /// <summary>Picks a deck in that list (its key).</summary>
+    public RelayCommand Choose { get; }
+
+    /// <summary>Adds the picked deck to this family.</summary>
+    public RelayCommand AddChosen { get; }
 
     public RelayCommand OpenGame { get; }
 
@@ -192,6 +276,9 @@ public sealed class DeckDetailsViewModel : Observable
 
     /// <summary>The name box; <see cref="Rename"/> saves it (blank goes back to the main version's name).</summary>
     public string EditName { get => _editName; set => Set(ref _editName, value); }
+
+    /// <summary>True while the name box shows in place of the name.</summary>
+    public bool Renaming { get => _renaming; private set => Set(ref _renaming, value); }
 
     public string HeroCardId { get => _heroCardId; private set => Set(ref _heroCardId, value); }
 
@@ -227,9 +314,31 @@ public sealed class DeckDetailsViewModel : Observable
 
     public IReadOnlyList<DeckSuggestionRow> Suggestions { get => _suggestionRows; private set => Set(ref _suggestionRows, value); }
 
-    public IReadOnlyList<DeckChoice> MergeChoices { get => _mergeChoices; private set => Set(ref _mergeChoices, value); }
+    /// <summary>"Merged “Рыцарь смерти2” into this deck" right after a merge into the deck shown (with Undo), else empty.</summary>
+    public string UndoText { get => _undoText; private set => Set(ref _undoText, value); }
 
-    public DeckChoice? MergeChoice { get => _mergeChoice; set => Set(ref _mergeChoice, value); }
+    public bool PickerOpen { get => _pickerOpen; private set => Set(ref _pickerOpen, value); }
+
+    /// <summary>The picker's search box: keeps the decks whose name holds it.</summary>
+    public string Search
+    {
+        get => _search;
+        set
+        {
+            if (Set(ref _search, value))
+            {
+                RefreshCandidates();
+            }
+        }
+    }
+
+    public IReadOnlyList<MergeCandidateRow> Candidates { get => _candidates; private set => Set(ref _candidates, value); }
+
+    /// <summary>Why the picker's list is empty (no other deck of the class and format, or none matches), else empty.</summary>
+    public string CandidatesEmpty { get => _candidatesEmpty; private set => Set(ref _candidatesEmpty, value); }
+
+    /// <summary>True once a deck is picked: <see cref="AddChosen"/> needs one.</summary>
+    public bool CanAddChosen => _chosen is not null;
 
     public IReadOnlyList<DeckGameRow> Games { get => _games; private set => Set(ref _games, value); }
 
@@ -240,6 +349,9 @@ public sealed class DeckDetailsViewModel : Observable
         {
             _matchup = null;
             EditName = family.Name;
+            Renaming = false;
+            PickerOpen = false;
+            _openDiffs.Clear();
         }
 
         _family = family;
@@ -247,9 +359,54 @@ public sealed class DeckDetailsViewModel : Observable
         _suggestions = suggestions;
         _meta = meta;
         _cards = cards;
+        UndoText = _owner.MergeUndoText(family.Key) ?? string.Empty;
         Raise(nameof(Key));
         Rebuild();
     }
+
+    /// <summary>The rows with the card differences the player opened (kept while the page is rebuilt).</summary>
+    private void ShowOpenDiffs(IEnumerable<DeckVersionRow> versions, IEnumerable<DeckSuggestionRow> suggestions)
+    {
+        Versions = versions.Select(v => v with { DiffOpen = _openDiffs.Contains(v.Key) }).ToList();
+        Suggestions = suggestions.Select(s => s with { DiffOpen = _openDiffs.Contains(s.SecondKey) }).ToList();
+    }
+
+    /// <summary>The picker's list from the loaded families: same class and format, the search applied, most alike first.</summary>
+    private void RefreshCandidates()
+    {
+        if (_family is not { } family || !PickerOpen)
+        {
+            _chosen = null;
+            Candidates = [];
+            CandidatesEmpty = string.Empty;
+            Raise(nameof(CanAddChosen));
+            return;
+        }
+
+        var found = DeckFamilies.Candidates(family, _families, _dismissed, _search);
+        if (found.All(c => c.Family.Key != _chosen))
+        {
+            _chosen = null;
+        }
+
+        Candidates = found.Select(c => new MergeCandidateRow(
+                c.Family.Key,
+                c.Family.Name,
+                MainViewModel.ClassHero(c.Family.PlayerClass),
+                DeckVersionsText.CandidateDetail(c.Family.Record, MainViewModel.When(c.Family.LastPlayed)),
+                DeckVersionsText.SharedShort(c.Overlap),
+                c.Dismissed,
+                c.Family.Key == _chosen))
+            .ToList();
+        CandidatesEmpty = found.Count > 0 ? string.Empty
+            : string.IsNullOrWhiteSpace(_search) ? DeckVersionsText.NoCandidates(OverlayViewModel.ClassName(family.PlayerClass), FormatName(family.Format))
+            : DeckVersionsText.NoMatch(_search.Trim());
+        Raise(nameof(CanAddChosen));
+    }
+
+    private static string FormatName(string format) => ConstructedMeta.FormatKeyOf(format) is { } key
+        ? ConstructedMeta.Label(ConstructedMeta.Formats, key)
+        : format.Replace("FT_", string.Empty, StringComparison.Ordinal);
 
     private async void Rebuild()
     {
@@ -282,9 +439,7 @@ public sealed class DeckDetailsViewModel : Observable
         var games = DeckDetails.Filter(all, matchup, meta);
         var summary = DeckDetails.Summary(games);
         var deckRate = summary.Record.WinRate;
-        var format = ConstructedMeta.FormatKeyOf(family.Format) is { } key
-            ? ConstructedMeta.Label(ConstructedMeta.Formats, key)
-            : family.Format.Replace("FT_", string.Empty, StringComparison.Ordinal);
+        var format = FormatName(family.Format);
         var metaFits = ArchetypeGuess.FitsFormat(meta, family.Format) ? meta : null;
         var archetype = ConstructedStats.ArchetypeOf(family.Main.DeckCode, family.PlayerClass, metaFits, cards);
 
@@ -389,19 +544,20 @@ public sealed class DeckDetailsViewModel : Observable
         var versionRows = family.Versions.Select(v =>
             {
                 var record = matchup is null ? v.Record : WinLoss.Of(games.Where(g => DeckFamilies.VersionKey(g) == v.Key));
+                var deltas = v == main ? [] : DeckFamilies.Diff(main, v);
                 return new DeckVersionRow(
                     v.Key,
                     v.Name,
                     v == main,
-                    $"{(record.Games == 1 ? "1 game" : $"{record.Games:N0} games")} · {MainViewModel.When(v.FirstPlayed)} – {MainViewModel.When(v.LastPlayed)}",
-                    $"{record.Wins}–{record.Losses}",
+                    DeckVersionsText.VersionDetail(record.Games, MainViewModel.When(v.FirstPlayed), MainViewModel.When(v.LastPlayed)),
+                    DeckVersionsText.Record(record),
                     Percent(record.WinRate),
                     record.WinRate ?? 0,
-                    v == main ? [] : DeckFamilies.Diff(main, v).Select(d => new CardDiffRow(
-                            cards.Get(d.DbfId)?.Id ?? string.Empty,
-                            $"{(d.Delta > 0 ? "+" : "−")}{Math.Abs(d.Delta)} {cards.Get(d.DbfId)?.Name ?? d.DbfId.ToString(CultureInfo.InvariantCulture)}",
-                            Math.Sign(d.Delta)))
-                        .ToList(),
+                    record.Games,
+                    record.Games < DeckDetails.SmallSample,
+                    Changes(deltas),
+                    DiffRows(deltas, cards),
+                    false,
                     family.Versions.Count > 1);
             })
             .ToList();
@@ -411,16 +567,15 @@ public sealed class DeckDetailsViewModel : Observable
             .Select(s =>
             {
                 var other = s.First.Key == family.Key ? s.Second : s.First;
-                var hints = string.Join(", ", new[] { s.SameDeckId ? "same deck slot" : null, s.SimilarNames ? "alike names" : null }.Where(h => h is not null));
-                return new DeckSuggestionRow(family.Key, other.Key, other.Name,
-                    $"{Percent(s.Overlap)} same cards{(hints.Length > 0 ? " · " + hints : string.Empty)} · {other.Record.Wins}–{other.Record.Losses}");
+                var deltas = DeckFamilies.Diff(main, other.Main);
+                return new DeckSuggestionRow(family.Key, other.Key, other.Name, DeckVersionsText.SuggestionDetail(s.Overlap, s.SameDeckId, s.SimilarNames, other.Record))
+                {
+                    Changes = Changes(deltas),
+                    Diff = DiffRows(deltas, cards),
+                };
             })
             .ToList();
-        var choices = families
-            // Only lists of the same class and format: the family's format picks the meta it is compared with.
-            .Where(f => f.Key != family.Key && f.PlayerClass == family.PlayerClass && f.Format == family.Format)
-            .Select(f => new DeckChoice(f.Key, $"{f.Name} · {f.Record.Wins}–{f.Record.Losses}"))
-            .ToList();
+        var dismissed = _owner.History.DismissedDeckPairs();
 
         var recent = games.AsEnumerable().Reverse().Take(12).Select(g => new DeckGameRow(
                 g.Key,
@@ -448,13 +603,26 @@ public sealed class DeckDetailsViewModel : Observable
             CardRows = cardRows;
             MulliganNote = mulliganNote;
             CardsNote = cardsNote;
-            Versions = versionRows;
-            Suggestions = suggestionRows;
-            MergeChoices = choices;
-            MergeChoice = choices.FirstOrDefault(c => c.Key == MergeChoice?.Key);
+            ShowOpenDiffs(versionRows, suggestionRows);
+            _dismissed = dismissed;
+            RefreshCandidates();
             Games = recent;
         };
     }
+
+    /// <summary>Card differences as tiles: added cards first, then the ones taken out.</summary>
+    private static List<CardDiffRow> DiffRows(IReadOnlyList<CardDelta> deltas, CardDb cards) => deltas
+        .Select(d => new CardDiffRow(
+            cards.Get(d.DbfId)?.Id ?? string.Empty,
+            cards.Get(d.DbfId)?.Name ?? d.DbfId.ToString(CultureInfo.InvariantCulture),
+            $"{(d.Delta > 0 ? "+" : "−")}{Math.Abs(d.Delta)}",
+            Math.Sign(d.Delta)))
+        .ToList();
+
+    /// <summary>"+2 / −2 cards", empty when the lists are the same (or unknown).</summary>
+    private static string Changes(IReadOnlyList<CardDelta> deltas) => deltas.Count == 0
+        ? string.Empty
+        : DeckVersionsText.CardChanges(deltas.Where(d => d.Delta > 0).Sum(d => d.Delta), deltas.Where(d => d.Delta < 0).Sum(d => -d.Delta));
 
     private static DeckMatchupRow MatchupRow(DeckMatchup m, string? selected) => new(
         m.Key,

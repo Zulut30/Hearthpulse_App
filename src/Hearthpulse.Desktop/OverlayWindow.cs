@@ -57,6 +57,26 @@ internal sealed class OverlayWindow : Window
     /// <summary>Temporarily hides the overlay (hotkey or tray) without changing settings.</summary>
     public bool Suppressed { get; set; }
 
+    private string? _visibilityNote;
+
+    /// <summary>
+    /// One log line whenever the overlay starts or stops showing, with the reason, so "I did not see the panel" can be
+    /// told apart in hearthpulse.log from a hidden overlay (another window in front, the hotkey, the setting).
+    /// </summary>
+    private void NoteVisibility(bool visible, PixelRect? area, bool layout)
+    {
+        var note = visible ? layout ? "shown (layout mode)" : $"shown over Hearthstone {area!.Value.Width}x{area.Value.Height}"
+            : area is null ? "hidden: no Hearthstone window"
+            : Suppressed ? "hidden with the hotkey"
+            : !_host.Settings.OverlayEnabled ? "hidden: the overlay is off in Settings"
+            : "hidden: Hearthstone is not the foreground window";
+        if (note != _visibilityNote)
+        {
+            _visibilityNote = note;
+            Diag.Info($"Overlay {note}");
+        }
+    }
+
     private void Tick()
     {
         var vm = _host.Overlay;
@@ -64,6 +84,7 @@ internal sealed class OverlayWindow : Window
         // Layout mode stays up while the player arranges panels from the dashboard as well.
         var visible = area is not null && !Suppressed
                       && (vm.LayoutEditing || (_host.Settings.OverlayEnabled && _platform.IsGameForeground()));
+        NoteVisibility(visible, area, vm.LayoutEditing);
         if (!visible)
         {
             if (_shown)

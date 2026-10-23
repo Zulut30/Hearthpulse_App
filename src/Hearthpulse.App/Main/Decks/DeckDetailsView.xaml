@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:Hearthpulse.App.Controls"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
-             xmlns:d="clr-namespace:Hearthpulse.App.Main.Decks">
+             xmlns:d="clr-namespace:Hearthpulse.App.Main.Decks"
+             xmlns:s="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core">
     <!-- The deck page: one deck family. DataContext is MainViewModel.DeckPage. Colours are theme tokens only. -->
     <UserControl.Resources>
         <ResourceDictionary>
@@ -35,6 +36,66 @@
                 <Setter Property="VerticalAlignment" Value="Center" />
                 <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
+            <!-- "+2 / −2 cards ▾": opens a list of card differences (Tag = open) -->
+            <Style x:Key="DiffToggle" TargetType="Button">
+                <Setter Property="Foreground" Value="{StaticResource Muted}" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{StaticResource Surface4}" CornerRadius="6" Padding="8,2,5,2">
+                                <StackPanel Orientation="Horizontal">
+                                    <ContentPresenter VerticalAlignment="Center" TextElement.FontSize="11.5" TextElement.FontWeight="SemiBold" />
+                                    <TextBlock Text="&#xF0140;" Style="{StaticResource Icon}" FontSize="14" Margin="3,0,0,0" Foreground="{TemplateBinding Foreground}"
+                                               Visibility="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                    <TextBlock Text="&#xF0143;" Style="{StaticResource Icon}" FontSize="14" Margin="3,0,0,0" Foreground="{TemplateBinding Foreground}"
+                                               Visibility="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Vis}}" />
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Outline}" />
+                                    <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A card that differs: "+2" / "−1" and its tile; the full card shows on hover -->
+            <DataTemplate x:Key="DiffTile" DataType="{x:Type d:CardDiffRow}">
+                <Grid Height="28" Margin="0,0,0,3" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="30" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12.5" VerticalAlignment="Center"
+                               Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
+                    <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
+                        <Grid>
+                            <!-- The art's own edge hides under the fade, as in the overlay's deck rows -->
+                            <Grid Width="180" HorizontalAlignment="Right">
+                                <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                                <Rectangle Fill="{StaticResource TileFade}" />
+                            </Grid>
+                            <TextBlock Text="{Binding Name}" Margin="9,0,6,0" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </Grid>
+            </DataTemplate>
+
+            <!-- A deck in the "add a deck" list; the picked one is filled -->
+            <Style x:Key="CandidateRow" TargetType="Button" BasedOn="{StaticResource RowButton}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Selected}" Value="True">
+                        <Setter Property="Background" Value="{StaticResource SelectedFill}" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <Style x:Key="Head" TargetType="TextBlock" BasedOn="{StaticResource StatsHead}">
                 <Setter Property="HorizontalAlignment" Value="Right" />
                 <Setter Property="TextAlignment" Value="Right" />
@@ -68,10 +129,8 @@
                     <TextBlock Text="{Binding ArchetypeLine}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
                 </Border>
             </StackPanel>
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ToolTip="Name the deck (empty: the main version's name)">
-                <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Width="200" VerticalAlignment="Center" />
-                <Button Style="{StaticResource GhostButton}" Content="Rename" Command="{Binding Rename}" Margin="8,0,0,0" Padding="14,7" />
-            </StackPanel>
+            <Button Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xF03EB;" VerticalAlignment="Center" Click="OnRename"
+                    ToolTip="{x:Static s:DeckVersionsText.Rename}" />
         </Grid>
 
         <!-- Matchup filter -->
@@ -219,9 +278,38 @@
                 </StackPanel>
             </Border>
 
-            <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+            <Border x:Name="VersionsCard" Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="Versions" Icon="&#xF062C;" Size="13" Margin="0,0,0,10" />
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <c:Ornament Text="{x:Static s:DeckVersionsText.Title}" Icon="&#xF062C;" Size="13" />
+                        <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xF03EB;" Width="30" Height="30" FontSize="15" Margin="10,0,0,0"
+                                Command="{Binding StartRename}" ToolTip="{x:Static s:DeckVersionsText.Rename}" />
+                    </Grid>
+
+                    <!-- Rename: the deck's own name; empty goes back to the main version's name -->
+                    <Grid Margin="0,0,0,12" Visibility="{Binding Renaming, Converter={StaticResource Vis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="NameBox" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Padding="6,4"
+                                 ToolTip="{x:Static s:DeckVersionsText.RenameTip}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding Rename}" />
+                                <KeyBinding Key="Escape" Command="{Binding CancelRename}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Content="{x:Static s:DeckVersionsText.Save}" Command="{Binding Rename}"
+                                Padding="12,6" Margin="8,0,0,0" />
+                        <Button Grid.Column="2" Style="{StaticResource GhostButton}" Content="{x:Static s:DeckVersionsText.Cancel}" Command="{Binding CancelRename}"
+                                Padding="10,6" Margin="6,0,0,0" />
+                    </Grid>
+
                     <ItemsControl ItemsSource="{Binding Versions}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type d:DeckVersionRow}">
@@ -230,92 +318,219 @@
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="52" />
-                                                <ColumnDefinition Width="110" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="220" />
-                                                    <Border Style="{StaticResource Pill}" Margin="8,0,0,0" Padding="7,1" Background="{StaticResource AccentContainer}"
-                                                            Visibility="{Binding IsMain, Converter={StaticResource Vis}}" ToolTip="The main version: its name, cards and archetype stand for the deck">
-                                                        <TextBlock Text="main" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <WrapPanel>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="220" VerticalAlignment="Center" />
+                                                    <Border Style="{StaticResource Pill}" Margin="8,0,0,0" Padding="6,1,8,1" Background="{StaticResource AccentContainer}" VerticalAlignment="Center"
+                                                            Visibility="{Binding IsMain, Converter={StaticResource Vis}}" ToolTip="{x:Static s:DeckVersionsText.MainChipTip}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="&#xF04CE;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Accent}" Margin="0,0,4,0" />
+                                                            <TextBlock Text="{x:Static s:DeckVersionsText.MainChip}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
+                                                        </StackPanel>
                                                     </Border>
-                                                </StackPanel>
+                                                </WrapPanel>
                                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
-                                            <TextBlock Grid.Column="1" Text="{Binding Record}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                <Border Width="56" Height="7" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
-                                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
-                                                            Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=56}" />
-                                                </Border>
-                                                <TextBlock Text="{Binding WinRate}" Width="46" TextAlignment="Right" FontWeight="Bold" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Record}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="10,0,10,0" />
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" ToolTip="{x:Static s:DeckVersionsText.WinRateTip}">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <c:WinBar Width="64" Height="8" VerticalAlignment="Center" Fraction="{Binding WinFraction}" Games="{Binding Games}" Few="{Binding Few}" />
+                                                    <TextBlock Text="{Binding WinRate}" Width="44" TextAlignment="Right">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="FontWeight" Value="Bold" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Few}" Value="True">
+                                                                        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+                                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <TextBlock Text="{x:Static s:DeckVersionsText.FewGames}" Style="{StaticResource Caption}" FontSize="11" HorizontalAlignment="Right"
+                                                           Visibility="{Binding Few, Converter={StaticResource Vis}}" ToolTip="{x:Static s:DeckVersionsText.FewGamesTip}" />
                                             </StackPanel>
+                                            <!-- ⋯ menu: make main, take out, show differences (only in a family of two or more) -->
+                                            <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF01D8;" Width="28" Height="28" FontSize="16" Margin="6,0,-4,0"
+                                                    VerticalAlignment="Center" ToolTip="{x:Static s:DeckVersionsText.MoreTip}" Click="OnMore"
+                                                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    Visibility="{Binding CanManage, Converter={StaticResource Vis}}">
+                                                <Button.ContextMenu>
+                                                    <ContextMenu Placement="Bottom">
+                                                        <MenuItem Header="{x:Static s:DeckVersionsText.MakeMain}" Visibility="{Binding CanMakeMain, Converter={StaticResource Vis}}"
+                                                                  Command="{Binding PlacementTarget.Tag.SetMain, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding Key}">
+                                                            <MenuItem.Icon>
+                                                                <TextBlock Text="&#xF04CE;" Style="{StaticResource Icon}" FontSize="15" />
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                        <MenuItem Header="{Binding DiffAction}" Visibility="{Binding HasDiff, Converter={StaticResource Vis}}"
+                                                                  Command="{Binding PlacementTarget.Tag.ToggleDiff, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding Key}">
+                                                            <MenuItem.Icon>
+                                                                <TextBlock Text="&#xF0208;" Style="{StaticResource Icon}" FontSize="15" />
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                        <MenuItem Header="{x:Static s:DeckVersionsText.SplitOff}" ToolTip="{x:Static s:DeckVersionsText.SplitOffTip}"
+                                                                  Command="{Binding PlacementTarget.Tag.Split, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding Key}">
+                                                            <MenuItem.Icon>
+                                                                <TextBlock Text="&#xF0156;" Style="{StaticResource Icon}" FontSize="15" />
+                                                            </MenuItem.Icon>
+                                                        </MenuItem>
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
                                         </Grid>
-                                        <ItemsControl ItemsSource="{Binding Diff}" Margin="0,6,0,0" Visibility="{Binding Diff, Converter={StaticResource Vis}}"
-                                                      ToolTip="Cards against the main version">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type d:CardDiffRow}">
-                                                    <Border Style="{StaticResource Pill}" Margin="0,0,5,5" Padding="7,1">
-                                                        <TextBlock Text="{Binding Text}" FontSize="11.5" FontWeight="SemiBold" Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding CanManage, Converter={StaticResource Vis}}">
-                                            <Button Style="{StaticResource GhostButton}" Content="Make main" Padding="10,4" FontSize="12" Margin="0,0,6,0"
-                                                    Command="{Binding DataContext.SetMain, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}"
-                                                    Visibility="{Binding IsMain, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                                            <Button Style="{StaticResource GhostButton}" Content="Split off" Padding="10,4" FontSize="12"
-                                                    Command="{Binding DataContext.Split, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}"
-                                                    ToolTip="Make this version a deck of its own again" />
-                                        </StackPanel>
+                                        <Button Style="{StaticResource DiffToggle}" Margin="0,5,0,0" Visibility="{Binding HasDiff, Converter={StaticResource Vis}}"
+                                                Command="{Binding DataContext.ToggleDiff, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}"
+                                                Content="{Binding Changes}" Tag="{Binding DiffOpen}" ToolTip="{x:Static s:DeckVersionsText.DiffTip}" />
+                                        <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,6,0,0"
+                                                      Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" />
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- Suggested merges with this deck, and a merge by hand -->
+                    <!-- Right after a merge into this deck: undo -->
+                    <Border Background="{StaticResource SecondaryContainer}" CornerRadius="8" Padding="12,4,6,4" Margin="0,2,0,8"
+                            Visibility="{Binding UndoText, Converter={StaticResource Vis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Positive}" Margin="0,0,8,0" />
+                            <TextBlock Grid.Column="1" Text="{Binding UndoText}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}"
+                                       TextWrapping="Wrap" />
+                            <Button Grid.Column="2" Style="{StaticResource GhostButton}" Command="{Binding UndoMerge}" Padding="10,5" Margin="8,0,0,0" FontSize="12">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xF054C;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent}" Margin="0,0,5,0" />
+                                    <TextBlock Text="{x:Static s:DeckVersionsText.Undo}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- Decks that look like versions of this one -->
                     <StackPanel Visibility="{Binding Suggestions, Converter={StaticResource Vis}}" Margin="0,8,0,0">
-                        <TextBlock Text="Looks like the same deck" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                        <TextBlock Text="{x:Static s:DeckVersionsText.SuggestionsTitle}" Style="{StaticResource Label}" Margin="0,0,0,6" />
                         <ItemsControl ItemsSource="{Binding Suggestions}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type d:DeckSuggestionRow}">
-                                    <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Button Style="{StaticResource PrimaryButton}" Content="Merge" Padding="12,5" FontSize="12" Margin="8,0,6,0"
-                                                        Command="{Binding DataContext.Merge, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                                                <Button Style="{StaticResource GhostButton}" Content="Not the same" Padding="10,5" FontSize="12"
-                                                        Command="{Binding DataContext.Dismiss, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                                            </StackPanel>
-                                        </Grid>
+                                    <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,0,0,6">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextWrapping="Wrap" />
+                                            <Grid Margin="0,8,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Button Style="{StaticResource DiffToggle}" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                        Visibility="{Binding Changes, Converter={StaticResource Vis}}"
+                                                        Command="{Binding DataContext.ToggleDiff, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding SecondKey}"
+                                                        Content="{Binding Changes}" Tag="{Binding DiffOpen}" ToolTip="{x:Static s:DeckVersionsText.ShowCards}" />
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Button Style="{StaticResource PrimaryButton}" Content="{x:Static s:DeckVersionsText.Merge}" Padding="12,5" FontSize="12" Margin="8,0,6,0"
+                                                            ToolTip="{x:Static s:DeckVersionsText.MergeTip}"
+                                                            Command="{Binding DataContext.Merge, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                                    <Button Style="{StaticResource GhostButton}" Content="{x:Static s:DeckVersionsText.NotSame}" Padding="10,5" FontSize="12"
+                                                            ToolTip="{x:Static s:DeckVersionsText.NotSameTip}"
+                                                            Command="{Binding DataContext.Dismiss, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,8,0,0"
+                                                          Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" />
+                                        </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </StackPanel>
-                    <Grid Margin="0,8,0,0" Visibility="{Binding MergeChoices, Converter={StaticResource Vis}}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ComboBox ItemsSource="{Binding MergeChoices}" SelectedItem="{Binding MergeChoice}" DisplayMemberPath="Label" VerticalAlignment="Center"
-                                  ToolTip="Another deck of this class that is a version of this one" />
-                        <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="Merge in" Padding="12,6" Margin="8,0,0,0" Command="{Binding MergeChosen}" />
-                    </Grid>
+
+                    <!-- Add another deck of this class and format by hand -->
+                    <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Padding="12,6" Margin="0,8,0,0" Command="{Binding TogglePicker}"
+                            ToolTip="{x:Static s:DeckVersionsText.AddDeckTip}" Visibility="{Binding PickerOpen, Converter={StaticResource Vis}, ConverterParameter=!}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xF0415;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
+                            <TextBlock Text="{x:Static s:DeckVersionsText.AddDeck}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Border x:Name="Picker" Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="10" Padding="12"
+                            Margin="0,8,0,0" Visibility="{Binding PickerOpen, Converter={StaticResource Vis}}">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{x:Static s:DeckVersionsText.PickerTitle}" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xF0156;" Width="26" Height="26" FontSize="14"
+                                        Command="{Binding TogglePicker}" ToolTip="{x:Static s:DeckVersionsText.Cancel}" />
+                            </Grid>
+                            <Grid>
+                                <!-- The theme's text box applies Padding twice (frame and text view): 17,4 reads as 34,8 -->
+                                <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Padding="17,4,6,4" />
+                                <TextBlock Text="&#xF0349;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Faint}" Margin="12,0,0,0"
+                                           HorizontalAlignment="Left" IsHitTestVisible="False" />
+                                <TextBlock Text="{x:Static s:DeckVersionsText.SearchPlaceholder}" Foreground="{StaticResource Faint}" Margin="36,0,0,0" VerticalAlignment="Center"
+                                           IsHitTestVisible="False" Visibility="{Binding Search, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                            </Grid>
+                            <ScrollViewer MaxHeight="264" Margin="-4,8,-4,0" VerticalScrollBarVisibility="Auto" Visibility="{Binding Candidates, Converter={StaticResource Vis}}">
+                                <ItemsControl ItemsSource="{Binding Candidates}" Margin="4,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type d:MergeCandidateRow}">
+                                            <Button Style="{StaticResource CandidateRow}" Padding="10,7" Margin="0,0,0,2"
+                                                    Command="{Binding DataContext.Choose, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="22" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Width="30" Height="30" Margin="0,0,10,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}" />
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{x:Static s:DeckVersionsText.MarkedDifferent}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}"
+                                                                   Visibility="{Binding Dismissed, Converter={StaticResource Vis}}" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Shared}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
+                                                               Margin="10,0,0,0" ToolTip="{x:Static s:DeckVersionsText.SharedTip}" />
+                                                    <TextBlock Grid.Column="3" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}"
+                                                               HorizontalAlignment="Right" Visibility="{Binding Selected, Converter={StaticResource Vis}}" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            <TextBlock Text="{Binding CandidatesEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="2,10,2,2"
+                                       Visibility="{Binding CandidatesEmpty, Converter={StaticResource Vis}}" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                                <Button Style="{StaticResource GhostButton}" Content="{x:Static s:DeckVersionsText.Cancel}" Command="{Binding TogglePicker}" Padding="12,6" />
+                                <Button Content="{x:Static s:DeckVersionsText.AddChosen}" Command="{Binding AddChosen}" Padding="12,6" Margin="8,0,0,0"
+                                        IsEnabled="{Binding CanAddChosen}" ToolTipService.ShowOnDisabled="True">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter Property="ToolTip" Value="{x:Static s:DeckVersionsText.PickFirst}" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
         </Grid>

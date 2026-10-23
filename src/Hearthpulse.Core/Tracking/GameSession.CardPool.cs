@@ -14,6 +14,8 @@ public sealed partial class GameSession
     private readonly CardPoolTracker _cardPool = new();
     private readonly object _cardPoolGate = new();
     private CardPoolCatalog _cardPoolCatalog = CardPoolCatalog.Empty;
+    private WikiPoolSource? _cardPoolWiki;
+    private Cards.DeckDefinition? _wikiPrefetched;
     private (CardPoolCatalog Catalog, Cards.CardDb Cards, Constructed.ConstructedMeta? Meta)? _cardPoolInputs;
     private volatile bool _cardPoolEnabled = true;
     private volatile bool _cardPoolHoverWanted;
@@ -25,6 +27,28 @@ public sealed partial class GameSession
         lock (_cardPoolGate)
         {
             _cardPoolCatalog = catalog;
+        }
+
+        _dirty = true;
+    }
+
+    /// <summary>Hearthstone Wiki pools (the first source of a pool); the host passes it once at start-up.</summary>
+    public void SetCardPoolWiki(WikiPoolSource? wiki)
+    {
+        lock (_cardPoolGate)
+        {
+            if (_cardPoolWiki is { } previous)
+            {
+                previous.Changed -= MarkDirty;
+            }
+
+            _cardPoolWiki = wiki;
+            if (wiki is not null)
+            {
+                wiki.Changed += MarkDirty;
+            }
+
+            _cardPool.Engine = null;
         }
 
         _dirty = true;
@@ -69,6 +93,7 @@ public sealed partial class GameSession
         }
 
         _cardPool.Engine = engine;
+        PrefetchWiki(engine, game);
         try
         {
             return view with { CardPool = _cardPool.BuildView(game, _cards, DateTime.Now) };
@@ -95,10 +120,28 @@ public sealed partial class GameSession
                 || _cardPool.Engine is null)
             {
                 _cardPoolInputs = inputs;
-                _cardPool.Engine = new CardPoolEngine(_cardPoolCatalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructed.Meta, _cards));
+                _cardPool.Engine = new CardPoolEngine(_cardPoolCatalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructed.Meta, _cards), _cardPoolWiki);
             }
 
             return _cardPool.Engine;
+        }
+    }
+
+    /// <summary>Asks for the wiki pools of the deck's generators once per deck, so they are on disk before they are played.</summary>
+    private void PrefetchWiki(CardPoolEngine engine, GameState game)
+    {
+        if (_cardPoolWiki is not { } wiki || _constructed.Deck is not { } deck || ReferenceEquals(deck, _wikiPrefetched) || game.FormatType != "FT_STANDARD")
+        {
+            return;
+        }
+
+        _wikiPrefetched = deck;
+        foreach (var dbfId in deck.Cards.Keys)
+        {
+            if (_cards.Get(dbfId)?.Id is { } id && engine.Parse(id).Status is PoolParseStatus.Pool or PoolParseStatus.Uncomputed)
+            {
+                wiki.Request(id);
+            }
         }
     }
 

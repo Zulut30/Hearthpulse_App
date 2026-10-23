@@ -62,6 +62,12 @@
             </Border>
         </DataTemplate>
 
+        <DataTemplate x:Key="SectionTemplate" DataType="{x:Type o:PoolChipModel}">
+            <Border Background="{StaticResource Surface3}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="6" Padding="7,2" Margin="0,0,5,4">
+                <TextBlock Text="{Binding Label}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Text}" />
+            </Border>
+        </DataTemplate>
+
     </UserControl.Resources>
 
     <!-- Not interactive: clicks reach the board and the Discover options under it; hover and right-click are polled. -->
@@ -70,7 +76,17 @@
             <TextBlock Text="{Binding CardPoolTitle}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
             <TextBlock Text="{Binding CardPoolDescription}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextAlignment="Center"
                        TextWrapping="Wrap" Margin="0,1,0,0" />
-
+            <!-- The generator's separate pools (Hearthstone Wiki: one per rune...) and where the pool comes from -->
+            <ItemsControl ItemsSource="{Binding CardPoolSections}" ItemTemplate="{StaticResource SectionTemplate}" Margin="0,6,0,0" HorizontalAlignment="Center" Focusable="False"
+                          Visibility="{Binding CardPoolSections, Converter={StaticResource Vis}}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel HorizontalAlignment="Center" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+            <TextBlock Text="{Binding CardPoolSourceNote}" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,2,0,0"
+                       Visibility="{Binding CardPoolSourceNote, Converter={StaticResource Vis}}" />
             <ItemsControl ItemsSource="{Binding CardPoolHistograms}" ItemTemplate="{StaticResource HistogramTemplate}" Margin="-5,9,-5,0" Focusable="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -102,7 +118,8 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <TextBlock Text="Right-click to see all options" FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+            <TextBlock Text="Right-click to see all options" FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0"
+                       Visibility="{Binding CardPoolHasCards, Converter={StaticResource Vis}}" />
         </StackPanel>
     </Border>
 </UserControl>

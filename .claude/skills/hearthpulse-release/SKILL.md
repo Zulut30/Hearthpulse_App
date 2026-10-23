@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-release
-description: Use when preparing, cutting or debugging a Hearthpulse release - version numbers, tags vX.Y.Z, .github/workflows/release.yml, installers (NSIS setup, Avalonia preview zip, deb/rpm/tar.gz/AppImage, macOS dmg/pkg/zip), release notes, SHA256SUMS, and the in-app updater (UpdateService, GitHub repo Zulut30/IceCrowV2, asset names, digest check, staged install). Triggers - "релиз", "выпусти версию", "bump version", "tag", "installer", "update didn't arrive", "auto-update".
+description: Use when preparing, cutting or debugging a Hearthpulse release - version numbers, tags vX.Y.Z, .github/workflows/release.yml, installers (NSIS setup, Avalonia preview zip, deb/rpm/tar.gz/AppImage, macOS dmg/pkg/zip), release notes, SHA256SUMS, and the in-app updater (UpdateService, GitHub repo Zulut30/Hearthpulse_App, asset names, digest check, staged install). Triggers - "релиз", "выпусти версию", "bump version", "tag", "installer", "update didn't arrive", "auto-update".
 ---
 
 # Releasing Hearthpulse
@@ -20,7 +20,7 @@ The version must match `^\d+\.\d+\.\d+$` (a leading `v` is stripped).
 | `macos` | macos-latest | `installer/macos/build.sh V arm64 x64` -> `Hearthpulse-V-macOS-{arm64,x64}.{pkg,dmg,zip}` (ad-hoc signed, not notarized); no tests |
 | `release` | ubuntu | merges artifacts into `dist/`, `sha256sum * > SHA256SUMS.txt`, publishes with `softprops/action-gh-release@v2`: tag `vV`, name "Hearthpulse V", `body_path: installer/RELEASE_NOTES.md`, `fail_on_unmatched_files: true` |
 
-It publishes into the repository the workflow runs in (`origin` = `https://github.com/Zulut30/IceCrowV2`), which is
+It publishes into the repository the workflow runs in (`origin` = `https://github.com/Zulut30/Hearthpulse_App`), which is
 exactly where the updater looks. CI (`ci.yml`) is separate: build + tests on windows-latest and ubuntu-latest for
 every push to `main` and every PR.
 
@@ -49,7 +49,7 @@ test the updater on a build made with `-p:Version=...`, never on a plain `dotnet
 
 ## Updater (`src/Hearthpulse.Core/Updates/UpdateService.cs`)
 
-- `CheckAsync(http)` -> `https://api.github.com/repos/Zulut30/IceCrowV2/releases/latest` (`RepoOwner`/`RepoName`);
+- `CheckAsync(http)` -> `https://api.github.com/repos/Zulut30/Hearthpulse_App/releases/latest` (`RepoOwner`/`RepoName`);
   skips drafts and prereleases, strips `v` from `tag_name`, picks the asset whose name equals
   `AssetName(version, target, arch, linuxFlavor)` - the same names the installers produce. **Renaming an installer
   file breaks updates** for everyone on older versions.

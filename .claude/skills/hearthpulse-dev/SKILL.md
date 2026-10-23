@@ -72,7 +72,7 @@ Core folders:
   card backs, new ids across hidden zones), `ReplayStore` (`<data>/replays/*.hpr` gzip, 300 MB / 3000 files, history
   column `replay`), `MatchReplay` (frames/turns/actions), `MatchPage` + `MatchAnalysis` (what the match page of both
   apps shows; opened from History). Battlegrounds rounds come from `BattlegroundsTracker.Rounds.cs`.
-- `Updates/UpdateService.cs` - GitHub releases of `Zulut30/IceCrowV2` (`RepoOwner`/`RepoName` constants),
+- `Updates/UpdateService.cs` - GitHub releases of `Zulut30/Hearthpulse_App` (`RepoOwner`/`RepoName` constants),
   download + staged install.
 - `AppSettings.cs` (settings.json), `AppPaths.cs` (+ `Diag` log), `ThemePalette.cs`.
 - `Api/HearthpulseApi.cs` (client for `api.kolodahearthstone.com`, `HEARTHPULSE_API` env override; `{"data"}` and
@@ -190,7 +190,7 @@ dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore
 
 ## Release
 
-Tags `vX.Y.Z` -> `.github/workflows/release.yml` -> GitHub release in `Zulut30/IceCrowV2`, which `UpdateService`
+Tags `vX.Y.Z` -> `.github/workflows/release.yml` -> GitHub release in `Zulut30/Hearthpulse_App`, which `UpdateService`
 offers to users. Versions, installers, updater and the pre-release checklist: [hearthpulse-release](../hearthpulse-release/SKILL.md).
 Tagging/pushing/publishing only with explicit permission.
 

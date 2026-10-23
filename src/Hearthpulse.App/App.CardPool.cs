@@ -36,13 +36,16 @@ public partial class App
     }
 
     /// <summary>
-    /// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman), then the pool browser
-    /// for Thief's Tools with its filters open, and with one filter on.
+    /// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman), Scion of Insight's rune
+    /// pool, the "Pool not computed" panel of Dreadsoul Corrupter, then the pool browser for Thief's Tools with its
+    /// filters open, and with one filter on.
     /// </summary>
     private async Task RenderCardPoolAsync(string folder)
     {
         var catalog = await CardPoolCatalog.LoadAsync(_api, _http);
-        var engine = new CardPoolEngine(catalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructedMeta, _cards));
+        var wiki = new WikiPoolSource(new Core.Api.HearthpulseData(_api));
+        await wiki.LoadAsync("BE_298");
+        var engine = new CardPoolEngine(catalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructedMeta, _cards), wiki);
         if (engine.Build("CORE_GIL_836", new PoolContext("FT_STANDARD", "SHAMAN", "WARRIOR"), PoolTrigger.Choice) is not { } pool
             || engine.Build("JAIL_706", new PoolContext("FT_STANDARD", "ROGUE", "WARRIOR"), PoolTrigger.Request) is not { } browse)
         {
@@ -52,6 +55,28 @@ public partial class App
 
         Show(pool);
         await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-card-pool.png"), 1920, 1080, 0);
+
+        // Death Knight runes (from HearthstoneJSON) and a named group the catalog cannot answer.
+        foreach (var (cardId, ownClass, trigger, name) in new[]
+                 {
+                     ("BE_298", "DEATHKNIGHT", PoolTrigger.Choice, "overlay-card-pool-runes.png"),
+                     ("EDR_841", "DEMONHUNTER", PoolTrigger.Played, "overlay-card-pool-uncomputed.png"),
+                 })
+        {
+            if (engine.Build(cardId, new PoolContext("FT_STANDARD", ownClass, "WARRIOR"), trigger) is { } extra)
+            {
+                Show(extra);
+                await _overlay.RenderToFileAsync(Path.Combine(folder, name), 1920, 1080, 0);
+                if (extra.Sections.Count > 1)
+                {
+                    // The browser with the wiki's second pool (Frost Rune) picked.
+                    _overlayViewModel.OpenCardPoolBrowser.Execute(null);
+                    _overlayViewModel.ToggleCardPoolSection.Execute(extra.Sections[1].Label);
+                    await RenderBrowserAsync(Path.Combine(folder, "overlay-card-pool-sections.png"));
+                    _overlayViewModel.CloseCardPoolBrowser.Execute(null);
+                }
+            }
+        }
 
         // A requested pool opens the browser; card renders load after the first layout.
         Show(browse);
