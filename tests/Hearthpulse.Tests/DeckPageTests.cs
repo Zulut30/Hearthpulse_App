@@ -67,7 +67,8 @@ public sealed class DeckPageTests
     /// <summary>
     /// A ranked game as the second player (Death Knight vs Priest): CARD_A..D offered with the coin, CARD_B sent back
     /// and CARD_E dealt instead; CARD_F drawn on turn 1; CARD_A played on turn 1, CARD_F on turn 2. The opponent plays
-    /// three Priest cards from its deck and one it was given (created mid-game, so not a deck card).
+    /// three Priest cards from its deck and one it was given (created mid-game, so not a deck card). CARD_C transforms
+    /// in hand later.
     /// </summary>
     private static string[] RankedGame() =>
     [
@@ -136,6 +137,9 @@ public sealed class DeckPageTests
         "DebugPrintPower() - TAG_CHANGE Entity=1 tag=TURN value=2 ",
         .. Show(9, "CARD_F", "SPELL"),
         .. Play(4, "CARD_A", 1),
+        // A kept card turns into another one in hand: it still came from the deck as CARD_C.
+        "DebugPrintPower() - CHANGE_ENTITY - Updating Entity=" + Ref(6, "CARD_C", 1) + " CardID=CARD_G",
+        "DebugPrintPower() -     tag=CREATOR value=4",
         // Opponent's turn 2: two deck cards and a card it was given.
         "DebugPrintPower() - TAG_CHANGE Entity=1 tag=TURN value=3 ",
         "DebugPrintPower() - SHOW_ENTITY - Updating Entity=21 CardID=PRIEST_Y",
