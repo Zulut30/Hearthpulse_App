@@ -3,6 +3,7 @@ using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.App.Overlay;
@@ -292,7 +293,7 @@ public sealed partial class OverlayViewModel : Observable
         FocusChoices = races.Count == 0
             ? Array.Empty<FocusChoice>()
             : races.Select(r => new FocusChoice(r, Races.Display(r, _locale), r == focus))
-                .Prepend(new FocusChoice(string.Empty, "Any tribe", focus is null))
+                .Prepend(new FocusChoice(string.Empty, Loc.T("Overlay.Plan.AnyTribe"), focus is null))
                 .ToList();
     }
 
@@ -300,6 +301,7 @@ public sealed partial class OverlayViewModel : Observable
 
     public OverlayViewModel()
     {
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
         SelectTier = new RelayCommand(p =>
         {
             var tier = Convert.ToInt32(p, CultureInfo.InvariantCulture);
@@ -331,6 +333,28 @@ public sealed partial class OverlayViewModel : Observable
             RebuildTiers();
         });
     }
+
+    /// <summary>
+    /// The interface language changed: texts built here are rebuilt now or on the next snapshot (the host pushes the
+    /// last one again), so the caches that skip unchanged lists are cleared.
+    /// </summary>
+    private void OnLanguageChanged()
+    {
+        _fingerprints.Clear();
+        _handMarksKey = string.Empty;
+        _focusKey = string.Empty;
+        RebuildFocus(_focusRaces);
+        Lobby = null;
+        RebuildBrowser();
+        RebuildCounters();
+        RebuildBgCounters();
+        if (_lastOutcome is { } outcome)
+        {
+            ToastTexts(outcome);
+        }
+    }
+
+    private GameOutcome? _lastOutcome;
 
     public RelayCommand SelectTier { get; }
 
@@ -418,13 +442,13 @@ public sealed partial class OverlayViewModel : Observable
 
     private void UpdateConstructed(ConstructedView view, DeckAggregate? deck, MatchupAggregate? matchup)
     {
-        DeckName = view.DeckName ?? "Deck";
+        DeckName = view.DeckName ?? Loc.T("Overlay.Deck.Fallback");
         var (record, recordTip, _) = DeckHeader.Describe(deck, view.DeckMeta);
         DeckRecord = record;
         DeckRecordTip = recordTip;
-        DeckCounts = $"{view.DeckCount} in deck · {view.HandCount} in hand";
+        DeckCounts = Loc.F("Overlay.Deck.Counts", view.DeckCount, view.HandCount);
         var best = view.Deck.Where(r => r.Remaining > 0).MaxBy(r => r.DrawChance);
-        NextDraw = best is null || view.DeckCount == 0 ? string.Empty : $"Next draw: {best.Name} {best.DrawChance:P0}";
+        NextDraw = best is null || view.DeckCount == 0 ? string.Empty : Loc.F("Overlay.Deck.NextDraw", best.Name, best.DrawChance);
         CompactDeck = view.Deck.Count > 24;
         Replace(nameof(Deck), view.Deck, r => $"{r.CardId}{r.Remaining}{r.Total}{r.DrawChance:0.00}", () => Deck = view.Deck
             .Select(r => new DeckTile(
@@ -445,15 +469,15 @@ public sealed partial class OverlayViewModel : Observable
         OpponentHand = view.OpponentHandCount;
         OpponentDeck = view.OpponentDeckCount;
         OpponentSecrets = view.OpponentSecrets;
-        OpponentMatchup = matchup is { Games: > 0 } m ? $"You vs {ClassName(view.OpponentClass)}: {m.Wins}–{m.Losses} ({m.WinRate:P0})" : string.Empty;
+        OpponentMatchup = matchup is { Games: > 0 } m ? Loc.F("Overlay.Opponent.Matchup", ClassName(view.OpponentClass), m.Wins, m.Losses, m.WinRate) : string.Empty;
         Replace(nameof(Played), view.OpponentPlayed, p => $"{p.CardId}{p.Count}", () => Played = view.OpponentPlayed
-            .Select(p => new PlayedTile(p.CardId, p.Name, p.Cost, p.Count > 1 ? $"×{p.Count}" : string.Empty, $"T{p.FirstTurn}", p.IsCreated))
+            .Select(p => new PlayedTile(p.CardId, p.Name, p.Cost, p.Count > 1 ? $"×{p.Count}" : string.Empty, Loc.F("Overlay.Turn.Short", p.FirstTurn), p.IsCreated))
             .ToList());
         Replace(nameof(Hand), view.OpponentHand, h => $"{h.Position}{h.Turn}{h.CardId}{h.CreatedBy}{h.FromMulligan}", () => Hand = view.OpponentHand
             .Select(h => new HandTile(
                 h.Position.ToString(CultureInfo.InvariantCulture),
-                h.Turn > 0 ? $"T{h.Turn}" : "M",
-                h.IsCoin ? "The Coin" : h.CardName ?? (h.CreatedBy is not null ? $"Created by {h.CreatedBy}" : h.FromMulligan ? "Kept in mulligan" : "Unknown"),
+                h.Turn > 0 ? Loc.F("Overlay.Turn.Short", h.Turn) : Loc.T("Overlay.Hand.MulliganShort"),
+                h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : h.FromMulligan ? Loc.T("Overlay.Hand.KeptInMulligan") : Loc.T("Overlay.Hand.Unknown")),
                 h.CardName is not null || h.IsCoin))
             .ToList());
     }
@@ -462,7 +486,7 @@ public sealed partial class OverlayViewModel : Observable
     {
         Turn = view.Turn;
         IsDuos = view.IsDuos;
-        Phase = view.IsHeroSelection ? "Hero selection" : view.InCombat ? "Combat" : "Recruit";
+        Phase = view.IsHeroSelection ? Loc.T("Overlay.Phase.HeroSelection") : view.InCombat ? Loc.T("Overlay.Phase.Combat") : Loc.T("Overlay.Phase.Recruit");
         var anomaly = view.AnomalyCardId is { } a ? _cards.NameOf(a) : string.Empty;
         Anomaly = anomaly;
 
@@ -475,8 +499,9 @@ public sealed partial class OverlayViewModel : Observable
         Replace(nameof(Tribes), view.Races, r => r, () => Tribes = view.Races.Select(r => Races.Display(r, _locale)).ToList());
         RebuildFocus(view.Races);
         Combats = view.Combats.TakeLast(8)
-            .Select(c => new CombatDot(c.Result, $"T{c.Turn} vs {_cards.NameOf(c.OpponentHeroCardId)} — {c.Result}{(c.DamageTaken > 0 ? $", took {c.DamageTaken}" : c.DamageDealt > 0 ? $", dealt {c.DamageDealt}" : string.Empty)}"
-                + (c.Odds is { } o ? $" · predicted {OddsPercent(o.Win, o.Runs)} win, {OddsPercent(o.Loss, o.Runs)} loss" : string.Empty)))
+            .Select(c => new CombatDot(c.Result, Loc.F("Overlay.Combat.Tip", c.Turn, _cards.NameOf(c.OpponentHeroCardId), ResultText(c.Result))
+                + (c.DamageTaken > 0 ? Loc.F("Overlay.Combat.Took", c.DamageTaken) : c.DamageDealt > 0 ? Loc.F("Overlay.Combat.Dealt", c.DamageDealt) : string.Empty)
+                + (c.Odds is { } o ? Loc.F("Overlay.Combat.Predicted", OddsPercent(o.Win, o.Runs), OddsPercent(o.Loss, o.Runs)) : string.Empty)))
             .ToList();
 
         if (view.CombatOdds is { } odds)
@@ -488,8 +513,8 @@ public sealed partial class OverlayViewModel : Observable
             TieShare = new System.Windows.GridLength(odds.Tie, System.Windows.GridUnitType.Star);
             LossShare = new System.Windows.GridLength(odds.Loss, System.Windows.GridUnitType.Star);
             OddsNote = odds.Approximate
-                ? $"estimate · {odds.Unsimulated} effect{(odds.Unsimulated == 1 ? string.Empty : "s")} not simulated"
-                : "simulated from both boards";
+                ? Loc.P("Overlay.Odds.Estimate", odds.Unsimulated)
+                : Loc.T("Overlay.Odds.Simulated");
         }
         RebuildTiers();
 
@@ -508,11 +533,11 @@ public sealed partial class OverlayViewModel : Observable
                     h.Name,
                     h.Meta?.Tier ?? "–",
                     h.Meta is null ? "—" : (adjusted ? h.Meta.AdjustedPosition : h.Meta.AveragePosition).ToString("0.00", CultureInfo.CurrentCulture),
-                    h.Meta is null ? "no data" : adjusted ? "avg place, this lobby" : "avg place",
+                    h.Meta is null ? Loc.T("Overlay.Badge.NoData") : adjusted ? Loc.T("Overlay.Badge.AvgPlaceLobby") : Loc.T("Overlay.Badge.AvgPlace"),
                     Math.Abs(delta) < 0.005 ? string.Empty : delta < 0 ? $"▲{-delta:0.00}" : $"▼{delta:0.00}",
                     -delta,
-                    h.Meta is null ? string.Empty : $"{h.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)} pick",
-                    h.Stats is { Games: > 0 } s ? $"You: {s.AveragePlace:0.0} avg in {s.Games}" : string.Empty,
+                    h.Meta is null ? string.Empty : Loc.F("Overlay.Badge.PickRate", h.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)),
+                    h.Stats is { Games: > 0 } s ? Loc.P("Overlay.Hero.Personal", s.Games, s.AveragePlace) : string.Empty,
                     string.Join(" · ", (h.TopComps ?? Array.Empty<string>()).Take(2)),
                     highlight && h.Recommended,
                     h.Meta is not null);
@@ -525,7 +550,7 @@ public sealed partial class OverlayViewModel : Observable
                 t.Name,
                 t.Meta?.Tier ?? "–",
                 t.Meta is null ? "—" : t.Meta.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
-                t.Meta is null ? "no data" : $"{t.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)} pick",
+                t.Meta is null ? Loc.T("Overlay.Badge.NoData") : Loc.F("Overlay.Badge.PickRate", t.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)),
                 highlight && t.Recommended,
                 t.Meta is not null))
             .ToList());
@@ -534,7 +559,7 @@ public sealed partial class OverlayViewModel : Observable
         // "Stats only" names no card to buy or keep: the Dark Gift line only says the button is ready.
         DarkGift = highlight || view.DarkGiftAdvice.Length == 0
             ? view.DarkGiftAdvice
-            : $"Dark Gift ready  ·  {(view.DarkGiftCost > 0 ? view.DarkGiftCost : 3)} gold";
+            : Loc.P("Overlay.Plan.DarkGiftReady", view.DarkGiftCost > 0 ? view.DarkGiftCost : 3);
         Freeze = highlight ? view.FreezeAdvice : string.Empty;
         // "Stats only" keeps the plan's numbers but does not single out one turn-plan action.
         ShopPlan = highlight ? view.ShopPlan : null;
@@ -559,20 +584,20 @@ public sealed partial class OverlayViewModel : Observable
                     ShortReason(d.Reason, compTags, highlight),
                     d.Slot < gifts.Count ? gifts[d.Slot].DarkGift ?? string.Empty : string.Empty,
                     d.Placement is { } p ? p.ToString("0.00", CultureInfo.CurrentCulture) : "—",
-                    d.Placement is null ? "no data yet" : "avg place",
+                    d.Placement is null ? Loc.T("Overlay.Badge.NoDataYet") : Loc.T("Overlay.Badge.AvgPlace"),
                     highlight && d.Best,
                     d.Placement is not null,
                     d.TechLevel))
                 .ToList();
         });
-        var source = view.DiscoverSource ?? "Discover";
+        var source = view.DiscoverSource ?? Loc.T("Overlay.Discover.Name");
         DiscoverTitle = view.DiscoverAdvice.Count == 0
             ? string.Empty
             : !highlight
-                ? view.DiscoverSource is { } offeredBy ? $"Discover  ·  {offeredBy}" : "Discover  ·  community stats"
+                ? view.DiscoverSource is { } offeredBy ? Loc.F("Overlay.Discover.OfferedBy", offeredBy) : Loc.T("Overlay.Discover.CommunityStats")
                 : view.DiscoverAdvice.Any(d => d.Best)
-                    ? $"{source}  ·  best pick marked"
-                    : $"{source}  ·  close call, no clear best";
+                    ? Loc.F("Overlay.Discover.BestMarked", source)
+                    : Loc.F("Overlay.Discover.CloseCall", source);
 
         MetaSource = view.MetaSource ?? string.Empty;
         Bracket = view.MetaSource?.Split(" · ").ElementAtOrDefault(1) ?? string.Empty;
@@ -581,7 +606,7 @@ public sealed partial class OverlayViewModel : Observable
         {
             Target = target is null ? null : Row(target);
             TargetCards = target?.Cards
-                .Select(c => new CompCardTile(c.CardId, c.Name, c.Status, c.Status switch { "CORE" => "Core", "ADDON" => "Add-on", _ => "Cycle" }, c.TechLevel, c.Owned))
+                .Select(c => new CompCardTile(c.CardId, c.Name, c.Status, c.Status switch { "CORE" => Loc.T("Overlay.Tag.Core"), "ADDON" => Loc.T("Overlay.Tag.AddOn"), _ => Loc.T("Overlay.Tag.Cycle") }, c.TechLevel, c.Owned))
                 .ToList() ?? (IReadOnlyList<CompCardTile>)Array.Empty<CompCardTile>();
             CommitHint = target?.WhenToCommit ?? string.Empty;
             CompTip = target?.Tip ?? string.Empty;
@@ -602,7 +627,7 @@ public sealed partial class OverlayViewModel : Observable
                 ShopRowCenter + ((x.Pick.Slot - ((shopSize - 1) / 2.0)) * ShopMinionPitch) - (ShopBadgeWidth / 2),
                 x.Label,
                 highlight && x.Pick.Best,
-                x.Pick.Placement is { } p ? $"{p.ToString("0.00", CultureInfo.CurrentCulture)} avg place" : string.Empty))
+                x.Pick.Placement is { } p ? Loc.F("Overlay.Badge.AvgPlaceValue", p.ToString("0.00", CultureInfo.CurrentCulture)) : string.Empty))
             .ToList());
 
         if (SelectedTier > 0 && _fingerprints.GetValueOrDefault("BrowserRaces") != string.Join(',', view.Races))
@@ -615,27 +640,27 @@ public sealed partial class OverlayViewModel : Observable
     private void UpdatePlanText(BattlegroundsView view)
     {
         var manual = CompManual;
-        TargetLabel = manual ? "YOUR COMP" : "AIM FOR";
-        PinText = manual ? "Chosen" : Target is { IsPinned: true } ? "Locked" : "Lock";
+        TargetLabel = manual ? Loc.T("Overlay.Plan.YourComp") : Loc.T("Overlay.Plan.AimFor");
+        PinText = manual ? Loc.T("Overlay.Plan.Chosen") : Target is { IsPinned: true } ? Loc.T("Overlay.Plan.Locked") : Loc.T("Overlay.Plan.Lock");
         PinTooltip = manual
-            ? "Your choice, kept for the next games. Click to clear it: then no comp is targeted until you choose one."
-            : "Lock keeps this comp as your plan for this game, even if you pick up cards for another one. Click again to unlock and let Hearthpulse choose.";
+            ? Loc.T("Overlay.Plan.ChosenTip")
+            : Loc.T("Overlay.Plan.LockTip");
         PlanTooltip = manual
-            ? "Comps that fit this lobby's tribes, with how players who played them placed. Click one to make it your plan: the tavern and Discover hints then count its cards. Your choice is kept for the next games."
+            ? Loc.T("Overlay.Plan.ManualTip")
             : ShowBestBadges
-                ? "Hearthpulse suggests a comp: the strongest one for this lobby's tribes, or the one you have already started. The tavern badges then show what to buy for it."
-                : "Comps that fit this lobby's tribes. Click one to lock your plan on it for this game.";
-        CompRowTooltip = manual ? "Make this comp your plan (kept for the next games)" : "Switch your plan to this comp and lock it there";
+                ? Loc.T("Overlay.Plan.SuggestTip")
+                : Loc.T("Overlay.Plan.AutoTip");
+        CompRowTooltip = manual ? Loc.T("Overlay.Plan.RowChooseTip") : Loc.T("Overlay.Plan.RowSwitchTip");
         CompListTitle = Target is not null
-            ? manual ? "Other comps  ·  click to choose" : "Other comps  ·  click to switch"
-            : manual ? "Comps for this lobby  ·  click to choose" : "Comps for this lobby  ·  click to lock one";
+            ? manual ? Loc.T("Overlay.Plan.OtherChoose") : Loc.T("Overlay.Plan.OtherSwitch")
+            : manual ? Loc.T("Overlay.Plan.LobbyChoose") : Loc.T("Overlay.Plan.LobbyLock");
         PlanHint = Target is not null || view.Comps.Count == 0
             ? string.Empty
             : !manual
-                ? "Click a comp below to lock your plan on it."
+                ? Loc.T("Overlay.Plan.HintLock")
                 : _chosenCompId is not null
-                    ? "Your chosen comp is not available in this lobby. Choose another below, or keep it for the next game."
-                    : "Choose a comp below to plan around it. Tavern and Discover hints then count its cards.";
+                    ? Loc.T("Overlay.Plan.HintUnavailable")
+                    : Loc.T("Overlay.Plan.HintChoose");
         ShowCompList = Alternatives.Count > 0 && (Target is null || !CompCollapsed);
     }
 
@@ -650,7 +675,7 @@ public sealed partial class OverlayViewModel : Observable
                 0,
                 o.TechLevel,
                 o.Triples,
-                o.LastResult switch { "Win" => $"W {o.LastDamage}", "Loss" => $"L {o.LastDamage}", "Tie" => "T", _ => string.Empty },
+                o.LastResult switch { "Win" => Loc.F("Overlay.Lobby.Won", o.LastDamage), "Loss" => Loc.F("Overlay.Lobby.Lost", o.LastDamage), "Tie" => Loc.T("Overlay.Lobby.Tie"), _ => string.Empty },
                 o.LastResult ?? string.Empty,
                 o.IsNextOpponent,
                 o.Dead,
@@ -694,6 +719,19 @@ public sealed partial class OverlayViewModel : Observable
     private const int StrongPick = 40;
 
     private static readonly string[] ReasonTags = ["Triple", "Pair", "Core", "Add-on", "Cycle", "Fits tribe", "Board synergy"];
+
+    /// <summary>String keys of <see cref="ReasonTags"/> (and "Best stats"), for the badge text.</summary>
+    private static readonly Dictionary<string, string> ReasonTagKeys = new(StringComparer.Ordinal)
+    {
+        ["Triple"] = "Overlay.Tag.Triple",
+        ["Pair"] = "Overlay.Tag.Pair",
+        ["Core"] = "Overlay.Tag.Core",
+        ["Add-on"] = "Overlay.Tag.AddOn",
+        ["Cycle"] = "Overlay.Tag.Cycle",
+        ["Fits tribe"] = "Overlay.Tag.FitsTribe",
+        ["Board synergy"] = "Overlay.Tag.BoardSynergy",
+        ["Best stats"] = "Overlay.Tag.BestStats",
+    };
     private static readonly string[] CompReasonTags = ["Core", "Add-on", "Cycle", "Fits tribe"];
 
     /// <summary>
@@ -709,7 +747,7 @@ public sealed partial class OverlayViewModel : Observable
             tags.Add("Best stats");
         }
 
-        return string.Join(" · ", tags);
+        return string.Join(" · ", tags.Select(t => Loc.T(ReasonTagKeys[t])));
     }
 
     private CompRow Row(CompAdvice c) => new(
@@ -773,7 +811,7 @@ public sealed partial class OverlayViewModel : Observable
                 .ToList();
             if (cards.Count > 0)
             {
-                var title = race.Length == 0 ? "Neutral" : race == "ALL" ? "All tribes" : Races.Display(race, _locale);
+                var title = race.Length == 0 ? Loc.T("Overlay.Browser.Neutral") : race == "ALL" ? Loc.T("Overlay.Browser.AllTribes") : Races.Display(race, _locale);
                 groups.Add(new BrowserGroup(title, cards));
             }
         }
@@ -782,7 +820,7 @@ public sealed partial class OverlayViewModel : Observable
             .Select(c => new BrowserCard(c.Id, c.Name, false, null)).ToList();
         if (spells.Count > 0)
         {
-            groups.Add(new BrowserGroup("Tavern spells", spells));
+            groups.Add(new BrowserGroup(Loc.T("Overlay.Browser.TavernSpells"), spells));
         }
 
         Browser = groups;
@@ -839,11 +877,11 @@ public sealed partial class OverlayViewModel : Observable
             opponent.LastResult switch
             {
                 null => string.Empty,
-                "Win" => $"Last fight: you won, dealt {opponent.LastDamage}",
-                "Loss" => $"Last fight: they won, you took {opponent.LastDamage}",
-                var r => r,
+                "Win" => Loc.F("Overlay.LobbyPopup.Won", opponent.LastDamage),
+                "Loss" => Loc.F("Overlay.LobbyPopup.Lost", opponent.LastDamage),
+                var r => ResultText(r),
             },
-            opponent.LastBoard.Count == 0 ? "Board not seen yet" : turnsAgo <= 0 ? "Board this turn" : turnsAgo == 1 ? "Board 1 turn ago" : $"Board {turnsAgo} turns ago",
+            opponent.LastBoard.Count == 0 ? Loc.T("Overlay.LobbyPopup.BoardNotSeen") : turnsAgo <= 0 ? Loc.T("Overlay.LobbyPopup.BoardThisTurn") : Loc.P("Overlay.LobbyPopup.BoardAgo", turnsAgo),
             opponent.IsNextOpponent,
             opponent.Dead,
             opponent.LastBoard.Select(m => new LobbyMinion(m.CardId, m.Name, m.Attack, m.Health, m.Golden, string.Join(" · ", m.Keywords))).ToList());
@@ -851,14 +889,21 @@ public sealed partial class OverlayViewModel : Observable
 
     public void ShowOutcome(GameOutcome outcome)
     {
+        _lastOutcome = outcome;
+        ToastTexts(outcome);
+        ShowToast = true;
+    }
+
+    /// <summary>Title, colour key and detail of the end-of-game toast (rebuilt after a language change).</summary>
+    private void ToastTexts(GameOutcome outcome)
+    {
         var bg = outcome.Mode is "Battlegrounds" or "Duos";
-        ToastTitle = bg ? $"{Ordinal(outcome.Placement)} place" : outcome.Result == "Win" ? "Victory" : outcome.Result == "Loss" ? "Defeat" : outcome.Result;
+        ToastTitle = bg ? Loc.F("Overlay.Toast.Place", Ordinal(outcome.Placement)) : outcome.Result == "Win" ? Loc.T("Overlay.Toast.Victory") : outcome.Result == "Loss" ? Loc.T("Overlay.Toast.Defeat") : ResultText(outcome.Result);
         ToastResult = bg ? (outcome.Placement <= (outcome.Mode == "Duos" ? 2 : 4) ? "Win" : "Loss") : outcome.Result;
         var hero = _cards.NameOf(outcome.HeroCardId);
         ToastDetail = outcome.RatingDelta is { } d
-            ? $"{hero} · {(d >= 0 ? "+" : "−")}{Math.Abs(d)} rating → {outcome.RatingAfter:N0}"
+            ? Loc.F("Overlay.Toast.Rating", hero, d >= 0 ? "+" : "−", Math.Abs(d), outcome.RatingAfter)
             : hero;
-        ShowToast = true;
     }
 
     private void Replace<T>(string key, IReadOnlyList<T> source, Func<T, string> fingerprint, Action apply)
@@ -875,12 +920,24 @@ public sealed partial class OverlayViewModel : Observable
 
     public static string ClassName(string? cardClass) => string.IsNullOrEmpty(cardClass)
         ? string.Empty
-        : cardClass switch
+        : Localized(cardClass switch
         {
             "DEMONHUNTER" => "Demon Hunter",
             "DEATHKNIGHT" => "Death Knight",
             _ => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(cardClass.ToLowerInvariant()),
-        };
+        });
+
+    /// <summary>A class name in the interface language ("Death Knight" has the key Overlay.Class.DeathKnight).</summary>
+    private static string Localized(string className) => Loc.Or("Overlay.Class." + className.Replace(" ", string.Empty, StringComparison.Ordinal), className);
+
+    /// <summary>A combat or game result ("Win", "Loss", "Tie") in the interface language; anything else as it is.</summary>
+    private static string ResultText(string? result) => result switch
+    {
+        "Win" => Loc.T("Overlay.Result.Win"),
+        "Loss" => Loc.T("Overlay.Result.Loss"),
+        "Tie" => Loc.T("Overlay.Result.Tie"),
+        _ => result ?? string.Empty,
+    };
 
     /// <summary>
     /// A Monte Carlo result cannot prove 0% or 100%: show open bounds unless the odds came from an exact board
@@ -903,10 +960,10 @@ public sealed partial class OverlayViewModel : Observable
 
     private static string Ordinal(int n) => n switch
     {
-        1 => "1st",
-        2 => "2nd",
-        3 => "3rd",
-        _ => $"{n}th",
+        1 => Loc.T("Overlay.Ordinal.First"),
+        2 => Loc.T("Overlay.Ordinal.Second"),
+        3 => Loc.T("Overlay.Ordinal.Third"),
+        _ => Loc.F("Overlay.Ordinal.Other", n),
     };
 }
 
