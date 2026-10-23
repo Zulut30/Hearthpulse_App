@@ -271,14 +271,16 @@ public sealed partial class HistoryStore
     public bool Add(GameRecord game)
     {
         int inserted;
+        var orphans = new List<string>();
         lock (_gate)
         {
             using var connection = Open();
             using var transaction = connection.BeginTransaction();
             // A reconnect replays the game from a new CREATE_GAME: another start time, so another key. The part played
-            // before the client went away must not stay in History as a separate abandoned game.
+            // before the client went away must not stay in History as a separate abandoned game - nor its replay file.
             if (game.IsAbandoned && CountSameGame(connection, game) > 0)
             {
+                Replays?.Delete(game.Replay);
                 return false;
             }
 
@@ -351,10 +353,15 @@ public sealed partial class HistoryStore
             inserted = command.ExecuteNonQuery();
             if (inserted > 0 && !game.IsAbandoned)
             {
-                DeleteSameGame(connection, game);
+                orphans.AddRange(DeleteSameGame(connection, game));
             }
 
             transaction.Commit();
+        }
+
+        foreach (var file in orphans)
+        {
+            Replays?.Delete(file);
         }
 
         if (inserted > 0)
@@ -364,6 +371,12 @@ public sealed partial class HistoryStore
 
         return inserted > 0;
     }
+
+    /// <summary>
+    /// Where the games' replay files are, so that a row dropped as the left part of a reconnected game takes its file
+    /// with it (or hands it to the reconnect, when that one has none). Null: files are not touched.
+    /// </summary>
+    public Replay.ReplayStore? Replays { get; init; }
 
     /// <summary>The longest a game the client left can still be resumed by a reconnect.</summary>
     private static readonly TimeSpan ReconnectWindow = TimeSpan.FromHours(1);
@@ -393,17 +406,56 @@ public sealed partial class HistoryStore
         return (long)command.ExecuteScalar()!;
     }
 
-    private static void DeleteSameGame(SqliteConnection connection, GameRecord finished)
+    /// <summary>
+    /// Deletes the abandoned parts of a game that ended after a reconnect. Returns the replay files nothing refers to
+    /// any more: a part's file goes to the finished game when that one has no replay (the reconnect started recording
+    /// too late), else it is no longer needed.
+    /// </summary>
+    private static List<string> DeleteSameGame(SqliteConnection connection, GameRecord finished)
     {
-        using var command = connection.CreateCommand();
-        command.CommandText = $"""
-            DELETE FROM games WHERE result = 'Abandoned' AND game_key <> $key AND {SameGame}
-                AND started_at <= $started AND started_at >= $earliest AND ended_at >= $endedAfter;
+        const string Parts = $"""
+            FROM games WHERE result = 'Abandoned' AND game_key <> $key AND {SameGame}
+                AND started_at <= $started AND started_at >= $earliest AND ended_at >= $endedAfter
             """;
-        AddIdentity(command, finished);
-        command.Parameters.AddWithValue("$earliest", Iso(finished.StartedAt - LongestGame));
-        command.Parameters.AddWithValue("$endedAfter", Iso(finished.StartedAt - ReconnectWindow));
-        command.ExecuteNonQuery();
+        void Bind(SqliteCommand command)
+        {
+            AddIdentity(command, finished);
+            command.Parameters.AddWithValue("$earliest", Iso(finished.StartedAt - LongestGame));
+            command.Parameters.AddWithValue("$endedAfter", Iso(finished.StartedAt - ReconnectWindow));
+        }
+
+        var files = new List<string>();
+        using (var select = connection.CreateCommand())
+        {
+            select.CommandText = $"SELECT replay {Parts} AND replay IS NOT NULL ORDER BY started_at;";
+            Bind(select);
+            using var reader = select.ExecuteReader();
+            while (reader.Read())
+            {
+                files.Add(reader.GetString(0));
+            }
+        }
+
+        using (var delete = connection.CreateCommand())
+        {
+            delete.CommandText = $"DELETE {Parts};";
+            Bind(delete);
+            delete.ExecuteNonQuery();
+        }
+
+        if (finished.Replay is null && files.Count > 0)
+        {
+            using var carry = connection.CreateCommand();
+            carry.CommandText = "UPDATE games SET replay = $replay WHERE game_key = $key AND replay IS NULL;";
+            carry.Parameters.AddWithValue("$replay", files[^1]);
+            carry.Parameters.AddWithValue("$key", finished.Key);
+            if (carry.ExecuteNonQuery() > 0)
+            {
+                files.RemoveAt(files.Count - 1);
+            }
+        }
+
+        return files;
     }
 
     private static void AddIdentity(SqliteCommand command, GameRecord game)

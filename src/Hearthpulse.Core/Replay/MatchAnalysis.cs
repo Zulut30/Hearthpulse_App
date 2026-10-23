@@ -2,6 +2,7 @@ using System.Globalization;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Replay;
 
@@ -119,11 +120,14 @@ public sealed class MatchAnalysis
 
         var tiles = new List<AnalysisTile>
         {
-            new("Damage to their hero", dealt.ToString(CultureInfo.CurrentCulture), $"{taken} to yours"),
-            new("Their minions died", kills.Local.ToString(CultureInfo.CurrentCulture), $"{kills.Opponent} of yours"),
-            new("Mana used", localMana.Count > 0 ? localMana.Average().ToString("P0", CultureInfo.CurrentCulture) : "—",
-                opponentMana.Count > 0 ? $"opponent {opponentMana.Average().ToString("P0", CultureInfo.CurrentCulture)}" : "on your turns"),
-            new("Cards played", replay.LocalPlayed.Sum(c => c.Count).ToString(CultureInfo.CurrentCulture), $"opponent {replay.OpponentPlayed.Sum(c => c.Count)}"),
+            new(Loc.T("Match.Analysis.Damage"), dealt.ToString(CultureInfo.CurrentCulture), Loc.F("Match.Analysis.DamageTaken", taken)),
+            new(Loc.T("Match.Analysis.Deaths"), kills.Local.ToString(CultureInfo.CurrentCulture), Loc.F("Match.Analysis.DeathsOwn", kills.Opponent)),
+            new(Loc.T("Match.Analysis.Mana"), localMana.Count > 0 ? localMana.Average().ToString("P0", CultureInfo.CurrentCulture) : "—",
+                opponentMana.Count > 0
+                    ? Loc.F("Match.Analysis.ManaOpponent", opponentMana.Average().ToString("P0", CultureInfo.CurrentCulture))
+                    : Loc.T("Match.Analysis.ManaOwnTurns")),
+            new(Loc.T("Match.Analysis.Played"), replay.LocalPlayed.Sum(c => c.Count).ToString(CultureInfo.CurrentCulture),
+                Loc.F("Match.Analysis.PlayedOpponent", replay.OpponentPlayed.Sum(c => c.Count))),
         };
 
         return new MatchAnalysis
@@ -144,8 +148,8 @@ public sealed class MatchAnalysis
             MulliganNote = mulliganNote,
             Meta = MetaFacts(game, archetype, opponentArchetype ?? game.OpponentArchetype, meta),
             MetaNote = meta is null
-                ? "The community meta of this format is not loaded (pick it on the Constructed meta tabs)."
-                : $"{meta.Source} · {ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank)} · {ConstructedMeta.Label(ConstructedMeta.Periods, meta.Period)}",
+                ? Loc.T("Match.Meta.NotLoaded")
+                : string.Join(" · ", meta.Source, ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank), ConstructedMeta.Label(ConstructedMeta.Periods, meta.Period)),
         };
     }
 
@@ -159,7 +163,7 @@ public sealed class MatchAnalysis
         var acting = turn.Player is { } p ? end.Of(p) : null;
         return new AnalysisTurnRow(
             turn.Turn,
-            $"{turn.PlayerTurn} · {(local ? "You" : "Opponent")}",
+            Loc.F("Match.Analysis.TurnLabel", turn.PlayerTurn, Loc.T(local ? "Match.You" : "Match.Opponent")),
             local,
             Durability(end.Local),
             Durability(end.Opponent),
@@ -219,11 +223,11 @@ public sealed class MatchAnalysis
                 continue;
             }
 
-            var reason = new List<string> { $"Turn {after.PlayerTurn}" };
-            if (lethal) reason.Add("lethal");
-            if (kills > 0) reason.Add(kills == 1 ? "killed a minion" : $"killed {kills} minions");
-            if (face > 0) reason.Add($"{face} to the face");
-            if (swing > 0 && kills == 0) reason.Add($"+{swing} board");
+            var reason = new List<string> { Loc.F("Match.Key.Turn", after.PlayerTurn) };
+            if (lethal) reason.Add(Loc.T("Match.Key.Lethal"));
+            if (kills > 0) reason.Add(Loc.P("Match.Key.Killed", kills));
+            if (face > 0) reason.Add(Loc.F("Match.Key.Face", face));
+            if (swing > 0 && kills == 0) reason.Add(Loc.F("Match.Key.Board", swing));
             var key = (card, player == ReplayPlayer.Local);
             if (!best.TryGetValue(key, out var known) || score > known.Score)
             {
@@ -263,7 +267,7 @@ public sealed class MatchAnalysis
     {
         if (replay.Mulligan is not { } mulligan)
         {
-            return ([], "The mulligan was not recorded (the game was picked up after it).");
+            return ([], Loc.T("Match.Mulligan.NotRecorded"));
         }
 
         var kept = mulligan.Kept.ToList();
@@ -283,15 +287,15 @@ public sealed class MatchAnalysis
                 card,
                 cards.NameOf(card),
                 wasKept,
-                wasKept ? "Kept" : "Replaced",
+                Loc.T(wasKept ? "Match.Mulligan.Kept" : "Match.Mulligan.Replaced"),
                 stat is null ? "—" : stat.KeepRate.ToString("P0", CultureInfo.CurrentCulture),
                 stat is null || stat.InHand == 0 ? "—" : stat.InHandWinRate.ToString("P1", CultureInfo.CurrentCulture),
                 agreement));
         }
 
         var note = archetype is null
-            ? meta is null ? "Meta keep rates need the community meta of this format." : "Your deck does not match a meta archetype clearly, so there are no keep rates to compare."
-            : $"Keep rates of {archetype.Name} players; {rows.Count(r => r.Agreement > 0)} of {rows.Count(r => r.Agreement != 0)} clear calls match yours.";
+            ? Loc.T(meta is null ? "Match.Mulligan.NeedsMeta" : "Match.Mulligan.NoArchetype")
+            : Loc.F("Match.Mulligan.Note", archetype.Name, rows.Count(r => r.Agreement > 0), rows.Count(r => r.Agreement != 0));
         return (rows, note);
     }
 
@@ -305,16 +309,16 @@ public sealed class MatchAnalysis
 
         if (ours is not null)
         {
-            facts.Add(new MatchFact("Your archetype", $"{ours.Name} · {ours.WinRate.ToString("P1", CultureInfo.CurrentCulture)} win rate · {ours.Games:N0} games"));
+            facts.Add(new MatchFact(Loc.T("Match.Meta.Yours"), Loc.F("Match.Meta.YoursValue", ours.Name, Percent(ours.WinRate), ours.Games.ToString("N0", CultureInfo.CurrentCulture))));
             if (game.WentFirst is { } first && (first ? ours.FirstGames : ours.CoinGames) > 0)
             {
                 var rate = first ? ours.FirstWinRate : ours.CoinWinRate;
-                facts.Add(new MatchFact(first ? "Going first" : "On the coin", $"{ours.Name} wins {rate.ToString("P1", CultureInfo.CurrentCulture)}"));
+                facts.Add(new MatchFact(Loc.T(first ? "Match.Meta.First" : "Match.Meta.Coin"), Loc.F("Match.Meta.Wins", ours.Name, Percent(rate))));
             }
         }
         else
         {
-            facts.Add(new MatchFact("Your archetype", "No clear match in the meta"));
+            facts.Add(new MatchFact(Loc.T("Match.Meta.Yours"), Loc.T("Match.Meta.NoMatch")));
         }
 
         var theirs = opponentArchetype is { Length: > 0 } name
@@ -322,22 +326,23 @@ public sealed class MatchAnalysis
             : null;
         if (theirs is not null)
         {
-            var share = theirs.Share > 0 ? $" · {theirs.Share.ToString("P1", CultureInfo.CurrentCulture)} of games" : string.Empty;
-            facts.Add(new MatchFact("Opponent's archetype", $"{theirs.Name} · {theirs.WinRate.ToString("P1", CultureInfo.CurrentCulture)} win rate{share}"));
+            var value = Loc.F("Match.Meta.TheirsValue", theirs.Name, Percent(theirs.WinRate));
+            facts.Add(new MatchFact(Loc.T("Match.Meta.Theirs"), theirs.Share > 0 ? Loc.F("Match.Meta.Share", value, Percent(theirs.Share)) : value));
         }
         else if (opponentArchetype is { Length: > 0 } guessed)
         {
-            facts.Add(new MatchFact("Opponent's archetype", guessed));
+            facts.Add(new MatchFact(Loc.T("Match.Meta.Theirs"), guessed));
         }
 
         if (ours is not null && theirs is not null)
         {
             var edge = ours.WinRate - theirs.WinRate;
-            facts.Add(new MatchFact("On paper", Math.Abs(edge) < 0.01
-                ? "Even decks by overall win rate"
-                : edge > 0 ? $"Your deck was the stronger by {edge.ToString("P1", CultureInfo.CurrentCulture)}" : $"Their deck was the stronger by {(-edge).ToString("P1", CultureInfo.CurrentCulture)}"));
+            facts.Add(new MatchFact(Loc.T("Match.Meta.OnPaper"), Math.Abs(edge) < 0.01 ? Loc.T("Match.Meta.Even")
+                : edge > 0 ? Loc.F("Match.Meta.OursStronger", Percent(edge)) : Loc.F("Match.Meta.TheirsStronger", Percent(-edge))));
         }
 
         return facts;
     }
+
+    private static string Percent(double share) => share.ToString("P1", CultureInfo.CurrentCulture);
 }

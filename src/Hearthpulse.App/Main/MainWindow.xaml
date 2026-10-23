@@ -121,7 +121,7 @@
         </Style>
         <DataTemplate x:Key="OpenGameRow" DataType="{x:Type m:GameRow}">
             <Button Style="{StaticResource BareRow}" Command="{Binding DataContext.OpenMatch, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
-                    Content="{Binding}" ContentTemplate="{StaticResource GameRowTemplate}" ToolTip="Open the match: replay, decks and analysis" />
+                    Content="{Binding}" ContentTemplate="{StaticResource GameRowTemplate}" ToolTip="{i:Loc Match.View.OpenTip}" />
         </DataTemplate>
 
         <!-- Theme picker: each theme is a tile in its own colours, a cookie of its wood with a gem of its accent -->
@@ -1726,6 +1726,7 @@
                                             <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Data.OpenFolder}" Click="OnOpenData" ToolTip="{i:Loc Settings.Data.OpenFolderTip}" />
                                         </StackPanel>
                                         <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
+                                        <TextBlock Text="{i:Loc Match.Settings.ReplayLimit}" Style="{StaticResource Caption}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
                                     </StackPanel>
                                 </Border>
 

@@ -170,7 +170,7 @@ public partial class App : Application
         CardArt.Http = _http;
         _api = new HearthpulseApi(_http);
 
-        _history = new HistoryStore(AppPaths.Database);
+        _history = new HistoryStore(AppPaths.Database) { Replays = Core.Replay.ReplayStore.Default };
         _memory = new HearthstoneMemory();
         _session = new GameSession(_history, _memory);
         _session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(_api)));

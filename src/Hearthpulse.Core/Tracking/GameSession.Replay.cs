@@ -14,7 +14,8 @@ public sealed partial class GameSession
     {
         try
         {
-            // Live recordings replace an earlier file of the same game: the part kept when the client left it.
+            // Live recordings replace an earlier file of the same game key: the part kept when the client left a game that
+            // then went on in the same log. A reconnect has another key; HistoryStore hands the left part's file over.
             return ReplayCapture.Attach(record, game, _replay, _battlegrounds, Replays,
                 _constructed.LocalRank?.Text, _constructed.OpponentRank?.Text, overwrite: true);
         }

@@ -18,6 +18,8 @@ public static class LogBackfill
     public static BackfillResult Run(string installDir, HistoryStore history, CardDb cards, IProgress<string>? progress = null, CancellationToken cancellationToken = default)
     {
         int sessions = 0, found = 0, added = 0;
+        // One trim of the replays folder at the end instead of one per imported game.
+        var replays = new Replay.ReplayStore(AppPaths.Replays) { AutoPrune = false };
         foreach (var session in HearthstoneInstall.AllLogSessions(installDir))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -37,7 +39,7 @@ public static class LogBackfill
 
                 sessions++;
                 progress?.Report($"Reading {Path.GetFileName(session)}");
-                foreach (var record in Parse(path, DateOnly.FromDateTime(start.Value), cards, cancellationToken, Replay.ReplayStore.Default))
+                foreach (var record in Parse(path, DateOnly.FromDateTime(start.Value), cards, cancellationToken, replays))
                 {
                     found++;
                     if (history.Add(record))
@@ -53,6 +55,7 @@ public static class LogBackfill
             }
         }
 
+        replays.Prune();
         return new BackfillResult(sessions, found, added) { DecksFilled = FillDecks(installDir, history, cards) };
     }
 

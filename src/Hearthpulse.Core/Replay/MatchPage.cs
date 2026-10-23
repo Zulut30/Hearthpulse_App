@@ -2,6 +2,7 @@ using System.Globalization;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Stats;
 
@@ -164,9 +165,7 @@ public sealed class MatchPage
         {
             return new MatchPage(game, cards, header)
             {
-                Missing = game.Replay is null
-                    ? "No replay for this game: it was played before Hearthpulse recorded replays."
-                    : "The replay file of this game is gone (old replays are deleted when the folder is full).",
+                Missing = game.Replay is null ? Loc.T("Match.Missing.NotRecorded") : Loc.T("Match.Missing.Gone"),
             };
         }
 
@@ -175,7 +174,7 @@ public sealed class MatchPage
             var data = ReplayFile.ReadBattlegrounds(file.Value.Body);
             if (data is null)
             {
-                return new MatchPage(game, cards, header) { Missing = "The replay file of this game could not be read." };
+                return new MatchPage(game, cards, header) { Missing = Loc.T("Match.Missing.Unreadable") };
             }
 
             return new MatchPage(game, cards, header)
@@ -189,7 +188,7 @@ public sealed class MatchPage
         var replay = MatchReplay.Parse(text!);
         if (replay is null || replay.Frames.Count == 0)
         {
-            return new MatchPage(game, cards, header) { Missing = "The replay file of this game could not be read." };
+            return new MatchPage(game, cards, header) { Missing = Loc.T("Match.Missing.Unreadable") };
         }
 
         var shown = replay.OpponentPlayed.Select(c => c.CardId).ToList();
@@ -204,7 +203,7 @@ public sealed class MatchPage
             LocalDeckNote = deckNote,
             OpponentCards = replay.OpponentPlayed
                 .Select(c => new MatchDeckRow(c.CardId, cards.NameOf(c.CardId), cards.Get(c.CardId)?.Cost ?? 0, c.Count > 1 ? $"×{c.Count}" : string.Empty,
-                    $"Turn {c.Turn}", true))
+                    Loc.F("Match.Deck.Turn", c.Turn), true))
                 .ToList(),
             OpponentArchetype = archetype,
             Analysis = MatchAnalysis.Build(game, replay, cards, meta, archetype),
@@ -222,7 +221,7 @@ public sealed class MatchPage
         var f = replay.Frames[Math.Clamp(frame, 0, replay.Frames.Count - 1)];
         var local = Side(f.Local, true, f.PlayerTurn);
         var opponent = Side(f.Opponent, false, f.PlayerTurn);
-        var turn = f.Mulligan ? "Mulligan" : f.Turn == 0 ? "Game start" : $"Turn {f.PlayerTurn} · {Whose(f.Active)}";
+        var turn = f.Mulligan ? Loc.T("Match.Step.Mulligan") : f.Turn == 0 ? Loc.T("Match.Step.Start") : Loc.F("Match.Step.Turn", f.PlayerTurn, Whose(f.Active));
         return new MatchStepView(f.Index, replay.Frames.Count, turn, Describe(f.Action), Details(f.Action), f.Action.Player == ReplayPlayer.Local,
             bottom == ReplayPlayer.Local ? opponent : local,
             bottom == ReplayPlayer.Local ? local : opponent);
@@ -253,8 +252,9 @@ public sealed class MatchPage
         {
             var mulligan = turn.Turn == 0;
             var local = turn.Player == ReplayPlayer.Local;
-            var label = mulligan ? "M" : turn.PlayerTurn.ToString(CultureInfo.InvariantCulture);
-            var tooltip = mulligan ? "Mulligan" : $"Turn {turn.PlayerTurn} · {Whose(turn.Player)}" + (turn.Seconds is { } s ? $" · {s / 60}:{s % 60:00}" : string.Empty);
+            var label = mulligan ? Loc.T("Match.Chip.Mulligan") : turn.PlayerTurn.ToString(CultureInfo.InvariantCulture);
+            var tooltip = mulligan ? Loc.T("Match.Step.Mulligan")
+                : Loc.F("Match.Step.Turn", turn.PlayerTurn, Whose(turn.Player)) + (turn.Seconds is { } s ? $" · {s / 60}:{s % 60:00}" : string.Empty);
             chips.Add(new MatchTurnChip(turn.Turn, label, tooltip, local, mulligan, turn.FirstFrame, turn.LastFrame));
         }
 
@@ -272,7 +272,7 @@ public sealed class MatchPage
     {
         var hero = board.Hero?.CardId ?? (local ? Game.HeroCardId : Game.OpponentHeroCardId);
         return new MatchSideView(
-            local ? "You" : "Opponent",
+            local ? Loc.T("Match.You") : Loc.T("Match.Opponent"),
             local,
             hero,
             _cards.NameOf(hero),
@@ -284,7 +284,7 @@ public sealed class MatchPage
             board.Hand.Select(c => Card(c, turn)).ToList(),
             board.Secrets.Select(c => Card(c, turn)).ToList(),
             board.Mana > 0 ? $"{Math.Max(0, board.Mana - board.ManaUsed)}/{board.Mana}" : "0/0",
-            $"{board.DeckCount} in deck · {board.Hand.Count} in hand");
+            Loc.F("Match.Side.Deck", board.DeckCount, board.Hand.Count));
     }
 
     private MatchCardView Card(ReplayCard card, int turn)
@@ -293,17 +293,24 @@ public sealed class MatchPage
         {
             var origin = card.Origin switch
             {
-                "start" => "Opening hand",
-                "drawn" => $"Drawn turn {card.EnteredTurn}",
-                "created" => $"Created turn {card.EnteredTurn}",
-                "returned" => $"Returned turn {card.EnteredTurn}",
-                "stolen" => $"Taken turn {card.EnteredTurn}",
-                "coin" => "The Coin",
-                _ => card.Zone == "SECRET" ? "Secret" : string.Empty,
+                "start" => Loc.T("Match.Origin.Start"),
+                "drawn" => Loc.F("Match.Origin.Drawn", card.EnteredTurn),
+                "created" => Loc.F("Match.Origin.Created", card.EnteredTurn),
+                "returned" => Loc.F("Match.Origin.Returned", card.EnteredTurn),
+                "stolen" => Loc.F("Match.Origin.Stolen", card.EnteredTurn),
+                "unknown" => Loc.T("Match.Origin.Unknown"),
+                "coin" => Loc.T("Match.Origin.Coin"),
+                _ => card.Zone == "SECRET" ? Loc.T("Match.Origin.Secret") : string.Empty,
             };
             return new MatchCardView(null, string.Empty, true)
             {
-                Note = card.Origin switch { "start" => "M", "coin" => "C", null => string.Empty, _ => card.EnteredTurn.ToString(CultureInfo.InvariantCulture) },
+                Note = card.Origin switch
+                {
+                    "start" => Loc.T("Match.Chip.Mulligan"),
+                    "coin" => Loc.T("Match.Note.Coin"),
+                    null or "unknown" => string.Empty,
+                    _ => card.EnteredTurn.ToString(CultureInfo.InvariantCulture),
+                },
                 Tooltip = origin,
             };
         }
@@ -311,7 +318,7 @@ public sealed class MatchPage
         var name = _cards.NameOf(card.CardId);
         var stats = card.Type is "MINION" or "WEAPON" or "HERO" or "LOCATION";
         var keywords = card.Keywords.Select(Keyword).Where(k => k.Length > 0).ToList();
-        var note = card.Zone == "HAND" && card.EnteredTurn > 0 ? $"T{card.EnteredTurn}" : keywords.FirstOrDefault() ?? string.Empty;
+        var note = card.Zone == "HAND" && card.EnteredTurn > 0 ? Loc.F("Match.Note.Turn", card.EnteredTurn) : keywords.FirstOrDefault() ?? string.Empty;
         return new MatchCardView(card.CardId, name, false)
         {
             Attack = card.Attack,
@@ -329,43 +336,40 @@ public sealed class MatchPage
 
     private static string Keyword(string tag) => tag switch
     {
-        "TAUNT" => "Taunt",
-        "DIVINE_SHIELD" => "Divine Shield",
-        "STEALTH" => "Stealth",
-        "FROZEN" => "Frozen",
-        "SILENCED" => "Silenced",
-        "POISONOUS" => "Poisonous",
-        "WINDFURY" => "Windfury",
-        "REBORN" => "Reborn",
-        "LIFESTEAL" => "Lifesteal",
-        "DORMANT" => "Dormant",
-        "IMMUNE" => "Immune",
+        "TAUNT" or "DIVINE_SHIELD" or "STEALTH" or "FROZEN" or "SILENCED" or "POISONOUS" or "WINDFURY" or "REBORN" or "LIFESTEAL" or "DORMANT"
+            or "IMMUNE" => Loc.T("Match.Keyword." + tag),
         _ => string.Empty,
     };
 
     /// <summary>One line for an action: "You played Fireball → Ragnaros".</summary>
     public string Describe(ReplayAction action)
     {
-        var who = action.Player == ReplayPlayer.Local ? "You" : "Opponent";
-        var target = action.TargetId is { } t ? " → " + _cards.NameOf(t) : string.Empty;
+        var you = action.Player == ReplayPlayer.Local;
+        // "Fireball → Ragnaros" when the card had a face-up target.
+        string Aimed(string? card) => action.TargetId is { } t ? Loc.F("Match.Action.Target", _cards.NameOf(card), _cards.NameOf(t)) : _cards.NameOf(card);
         return action.Kind switch
         {
-            ReplayActionKind.Start => "Game start",
-            ReplayActionKind.Mulligan => "Mulligan",
-            ReplayActionKind.TurnStart => $"{(action.Player == ReplayPlayer.Local ? "Your" : "Opponent's")} turn begins",
-            ReplayActionKind.Play => action.CardId is { } id ? $"{who} played {_cards.NameOf(id)}{target}" : $"{who} played a card",
-            ReplayActionKind.HeroPower or ReplayActionKind.Use => $"{who} used {_cards.NameOf(action.CardId)}{target}",
-            ReplayActionKind.Attack => $"{_cards.NameOf(action.CardId)} attacked {(action.TargetId is { } d ? _cards.NameOf(d) : "")}".TrimEnd(),
-            ReplayActionKind.Choice => action.Picked.Count > 0
-                ? $"You picked {string.Join(", ", action.Picked.Select(_cards.NameOf))}" + (action.CardId is { } source ? $" ({_cards.NameOf(source)})" : string.Empty)
-                : "You were offered a choice",
+            ReplayActionKind.Start => Loc.T("Match.Step.Start"),
+            ReplayActionKind.Mulligan => Loc.T("Match.Step.Mulligan"),
+            ReplayActionKind.TurnStart => Loc.T(you ? "Match.Action.YourTurn" : "Match.Action.TheirTurn"),
+            ReplayActionKind.Play => action.CardId is { } id
+                ? Loc.F(you ? "Match.Action.YouPlayed" : "Match.Action.TheyPlayed", Aimed(id))
+                : Loc.T(you ? "Match.Action.YouPlayedCard" : "Match.Action.TheyPlayedCard"),
+            ReplayActionKind.HeroPower or ReplayActionKind.Use => Loc.F(you ? "Match.Action.YouUsed" : "Match.Action.TheyUsed", Aimed(action.CardId)),
+            ReplayActionKind.Attack => action.TargetId is { } d
+                ? Loc.F("Match.Action.Attacked", _cards.NameOf(action.CardId), _cards.NameOf(d))
+                : Loc.F("Match.Action.AttackedNoTarget", _cards.NameOf(action.CardId)),
+            ReplayActionKind.Choice => action.Picked.Count == 0 ? Loc.T("Match.Action.Offered")
+                : action.CardId is { } source
+                    ? Loc.F("Match.Action.PickedFrom", string.Join(", ", action.Picked.Select(_cards.NameOf)), _cards.NameOf(source))
+                    : Loc.F("Match.Action.Picked", string.Join(", ", action.Picked.Select(_cards.NameOf))),
             ReplayActionKind.End => action.Result switch
             {
-                "WON" => "You won",
-                "LOST" => "You lost",
-                "TIED" => "Tie",
-                "CONCEDED" => "You conceded",
-                _ => "Game over",
+                "WON" => Loc.T("Match.Action.Won"),
+                "LOST" => Loc.T("Match.Action.Lost"),
+                "TIED" => Loc.T("Match.Action.Tied"),
+                "CONCEDED" => Loc.T("Match.Action.Conceded"),
+                _ => Loc.T("Match.Action.Over"),
             },
             _ => string.Empty,
         };
@@ -385,13 +389,13 @@ public sealed class MatchPage
 
             if (others.Count > 0)
             {
-                parts.Add("over " + string.Join(", ", others.Select(_cards.NameOf)));
+                parts.Add(Loc.F("Match.Detail.Over", string.Join(", ", others.Select(_cards.NameOf))));
             }
         }
 
         if (action.Deaths.Count > 0)
         {
-            parts.Add("died: " + string.Join(", ", action.Deaths.Select(d => _cards.NameOf(d.CardId))));
+            parts.Add(Loc.F("Match.Detail.Died", string.Join(", ", action.Deaths.Select(d => _cards.NameOf(d.CardId)))));
         }
 
         return string.Join(" · ", parts);
@@ -409,8 +413,8 @@ public sealed class MatchPage
 
     private static string Whose(ReplayPlayer? player) => player switch
     {
-        ReplayPlayer.Local => "You",
-        ReplayPlayer.Opponent => "Opponent",
+        ReplayPlayer.Local => Loc.T("Match.You"),
+        ReplayPlayer.Opponent => Loc.T("Match.Opponent"),
         _ => string.Empty,
     };
 
@@ -424,13 +428,13 @@ public sealed class MatchPage
         if (deck is not null && deck.Cards.Count > 0)
         {
             list = deck.Cards.Select(kv => (cards.Get(kv.Key)?.Id ?? kv.Key.ToString(CultureInfo.InvariantCulture), kv.Value));
-            note = $"{game.DeckName ?? "Deck"} · {deck.CardCount} cards · drawn and played marked";
+            note = Loc.F("Match.Deck.Note", game.DeckName ?? Loc.T("Match.Deck.Default"), deck.CardCount);
         }
         else
         {
             // No deck code for this game: the cards it was seen to hold.
             list = drawn.Select(kv => (kv.Key, kv.Value));
-            note = "No deck code for this game: the cards you drew";
+            note = Loc.T("Match.Deck.NoCode");
         }
 
         var rows = list
@@ -440,8 +444,8 @@ public sealed class MatchPage
                 var d = drawn.GetValueOrDefault(c.Id);
                 var p = played.GetValueOrDefault(c.Id);
                 var marks = new List<string>();
-                if (d > 0) marks.Add(d > 1 ? $"drawn ×{d}" : "drawn");
-                if (p > 0) marks.Add(p > 1 ? $"played ×{p}" : "played");
+                if (d > 0) marks.Add(d > 1 ? Loc.F("Match.Deck.DrawnTimes", d) : Loc.T("Match.Deck.Drawn"));
+                if (p > 0) marks.Add(p > 1 ? Loc.F("Match.Deck.PlayedTimes", p) : Loc.T("Match.Deck.Played"));
                 return new MatchDeckRow(c.Id, cards.NameOf(c.Id), card?.Cost ?? 0, c.Copies > 1 ? $"×{c.Copies}" : string.Empty, string.Join(" · ", marks), d > 0);
             })
             .OrderBy(r => r.Cost).ThenBy(r => r.Name, StringComparer.CurrentCulture)
@@ -464,20 +468,20 @@ public sealed class MatchPage
     {
         var (result, key) = round.Result switch
         {
-            "Win" => ($"Won · {round.DamageDealt} damage", "Win"),
-            "Loss" => ($"Lost · {round.DamageTaken} damage", "Loss"),
-            "Tie" => ("Tie", "Tie"),
-            _ => ("No combat", "Unknown"),
+            "Win" => (Loc.F("Match.Round.Won", round.DamageDealt), "Win"),
+            "Loss" => (Loc.F("Match.Round.Lost", round.DamageTaken), "Loss"),
+            "Tie" => (Loc.T("Match.Round.Tie"), "Tie"),
+            _ => (Loc.T("Match.Round.NoCombat"), "Unknown"),
         };
         var detail = string.Join(" · ", new[]
         {
-            $"Tavern tier {round.Tier}",
-            round.Health > 0 ? $"{round.Health} health" : null,
-            round.Shop.Count > 0 ? $"{round.Shop.Count} tavern offers" : null,
+            Loc.F("Match.Round.Tier", round.Tier),
+            round.Health > 0 ? Loc.F("Match.Round.Health", round.Health) : null,
+            round.Shop.Count > 0 ? Loc.P("Match.Round.Offers", round.Shop.Count) : null,
         }.Where(x => x is not null));
         return new MatchRoundView(
             round.Turn,
-            $"Turn {round.Turn}",
+            Loc.F("Match.Round.Title", round.Turn),
             detail,
             result,
             key,
@@ -500,7 +504,7 @@ public sealed class MatchPage
         Health = m.Health,
         ShowStats = true,
         Golden = m.Golden,
-        Tooltip = cards.NameOf(m.CardId) + (m.Golden ? " (golden)" : string.Empty),
+        Tooltip = m.Golden ? Loc.F("Match.Round.Golden", cards.NameOf(m.CardId)) : cards.NameOf(m.CardId),
     };
 
     private static MatchHeader BuildHeader(GameRecord game, CardDb cards, ReplayHeader? replay)
@@ -510,55 +514,58 @@ public sealed class MatchPage
             StripTag(game.PlayerName),
             game.HeroCardId,
             cards.NameOf(game.HeroCardId),
-            bg ? "Battlegrounds" : ConstructedMeta.ClassName(ClassOf(game, cards)),
+            bg ? ModeText(game.Mode) : ConstructedMeta.ClassName(ClassOf(game, cards)),
             bg ? Rating(game) : RankInfo.Localize(replay?.LocalRank ?? game.Rank) ?? string.Empty);
         var opponent = new MatchPlayerView(
-            bg ? "Lobby" : StripTag(game.OpponentName) is { Length: > 0 } name && !name.StartsWith("UNKNOWN", StringComparison.Ordinal) ? name : "Opponent",
+            bg ? Loc.T("Match.Lobby") : StripTag(game.OpponentName) is { Length: > 0 } name && !name.StartsWith("UNKNOWN", StringComparison.Ordinal) ? name : Loc.T("Match.Opponent"),
             game.OpponentHeroCardId,
             cards.NameOf(game.OpponentHeroCardId),
             ConstructedMeta.ClassName(game.OpponentClass),
             RankInfo.Localize(replay?.OpponentRank) ?? string.Empty);
         var top = game.Mode == "Duos" ? 2 : 4;
-        var (result, key) = game.IsAbandoned ? ("Abandoned", game.Result)
-            : bg ? (Ordinal(game.Placement) + " place", game.Placement is > 0 && game.Placement <= top ? "Win" : "Loss")
-            : (game.Result, game.Result);
-        var format = game.Format switch
-        {
-            "FT_STANDARD" => "Standard",
-            "FT_WILD" => "Wild",
-            "FT_CLASSIC" => "Classic",
-            "FT_TWIST" => "Twist",
-            _ => string.Empty,
-        };
-        var title = bg ? $"{cards.NameOf(game.HeroCardId)} · {game.Mode}"
-            : $"{(local.Class.Length > 0 ? local.Class : game.DeckName ?? "You")} vs {(opponent.Class.Length > 0 ? opponent.Class : "Opponent")}";
+        var (result, key) = game.IsAbandoned ? (Loc.T("Main.Result.Abandoned"), game.Result)
+            : bg ? (Loc.F("Match.Header.Place", Ordinal(game.Placement)), game.Placement is > 0 && game.Placement <= top ? "Win" : "Loss")
+            : (ResultText(game.Result), game.Result);
+        var format = game.Format is { Length: > 0 } f ? Loc.Or("Match.Format." + f, string.Empty) : string.Empty;
+        var title = bg ? Loc.F("Match.Header.Title", cards.NameOf(game.HeroCardId), ModeText(game.Mode))
+            : Loc.F("Match.Header.Versus", local.Class.Length > 0 ? local.Class : game.DeckName ?? Loc.T("Match.You"),
+                opponent.Class.Length > 0 ? opponent.Class : Loc.T("Match.Opponent"));
         var subtitle = string.Join(" · ", new[]
         {
-            game.Mode,
+            ModeText(game.Mode),
             bg ? null : format,
-            game.StartedAt.ToString("d MMM yyyy, HH:mm", CultureInfo.CurrentCulture),
+            game.StartedAt.ToString("d MMM yyyy, HH:mm", Loc.DateCulture),
         }.Where(x => !string.IsNullOrEmpty(x)));
         var duration = game.Duration > TimeSpan.Zero ? $"{(int)game.Duration.TotalMinutes}:{game.Duration.Seconds:00}" : "—";
-        var facts = new List<MatchFact> { new("Duration", duration), new(bg ? "Rounds" : "Turns", game.Turns.ToString(CultureInfo.CurrentCulture)) };
+        var facts = new List<MatchFact>
+        {
+            new(Loc.T("Match.Fact.Duration"), duration),
+            new(Loc.T(bg ? "Match.Fact.Rounds" : "Match.Fact.Turns"), game.Turns.ToString(CultureInfo.CurrentCulture)),
+        };
         if (!bg)
         {
-            facts.Add(new MatchFact("Coin", game.WentFirst switch { true => "You went first", false => "You had the Coin", _ => "—" }));
+            facts.Add(new MatchFact(Loc.T("Match.Fact.Coin"), game.WentFirst switch
+            {
+                true => Loc.T("Match.Fact.WentFirst"),
+                false => Loc.T("Match.Fact.HadCoin"),
+                _ => "—",
+            }));
             if (game.DeckName is { Length: > 0 } deck)
             {
-                facts.Add(new MatchFact("Deck", deck));
+                facts.Add(new MatchFact(Loc.T("Match.Fact.Deck"), deck));
             }
 
             if (game.OpponentArchetype is { Length: > 0 } archetype)
             {
-                facts.Add(new MatchFact("Opponent's deck", archetype));
+                facts.Add(new MatchFact(Loc.T("Match.Fact.OpponentDeck"), archetype));
             }
         }
         else
         {
-            facts.Add(new MatchFact("Tavern tier", game.TavernTier.ToString(CultureInfo.CurrentCulture)));
+            facts.Add(new MatchFact(Loc.T("Match.Fact.TavernTier"), game.TavernTier.ToString(CultureInfo.CurrentCulture)));
             if (game.RatingDelta is { } delta)
             {
-                facts.Add(new MatchFact("Rating", delta >= 0 ? $"+{delta}" : $"−{-delta}"));
+                facts.Add(new MatchFact(Loc.T("Match.Fact.Rating"), delta >= 0 ? $"+{delta}" : $"−{-delta}"));
             }
         }
 
@@ -596,9 +603,22 @@ public sealed class MatchPage
     private static string Ordinal(int n) => n switch
     {
         <= 0 => "—",
-        1 => "1st",
-        2 => "2nd",
-        3 => "3rd",
-        _ => $"{n}th",
+        1 => Loc.T("Main.Place.1"),
+        2 => Loc.T("Main.Place.2"),
+        3 => Loc.T("Main.Place.3"),
+        _ => Loc.F("Main.Place.N", n),
     };
+
+    /// <summary>A history result ("Win", "Loss", "Tie", "Unknown") as the player reads it.</summary>
+    private static string ResultText(string result) => result switch
+    {
+        "Win" => Loc.T("Main.Result.Win"),
+        "Loss" => Loc.T("Main.Result.Loss"),
+        "Tie" => Loc.T("Main.Result.Tie"),
+        "Unknown" => Loc.T("Main.Result.Unknown"),
+        _ => result,
+    };
+
+    /// <summary>A history mode ("Ranked", "Battlegrounds"...) as the player reads it.</summary>
+    private static string ModeText(string mode) => Loc.Or("Main.Mode." + mode, mode);
 }

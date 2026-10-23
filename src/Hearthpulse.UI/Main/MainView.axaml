@@ -51,7 +51,7 @@
 
         <!-- A game row that opens the match page (History, recent games) -->
         <DataTemplate x:Key="OpenGameRow" x:DataType="m:GameRow">
-            <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="Open the match: replay, decks and analysis"
+            <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="{i:Loc Match.View.OpenTip}"
                     Command="{Binding $parent[m:MainView].((m:MainViewModel)DataContext).OpenMatch}" CommandParameter="{Binding}"
                     Content="{Binding}" ContentTemplate="{StaticResource GameRowTemplate}" />
         </DataTemplate>
@@ -1080,6 +1080,7 @@
                                         <Button Classes="ghost" Content="{i:Loc Settings.Data.OpenFolder}" Click="OnOpenData" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Settings.Data.OpenFolderTip}" />
                                     </WrapPanel>
                                     <TextBlock Text="{Binding DataFolder}" Classes="caption" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{i:Loc Match.Settings.ReplayLimit}" Classes="caption" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
 

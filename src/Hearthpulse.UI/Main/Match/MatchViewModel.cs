@@ -1,4 +1,5 @@
 using Hearthpulse.UI.Infrastructure;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Replay;
 
 namespace Hearthpulse.UI.Main.Match;
@@ -167,7 +168,7 @@ public sealed class MatchViewModel : Observable
 
     public MatchStepView? Step { get => _step; private set => Set(ref _step, value); }
 
-    public string Position => _page is null ? string.Empty : $"Step {Frame + 1} of {FrameMax + 1}";
+    public string Position => _page is null ? string.Empty : Loc.F("Match.Position", Frame + 1, FrameMax + 1);
 
     public IReadOnlyList<MatchActionRow> Actions { get => _actions; private set => Set(ref _actions, value); }
 
@@ -221,13 +222,21 @@ public sealed class MatchViewModel : Observable
         RaiseTabs();
     }
 
-    /// <summary>Shows a loaded game from its first step, from the player's side.</summary>
-    public void Show(MatchPage page)
+    /// <summary>
+    /// Shows a loaded game from its first step, from the player's side; with <paramref name="keepPosition"/> (the same game
+    /// built again in another language) at the step, side and tab already on screen.
+    /// </summary>
+    public void Show(MatchPage page, bool keepPosition = false)
     {
         _page = page;
-        _frame = 0;
-        _bottomLocal = true;
-        _tab = page.IsBattlegrounds ? "Rounds" : "Replay";
+        if (!keepPosition)
+        {
+            _frame = 0;
+            _bottomLocal = true;
+            _tab = page.IsBattlegrounds ? "Rounds" : "Replay";
+        }
+
+        _frame = Math.Clamp(_frame, 0, FrameMax);
         Loading = false;
         Header = page.Header;
         Missing = page.Missing ?? string.Empty;
@@ -235,8 +244,8 @@ public sealed class MatchViewModel : Observable
         LocalDeckNote = page.LocalDeckNote;
         OpponentCards = page.OpponentCards;
         ArchetypeLine = page.OpponentArchetype is { } archetype
-            ? $"Likely archetype: {archetype}"
-            : page.OpponentCards.Count > 0 ? "Archetype: not clear from the cards it played" : string.Empty;
+            ? Loc.F("Match.Deck.LikelyArchetype", archetype)
+            : page.OpponentCards.Count > 0 ? Loc.T("Match.Deck.ArchetypeUnclear") : string.Empty;
         Rounds = page.Rounds;
         Lobby = page.Lobby;
         Analysis = page.Analysis;

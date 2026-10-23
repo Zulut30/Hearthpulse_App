@@ -134,26 +134,177 @@ public sealed class ReplayRecorderTests
         Assert.Contains("ATK=4", inPlay);
     }
 
+    /// <summary>
+    /// Their card <paramref name="sentBack"/> goes back into the deck (a mulligan, a trade); then they draw
+    /// <paramref name="drawn"/> and play it. Whether the drawn card is the one sent back or another must not show.
+    /// </summary>
+    private static IReadOnlyList<string> SendBackThenDraw(int drawn) => Record(
+    [
+        .. Card(63, "", "HAND", 2, ""),
+        .. Card(64, "", "DECK", 2, ""),
+        Zone(63, "DECK"),
+        Zone(drawn, "HAND"),
+        string.Format(PlayBlock, drawn),
+        .. Show(drawn, "TIME_700", "tag=CARDTYPE value=MINION", "tag=ATK value=3", "tag=HEALTH value=3"),
+        Zone(drawn, "PLAY", "TIME_700"),
+        "DebugPrintPower() - BLOCK_END",
+    ]);
+
+    private const string PlayBlock =
+        "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id={0} zone=HAND zonePos=1 cardId= player=2] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ";
+
     [Fact]
-    public void A_card_shuffled_into_a_deck_loses_its_identity()
+    public void A_card_sent_back_into_their_deck_cannot_be_told_from_the_others_when_drawn()
     {
-        // Our minion is shuffled into their deck, then drawn: nothing ties the card back to it.
+        // Review blocker: deck cards had ids, so "X <its deck id>" said the redrawn card was the one sent back.
+        var redrawn = SendBackThenDraw(63);
+        var other = SendBackThenDraw(64);
+
+        ReplayChecks.AssertNothingHidden(redrawn);
+        ReplayChecks.AssertNothingHidden(other);
+        Assert.Equal(other, redrawn);
+        Assert.DoesNotContain(redrawn, e => e.StartsWith("E ", StringComparison.Ordinal) && e.Contains(" DECK "));
+        Assert.Contains("D O 3", redrawn);
+    }
+
+    [Fact]
+    public void A_card_shuffled_into_their_deck_cannot_be_told_from_the_others_when_drawn()
+    {
+        // Our known minion is shuffled into their deck; they draw it, or another card. The files must be the same.
+        IReadOnlyList<string> Draw(int drawn) => Record(
+        [
+            .. Card(63, "BE_012", "PLAY", 1, "MINION", "tag=ATK value=3"),
+            .. Card(64, "", "DECK", 2, ""),
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=63 zone=PLAY zonePos=1 cardId=BE_012 player=1] tag=CONTROLLER value=2 ",
+            Zone(63, "DECK", "BE_012"),
+            Zone(drawn, "HAND"),
+        ]);
+
+        var shuffled = Draw(63);
+        ReplayChecks.AssertNothingHidden(shuffled);
+        Assert.Equal(Draw(64), shuffled);
+        Assert.All(shuffled.Where(e => e.Contains("BE_012", StringComparison.Ordinal)), e => Assert.Contains(" PLAY ", e));
+        Assert.Contains(shuffled, e => e.Contains(" O HAND ") && e.EndsWith("ORIGIN=drawn"));
+    }
+
+    [Fact]
+    public void The_opponents_choices_are_not_recorded()
+    {
         var events = Record(
             [
-                .. Card(63, "BE_012", "PLAY", 1, "MINION", "tag=ATK value=3"),
-                "DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=63 zone=PLAY zonePos=1 cardId=BE_012 player=1] tag=CONTROLLER value=2 ",
-                Zone(63, "DECK", "BE_012"),
-                Zone(63, "HAND", "BE_012"),
+                .. Card(70, "TLC_515", "SETASIDE", 2, "SPELL"),
+                .. Card(71, "CS2_029", "SETASIDE", 2, "SPELL"),
+                "DebugPrintEntityChoices() - id=4 Player=UNKNOWN HUMAN PLAYER TaskList=12 ChoiceType=GENERAL CountMin=1 CountMax=1",
+                "DebugPrintEntityChoices() -   Entities[0]=[entityName=A id=70 zone=SETASIDE zonePos=0 cardId=TLC_515 player=2]",
+                "DebugPrintEntityChoices() -   Entities[1]=[entityName=B id=71 zone=SETASIDE zonePos=0 cardId=CS2_029 player=2]",
+                "DebugPrintEntitiesChosen() - id=4 Player=UNKNOWN HUMAN PLAYER EntitiesCount=1",
+                "DebugPrintEntitiesChosen() -   Entities[0]=[entityName=B id=71 zone=SETASIDE zonePos=0 cardId=CS2_029 player=2]",
+                Zone(71, "HAND", "CS2_029"),
             ]);
 
         ReplayChecks.AssertNothingHidden(events);
-        var onTable = IdOf(events.Last(e => e.StartsWith("E ", StringComparison.Ordinal) && e.Contains("BE_012")));
-        var hidden = events.Where(e => e.StartsWith("E ", StringComparison.Ordinal) && (e.Contains(" O DECK ") || e.Contains(" O HAND ")))
-            .Select(IdOf).ToList();
-        Assert.DoesNotContain(onTable, hidden);
-        Assert.Equal(hidden.Count, hidden.Distinct().Count());
-        Assert.All(events.Where(e => e.Contains("BE_012", StringComparison.Ordinal)), e => Assert.Contains(" PLAY ", e));
-        Assert.Contains(events, e => e.Contains(" O HAND ") && e.EndsWith("ORIGIN=drawn"));
+        Assert.DoesNotContain(events, e => e.StartsWith("C ", StringComparison.Ordinal) || e.StartsWith("c ", StringComparison.Ordinal));
+        Assert.DoesNotContain(events, e => e.Contains("TLC_515", StringComparison.Ordinal) || e.Contains("CS2_029", StringComparison.Ordinal));
+        Assert.Contains(events, e => e.Contains(" O HAND ") && e.EndsWith("ORIGIN=created"));
+    }
+
+    [Fact]
+    public void A_card_changed_in_their_hand_stays_a_card_back()
+    {
+        var events = Record(
+            [
+                .. Card(65, "", "DECK", 2, ""),
+                Zone(65, "HAND"),
+                "DebugPrintPower() - CHANGE_ENTITY - Updating Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=65 zone=HAND zonePos=1 cardId= player=2] CardID=CS2_032",
+                "DebugPrintPower() -     tag=CARDTYPE value=SPELL",
+                "DebugPrintPower() -     tag=COST value=7",
+            ]);
+
+        ReplayChecks.AssertNothingHidden(events);
+        Assert.DoesNotContain(events, e => e.Contains("CS2_032", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Their_minion_returned_to_hand_and_hidden_is_a_card_back()
+    {
+        var events = Record(
+            [
+                .. Card(66, "CS2_120", "PLAY", 2, "MINION", "tag=ATK value=2", "tag=HEALTH value=3"),
+                "DebugPrintPower() - HIDE_ENTITY - Entity=[entityName=X id=66 zone=PLAY zonePos=1 cardId=CS2_120 player=2] tag=ZONE value=HAND",
+            ]);
+
+        ReplayChecks.AssertNothingHidden(events);
+        var back = Assert.Single(events, e => e.Contains(" O HAND ", StringComparison.Ordinal));
+        Assert.EndsWith(" - - ORIGIN=returned", back);
+    }
+
+    [Fact]
+    public void Their_secret_typed_before_its_secret_tag_is_never_named()
+    {
+        // ZONE=SECRET can come before SECRET=1 while the card type is already known.
+        var events = Record(
+            [
+                .. Card(67, "", "DECK", 2, ""),
+                Zone(67, "HAND"),
+                .. Show(67, "EX1_130", "tag=CARDTYPE value=SPELL"),
+                Zone(67, "SECRET", "EX1_130"),
+                Tag(67, "SECRET", "1"),
+            ]);
+
+        Assert.DoesNotContain(events, e => e.Contains("EX1_130", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Nothing_but_the_result_is_recorded_after_the_game_is_over()
+    {
+        var events = Record(
+            [
+                .. Card(68, "", "DECK", 2, ""),
+                "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STEP value=FINAL_GAMEOVER ",
+                .. Card(69, "CS2_182", "PLAY", 2, "MINION"),
+                Zone(68, "HAND"),
+                "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=PLAYSTATE value=WON ",
+                "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE ",
+            ]);
+
+        var after = events.SkipWhile(e => e != "S FINAL_GAMEOVER").Skip(1).ToList();
+        Assert.Equal(["R WON"], after);
+    }
+
+    [Fact]
+    public void A_game_whose_local_player_looks_wrong_is_not_recorded()
+    {
+        // The local player is taken from the first choice header's name, but the mulligan it offers is the other
+        // player's hand: the filter would be the wrong way round, so nothing is written.
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        var recorder = new ReplayRecorder();
+        parser.AddListener(recorder);
+        string[] lines =
+        [
+            "DebugPrintPower() - CREATE_GAME",
+            "DebugPrintPower() -     GameEntity EntityID=1",
+            "DebugPrintPower() -     Player EntityID=2 PlayerID=1 GameAccountId=[hi=1 lo=11]",
+            "DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+            "DebugPrintPower() -     Player EntityID=3 PlayerID=2 GameAccountId=[hi=1 lo=22]",
+            "DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+            .. Card(30, "", "HAND", 2, ""),
+            .. Card(40, "", "HAND", 1, ""),
+            "DebugPrintGame() - GameType=GT_RANKED",
+            "DebugPrintGame() - PlayerID=1, PlayerName=velox#21276",
+            "DebugPrintGame() - PlayerID=2, PlayerName=Other#1",
+            "DebugPrintEntityChoices() - id=1 Player=velox#21276 TaskList=1 ChoiceType=MULLIGAN CountMin=0 CountMax=3",
+            "DebugPrintEntityChoices() -   Entities[0]=[entityName=A id=30 zone=HAND zonePos=1 cardId=CS2_029 player=2]",
+            "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=1 ",
+        ];
+        foreach (var body in lines)
+        {
+            parser.Feed("D 12:30:00.0000000 GameState." + body);
+        }
+
+        parser.Flush();
+        Assert.Equal(1, parser.Game!.LocalPlayerId);
+        Assert.False(recorder.HasGame);
+        Assert.Empty(recorder.Events);
     }
 
     [Fact]
@@ -273,6 +424,8 @@ internal static class ReplayChecks
                     Assert.True(t.Length >= 7, line);
                     var (id, side, zone, card, type) = (t[1], t[2], t[3], t[5], t[6]);
                     Assert.DoesNotContain(id, dead);
+                    // A deck is only a count (D lines): an id in it would link what went in with what is drawn later.
+                    Assert.True(zone != "DECK", $"a card in a deck has an id: {line}");
                     var hidden = zone == "DECK" || (side == "O" && zone == "HAND") || (side == "O" && zone == "SECRET" && card == "-");
                     if (zone == "DECK" || (side == "O" && zone == "HAND"))
                     {
@@ -291,6 +444,9 @@ internal static class ReplayChecks
                 case "X":
                     Assert.True(live.Remove(t[1]), line);
                     dead.Add(t[1]);
+                    break;
+                case "D":
+                    Assert.True(t.Length == 3 && t[1] is "L" or "O" && int.TryParse(t[2], out _), line);
                     break;
                 case "V" when t[1] is not ("L" or "O"):
                     Assert.True(live.TryGetValue(t[1], out var target) && !target.Hidden, $"tag of a hidden card: {line}");

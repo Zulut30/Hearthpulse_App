@@ -59,7 +59,7 @@ public sealed partial class AppHost : IDisposable
         Api = new HearthpulseApi(Http);
         Account = new AccountService(new AccountClient(Http));
 
-        History = new HistoryStore(AppPaths.Database);
+        History = new HistoryStore(AppPaths.Database) { Replays = Core.Replay.ReplayStore.Default };
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
         Session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(Api)));

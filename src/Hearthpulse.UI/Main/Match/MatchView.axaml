@@ -106,7 +106,7 @@
                     <StackPanel Grid.Column="2" Margin="18,0,0,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Label}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <Border Classes="pill" Background="{StaticResource SecondaryContainer}" Margin="8,0,0,0" ToolTip.Tip="Mana left / crystals this turn">
+                            <Border Classes="pill" Background="{StaticResource SecondaryContainer}" Margin="8,0,0,0" ToolTip.Tip="{i:Loc Match.View.ManaTip}">
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="9" Height="9" Fill="{StaticResource ManaGem}" Margin="0,0,5,0" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding Mana}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
@@ -264,14 +264,14 @@
     </UserControl.Styles>
 
     <StackPanel>
-        <Button Classes="ghost" Command="{Binding Back}" HorizontalAlignment="Left" Margin="0,0,0,16" Padding="12,7" ToolTip.Tip="Back to History">
+        <Button Classes="ghost" Command="{Binding Back}" HorizontalAlignment="Left" Margin="0,0,0,16" Padding="12,7" ToolTip.Tip="{i:Loc Match.View.BackTip}">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="&#xF004D;" Classes="icon" FontSize="16" Foreground="{StaticResource OnSecondaryContainer}" Margin="0,0,6,0" />
-                <TextBlock Text="History" VerticalAlignment="Center" />
+                <TextBlock Text="{i:Loc Match.View.Back}" VerticalAlignment="Center" />
             </StackPanel>
         </Button>
 
-        <TextBlock Text="Reading the game&#x2026;" Classes="caption" FontSize="14" IsVisible="{Binding Loading}" />
+        <TextBlock Text="{i:Loc Match.View.Loading}" Classes="caption" FontSize="14" IsVisible="{Binding Loading}" />
 
         <StackPanel IsVisible="{Binding !Loading}">
             <!-- Header: you, the result, the opponent -->
@@ -334,40 +334,40 @@
             <!-- Tabs -->
             <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,16" IsVisible="{Binding IsConstructed}">
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Classes="segment" Content="Replay" GroupName="MatchTab" IsChecked="{Binding ShowReplay}" />
-                    <RadioButton Classes="segment" Content="Decks" GroupName="MatchTab" IsChecked="{Binding ShowDecks}" />
-                    <RadioButton Classes="segment" Content="Analysis" GroupName="MatchTab" IsChecked="{Binding ShowAnalysis}" />
+                    <RadioButton Classes="segment" Content="{i:Loc Match.View.TabReplay}" GroupName="MatchTab" IsChecked="{Binding ShowReplay}" />
+                    <RadioButton Classes="segment" Content="{i:Loc Match.View.TabDecks}" GroupName="MatchTab" IsChecked="{Binding ShowDecks}" />
+                    <RadioButton Classes="segment" Content="{i:Loc Match.View.TabAnalysis}" GroupName="MatchTab" IsChecked="{Binding ShowAnalysis}" />
                 </StackPanel>
             </Border>
             <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,16" IsVisible="{Binding IsBattlegrounds}">
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Classes="segment" Content="Rounds" GroupName="MatchBgTab" IsChecked="{Binding ShowRounds}" />
-                    <RadioButton Classes="segment" Content="Lobby" GroupName="MatchBgTab" IsChecked="{Binding ShowLobby}" />
+                    <RadioButton Classes="segment" Content="{i:Loc Match.View.TabRounds}" GroupName="MatchBgTab" IsChecked="{Binding ShowRounds}" />
+                    <RadioButton Classes="segment" Content="{i:Loc Match.View.TabLobby}" GroupName="MatchBgTab" IsChecked="{Binding ShowLobby}" />
                 </StackPanel>
             </Border>
 
             <!-- ===== Replay ===== -->
             <StackPanel IsVisible="{Binding ShowReplay}">
                 <ItemsControl ItemsSource="{Binding Turns}" ItemTemplate="{StaticResource TurnChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,0,0,2" />
-                <TextBlock Text="Outlined turns are yours; M is the mulligan." Classes="caption" FontSize="11.5" Margin="2,0,0,10" />
+                <TextBlock Text="{i:Loc Match.View.TurnsLegend}" Classes="caption" FontSize="11.5" Margin="2,0,0,10" />
                 <WrapPanel Margin="0,0,0,14">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,8">
-                        <Button Classes="icon" Content="&#xF0600;" Command="{Binding First}" ToolTip.Tip="First step" />
-                        <Button Classes="icon" Content="&#xF04AE;" Command="{Binding PreviousTurn}" ToolTip.Tip="Previous turn" Margin="4,0,0,0" />
-                        <Button Classes="icon" Content="&#xF0141;" Command="{Binding Previous}" ToolTip.Tip="Previous step" Margin="4,0,0,0" />
-                        <Button Classes="icon" Content="&#xF0142;" Command="{Binding Next}" ToolTip.Tip="Next step" Margin="4,0,0,0" />
-                        <Button Classes="icon" Content="&#xF04AD;" Command="{Binding NextTurn}" ToolTip.Tip="Next turn" Margin="4,0,0,0" />
-                        <Button Classes="icon" Content="&#xF0601;" Command="{Binding Last}" ToolTip.Tip="Last step" Margin="4,0,0,0" />
+                        <Button Classes="icon" Content="&#xF0600;" Command="{Binding First}" ToolTip.Tip="{i:Loc Match.View.First}" />
+                        <Button Classes="icon" Content="&#xF04AE;" Command="{Binding PreviousTurn}" ToolTip.Tip="{i:Loc Match.View.PreviousTurn}" Margin="4,0,0,0" />
+                        <Button Classes="icon" Content="&#xF0141;" Command="{Binding Previous}" ToolTip.Tip="{i:Loc Match.View.Previous}" Margin="4,0,0,0" />
+                        <Button Classes="icon" Content="&#xF0142;" Command="{Binding Next}" ToolTip.Tip="{i:Loc Match.View.Next}" Margin="4,0,0,0" />
+                        <Button Classes="icon" Content="&#xF04AD;" Command="{Binding NextTurn}" ToolTip.Tip="{i:Loc Match.View.NextTurn}" Margin="4,0,0,0" />
+                        <Button Classes="icon" Content="&#xF0601;" Command="{Binding Last}" ToolTip.Tip="{i:Loc Match.View.Last}" Margin="4,0,0,0" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,8">
                         <Slider Width="300" Minimum="0" Maximum="{Binding FrameMax}" Value="{Binding Frame}" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="5"
-                                VerticalAlignment="Center" ToolTip.Tip="Drag through the game" />
+                                VerticalAlignment="Center" ToolTip.Tip="{i:Loc Match.View.SliderTip}" />
                         <TextBlock Text="{Binding Position}" Classes="caption" VerticalAlignment="Center" Margin="12,0,0,0" />
                     </StackPanel>
-                    <Border Classes="segmentBar" Margin="0,0,0,8" ToolTip.Tip="Whose side of the table is at the bottom">
+                    <Border Classes="segmentBar" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Match.View.SideTip}">
                         <StackPanel Orientation="Horizontal">
-                            <RadioButton Classes="segment" Content="My side" GroupName="MatchSide" IsChecked="{Binding BottomLocal}" />
-                            <RadioButton Classes="segment" Content="Opponent's side" GroupName="MatchSide" IsChecked="{Binding BottomOpponent}" />
+                            <RadioButton Classes="segment" Content="{i:Loc Match.View.MySide}" GroupName="MatchSide" IsChecked="{Binding BottomLocal}" />
+                            <RadioButton Classes="segment" Content="{i:Loc Match.View.TheirSide}" GroupName="MatchSide" IsChecked="{Binding BottomOpponent}" />
                         </StackPanel>
                     </Border>
                 </WrapPanel>
@@ -393,12 +393,12 @@
                     <!-- The turn's actions -->
                     <Border Grid.Column="2" Classes="card actions" Padding="16,14">
                         <DockPanel>
-                            <c:Ornament DockPanel.Dock="Top" Text="This turn" Icon="&#xF0467;" Size="13" Margin="0,0,0,8" />
+                            <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Match.View.ThisTurn}" Icon="&#xF0467;" Size="13" Margin="0,0,0,8" />
                             <ItemsControl ItemsSource="{Binding Actions}" ItemTemplate="{StaticResource ActionRow}" />
                         </DockPanel>
                     </Border>
                 </Grid>
-                <TextBlock Text="Only what you could see: the opponent's hand and both decks stay card backs, as they were on screen."
+                <TextBlock Text="{i:Loc Match.View.HiddenNote}"
                            Classes="caption" FontSize="11.5" Margin="2,10,0,0" TextWrapping="Wrap" />
             </StackPanel>
 
@@ -406,22 +406,22 @@
             <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowDecks}">
                 <Border Classes="card first" VerticalAlignment="Top">
                     <StackPanel>
-                        <c:Ornament Text="Your deck" Icon="&#xF0638;" Size="13" Margin="0,0,0,4" />
+                        <c:Ornament Text="{i:Loc Match.View.YourDeck}" Icon="&#xF0638;" Size="13" Margin="0,0,0,4" />
                         <TextBlock Text="{Binding LocalDeckNote}" Classes="caption" Margin="0,0,0,10" TextWrapping="Wrap" />
                         <ItemsControl ItemsSource="{Binding LocalDeck}" ItemTemplate="{StaticResource DeckRow}" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Classes="card second" VerticalAlignment="Top">
                     <StackPanel>
-                        <c:Ornament Text="Opponent's cards" Icon="&#xF06D0;" Size="13" Margin="0,0,0,4" />
-                        <TextBlock Text="Cards it played from hand, with the turn it first played them. Nothing it kept hidden." Classes="caption"
+                        <c:Ornament Text="{i:Loc Match.View.OpponentCards}" Icon="&#xF06D0;" Size="13" Margin="0,0,0,4" />
+                        <TextBlock Text="{i:Loc Match.View.OpponentCardsNote}" Classes="caption"
                                    Margin="0,0,0,8" TextWrapping="Wrap" />
                         <Border Classes="pill" HorizontalAlignment="Left" Margin="0,0,0,10" Background="{StaticResource AccentContainer}"
                                 IsVisible="{Binding ArchetypeLine, Converter={StaticResource Truthy}}">
                             <TextBlock Text="{Binding ArchetypeLine}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
                         </Border>
                         <ItemsControl ItemsSource="{Binding OpponentCards}" ItemTemplate="{StaticResource DeckRow}" />
-                        <TextBlock Text="It played no card from hand." Classes="caption" IsVisible="{Binding OpponentCards, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                        <TextBlock Text="{i:Loc Match.View.NoPlays}" Classes="caption" IsVisible="{Binding OpponentCards, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -450,15 +450,15 @@
                 <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" Margin="0,0,0,16">
                     <Border Classes="card first">
                         <StackPanel>
-                            <c:Ornament Text="Health by turn" Icon="&#xF02D1;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="Hero health and armor at the end of each turn: you in gold, the opponent dashed." Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.HealthChart}" Icon="&#xF02D1;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{i:Loc Match.View.HealthChartNote}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <c:Sparkline Height="140" Values="{Binding Analysis.LocalHealth}" Compare="{Binding Analysis.OpponentHealth}" Maximum="{Binding Analysis.HealthMaximum}" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Classes="card second">
                         <StackPanel>
-                            <c:Ornament Text="Board by turn" Icon="&#xF0787;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="Attack plus health of the minions in play: you in gold, the opponent dashed." Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.BoardChart}" Icon="&#xF0787;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{i:Loc Match.View.BoardChartNote}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <c:Sparkline Height="140" Values="{Binding Analysis.LocalBoard}" Compare="{Binding Analysis.OpponentBoard}" Maximum="{Binding Analysis.BoardMaximum}" />
                         </StackPanel>
                     </Border>
@@ -467,8 +467,8 @@
                 <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" Margin="0,0,0,16">
                     <Border Classes="card first" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="Cards that decided the game" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="The plays that gained the most board or face damage, by what the replay shows." Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.KeyCards}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{i:Loc Match.View.KeyCardsNote}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <ItemsControl ItemsSource="{Binding Analysis.KeyCards}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="r:KeyCardRow">
@@ -480,24 +480,24 @@
                                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Text="{Binding Reason}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="2" Text="You" Classes="you" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding Local}" />
-                                                <TextBlock Grid.Column="2" Text="Opponent" Classes="caption" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding !Local}" />
+                                                <TextBlock Grid.Column="2" Text="{i:Loc Match.You}" Classes="you" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding Local}" />
+                                                <TextBlock Grid.Column="2" Text="{i:Loc Match.Opponent}" Classes="caption" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding !Local}" />
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="No play stood out." Classes="caption" IsVisible="{Binding Analysis.KeyCards, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                            <TextBlock Text="{i:Loc Match.View.NoKeyCards}" Classes="caption" IsVisible="{Binding Analysis.KeyCards, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Classes="card second" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="Mulligan" Icon="&#xF0450;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <c:Ornament Text="{i:Loc Match.View.Mulligan}" Icon="&#xF0450;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Analysis.MulliganNote}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,8" />
                             <Grid ColumnDefinitions="*,86,64,58" Margin="10,0,10,4">
-                                <TextBlock Grid.Column="1" Text="You" Classes="label" />
-                                <TextBlock Grid.Column="2" Text="Meta keep" Classes="label" HorizontalAlignment="Right" ToolTip.Tip="How often the archetype's players keep it" />
-                                <TextBlock Grid.Column="3" Text="Held WR" Classes="label" HorizontalAlignment="Right" ToolTip.Tip="Win rate when the card was in the opening hand" />
+                                <TextBlock Grid.Column="1" Text="{i:Loc Match.You}" Classes="label" />
+                                <TextBlock Grid.Column="2" Text="{i:Loc Match.View.MetaKeep}" Classes="label" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Match.View.MetaKeepTip}" />
+                                <TextBlock Grid.Column="3" Text="{i:Loc Match.View.HeldWinRate}" Classes="label" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Match.View.HeldWinRateTip}" />
                             </Grid>
                             <ItemsControl ItemsSource="{Binding Analysis.Mulligan}">
                                 <ItemsControl.ItemTemplate>
@@ -522,7 +522,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <TextBlock Classes="caption" Margin="0,8,0,0" TextWrapping="Wrap" IsVisible="{Binding Analysis.MulliganReceived, Converter={StaticResource Truthy}}">
-                                <Run Text="Came instead: " /><Run Text="{Binding Analysis.MulliganReceivedText, Mode=OneWay}" />
+                                <Run Text="{i:Loc Match.View.CameInstead}" /><Run Text="{Binding Analysis.MulliganReceivedText, Mode=OneWay}" />
                             </TextBlock>
                         </StackPanel>
                     </Border>
@@ -531,14 +531,14 @@
                 <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" Margin="0,0,0,16">
                     <Border Classes="card first" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="Mana on your turns" Icon="&#xF05E0;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="Share of the mana you spent each turn; the marks are a full spend." Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.ManaChart}" Icon="&#xF05E0;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{i:Loc Match.View.ManaChartNote}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <c:MiniBars Height="80" Values="{Binding Analysis.LocalMana}" Compare="{Binding Analysis.ManaFull}" ShowLabels="True" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Classes="card second" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="Against the meta" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                            <c:Ornament Text="{i:Loc Match.View.AgainstMeta}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
                             <ItemsControl ItemsSource="{Binding Analysis.Meta}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="r:MatchFact">
@@ -556,17 +556,17 @@
 
                 <Border Classes="card">
                     <StackPanel>
-                        <c:Ornament Text="Turn by turn" Icon="&#xF0467;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                        <c:Ornament Text="{i:Loc Match.View.TurnByTurn}" Icon="&#xF0467;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                             <StackPanel MinWidth="640">
                                 <Grid ColumnDefinitions="120,70,70,86,86,60,*" Margin="10,0,10,4">
-                                    <TextBlock Text="Turn" Classes="label" />
-                                    <TextBlock Grid.Column="1" Text="Your HP" Classes="label" />
-                                    <TextBlock Grid.Column="2" Text="Their HP" Classes="label" />
-                                    <TextBlock Grid.Column="3" Text="Your board" Classes="label" />
-                                    <TextBlock Grid.Column="4" Text="Their board" Classes="label" />
-                                    <TextBlock Grid.Column="5" Text="Mana" Classes="label" />
-                                    <TextBlock Grid.Column="6" Text="Played" Classes="label" />
+                                    <TextBlock Text="{i:Loc Match.View.ColTurn}" Classes="label" />
+                                    <TextBlock Grid.Column="1" Text="{i:Loc Match.View.ColYourHp}" Classes="label" />
+                                    <TextBlock Grid.Column="2" Text="{i:Loc Match.View.ColTheirHp}" Classes="label" />
+                                    <TextBlock Grid.Column="3" Text="{i:Loc Match.View.YourBoard}" Classes="label" />
+                                    <TextBlock Grid.Column="4" Text="{i:Loc Match.View.ColTheirBoard}" Classes="label" />
+                                    <TextBlock Grid.Column="5" Text="{i:Loc Match.View.ColMana}" Classes="label" />
+                                    <TextBlock Grid.Column="6" Text="{i:Loc Match.View.ColPlayed}" Classes="label" />
                                 </Grid>
                                 <ItemsControl ItemsSource="{Binding Analysis.TurnRows}">
                                     <ItemsControl.ItemTemplate>
@@ -604,14 +604,14 @@
                                 </DockPanel>
                                 <WrapPanel>
                                     <StackPanel Margin="0,0,24,8">
-                                        <TextBlock Text="Your board" Classes="label" Margin="0,0,0,6" />
+                                        <TextBlock Text="{i:Loc Match.View.YourBoard}" Classes="label" Margin="0,0,0,6" />
                                         <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource BgMinion}" ItemsPanel="{StaticResource Wrap}" />
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8" IsVisible="{Binding OpponentHeroCardId, Converter={StaticResource Truthy}}">
                                         <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
                                             <Border Width="44" Height="44" CornerRadius="22" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1"
                                                     ClipToBounds="True" i:CardArt.Portrait="{Binding OpponentHeroCardId}" ToolTip.Tip="{Binding OpponentHero}" />
-                                            <TextBlock Text="vs" Classes="caption" HorizontalAlignment="Center" />
+                                            <TextBlock Text="{i:Loc Match.View.Versus}" Classes="caption" HorizontalAlignment="Center" />
                                         </StackPanel>
                                         <StackPanel>
                                             <TextBlock Text="{Binding OpponentHero}" Classes="label" Margin="0,0,0,6" />
@@ -620,7 +620,7 @@
                                     </StackPanel>
                                 </WrapPanel>
                                 <StackPanel Margin="0,6,0,0" IsVisible="{Binding Shop, Converter={StaticResource Truthy}}">
-                                    <TextBlock Text="Tavern offers" Classes="label" Margin="0,0,0,6" />
+                                    <TextBlock Text="{i:Loc Match.View.TavernOffers}" Classes="label" Margin="0,0,0,6" />
                                     <ItemsControl ItemsSource="{Binding Shop}" ItemTemplate="{StaticResource BgMinion}" ItemsPanel="{StaticResource Wrap}" />
                                 </StackPanel>
                             </StackPanel>
@@ -632,7 +632,7 @@
             <!-- ===== Battlegrounds lobby ===== -->
             <Border Classes="card" IsVisible="{Binding ShowLobby}">
                 <StackPanel>
-                    <c:Ornament Text="Lobby" Icon="&#xF0849;" Size="13" Margin="0,0,0,8" />
+                    <c:Ornament Text="{i:Loc Match.View.TabLobby}" Icon="&#xF0849;" Size="13" Margin="0,0,0,8" />
                     <ItemsControl ItemsSource="{Binding Lobby}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="r:MatchLobbyRow">

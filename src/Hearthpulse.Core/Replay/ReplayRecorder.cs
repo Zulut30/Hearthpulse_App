@@ -7,9 +7,16 @@ namespace Hearthpulse.Core.Replay;
 /// <summary>
 /// Records a Constructed-like game as the local player saw it, as the event lines of a replay file
 /// (<c>docs/match-replay.md</c>). The hidden-information rule is applied here, so the file never holds more than the
-/// player could see: a card id is written only while the card is face up for the local player, a card that moves into
-/// or out of a hidden zone (either deck, the opponent's hand, an opponent's secret) gets a new replay id so it cannot be
-/// followed, game entity ids are never written, and <c>CREATOR_DBID</c> is never read.
+/// player could see:
+/// <list type="bullet">
+/// <item>a card id is written only while the card is face up for the local player;</item>
+/// <item>a deck is a number of cards and nothing else: no card in a deck has a replay id, so a card going into a deck
+/// (a mulligan, a trade, a shuffle) cannot be told apart from the others when one is drawn;</item>
+/// <item>a card that moves into or out of a hidden zone (a deck, the opponent's hand, an opponent's secret) gets a new
+/// replay id, so it cannot be followed;</item>
+/// <item>game entity ids are never written, and <c>CREATOR_DBID</c> is never read;</item>
+/// <item>nothing is recorded after the game is over but the result.</item>
+/// </list>
 /// Battlegrounds and Mercenaries games are not recorded here (see <see cref="BattlegroundsReplayData"/>).
 /// </summary>
 public sealed class ReplayRecorder : IPowerListener
@@ -41,10 +48,19 @@ public sealed class ReplayRecorder : IPowerListener
     private readonly List<string> _events = new();
     private readonly Dictionary<int, Shown> _shown = new();
     private readonly List<Pending> _blocks = new();
+
+    // The cards in each deck (local, opponent) by game entity id, kept only to count them: nothing per card is written.
+    private readonly HashSet<int>[] _decks = [new(), new()];
+    private readonly int[] _deckWritten = [-1, -1];
+
+    // Where a card was when it last left the table or a deck (it may come back from SETASIDE), for a card back's origin.
+    private readonly Dictionary<int, (string Zone, char Side)> _left = new();
     private GameState? _game;
     private int _nextId;
     private bool _synced;
     private bool _ignored;
+    private bool _snapshot;
+    private bool _ended;
 
     /// <summary>The events recorded for the current game, in order.</summary>
     public IReadOnlyList<string> Events => _events;
@@ -53,7 +69,7 @@ public sealed class ReplayRecorder : IPowerListener
     public bool Truncated { get; private set; }
 
     /// <summary>True once anything was recorded for the current game (a Constructed-like game with a known local player).</summary>
-    public bool HasGame => _synced && _events.Count > 0;
+    public bool HasGame => _synced && !_ignored && _events.Count > 0;
 
     /// <summary>The replay file text for the current game.</summary>
     public string Text(ReplayHeader header) => ReplayFile.Write(header with { Truncated = Truncated, Events = _events.Count }, _events);
@@ -64,15 +80,20 @@ public sealed class ReplayRecorder : IPowerListener
         _events.Clear();
         _shown.Clear();
         _blocks.Clear();
+        _decks[0].Clear();
+        _decks[1].Clear();
+        _deckWritten[0] = _deckWritten[1] = -1;
+        _left.Clear();
         _nextId = 0;
         _synced = false;
         _ignored = false;
+        _ended = false;
         Truncated = false;
     }
 
     public void OnEntityCreated(GameState game, Entity entity)
     {
-        if (Ready(game))
+        if (Live(game))
         {
             Sync(game, entity, created: true);
         }
@@ -80,7 +101,7 @@ public sealed class ReplayRecorder : IPowerListener
 
     public void OnEntityRevealed(GameState game, Entity entity)
     {
-        if (Ready(game))
+        if (Live(game))
         {
             Sync(game, entity, created: false);
         }
@@ -88,7 +109,7 @@ public sealed class ReplayRecorder : IPowerListener
 
     public void OnTagChanged(GameState game, Entity entity, string tag, string previous, string value)
     {
-        if (!Ready(game))
+        if (!Live(game))
         {
             return;
         }
@@ -124,7 +145,7 @@ public sealed class ReplayRecorder : IPowerListener
 
     public void OnBlockStart(GameState game, string blockType, Entity? source)
     {
-        if (!Ready(game))
+        if (!Live(game))
         {
             return;
         }
@@ -146,13 +167,13 @@ public sealed class ReplayRecorder : IPowerListener
         if (source is { Zone: not "HAND" })
         {
             // Already on the table: a hero power or a location being used, not a card played from hand.
-            EmitPlay(game, pending, used: true);
+            EmitPlay(pending, used: true);
         }
     }
 
     public void OnBlockEnd(GameState game)
     {
-        if (!Ready(game) || _blocks.Count == 0)
+        if (!Live(game) || _blocks.Count == 0)
         {
             return;
         }
@@ -166,19 +187,29 @@ public sealed class ReplayRecorder : IPowerListener
 
         if (block.Type == "PLAY")
         {
-            EmitPlay(game, block);
+            EmitPlay(block);
         }
         else if (block.Type == "ATTACK")
         {
-            EmitAttack(game, block, game.GameEntity?.GetInt("PROPOSED_DEFENDER") ?? 0);
+            EmitAttack(block, game.GameEntity?.GetInt("PROPOSED_DEFENDER") ?? 0);
         }
     }
 
     public void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
     {
         // The parser reports only the local player's choices, whose options the player sees.
-        if (!Ready(game))
+        if (!Live(game))
         {
+            return;
+        }
+
+        // The mulligan offers the chooser's own hand. Options held by the other player mean the local player was taken
+        // wrongly: the whole filter would be reversed, so nothing of this game is kept.
+        if (choiceType == "MULLIGAN" && options.Any(o => o.Controller != 0 && o.Controller != game.LocalPlayerId))
+        {
+            Diag.Info("Replay not recorded: the mulligan offer belongs to the player taken for the opponent.");
+            _ignored = true;
+            _events.Clear();
             return;
         }
 
@@ -191,7 +222,7 @@ public sealed class ReplayRecorder : IPowerListener
 
     public void OnChosen(GameState game, Entity chosen)
     {
-        if (Ready(game) && chosen.CardId.Length > 0)
+        if (Live(game) && chosen.CardId.Length > 0)
         {
             Emit($"c {chosen.CardId}");
         }
@@ -203,7 +234,12 @@ public sealed class ReplayRecorder : IPowerListener
         {
             Emit($"R {Token(result)}");
         }
+
+        _ended = true;
     }
+
+    /// <summary>The game is recorded and still going: after the game over step only the result is written.</summary>
+    private bool Live(GameState game) => Ready(game) && !_ended;
 
     /// <summary>
     /// True when this game is recorded and the local player is known. The first time, writes the whole visible table
@@ -222,7 +258,7 @@ public sealed class ReplayRecorder : IPowerListener
         }
 
         _synced = true;
-        if (!game.IsConstructedLike)
+        if (!game.IsConstructedLike || !LocalPlayerHoldsUp(game))
         {
             _ignored = true;
             return false;
@@ -246,12 +282,35 @@ public sealed class ReplayRecorder : IPowerListener
             }
         }
 
+        _snapshot = true;
         foreach (var entity in game.Entities.Values.OrderBy(e => e.Id).ToList())
         {
             Sync(game, entity, created: false);
         }
 
+        _snapshot = false;
+        WriteDeckCounts();
         return true;
+    }
+
+    /// <summary>
+    /// Guards the filter itself: everything hinges on which player is local. The client knows the cards of its own
+    /// starting hand and not the other's; when the player taken for the opponent holds named starting cards and the
+    /// "local" one holds none, the local player was resolved wrongly and the game is not recorded at all.
+    /// </summary>
+    private static bool LocalPlayerHoldsUp(GameState game)
+    {
+        static int Named(GameState game, int player) => game.Controlled(player, "HAND")
+            .Count(e => e.CardId.Length > 0 && e.CreatedTurn == 0 && e.GetInt(GameTag.Creator) == 0 && e.GetInt("COIN_CARD") == 0);
+
+        var opponent = game.OpponentPlayerId;
+        if (opponent == 0 || Named(game, opponent) < 2 || Named(game, game.LocalPlayerId) > 0)
+        {
+            return true;
+        }
+
+        Diag.Info("Replay not recorded: the opponent's starting hand looks known, so the local player may be wrong.");
+        return false;
     }
 
     private void OnGameTag(GameState game, string tag, string value)
@@ -263,11 +322,12 @@ public sealed class ReplayRecorder : IPowerListener
         else if (tag == GameTag.Step && value is "BEGIN_MULLIGAN" or "MAIN_READY" or "FINAL_GAMEOVER")
         {
             Emit($"S {value}");
+            _ended |= value == "FINAL_GAMEOVER";
         }
         else if (tag == "PROPOSED_DEFENDER" && _blocks.LastOrDefault(b => b.Type == "ATTACK") is { Emitted: false } attack
                  && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var defender) && defender > 0)
         {
-            EmitAttack(game, attack, defender);
+            EmitAttack(attack, defender);
         }
     }
 
@@ -292,23 +352,36 @@ public sealed class ReplayRecorder : IPowerListener
         var controller = entity.Controller;
         if (zone is not ("PLAY" or "GRAVEYARD" or "HAND" or "DECK" or "SECRET") || controller == 0 || !game.Players.ContainsKey(controller))
         {
+            LeaveDeck(entity.Id);
             Remove(shown, entity.Id);
+            WriteDeckCounts();
             return;
         }
 
         var side = controller == game.LocalPlayerId ? 'L' : 'O';
-        var hidden = zone == "DECK"
-                     || (side == 'O' && zone == "HAND")
-                     || (side == 'O' && zone == "SECRET" && entity.Has(GameTag.Secret));
+        if (zone == "DECK")
+        {
+            // A deck is a count: the card's table or hand id ends here and nothing about it goes into the deck.
+            Remove(shown, entity.Id);
+            EnterDeck(entity.Id, side);
+            WriteDeckCounts();
+            return;
+        }
+
+        LeaveDeck(entity.Id);
+        // An opponent's secret-zone card is a card back unless it is a quest (shown face up). Not keyed on SECRET=1:
+        // that tag can arrive after ZONE=SECRET.
+        var hidden = (side == 'O' && zone == "HAND") || (side == 'O' && zone == "SECRET" && !entity.Has("QUEST"));
         if (!hidden && !TableTypes.Contains(entity.CardType))
         {
             // Not drawable yet (a card whose type arrives on a later line) or never (a Battlegrounds-only type).
             Remove(shown, entity.Id);
+            WriteDeckCounts();
             return;
         }
 
         var card = hidden || entity.CardId.Length == 0 ? "-" : entity.CardId;
-        var position = zone == "DECK" ? 0 : entity.ZonePosition;
+        var position = entity.ZonePosition;
         if (shown is not null)
         {
             if (shown.Zone == zone && shown.Side == side && shown.Hidden == hidden)
@@ -318,7 +391,7 @@ public sealed class ReplayRecorder : IPowerListener
                     // Transformed or revealed in place (face up only: a hidden card's id is always "-").
                     shown.Card = card;
                     shown.Position = position;
-                    EmitEntity(game, entity, shown, origin: null);
+                    EmitEntity(entity, shown, origin: null);
                 }
                 else if (shown.Position != position)
                 {
@@ -336,44 +409,83 @@ public sealed class ReplayRecorder : IPowerListener
                 shown.Side = side;
                 shown.Position = position;
                 shown.Card = card;
-                EmitEntity(game, entity, shown, origin: null);
-                AfterMove(game, entity);
+                EmitEntity(entity, shown, origin: null);
+                AfterMove(entity);
                 return;
             }
         }
 
         // New on the table, or crossing a hidden zone: a new replay id, so nothing links it to what it was.
-        var from = shown?.Zone;
+        (string Zone, char Side)? from = shown is not null ? (shown.Zone, shown.Side) : _left.TryGetValue(entity.Id, out var left) ? left : null;
         Remove(shown, entity.Id);
+        _left.Remove(entity.Id);
+        WriteDeckCounts();
         var fresh = new Shown(++_nextId) { Zone = zone, Side = side, Position = position, Card = card, Hidden = hidden };
         _shown[entity.Id] = fresh;
-        var origin = side == 'O' && zone == "HAND" ? OriginOf(game, entity, from, created) : null;
-        EmitEntity(game, entity, fresh, origin);
-        AfterMove(game, entity);
+        var origin = side == 'O' && zone == "HAND" ? OriginOf(game, entity, from, created, _snapshot) : null;
+        EmitEntity(entity, fresh, origin);
+        AfterMove(entity);
     }
 
     /// <summary>How a card back got into the opponent's hand, as the player saw it happen.</summary>
-    private static string OriginOf(GameState game, Entity entity, string? from, bool created)
+    private static string OriginOf(GameState game, Entity entity, (string Zone, char Side)? from, bool created, bool snapshot)
     {
         var opening = game.InOpeningHand(entity.Controller);
         // The Coin is handed to the second player on screen at the end of the mulligan.
-        if (opening && (entity.CardId == "GAME_005" || entity.GetInt("COIN_CARD") == 1))
+        if (opening && entity.GetInt("COIN_CARD") == 1)
         {
             return "coin";
         }
 
-        return from switch
+        return from?.Zone switch
         {
             "DECK" => opening ? "start" : "drawn",
             "PLAY" or "GRAVEYARD" or "SECRET" => "returned",
-            "HAND" => "stolen",
-            // Picked up mid-deal (the local player became known after it): the opening hand.
-            null when !created && opening => "start",
+            "HAND" when from.Value.Side == 'L' => "stolen",
+            // Back in the same hand after a detour (set aside and returned): its story is not known.
+            "HAND" => "unknown",
+            // Already in hand when recording began (picked up mid-deal or mid-game).
+            null when snapshot && !created => opening ? "start" : "unknown",
             _ => "created",
         };
     }
 
-    private void AfterMove(GameState game, Entity entity)
+    private void EnterDeck(int entityId, char side)
+    {
+        _decks[side == 'L' ? 0 : 1].Add(entityId);
+        _decks[side == 'L' ? 1 : 0].Remove(entityId);
+    }
+
+    private void LeaveDeck(int entityId)
+    {
+        for (var i = 0; i < 2; i++)
+        {
+            if (_decks[i].Remove(entityId))
+            {
+                _left[entityId] = ("DECK", i == 0 ? 'L' : 'O');
+            }
+        }
+    }
+
+    /// <summary>Writes each deck's size when it changed: <c>D L 24</c>.</summary>
+    private void WriteDeckCounts()
+    {
+        if (_snapshot)
+        {
+            return;
+        }
+
+        for (var i = 0; i < 2; i++)
+        {
+            if (_decks[i].Count != _deckWritten[i])
+            {
+                _deckWritten[i] = _decks[i].Count;
+                Emit(string.Create(CultureInfo.InvariantCulture, $"D {(i == 0 ? 'L' : 'O')} {_decks[i].Count}"));
+            }
+        }
+    }
+
+    private void AfterMove(Entity entity)
     {
         // A card played from hand is announced once it has left the hand (face up, or as a secret's card back).
         if (entity.Zone == "HAND")
@@ -385,12 +497,12 @@ public sealed class ReplayRecorder : IPowerListener
         {
             if (block is { Type: "PLAY", Emitted: false } && block.Source?.Id == entity.Id)
             {
-                EmitPlay(game, block);
+                EmitPlay(block);
             }
         }
     }
 
-    private void EmitEntity(GameState game, Entity entity, Shown shown, string? origin)
+    private void EmitEntity(Entity entity, Shown shown, string? origin)
     {
         var line = new StringBuilder(64);
         line.Append(CultureInfo.InvariantCulture, $"E {shown.Id} {shown.Side} {shown.Zone} {shown.Position} {shown.Card} ");
@@ -421,10 +533,11 @@ public sealed class ReplayRecorder : IPowerListener
         }
 
         _shown.Remove(entityId);
+        _left[entityId] = (shown.Zone, shown.Side);
         Emit(string.Create(CultureInfo.InvariantCulture, $"X {shown.Id}"));
     }
 
-    private void EmitPlay(GameState game, Pending block, bool used = false)
+    private void EmitPlay(Pending block, bool used = false)
     {
         if (block.Source is not { } source || !_shown.TryGetValue(source.Id, out var shown))
         {
@@ -435,7 +548,7 @@ public sealed class ReplayRecorder : IPowerListener
         Emit($"{(used ? 'U' : 'P')} {shown.Id} {FaceUpId(block.Target)}");
     }
 
-    private void EmitAttack(GameState game, Pending block, int defender)
+    private void EmitAttack(Pending block, int defender)
     {
         if (block.Source is not { } source || !_shown.TryGetValue(source.Id, out var attacker))
         {

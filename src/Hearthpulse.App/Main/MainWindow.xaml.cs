@@ -148,6 +148,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Leaving History lets go of the open match: only the match on screen is kept in memory.
+        if (_viewModel.MatchOpen && NavHistory.IsChecked != true
+            && new[] { NavOverview, NavBattlegrounds, NavConstructed, NavArena, NavSettings }.Any(n => n.IsChecked == true))
+        {
+            _viewModel.CloseMatch();
+        }
+
         PageOverview.Visibility = NavOverview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageBattlegrounds.Visibility = NavBattlegrounds.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         // The deck page stands in for the Constructed page while a deck is open (the nav stays on Constructed).

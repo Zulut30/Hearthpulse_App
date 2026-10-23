@@ -122,7 +122,7 @@
                     <StackPanel Grid.Column="2" Margin="18,0,0,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                            <Border Style="{StaticResource Pill}" Background="{StaticResource SecondaryContainer}" Margin="8,0,0,0" ToolTip="Mana left / crystals this turn">
+                            <Border Style="{StaticResource Pill}" Background="{StaticResource SecondaryContainer}" Margin="8,0,0,0" ToolTip="{i:Loc Match.View.ManaTip}">
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="9" Height="9" Fill="{StaticResource ManaGem}" Margin="0,0,5,0" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding Mana}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
@@ -254,14 +254,14 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <Button Style="{StaticResource GhostButton}" Command="{Binding Back}" HorizontalAlignment="Left" Margin="0,0,0,16" Padding="12,7" ToolTip="Back to History">
+        <Button Style="{StaticResource GhostButton}" Command="{Binding Back}" HorizontalAlignment="Left" Margin="0,0,0,16" Padding="12,7" ToolTip="{i:Loc Match.View.BackTip}">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="&#xF004D;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource OnSecondaryContainer}" Margin="0,0,6,0" />
-                <TextBlock Text="History" VerticalAlignment="Center" />
+                <TextBlock Text="{i:Loc Match.View.Back}" VerticalAlignment="Center" />
             </StackPanel>
         </Button>
 
-        <TextBlock Text="Reading the game&#x2026;" Style="{StaticResource Caption}" FontSize="14" Visibility="{Binding Loading, Converter={StaticResource Vis}}" />
+        <TextBlock Text="{i:Loc Match.View.Loading}" Style="{StaticResource Caption}" FontSize="14" Visibility="{Binding Loading, Converter={StaticResource Vis}}" />
 
         <!-- Header: you, the result, the opponent -->
         <StackPanel Visibility="{Binding Loading, Converter={StaticResource Vis}, ConverterParameter=!}">
@@ -329,22 +329,22 @@
             <!-- Tabs -->
             <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,16" Visibility="{Binding IsConstructed, Converter={StaticResource Vis}}">
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton x:Name="TabReplay" Style="{StaticResource Tab}" Content="Replay" GroupName="MatchTab" IsChecked="{Binding ShowReplay}" />
-                    <RadioButton x:Name="TabDecks" Style="{StaticResource Tab}" Content="Decks" GroupName="MatchTab" IsChecked="{Binding ShowDecks}" />
-                    <RadioButton x:Name="TabAnalysis" Style="{StaticResource Tab}" Content="Analysis" GroupName="MatchTab" IsChecked="{Binding ShowAnalysis}" />
+                    <RadioButton x:Name="TabReplay" Style="{StaticResource Tab}" Content="{i:Loc Match.View.TabReplay}" GroupName="MatchTab" IsChecked="{Binding ShowReplay}" />
+                    <RadioButton x:Name="TabDecks" Style="{StaticResource Tab}" Content="{i:Loc Match.View.TabDecks}" GroupName="MatchTab" IsChecked="{Binding ShowDecks}" />
+                    <RadioButton x:Name="TabAnalysis" Style="{StaticResource Tab}" Content="{i:Loc Match.View.TabAnalysis}" GroupName="MatchTab" IsChecked="{Binding ShowAnalysis}" />
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,16" Visibility="{Binding IsBattlegrounds, Converter={StaticResource Vis}}">
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Style="{StaticResource Tab}" Content="Rounds" GroupName="MatchBgTab" IsChecked="{Binding ShowRounds}" />
-                    <RadioButton x:Name="TabLobby" Style="{StaticResource Tab}" Content="Lobby" GroupName="MatchBgTab" IsChecked="{Binding ShowLobby}" />
+                    <RadioButton Style="{StaticResource Tab}" Content="{i:Loc Match.View.TabRounds}" GroupName="MatchBgTab" IsChecked="{Binding ShowRounds}" />
+                    <RadioButton x:Name="TabLobby" Style="{StaticResource Tab}" Content="{i:Loc Match.View.TabLobby}" GroupName="MatchBgTab" IsChecked="{Binding ShowLobby}" />
                 </StackPanel>
             </Border>
 
             <!-- ===== Replay ===== -->
             <StackPanel Visibility="{Binding ShowReplay, Converter={StaticResource Vis}}">
                 <ItemsControl ItemsSource="{Binding Turns}" ItemTemplate="{StaticResource TurnChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,0,0,2" />
-                <TextBlock Text="Outlined turns are yours; M is the mulligan." Style="{StaticResource Caption}" FontSize="11.5" Margin="2,0,0,10" />
+                <TextBlock Text="{i:Loc Match.View.TurnsLegend}" Style="{StaticResource Caption}" FontSize="11.5" Margin="2,0,0,10" />
                 <Grid Margin="0,0,0,14">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -352,22 +352,22 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource IconButton}" Content="&#xF0600;" Command="{Binding First}" ToolTip="First step" />
-                        <Button Style="{StaticResource IconButton}" Content="&#xF04AE;" Command="{Binding PreviousTurn}" ToolTip="Previous turn" Margin="4,0,0,0" />
-                        <Button Style="{StaticResource IconButton}" Content="&#xF0141;" Command="{Binding Previous}" ToolTip="Previous step" Margin="4,0,0,0" />
-                        <Button Style="{StaticResource IconButton}" Content="&#xF0142;" Command="{Binding Next}" ToolTip="Next step" Margin="4,0,0,0" />
-                        <Button Style="{StaticResource IconButton}" Content="&#xF04AD;" Command="{Binding NextTurn}" ToolTip="Next turn" Margin="4,0,0,0" />
-                        <Button Style="{StaticResource IconButton}" Content="&#xF0601;" Command="{Binding Last}" ToolTip="Last step" Margin="4,0,0,0" />
+                        <Button Style="{StaticResource IconButton}" Content="&#xF0600;" Command="{Binding First}" ToolTip="{i:Loc Match.View.First}" />
+                        <Button Style="{StaticResource IconButton}" Content="&#xF04AE;" Command="{Binding PreviousTurn}" ToolTip="{i:Loc Match.View.PreviousTurn}" Margin="4,0,0,0" />
+                        <Button Style="{StaticResource IconButton}" Content="&#xF0141;" Command="{Binding Previous}" ToolTip="{i:Loc Match.View.Previous}" Margin="4,0,0,0" />
+                        <Button Style="{StaticResource IconButton}" Content="&#xF0142;" Command="{Binding Next}" ToolTip="{i:Loc Match.View.Next}" Margin="4,0,0,0" />
+                        <Button Style="{StaticResource IconButton}" Content="&#xF04AD;" Command="{Binding NextTurn}" ToolTip="{i:Loc Match.View.NextTurn}" Margin="4,0,0,0" />
+                        <Button Style="{StaticResource IconButton}" Content="&#xF0601;" Command="{Binding Last}" ToolTip="{i:Loc Match.View.Last}" Margin="4,0,0,0" />
                     </StackPanel>
                     <DockPanel Grid.Column="1" Margin="16,0">
                         <TextBlock DockPanel.Dock="Right" Text="{Binding Position}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="12,0,0,0" />
                         <Slider Minimum="0" Maximum="{Binding FrameMax}" Value="{Binding Frame}" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="5"
-                                VerticalAlignment="Center" ToolTip="Drag through the game" />
+                                VerticalAlignment="Center" ToolTip="{i:Loc Match.View.SliderTip}" />
                     </DockPanel>
-                    <Border Grid.Column="2" Style="{StaticResource SegmentBar}" ToolTip="Whose side of the table is at the bottom">
+                    <Border Grid.Column="2" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Match.View.SideTip}">
                         <StackPanel Orientation="Horizontal">
-                            <RadioButton Style="{StaticResource Segment}" Content="My side" GroupName="MatchSide" IsChecked="{Binding BottomLocal}" />
-                            <RadioButton x:Name="SideOpponent" Style="{StaticResource Segment}" Content="Opponent's side" GroupName="MatchSide" IsChecked="{Binding BottomOpponent}" />
+                            <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Match.View.MySide}" GroupName="MatchSide" IsChecked="{Binding BottomLocal}" />
+                            <RadioButton x:Name="SideOpponent" Style="{StaticResource Segment}" Content="{i:Loc Match.View.TheirSide}" GroupName="MatchSide" IsChecked="{Binding BottomOpponent}" />
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -398,12 +398,12 @@
                     <!-- The turn's actions -->
                     <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16,14">
                         <DockPanel>
-                            <c:Ornament DockPanel.Dock="Top" Text="This turn" Icon="&#xF0467;" Size="13" Margin="0,0,0,8" />
+                            <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Match.View.ThisTurn}" Icon="&#xF0467;" Size="13" Margin="0,0,0,8" />
                             <ItemsControl ItemsSource="{Binding Actions}" ItemTemplate="{StaticResource ActionRow}" />
                         </DockPanel>
                     </Border>
                 </Grid>
-                <TextBlock Text="Only what you could see: the opponent's hand and both decks stay card backs, as they were on screen."
+                <TextBlock Text="{i:Loc Match.View.HiddenNote}"
                            Style="{StaticResource Caption}" FontSize="11.5" Margin="2,10,0,0" />
             </StackPanel>
 
@@ -416,22 +416,22 @@
                 </Grid.ColumnDefinitions>
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <c:Ornament Text="Your deck" Icon="&#xF0638;" Size="13" Margin="0,0,0,4" />
+                        <c:Ornament Text="{i:Loc Match.View.YourDeck}" Icon="&#xF0638;" Size="13" Margin="0,0,0,4" />
                         <TextBlock Text="{Binding LocalDeckNote}" Style="{StaticResource Caption}" Margin="0,0,0,10" TextWrapping="Wrap" />
                         <ItemsControl ItemsSource="{Binding LocalDeck}" ItemTemplate="{StaticResource DeckRow}" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                     <StackPanel>
-                        <c:Ornament Text="Opponent's cards" Icon="&#xF06D0;" Size="13" Margin="0,0,0,4" />
-                        <TextBlock Text="Cards it played from hand, with the turn it first played them. Nothing it kept hidden." Style="{StaticResource Caption}"
+                        <c:Ornament Text="{i:Loc Match.View.OpponentCards}" Icon="&#xF06D0;" Size="13" Margin="0,0,0,4" />
+                        <TextBlock Text="{i:Loc Match.View.OpponentCardsNote}" Style="{StaticResource Caption}"
                                    Margin="0,0,0,8" TextWrapping="Wrap" />
                         <Border Style="{StaticResource Pill}" HorizontalAlignment="Left" Margin="0,0,0,10" Background="{StaticResource AccentContainer}"
                                 Visibility="{Binding ArchetypeLine, Converter={StaticResource Vis}}">
                             <TextBlock Text="{Binding ArchetypeLine}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
                         </Border>
                         <ItemsControl ItemsSource="{Binding OpponentCards}" ItemTemplate="{StaticResource DeckRow}" />
-                        <TextBlock Text="It played no card from hand." Style="{StaticResource Caption}" Visibility="{Binding OpponentCards, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        <TextBlock Text="{i:Loc Match.View.NoPlays}" Style="{StaticResource Caption}" Visibility="{Binding OpponentCards, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -460,15 +460,15 @@
                     </Grid.ColumnDefinitions>
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <c:Ornament Text="Health by turn" Icon="&#xF02D1;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="Hero health and armor at the end of each turn: you in gold, the opponent dashed." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.HealthChart}" Icon="&#xF02D1;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{i:Loc Match.View.HealthChartNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <c:Sparkline Height="140" Values="{Binding Analysis.LocalHealth}" Compare="{Binding Analysis.OpponentHealth}" Maximum="{Binding Analysis.HealthMaximum}" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Style="{StaticResource Card}">
                         <StackPanel>
-                            <c:Ornament Text="Board by turn" Icon="&#xF0787;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="Attack plus health of the minions in play: you in gold, the opponent dashed." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.BoardChart}" Icon="&#xF0787;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{i:Loc Match.View.BoardChartNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <c:Sparkline Height="140" Values="{Binding Analysis.LocalBoard}" Compare="{Binding Analysis.OpponentBoard}" Maximum="{Binding Analysis.BoardMaximum}" />
                         </StackPanel>
                     </Border>
@@ -482,8 +482,8 @@
                     </Grid.ColumnDefinitions>
                     <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="Cards that decided the game" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="The plays that gained the most board or face damage, by what the replay shows." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.KeyCards}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{i:Loc Match.View.KeyCardsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <ItemsControl ItemsSource="{Binding Analysis.KeyCards}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type r:KeyCardRow}">
@@ -499,24 +499,24 @@
                                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Text="{Binding Reason}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
-                                                <TextBlock x:Name="Who" Grid.Column="2" Text="Opponent" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                                <TextBlock x:Name="Who" Grid.Column="2" Text="{i:Loc Match.Opponent}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0" />
                                             </Grid>
                                         </Border>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Local}" Value="True">
-                                                <Setter TargetName="Who" Property="Text" Value="You" />
+                                                <Setter TargetName="Who" Property="Text" Value="{i:Loc Match.You}" />
                                                 <Setter TargetName="Who" Property="Foreground" Value="{StaticResource Accent}" />
                                             </DataTrigger>
                                         </DataTemplate.Triggers>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="No play stood out." Style="{StaticResource Caption}" Visibility="{Binding Analysis.KeyCards, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                            <TextBlock Text="{i:Loc Match.View.NoKeyCards}" Style="{StaticResource Caption}" Visibility="{Binding Analysis.KeyCards, Converter={StaticResource Vis}, ConverterParameter=!}" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="Mulligan" Icon="&#xF0450;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <c:Ornament Text="{i:Loc Match.View.Mulligan}" Icon="&#xF0450;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
                             <TextBlock Text="{Binding Analysis.MulliganNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,8" />
                             <Grid Margin="0,0,0,4">
                                 <Grid.ColumnDefinitions>
@@ -525,9 +525,9 @@
                                     <ColumnDefinition Width="64" />
                                     <ColumnDefinition Width="58" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="1" Text="You" Style="{StaticResource StatsHead}" />
-                                <TextBlock Grid.Column="2" Text="Meta keep" Style="{StaticResource StatsHead}" HorizontalAlignment="Right" ToolTip="How often the archetype's players keep it" />
-                                <TextBlock Grid.Column="3" Text="Held WR" Style="{StaticResource StatsHead}" HorizontalAlignment="Right" ToolTip="Win rate when the card was in the opening hand" />
+                                <TextBlock Grid.Column="1" Text="{i:Loc Match.You}" Style="{StaticResource StatsHead}" />
+                                <TextBlock Grid.Column="2" Text="{i:Loc Match.View.MetaKeep}" Style="{StaticResource StatsHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Match.View.MetaKeepTip}" />
+                                <TextBlock Grid.Column="3" Text="{i:Loc Match.View.HeldWinRate}" Style="{StaticResource StatsHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Match.View.HeldWinRateTip}" />
                             </Grid>
                             <ItemsControl ItemsSource="{Binding Analysis.Mulligan}">
                                 <ItemsControl.ItemTemplate>
@@ -568,7 +568,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="{Binding Analysis.MulliganReceived, Converter={StaticResource Vis}}">
-                                <Run Text="Came instead: " /><Run Text="{Binding Analysis.MulliganReceivedText, Mode=OneWay}" />
+                                <Run Text="{i:Loc Match.View.CameInstead}" /><Run Text="{Binding Analysis.MulliganReceivedText, Mode=OneWay}" />
                             </TextBlock>
                         </StackPanel>
                     </Border>
@@ -582,14 +582,14 @@
                     </Grid.ColumnDefinitions>
                     <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="Mana on your turns" Icon="&#xF05E0;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="Share of the mana you spent each turn; the marks are a full spend." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.ManaChart}" Icon="&#xF05E0;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{i:Loc Match.View.ManaChartNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <c:MiniBars Height="80" Values="{Binding Analysis.LocalMana}" Compare="{Binding Analysis.ManaFull}" ShowLabels="True" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="Against the meta" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                            <c:Ornament Text="{i:Loc Match.View.AgainstMeta}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
                             <ItemsControl ItemsSource="{Binding Analysis.Meta}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type r:MatchFact}">
@@ -607,7 +607,7 @@
 
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <c:Ornament Text="Turn by turn" Icon="&#xF0467;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                        <c:Ornament Text="{i:Loc Match.View.TurnByTurn}" Icon="&#xF0467;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
                         <Grid Margin="10,0,10,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="120" />
@@ -618,13 +618,13 @@
                                 <ColumnDefinition Width="60" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="Turn" Style="{StaticResource StatsHead}" />
-                            <TextBlock Grid.Column="1" Text="Your HP" Style="{StaticResource StatsHead}" />
-                            <TextBlock Grid.Column="2" Text="Their HP" Style="{StaticResource StatsHead}" />
-                            <TextBlock Grid.Column="3" Text="Your board" Style="{StaticResource StatsHead}" />
-                            <TextBlock Grid.Column="4" Text="Their board" Style="{StaticResource StatsHead}" />
-                            <TextBlock Grid.Column="5" Text="Mana" Style="{StaticResource StatsHead}" />
-                            <TextBlock Grid.Column="6" Text="Played" Style="{StaticResource StatsHead}" />
+                            <TextBlock Text="{i:Loc Match.View.ColTurn}" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="1" Text="{i:Loc Match.View.ColYourHp}" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="2" Text="{i:Loc Match.View.ColTheirHp}" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="3" Text="{i:Loc Match.View.YourBoard}" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="4" Text="{i:Loc Match.View.ColTheirBoard}" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="5" Text="{i:Loc Match.View.ColMana}" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="6" Text="{i:Loc Match.View.ColPlayed}" Style="{StaticResource StatsHead}" />
                         </Grid>
                         <ItemsControl ItemsSource="{Binding Analysis.TurnRows}">
                             <ItemsControl.ItemTemplate>
@@ -679,13 +679,13 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Text="Your board" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                                        <TextBlock Text="{i:Loc Match.View.YourBoard}" Style="{StaticResource Label}" Margin="0,0,0,6" />
                                         <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource BgMinion}" ItemsPanel="{StaticResource Wrap}" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Margin="16,0" VerticalAlignment="Center" Visibility="{Binding OpponentHeroCardId, Converter={StaticResource Vis}}">
                                         <Border Width="44" Height="44" Style="{StaticResource StatsPortrait}" HorizontalAlignment="Center" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1"
                                                 i:CardArt.Portrait="{Binding OpponentHeroCardId}" ToolTip="{Binding OpponentHero}" />
-                                        <TextBlock Text="vs" Style="{StaticResource Caption}" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{i:Loc Match.View.Versus}" Style="{StaticResource Caption}" HorizontalAlignment="Center" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
                                         <TextBlock Text="{Binding OpponentHero}" Style="{StaticResource Label}" Margin="0,0,0,6" />
@@ -693,7 +693,7 @@
                                     </StackPanel>
                                 </Grid>
                                 <StackPanel Margin="0,10,0,0" Visibility="{Binding Shop, Converter={StaticResource Vis}}">
-                                    <TextBlock Text="Tavern offers" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                                    <TextBlock Text="{i:Loc Match.View.TavernOffers}" Style="{StaticResource Label}" Margin="0,0,0,6" />
                                     <ItemsControl ItemsSource="{Binding Shop}" ItemTemplate="{StaticResource BgMinion}" ItemsPanel="{StaticResource Wrap}" />
                                 </StackPanel>
                             </StackPanel>
@@ -705,7 +705,7 @@
             <!-- ===== Battlegrounds lobby ===== -->
             <Border Style="{StaticResource Card}" Visibility="{Binding ShowLobby, Converter={StaticResource Vis}}">
                 <StackPanel>
-                    <c:Ornament Text="Lobby" Icon="&#xF0849;" Size="13" Margin="0,0,0,8" />
+                    <c:Ornament Text="{i:Loc Match.View.TabLobby}" Icon="&#xF0849;" Size="13" Margin="0,0,0,8" />
                     <ItemsControl ItemsSource="{Binding Lobby}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type r:MatchLobbyRow}">

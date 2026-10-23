@@ -162,7 +162,7 @@ public sealed class MatchReplay
     public IReadOnlyList<ShownCard> LocalDrawn { get; private set; } = [];
 
     /// <summary>Every non-mulligan choice of the local player (Discover and the like).</summary>
-    public IReadOnlyList<ReplayAction> Choices => Frames.Select(f => f.Action).Where(a => a.Kind == ReplayActionKind.Choice).ToList();
+    public IReadOnlyList<ReplayAction> Choices { get; private set; } = [];
 
     /// <summary>The local result at the end (WON, LOST, TIED, CONCEDED), when the game ended.</summary>
     public string? Result { get; private set; }
@@ -186,6 +186,7 @@ public sealed class MatchReplay
         private readonly Dictionary<int, CardState> _cards = new();
         private readonly Dictionary<string, string>[] _players = [new(StringComparer.Ordinal), new(StringComparer.Ordinal)];
         private readonly List<ReplayFrame> _frames = new();
+        private readonly int[] _decks = new int[2];
         private readonly List<ReplayTurn> _turns = new();
         private readonly List<(string Card, int Turn)> _opponentPlayed = new();
         private readonly List<(string Card, int Turn)> _localPlayed = new();
@@ -221,6 +222,7 @@ public sealed class MatchReplay
             Step(null);
             CloseTurn(null);
             replay.Frames = _frames;
+            replay.Choices = _frames.Select(f => f.Action).Where(a => a.Kind == ReplayActionKind.Choice).ToList();
             replay.Turns = _turns;
             replay.OpponentPlayed = Shown(_opponentPlayed);
             replay.LocalPlayed = Shown(_localPlayed);
@@ -286,6 +288,9 @@ public sealed class MatchReplay
                         _replaced.Add(back);
                     }
 
+                    break;
+                case "D":
+                    _decks[t[1] == "L" ? 0 : 1] = Int(t[2]);
                     break;
                 case "Z" when _cards.TryGetValue(Int(t[1]), out var moved):
                     moved.Position = Int(t[2]);
@@ -462,7 +467,7 @@ public sealed class MatchReplay
                 Minions = mine.Where(c => c is { Zone: "PLAY", Type: "MINION" or "LOCATION" }).OrderBy(c => c.Position).ThenBy(c => c.Id).Select(ToCard).ToList(),
                 Hand = mine.Where(c => c.Zone == "HAND").OrderBy(c => c.Position).ThenBy(c => c.Id).Select(ToCard).ToList(),
                 Secrets = mine.Where(c => c.Zone == "SECRET").OrderBy(c => c.Id).Select(ToCard).ToList(),
-                DeckCount = mine.Count(c => c.Zone == "DECK"),
+                DeckCount = _decks[player == ReplayPlayer.Local ? 0 : 1],
                 Mana = Tag(tags, "RESOURCES") + Tag(tags, "TEMP_RESOURCES"),
                 ManaUsed = Tag(tags, "RESOURCES_USED"),
                 OverloadLocked = Tag(tags, "OVERLOAD_LOCKED"),

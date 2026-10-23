@@ -69,7 +69,14 @@ public sealed record BattlegroundsReplayData
 /// <summary>The text form of a replay: a magic line, the header as JSON, then the body (<c>docs/match-replay.md</c>).</summary>
 public static class ReplayFile
 {
-    public const string Magic = "HPR1";
+    /// <summary>
+    /// The format line. Version 2 keeps a deck as a count (<c>D L n</c>); version 1 gave each deck card an id, which
+    /// linked a card sent back into a deck with its later draw, so a v1 file is never read and is deleted when met.
+    /// </summary>
+    public const string Magic = "HPR2";
+
+    /// <summary>The first version's format line (see <see cref="Magic"/>).</summary>
+    public const string OldMagic = "HPR1";
     public const string Constructed = "constructed";
     public const string Battlegrounds = "battlegrounds";
 
