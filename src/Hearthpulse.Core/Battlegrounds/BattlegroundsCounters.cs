@@ -1,5 +1,6 @@
 using System.Globalization;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking.Counters;
 
@@ -36,7 +37,7 @@ public static class BattlegroundsCounters
             ["BG23_017", "BG30_123", "BG33_885", "BG29_708", "BG32_433", "BG31_893", "BG27_Reward_815", "BG30_MagicItem_410", "BG30_MagicItem_410t2",
                 "BG30_MagicItem_988", "BG30_MagicItem_988t", "BG35_MagicItem_431t", "BG35_MagicItem_433"],
             c => c.TagStats("BACON_BLOODGEMBUFFATKVALUE", "BACON_BLOODGEMBUFFHEALTHVALUE") is var (found, attack, health) && found
-                ? new($"+{1 + attack}/+{1 + health}", Details: [$"+1/+1 printed, plus +{attack}/+{health} from your cards."], Active: true)
+                ? new($"+{1 + attack}/+{1 + health}", Details: [Loc.F("Core.BgCounter.BloodGemDetail", attack, health)], Active: true)
                 : Missing()),
 
         // Not yet confirmed in a real Power.log. Source: HearthstoneJSON enchantment BG34_689e2 "Blood Gem Barrage Player Ench".
@@ -113,7 +114,7 @@ public static class BattlegroundsCounters
                 var knights = c.Tracker.Died.Where(id => Normal(c.Cards, id) == "BG25_008").ToList();
                 var died = knights.Count;
                 return new($"+{4 * died}/+{2 * died}",
-                    Details: [$"{died} friendly Eternal Knight{(died == 1 ? "" : "s")} died.", $"Golden Eternal Knight: +{8 * died}/+{4 * died}."], Active: died > 0,
+                    Details: [Loc.P("Core.BgCounter.KnightsDied", died), Loc.F("Core.BgCounter.GoldenKnight", 8 * died, 4 * died)], Active: died > 0,
                     Counted: knights);
             }),
 
@@ -124,7 +125,7 @@ public static class BattlegroundsCounters
                 var automatons = c.Tracker.Summoned.Where(id => Normal(c.Cards, id) == "BG_TTN_401").ToList();
                 var summoned = automatons.Count;
                 return new($"+{3 * summoned}/+{2 * summoned}",
-                    Details: [$"{summoned} Ancestral Automaton{(summoned == 1 ? "" : "s")} summoned.", $"Golden: +{6 * summoned}/+{4 * summoned}."],
+                    Details: [Loc.P("Core.BgCounter.AutomatonsSummoned", summoned), Loc.F("Core.BgCounter.Golden", 6 * summoned, 4 * summoned)],
                     Active: summoned > 0, Counted: automatons);
             }),
 
@@ -135,7 +136,7 @@ public static class BattlegroundsCounters
             {
                 var spells = c.Tag("NUM_SPELLS_PLAYED_THIS_GAME");
                 var left = 3 - spells % 3;
-                return new(Num(spells), spells % 3 / 3.0, [$"Next \"every 3 spells\" improvement after {left} more spell{(left == 1 ? "" : "s")}."], Goal: 3);
+                return new(Num(spells), spells % 3 / 3.0, [Loc.P("Core.BgCounter.NagaNext", left)], Goal: 3);
             }),
 
         // The reroll button's COST dropping to 0 is confirmed in a real log. The count is not: GameTag enum
@@ -147,7 +148,7 @@ public static class BattlegroundsCounters
             {
                 if (c.HasTag("BACON_FREE_REFRESH_COUNT") && c.Tag("BACON_FREE_REFRESH_COUNT") is > 0 and var count)
                 {
-                    return new(Num(count), Details: [$"{count} free Refresh{(count == 1 ? "" : "es")}."], Active: true);
+                    return new(Num(count), Details: [Loc.P("Core.BgCounter.FreeRefreshes", count)], Active: true);
                 }
 
                 var button = c.Game.Controlled(c.Game.LocalPlayerId, "PLAY").FirstOrDefault(e => e.CardId == RerollButtonId);
@@ -156,7 +157,7 @@ public static class BattlegroundsCounters
                     return Missing();
                 }
 
-                return button.GetInt(GameTag.Cost) == 0 ? new("Free", Details: ["Your next Refresh costs 0 Gold."], Active: true) : new("0");
+                return button.GetInt(GameTag.Cost) == 0 ? new(Loc.T("Core.BgCounter.Free"), Details: [Loc.T("Core.BgCounter.FreeDetail")], Active: true) : new("0");
             }),
 
         // Not yet confirmed in a real Power.log. Source: GameTag enum BACON_PLAYER_EXTRA_GOLD_NEXT_TURN = 4286,
@@ -173,7 +174,7 @@ public static class BattlegroundsCounters
                 var extra = c.Tag("BACON_PLAYER_EXTRA_GOLD_NEXT_TURN");
                 var lost = c.Tag("BACON_PLAYER_OVERDRAWN_GOLD_NEXT_TURN");
                 var net = extra - lost;
-                return new(net > 0 ? $"+{net}" : Num(net), Details: [$"+{extra} extra, -{lost} overdrawn."], Active: net != 0);
+                return new(net > 0 ? $"+{net}" : Num(net), Details: [Loc.F("Core.BgCounter.GoldDetail", extra, lost)], Active: net != 0);
             }),
 
         // Not yet confirmed in a real Power.log. Source: GameTag enum BACON_FODDERS_IN_REFRESH = 4664 (the enum also names 4664
@@ -183,8 +184,8 @@ public static class BattlegroundsCounters
             c => c.HasTag("BACON_FODDERS_IN_REFRESH") ? new(Num(c.Tag("BACON_FODDERS_IN_REFRESH")), Active: c.Tag("BACON_FODDERS_IN_REFRESH") > 0) : Missing()),
     ];
 
-    /// <summary>Every Battlegrounds counter, in display order, for the settings page.</summary>
-    public static IReadOnlyList<CounterInfo> All { get; } = [.. Defs.Select(d => new CounterInfo(d.Id, d.Title, d.Description))];
+    /// <summary>Every Battlegrounds counter, in display order, for the settings page; built on each read, in the interface language.</summary>
+    public static IReadOnlyList<CounterInfo> All => [.. Defs.Select(d => new CounterInfo(d.Id, d.LocalTitle, d.LocalDescription))];
 
     /// <summary>Ids of the counters that read data no real Power.log has shown yet (for tests and the settings page).</summary>
     public static IReadOnlySet<string> Unconfirmed { get; } = Defs.Where(d => !d.Confirmed).Select(d => d.Id).ToHashSet(StringComparer.Ordinal);
@@ -213,8 +214,8 @@ public static class BattlegroundsCounters
             var seenCard = def.Related.FirstOrDefault(seen.Contains);
             var relevant = value.Active || (def.Confirmed && seenCard is not null);
             var icon = value.IconCardId ?? seenCard ?? def.Related.FirstOrDefault();
-            result.Add(new CounterView(def.Id, value.Title ?? def.Title, value.Value, value.Progress, false, icon, def.Description,
-                value.Details ?? (value.Value == NoData ? ["No data from the game yet."] : []), relevant)
+            result.Add(new CounterView(def.Id, value.Title ?? def.LocalTitle, value.Value, value.Progress, false, icon, def.LocalDescription,
+                value.Details ?? (value.Value == NoData ? [Loc.T("Core.BgCounter.NoData")] : []), relevant)
             {
                 // Copies are not counted in Battlegrounds: a related card is one the player can see now.
                 RelatedCards = def.Related.Where(seen.Contains).Select(id => new CounterCard(id, cards.NameOf(id), 0)).ToList(),
@@ -263,7 +264,20 @@ public static class BattlegroundsCounters
 
     private static string Num(int value) => value.ToString(CultureInfo.InvariantCulture);
 
-    private sealed record CounterDef(string Id, string Title, string Description, bool Confirmed, string[] Related, Func<CounterContext, CounterValue> Compute);
+    /// <param name="Title">English title; <see cref="LocalTitle"/> is what the player reads.</param>
+    /// <param name="Description">English description; <see cref="LocalDescription"/> is what the player reads.</param>
+    private sealed record CounterDef(string Id, string Title, string Description, bool Confirmed, string[] Related, Func<CounterContext, CounterValue> Compute)
+    {
+        // Keys made once: Build reads them for every counter on every overlay update.
+        private readonly string _titleKey = $"Core.Counter.{Id}.Title";
+        private readonly string _descriptionKey = $"Core.Counter.{Id}.Description";
+
+        /// <summary>The title in the interface language, read each time so a language switch shows at once.</summary>
+        public string LocalTitle => Loc.Or(_titleKey, Title);
+
+        /// <summary>The description in the interface language.</summary>
+        public string LocalDescription => Loc.Or(_descriptionKey, Description);
+    }
 
     /// <param name="Active">Shown in Auto mode without a related card: the data arrived (unconfirmed) or the count is under way.</param>
     /// <param name="Title">Overrides the counter's title (the lobby's Deity).</param>

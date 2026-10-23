@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Desktop;
 
@@ -29,9 +30,9 @@ internal sealed class CrashWindow : Window
         }
 
         var muted = Application.Current?.TryFindResource("Muted", out var m) == true && m is IBrush brush ? brush : Brushes.Gray;
-        var openLog = new Button { Content = "Open log", Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(14, 6) };
+        var openLog = new Button { Content = Loc.T("Host.Crash.OpenLog"), Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(14, 6) };
         openLog.Classes.Add("ghost");
-        var close = new Button { Content = fatal ? "Close" : "Continue", IsDefault = true, IsCancel = true, Padding = new Thickness(14, 6) };
+        var close = new Button { Content = fatal ? Loc.T("Host.Crash.Close") : Loc.T("Host.Crash.Continue"), IsDefault = true, IsCancel = true, Padding = new Thickness(14, 6) };
         close.Classes.Add("ghost");
         close.Classes.Add("primary");
         openLog.Click += (_, _) => OpenLog();
@@ -42,12 +43,12 @@ internal sealed class CrashWindow : Window
             Margin = new Thickness(22, 20, 22, 18),
             Children =
             {
-                new TextBlock { Text = fatal ? "Hearthpulse has to close" : "Something went wrong", FontSize = 16, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 8) },
+                new TextBlock { Text = fatal ? Loc.T("Host.Crash.FatalTitle") : Loc.T("Host.Crash.Title"), FontSize = 16, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 8) },
                 new TextBlock
                 {
                     Text = fatal
-                        ? "An unexpected error stopped Hearthpulse. It was written to the log."
-                        : "Hearthpulse hit an unexpected error and keeps running. It was written to the log.",
+                        ? Loc.T("Host.Crash.FatalText")
+                        : Loc.T("Host.Crash.Text"),
                     TextWrapping = TextWrapping.Wrap,
                 },
                 new TextBlock { Text = CrashLog.Describe(ex), TextWrapping = TextWrapping.Wrap, FontSize = 11, Foreground = muted, Margin = new Thickness(0, 8, 0, 16) },

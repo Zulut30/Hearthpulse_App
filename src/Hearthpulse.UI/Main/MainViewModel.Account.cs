@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.Core.Accounts;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.UI.Main;
 
@@ -16,7 +17,7 @@ public sealed partial class MainViewModel
     private DeviceCode? _accountCode;
     private bool _accountBrowserOpened;
     private bool _accountWaiting;
-    private string _accountMessage = string.Empty;
+    private Func<string> _accountMessage = () => string.Empty;
 
     /// <summary>Connects the Settings page to the account service; the host restores a saved session afterwards.</summary>
     public void AttachAccount(AccountService account)
@@ -70,11 +71,17 @@ public sealed partial class MainViewModel
 
     /// <summary>Under the code: whether the browser has the page open or the player has to open it.</summary>
     public string AccountWaitingHint => _accountBrowserOpened
-        ? "Waiting for confirmation… The page has opened in your browser."
-        : "Waiting for confirmation… Open the address above in your browser.";
+        ? Loc.T("Main.Account.WaitingOpened")
+        : Loc.T("Main.Account.WaitingOpen");
 
-    /// <summary>The last error (or confirmation) under the card.</summary>
-    public string AccountMessage { get => _accountMessage; private set => Set(ref _accountMessage, value); }
+    /// <summary>The last error (or confirmation) under the card; kept as a text maker so it follows a language change.</summary>
+    public string AccountMessage => _accountMessage();
+
+    private void ShowAccountMessage(Func<string> text)
+    {
+        _accountMessage = text;
+        Raise(nameof(AccountMessage));
+    }
 
     /// <summary>Gets a code from hearthpulse.net, opens the confirmation page and waits for the player.</summary>
     public RelayCommand SignIn => _signIn ??= new RelayCommand(async () =>
@@ -84,14 +91,15 @@ public sealed partial class MainViewModel
             return;
         }
 
-        AccountMessage = string.Empty;
+        ShowAccountMessage(() => string.Empty);
         AccountWaiting = true;
         using var cancel = new CancellationTokenSource();
         _signInCancel = cancel;
         try
         {
             var error = await _account.SignInAsync((code, opened) => Dispatcher.UIThread.Post(() => ShowAccountCode(code, opened)), cancel.Token);
-            AccountMessage = error?.Message ?? string.Empty;
+            var message = error?.Message ?? string.Empty;
+            ShowAccountMessage(() => message);
         }
         finally
         {
@@ -105,13 +113,14 @@ public sealed partial class MainViewModel
 
     /// <summary>The view copied the code (Avalonia's clipboard belongs to the top level, not the view model).</summary>
     public void AccountCodeCopied(bool copied) =>
-        AccountMessage = copied ? "Code copied." : "Couldn't copy the code. Type it in by hand.";
+        ShowAccountMessage(copied ? () => Loc.T("Main.Account.CodeCopied") : () => Loc.T("Main.Account.CopyFailed"));
 
     public RelayCommand OpenSignInPage => _openSignInPage ??= new RelayCommand(() =>
     {
         if (_accountCode is not null && _account?.OpenSignInPage(_accountCode) == false)
         {
-            AccountMessage = "Couldn't open your browser. Open " + AccountCodeUri + " yourself.";
+            var uri = AccountCodeUri;
+            ShowAccountMessage(() => Loc.F("Main.Account.OpenFailedAt", uri));
         }
     });
 
@@ -120,7 +129,7 @@ public sealed partial class MainViewModel
         if (_account is not null)
         {
             await _account.SignOutAsync();
-            AccountMessage = "Signed out.";
+            ShowAccountMessage(() => Loc.T("Main.Account.SignedOut"));
         }
     });
 
@@ -128,7 +137,7 @@ public sealed partial class MainViewModel
     {
         if (_account?.OpenProfile() == false)
         {
-            AccountMessage = "Couldn't open your browser.";
+            ShowAccountMessage(() => Loc.T("Main.Account.BrowserFailed"));
         }
     });
 

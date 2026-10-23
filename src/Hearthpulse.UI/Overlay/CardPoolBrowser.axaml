@@ -58,7 +58,7 @@
             <!-- Header: "<Card> Pool: N cards" and the close button -->
             <DockPanel Margin="14,10,8,8">
                 <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0156;" VerticalAlignment="Top" Focusable="False"
-                        Command="{Binding CloseCardPoolBrowser}" ToolTip.Tip="Close (Esc)" />
+                        Command="{Binding CloseCardPoolBrowser}" ToolTip.Tip="{i:Loc Pool.CloseEsc}" />
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="{Binding CardPoolBrowserTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding CardPoolDescription}" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,0" />
@@ -96,7 +96,7 @@
                         <TextBlock Text="&#xF0143;" Classes="icon" FontSize="16" IsVisible="{Binding CardPoolFiltersOpen}" />
                     </Panel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="FILTERS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" />
+                        <TextBlock Text="{i:Loc Pool.Filters}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" />
                         <Ellipse Width="6" Height="6" Fill="{StaticResource Accent}" Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding CardPoolFilterActive}" />
                         <TextBlock Text="{Binding CardPoolBrowserNote}" FontSize="10.5" Foreground="{StaticResource Faint}" Margin="10,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>

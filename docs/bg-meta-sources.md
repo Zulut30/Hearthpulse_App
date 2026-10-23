@@ -31,7 +31,7 @@ Duos: the API has `/api/bg/heroes/duos` (top 50%), but the app's meta has no Duo
 
 - `BattlegroundsMeta.LoadAsync(HearthpulseData)` reads the four hero slices and the three minion slices through
   `HearthpulseData` (cache `cache/api/bg-heroes-<mmr>.json`, `bg-minions-<mmr>.json`, 6 h, stale cache when offline,
-  404 cached as "no data"). `Source` = "Community stats: Hearthpulse API (HSReplay)". Nothing else is filled:
+  404 cached as "no data"). `Source` = "Hearthpulse data" (`HearthpulseData.Attribution`). Nothing else is filled:
   comps, trinkets, percentiles and tribe impact stay empty.
 - When the stats pool is set up (`PoolClient.Available`), `PoolClient.OverlayAsync` loads the pool's own meta
   (`/v1/meta` + `/v1/stats`) and lays it over the API meta: hero and card numbers blend by sample size **only when the

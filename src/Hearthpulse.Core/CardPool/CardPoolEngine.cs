@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.CardPool;
 
@@ -18,6 +19,9 @@ public sealed class CardPoolEngine
     /// <summary><see cref="CardPoolView.Source"/> of a pool read from the card text.</summary>
     public const string TextSource = "card text";
 
+    /// <summary>The reason of an uncomputed pool when the exception table gives none.</summary>
+    public const string CatalogCannotAnswer = "the catalog cannot answer this pool";
+
     private readonly ConcurrentDictionary<string, PoolParse> _parsed = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, byte> _logged = new(StringComparer.Ordinal);
 
@@ -27,6 +31,7 @@ public sealed class CardPoolEngine
     private readonly IReadOnlyDictionary<string, int> _metaGames;
     private readonly CardDb _cards;
     private readonly WikiPoolSource? _wiki;
+    private string _viewsLanguage = Loc.Instance.Language;
 
     /// <param name="metaGames">Games of meta decks running each card id (see <see cref="MetaGames"/>); may be empty.</param>
     /// <param name="wiki">Hearthstone Wiki pools; without it only the card text is read.</param>
@@ -102,6 +107,13 @@ public sealed class CardPoolEngine
             return null;
         }
 
+        // A view's description is in the interface language: after a switch the views are made again.
+        if (_viewsLanguage != Loc.Instance.Language)
+        {
+            _viewsLanguage = Loc.Instance.Language;
+            _views.Clear();
+        }
+
         var wiki = WikiPoolsOf(cardId, context);
         var key = (cardId, context, trigger, wiki is not null);
         if (_views.TryGetValue(key, out var known))
@@ -134,12 +146,12 @@ public sealed class CardPoolEngine
             {
                 LogOnce(cardId, $"Card pool: {NameOf(cardId)} ({cardId}) uses its card text: the Hearthstone Wiki list has {listed.Count} of its {text.Count} cards");
                 return View(cardId, trigger, parse.Generator!.Phrase, Describe(parse.Generator, context), text, [],
-                    $"{TextSource} (the Hearthstone Wiki list is older: {listed.Count} of {text.Count})");
+                    Loc.F("Pool.Source.TextOverWiki", listed.Count, text.Count));
             }
 
             var sections = wiki.Count > 1 ? wiki.Select(w => (w.Pool.Label, w.Cards)).ToList() : [];
             var phrase = parse.Generator?.Phrase ?? string.Join(", ", wiki.Select(w => w.Pool.Name));
-            var description = parse.Generator is { } g ? Describe(g, context) : $"{Title(context.OwnClass ?? "your class")} · Standard";
+            var description = parse.Generator is { } g ? Describe(g, context) : $"{OwnClass(context)} · {Loc.T("Pool.Format.Standard")}";
             return View(cardId, trigger, phrase, description, listed, sections, WikiPools.Source);
         }
 
@@ -156,7 +168,7 @@ public sealed class CardPoolEngine
 
         if (parse.Status == PoolParseStatus.Uncomputed)
         {
-            return Uncomputed(cardId, trigger, parse.Detail ?? "the catalog cannot answer this pool");
+            return Uncomputed(cardId, trigger, parse.Detail ?? CatalogCannotAnswer);
         }
 
         if (parse.Generator is not { } generator || text is not { Count: > 0 } pool)
@@ -269,22 +281,27 @@ public sealed class CardPoolEngine
         var q = generator.Query;
         var classes = q.Scope switch
         {
-            ClassScope.Any => "any class",
+            ClassScope.Any => Loc.T("Pool.Scope.AnyClass"),
             ClassScope.Named => string.Join(" / ", q.Classes.Select(Title)),
-            ClassScope.Own => Title(context.OwnClass ?? "your class"),
-            ClassScope.Other => "other classes",
-            ClassScope.Opponent => Title(context.OpponentClass ?? "opponent's class"),
-            _ => generator.Verb == PoolVerb.Discover ? $"{Title(context.OwnClass ?? "your class")} + Neutral" : "any class",
+            ClassScope.Own => OwnClass(context),
+            ClassScope.Other => Loc.T("Pool.Scope.OtherClasses"),
+            ClassScope.Opponent => context.OpponentClass is { } opponent ? Title(opponent) : Loc.T("Pool.Scope.OpponentClass"),
+            _ => generator.Verb == PoolVerb.Discover ? Loc.F("Pool.Scope.PlusNeutral", OwnClass(context)) : Loc.T("Pool.Scope.AnyClass"),
         };
-        var format = q.Past ? "from the past" : context.IsStandard ? "Standard" : "Wild";
+        var format = q.Past ? Loc.T("Pool.Format.Past") : context.IsStandard ? Loc.T("Pool.Format.Standard") : Loc.T("Pool.Format.Wild");
         return string.Join(" · ", new[] { classes, format }.Where(s => s is not null));
     }
 
-    private static string Title(string cardClass) => cardClass switch
-    {
-        "DEATHKNIGHT" => "Death Knight",
-        "DEMONHUNTER" => "Demon Hunter",
-        { Length: > 1 } c when c.All(char.IsUpper) => c[0] + c[1..].ToLowerInvariant(),
-        var c => c,
-    };
+    private static string OwnClass(PoolContext context) => context.OwnClass is { } own ? Title(own) : Loc.T("Pool.Scope.YourClass");
+
+    /// <summary>A class id ("DEATHKNIGHT") as the panel writes it; in Russian the class table's name.</summary>
+    private static string Title(string cardClass) => Loc.IsRussian && cardClass.Length > 1 && cardClass.All(char.IsUpper)
+        ? Constructed.ConstructedMeta.ClassName(cardClass)
+        : cardClass switch
+        {
+            "DEATHKNIGHT" => "Death Knight",
+            "DEMONHUNTER" => "Demon Hunter",
+            { Length: > 1 } c when c.All(char.IsUpper) => c[0] + c[1..].ToLowerInvariant(),
+            var c => c,
+        };
 }

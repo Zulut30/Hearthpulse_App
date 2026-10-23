@@ -1,4 +1,5 @@
 using System.Globalization;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -67,26 +68,26 @@ public static class OpponentHandFan
     public static string Label(HandSlot slot) => slot.Origin switch
     {
         HandCardOrigin.Coin => string.Empty,
-        HandCardOrigin.Mulligan => "M",
-        _ => slot.Turn > 0 ? slot.Turn.ToString(CultureInfo.InvariantCulture) : "M",
+        HandCardOrigin.Mulligan => Loc.T("Core.Hand.MulliganMark"),
+        _ => slot.Turn > 0 ? slot.Turn.ToString(CultureInfo.InvariantCulture) : Loc.T("Core.Hand.MulliganMark"),
     };
 
     /// <summary>What the card can be, for the mark's hover text.</summary>
     public static string Hint(HandSlot slot)
     {
-        var turn = slot.Turn > 0 ? string.Create(CultureInfo.InvariantCulture, $" on turn {slot.Turn}") : string.Empty;
-        var creator = slot.CreatedBy is null ? null : (slot.CreatorIsYours ? "your " : string.Empty) + slot.CreatedBy;
+        var turn = slot.Turn > 0 ? Loc.F("Core.Hand.OnTurn", slot.Turn.ToString(CultureInfo.InvariantCulture)) : string.Empty;
+        var creator = slot.CreatedBy is null ? null : Loc.F(slot.CreatorIsYours ? "Core.Hand.YourCreator" : "Core.Hand.Creator", slot.CreatedBy);
         var origin = slot.Origin switch
         {
-            HandCardOrigin.Coin => "The Coin: they went second.",
-            HandCardOrigin.Mulligan => "In their opening hand since the mulligan.",
-            HandCardOrigin.Created => creator is null ? $"Created{turn}." : $"Created by {creator}{turn}.",
+            HandCardOrigin.Coin => Loc.T("Core.Hand.Coin"),
+            HandCardOrigin.Mulligan => Loc.T("Core.Hand.Mulligan"),
+            HandCardOrigin.Created => creator is null ? Loc.F("Core.Hand.Created", turn) : Loc.F("Core.Hand.CreatedBy", creator, turn),
             HandCardOrigin.Shuffled => creator is null
-                ? $"Put into their deck during the game, drawn{turn}."
-                : $"Shuffled into their deck by {creator}, drawn{turn}.",
-            HandCardOrigin.Returned => $"Returned to their hand{turn}.",
-            HandCardOrigin.Stolen => $"Taken from you{turn}.",
-            _ => $"Drawn{turn}.",
+                ? Loc.F("Core.Hand.PutIntoDeck", turn)
+                : Loc.F("Core.Hand.ShuffledBy", creator, turn),
+            HandCardOrigin.Returned => Loc.F("Core.Hand.Returned", turn),
+            HandCardOrigin.Stolen => Loc.F("Core.Hand.Stolen", turn),
+            _ => Loc.F("Core.Hand.Drawn", turn),
         };
 
         return slot.CardName is { Length: > 0 } name && slot.Origin != HandCardOrigin.Coin ? $"{name}\n{origin}" : origin;

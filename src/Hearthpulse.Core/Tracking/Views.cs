@@ -1,6 +1,7 @@
 using Hearthpulse.Core.Memory;
 
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -234,16 +235,16 @@ public sealed record ShopPlan(
 
     public bool IsMultiStep => Steps.Count > 1;
 
-    public string ActionLabel => IsMultiStep ? "PLAN" : Label(Action);
+    public string ActionLabel => IsMultiStep ? Loc.T("Core.Bg.Action.Plan") : Label(Action);
 
-    public static string Label(ShopAction action) => action switch
+    public static string Label(ShopAction action) => Loc.T(action switch
     {
-        ShopAction.Level => "LEVEL",
-        ShopAction.Buy => "BUY",
-        ShopAction.Roll => "ROLL",
-        ShopAction.Sell => "SELL",
-        _ => "WAIT",
-    };
+        ShopAction.Level => "Core.Bg.Action.Level",
+        ShopAction.Buy => "Core.Bg.Action.Buy",
+        ShopAction.Roll => "Core.Bg.Action.Roll",
+        ShopAction.Sell => "Core.Bg.Action.Sell",
+        _ => "Core.Bg.Action.Wait",
+    });
 }
 
 public sealed record BattlegroundsView(

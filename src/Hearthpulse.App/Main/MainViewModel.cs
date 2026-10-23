@@ -2,6 +2,7 @@ using System.Globalization;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -83,6 +84,7 @@ public sealed partial class MainViewModel : Observable
     {
         _history = history;
         Settings = settings;
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
         SetBracket = new RelayCommand(p =>
         {
             Bracket = Convert.ToInt32(p, CultureInfo.InvariantCulture);
@@ -107,6 +109,9 @@ public sealed partial class MainViewModel : Observable
         AnswerPool = new RelayCommand(p => PoolSharing = p as string == "yes");
     }
 
+    /// <summary>Under the History title: how many games are kept, and that they stay on this PC.</summary>
+    public string HistorySubtitle => Loc.P("Main.History.SubtitlePc", HistoryCount);
+
     public RelayCommand SetCardTier { get; }
 
     // ---- updates --------------------------------------------------------------------------
@@ -115,7 +120,8 @@ public sealed partial class MainViewModel : Observable
     public event Action? UpdateRequested;
 
     private bool _updateReady;
-    private string _updateText = string.Empty;
+    private string? _updateVersion;
+    private string? _updateStatus;
 
     /// <summary>A newer version has been downloaded: it installs by itself when Hearthpulse closes.</summary>
     public bool UpdateReady
@@ -124,33 +130,30 @@ public sealed partial class MainViewModel : Observable
         private set => Set(ref _updateReady, value);
     }
 
-    public string UpdateText
-    {
-        get => _updateText;
-        private set => Set(ref _updateText, value);
-    }
+    /// <summary>The downloaded update in a sentence; built on read so it follows a language change.</summary>
+    public string UpdateText => _updateVersion is null ? string.Empty : Loc.F("Main.Update.Downloaded", _updateVersion);
 
     public RelayCommand InstallUpdate { get; }
 
     /// <summary>Tells the dashboard that a downloaded update is waiting for the next restart.</summary>
     public void SetUpdateReady(string version)
     {
-        UpdateText = $"Version {version} is downloaded — it installs when you close Hearthpulse.";
+        _updateVersion = version;
+        _updateStatus = null;
+        Raise(nameof(UpdateText));
         UpdateReady = true;
-        UpdateStatus = UpdateText;
+        Raise(nameof(UpdateStatus));
     }
-
-    private string _updateStatus = "Updates have not been checked yet.";
 
     /// <summary>The last update check in a sentence for Settings → About (up to date, failed and why, unverified file).</summary>
-    public string UpdateStatus
-    {
-        get => _updateStatus;
-        private set => Set(ref _updateStatus, value);
-    }
+    public string UpdateStatus => _updateStatus ?? (_updateVersion is null ? Loc.T("Main.Update.NotChecked") : UpdateText);
 
     /// <summary>Shows what the last update check found.</summary>
-    public void SetUpdateStatus(string status) => UpdateStatus = status;
+    public void SetUpdateStatus(string status)
+    {
+        _updateStatus = status;
+        Raise(nameof(UpdateStatus));
+    }
 
     /// <summary>The running version, for Settings → About.</summary>
     public string VersionText => $"Hearthpulse {UpdateService.CurrentVersion}";
@@ -158,10 +161,10 @@ public sealed partial class MainViewModel : Observable
     /// <summary>"Good morning" / "Good afternoon" / "Good evening" for the page header.</summary>
     public string Greeting => DateTime.Now.Hour switch
     {
-        < 5 => "Good night",
-        < 12 => "Good morning",
-        < 18 => "Good afternoon",
-        _ => "Good evening",
+        < 5 => Loc.T("Main.Greeting.Night"),
+        < 12 => Loc.T("Main.Greeting.Morning"),
+        < 18 => Loc.T("Main.Greeting.Afternoon"),
+        _ => Loc.T("Main.Greeting.Evening"),
     };
 
     public AppSettings Settings { get; }
@@ -215,20 +218,21 @@ public sealed partial class MainViewModel : Observable
 
     public string DataFolder => AppPaths.Root;
 
-    public string Attribution => BattlegroundsMeta.Attribution + " (api.kolodahearthstone.com) · " + BattlegroundsMeta.PoolName + " when set up · Card data & art: HearthstoneJSON";
+    public string Attribution => Loc.T("Settings.Sources.Text");
 
     // ---- live status ----------------------------------------------------------------------
+    private LiveSnapshot? _lastSnapshot;
     private bool _hearthstoneRunning;
     private bool _memoryAttached;
-    private string _memoryStatus = "Waiting for Hearthstone";
-    private string _liveTitle = "Not in a game";
-    private string _liveDetail = "Start Hearthstone — Hearthpulse attaches automatically.";
+    private string _memoryStatus = Loc.T("Main.Live.WaitingHs");
+    private string _liveTitle = Loc.T("Main.Live.NotInGame");
+    private string _liveDetail = Loc.T("Main.Live.StartHs");
     private bool _inGame;
     private string _soloRating = "—";
     private string _duosRating = "—";
     private string _sessionDelta = string.Empty;
     private int _sessionDeltaValue;
-    private string _sessionSummary = "No games this session";
+    private string _sessionSummary = Loc.T("Main.Session.None");
     private string _setupWarning = string.Empty;
     private string _busy = string.Empty;
 
@@ -273,7 +277,7 @@ public sealed partial class MainViewModel : Observable
     private string _bgMode = "Battlegrounds";
     private string _historyFilter = "All";
     private int _bracket = 100;
-    private string _metaUpdated = "Community data loading…";
+    private string _metaUpdated = Loc.T("Main.Bg.CommunityLoading");
     private int _historyCount;
 
     public IReadOnlyList<GameRow> Recent
@@ -329,14 +333,12 @@ public sealed partial class MainViewModel : Observable
 
     public string CardEmptyText { get => _cardEmptyText; private set => Set(ref _cardEmptyText, value); }
 
-    private string _compTabLabel = "Comps";
+    private bool _tribeRows;
 
     /// <summary>The stats pool groups final boards by tribe; downloaded stats have comps.</summary>
-    public string CompTabLabel { get => _compTabLabel; private set { if (Set(ref _compTabLabel, value)) Raise(nameof(CompCaption)); } }
+    public string CompTabLabel => _tribeRows ? Loc.T("Main.Bg.Tribes") : Loc.T("Main.Bg.Comps");
 
-    public string CompCaption => _compTabLabel == "Tribes"
-        ? "Final boards grouped by their main tribe (4 or more minions of it), ranked by how well those players finished."
-        : "Board archetypes ranked by how well players who played them finished. Core cards are what the comp needs; tribes must be in your lobby.";
+    public string CompCaption => _tribeRows ? Loc.T("Main.Bg.CompCaptionTribes") : Loc.T("Main.Bg.CompCaptionComps");
 
     private IReadOnlyList<MetaTrinketRow> _trinketTiers = Array.Empty<MetaTrinketRow>();
     private IReadOnlyList<MetaCardRow> _cardTiers = Array.Empty<MetaCardRow>();
@@ -358,11 +360,12 @@ public sealed partial class MainViewModel : Observable
     public string HistoryFilter { get => _historyFilter; private set => Set(ref _historyFilter, value); }
     public int Bracket { get => _bracket; private set => Set(ref _bracket, value); }
     public string MetaUpdated { get => _metaUpdated; private set => Set(ref _metaUpdated, value); }
-    public int HistoryCount { get => _historyCount; private set => Set(ref _historyCount, value); }
+    public int HistoryCount { get => _historyCount; private set { if (Set(ref _historyCount, value)) Raise(nameof(HistorySubtitle)); } }
 
     public void SetCards(CardDb cards)
     {
         _cards = cards;
+        Raise(nameof(LanguageRestartHint));
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
     }
@@ -376,15 +379,16 @@ public sealed partial class MainViewModel : Observable
 
     public void Apply(LiveSnapshot s)
     {
+        _lastSnapshot = s;
         HearthstoneRunning = s.HearthstoneRunning;
         MemoryAttached = s.MemoryAttached;
         MemoryStatus = s.MemoryStatus;
         InGame = s.InGame;
         SetupWarning = s.LogConfigMissing.Count > 0
-            ? $"Hearthstone logging was just enabled ({string.Join(", ", s.LogConfigMissing)}). Restart Hearthstone once to start tracking."
+            ? Loc.F("Main.Setup.LoggingEnabled", string.Join(", ", s.LogConfigMissing))
             : string.Empty;
         ParseErrorsText = s.ParseErrors is { } errors
-            ? $"Log reading: {errors.Total:N0} Power.log line(s) could not be read ({errors.ByType}). The first of each kind is in hearthpulse.log."
+            ? Loc.F("Main.Setup.ParseErrors", errors.Total, errors.ByType)
             : string.Empty;
 
         if (s.Rating is { } r)
@@ -394,29 +398,29 @@ public sealed partial class MainViewModel : Observable
         }
 
         SessionDeltaValue = s.Session.Delta ?? 0;
-        SessionDelta = s.Session.Delta is { } d && d != 0 ? (d > 0 ? $"+{d}" : $"−{-d}") + " this session" : string.Empty;
+        SessionDelta = s.Session.Delta is { } d && d != 0 ? Loc.F("Main.Session.Delta", d > 0 ? $"+{d}" : $"−{-d}") : string.Empty;
         SessionSummary = s.Session.Games == 0 && s.Session.Placements.Count == 0
-            ? "No games this session"
+            ? Loc.T("Main.Session.None")
             : s.Session.Placements.Count > 0
-                ? $"{s.Session.Placements.Count} BG games · avg {s.Session.Placements.Average():0.0}"
-                : $"{s.Session.Wins}–{s.Session.Losses} this session";
+                ? Loc.P("Main.Session.BgGames", s.Session.Placements.Count, s.Session.Placements.Average())
+                : Loc.F("Main.Session.Record", s.Session.Wins, s.Session.Losses);
 
         if (s.Battlegrounds is { } bg)
         {
-            LiveTitle = bg.IsDuos ? "Live · Battlegrounds Duos" : "Live · Battlegrounds";
+            LiveTitle = bg.IsDuos ? Loc.T("Main.Live.BgDuos") : Loc.T("Main.Live.Bg");
             LiveDetail = bg.IsHeroSelection
-                ? "Choosing a hero"
-                : $"{_cards.NameOf(bg.HeroCardId)} · turn {bg.Turn} · tier {bg.TechLevel} · {bg.Health + bg.Armor} HP · place {bg.Place}";
+                ? Loc.T("Main.Live.ChoosingHero")
+                : Loc.F("Main.Live.BgDetail", _cards.NameOf(bg.HeroCardId), bg.Turn, bg.TechLevel, bg.Health + bg.Armor, bg.Place);
         }
         else if (s.Constructed is { } c)
         {
-            LiveTitle = $"Live · {Mode(s.GameType)}";
-            LiveDetail = $"{c.DeckName ?? OverlayViewModel.ClassName(c.PlayerClass)} vs {OverlayViewModel.ClassName(c.OpponentClass)} · turn {c.Turn}";
+            LiveTitle = Loc.F("Main.Live.Mode", Mode(s.GameType));
+            LiveDetail = Loc.F("Main.Live.CtDetail", c.DeckName ?? OverlayViewModel.ClassName(c.PlayerClass), OverlayViewModel.ClassName(c.OpponentClass), c.Turn);
         }
         else
         {
-            LiveTitle = s.HearthstoneRunning ? "Hearthstone is running" : "Not in a game";
-            LiveDetail = s.HearthstoneRunning ? $"Waiting for a match · {Scene(s.Scene)}" : "Start Hearthstone — Hearthpulse attaches automatically.";
+            LiveTitle = s.HearthstoneRunning ? Loc.T("Main.Live.HsRunning") : Loc.T("Main.Live.NotInGame");
+            LiveDetail = s.HearthstoneRunning ? Loc.F("Main.Live.WaitingMatch", Scene(s.Scene)) : Loc.T("Main.Live.StartHs");
         }
     }
 
@@ -509,11 +513,11 @@ public sealed partial class MainViewModel : Observable
         var net = bg.Where(g => g.RatingDelta is not null).Sum(g => g.RatingDelta ?? 0);
         BgTiles =
         [
-            new StatTile("Games", bg.Count.ToString("N0", CultureInfo.CurrentCulture), mode == "Duos" ? "Duos" : "Solo"),
-            new StatTile("Avg place", bg.Count == 0 ? "—" : bg.Average(g => g.Placement).ToString("0.00", CultureInfo.CurrentCulture), "lower is better"),
-            new StatTile($"Top {top}", bg.Count == 0 ? "—" : (bg.Count(g => g.Placement <= top) / (double)bg.Count).ToString("P0", CultureInfo.CurrentCulture), "of games"),
-            new StatTile("Firsts", bg.Count(g => g.Placement == 1).ToString(CultureInfo.CurrentCulture), bg.Count == 0 ? "—" : (bg.Count(g => g.Placement == 1) / (double)bg.Count).ToString("P0", CultureInfo.CurrentCulture) + " win rate"),
-            new StatTile("Net rating", net == 0 ? "±0" : net > 0 ? $"+{net:N0}" : $"−{-net:N0}", "tracked games", Math.Sign(net)),
+            new StatTile(Loc.T("Main.Tile.Games"), bg.Count.ToString("N0", CultureInfo.CurrentCulture), mode == "Duos" ? Loc.T("Main.Mode.Duos") : Loc.T("Main.Bg.Solo")),
+            new StatTile(Loc.T("Main.Tile.AvgPlace"), bg.Count == 0 ? "—" : bg.Average(g => g.Placement).ToString("0.00", CultureInfo.CurrentCulture), Loc.T("Main.Tile.LowerBetter")),
+            new StatTile(Loc.F("Main.Tile.Top", top), bg.Count == 0 ? "—" : (bg.Count(g => g.Placement <= top) / (double)bg.Count).ToString("P0", CultureInfo.CurrentCulture), Loc.T("Main.Tile.OfGames")),
+            new StatTile(Loc.T("Main.Tile.Firsts"), bg.Count(g => g.Placement == 1).ToString(CultureInfo.CurrentCulture), bg.Count == 0 ? "—" : Loc.F("Main.Tile.WinRateOf", (bg.Count(g => g.Placement == 1) / (double)bg.Count).ToString("P0", CultureInfo.CurrentCulture))),
+            new StatTile(Loc.T("Main.Tile.NetRating"), net == 0 ? "±0" : net > 0 ? $"+{net:N0}" : $"−{-net:N0}", Loc.T("Main.Tile.TrackedGames"), Math.Sign(net)),
         ];
 
         MyHeroes = data.Heroes.Select(h => new HeroRow(
@@ -533,22 +537,22 @@ public sealed partial class MainViewModel : Observable
         var wins = constructed.Count(g => g.Result == "Win");
         ConstructedTiles =
         [
-            new StatTile("Games", constructed.Count.ToString(CultureInfo.CurrentCulture), "recent"),
-            new StatTile("Win rate", constructed.Count == 0 ? "—" : (wins / (double)constructed.Count).ToString("P0", CultureInfo.CurrentCulture), $"{wins}–{constructed.Count - wins}"),
-            new StatTile("Decks", data.Decks.Count.ToString(CultureInfo.CurrentCulture), "tracked"),
-            new StatTile("Best class", data.Classes.Where(c => c.Games >= 3).MaxBy(c => c.WinRate) is { } best ? OverlayViewModel.ClassName(best.PlayerClass) : "—",
-                data.Classes.Where(c => c.Games >= 3).MaxBy(c => c.WinRate) is { } b2 ? b2.WinRate.ToString("P0", CultureInfo.CurrentCulture) : "3+ games needed"),
+            new StatTile(Loc.T("Main.Tile.Games"), constructed.Count.ToString(CultureInfo.CurrentCulture), Loc.T("Main.Tile.Recent")),
+            new StatTile(Loc.T("Main.Tile.WinRate"), constructed.Count == 0 ? "—" : (wins / (double)constructed.Count).ToString("P0", CultureInfo.CurrentCulture), $"{wins}–{constructed.Count - wins}"),
+            new StatTile(Loc.T("Main.Tile.Decks"), data.Decks.Count.ToString(CultureInfo.CurrentCulture), Loc.T("Main.Tile.Tracked")),
+            new StatTile(Loc.T("Main.Tile.BestClass"), data.Classes.Where(c => c.Games >= 3).MaxBy(c => c.WinRate) is { } best ? OverlayViewModel.ClassName(best.PlayerClass) : "—",
+                data.Classes.Where(c => c.Games >= 3).MaxBy(c => c.WinRate) is { } b2 ? b2.WinRate.ToString("P0", CultureInfo.CurrentCulture) : Loc.T("Main.Tile.NeedGames")),
         ];
 
         var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();
         OverviewTiles =
         [
-            new StatTile("Solo rating", SoloRating, SessionDelta.Length > 0 ? SessionDelta : "Battlegrounds", SessionDeltaValue),
-            new StatTile("Duos rating", DuosRating, "Battlegrounds Duos"),
-            new StatTile("Today", today.Count.ToString(CultureInfo.CurrentCulture),
-                todayBg.Count > 0 ? $"BG avg {todayBg.Average(g => g.Placement):0.0}" : today.Count > 0 ? $"{today.Count(g => g.Result == "Win")}–{today.Count(g => g.Result == "Loss")}" : "no games yet"),
-            new StatTile("All time", HistoryCount.ToString("N0", CultureInfo.CurrentCulture), "games tracked"),
+            new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, SessionDelta.Length > 0 ? SessionDelta : Loc.T("Main.Mode.Battlegrounds"), SessionDeltaValue),
+            new StatTile(Loc.T("Main.Tile.DuosRating"), DuosRating, Loc.T("Main.Mode.BattlegroundsDuos")),
+            new StatTile(Loc.T("Main.Tile.Today"), today.Count.ToString(CultureInfo.CurrentCulture),
+                todayBg.Count > 0 ? Loc.F("Main.Tile.BgAvg", todayBg.Average(g => g.Placement)) : today.Count > 0 ? $"{today.Count(g => g.Result == "Win")}–{today.Count(g => g.Result == "Loss")}" : Loc.T("Main.Tile.NoGamesYet")),
+            new StatTile(Loc.T("Main.Tile.AllTime"), HistoryCount.ToString("N0", CultureInfo.CurrentCulture), Loc.T("Main.Tile.GamesTracked")),
         ];
 
         await RefreshMyStatsAsync();
@@ -568,7 +572,7 @@ public sealed partial class MainViewModel : Observable
             Bracket = meta.WidestBracket;
         }
 
-        BracketOptions = brackets.Select((b, i) => new BracketOption(b, b >= 100 ? "All" : i == 0 ? $"Top {b}%" : $"{b}%", b == Bracket, SetBracket)).ToList();
+        BracketOptions = brackets.Select((b, i) => new BracketOption(b, b >= 100 ? Loc.T("Main.Bracket.All") : i == 0 ? Loc.F("Main.Bracket.Top", b) : $"{b}%", b == Bracket, SetBracket)).ToList();
 
         var personal = MyHeroes.ToDictionary(h => h.CardId);
         var heroes = meta.HeroesByBracket.GetValueOrDefault(Bracket) ?? new Dictionary<string, MetaHero>();
@@ -601,13 +605,13 @@ public sealed partial class MainViewModel : Observable
             var cWorst = tribes.Count > 0 ? tribes[^1].AveragePlacement : 5;
             CompTiers = tribes.Select((t, i) => new MetaCompRow(
                     i + 1,
-                    t.Tribe == "MIXED" ? "Mixed" : Races.Display(t.Tribe, _cards.Locale),
-                    string.Format(CultureInfo.CurrentCulture, "{0:N0} games", t.Games),
+                    t.Tribe == "MIXED" ? Loc.T("Main.Bg.Mixed") : Races.Display(t.Tribe, _cards.Locale),
+                    Loc.P("Main.Bg.TribeGames", t.Games),
                     BattlegroundsAdvisor.TierOf(t.AveragePlacement),
                     string.Empty,
                     t.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
                     cWorst - cBest < 0.01 ? 1 : 1 - ((t.AveragePlacement - cBest) / (cWorst - cBest) * 0.85),
-                    string.Format(CultureInfo.CurrentCulture, "Top 4 {0:P0}, 1st place {1:P0}", t.Top4Rate, t.FirstRate),
+                    Loc.F("Main.Bg.TribeRates", t.Top4Rate, t.FirstRate),
                     string.Empty))
                 .ToList();
         }
@@ -633,7 +637,12 @@ public sealed partial class MainViewModel : Observable
                 .ToList();
         }
 
-        CompTabLabel = tribeRows ? "Tribes" : "Comps";
+        if (_tribeRows != tribeRows)
+        {
+            _tribeRows = tribeRows;
+            Raise(nameof(CompTabLabel));
+            Raise(nameof(CompCaption));
+        }
 
         var trinkets = meta.Trinkets.Values
             .Select(t => (Trinket: t, Stats: meta.Trinket(t.CardId, Bracket)))
@@ -653,8 +662,8 @@ public sealed partial class MainViewModel : Observable
                 tWorst - tBest < 0.01 ? 1 : 1 - ((t.Stats.Value.Placement - tBest) / (tWorst - tBest) * 0.85)))
             .ToList();
 
-        CompEmptyText = meta.PoolPending("comp stats");
-        TrinketEmptyText = meta.PoolPending("trinket stats");
+        CompEmptyText = meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Comps"));
+        TrinketEmptyText = meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Trinkets"));
 
         // Cards are only comparable within one tavern tier: late, high-tier cards always look better overall.
         var cardBracket = meta.CardsByBracket.ContainsKey(Bracket) ? Bracket : 100;
@@ -673,7 +682,7 @@ public sealed partial class MainViewModel : Observable
                 i + 1,
                 c.Stats.CardId,
                 c.Card!.Name,
-                c.Card.Type == "MINION" ? string.Join(" · ", c.Card.Races.Select(r => Races.Display(r, _cards.Locale))) : "Tavern spell",
+                c.Card.Type == "MINION" ? string.Join(" · ", c.Card.Races.Select(r => Races.Display(r, _cards.Locale))) : Loc.T("Main.Bg.TavernSpell"),
                 c.Card.TechLevel > 0 ? c.Card.TechLevel.ToString(CultureInfo.CurrentCulture) : "–",
                 c.Stats.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
                 c.Stats.DataPoints.ToString("N0", CultureInfo.CurrentCulture),
@@ -681,11 +690,11 @@ public sealed partial class MainViewModel : Observable
             .ToList();
 
         // The API publishes tavern spells nowhere and has fewer minion brackets than hero brackets: both are said, not hidden.
-        CardEmptyText = CardTier == 0 ? meta.PoolPending("tavern spell stats") : "No card data for this tier yet.";
+        CardEmptyText = CardTier == 0 ? meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Spells")) : Loc.T("Main.Bg.NoCardData");
         var bracketText = BattlegroundsMeta.BracketLabel(Bracket)
-            + (cardBracket != Bracket && meta.CardsByBracket.Count > 0 ? $" (cards: {BattlegroundsMeta.BracketLabel(cardBracket)})" : string.Empty);
-        var sharedText = meta.SharedGames > 0 ? $" · {meta.SharedGames:N0} shared games" : string.Empty;
-        MetaUpdated = $"{meta.Source} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}{sharedText}";
+            + (cardBracket != Bracket && meta.CardsByBracket.Count > 0 ? Loc.F("Main.Bg.CardsBracket", BattlegroundsMeta.BracketLabel(cardBracket)) : string.Empty);
+        var sharedText = meta.SharedGames > 0 ? Loc.F("Main.Bg.SharedGames", meta.SharedGames) : string.Empty;
+        MetaUpdated = Loc.F("Main.Bg.MetaUpdated", meta.Source, bracketText, meta.Updated.ToLocalTime(), sharedText);
     }
 
     private GameRow Row(GameRecord g)
@@ -695,20 +704,20 @@ public sealed partial class MainViewModel : Observable
         // An abandoned game has no placement or result: it is shown as such, in the muted colour.
         var resultKey = g.IsAbandoned ? g.Result : bg ? (g.Placement is > 0 && g.Placement <= top ? "Win" : "Loss") : g.Result;
         var detail = bg
-            ? $"Tier {g.TavernTier} · {g.Turns} turns"
+            ? Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)
             : string.Join(" · ", new[]
             {
                 g.DeckName,
-                string.IsNullOrEmpty(g.OpponentClass) ? null : "vs " + OverlayViewModel.ClassName(g.OpponentClass),
+                string.IsNullOrEmpty(g.OpponentClass) ? null : Loc.F("Main.Game.Vs", OverlayViewModel.ClassName(g.OpponentClass)),
                 RankInfo.Localize(g.Rank),
-                $"{g.Turns} turns",
+                Loc.P("Main.Game.Turns", g.Turns),
             }.Where(x => !string.IsNullOrEmpty(x)));
         return new GameRow(
             When(g.StartedAt),
             Mode(g.Mode),
             g.HeroCardId,
             _cards.NameOf(g.HeroCardId),
-            bg && !g.IsAbandoned ? Ordinal(g.Placement) : g.Result,
+            bg && !g.IsAbandoned ? Ordinal(g.Placement) : ResultText(g.Result),
             resultKey,
             detail,
             g.RatingDelta is { } d ? (d >= 0 ? $"+{d}" : $"−{-d}") : string.Empty,
@@ -730,46 +739,61 @@ public sealed partial class MainViewModel : Observable
         var local = at.Kind == DateTimeKind.Utc ? at.ToLocalTime() : at;
         if (local.Date == DateTime.Today)
         {
-            return "Today " + local.ToString("HH:mm", CultureInfo.CurrentCulture);
+            return Loc.F("Main.When.Today", local.ToString("HH:mm", CultureInfo.CurrentCulture));
         }
 
         return local.Date == DateTime.Today.AddDays(-1)
-            ? "Yesterday " + local.ToString("HH:mm", CultureInfo.CurrentCulture)
-            : local.ToString("dd MMM HH:mm", CultureInfo.CurrentCulture);
+            ? Loc.F("Main.When.Yesterday", local.ToString("HH:mm", CultureInfo.CurrentCulture))
+            : local.ToString("dd MMM HH:mm", Loc.DateCulture);
     }
 
+    /// <summary>A game type ("GT_RANKED") or a history mode ("Ranked", see <c>GameRecords.ModeOf</c>) as the player reads it.</summary>
     private static string Mode(string? mode) => mode switch
     {
         null => string.Empty,
-        "GT_RANKED" => "Ranked",
-        "GT_CASUAL" => "Casual",
-        "GT_ARENA" => "Arena",
-        "GT_BATTLEGROUNDS" => "Battlegrounds",
-        "GT_BATTLEGROUNDS_DUO" => "Duos",
-        "GT_VS_AI" => "Practice",
-        "GT_VS_FRIEND" => "Friendly",
-        "GT_TAVERNBRAWL" => "Tavern Brawl",
+        "GT_RANKED" or "Ranked" => Loc.T("Main.Mode.Ranked"),
+        "GT_CASUAL" or "Casual" => Loc.T("Main.Mode.Casual"),
+        "GT_ARENA" or "Arena" => Loc.T("Main.Mode.Arena"),
+        "GT_BATTLEGROUNDS" or "Battlegrounds" => Loc.T("Main.Mode.Battlegrounds"),
+        "GT_BATTLEGROUNDS_DUO" or "Duos" => Loc.T("Main.Mode.Duos"),
+        "GT_VS_AI" or "Practice" => Loc.T("Main.Mode.Practice"),
+        "GT_VS_FRIEND" or "Friendly" => Loc.T("Main.Mode.Friendly"),
+        "GT_TAVERNBRAWL" => Loc.T("Main.Mode.TavernBrawl"),
+        "Brawl" => Loc.T("Main.Mode.Brawl"),
+        "Mercenaries" => Loc.T("Main.Mode.Mercenaries"),
+        "Other" => Loc.T("Main.Mode.Other"),
         _ when mode.StartsWith("GT_", StringComparison.Ordinal) => CultureInfo.InvariantCulture.TextInfo.ToTitleCase(mode[3..].Replace('_', ' ').ToLowerInvariant()),
         _ => mode,
     };
 
     private static string Scene(string scene) => scene switch
     {
-        "HUB" => "main menu",
-        "BACON" => "Battlegrounds lobby",
-        "TOURNAMENT" => "play menu",
-        "COLLECTIONMANAGER" => "collection",
-        "DRAFT" => "Arena",
-        "GAMEPLAY" => "loading game",
+        "HUB" => Loc.T("Main.Scene.Hub"),
+        "BACON" => Loc.T("Main.Scene.Bacon"),
+        "TOURNAMENT" => Loc.T("Main.Scene.Tournament"),
+        "COLLECTIONMANAGER" => Loc.T("Main.Scene.Collection"),
+        "DRAFT" => Loc.T("Main.Mode.Arena"),
+        "GAMEPLAY" => Loc.T("Main.Scene.Gameplay"),
         _ => scene.ToLowerInvariant(),
     };
 
     private static string Ordinal(int n) => n switch
     {
         <= 0 => "—",
-        1 => "1st",
-        2 => "2nd",
-        3 => "3rd",
-        _ => $"{n}th",
+        1 => Loc.T("Main.Place.1"),
+        2 => Loc.T("Main.Place.2"),
+        3 => Loc.T("Main.Place.3"),
+        _ => Loc.F("Main.Place.N", n),
+    };
+
+    /// <summary>A history result ("Win", "Loss", "Tie", "Abandoned", "Unknown") as the player reads it; the colour keeps the stored value.</summary>
+    private static string ResultText(string result) => result switch
+    {
+        "Win" => Loc.T("Main.Result.Win"),
+        "Loss" => Loc.T("Main.Result.Loss"),
+        "Tie" => Loc.T("Main.Result.Tie"),
+        GameRecord.AbandonedResult => Loc.T("Main.Result.Abandoned"),
+        "Unknown" => Loc.T("Main.Result.Unknown"),
+        _ => result,
     };
 }

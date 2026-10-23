@@ -1,6 +1,7 @@
 using System.Net;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
@@ -37,10 +38,14 @@ public sealed partial class AppHost : IDisposable
     private DeckAggregate? _deckStats;
     private MatchupAggregate? _matchupStats;
     private UpdateInfo? _stagedUpdate;
+    private Func<string>? _busy;
+    private Task? _archetypeNames;
+    private Func<string>? _updateStatus;
 
     public AppHost(AppSettings settings)
     {
         Settings = settings;
+        Loc.Instance.SetLanguage(settings.InterfaceLanguage());
         Http = new HttpClient(new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
@@ -88,6 +93,7 @@ public sealed partial class AppHost : IDisposable
             _historyDebounce.Start();
             _deckStatsKey = null;
         });
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
     }
 
     public static string Version { get; } = typeof(AppHost).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
@@ -136,7 +142,7 @@ public sealed partial class AppHost : IDisposable
     {
         try
         {
-            Main.Busy = "Looking for Hearthstone…";
+            SetBusy(() => Loc.T("Host.Busy.LookingForGame"));
             Task.Run(CacheCleanup.Run).Forget("Cache clean-up");
             InstallDirectory = await Task.Run(() => HearthstoneInstall.FindInstallDirectory(Settings.HearthstonePath));
             if (InstallDirectory is not null && Settings.HearthstonePath != InstallDirectory)
@@ -146,7 +152,10 @@ public sealed partial class AppHost : IDisposable
             }
 
             Session.InstallDirectory = InstallDirectory;
-            var locale = Settings.Locale == "auto" ? HearthstoneInstall.DetectLocale(InstallDirectory) : Settings.Locale;
+            // "auto" language and cards follow the installed client (a Russian client shows Russian cards and interface).
+            Settings.ClientLocale = HearthstoneInstall.DetectLocale(InstallDirectory);
+            Loc.Instance.SetLanguage(Settings.InterfaceLanguage());
+            var locale = Settings.CardLocale();
             CardArt.Locale = locale;
 
             var logConfigChanged = await Task.Run(() =>
@@ -162,7 +171,7 @@ public sealed partial class AppHost : IDisposable
                 }
             });
 
-            Main.Busy = "Loading card data…";
+            SetBusy(() => Loc.T("Host.Busy.LoadingCards"));
             Cards = await CardDb.LoadAsync(locale, Http);
             CardArt.FallbackUrl = id => Cards.BgCards.ImageUrl(id);
             if (Cards.Count == 0 && locale != "enUS")
@@ -191,13 +200,13 @@ public sealed partial class AppHost : IDisposable
 
             _watcher = new LogWatcher(Session, () => InstallDirectory);
             _watcher.Start();
-            Main.Busy = InstallDirectory is null
-                ? "Hearthstone not found. Set its folder in settings.json (HearthstonePath) if it is installed somewhere unusual."
-                : string.Empty;
+            SetBusy(InstallDirectory is null
+                ? () => Loc.T("Host.Busy.GameNotFound")
+                : null);
 
             if (logConfigChanged && HearthstoneInstall.IsRunning())
             {
-                Notification?.Invoke("Restart Hearthstone", "Hearthpulse enabled the game's logging. Restart Hearthstone once so tracking can start.");
+                Notification?.Invoke(Loc.T("Host.Notify.RestartTitle"), Loc.T("Host.Notify.LoggingEnabled"));
             }
 
             await LoadMetaAsync();
@@ -207,7 +216,7 @@ public sealed partial class AppHost : IDisposable
         catch (Exception ex)
         {
             Diag.Error("Startup failed", ex);
-            Main.Busy = "Startup problem — see hearthpulse.log in the data folder.";
+            SetBusy(() => Loc.T("Host.Busy.StartupProblem"));
         }
     }
 
@@ -219,7 +228,7 @@ public sealed partial class AppHost : IDisposable
     {
         if (!Settings.AutoUpdate || OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
-            Main.SetUpdateStatus("Automatic updates are off.");
+            SetUpdateStatus(() => Loc.T("Host.Update.Off"));
             return;
         }
 
@@ -236,21 +245,26 @@ public sealed partial class AppHost : IDisposable
                     // The portable version never installs anything: it only says a new version is out.
                     if (info is not null && AppPaths.IsPortable)
                     {
-                        Notification?.Invoke("Hearthpulse update available", $"{info.Version} is out. Download the new portable version from GitHub.");
+                        Notification?.Invoke(Loc.T("Host.Update.AvailableTitle"), Loc.F("Host.Update.AvailablePortable", info.Version));
                         return;
                     }
 
                     if (info is { Sha256: not null } && await UpdateService.DownloadAsync(Http, info) is not null)
                     {
                         _stagedUpdate = info;
-                        Dispatcher.UIThread.Post(() => Main.SetUpdateReady(info.Version));
-                        Notification?.Invoke("Hearthpulse update ready", $"{info.Version} is downloaded — it installs when you close Hearthpulse.");
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            _updateStatus = null;
+                            Main.SetUpdateReady(info.Version);
+                        });
+                        Notification?.Invoke(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
                         return;
                     }
 
                     // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
-                    var status = info is { Sha256: not null } ? $"Version {info.Version} could not be downloaded; Hearthpulse tries again later." : check.Message;
-                    Dispatcher.UIThread.Post(() => Main.SetUpdateStatus(status));
+                    var message = check.Message;
+                    Func<string> status = info is { Sha256: not null } ? () => Loc.F("Host.Update.DownloadFailed", info.Version) : () => message;
+                    Dispatcher.UIThread.Post(() => SetUpdateStatus(status));
                 }
                 catch (Exception ex)
                 {
@@ -285,6 +299,27 @@ public sealed partial class AppHost : IDisposable
         {
             _stagedUpdate = null;
             ExitRequested?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Russian archetype names, once per run and only while the interface is Russian (the only language that uses them),
+    /// fetched beside the meta, never before it: when they arrive the meta is loaded again (from its cache) so its labels
+    /// use them. An empty answer lets the next meta load ask again (the loader itself backs off after failures).
+    /// </summary>
+    private async Task LoadArchetypeNamesAsync()
+    {
+        var names = await ArchetypeTranslations.LoadAsync(Http);
+        if (names.Count == 0)
+        {
+            _archetypeNames = null;
+            return;
+        }
+
+        ArchetypeTranslations.Current = names;
+        if (Loc.IsRussian)
+        {
+            await LoadMetaAsync();
         }
     }
 
@@ -326,7 +361,13 @@ public sealed partial class AppHost : IDisposable
         try
         {
             // This app has no Constructed meta page yet; the stats still feed the in-game mulligan panel.
-            var constructed = await ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, Cards.Locale);
+            if (Loc.IsRussian && _archetypeNames is null)
+            {
+                _archetypeNames = LoadArchetypeNamesAsync();
+                _archetypeNames.Forget("Archetype names load");
+            }
+
+            var constructed = await ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale);
             if (constructed is not null)
             {
                 ConstructedMeta = constructed;
@@ -344,20 +385,20 @@ public sealed partial class AppHost : IDisposable
     {
         if (InstallDirectory is not { } install)
         {
-            Main.Busy = "Hearthstone install not found — nothing to import.";
+            SetBusy(() => Loc.T("Host.Busy.NothingToImport"));
             return;
         }
 
-        Main.Busy = "Importing past games from Hearthstone logs…";
-        var progress = new Progress<string>(text => Main.Busy = text);
+        SetBusy(() => Loc.T("Host.Busy.Importing"));
+        var progress = new Progress<string>(text => SetBusy(() => text));
         var result = await Task.Run(() => LogBackfill.Run(install, History, Cards, progress));
         Settings.HistoryImported = true;
         Settings.HistoryStatsFilled = true;
         Settings.HistoryCardsFilled = true;
         Settings.Save();
-        Main.Busy = force || result.GamesAdded > 0
-            ? $"Imported {result.GamesAdded} new games from {result.Sessions} log sessions."
-            : string.Empty;
+        SetBusy(force || result.GamesAdded > 0
+            ? () => Loc.F("Host.Busy.Imported", result.GamesAdded, result.Sessions)
+            : null);
         await Main.RefreshAsync();
     }
 
@@ -387,6 +428,44 @@ public sealed partial class AppHost : IDisposable
     }
 
     public void RefreshOverlay() => Overlay.Update(_last, Cards, Settings, _deckStats, _matchupStats);
+
+    /// <summary>Shows a busy text in the main window, kept so a language switch can show it again in the new language.</summary>
+    private void SetBusy(Func<string>? text)
+    {
+        _busy = text;
+        Main.Busy = text?.Invoke() ?? string.Empty;
+    }
+
+    /// <summary>Shows an update status in Settings → About, kept so a language switch can show it again.</summary>
+    private void SetUpdateStatus(Func<string> text)
+    {
+        _updateStatus = text;
+        Main.SetUpdateStatus(text());
+    }
+
+    /// <summary>
+    /// The interface language changed (on the UI thread): the overlay rebuilds its texts from the last snapshot, and the
+    /// texts this host owns (busy line, update status) are shown again in the new language. The shell retitles its tray.
+    /// </summary>
+    private void OnLanguageChanged()
+    {
+        RefreshOverlay();
+        // Meta texts (archetype labels, sources, empty states) are made when the meta loads; the caches make this cheap.
+        if (Cards.Count > 0)
+        {
+            LoadMetaAsync().Forget("Community stats load");
+        }
+
+        if (_busy is not null)
+        {
+            Main.Busy = _busy();
+        }
+
+        if (_updateStatus is not null)
+        {
+            Main.SetUpdateStatus(_updateStatus());
+        }
+    }
 
     /// <summary>
     /// Replays the newest kept Battlegrounds log until <paramref name="when"/> matches, for off-screen rendering with
@@ -537,6 +616,7 @@ public sealed partial class AppHost : IDisposable
 
     public void Dispose()
     {
+        Loc.Instance.LanguageChanged -= OnLanguageChanged;
         _watcher?.Dispose();
         _metaRefresh.Stop();
         Memory.Dispose();

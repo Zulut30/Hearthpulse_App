@@ -1,5 +1,6 @@
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Tracking;
@@ -112,9 +113,9 @@ public static class Mulligan
             return fromMeta;
         }
 
-        var reason = deck is null ? "No mulligan stats: Decks.log named no deck for this game"
-            : guide is null && meta is null ? "No mulligan stats for this deck yet"
-            : "No mulligan stats for this deck";
+        var reason = deck is null ? Loc.T("Mulligan.NoStats.NoDeck")
+            : guide is null && meta is null ? Loc.T("Mulligan.NoStats.NotYet")
+            : Loc.T("Mulligan.NoStats.None");
         return new MulliganView(string.Empty, 0, offered.Select(o => new MulliganCardStat(o.EntityId, o.CardId, o.Name, null, null, null, 0)
         {
             Cost = o.Cost,
@@ -198,7 +199,8 @@ public static class Mulligan
             .Select(m => Card(m, cards))
             .ToList();
         var games = archetypes.Sum(a => a.Games);
-        return new GuideArchetype(0, $"{Title(playerClass)} (all decks)", playerClass, pooled, [], meta.Source)
+        var className = Loc.IsRussian ? ConstructedMeta.ClassName(playerClass) : Title(playerClass);
+        return new GuideArchetype(0, Loc.F("Mulligan.ClassPool", className), playerClass, pooled, [], meta.Source)
         {
             // Mixed sources (HSGuru win rates, HSReplay cards): the cards' own sample gives the baseline.
             BaselineWinRate = games > 0 && archetypes.All(a => a.MulliganBaseline is null) ? archetypes.Sum(a => a.WinRate * a.Games) / games : null,

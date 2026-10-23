@@ -167,7 +167,7 @@ public sealed record CounterChip(string Id, string Title, string Value, double P
 
     private static string Count(int n) => "×" + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    private static string More(int count) => count > MaxCards ? $"+{count - MaxCards} more" : string.Empty;
+    private static string More(int count) => count > MaxCards ? Hearthpulse.Core.Localization.Loc.F("Overlay.Counter.More", count - MaxCards) : string.Empty;
 }
 
 /// <summary>A card strip in a counter's tooltip: art, name, count, and for a part of the goal whether it is done.</summary>

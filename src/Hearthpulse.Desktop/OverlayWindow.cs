@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Desktop.Platform;
 using Hearthpulse.UI;
 using Hearthpulse.UI.Overlay;
@@ -34,7 +35,7 @@ internal sealed class OverlayWindow : Window
     {
         _host = host;
         _platform = platform;
-        Title = "Hearthpulse Overlay";
+        SetTitle();
         WindowDecorations = WindowDecorations.None;
         Background = Brushes.Transparent;
         TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
@@ -56,8 +57,15 @@ internal sealed class OverlayWindow : Window
             _platform.Attach(this);
             _timer.Start();
         };
-        Closed += (_, _) => _timer.Stop();
+        Closed += (_, _) =>
+        {
+            _timer.Stop();
+            Loc.Instance.LanguageChanged -= SetTitle;
+        };
+        Loc.Instance.LanguageChanged += SetTitle;
     }
+
+    private void SetTitle() => Title = Loc.T("Pool.OverlayWindow.Title");
 
     /// <summary>Temporarily hides the overlay (hotkey or tray) without changing settings.</summary>
     public bool Suppressed { get; set; }
