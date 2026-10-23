@@ -330,7 +330,10 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Grid>
+                    <Grid x:Name="Root" RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform />
+                        </Grid.RenderTransform>
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" SnapsToDevicePixels="True" />
                         <Border x:Name="State" Background="{StaticResource Hover}" Opacity="0" CornerRadius="8" />
@@ -355,6 +358,22 @@
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentLine}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="0.96" Duration="0:0:0.080"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="0.96" Duration="0:0:0.080"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                             <Setter TargetName="State" Property="Background" Value="{StaticResource Pressed}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -373,9 +392,13 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Grid>
+                    <Grid x:Name="Root" RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform />
+                        </Grid.RenderTransform>
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" SnapsToDevicePixels="True" />
+                        <Border x:Name="Lift" Background="{StaticResource PrimaryFillHover}" CornerRadius="8" Opacity="0" />
                         <!-- Polished metal: a bright rim along the top edge -->
                         <Border CornerRadius="7" Margin="1" BorderBrush="{StaticResource Sheen}" BorderThickness="0,1,0,0" SnapsToDevicePixels="True" />
                         <Border x:Name="State" Background="Transparent" CornerRadius="8" />
@@ -383,9 +406,38 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimaryFillHover}" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Lift" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.120"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Lift" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.200"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="0.96" Duration="0:0:0.080"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="0.96" Duration="0:0:0.080"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                             <Setter TargetName="State" Property="Background" Value="{StaticResource Pressed}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -409,7 +461,10 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Grid>
+                    <Grid x:Name="Root" RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform />
+                        </Grid.RenderTransform>
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="999" />
                         <Border x:Name="State" Background="Transparent" CornerRadius="999" />
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -422,6 +477,22 @@
                             <Setter Property="Foreground" Value="{StaticResource Text}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="0.9" Duration="0:0:0.080"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="0.9" Duration="0:0:0.080"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                             <Setter TargetName="State" Property="Background" Value="{StaticResource Pressed}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -520,6 +591,8 @@
                 <ControlTemplate TargetType="RadioButton">
                     <Grid>
                         <Border x:Name="HoverLayer" CornerRadius="6" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
+                        <Border x:Name="Sel" CornerRadius="6" Background="{StaticResource SelectedFill}" BorderBrush="{StaticResource SelectedEdge}" BorderThickness="1"
+                                Opacity="0" SnapsToDevicePixels="True" />
                         <Border x:Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
                                 SnapsToDevicePixels="True">
                             <StackPanel Orientation="Horizontal">
@@ -551,8 +624,20 @@
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Pressed}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SelectedFill}" />
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Sel" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Sel" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                             <Setter TargetName="Check" Property="Visibility" Value="Visible" />
                             <Setter Property="Foreground" Value="{StaticResource Accent}" />
                         </Trigger>
@@ -568,6 +653,8 @@
                 <ControlTemplate TargetType="RadioButton">
                     <Grid>
                         <Border x:Name="HoverLayer" CornerRadius="6" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
+                        <Border x:Name="Sel" CornerRadius="6" Background="{StaticResource SelectedFill}" BorderBrush="{StaticResource SelectedEdge}" BorderThickness="1"
+                                Opacity="0" SnapsToDevicePixels="True" />
                         <Border x:Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
                                 SnapsToDevicePixels="True">
                             <StackPanel Orientation="Horizontal">
@@ -577,7 +664,11 @@
                             </StackPanel>
                         </Border>
                         <Border x:Name="Underline" Height="2" CornerRadius="1" Margin="6,0" VerticalAlignment="Bottom" Background="{StaticResource Accent}"
-                                SnapsToDevicePixels="True" Visibility="Collapsed" />
+                                SnapsToDevicePixels="True" RenderTransformOrigin="0.5,0.5">
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="0" />
+                            </Border.RenderTransform>
+                        </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -601,10 +692,23 @@
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Pressed}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SelectedFill}" />
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Sel" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Underline" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Sel" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Underline" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="0" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                             <Setter TargetName="Check" Property="Visibility" Value="Visible" />
-                            <Setter TargetName="Underline" Property="Visibility" Value="Visible" />
                             <Setter Property="Foreground" Value="{StaticResource Accent}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -636,37 +740,75 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <ContentPresenter VerticalAlignment="Center" Margin="0,0,16,0" />
-                        <Border x:Name="Track" Grid.Column="1" Width="48" Height="28" CornerRadius="14"
-                                Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2">
-                            <Grid x:Name="Thumb" Width="14" Height="14" HorizontalAlignment="Left" Margin="5,0">
-                                <Ellipse x:Name="Knob" Fill="{StaticResource Muted}" />
-                                <TextBlock x:Name="Tick" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent}"
-                                           HorizontalAlignment="Center" Visibility="Collapsed" />
+                        <Grid Grid.Column="1" Width="48" Height="28">
+                            <Border x:Name="Track" CornerRadius="14" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
+                            <Border x:Name="OnFill" CornerRadius="14" Background="{StaticResource PrimaryFill}" Opacity="0" />
+                            <Grid x:Name="Thumb" Width="24" Height="24" HorizontalAlignment="Left" Margin="2,0,0,0" RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform ScaleX="0.67" ScaleY="0.67" />
+                                        <TranslateTransform X="0" />
+                                    </TransformGroup>
+                                </Grid.RenderTransform>
+                                <Ellipse x:Name="Halo" Margin="-9" Fill="{StaticResource Hover}" Opacity="0" />
+                                <Ellipse x:Name="KnobOff" Fill="{StaticResource Muted}" />
+                                <Ellipse x:Name="KnobOn" Fill="{StaticResource OnAccent}" Opacity="0" />
+                                <TextBlock x:Name="Tick" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="17" Foreground="{StaticResource Accent}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" />
                             </Grid>
-                        </Border>
+                        </Grid>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Halo" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.120"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Halo" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.200"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                             <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource Text}" />
-                            <Setter TargetName="Knob" Property="Fill" Value="{StaticResource Text}" />
+                            <Setter TargetName="KnobOff" Property="Fill" Value="{StaticResource Text}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Halo" Property="Fill" Value="{StaticResource Pressed}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Track" Property="Background" Value="{StaticResource PrimaryFill}" />
-                            <Setter TargetName="Track" Property="BorderThickness" Value="0" />
-                            <Setter TargetName="Knob" Property="Fill" Value="{StaticResource OnAccent}" />
-                            <Setter TargetName="Thumb" Property="Width" Value="20" />
-                            <Setter TargetName="Thumb" Property="Height" Value="20" />
-                            <Setter TargetName="Thumb" Property="Margin" Value="4,0" />
-                            <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
-                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(TranslateTransform.X)" To="20" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)" To="0.83" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)" To="0.83" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="OnFill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="KnobOn" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Tick" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.160" BeginTime="0:0:0.060"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(TranslateTransform.X)" To="0" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)" To="0.67" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)" To="0.67" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="OnFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="KnobOn" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Tick" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.100"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                         </Trigger>
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="IsChecked" Value="True" />
-                                <Condition Property="IsMouseOver" Value="True" />
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="Track" Property="Opacity" Value="0.9" />
-                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
