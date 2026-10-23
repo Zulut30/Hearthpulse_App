@@ -5,7 +5,7 @@
 #   dist/Hearthpulse-Preview-<version>-win-x64.zip      portable build of the cross-platform app, to try on Windows
 set -euo pipefail
 
-VERSION="${1:-0.11.4}"
+VERSION="${1:-0.12.0}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DIST="$ROOT/dist"
 WORK="$DIST/work/windows"
