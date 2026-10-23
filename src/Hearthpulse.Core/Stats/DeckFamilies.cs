@@ -65,7 +65,7 @@ public static class DeckFamilies
 
     /// <summary>Games played with a Constructed deck of the player's own (Arena runs and Brawls are not decks).</summary>
     public static bool IsDeckGame(GameRecord game) =>
-        game.Mode is "Ranked" or "Casual" or "Friendly" or "Practice"
+        game.Mode is "Ranked" or "Casual" or "Friendly" or "Practice" && !game.IsAbandoned
         && (!string.IsNullOrEmpty(game.DeckCode) || !string.IsNullOrEmpty(game.DeckName));
 
     /// <summary>The version a game was played with: <see cref="DeckRecords.DeckKey"/> (card list, else "name|CLASS").</summary>
