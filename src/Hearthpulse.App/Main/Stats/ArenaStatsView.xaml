@@ -10,14 +10,14 @@
     </UserControl.Resources>
     <StackPanel>
         <Grid Margin="0,0,0,14">
-            <c:Ornament Text="My stats" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
-            <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="Time frame">
+            <c:Ornament Text="{i:Loc Stats.Title}" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Stats.Period.Tip}">
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Style="{StaticResource Segment}" Content="All time" GroupName="ArenaPeriod" IsChecked="True" Command="{Binding SetArenaPeriod}" CommandParameter="All" />
-                    <RadioButton Style="{StaticResource Segment}" Content="7 days" GroupName="ArenaPeriod" Command="{Binding SetArenaPeriod}" CommandParameter="Week" />
-                    <RadioButton Style="{StaticResource Segment}" Content="30 days" GroupName="ArenaPeriod" Command="{Binding SetArenaPeriod}" CommandParameter="Month" />
-                    <RadioButton Style="{StaticResource Segment}" Content="Season" GroupName="ArenaPeriod" Command="{Binding SetArenaPeriod}" CommandParameter="Season"
-                                 ToolTip="Since the 1st of this month" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.All}" GroupName="ArenaPeriod" IsChecked="True" Command="{Binding SetArenaPeriod}" CommandParameter="All" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Week}" GroupName="ArenaPeriod" Command="{Binding SetArenaPeriod}" CommandParameter="Week" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Month}" GroupName="ArenaPeriod" Command="{Binding SetArenaPeriod}" CommandParameter="Month" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Season}" GroupName="ArenaPeriod" Command="{Binding SetArenaPeriod}" CommandParameter="Season"
+                                 ToolTip="{i:Loc Stats.Period.SinceFirstTip}" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -34,7 +34,7 @@
             </Grid.ColumnDefinitions>
             <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="Runs" Icon="&#xF0538;" Size="13" Margin="0,0,0,10" />
+                    <c:Ornament Text="{i:Loc Stats.Arena.Runs}" Icon="&#xF0538;" Size="13" Margin="0,0,0,10" />
                     <ItemsControl ItemsSource="{Binding ArenaRuns}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:ArenaRunRow}">
@@ -52,7 +52,7 @@
                                                 <Run Text="{Binding When, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Status, Mode=OneWay}" />
                                             </TextBlock>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ToolTip="Wins – losses; the bar fills at 12 wins">
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{i:Loc Stats.Arena.RecordTip}">
                                             <Border Width="90" Height="7" CornerRadius="3" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,10,0">
                                                 <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
                                                         Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=90}" />
@@ -64,23 +64,23 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="Arena runs show up here once you play Arena. Runs are told apart by their deck, or by class and the loss limit."
+                    <TextBlock Text="{i:Loc Stats.Arena.RunsEmpty}"
                                Style="{StaticResource Caption}" TextWrapping="Wrap" Visibility="{Binding ArenaRuns, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
             <StackPanel Grid.Column="2">
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <StackPanel>
-                        <c:Ornament Text="Classes" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
+                        <c:Ornament Text="{i:Loc Stats.Arena.Classes}" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
                         <ItemsControl ItemsSource="{Binding ArenaClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                        <TextBlock Text="No runs yet." Style="{StaticResource Caption}" Visibility="{Binding ArenaClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        <TextBlock Text="{i:Loc Stats.Arena.NoRuns}" Style="{StaticResource Caption}" Visibility="{Binding ArenaClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <c:Ornament Text="Opponent classes" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10" />
+                        <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10" />
                         <ItemsControl ItemsSource="{Binding ArenaOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                        <TextBlock Text="No matchups yet." Style="{StaticResource Caption}" Visibility="{Binding ArenaOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        <TextBlock Text="{i:Loc Stats.NoMatchups}" Style="{StaticResource Caption}" Visibility="{Binding ArenaOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     </StackPanel>
                 </Border>
             </StackPanel>

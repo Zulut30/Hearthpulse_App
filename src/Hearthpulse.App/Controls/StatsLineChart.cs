@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.App.Controls;
 
@@ -36,7 +37,7 @@ public sealed class StatsLineChart : FrameworkElement
 
     public static readonly DependencyProperty EmptyTextProperty = DependencyProperty.Register(
         nameof(EmptyText), typeof(string), typeof(StatsLineChart),
-        new FrameworkPropertyMetadata("No games in this time frame yet.", FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 
     private const double Right = 14;
     private const double Top = 16;
@@ -50,6 +51,10 @@ public sealed class StatsLineChart : FrameworkElement
     {
         AddLogicalChild(_card);
         AddVisualChild(_card);
+
+        // The default empty text is drawn here, so it follows a language switch only by redrawing.
+        Loaded += (_, _) => Loc.Instance.LanguageChanged += InvalidateVisual;
+        Unloaded += (_, _) => Loc.Instance.LanguageChanged -= InvalidateVisual;
     }
 
     public IReadOnlyList<IChartValue>? Points
@@ -71,9 +76,10 @@ public sealed class StatsLineChart : FrameworkElement
         set => SetValue(HoverIndexProperty, value);
     }
 
-    public string EmptyText
+    /// <summary>Shown without points; null for "No games in this time frame yet." in the interface language.</summary>
+    public string? EmptyText
     {
-        get => (string)GetValue(EmptyTextProperty);
+        get => (string?)GetValue(EmptyTextProperty);
         set => SetValue(EmptyTextProperty, value);
     }
 
@@ -151,7 +157,7 @@ public sealed class StatsLineChart : FrameworkElement
         var points = Points;
         if (points is null || points.Count == 0)
         {
-            var empty = Text(EmptyText, 12, Brush("Faint"), dpi);
+            var empty = Text(EmptyText ?? Loc.T("Stats.Chart.NoGames"), 12, Brush("Faint"), dpi);
             empty.MaxTextWidth = Math.Max(10, w - 20);
             empty.TextAlignment = TextAlignment.Center;
             dc.DrawText(empty, new Point(10, (h - empty.Height) / 2));

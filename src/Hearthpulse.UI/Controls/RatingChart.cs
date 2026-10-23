@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Controls;
@@ -19,6 +20,19 @@ public sealed class RatingChart : Control
     }
 
     public IReadOnlyList<RatingPoint>? Points { get => GetValue(PointsProperty); set => SetValue(PointsProperty, value); }
+
+    // The empty text is drawn here, so it follows a language switch only by redrawing.
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        Loc.Instance.LanguageChanged += InvalidateVisual;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        Loc.Instance.LanguageChanged -= InvalidateVisual;
+        base.OnDetachedFromVisualTree(e);
+    }
 
     public override void Render(DrawingContext context)
     {
@@ -38,7 +52,7 @@ public sealed class RatingChart : Control
         var points = Points;
         if (points is null || points.Count < 2)
         {
-            var empty = new FormattedText("Play a few rated Battlegrounds games to see your rating curve.", CultureInfo.CurrentCulture,
+            var empty = new FormattedText(Loc.T("Stats.Bg.RatingEmpty"), CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight, typeface, 12, muted);
             context.DrawText(empty, new Point((w - empty.Width) / 2, (h - empty.Height) / 2));
             return;

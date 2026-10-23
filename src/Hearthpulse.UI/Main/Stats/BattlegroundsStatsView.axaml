@@ -15,14 +15,14 @@
     </UserControl.Resources>
     <StackPanel>
         <Grid Classes="statsHead" Margin="0,0,0,14" RowDefinitions="Auto,Auto">
-            <c:Ornament Text="My stats" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
-            <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter statsBar" ToolTip.Tip="Time frame">
+            <c:Ornament Text="{i:Loc Stats.Title}" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter statsBar" ToolTip.Tip="{i:Loc Stats.Period.Tip}">
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Classes="segment" Content="All time" GroupName="BgPeriod" IsChecked="True" Command="{Binding SetBgPeriod}" CommandParameter="All" />
-                    <RadioButton Classes="segment" Content="7 days" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Week" />
-                    <RadioButton Classes="segment" Content="30 days" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Month" />
-                    <RadioButton Classes="segment" Content="This month" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Season"
-                                 ToolTip.Tip="Since the 1st of this month (Battlegrounds season dates are not in the data)" />
+                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.All}" GroupName="BgPeriod" IsChecked="True" Command="{Binding SetBgPeriod}" CommandParameter="All" />
+                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Week}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Week" />
+                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.Month}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Month" />
+                    <RadioButton Classes="segment" Content="{i:Loc Stats.Period.ThisMonth}" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Season"
+                                 ToolTip.Tip="{i:Loc Stats.Period.ThisMonthBgTip}" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -35,8 +35,8 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <ItemsControl Classes="statsLeft" ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel}" Margin="0,0,0,-14" />
-                <StackPanel Classes="statsSide" Margin="10,0,0,0" ToolTip.Tip="Share of your games per final place; the line is your average">
-                    <TextBlock Text="Placements" Classes="label" />
+                <StackPanel Classes="statsSide" Margin="10,0,0,0" ToolTip.Tip="{i:Loc Stats.Bg.PlacementsTip}">
+                    <TextBlock Text="{i:Loc Stats.Bg.Placements}" Classes="label" />
                     <c:MiniBars Width="190" Height="62" Margin="0,10,0,0" Values="{Binding BgPlaceShares}" Marker="{Binding BgAveragePlace}" ShowLabels="True" />
                 </StackPanel>
             </Grid>
@@ -45,20 +45,20 @@
         <Border Classes="card" Margin="0,0,0,16">
             <DockPanel>
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <c:Ornament Text="MMR over time" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
-                    <TextBlock Text="Hover a game to see it" Classes="caption wide" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
+                    <TextBlock Text="{i:Loc Stats.Chart.HoverHint}" Classes="caption wide" HorizontalAlignment="Right" VerticalAlignment="Center" />
                 </Grid>
                 <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}"
-                                  EmptyText="Play a few rated Battlegrounds games to see your rating curve." />
+                                  EmptyText="{i:Loc Stats.Bg.RatingEmpty}" />
             </DockPanel>
         </Border>
 
         <Border Classes="card" Margin="0,0,0,24">
             <StackPanel>
-                <c:Ornament Text="Hero performance" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" />
+                <c:Ornament Text="{i:Loc Stats.Bg.HeroPerf}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" />
                 <Grid Margin="0,10,0,14">
                     <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                        <TextBlock Text="Min. games" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="{i:Loc Stats.Bg.MinGames}" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
                         <Border Classes="segmentBar statsBar" Margin="0,0,16,0">
                             <StackPanel Orientation="Horizontal">
                                 <RadioButton Classes="segment" Content="1" GroupName="BgMin" IsChecked="True" Command="{Binding SetBgMinGames}" CommandParameter="1" />
@@ -67,13 +67,13 @@
                                 <RadioButton Classes="segment" Content="10" GroupName="BgMin" Command="{Binding SetBgMinGames}" CommandParameter="10" />
                             </StackPanel>
                         </Border>
-                        <TextBlock Text="Sort by" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="{i:Loc Stats.Bg.SortBy}" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
                         <Border Classes="segmentBar statsBar">
                             <StackPanel Orientation="Horizontal">
-                                <RadioButton Classes="segment" Content="Games" GroupName="BgSort" IsChecked="True" Command="{Binding SetBgSort}" CommandParameter="Games" />
-                                <RadioButton Classes="segment" Content="Avg. place" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="AveragePlacement" />
-                                <RadioButton Classes="segment" Content="Net MMR" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="NetRating" />
-                                <RadioButton Classes="segment" Content="Pick rate" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="PickRate" />
+                                <RadioButton Classes="segment" Content="{i:Loc Stats.Bg.SortGames}" GroupName="BgSort" IsChecked="True" Command="{Binding SetBgSort}" CommandParameter="Games" />
+                                <RadioButton Classes="segment" Content="{i:Loc Stats.Bg.SortAvgPlace}" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="AveragePlacement" />
+                                <RadioButton Classes="segment" Content="{i:Loc Stats.Bg.NetMmr}" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="NetRating" />
+                                <RadioButton Classes="segment" Content="{i:Loc Stats.Bg.PickRate}" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="PickRate" />
                             </StackPanel>
                         </Border>
                     </WrapPanel>
@@ -89,23 +89,23 @@
                         <ColumnDefinition Width="120" />
                         <ColumnDefinition Width="110" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="1" Text="Hero" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="2" Text="Net MMR" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" ToolTip.Tip="Rating won or lost with this hero" />
-                    <StackPanel Grid.Column="3" Margin="16,0,0,0" ToolTip.Tip="Share of combats won on each turn: gold is you, the dashed line the community">
-                        <TextBlock Text="Combat winrate" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{i:Loc Stats.Bg.Hero}" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{i:Loc Stats.Bg.NetMmr}" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Stats.Bg.NetMmrTip}" />
+                    <StackPanel Grid.Column="3" Margin="16,0,0,0" ToolTip.Tip="{i:Loc Stats.Bg.CombatTip}">
+                        <TextBlock Text="{i:Loc Stats.Bg.CombatWinrate}" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
                         <TextBlock Classes="caption" FontSize="11">
-                            <Run Text="You" Foreground="{StaticResource Accent}" /><Run Text=" vs " /><Run Text="Global" />
+                            <Run Text="{i:Loc Stats.You}" Foreground="{StaticResource Accent}" /><Run Text="{i:Loc Stats.VsSeparator}" /><Run Text="{i:Loc Stats.Global}" />
                         </TextBlock>
                     </StackPanel>
-                    <StackPanel Grid.Column="4" Margin="16,0,0,0" ToolTip.Tip="Your final places 1 to 8 (bars) and the community's (ticks)">
-                        <TextBlock Text="Placement distribution" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="4" Margin="16,0,0,0" ToolTip.Tip="{i:Loc Stats.Bg.PlacementDistributionTip}">
+                        <TextBlock Text="{i:Loc Stats.Bg.PlacementDistribution}" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
                         <TextBlock Classes="caption" FontSize="11">
-                            <Run Text="You" Foreground="{StaticResource Accent}" /><Run Text=" vs " /><Run Text="Global" />
+                            <Run Text="{i:Loc Stats.You}" Foreground="{StaticResource Accent}" /><Run Text="{i:Loc Stats.VsSeparator}" /><Run Text="{i:Loc Stats.Global}" />
                         </TextBlock>
                     </StackPanel>
-                    <TextBlock Grid.Column="5" Text="Avg. placement" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" />
-                    <TextBlock Grid.Column="6" Text="Pick rate" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right"
-                               ToolTip.Tip="How often you picked the hero when it was offered" />
+                    <TextBlock Grid.Column="5" Text="{i:Loc Stats.Bg.AvgPlacement}" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="6" Text="{i:Loc Stats.Bg.PickRate}" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right"
+                               ToolTip.Tip="{i:Loc Stats.Bg.PickRateTip}" />
                 </Grid>
                 <ItemsControl Classes="wide" ItemsSource="{Binding BgHeroPerf}">
                     <ItemsControl.ItemTemplate>
@@ -179,7 +179,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="No hero has this many games in the time frame yet." Classes="caption" Margin="0,8"
+                <TextBlock Text="{i:Loc Stats.Bg.NoHeroes}" Classes="caption" Margin="0,8"
                            IsVisible="{Binding BgHeroPerf, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                 <TextBlock Text="{Binding BgStatsNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="0,10,0,0"
                            TextWrapping="Wrap" />

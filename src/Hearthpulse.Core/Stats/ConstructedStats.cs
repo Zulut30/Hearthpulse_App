@@ -2,6 +2,7 @@ using System.Globalization;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Memory;
 
 namespace Hearthpulse.Core.Stats;
@@ -115,7 +116,7 @@ public static class ConstructedStats
             .Select(group =>
             {
                 var latest = group.MaxBy(g => g.StartedAt)!;
-                return new DeckStats(group.Key, latest.DeckName ?? "Deck", latest.PlayerClass, latest.DeckCode, WinLoss.Of(group), latest.StartedAt);
+                return new DeckStats(group.Key, latest.DeckName ?? Loc.T("Stats.Ct.UnnamedDeck"), latest.PlayerClass, latest.DeckCode, WinLoss.Of(group), latest.StartedAt);
             })
             .OrderByDescending(d => d.LastPlayed)
             .ToList();
