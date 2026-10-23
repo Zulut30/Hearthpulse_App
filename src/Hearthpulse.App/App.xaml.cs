@@ -84,6 +84,8 @@ public partial class App : Application
     private int _watchTicks;
     private bool _capNotified;
     private bool _sharingHistory;
+    private Func<string>? _busy;
+    private Func<string>? _updateStatus;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -99,7 +101,9 @@ public partial class App : Application
         _mutex = new Mutex(true, @"Local\Hearthpulse.SingleInstance", out var firstInstance);
         if (!firstInstance && _renderDir is null)
         {
-            MessageBox.Show("Hearthpulse is already running — look for it in the system tray.", "Hearthpulse", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Settings are not loaded yet; read the language only, so the message is in the player's language.
+            Loc.Instance.SetLanguage(AppSettings.Load().Language);
+            MessageBox.Show(Loc.T("Host.AlreadyRunning"), "Hearthpulse", MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
         }
@@ -249,6 +253,7 @@ public partial class App : Application
             RegisterHotkey();
         }
 
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
         InitializeAsync().Forget("Start-up");
         StartUpdateChecks();
     }
@@ -286,7 +291,7 @@ public partial class App : Application
     {
         try
         {
-            _mainViewModel.Busy = "Looking for Hearthstone…";
+            SetBusy(() => Loc.T("Host.Busy.LookingForGame"));
             _installDir = await Task.Run(() => HearthstoneInstall.FindInstallDirectory(_settings.HearthstonePath));
             if (_installDir is not null && _settings.HearthstonePath != _installDir)
             {
@@ -312,7 +317,7 @@ public partial class App : Application
                 }
             });
 
-            _mainViewModel.Busy = "Loading card data…";
+            SetBusy(() => Loc.T("Host.Busy.LoadingCards"));
             _cards = await CardDb.LoadAsync(locale, _http);
             CardArt.FallbackUrl = id => _cards.BgCards.ImageUrl(id);
             if (_cards.Count == 0 && locale != "enUS")
@@ -346,11 +351,11 @@ public partial class App : Application
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();
             _uiProbe = new System.Threading.Timer(ProbeUiThread, null, 2000, 1000);
-            _mainViewModel.Busy = string.Empty;
+            SetBusy(null);
 
             if (logConfigChanged && HearthstoneInstall.IsRunning())
             {
-                Notify("Restart Hearthstone", "Hearthpulse changed the game's log settings. Restart Hearthstone once so tracking starts and lasts whole games.");
+                Notify(Loc.T("Host.Notify.RestartTitle"), Loc.T("Host.Notify.LogSettingsChanged"));
             }
 
             await LoadMetaAsync();
@@ -361,7 +366,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             Diag.Error("Startup failed", ex);
-            _mainViewModel.Busy = "Startup problem — see hearthpulse.log in the data folder.";
+            SetBusy(() => Loc.T("Host.Busy.StartupProblem"));
         }
     }
 
@@ -373,7 +378,7 @@ public partial class App : Application
     {
         if (!_settings.AutoUpdate)
         {
-            _mainViewModel.SetUpdateStatus("Automatic updates are off.");
+            SetUpdateStatus(() => Loc.T("Host.Update.Off"));
             return;
         }
 
@@ -389,21 +394,26 @@ public partial class App : Application
                     if (info is not null && AppPaths.IsPortable)
                     {
                         // The setup would install a second copy; the portable one only says a new version is out.
-                        Notify("Hearthpulse update available", $"{info.Version} is out. Get the portable zip from the GitHub releases page.");
+                        Notify(Loc.T("Host.Update.AvailableTitle"), Loc.F("Host.Update.AvailableZip", info.Version));
                         return;
                     }
 
                     if (info is { Sha256: not null } && await UpdateService.DownloadAsync(_http, info) is not null)
                     {
                         _stagedUpdate = info;
-                        _ = Dispatcher.BeginInvoke(() => _mainViewModel.SetUpdateReady(info.Version));
-                        Notify("Hearthpulse update ready", $"{info.Version} is downloaded — it installs when you close Hearthpulse.");
+                        _ = Dispatcher.BeginInvoke(() =>
+                        {
+                            _updateStatus = null;
+                            _mainViewModel.SetUpdateReady(info.Version);
+                        });
+                        Notify(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
                         return;
                     }
 
                     // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
-                    var status = info is { Sha256: not null } ? $"Version {info.Version} could not be downloaded; Hearthpulse tries again later." : check.Message;
-                    _ = Dispatcher.BeginInvoke(() => _mainViewModel.SetUpdateStatus(status));
+                    var message = check.Message;
+                    Func<string> status = info is { Sha256: not null } ? () => Loc.F("Host.Update.DownloadFailed", info.Version) : () => message;
+                    _ = Dispatcher.BeginInvoke(() => SetUpdateStatus(status));
                 }
                 catch (Exception ex)
                 {
@@ -503,20 +513,20 @@ public partial class App : Application
     {
         if (_installDir is null)
         {
-            _mainViewModel.Busy = "Hearthstone install not found — nothing to import.";
+            SetBusy(() => Loc.T("Host.Busy.NothingToImport"));
             return;
         }
 
-        _mainViewModel.Busy = "Importing past games from Hearthstone logs…";
-        var progress = new Progress<string>(text => _mainViewModel.Busy = text);
+        SetBusy(() => Loc.T("Host.Busy.Importing"));
+        var progress = new Progress<string>(text => SetBusy(() => text));
         var result = await Task.Run(() => LogBackfill.Run(_installDir, _history, _cards, progress));
         _settings.HistoryImported = true;
         _settings.HistoryStatsFilled = true;
         _settings.HistoryCardsFilled = true;
         _settings.Save();
-        _mainViewModel.Busy = force || result.GamesAdded > 0
-            ? $"Imported {result.GamesAdded} new games from {result.Sessions} log sessions."
-            : string.Empty;
+        SetBusy(force || result.GamesAdded > 0
+            ? () => Loc.F("Host.Busy.Imported", result.GamesAdded, result.Sessions)
+            : null);
         await _mainViewModel.RefreshAsync();
     }
 
@@ -811,18 +821,24 @@ public partial class App : Application
     {
         using var iconStream = GetResourceStream(new Uri("pack://application:,,,/Assets/hearthpulse.ico"))?.Stream;
         var menu = new Forms.ContextMenuStrip { Renderer = new DarkMenuRenderer(), ShowImageMargin = false, ShowCheckMargin = true };
-        menu.Items.Add("Open Hearthpulse", null, (_, _) => ShowMain());
-        _trayOverlayItem = new Forms.ToolStripMenuItem("Overlay", null, (_, _) => ToggleOverlaySetting()) { Checked = _settings.OverlayEnabled };
+        // Each item keeps its text's key in Tag, so a language switch can retitle it (SetTrayTexts).
+        menu.Items.Add(Loc.T("Host.Tray.Open"), null, (_, _) => ShowMain()).Tag = "Host.Tray.Open";
+        _trayOverlayItem = new Forms.ToolStripMenuItem(Loc.T("Host.Tray.Overlay"), null, (_, _) => ToggleOverlaySetting())
+        {
+            Checked = _settings.OverlayEnabled,
+            Tag = "Host.Tray.Overlay",
+        };
         menu.Items.Add(_trayOverlayItem);
-        menu.Items.Add("Arrange overlay panels", null, (_, _) => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing);
-        menu.Items.Add("Hard refresh (re-read the current game)", null, (_, _) => HardRefresh("tray menu"));
-        _traySoftwareItem = new Forms.ToolStripMenuItem("Software overlay rendering (restart)", null, (_, _) => ToggleSoftwareRendering())
+        menu.Items.Add(Loc.T("Host.Tray.Arrange"), null, (_, _) => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing).Tag = "Host.Tray.Arrange";
+        menu.Items.Add(Loc.T("Host.Tray.HardRefresh"), null, (_, _) => HardRefresh("tray menu")).Tag = "Host.Tray.HardRefresh";
+        _traySoftwareItem = new Forms.ToolStripMenuItem(Loc.T("Host.Tray.SoftwareRendering"), null, (_, _) => ToggleSoftwareRendering())
         {
             Checked = _settings.OverlaySoftwareRendering,
+            Tag = "Host.Tray.SoftwareRendering",
         };
         menu.Items.Add(_traySoftwareItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Quit", null, (_, _) => Quit());
+        menu.Items.Add(Loc.T("Host.Tray.Quit"), null, (_, _) => Quit()).Tag = "Host.Tray.Quit";
         foreach (Forms.ToolStripItem item in menu.Items)
         {
             item.ForeColor = System.Drawing.Color.FromArgb(0xF4, 0xE7, 0xC9);
@@ -841,6 +857,56 @@ public partial class App : Application
     private void Notify(string title, string text)
     {
         _tray?.ShowBalloonTip(6000, title, text, Forms.ToolTipIcon.Info);
+    }
+
+    /// <summary>Retitles the tray menu in the current language (each item's Tag holds its key).</summary>
+    private void SetTrayTexts()
+    {
+        if (_tray?.ContextMenuStrip is not { } menu)
+        {
+            return;
+        }
+
+        foreach (Forms.ToolStripItem item in menu.Items)
+        {
+            if (item.Tag is string key)
+            {
+                item.Text = Loc.T(key);
+            }
+        }
+    }
+
+    /// <summary>Shows a busy text in the main window, kept so a language switch can show it again in the new language.</summary>
+    private void SetBusy(Func<string>? text)
+    {
+        _busy = text;
+        _mainViewModel.Busy = text?.Invoke() ?? string.Empty;
+    }
+
+    /// <summary>Shows an update status in Settings → About, kept so a language switch can show it again.</summary>
+    private void SetUpdateStatus(Func<string> text)
+    {
+        _updateStatus = text;
+        _mainViewModel.SetUpdateStatus(text());
+    }
+
+    /// <summary>
+    /// The interface language changed (on the UI thread): the overlay rebuilds its texts from the last snapshot, and the
+    /// texts this host owns (tray menu, busy line, update status) are shown again in the new language.
+    /// </summary>
+    private void OnLanguageChanged()
+    {
+        _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
+        SetTrayTexts();
+        if (_busy is not null)
+        {
+            _mainViewModel.Busy = _busy();
+        }
+
+        if (_updateStatus is not null)
+        {
+            _mainViewModel.SetUpdateStatus(_updateStatus());
+        }
     }
 
     private void ShowMain()
@@ -880,7 +946,7 @@ public partial class App : Application
         _stallSince = default;
         if (!quiet)
         {
-            Notify("Hearthpulse refreshed", "Re-read the current game from Hearthstone's log.");
+            Notify(Loc.T("Host.Notify.RefreshedTitle"), Loc.T("Host.Notify.Refreshed"));
         }
     }
 
@@ -915,7 +981,7 @@ public partial class App : Application
                 _capNotified = true;
                 var install = _installDir;
                 Task.Run(() => LogConfig.EnsureAll(install)).Forget("log.config update");
-                Notify("Restart Hearthstone", "Hearthstone stopped writing its game log at its 10 MB limit, so tracking stopped. Hearthpulse removed the limit: restart Hearthstone to keep tracking.");
+                Notify(Loc.T("Host.Notify.RestartTitle"), Loc.T("Host.Notify.LogCapped"));
             }
         }
         else
@@ -997,9 +1063,9 @@ public partial class App : Application
         }
 
         _settings.Save();
-        Notify("Overlay renderer", _settings.OverlaySoftwareRendering
-            ? "Software rendering is on; restart Hearthpulse to apply it."
-            : "Hardware rendering is on; restart Hearthpulse to apply it.");
+        Notify(Loc.T("Host.Notify.RendererTitle"), _settings.OverlaySoftwareRendering
+            ? Loc.T("Host.Notify.SoftwareRendering")
+            : Loc.T("Host.Notify.HardwareRendering"));
     }
 
     private void Quit()
@@ -1018,8 +1084,8 @@ public partial class App : Application
             if (msg == Native.WM_HOTKEY && wParam.ToInt32() == HotkeyId)
             {
                 _overlay.Suppressed = !_overlay.Suppressed;
-                Notify(_overlay.Suppressed ? "Overlay hidden" : "Overlay shown",
-                    _overlay.Suppressed ? "Press Ctrl+Shift+H to show it again." : "Following Hearthstone again.");
+                Notify(_overlay.Suppressed ? Loc.T("Host.Notify.OverlayHiddenTitle") : Loc.T("Host.Notify.OverlayShownTitle"),
+                    _overlay.Suppressed ? Loc.T("Host.Notify.OverlayHidden") : Loc.T("Host.Notify.OverlayShown"));
                 handled = true;
             }
             else if (msg == Native.WM_HOTKEY && wParam.ToInt32() == RefreshHotkeyId)
