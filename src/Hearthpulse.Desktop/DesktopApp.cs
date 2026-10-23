@@ -5,6 +5,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Desktop.Platform;
 using Hearthpulse.UI;
 
@@ -21,6 +22,7 @@ internal sealed class DesktopApp : HearthpulseApp
     private OverlayWindow? _overlay;
     private IOverlayPlatform? _platform;
     private NativeMenuItem? _overlayItem;
+    private readonly List<(NativeMenuItem Item, string Key)> _trayTexts = [];
     private IDisposable? _hotkeys;
     private CancellationTokenSource? _pipeCts;
 
@@ -115,7 +117,7 @@ internal sealed class DesktopApp : HearthpulseApp
 
     private void SetupTray()
     {
-        _overlayItem = new NativeMenuItem("Overlay")
+        _overlayItem = new NativeMenuItem(Loc.T("Host.Tray.Overlay"))
         {
             ToggleType = MenuItemToggleType.CheckBox,
             IsChecked = _host!.Settings.OverlayEnabled,
@@ -128,11 +130,11 @@ internal sealed class DesktopApp : HearthpulseApp
             _overlayItem.IsChecked = _host.Settings.OverlayEnabled;
         };
 
-        var open = new NativeMenuItem("Open Hearthpulse");
+        var open = new NativeMenuItem(Loc.T("Host.Tray.Open"));
         open.Click += (_, _) => ShowMain();
-        var arrange = new NativeMenuItem("Arrange overlay panels");
+        var arrange = new NativeMenuItem(Loc.T("Host.Tray.Arrange"));
         arrange.Click += (_, _) => ToggleLayout();
-        var quit = new NativeMenuItem("Quit");
+        var quit = new NativeMenuItem(Loc.T("Host.Tray.Quit"));
         quit.Click += (_, _) => Quit();
 
         var tray = new TrayIcon
@@ -143,6 +145,18 @@ internal sealed class DesktopApp : HearthpulseApp
         };
         tray.Clicked += (_, _) => ShowMain();
         TrayIcon.SetIcons(this, [tray]);
+
+        // A language switch retitles the menu (the event fires on the UI thread).
+        _trayTexts.AddRange([(open, "Host.Tray.Open"), (_overlayItem, "Host.Tray.Overlay"), (arrange, "Host.Tray.Arrange"), (quit, "Host.Tray.Quit")]);
+        Loc.Instance.LanguageChanged += SetTrayTexts;
+    }
+
+    private void SetTrayTexts()
+    {
+        foreach (var (item, key) in _trayTexts)
+        {
+            item.Header = Loc.T(key);
+        }
     }
 
     private void ShowMain()
@@ -192,6 +206,7 @@ internal sealed class DesktopApp : HearthpulseApp
 
     private void Shutdown()
     {
+        Loc.Instance.LanguageChanged -= SetTrayTexts;
         _pipeCts?.Cancel();
         _hotkeys?.Dispose();
         _platform?.Dispose();
