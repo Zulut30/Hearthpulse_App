@@ -7,7 +7,7 @@ using Hearthpulse.Core.Power;
 namespace Hearthpulse.Core.Tracking;
 
 /// <summary>Battlegrounds state: tavern tier, lobby, opponents' last seen boards, combats.</summary>
-public sealed class BattlegroundsTracker : IPowerListener
+public sealed partial class BattlegroundsTracker : IPowerListener
 {
     private const string PlaceholderHero = "TB_BaconShop_HERO_PH";
 
@@ -148,6 +148,7 @@ public sealed class BattlegroundsTracker : IPowerListener
         LiveButtonCosts = null;
         LocalFinished = false;
         _pendingDamage = -1;
+        ResetRounds();
     }
 
     public void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
@@ -699,6 +700,8 @@ public sealed class BattlegroundsTracker : IPowerListener
         {
             _boards[_combatOpponent] = new SeenBoard(game.BattlegroundsTurn, theirs);
         }
+
+        NoteRound(game, theirs);
     }
 
     private void EndCombat(GameState game)
@@ -733,6 +736,11 @@ public sealed class BattlegroundsTracker : IPowerListener
         {
             game.CombatOnScreen = false;
             EndCombat(game);
+        }
+
+        if (!_inCombat)
+        {
+            NoteShopOffer(game, entity);
         }
 
         // Mid-combat summons are opponent-controlled minions too: only a dealt shop counts for races.

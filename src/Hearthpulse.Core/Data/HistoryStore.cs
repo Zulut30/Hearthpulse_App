@@ -111,6 +111,9 @@ public sealed record GameRecord
     /// <summary>The opponent's archetype when its played cards placed it clearly (<c>ArchetypeGuess</c>), else null.</summary>
     public string? OpponentArchetype { get; init; }
 
+    /// <summary>File name of the game's match replay in the replays folder (<c>Replay/ReplayStore</c>); null when none was recorded.</summary>
+    public string? Replay { get; init; }
+
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 
     public TimeSpan Duration => EndedAt - StartedAt;
@@ -197,6 +200,7 @@ public sealed partial class HistoryStore
         ("cards_played", "TEXT NULL"),
         ("opponent_cards", "TEXT NULL"),
         ("opponent_archetype", "TEXT NULL"),
+        ("replay", "TEXT NULL"),
     ];
 
     /// <summary>The deck page's per-game card columns: large JSON, read only for the games of an open deck (<see cref="WithCards"/>).</summary>
@@ -284,11 +288,11 @@ public sealed partial class HistoryStore
                     hero, opponent_hero, player_class, opponent_class, result, placement, rating_before, rating_after, turns,
                     deck_name, deck_code, tavern_tier, final_board, races, rank, source,
                     combat_results, offered_heroes, anomaly, rank_star_level, rank_legend, went_first, deck_id,
-                    mulligan, cards_drawn, cards_played, opponent_cards, opponent_archetype)
+                    mulligan, cards_drawn, cards_played, opponent_cards, opponent_archetype, replay)
                 VALUES ($key, $started, $ended, $mode, $type, $format, $player, $opponent, $hero, $ohero, $pclass, $oclass,
                     $result, $placement, $rb, $ra, $turns, $deck, $code, $tier, $board, $races, $rank, $source,
                     $combats, $offered, $anomaly, $stars, $legend, $first, $deckid,
-                    $mulligan, $drawn, $played, $ocards, $oarch)
+                    $mulligan, $drawn, $played, $ocards, $oarch, $replay)
                 ON CONFLICT (game_key) DO UPDATE SET
                     ended_at = excluded.ended_at, mode = excluded.mode, game_type = excluded.game_type, format = excluded.format,
                     player_name = excluded.player_name, opponent_name = excluded.opponent_name, hero = excluded.hero,
@@ -308,7 +312,8 @@ public sealed partial class HistoryStore
                     cards_drawn = COALESCE(excluded.cards_drawn, games.cards_drawn),
                     cards_played = COALESCE(excluded.cards_played, games.cards_played),
                     opponent_cards = COALESCE(excluded.opponent_cards, games.opponent_cards),
-                    opponent_archetype = COALESCE(excluded.opponent_archetype, games.opponent_archetype)
+                    opponent_archetype = COALESCE(excluded.opponent_archetype, games.opponent_archetype),
+                    replay = COALESCE(excluded.replay, games.replay)
                 WHERE games.result = 'Abandoned' AND excluded.result <> 'Abandoned';
                 """;
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
@@ -439,14 +444,16 @@ public sealed partial class HistoryStore
                     cards_drawn = COALESCE(cards_drawn, $drawn),
                     cards_played = COALESCE(cards_played, $played),
                     opponent_cards = COALESCE(opponent_cards, $ocards),
-                    opponent_archetype = COALESCE(opponent_archetype, $oarch)
+                    opponent_archetype = COALESCE(opponent_archetype, $oarch),
+                    replay = COALESCE(replay, $replay)
                 WHERE game_key = $key
                     AND ((combat_results IS NULL AND $combats IS NOT NULL) OR (offered_heroes IS NULL AND $offered IS NOT NULL)
                         OR (anomaly IS NULL AND $anomaly IS NOT NULL) OR (rank_star_level IS NULL AND $stars IS NOT NULL)
                         OR (rank_legend IS NULL AND $legend IS NOT NULL) OR (went_first IS NULL AND $first IS NOT NULL)
                         OR (deck_id IS NULL AND $deckid IS NOT NULL) OR (mulligan IS NULL AND $mulligan IS NOT NULL)
                         OR (cards_drawn IS NULL AND $drawn IS NOT NULL) OR (cards_played IS NULL AND $played IS NOT NULL)
-                        OR (opponent_cards IS NULL AND $ocards IS NOT NULL) OR (opponent_archetype IS NULL AND $oarch IS NOT NULL));
+                        OR (opponent_cards IS NULL AND $ocards IS NOT NULL) OR (opponent_archetype IS NULL AND $oarch IS NOT NULL)
+                        OR (replay IS NULL AND $replay IS NOT NULL));
                 """;
             command.Parameters.AddWithValue("$key", game.Key);
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
@@ -686,6 +693,7 @@ public sealed partial class HistoryStore
                     CardsPlayed = NullableString(reader, "cards_played"),
                     OpponentCards = NullableString(reader, "opponent_cards"),
                     OpponentArchetype = NullableString(reader, "opponent_archetype"),
+                    Replay = NullableString(reader, "replay"),
                 });
             }
 
@@ -700,6 +708,7 @@ public sealed partial class HistoryStore
         p.AddWithValue("$played", (object?)game.CardsPlayed ?? DBNull.Value);
         p.AddWithValue("$ocards", (object?)game.OpponentCards ?? DBNull.Value);
         p.AddWithValue("$oarch", (object?)game.OpponentArchetype ?? DBNull.Value);
+        p.AddWithValue("$replay", (object?)game.Replay ?? DBNull.Value);
     }
 
     private static int? NullableInt(SqliteDataReader reader, string column)

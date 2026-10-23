@@ -28,6 +28,9 @@ public static class AppPaths
 
     public static string LogFile => Path.Combine(Root, "hearthpulse.log");
 
+    /// <summary>One match replay file per game (<c>Replay/ReplayStore</c>); created on the first save.</summary>
+    public static string Replays => Path.Combine(Root, "replays");
+
     // Next to the app. A macOS app bundle is never written to (that would break its signature), so there the
     // folder sits beside Hearthpulse.app instead.
     private static string PortableRoot()

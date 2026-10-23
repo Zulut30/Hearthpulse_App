@@ -6,6 +6,7 @@ using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
+using Hearthpulse.Core.Replay;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -32,6 +33,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private readonly ConstructedTracker _constructed = new();
     private readonly BattlegroundsTracker _battlegrounds = new();
     private readonly GameFactsTracker _facts = new();
+    private readonly ReplayRecorder _replay = new();
     private readonly object _statsGate = new();
 
     // The watchdog can replace a wedged log watcher while its thread is still in here. This lock keeps the old and the
@@ -261,6 +263,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_battlegrounds.Counters);
         _parser.AddListener(_facts);
         _parser.AddListener(_cardPool);
+        _parser.AddListener(_replay);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
         _dirty = true;
@@ -579,6 +582,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _recorded = true;
         }
 
+        record = SaveReplay(record, game);
         Diag.Info($"Game {(record.IsAbandoned ? "abandoned" : "finished")}: {record.Mode}, {record.Result}, place {record.Placement}, {record.Turns} turns{(_catchingUp ? " (replayed)" : string.Empty)}");
         try
         {

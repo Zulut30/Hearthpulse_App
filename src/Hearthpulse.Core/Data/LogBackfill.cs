@@ -37,7 +37,7 @@ public static class LogBackfill
 
                 sessions++;
                 progress?.Report($"Reading {Path.GetFileName(session)}");
-                foreach (var record in Parse(path, DateOnly.FromDateTime(start.Value), cards, cancellationToken))
+                foreach (var record in Parse(path, DateOnly.FromDateTime(start.Value), cards, cancellationToken, Replay.ReplayStore.Default))
                 {
                     found++;
                     if (history.Add(record))
@@ -90,17 +90,24 @@ public static class LogBackfill
         }
     }
 
-    public static IReadOnlyList<GameRecord> Parse(string powerLogPath, DateOnly date, CardDb cards, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The finished games of one Power log. With <paramref name="replays"/>, each game's match replay is saved there
+    /// (a replay already saved for the game is kept).
+    /// </summary>
+    public static IReadOnlyList<GameRecord> Parse(string powerLogPath, DateOnly date, CardDb cards, CancellationToken cancellationToken = default,
+        Replay.ReplayStore? replays = null)
     {
         var records = new List<GameRecord>();
         var parser = new PowerParser(date);
         var constructed = new ConstructedTracker();
         var battlegrounds = new BattlegroundsTracker { Cards = cards };
         var facts = new GameFactsTracker();
-        var collector = new Collector(records, battlegrounds, cards, facts);
+        var recorder = new Replay.ReplayRecorder();
+        var collector = new Collector(records, battlegrounds, cards, facts, recorder, replays);
         parser.AddListener(constructed);
         parser.AddListener(battlegrounds);
         parser.AddListener(facts);
+        parser.AddListener(recorder);
         parser.AddListener(collector);
 
         using var stream = new FileStream(powerLogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -120,13 +127,19 @@ public static class LogBackfill
         return records;
     }
 
-    private sealed class Collector(List<GameRecord> records, BattlegroundsTracker battlegrounds, CardDb cards, GameFactsTracker facts) : IPowerListener
+    private sealed class Collector(
+        List<GameRecord> records,
+        BattlegroundsTracker battlegrounds,
+        CardDb cards,
+        GameFactsTracker facts,
+        Replay.ReplayRecorder recorder,
+        Replay.ReplayStore? replays) : IPowerListener
     {
         public void OnGameEnded(GameState game)
         {
             if (GameRecords.Build(game, battlegrounds, cards, null, "backfill", facts: facts) is { } record)
             {
-                records.Add(record);
+                records.Add(replays is null ? record : Replay.ReplayCapture.Attach(record, game, recorder, battlegrounds, replays));
             }
         }
     }
