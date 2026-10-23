@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Stats;
 
@@ -87,7 +88,7 @@ public static class DeckFamilies
                 var code = latest.DeckCode is { Length: > 0 } c ? c : null;
                 return new DeckVersion(
                     group.Key,
-                    latest.DeckName is { Length: > 0 } name ? name : "Deck",
+                    latest.DeckName is { Length: > 0 } name ? name : Loc.T("Deck.Unnamed"),
                     latest.PlayerClass,
                     latest.Format,
                     code,

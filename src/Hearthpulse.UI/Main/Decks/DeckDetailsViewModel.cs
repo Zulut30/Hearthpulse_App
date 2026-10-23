@@ -6,6 +6,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
 
 namespace Hearthpulse.UI.Main.Decks;
@@ -19,7 +20,11 @@ public sealed record DeckGamePoint(
     string Detail,
     string When,
     string SoFar,
-    string OpponentHeroCardId) : IChartValue;
+    string OpponentHeroCardId) : IChartValue
+{
+    /// <summary>The result as the player reads it; <see cref="Result"/> keeps the stored value for the colour.</summary>
+    public string ResultText => DeckDetailsViewModel.ResultText(Result);
+}
 
 /// <summary>A matchup: an opponent class, or an archetype of it (indented under the classes).</summary>
 public sealed record DeckMatchupRow(
@@ -86,6 +91,8 @@ public sealed record DeckVersionRow(
     public bool HasDiff => Diff.Count > 0;
 
     public string DiffAction => DiffOpen ? DeckVersionsText.HideDiff : DeckVersionsText.ShowDiff;
+
+    public string FewGamesTip => DeckVersionsText.FewGamesTip;
 }
 
 /// <summary>
@@ -105,7 +112,11 @@ public sealed record DeckSuggestionRow(string FirstKey, string SecondKey, string
 public sealed record MergeCandidateRow(string Key, string Name, string HeroCardId, string Detail, string Shared, bool Dismissed, bool Selected);
 
 /// <summary>A recent game of the deck.</summary>
-public sealed record DeckGameRow(string Key, string When, string Result, string Opponent, string OpponentHeroCardId, string Detail);
+public sealed record DeckGameRow(string Key, string When, string Result, string Opponent, string OpponentHeroCardId, string Detail)
+{
+    /// <summary>The result as the player reads it; <see cref="Result"/> keeps the stored value for the colour.</summary>
+    public string ResultText => DeckDetailsViewModel.ResultText(Result);
+}
 
 /// <summary>
 /// The deck page: one deck family's results, matchups, personal mulligan, card performance, versions and recent
@@ -447,24 +458,24 @@ public sealed class DeckDetailsViewModel : Observable
         {
             OverlayViewModel.ClassName(family.PlayerClass),
             format,
-            family.Versions.Count > 1 ? $"{family.Versions.Count} versions" : null,
-            $"last played {MainViewModel.When(family.LastPlayed)}",
+            family.Versions.Count > 1 ? Loc.P("Deck.VersionCount", family.Versions.Count) : null,
+            Loc.F("Deck.LastPlayed", MainViewModel.When(family.LastPlayed)),
         }.Where(s => !string.IsNullOrEmpty(s)));
-        var archetypeLine = archetype is null ? string.Empty : $"{archetype.Name} · {Percent(archetype.WinRate)} in the meta";
+        var archetypeLine = archetype is null ? string.Empty : Loc.F("Main.Meta.DeckInMeta", archetype.Name, Percent(archetype.WinRate));
 
         IReadOnlyList<StatTile> tiles =
         [
-            new StatTile("Win rate", Percent(deckRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
-            new StatTile("Games", summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture),
-                all.Count != games.Count ? $"of {all.Count:N0} with this deck" : "with this deck"),
-            new StatTile("Avg. game", summary.AverageDuration is { } avg ? $"{avg.TotalMinutes:0} min" : "—",
-                summary.AverageTurns is { } turns ? $"{turns:0.0} turns" : "—"),
-            new StatTile("On the play", Percent(summary.OnPlay.WinRate), $"{summary.OnPlay.Wins}–{summary.OnPlay.Losses} going first"),
-            new StatTile("On the coin", Percent(summary.OnCoin.WinRate), $"{summary.OnCoin.Wins}–{summary.OnCoin.Losses} going second"),
+            new StatTile(Loc.T("Deck.Tile.WinRate"), Percent(deckRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
+            new StatTile(Loc.T("Deck.Tile.Games"), summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture),
+                all.Count != games.Count ? Loc.F("Deck.Tile.GamesOf", all.Count) : Loc.T("Deck.Tile.WithDeck")),
+            new StatTile(Loc.T("Deck.Tile.AvgGame"), summary.AverageDuration is { } avg ? Loc.F("Deck.Minutes", avg.TotalMinutes) : "—",
+                summary.AverageTurns is { } turns ? Loc.F("Deck.Tile.AvgTurns", turns) : "—"),
+            new StatTile(Loc.T("Deck.Tile.OnPlay"), Percent(summary.OnPlay.WinRate), Loc.F("Deck.Tile.OnPlayDetail", summary.OnPlay.Wins, summary.OnPlay.Losses)),
+            new StatTile(Loc.T("Deck.Tile.OnCoin"), Percent(summary.OnCoin.WinRate), Loc.F("Deck.Tile.OnCoinDetail", summary.OnCoin.Wins, summary.OnCoin.Losses)),
             archetype is not null && deckRate is { } rate
-                ? new StatTile("vs Meta", Signed((rate - archetype.WinRate) * 100), $"{archetype.Name} {Percent(archetype.WinRate)} · {metaFits!.Source}",
+                ? new StatTile(Loc.T("Deck.Tile.VsMeta"), Signed((rate - archetype.WinRate) * 100), $"{archetype.Name} {Percent(archetype.WinRate)} · {metaFits!.Source}",
                     Math.Sign(Math.Round((rate - archetype.WinRate) * 100)))
-                : new StatTile("vs Meta", "—", metaFits is null ? "community meta not loaded for this format" : "no meta archetype matches this list"),
+                : new StatTile(Loc.T("Deck.Tile.VsMeta"), "—", metaFits is null ? Loc.T("Deck.Tile.MetaNotLoaded") : Loc.T("Deck.Tile.NoArchetype")),
         ];
 
         var chart = DeckDetails.WinRateTimeline(games)
@@ -475,7 +486,7 @@ public sealed class DeckDetailsViewModel : Observable
                 Opponent(p.Game, meta),
                 GameDetail(p.Game),
                 MainViewModel.When(p.Game.StartedAt),
-                $"{p.SoFar.Wins}–{p.SoFar.Losses} after {p.SoFar.Games} games",
+                Loc.P("Deck.Chart.SoFar", p.SoFar.Games, p.SoFar.Wins, p.SoFar.Losses),
                 p.Game.OpponentHeroCardId))
             .ToList();
         var lengths = ConstructedStats.ByLength(games);
@@ -495,7 +506,7 @@ public sealed class DeckDetailsViewModel : Observable
 
         var filterText = matchup is null
             ? string.Empty
-            : $"Only games vs {matchupRows.FirstOrDefault(m => m.Key == matchup)?.Label ?? matchup} ({games.Count})";
+            : Loc.F("Deck.Filter", matchupRows.FirstOrDefault(m => m.Key == matchup)?.Label ?? matchup, games.Count);
 
         // Personal mulligan and card numbers, next to the archetype's community mulligan when there is one.
         var metaCards = archetype?.Mulligan.ToDictionary(c => c.CardId, StringComparer.Ordinal) ?? new Dictionary<string, MetaMulliganCard>();
@@ -508,7 +519,7 @@ public sealed class DeckDetailsViewModel : Observable
                     c.CardId,
                     card?.Name ?? c.CardId,
                     card?.Cost ?? 0,
-                    c.Copies > 0 ? $"×{c.Copies}" : "other version",
+                    c.Copies > 0 ? $"×{c.Copies}" : Loc.T("Deck.Mulligan.OtherVersion"),
                     c.Copies > 0,
                     c.Offered < DeckDetails.SmallSample,
                     c.WhenDrawn.Games < DeckDetails.SmallSample,
@@ -531,14 +542,14 @@ public sealed class DeckDetailsViewModel : Observable
             .ToList();
         var dataGames = DeckDetails.CardDataGames(games);
         var mulliganNote = (dataGames == 0
-                ? "No game of this deck saved its mulligan yet: games from now on fill this in."
-                : $"From {dataGames:N0} of {games.Count:N0} games (older games did not save cards). Under {DeckDetails.SmallSample} offers a card is greyed out: too few games to tell.")
-            + (archetype is not null && metaCards.Count > 0
-                ? $" Meta: {archetype.Name}, {metaFits!.Source}."
-                : metaFits is null ? " Meta columns need the community meta of this format." : " The meta has no mulligan data for this list.");
+                ? Loc.T("Deck.Mulligan.NoData")
+                : Loc.P("Deck.Mulligan.From", games.Count, dataGames, DeckDetails.SmallSample))
+            + " " + (archetype is not null && metaCards.Count > 0
+                ? Loc.F("Deck.Mulligan.Meta", archetype.Name, metaFits!.Source)
+                : metaFits is null ? Loc.T("Deck.Mulligan.NeedsMeta") : Loc.T("Deck.Mulligan.NoMetaData"));
         var cardsNote = dataGames == 0
-            ? "Cards drawn and played are saved from now on."
-            : $"Per game: drawn = in hand at any point (a kept opening card counts), played = played from hand. Win rates are coloured against the deck's {Percent(deckRate)}.";
+            ? Loc.T("Deck.Cards.NoData")
+            : Loc.F("Deck.Cards.Note", Percent(deckRate));
 
         var main = family.Main;
         var versionRows = family.Versions.Select(v =>
@@ -628,7 +639,7 @@ public sealed class DeckDetailsViewModel : Observable
         m.Key,
         m.Archetype ?? OverlayViewModel.ClassName(m.OpponentClass),
         m.Archetype is null ? MainViewModel.ClassHero(m.OpponentClass) : string.Empty,
-        m.Record.Games == 1 ? "1 game" : $"{m.Record.Games:N0} games",
+        Loc.P("Deck.Games", m.Record.Games),
         $"{m.Record.Wins}–{m.Record.Losses}",
         Percent(m.Record.WinRate),
         m.Record.WinRate ?? 0,
@@ -638,17 +649,28 @@ public sealed class DeckDetailsViewModel : Observable
 
     private static string Opponent(GameRecord g, ConstructedMeta? meta)
     {
-        var name = string.IsNullOrEmpty(g.OpponentClass) ? "Unknown opponent" : OverlayViewModel.ClassName(g.OpponentClass);
-        return DeckDetails.OpponentArchetype(g, meta) is { } archetype ? $"vs {archetype}" : $"vs {name}";
+        var name = string.IsNullOrEmpty(g.OpponentClass) ? Loc.T("Deck.Game.UnknownOpponent") : OverlayViewModel.ClassName(g.OpponentClass);
+        return Loc.F("Deck.Game.Vs", DeckDetails.OpponentArchetype(g, meta) is { } archetype ? archetype : name);
     }
 
     private static string GameDetail(GameRecord g) => string.Join(" · ", new[]
     {
-        $"{g.Turns} turns",
-        g.Duration > TimeSpan.Zero ? $"{g.Duration.TotalMinutes:0} min" : null,
-        g.WentFirst switch { true => "went first", false => "on the coin", _ => null },
+        Loc.P("Deck.Game.Turns", g.Turns),
+        g.Duration > TimeSpan.Zero ? Loc.F("Deck.Minutes", g.Duration.TotalMinutes) : null,
+        g.WentFirst switch { true => Loc.T("Deck.Game.WentFirst"), false => Loc.T("Deck.Game.OnCoin"), _ => null },
         g.Rank,
     }.Where(s => !string.IsNullOrEmpty(s)));
+
+    /// <summary>A history result ("Win", "Loss"...) as History shows it; the colour keeps the stored value.</summary>
+    internal static string ResultText(string result) => result switch
+    {
+        "Win" => Loc.T("Main.Result.Win"),
+        "Loss" => Loc.T("Main.Result.Loss"),
+        "Tie" => Loc.T("Main.Result.Tie"),
+        GameRecord.AbandonedResult => Loc.T("Main.Result.Abandoned"),
+        "Unknown" => Loc.T("Main.Result.Unknown"),
+        _ => result,
+    };
 
     /// <summary>+1 when a card's win rate is 5 points or more above the deck's, -1 when as far below.</summary>
     private static int Sign(double? rate, double? deck) =>
