@@ -205,6 +205,43 @@ public sealed class DeckRecordsTests
     }
 
     [Fact]
+    public void A_deck_name_ending_with_a_colon_is_not_a_block_header()
+    {
+        var entries = DecksLog.Parse(
+        [
+            "I 21:54:50.3229357 Finding Game With Deck:",
+            "I 21:54:50.3229357 ### Aggro:",
+            "I 21:54:50.3229357 # Deck ID: 42",
+            "I 21:54:50.3229357 " + RogueCode,
+        ], Day);
+
+        var entry = Assert.Single(entries);
+        Assert.True(entry.FindingGame);
+        Assert.Equal("Aggro:", entry.Name);
+        Assert.Equal(42, entry.DeckId);
+    }
+
+    [Fact]
+    public void Matchup_counts_the_same_games_as_the_record()
+    {
+        var start = new DateTime(2026, 10, 22, 12, 0, 0);
+        GameRecord Vs(string key, int hour, string opponent, string result, string? code) =>
+            Game(key, start.AddHours(hour), "ROGUE", result, "Разбойник", code) with { OpponentClass = opponent };
+        var games = DeckRecords.Matching(
+        [
+            Vs("1", 0, "MAGE", "Win", RogueCode),
+            Vs("2", 1, "MAGE", "Loss", null),
+            Vs("3", 2, "MAGE", "Win", HunterCode),
+            Vs("4", 3, "PRIEST", "Win", RogueCode),
+        ], "Разбойник", RogueCode, "ROGUE");
+
+        var matchup = DeckRecords.Matchup(games, "MAGE");
+
+        Assert.Equal((2, 1, 1), (matchup?.Games, matchup?.Wins, matchup?.Losses));
+        Assert.Null(DeckRecords.Matchup(games, "WARRIOR"));
+    }
+
+    [Fact]
     public void Header_prefers_own_games_then_meta()
     {
         var meta = new DeckMetaStat("Cycle Rogue", 0.534, 12_345, "Legend", "Firestone");
@@ -215,6 +252,8 @@ public sealed class DeckRecordsTests
         Assert.True(fromMeta.FromMeta);
         Assert.Contains("Cycle Rogue", fromMeta.Tooltip);
         Assert.Equal("No games with this deck yet", DeckHeader.Describe(null, null).Text);
+        // Only ties or unknown results: no win rate of your own, so the meta speaks.
+        Assert.Equal("Meta 53% · Legend", DeckHeader.Describe(new DeckAggregate("D", null, "ROGUE", 2, 0, 0, DateTime.Today), meta).Text);
     }
 
     /// <summary>Minimal deck code writer (format 2, one hero, every card listed with its count in the n-copies list).</summary>

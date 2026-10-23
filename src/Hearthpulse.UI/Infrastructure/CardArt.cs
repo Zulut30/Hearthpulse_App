@@ -250,13 +250,26 @@ public static class CardArt
     }
 
 
+    /// <summary>URLs that answered 404 this session (tokens without a render...): not asked again on every hover.</summary>
+    private static readonly ConcurrentDictionary<string, bool> Missing = new();
+
     private static async Task<bool> TryDownloadAsync(HttpClient http, string url, string file, string dir)
     {
+        if (Missing.ContainsKey(url))
+        {
+            return false;
+        }
+
         try
         {
             using var response = await http.GetAsync(url).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    Missing[url] = true;
+                }
+
                 return false;
             }
 

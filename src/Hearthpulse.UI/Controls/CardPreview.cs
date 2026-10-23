@@ -37,15 +37,8 @@ public static class CardPreview
 
     static CardPreview()
     {
-        CardIdProperty.Changed.AddClassHandler<Control>((c, e) =>
-        {
-            Hook(c);
-            // Fetch the render while the list is on screen, so the first hover does not wait for the download.
-            if (e.NewValue is string { Length: > 0 } cardId)
-            {
-                _ = CardArt.GetAsync(ArtKind.Card, cardId);
-            }
-        });
+        // Renders load on the first hover: fetching one for every row would crowd out the tiles' downloads and cache.
+        CardIdProperty.Changed.AddClassHandler<Control>((c, _) => Hook(c));
         CaptionProperty.Changed.AddClassHandler<Control>((c, _) => Hook(c));
     }
 

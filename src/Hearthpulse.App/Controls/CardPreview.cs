@@ -60,12 +60,6 @@ public static class CardPreview
         element.MouseLeave -= OnLeave;
         element.MouseEnter += OnEnter;
         element.MouseLeave += OnLeave;
-
-        // Fetch the render while the list is on screen, so the first hover does not wait for the download.
-        if (e.Property == CardIdProperty && e.NewValue is string { Length: > 0 } cardId)
-        {
-            _ = CardArt.GetAsync(ArtKind.Card, cardId);
-        }
     }
 
     private static void OnEnter(object sender, MouseEventArgs e)

@@ -37,14 +37,8 @@ public static class DecksLog
             }
 
             last = time;
-            if (content.EndsWith(':'))
-            {
-                // "Deck Contents Received:", "Finding Game With Deck:", "Starting Game With Deck:"...
-                finding = content.StartsWith("Finding Game", StringComparison.Ordinal);
-                name = null;
-                id = 0;
-            }
-            else if (content.StartsWith("### ", StringComparison.Ordinal))
+            // Deck lines first: a deck name may itself end with ':'.
+            if (content.StartsWith("### ", StringComparison.Ordinal))
             {
                 name = content[4..];
                 id = 0;
@@ -52,6 +46,13 @@ public static class DecksLog
             else if (content.StartsWith("# Deck ID: ", StringComparison.Ordinal))
             {
                 long.TryParse(content.AsSpan(11), NumberStyles.Integer, CultureInfo.InvariantCulture, out id);
+            }
+            else if (content.EndsWith(':'))
+            {
+                // "Deck Contents Received:", "Finding Game With Deck:", "Starting Game With Deck:"...
+                finding = content.StartsWith("Finding Game", StringComparison.Ordinal);
+                name = null;
+                id = 0;
             }
             else if (name is not null && !content.StartsWith('#') && !content.Contains(' '))
             {

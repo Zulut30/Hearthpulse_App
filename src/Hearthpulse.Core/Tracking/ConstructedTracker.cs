@@ -17,6 +17,12 @@ public sealed class ConstructedTracker : IPowerListener
     /// <summary>The zone each opponent card was in before it last entered the hand (DECK, PLAY, SETASIDE...).</summary>
     private readonly Dictionary<int, string> _cameToHandFrom = new();
 
+    /// <summary>
+    /// Opponent cards drawn from a deck and not shown since. The log may still carry their card id (a card you shuffled
+    /// into their deck, a card that was revealed and went back), but the player cannot tell which card back it is.
+    /// </summary>
+    private readonly HashSet<int> _hiddenDraws = new();
+
     public DeckDefinition? Deck { get; set; }
 
     /// <summary>Community stats for the mulligan panel (the format and rank the player picked on the Constructed page).</summary>
@@ -34,6 +40,7 @@ public sealed class ConstructedTracker : IPowerListener
         _opponentPlayed.Clear();
         _opponentPlayedIds.Clear();
         _cameToHandFrom.Clear();
+        _hiddenDraws.Clear();
         LocalRank = null;
         OpponentRank = null;
     }
@@ -48,12 +55,29 @@ public sealed class ConstructedTracker : IPowerListener
         if (value == "HAND")
         {
             _cameToHandFrom[entity.Id] = previous;
+            if (previous == "DECK")
+            {
+                _hiddenDraws.Add(entity.Id);
+            }
+            else
+            {
+                _hiddenDraws.Remove(entity.Id);
+            }
         }
 
         if (previous is "HAND" or "DECK" && PlayedZones.Contains(value) && !IgnoredTypes.Contains(entity.CardType)
             && entity.CardId.Length > 0 && _opponentPlayedIds.Add(entity.Id))
         {
             _opponentPlayed.Add((entity.Id, ToPlayerTurn(game.Turn)));
+        }
+    }
+
+    public void OnEntityRevealed(GameState game, Entity entity)
+    {
+        // SHOW_ENTITY of a card in the opponent's hand: the client showed it (Casts When Drawn, a reveal effect).
+        if (entity.InHand && entity.Controller != game.LocalPlayerId)
+        {
+            _hiddenDraws.Remove(entity.Id);
         }
     }
 
@@ -115,16 +139,17 @@ public sealed class ConstructedTracker : IPowerListener
             Counters = Tracking.Counters.Counters.Build(game, Counters, cards, Deck),
             DeckId = Deck?.DeckId ?? 0,
             DeckCode = Deck?.Code,
-            DeckMeta = DeckMetaFor(cards, playerClass),
+            DeckMeta = DeckMetaFor(cards, playerClass, game.FormatType),
         };
     }
 
     private (DeckDefinition? Deck, ConstructedMeta? Meta, DeckMetaStat? Stat) _deckMeta;
 
     /// <summary>The deck's archetype in the community stats; matched once per deck and stats download.</summary>
-    private DeckMetaStat? DeckMetaFor(CardDb cards, string playerClass)
+    private DeckMetaStat? DeckMetaFor(CardDb cards, string playerClass, string formatType)
     {
-        if (Deck is null || Meta is null)
+        // Stats of another format (a Wild deck against Standard stats) would quote the wrong archetype numbers.
+        if (Deck is null || Meta is null || MetaFormatOf(formatType) != Meta.Format)
         {
             return null;
         }
@@ -139,22 +164,36 @@ public sealed class ConstructedTracker : IPowerListener
         var source = Meta.Source == Api.HearthpulseData.Attribution ? "HSReplay" : "Firestone";
         var stat = archetype is null
             ? null
-            : new DeckMetaStat(archetype.Name, archetype.WinRate, archetype.Games, ConstructedMeta.Label(ConstructedMeta.Ranks, Meta.Rank), source);
+            : new DeckMetaStat(archetype.Name, archetype.WinRate, archetype.Games, ConstructedMeta.Label(ConstructedMeta.Ranks, Meta.Rank), source)
+            {
+                Format = ConstructedMeta.Label(ConstructedMeta.Formats, Meta.Format),
+            };
         _deckMeta = (Deck, Meta, stat);
         return stat;
     }
 
+    /// <summary>The <see cref="ConstructedMeta.Format"/> key of a game's FormatType; null for formats without stats.</summary>
+    private static string? MetaFormatOf(string formatType) => formatType switch
+    {
+        "FT_STANDARD" => "standard",
+        "FT_WILD" => "wild",
+        _ => null,
+    };
+
     private HandSlot HandSlotOf(GameState game, CardDb cards, Entity e)
     {
-        var creator = game.Entities.GetValueOrDefault(e.GetInt(GameTag.DisplayedCreator) is > 0 and var d ? d : e.GetInt(GameTag.Creator));
-        var creatorId = creator is { CardId.Length: > 0 } && creator.CardType is not ("PLAYER" or "GAME")
-            ? creator.CardId
-            // A hidden creator can still name its card through CREATOR_DBID.
-            : e.GetInt(GameTag.CreatorDbId) is > 0 and var dbf ? cards.Get(dbf)?.Id : null;
-        var isCoin = e.CardId == "GAME_005";
+        // Only what the player can see: a drawn card stays a card back until it is shown, and a creator is named only
+        // when its own card is revealed (CREATOR_DBID names hidden creators too, so it is never used).
+        var hidden = _hiddenDraws.Contains(e.Id);
+        var cardId = hidden ? string.Empty : e.CardId;
+        var creator = hidden ? null : game.Entities.GetValueOrDefault(e.GetInt(GameTag.DisplayedCreator) is > 0 and var d ? d : e.GetInt(GameTag.Creator));
+        var creatorId = creator is { CardId.Length: > 0 } && creator.CardType is not ("PLAYER" or "GAME") ? creator.CardId : null;
+        // Only the opening-hand Coin means they went second; a Coin made later is just a created card.
+        var isCoin = cardId == "GAME_005" && e.EnteredHandTurn == 0;
         var from = _cameToHandFrom.GetValueOrDefault(e.Id, e.InitialZone);
         var origin = isCoin ? HandCardOrigin.Coin
             : e.InitialController == game.LocalPlayerId && game.LocalPlayerId != 0 ? HandCardOrigin.Stolen
+            : hidden ? (e.EnteredHandTurn == 0 ? HandCardOrigin.Mulligan : HandCardOrigin.Drawn)
             : from is "PLAY" or "GRAVEYARD" or "SECRET" ? HandCardOrigin.Returned
             : from == "DECK" && !e.IsOriginalDeckCard ? HandCardOrigin.Shuffled
             : from != "DECK" && (creatorId is not null || e.CreatedTurn > 0) ? HandCardOrigin.Created
@@ -163,8 +202,8 @@ public sealed class ConstructedTracker : IPowerListener
         return new HandSlot(
             e.ZonePosition,
             ToPlayerTurn(e.EnteredHandTurn),
-            e.CardId.Length > 0 ? e.CardId : null,
-            e.CardId.Length > 0 ? cards.NameOf(e.CardId) : null,
+            cardId.Length > 0 ? cardId : null,
+            cardId.Length > 0 ? cards.NameOf(cardId) : null,
             e.EnteredHandTurn == 0,
             isCoin,
             creatorId is null ? null : cards.NameOf(creatorId))

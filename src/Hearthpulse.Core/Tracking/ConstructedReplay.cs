@@ -23,15 +23,23 @@ public static class ConstructedReplay
         {
             foreach (var log in new[] { "Power.log", "Power_old.log" }.Select(f => Path.Combine(session, f)).Where(File.Exists))
             {
-                if (!ReadShared(log).Take(50_000).Any(l => l.Contains("GameType=GT_RANKED", StringComparison.Ordinal)
-                                                           || l.Contains("GameType=GT_CASUAL", StringComparison.Ordinal)))
+                // The client may rotate or delete a log while it is read: then the next one is tried.
+                try
                 {
-                    continue;
-                }
+                    if (!ReadShared(log).Take(50_000).Any(l => l.Contains("GameType=GT_RANKED", StringComparison.Ordinal)
+                                                               || l.Contains("GameType=GT_CASUAL", StringComparison.Ordinal)))
+                    {
+                        continue;
+                    }
 
-                if (Replay(log, DecksLog.Read(session), cards, meta) is { } view)
+                    if (Replay(log, DecksLog.Read(session), cards, meta) is { } view)
+                    {
+                        return view;
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    return view;
+                    Diag.Error($"Replaying {log} failed", ex);
                 }
             }
         }

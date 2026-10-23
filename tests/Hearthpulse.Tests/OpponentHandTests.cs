@@ -26,10 +26,12 @@ public sealed class OpponentHandTests
     /// A Ranked game with velox as the local player 1 and an opponent as player 2: <paramref name="atStart"/> runs while the
     /// game is created (the starting decks), then the game moves to turn 5 (player turn 3) and <paramref name="bodies"/> run.
     /// </summary>
-    private static IReadOnlyList<HandSlot> Hand(string[] atStart, params string[] bodies)
+    private static IReadOnlyList<HandSlot> Hand(string[] atStart, params string[] bodies) =>
+        View(new ConstructedTracker(), "FT_STANDARD", atStart, bodies).OpponentHand;
+
+    private static ConstructedView View(ConstructedTracker tracker, string format, string[] atStart, params string[] bodies)
     {
         var parser = new PowerParser(new DateOnly(2026, 10, 23));
-        var tracker = new ConstructedTracker();
         parser.AddListener(tracker);
         string[] setup =
         [
@@ -48,7 +50,7 @@ public sealed class OpponentHandTests
             "DebugPrintPower() -     tag=CONTROLLER value=1",
             "DebugPrintPower() -     tag=CARDTYPE value=HERO",
             "DebugPrintGame() - GameType=GT_RANKED",
-            "DebugPrintGame() - FormatType=FT_STANDARD",
+            $"DebugPrintGame() - FormatType={format}",
             "DebugPrintGame() - PlayerID=1, PlayerName=velox#21276",
             "DebugPrintGame() - PlayerID=2, PlayerName=UNKNOWN HUMAN PLAYER",
             "DebugPrintPower() - FULL_ENTITY - Creating ID=99 CardID=CORE_CS2_004",
@@ -62,7 +64,7 @@ public sealed class OpponentHandTests
         }
 
         parser.Flush();
-        return tracker.BuildView(parser.Game!, Cards).OpponentHand;
+        return tracker.BuildView(parser.Game!, Cards);
     }
 
     private static string[] Card(int id, string cardId, string zone, int controller, params string[] tags) =>
@@ -89,8 +91,10 @@ public sealed class OpponentHandTests
     }
 
     [Fact]
-    public void A_card_you_shuffled_into_their_deck_is_known_when_drawn()
+    public void A_card_you_shuffled_into_their_deck_stays_a_card_back_when_drawn()
     {
+        // The log keeps the id of the card you shuffled in, but after the deck is shuffled the player cannot tell
+        // which drawn card it is: the mark must not say (no hidden information).
         var slot = Assert.Single(Hand(
         [],
         [
@@ -98,9 +102,29 @@ public sealed class OpponentHandTests
             ToHand(60, "DECK", "BE_014"),
         ]));
 
+        Assert.Equal(HandCardOrigin.Drawn, slot.Origin);
+        Assert.Null(slot.CardId);
+        Assert.Null(slot.CardName);
+        Assert.Null(slot.CreatedById);
+        Assert.Null(slot.CreatedBy);
+        Assert.Equal("Drawn on turn 3.", OpponentHandFan.Hint(slot));
+    }
+
+    [Fact]
+    public void A_drawn_card_the_game_shows_again_is_known()
+    {
+        var slot = Assert.Single(Hand(
+        [],
+        [
+            .. Card(60, "BE_014", "DECK", 2, "tag=CARDTYPE value=MINION", "tag=CREATOR value=99"),
+            ToHand(60, "DECK", "BE_014"),
+            "DebugPrintPower() - SHOW_ENTITY - Updating Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=60 zone=HAND zonePos=1 cardId= player=2] CardID=BE_014",
+            "DebugPrintPower() -     tag=ZONE value=HAND",
+            "DebugPrintPower() -     tag=CONTROLLER value=2",
+        ]));
+
         Assert.Equal(HandCardOrigin.Shuffled, slot.Origin);
         Assert.Equal("BE_014", slot.CardId);
-        Assert.Equal("CORE_CS2_004", slot.CreatedById);
         Assert.True(slot.CreatorIsYours);
         Assert.Equal("Spawn of C'Thun\nShuffled into their deck by your Power Word: Shield, drawn on turn 3.", OpponentHandFan.Hint(slot));
     }
@@ -123,13 +147,55 @@ public sealed class OpponentHandTests
     }
 
     [Fact]
-    public void A_hidden_creator_is_named_through_its_dbf_id()
+    public void A_hidden_creator_is_not_named_through_its_dbf_id()
     {
+        // CREATOR_DBID names the creator even when the player only sees a card back.
         var slot = Assert.Single(Hand([], Card(71, "", "HAND", 2, "tag=CREATOR_DBID value=120008")));
 
         Assert.Equal(HandCardOrigin.Created, slot.Origin);
-        Assert.Equal("TLC_515", slot.CreatedById);
-        Assert.Equal("Cultist Map", slot.CreatedBy);
+        Assert.Null(slot.CreatedById);
+        Assert.Null(slot.CreatedBy);
+        Assert.Equal("Created on turn 3.", OpponentHandFan.Hint(slot));
+    }
+
+    [Fact]
+    public void A_creator_still_in_their_hand_is_not_named()
+    {
+        var hand = Hand(
+        [],
+        [
+            .. Card(81, "", "HAND", 2),
+            .. Card(72, "", "HAND", 2, "tag=CREATOR value=81", "tag=CREATOR_DBID value=120003"),
+        ]);
+
+        Assert.All(hand, slot => Assert.Null(slot.CreatedById));
+        Assert.Equal(HandCardOrigin.Created, hand.Single(h => h.EntityId == 72).Origin);
+    }
+
+    [Fact]
+    public void A_coin_made_mid_game_is_a_created_card()
+    {
+        var slot = Assert.Single(Hand([], Card(6, "GAME_005", "HAND", 2, "tag=CARDTYPE value=SPELL")));
+
+        Assert.False(slot.IsCoin);
+        Assert.Equal(HandCardOrigin.Created, slot.Origin);
+        Assert.Equal("3", OpponentHandFan.Label(slot));
+    }
+
+    [Fact]
+    public void Meta_win_rate_comes_only_from_stats_of_the_game_format()
+    {
+        var archetype = new Core.Constructed.MetaArchetype(1, "cthun", "C'Thun Priest", "priest", 5000, 2700, 0.54, 0.05, 0, 0, 0, 0,
+            ["BE_012", "BE_014"], []);
+        var meta = new Core.Constructed.ConstructedMeta("standard", "legend", "past-7", DateTime.UtcNow, 5000, [archetype], []);
+        var deck = new DeckDefinition("Priest", 1, "code", "FT_STANDARD", [813], new Dictionary<int, int> { [120003] = 2, [120005] = 2 });
+
+        var standard = View(new ConstructedTracker { Meta = meta, Deck = deck }, "FT_STANDARD", []);
+        var wild = View(new ConstructedTracker { Meta = meta, Deck = deck }, "FT_WILD", []);
+
+        Assert.Equal("C'Thun Priest", standard.DeckMeta?.Archetype);
+        Assert.Equal("Standard", standard.DeckMeta?.Format);
+        Assert.Null(wild.DeckMeta);
     }
 
     [Fact]

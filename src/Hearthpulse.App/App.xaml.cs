@@ -517,8 +517,12 @@ public partial class App : Application
         _ = Task.Run(() =>
         {
             var sameDeck = _installDir is { } dir ? DecksLog.CodesOf(DecksLog.ReadAll(dir), view.DeckId) : [];
-            var deck = DeckRecords.Find(_history.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass, sameDeck);
-            var matchup = _history.MatchupStats(deck?.DeckCode).FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
+            var games = DeckRecords.Matching(_history.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass, sameDeck);
+            var deck = DeckRecords.Aggregate(games, view.DeckName, view.DeckCode, view.PlayerClass);
+            // The matchup line counts the same games as the record; without any, the class matchup over all decks.
+            var matchup = games.Count > 0
+                ? DeckRecords.Matchup(games, view.OpponentClass)
+                : _history.MatchupStats().FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
             return (deck, matchup);
         }).ContinueWith(t =>
         {

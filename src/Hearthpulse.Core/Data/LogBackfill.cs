@@ -58,21 +58,31 @@ public static class LogBackfill
     /// </summary>
     public static int FillDecks(string installDir, HistoryStore history, CardDb cards)
     {
-        var entries = DecksLog.ReadAll(installDir);
-        if (entries.Count == 0)
+        // Runs in the background at every start: a busy database or an unreadable log must only cost this pass.
+        try
         {
+            var entries = DecksLog.ReadAll(installDir);
+            if (entries.Count == 0)
+            {
+                return 0;
+            }
+
+            // Every game, Battlegrounds included: a game between two Constructed ones bounds which Finding is theirs.
+            var games = history.Recent(int.MaxValue);
+            var fills = DeckRecords.MatchFindings(games, entries, code => DeckRecords.ClassOf(code, cards));
+            var changed = fills.Count == 0 ? 0 : history.FillDecks(fills);
+            if (changed > 0)
+            {
+                Diag.Info($"Deck filled in for {changed} past games from Decks.log");
+            }
+
+            return changed;
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Filling past games' decks from Decks.log failed", ex);
             return 0;
         }
-
-        var games = history.Recent(int.MaxValue);
-        var fills = DeckRecords.MatchFindings(games, entries, code => DeckRecords.ClassOf(code, cards));
-        var changed = fills.Count == 0 ? 0 : history.FillDecks(fills);
-        if (changed > 0)
-        {
-            Diag.Info($"Deck filled in for {changed} past games from Decks.log");
-        }
-
-        return changed;
     }
 
     public static IReadOnlyList<GameRecord> Parse(string powerLogPath, DateOnly date, CardDb cards, CancellationToken cancellationToken = default)

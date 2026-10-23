@@ -130,8 +130,8 @@ public sealed class MovablePanel : ContentControl
         // Past an edge the surface grid hands the panel only the space left, so ActualWidth shrinks with it and the
         // panel would never come back; content with a fixed size says how much room it really needs.
         var content = Content as FrameworkElement;
-        var width = Math.Max(ActualWidth, content is { Width: > 0 } ? content.Width : 0);
-        var height = Math.Max(ActualHeight, content is { Height: > 0 } ? content.Height : 0);
+        var width = Math.Max(ActualWidth, content is { Width: > 0 } ? content.Width + content.Margin.Left + content.Margin.Right : 0);
+        var height = Math.Max(ActualHeight, content is { Height: > 0 } ? content.Height + content.Margin.Top + content.Margin.Bottom : 0);
         var left = Math.Clamp(saved.X, 0, Math.Max(0, surface.ActualWidth - (width * _scale.ScaleX)));
         var top = Math.Clamp(saved.Y, 0, Math.Max(0, surface.ActualHeight - (height * _scale.ScaleY)));
         var margin = new Thickness(left, top, 0, 0);

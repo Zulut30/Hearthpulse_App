@@ -67,8 +67,11 @@ public sealed record ConstructedView(
     public DeckMetaStat? DeckMeta { get; init; }
 }
 
-/// <summary>Community win rate of the archetype a deck belongs to; <see cref="Rank"/> and <see cref="Source"/> are labels.</summary>
-public sealed record DeckMetaStat(string Archetype, double WinRate, int Games, string Rank, string Source);
+/// <summary>Community win rate of the archetype a deck belongs to; <see cref="Format"/>, <see cref="Rank"/> and <see cref="Source"/> are labels.</summary>
+public sealed record DeckMetaStat(string Archetype, double WinRate, int Games, string Rank, string Source)
+{
+    public string Format { get; init; } = string.Empty;
+}
 
 public sealed record BgMinion(
     string CardId,

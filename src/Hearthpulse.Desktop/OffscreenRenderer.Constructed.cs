@@ -1,7 +1,5 @@
 using Avalonia.Controls;
 using Hearthpulse.Core;
-using Hearthpulse.Core.Api;
-using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Tracking;
@@ -24,25 +22,31 @@ internal static partial class OffscreenRenderer
             return;
         }
 
-        ConstructedMeta? meta = null;
+        // The stats LoadMetaAsync already fetched, as the WPF render uses: no second download here.
+        var meta = host.ConstructedMeta;
+        ConstructedView? view;
+        DeckAggregate? deck;
         try
         {
-            meta = await ConstructedMeta.LoadAsync(host.Http, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, fallback: new HearthpulseData(host.Api));
+            view = await Task.Run(() => ConstructedReplay.Latest(install, host.Cards, meta));
+            deck = view is null
+                ? null
+                : await Task.Run(() => DeckRecords.Find(host.History.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass,
+                    DecksLog.CodesOf(DecksLog.ReadAll(install), view.DeckId)));
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Constructed stats unavailable: " + ex.Message);
+            // The renders after this one (overlay-layout.png) must still be written.
+            Console.WriteLine("overlay-constructed: " + ex.Message);
+            return;
         }
 
-        var view = await Task.Run(() => ConstructedReplay.Latest(install, host.Cards, meta));
         if (view is null)
         {
             Console.WriteLine("overlay-constructed: no kept Constructed log, skipped");
             return;
         }
 
-        var deck = await Task.Run(() => DeckRecords.Find(host.History.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass,
-            DecksLog.CodesOf(DecksLog.ReadAll(install), view.DeckId)));
         var snapshot = LiveSnapshot.Empty with
         {
             Scene = "GAMEPLAY",
@@ -55,16 +59,21 @@ internal static partial class OffscreenRenderer
         overlayView.Fit(1920, 1080);
         await Save(overlay, Path.Combine(folder, "overlay-constructed.png"));
 
-        if (overlayView.ShowPreviewFor(c => c.DataContext is DeckTile { Empty: false }))
+        try
         {
-            await Save(overlay, Path.Combine(folder, "overlay-deck-preview.png"));
-        }
+            if (overlayView.ShowPreviewFor(c => c.DataContext is DeckTile { Empty: false }))
+            {
+                await Save(overlay, Path.Combine(folder, "overlay-deck-preview.png"));
+            }
 
-        if (overlayView.ShowPreviewFor(c => c.DataContext is HandMark { PreviewCardId: not null }) || overlayView.ShowPreviewFor(c => c.DataContext is HandMark))
+            if (overlayView.ShowPreviewFor(c => c.DataContext is HandMark { PreviewCardId: not null }) || overlayView.ShowPreviewFor(c => c.DataContext is HandMark))
+            {
+                await Save(overlay, Path.Combine(folder, "overlay-hand-preview.png"));
+            }
+        }
+        finally
         {
-            await Save(overlay, Path.Combine(folder, "overlay-hand-preview.png"));
+            overlayView.HidePreview();
         }
-
-        overlayView.HidePreview();
     }
 }

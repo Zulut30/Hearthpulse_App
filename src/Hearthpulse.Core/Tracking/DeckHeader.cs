@@ -9,7 +9,8 @@ public static class DeckHeader
     /// <summary>Subtitle text, its tooltip, and whether it comes from community stats rather than the player's games.</summary>
     public static (string Text, string Tooltip, bool FromMeta) Describe(DeckAggregate? own, DeckMetaStat? meta)
     {
-        if (own is { Games: > 0 })
+        // Ties and unknown results alone give no win rate: fall through to the meta.
+        if (own is not null && own.Wins + own.Losses > 0)
         {
             return ($"{own.Wins}–{own.Losses} · {Percent(own.WinRate)} win rate",
                 string.Create(CultureInfo.InvariantCulture, $"Your {own.Games} games with this deck (older lists of it included)"),
@@ -20,7 +21,7 @@ public static class DeckHeader
         {
             return ($"Meta {Percent(meta.WinRate)} · {meta.Rank}",
                 string.Create(CultureInfo.InvariantCulture,
-                    $"No games of your own with this deck yet. {meta.Archetype}: {Percent(meta.WinRate)} win rate over {meta.Games:N0} games ({meta.Rank}, {meta.Source})."),
+                    $"No games of your own with this deck yet. {meta.Archetype}: {Percent(meta.WinRate)} win rate over {meta.Games:N0} games ({meta.Format}, {meta.Rank}, {meta.Source})."),
                 true);
         }
 

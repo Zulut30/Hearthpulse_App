@@ -18,6 +18,11 @@ public static class DeckRecords
     /// has the deck's name and class.
     /// </summary>
     public static DeckAggregate? Find(IEnumerable<GameRecord> games, string? deckName, string? deckCode, string playerClass,
+        IEnumerable<string>? sameDeckCodes = null) =>
+        Aggregate(Matching(games, deckName, deckCode, playerClass, sameDeckCodes), deckName, deckCode, playerClass);
+
+    /// <summary>The games <see cref="Find"/> counts for a deck.</summary>
+    public static IReadOnlyList<GameRecord> Matching(IEnumerable<GameRecord> games, string? deckName, string? deckCode, string playerClass,
         IEnumerable<string>? sameDeckCodes = null)
     {
         var lists = new HashSet<string>(StringComparer.Ordinal);
@@ -29,12 +34,17 @@ public static class DeckRecords
             }
         }
 
-        var matched = games
+        return games
             .Where(g => !g.IsBattlegrounds && g.Mode != "Mercenaries")
             .Where(g => g.DeckCode is { Length: > 0 } code
                 ? lists.Contains(CardList(code))
                 : deckName is { Length: > 0 } && g.DeckName == deckName && g.PlayerClass == playerClass)
             .ToList();
+    }
+
+    /// <summary>Win/loss over <paramref name="matched"/> (from <see cref="Matching"/>); null when there are none.</summary>
+    public static DeckAggregate? Aggregate(IReadOnlyList<GameRecord> matched, string? deckName, string? deckCode, string playerClass)
+    {
         if (matched.Count == 0)
         {
             return null;
@@ -43,6 +53,15 @@ public static class DeckRecords
         var latest = matched.MaxBy(g => g.StartedAt)!;
         return new DeckAggregate(deckName ?? latest.DeckName ?? string.Empty, deckCode ?? latest.DeckCode, playerClass, matched.Count,
             matched.Count(g => g.Result == "Win"), matched.Count(g => g.Result == "Loss"), latest.StartedAt);
+    }
+
+    /// <summary>Results against one opponent class over the same games as the deck's record; null when there are none.</summary>
+    public static MatchupAggregate? Matchup(IEnumerable<GameRecord> matched, string opponentClass)
+    {
+        var games = matched.Where(g => g.OpponentClass == opponentClass && opponentClass.Length > 0).ToList();
+        return games.Count == 0
+            ? null
+            : new MatchupAggregate(opponentClass, games.Count, games.Count(g => g.Result == "Win"), games.Count(g => g.Result == "Loss"));
     }
 
     /// <summary>
