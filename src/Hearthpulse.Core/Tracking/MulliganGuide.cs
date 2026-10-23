@@ -59,9 +59,10 @@ public sealed record MulliganImpact(double Expected, double Recommended, double 
 
 /// <summary>
 /// The mulligan guide maths (docs/mulligan-v2.md, section 3). Card values are HSReplay V1 numbers: delta = win rate
-/// with the card in the opening hand minus the deck's baseline. A hand is estimated additively: baseline + deltas of
-/// the kept cards + one replacement delta per replaced card. Duplicates and the curve use labelled heuristics because
-/// the data has no per-copy or per-turn split; synergies need pair data no endpoint serves yet.
+/// with the card in the opening hand minus the deck's baseline. A hand adds up the deltas of the kept cards and one
+/// replacement delta per replaced card, shrunk by the square root of the hand size because card effects overlap.
+/// Duplicates and the curve use labelled heuristics because the data has no per-copy or per-turn split; synergies need
+/// pair data no endpoint serves yet.
 /// </summary>
 public static class MulliganGuide
 {
@@ -71,6 +72,9 @@ public static class MulliganGuide
     /// <summary>A deck must share at least this much of its cards with one of an archetype's lists to count as that archetype.</summary>
     public const double MinDeckOverlap = 0.5;
 
+    /// <summary>A deck must reach this <see cref="Presence"/> in an archetype's mulligan rows to count as that archetype.</summary>
+    public const double MinPresence = 0.4;
+
     /// <summary>Class matchups with fewer games leave the baseline alone.</summary>
     public const int MinClassGames = 200;
 
@@ -79,30 +83,71 @@ public static class MulliganGuide
     /// <summary>Pair interactions smaller than this (in win rate, 0.015 = 1.5 points) are noise.</summary>
     public const double MinInteraction = 0.015;
 
-    /// <summary>Cards usually played by this turn count as early plays.</summary>
+    /// <summary>Cards costing this much or less, or usually played by <see cref="EarlyTurn"/>, are early plays.</summary>
+    public const int EarlyCost = 2;
+
     public const double EarlyTurn = 3.0;
 
-    /// <summary>Cards usually played on this turn or later make a hand top-heavy.</summary>
-    public const double LateTurn = 5.5;
+    /// <summary>Cards costing this much or more, or costing 4 and usually played on <see cref="LateTurn"/> or later, are late.</summary>
+    public const int LateCost = 5;
+
+    public const double LateTurn = 6.0;
 
     /// <summary>
-    /// The archetype a deck belongs to: the one whose closest list shares the most cards (copies counted) with it, if
-    /// that is at least <see cref="MinDeckOverlap"/> of the deck. Ties go to the archetype with more games.
+    /// Replacing a card has to win by more than this (half a win rate point) before the guide says Mulligan: smaller
+    /// differences are within the noise of the numbers, and keeping is the default in the game.
     /// </summary>
-    public static (MetaArchetype Archetype, double Overlap)? MatchArchetype(IReadOnlyDictionary<int, int> deck, IEnumerable<(MetaArchetype Archetype, IReadOnlyList<GuideDeck> Decks)> candidates)
+    public const double KeepMargin = 0.005;
+
+    /// <summary>
+    /// The archetype a deck belongs to. Two signals, because HSReplay lists no decks for some archetypes: the share of
+    /// the deck found in the archetype's closest list (needs <see cref="MinDeckOverlap"/>), and the deck's
+    /// <see cref="Presence"/> in the archetype's mulligan rows (needs <see cref="MinPresence"/>). The archetype that
+    /// clears its bar by the widest margin wins; ties go to the one with more games.
+    /// </summary>
+    /// <returns>The archetype and its score (1 = exactly at a bar), or null when none clears a bar.</returns>
+    public static (MetaArchetype Archetype, double Score)? MatchArchetype(IReadOnlyDictionary<int, int> deck, IEnumerable<(MetaArchetype Archetype, IReadOnlyList<GuideDeck> Decks, IReadOnlyList<GuideCard> Cards)> candidates)
     {
-        var size = Math.Max(1, deck.Values.Sum());
-        (MetaArchetype Archetype, double Overlap)? best = null;
-        foreach (var (archetype, decks) in candidates)
+        (MetaArchetype Archetype, double Score)? best = null;
+        foreach (var (archetype, decks, cards) in candidates)
         {
-            var overlap = decks.Count == 0 ? 0 : decks.Max(d => deck.Sum(c => Math.Min(c.Value, d.Cards.GetValueOrDefault(c.Key)))) / (double)size;
-            if (overlap >= MinDeckOverlap && (best is null || overlap > best.Value.Overlap || (overlap == best.Value.Overlap && archetype.Games > best.Value.Archetype.Games)))
+            var score = Math.Max(Overlap(deck, decks) / MinDeckOverlap, Presence(deck, cards) / MinPresence);
+            if (score >= 1 && (best is null || score > best.Value.Score || (score == best.Value.Score && archetype.Games > best.Value.Archetype.Games)))
             {
-                best = (archetype, overlap);
+                best = (archetype, score);
             }
         }
 
         return best;
+    }
+
+    /// <summary>
+    /// How much of the deck the archetype plays: each card counts by how often the archetype was offered it, relative
+    /// to its ten most offered cards (capped at 1). Measured on HSReplay's own lists: about 0.55-0.6 for a list of
+    /// the archetype, 0.1-0.2 for a list of another archetype of the class.
+    /// </summary>
+    public static double Presence(IReadOnlyDictionary<int, int> deck, IReadOnlyList<GuideCard> cards)
+    {
+        var offered = new Dictionary<int, int>();
+        foreach (var c in cards.Where(c => c.DbfId > 0))
+        {
+            offered[c.DbfId] = Math.Max(offered.GetValueOrDefault(c.DbfId), c.Offered);
+        }
+
+        var top = offered.Values.OrderByDescending(o => o).Take(10).DefaultIfEmpty(0).Average();
+        if (top <= 0)
+        {
+            return 0;
+        }
+
+        return deck.Sum(c => c.Value * Math.Min(1, offered.GetValueOrDefault(c.Key) / top)) / Math.Max(1, deck.Values.Sum());
+    }
+
+    /// <summary>Share of the deck's cards (copies counted) found in the closest of <paramref name="decks"/>.</summary>
+    public static double Overlap(IReadOnlyDictionary<int, int> deck, IReadOnlyList<GuideDeck> decks)
+    {
+        var size = Math.Max(1, deck.Values.Sum());
+        return decks.Count == 0 ? 0 : decks.Max(d => deck.Sum(c => Math.Min(c.Value, d.Cards.GetValueOrDefault(c.Key)))) / (double)size;
     }
 
     /// <summary>
@@ -212,13 +257,13 @@ public static class MulliganGuide
         var warnings = new List<string>();
         if (keptCards.Count > 0 && !keptCards.Any(IsEarly))
         {
-            warnings.Add("No early play kept: nothing you keep is usually played by turn 3 (curve heuristic).");
+            warnings.Add($"No early play kept: nothing you keep costs {EarlyCost} or less (curve heuristic).");
         }
 
-        var late = keptCards.Count(c => c.ExpectedTurn >= LateTurn);
+        var late = keptCards.Count(IsLate);
         if (late >= 2)
         {
-            warnings.Add($"Top-heavy: {late} kept cards are usually played on turn 6 or later (curve heuristic).");
+            warnings.Add($"Top-heavy: {late} kept cards cost {LateCost}+ or are usually played on turn {LateTurn:0}+ (curve heuristic).");
         }
 
         foreach (var pair in keptCards.GroupBy(c => c.CardId).Where(g => g.Count() > 1 && !IsEarly(g.First())))
@@ -235,10 +280,24 @@ public static class MulliganGuide
             view.Synergies.Where(s => keptSet.Contains(s.EntityA) && keptSet.Contains(s.EntityB)).ToList());
     }
 
-    /// <summary>Estimated win rate when exactly <paramref name="kept"/> stay in hand and the rest are replaced.</summary>
-    public static double Expected(MulliganView view, IReadOnlySet<int> kept)
+    /// <summary>
+    /// Estimated win rate when exactly <paramref name="kept"/> stay in hand and the rest are replaced: the baseline
+    /// plus the hand's summed deltas divided by √(hand size). The deltas are marginal (each measured with whatever else
+    /// was in hand), so a plain sum counts shared causes several times; the √ shrink is a heuristic for that overlap.
+    /// </summary>
+    public static double Expected(MulliganView view, IReadOnlySet<int> kept) =>
+        Math.Clamp(view.BaseWinRate + Sum(view, kept) / Math.Sqrt(Math.Max(1, view.Cards.Count)), 0, 1);
+
+    /// <summary>A card is an early play when it is cheap or usually played by turn 3.</summary>
+    public static bool IsEarly(MulliganCardStat card) => card.Cost <= EarlyCost || card.ExpectedTurn <= EarlyTurn;
+
+    /// <summary>A card is late when it is expensive, or costs 4+ and is usually held until turn 6.</summary>
+    public static bool IsLate(MulliganCardStat card) => card.Cost >= LateCost || (card.Cost >= 4 && card.ExpectedTurn >= LateTurn);
+
+    /// <summary>The hand's summed deltas: first kept copies, one replacement per replaced card, kept pair interactions.</summary>
+    private static double Sum(MulliganView view, IReadOnlySet<int> kept)
     {
-        var total = view.BaseWinRate;
+        var total = 0.0;
         var counted = new HashSet<string>(StringComparer.Ordinal);
         foreach (var card in view.Cards)
         {
@@ -253,15 +312,13 @@ public static class MulliganGuide
             }
         }
 
-        total += view.Synergies.Where(s => kept.Contains(s.EntityA) && kept.Contains(s.EntityB)).Sum(s => s.Interaction);
-        return Math.Clamp(total, 0, 1);
+        return total + view.Synergies.Where(s => kept.Contains(s.EntityA) && kept.Contains(s.EntityB)).Sum(s => s.Interaction);
     }
 
-    private static bool IsEarly(MulliganCardStat card) => card.ExpectedTurn <= EarlyTurn;
-
     /// <summary>
-    /// The best keeps by <see cref="Expected"/> (every subset; a hand has at most five cards). Second copies are fixed
-    /// beforehand by the duplicate heuristic: keep one only when it is an early play most players keep.
+    /// The best keeps by <see cref="Expected"/> with <see cref="KeepMargin"/> per kept card (every subset; a hand has at
+    /// most five cards). Second copies are fixed beforehand by the duplicate heuristic: keep one only when it is an
+    /// early play most players keep. Cards without data count 0, like an average card.
     /// </summary>
     private static IReadOnlyList<int> Recommend(MulliganView view)
     {
@@ -281,14 +338,13 @@ public static class MulliganGuide
             var set = new HashSet<int>(fixedKeep);
             for (var i = 0; i < free.Count; i++)
             {
-                // Cards without data stay kept: there is nothing to say they should go.
-                if ((mask & (1 << i)) != 0 || free[i].Delta is null)
+                if ((mask & (1 << i)) != 0)
                 {
                     set.Add(free[i].EntityId);
                 }
             }
 
-            var value = Expected(view, set);
+            var value = Sum(view, set) + KeepMargin * set.Count;
             if (best is null || value > bestValue + 1e-9 || (Math.Abs(value - bestValue) <= 1e-9 && set.Count > best.Count))
             {
                 best = set;

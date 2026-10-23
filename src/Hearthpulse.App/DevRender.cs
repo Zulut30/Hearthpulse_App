@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Power;
@@ -99,6 +100,14 @@ public partial class App
                 };
                 _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
                 await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, hover);
+            }
+
+            // The mulligan guide over the newest kept Standard game's opening hand.
+            if (_installDir is not null && await MulliganReplay.LatestAsync(_installDir, _cards, new HearthpulseData(_api), _constructedMeta) is { } mulligan)
+            {
+                var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan };
+                _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-mulligan.png"), 1920, 1080, 0);
             }
 
             _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);

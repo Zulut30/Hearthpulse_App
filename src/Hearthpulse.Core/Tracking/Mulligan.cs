@@ -67,8 +67,10 @@ public static class Mulligan
             return null;
         }
 
+        // The coin (on the coin it sits in hand already) has cosmetic variants such as JAIL_COIN3; they share its name.
+        var coin = cards.Get("GAME_005")?.Name;
         var offered = game.Controlled(game.LocalPlayerId, "HAND")
-            .Where(e => e.CardId.Length > 0 && e.CardId != "GAME_005")
+            .Where(e => e.CardId.Length > 0 && e.CardId != "GAME_005" && (coin is null || cards.Get(e.CardId)?.Name != coin))
             .OrderBy(e => e.ZonePosition)
             .Select(e => new OfferedCard(e.Id, e.CardId, cards.NameOf(e.CardId), cards.Get(e.CardId)?.Cost ?? e.GetInt(GameTag.Cost)))
             .ToList();

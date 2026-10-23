@@ -97,23 +97,27 @@ public sealed class MulliganGuideSource(HearthpulseData data)
             return null;
         }
 
-        var decks = await Task.WhenAll(archetypes.Select(a => data.LoadArchetypeDecksAsync(a.Id, cancellationToken))).ConfigureAwait(false);
-        if (MulliganGuide.MatchArchetype(deck, archetypes.Zip(decks, (a, d) => (a, d))) is not { } match)
+        var decksTask = Task.WhenAll(archetypes.Select(a => data.LoadArchetypeDecksAsync(a.Id, cancellationToken)));
+        var cardsTask = Task.WhenAll(archetypes.Select(a => data.LoadArchetypeMulliganAsync(a.Id, cancellationToken)));
+        await Task.WhenAll(decksTask, cardsTask).ConfigureAwait(false);
+        var candidates = archetypes.Select((a, i) => (a, decksTask.Result[i], cardsTask.Result[i])).ToList();
+        if (MulliganGuide.MatchArchetype(deck, candidates) is not { } match)
         {
-            Diag.Info($"Mulligan guide: no {playerClass} archetype shares {MulliganGuide.MinDeckOverlap:P0} of this deck");
+            var closest = candidates.MaxBy(c => Math.Max(MulliganGuide.Overlap(deck, c.Item2), MulliganGuide.Presence(deck, c.Item3)));
+            Diag.Info($"Mulligan guide: no {playerClass} archetype matches this deck (closest: {closest.a.Name}, "
+                      + $"{MulliganGuide.Overlap(deck, closest.Item2):P0} of a list, presence {MulliganGuide.Presence(deck, closest.Item3):P0})");
             return null;
         }
 
         var archetype = match.Archetype;
-        var cardsTask = data.LoadArchetypeMulliganAsync(archetype.Id, cancellationToken);
-        var matchupsTask = data.LoadArchetypeMatchupsAsync(archetype.Id, cancellationToken);
-        await Task.WhenAll(cardsTask, matchupsTask).ConfigureAwait(false);
-        if (cardsTask.Result.Count == 0)
+        var cards = cardsTask.Result[archetypes.IndexOf(archetype)];
+        if (cards.Count == 0)
         {
             return null;
         }
 
-        Diag.Info($"Mulligan guide: {archetype.Name} ({match.Overlap:P0} of the deck), {cardsTask.Result.Count} cards");
-        return new GuideArchetype(archetype.Id, archetype.Name, archetype.Class, cardsTask.Result, matchupsTask.Result, HearthpulseData.Attribution);
+        var matchups = await data.LoadArchetypeMatchupsAsync(archetype.Id, cancellationToken).ConfigureAwait(false);
+        Diag.Info($"Mulligan guide: {archetype.Name} (match score {match.Score:0.00}), {cards.Count} cards");
+        return new GuideArchetype(archetype.Id, archetype.Name, archetype.Class, cards, matchups, HearthpulseData.Attribution + ", Legend EU");
     }
 }

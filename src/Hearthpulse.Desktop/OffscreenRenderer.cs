@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI;
@@ -132,6 +133,19 @@ internal static class OffscreenRenderer
             overlayView.Fit(1920, 1080);
             overlayView.ShowLeaderboardSlot(hover);
             await Save(overlay, Path.Combine(folder, name + ".png"));
+        }
+
+        // The mulligan guide over the newest kept Standard game's opening hand (Firestone data as the app's fallback).
+        var constructedMeta = await Core.Constructed.ConstructedMeta.LoadAsync(host.Http, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, fallback: new HearthpulseData(host.Api));
+        if (host.InstallDirectory is { } install && await MulliganReplay.LatestAsync(install, host.Cards, new HearthpulseData(host.Api), constructedMeta) is { } mulligan)
+        {
+            host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null, null);
+            overlayView.Fit(1920, 1080);
+            await Save(overlay, Path.Combine(folder, "overlay-mulligan.png"));
+        }
+        else
+        {
+            Console.WriteLine("overlay-mulligan: no kept Standard log with a known deck reaches a mulligan, skipped");
         }
 
         host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
