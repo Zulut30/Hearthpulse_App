@@ -11,7 +11,7 @@ Unicode true
 !include "WinVer.nsh"
 
 !ifndef VERSION
-  !define VERSION "0.11.1"
+  !define VERSION "0.11.2"
 !endif
 !ifndef SOURCE_DIR
   !error "Pass /DSOURCE_DIR=<folder with the published app>"
