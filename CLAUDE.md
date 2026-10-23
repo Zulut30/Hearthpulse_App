@@ -22,6 +22,10 @@ Project skills live in `.claude/skills/`. Start from the one that matches the ta
 | Reviewing a branch | `hearthpulse-review` |
 | Splitting a big task into parallel sessions | `hearthpulse-parallel-work` |
 
+Agent `hearthpulse-legal` (`.claude/agents/`): ban risk, licences, Blizzard IP and privacy check before a release or
+a merge that touches game memory, input, third-party code/data, paid features or user data. Report goes to
+`reference/reviews/LEGAL-*.md`.
+
 Ground rules: restore with `--source https://api.nuget.org/v3/index.json`; run the app and `--render-ui` only with
 `HEARTHPULSE_DATA` pointing at a copy of the data folder; never show hidden game information; every user-facing
 feature goes into both UIs.

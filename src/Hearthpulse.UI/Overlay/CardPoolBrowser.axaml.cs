@@ -121,7 +121,7 @@ public partial class CardPoolBrowser : UserControl
     {
         if (e.InitialPressMouseButton == MouseButton.Left && sender is Control { DataContext: PoolChipModel chip })
         {
-            ViewModel?.ToggleCardPoolMechanic.Execute(chip.Key);
+            (chip.Section ? ViewModel?.ToggleCardPoolSection : ViewModel?.ToggleCardPoolMechanic)?.Execute(chip.Key);
             e.Handled = true;
         }
     }

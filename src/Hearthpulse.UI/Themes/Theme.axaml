@@ -65,6 +65,50 @@
             <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource Surface3Color}" />
             <SolidColorBrush x:Key="SliderTrackValueFillDisabled" Color="#8F7A5C" />
 
+            <!-- Fluent combo boxes and menu flyouts: the text box frame, a card for the list, gold for the selected row. -->
+            <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource Surface3Color}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource Surface3Color}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource Surface3Color}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource Surface3Color}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="{StaticResource Surface2Color}" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="{StaticResource OutlineColor}" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#99E9B949" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled" Color="{StaticResource BorderColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushUnfocused" Color="{StaticResource OutlineColor}" />
+            <SolidColorBrush x:Key="ComboBoxForeground" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxForegroundFocused" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxForegroundFocusedPressed" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="{StaticResource FaintColor}" />
+            <SolidColorBrush x:Key="ComboBoxPlaceHolderForeground" Color="{StaticResource FaintColor}" />
+            <SolidColorBrush x:Key="ComboBoxPlaceHolderForegroundFocusedPressed" Color="{StaticResource FaintColor}" />
+            <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="{StaticResource MutedColor}" />
+            <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocused" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundDisabled" Color="{StaticResource FaintColor}" />
+            <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="{StaticResource Surface2Color}" />
+            <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="{StaticResource OutlineColor}" />
+            <SolidColorBrush x:Key="ComboBoxItemForeground" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxItemForegroundPressed" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxItemForegroundSelected" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#12F4E7C9" />
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="#1FF4E7C9" />
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="{StaticResource AccentContainerColor}" />
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="{StaticResource AccentContainerColor}" />
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="{StaticResource AccentContainerColor}" />
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="{StaticResource Surface2Color}" />
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="{StaticResource OutlineColor}" />
+            <SolidColorBrush x:Key="MenuFlyoutItemForeground" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="{StaticResource TextColor}" />
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundDisabled" Color="{StaticResource FaintColor}" />
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="#12F4E7C9" />
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="#1FF4E7C9" />
+
             <SolidColorBrush x:Key="Bg" Color="{StaticResource BgColor}" />
             <SolidColorBrush x:Key="Surface" Color="{StaticResource SurfaceColor}" />
             <SolidColorBrush x:Key="Surface2" Color="{StaticResource Surface2Color}" />
@@ -504,6 +548,35 @@
     <Style Selector="ListBox.selectable ListBoxItem:selected /template/ Border#Bd">
         <Setter Property="Background" Value="{StaticResource SelectedFill}" />
         <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+    </Style>
+
+    <!-- ===== Combo boxes and menus (colours come from the Fluent resources above) ===== -->
+    <Style Selector="ComboBox">
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="BorderThickness" Value="1.5" />
+    </Style>
+    <Style Selector="ComboBox /template/ Border#PopupBorder">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="4" />
+    </Style>
+    <Style Selector="ComboBoxItem">
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Margin" Value="0,1" />
+    </Style>
+    <Style Selector="MenuFlyoutPresenter">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="MinWidth" Value="200" />
+    </Style>
+    <Style Selector="MenuFlyoutPresenter MenuItem">
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="10,7" />
+    </Style>
+    <Style Selector="MenuItem TextBlock.icon">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
     </Style>
 
     <!-- ===== Tooltips ===== -->
