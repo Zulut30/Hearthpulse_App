@@ -133,5 +133,5 @@ games") instead of showing 0. If other sessions consume the columns, write a sho
 - [ ] Listener registered in `GameSession` (and `LogBackfill` if history needs it).
 - [ ] View property + both overlay/main view models; render scene shows it ([hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md)).
 - [ ] Migration: `AddedColumns` appended, insert/fill/query by name, migration test extended.
-- [ ] Tests with synthetic lines in real order; full suite = baseline + new, only the 2 known failures.
+- [ ] Tests with synthetic lines in real order; full suite = baseline + new, none failing.
 - [ ] A replay over your kept logs for the new value (keep the output as `*-real-log-run.txt` evidence).

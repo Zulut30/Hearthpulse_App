@@ -86,7 +86,7 @@ Written into the shared notes folder, short, in this order:
 2. What was built, where (Core / WPF / Avalonia / tests).
 3. **Shared-file touch points** - every line or block outside owned files, so the integrator knows what to keep.
 4. Contracts or API changes other sessions must follow.
-5. Evidence: `dotnet build` 0 errors / 0 warnings; tests `X passed, only the 2 known failures`; real-log replay
+5. Evidence: `dotnet build` 0 errors / 0 warnings; tests `X passed, none failed`; real-log replay
    (`*-real-log-run.txt` / `*-live-check.txt`); PNGs from both UIs, before/after where the look changed.
 6. Review findings closed / still open, and deliberate deviations from the spec.
 

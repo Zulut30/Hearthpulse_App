@@ -121,7 +121,7 @@ tracker `Battlegrounds/BattlegroundsCounterTracker.cs` (local `Died`, `Summoned`
 
 ## Verify
 
-1. Tests: baseline + new, only the 2 known failures.
+1. Tests: baseline + new, none failing.
 2. Render both UIs and look at `overlay-counters*.png` / `overlay-bg-counters.png` and `main-settings-counters.png`
    ([hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md)): title fits, tooltip lines wrap, no clipping.
 3. Spec row added (id, title, what it counts, cards, source, goal), skipped ideas listed with the reason.

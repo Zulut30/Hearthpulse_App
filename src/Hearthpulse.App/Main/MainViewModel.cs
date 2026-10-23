@@ -436,7 +436,7 @@ public sealed partial class MainViewModel : Observable
             SelectedDeck = Decks.FirstOrDefault();
         }
 
-        var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today).ToList();
+        var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();
         OverviewTiles =
         [

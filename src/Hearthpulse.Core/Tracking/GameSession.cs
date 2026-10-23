@@ -19,7 +19,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
     /// <summary>
     /// How long the client must be closed, with no new Power.log lines, before the game it left is saved as
-    /// <see cref="GameRecord.AbandonedResult"/>. Long enough for a client restart and reconnect to the same log.
+    /// <see cref="GameRecord.AbandonedResult"/>. A reconnect later on starts a new log (or a new CREATE_GAME) with another
+    /// game key; <see cref="HistoryStore.Add"/> drops the abandoned row when that game is saved with its result.
     /// </summary>
     internal static readonly TimeSpan AbandonAfter = TimeSpan.FromMinutes(5);
 
@@ -121,6 +122,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
     /// <summary>Whether the Hearthstone process runs; tests replace it.</summary>
     internal Func<bool> IsHearthstoneRunning { get; set; } = HearthstoneInstall.IsRunning;
+
+    /// <summary>False in tests: a client running on the developer's machine must not leak its memory into them.</summary>
+    internal bool ReadsMemory { get; set; } = true;
 
     public event Action<LiveSnapshot>? SnapshotChanged;
 
@@ -344,7 +348,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         {
             Diag.Error($"Skipped a Power.log line the parser could not read (first {type}): {text}", ex);
         }
-        else if (DateTime.UtcNow >= _nextParseErrorNote)
+        else if (Clock() >= _nextParseErrorNote)
         {
             Diag.Info($"Skipped {_parseErrorsSinceNote} more Power.log line(s) the parser could not read ({ParseErrorText()}); last {type}: {text}");
             _parseErrorsSinceNote = 0;
@@ -354,7 +358,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             return;
         }
 
-        _nextParseErrorNote = DateTime.UtcNow.AddMinutes(1);
+        _nextParseErrorNote = Clock().AddMinutes(1);
     }
 
     private string ParseErrorText() => string.Join(", ", _parseErrors.OrderByDescending(e => e.Value).Select(e => $"{e.Key} ×{e.Value}"));
@@ -408,7 +412,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         }
 
         // The memory is read on its own thread; this thread only says what it needs and applies what came back.
-        _memoryPoller.Post(_hearthstoneRunning ? BuildMemoryRequest() : null);
+        _memoryPoller.Post(_hearthstoneRunning && ReadsMemory ? BuildMemoryRequest() : null);
         if (_memoryPoller.Take() is { } reading)
         {
             ApplyMemory(reading);
@@ -592,8 +596,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             {
                 _awaitingRatingKey = record.Key;
                 _awaitingDuos = duos;
-                _awaitingRatingUntil = DateTime.UtcNow.AddSeconds(120);
-                if (_hearthstoneRunning)
+                _awaitingRatingUntil = Clock().AddSeconds(120);
+                if (_hearthstoneRunning && ReadsMemory)
                 {
                     _memoryPoller.Post(BuildMemoryRequest());
                     _memoryPoller.Wake();
@@ -716,7 +720,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _awaitingRatingKey = null;
             _dirty = true;
         }
-        else if (DateTime.UtcNow > _awaitingRatingUntil)
+        else if (Clock() > _awaitingRatingUntil)
         {
             _awaitingRatingKey = null;
         }

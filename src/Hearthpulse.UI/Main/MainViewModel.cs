@@ -345,7 +345,7 @@ public sealed partial class MainViewModel : Observable
                 Session: bgGames);
         }).ConfigureAwait(true);
 
-        HistoryCount = data.Recent.Count;
+        HistoryCount = data.Recent.Count(g => !g.IsAbandoned);
         Recent = data.Recent.Take(8).Select(Row).ToList();
         HistoryRows = data.Filtered.Take(300).Select(Row).ToList();
         RatingPoints = data.Rating;
@@ -409,7 +409,7 @@ public sealed partial class MainViewModel : Observable
             SelectedDeck = Decks.FirstOrDefault();
         }
 
-        var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today).ToList();
+        var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();
         OverviewTiles =
         [

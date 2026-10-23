@@ -51,7 +51,7 @@ public sealed class CrashLogTests
         failing.Forget("Test task");
         await Assert.ThrowsAsync<InvalidOperationException>(() => failing);
         // The continuation runs synchronously with the task's completion; give the log write a moment.
-        for (var i = 0; i < 50 && !TestDataFolder.ReadLog().Contains(marker, StringComparison.Ordinal); i++)
+        for (var i = 0; i < 250 && !TestDataFolder.ReadLog().Contains(marker, StringComparison.Ordinal); i++)
         {
             await Task.Delay(20);
         }

@@ -70,7 +70,7 @@ test the updater on a build made with `-p:Version=...`, never on a plain `dotnet
 ## Checklist before asking to tag
 
 1. `main` is green in CI (both jobs); locally: restore, `dotnet build Hearthpulse.slnx --no-restore` with
-   **0 warnings**, tests = baseline + new, only the 2 known failures ([hearthpulse-testing](../hearthpulse-testing/SKILL.md)).
+   **0 warnings**, tests = baseline + new, none failing ([hearthpulse-testing](../hearthpulse-testing/SKILL.md)).
 2. No open blocker/major in the reviews of merged branches ([hearthpulse-review](../hearthpulse-review/SKILL.md)).
 3. Version bumped in every file above (one commit "Release X.Y.Z"); X.Y.Z greater than the latest GitHub release.
 4. `installer/RELEASE_NOTES.md` written: user-facing changes in plain English, known issues, data sources credited.

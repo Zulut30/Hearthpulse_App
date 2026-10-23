@@ -119,7 +119,8 @@ public sealed class UpdateTests
 
     [Theory]
     [InlineData(HttpStatusCode.NotFound, "404 (no published release)")]
-    [InlineData(HttpStatusCode.Forbidden, "403 (rate limited)")]
+    [InlineData(HttpStatusCode.Forbidden, "403 (forbidden)")]
+    [InlineData(HttpStatusCode.TooManyRequests, "429 (rate limited)")]
     [InlineData(HttpStatusCode.InternalServerError, "500")]
     public async Task A_failed_answer_is_logged_and_reported_not_taken_for_no_update(HttpStatusCode status, string expected)
     {
@@ -129,6 +130,50 @@ public sealed class UpdateTests
         Assert.Null(check.Update);
         Assert.Contains(expected, check.Message);
         Assert.Contains($"Update check: GitHub answered {expected}", TestDataFolder.ReadLog());
+    }
+
+    [Fact]
+    public async Task A_403_with_no_requests_left_is_the_rate_limit()
+    {
+        using var http = new HttpClient(new Stub(HttpStatusCode.Forbidden, string.Empty, ("X-RateLimit-Remaining", "0")));
+        Assert.Contains("403 (rate limited)", (await UpdateService.CheckForUpdateAsync(http)).Message);
+    }
+
+    [Fact]
+    public async Task A_newer_release_without_a_file_for_this_platform_is_not_called_up_to_date()
+    {
+        using var http = new HttpClient(new Stub(HttpStatusCode.OK, """{ "tag_name": "v99.0.0", "assets": [] }"""));
+        var check = await UpdateService.CheckForUpdateAsync(http);
+        Assert.Null(check.Update);
+        Assert.Equal("Version 99.0.0 is out, but there is no file for this platform yet.", check.Message);
+    }
+
+    [Fact]
+    public async Task A_file_changed_after_its_download_is_deleted_instead_of_installed()
+    {
+        var payload = System.Text.Encoding.UTF8.GetBytes("the published setup");
+        var sha = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(payload));
+        var info = new UpdateInfo("99.0.2", "hp-test-recheck.bin", "https://example.invalid/r.bin", "https://example.invalid/page", sha);
+        using (var http = new HttpClient(new Counting(payload)))
+        {
+            Assert.NotNull(await UpdateService.DownloadAsync(http, info));
+        }
+
+        Assert.True(UpdateService.StagedFileMatches(info));
+        File.WriteAllText(UpdateService.StagedPath(info), "changed on disk");
+        Assert.False(UpdateService.StagedFileMatches(info));
+        Assert.False(File.Exists(UpdateService.StagedPath(info)));
+    }
+
+    [Fact]
+    public async Task An_unverified_copy_left_by_an_older_build_is_removed()
+    {
+        var info = new UpdateInfo("99.0.3", "hp-test-unverified.bin", "https://example.invalid/u.bin", "https://example.invalid/page");
+        Directory.CreateDirectory(Path.GetDirectoryName(UpdateService.StagedPath(info))!);
+        File.WriteAllText(UpdateService.StagedPath(info), "downloaded without a check");
+        using var http = new HttpClient(new Counting([1]));
+        Assert.Null(await UpdateService.DownloadAsync(http, info));
+        Assert.False(File.Exists(UpdateService.StagedPath(info)));
     }
 
     [Fact]
@@ -228,13 +273,18 @@ public sealed class UpdateTests
         Assert.False(AppSettings.FromJson(off.ToJson()).AutoUpdate);
     }
 
-    private sealed class Stub(HttpStatusCode status, string body) : HttpMessageHandler
+    private sealed class Stub(HttpStatusCode status, string body, params (string Name, string Value)[] headers) : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(status)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var response = new HttpResponseMessage(status) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") };
+            foreach (var (name, value) in headers)
             {
-                Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
-            });
+                response.Headers.TryAddWithoutValidation(name, value);
+            }
+
+            return Task.FromResult(response);
+        }
     }
 
     /// <summary>Answers every request with the same file and counts the requests.</summary>

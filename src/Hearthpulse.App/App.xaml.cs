@@ -123,7 +123,8 @@ public partial class App : Application
                 try
                 {
                     // A background thread is dying and takes the process with it: say so before it goes.
-                    Dispatcher.Invoke(() => CrashDialog.Show(ex, fatal: true));
+                    // Bounded: the UI thread may itself be waiting on the dying thread, and the process must still end.
+                    Dispatcher.Invoke(() => CrashDialog.Show(ex, fatal: true), DispatcherPriority.Send, CancellationToken.None, TimeSpan.FromSeconds(30));
                 }
                 catch (Exception dialogError)
                 {

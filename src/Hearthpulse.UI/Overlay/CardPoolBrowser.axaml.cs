@@ -27,6 +27,15 @@ public partial class CardPoolBrowser : UserControl
         InitializeComponent();
         _escape.Tick += (_, _) => PollEscape();
         _glide.Tick += (_, _) => Glide();
+        // A hidden scroller never reaches the glide's target: the 16 ms timer would run on and keep this browser alive.
+        DetachedFromVisualTree += (_, _) => _glide.Stop();
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property == IsVisibleProperty && !IsVisible)
+            {
+                _glide.Stop();
+            }
+        };
         Scroller.AddHandler(PointerWheelChangedEvent, OnWheel, RoutingStrategies.Tunnel);
         if (OperatingSystem.IsWindows())
         {

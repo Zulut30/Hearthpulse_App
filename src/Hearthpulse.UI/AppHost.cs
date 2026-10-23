@@ -262,7 +262,11 @@ public sealed partial class AppHost : IDisposable
 
         if (!OperatingSystem.IsWindows())
         {
-            UpdateService.OpenInstaller(UpdateService.StagedPath(_stagedUpdate));
+            if (UpdateService.StagedFileMatches(_stagedUpdate))
+            {
+                UpdateService.OpenInstaller(UpdateService.StagedPath(_stagedUpdate));
+            }
+
             return;
         }
 

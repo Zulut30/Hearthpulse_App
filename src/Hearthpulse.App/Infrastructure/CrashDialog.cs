@@ -100,7 +100,14 @@ internal static class CrashDialog
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
         {
             // No app for .log files: show the folder instead.
-            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{AppPaths.LogFile}\"") { UseShellExecute = true })?.Dispose();
+            try
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{AppPaths.LogFile}\"") { UseShellExecute = true })?.Dispose();
+            }
+            catch (Exception fallback) when (fallback is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
+            {
+                Diag.Error("The log could not be opened", fallback);
+            }
         }
     }
 

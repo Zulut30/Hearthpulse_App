@@ -88,7 +88,7 @@ public sealed class PowerBatchTests
 
         public Run()
         {
-            Session = new GameSession(new HistoryStore(_db), _memory) { Clock = () => _now, IsHearthstoneRunning = () => true };
+            Session = new GameSession(new HistoryStore(_db), _memory) { Clock = () => _now, IsHearthstoneRunning = () => true, ReadsMemory = false };
             Session.OnSessionStarted("Hearthstone_2026_10_23_02_01_43", new DateTime(2026, 10, 23, 2, 1, 43), attachedMidSession: false);
         }
 

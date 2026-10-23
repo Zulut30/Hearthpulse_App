@@ -170,9 +170,9 @@ dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore
   fails to load and every `HistoryStore` test fails.
 - `Hearthpulse.App` targets net10.0-windows; off Windows publish needs `-p:EnableWindowsTargeting=true` (as
   `installer/windows/build.sh` does). The build must stay at 0 warnings.
-- Baseline (main 2e8d9be, Oct 2026): 740 tests - 737 pass, 1 skipped (`[UnixFact]` on Windows), 2 known failures
-  (`ParserTests.Rank_display(51, 1204, "Legend 1,204")` under ru-RU; `RealLogTests.Battlegrounds_view_tracks_lobby_boards_and_combats`,
-  depends on the kept logs). Anything else failing is yours. Details: [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
+- Baseline (claude/quality-hardening-431c90 on main 433e8bf, Oct 2026): 780 tests - 779 pass, 1 skipped (`[UnixFact]` on
+  Windows; the `[RealLogsFact]` ones skip too where `D:\Hearthstone\Logs` is missing), **no known failures**. Anything failing
+  is yours. Details: [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
 - UI checks: [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md) (`--render-ui` on a copy of the data folder).
 
 ## Release

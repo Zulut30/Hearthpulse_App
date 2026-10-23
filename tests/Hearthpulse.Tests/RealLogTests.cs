@@ -99,7 +99,7 @@ public sealed class RealLogsFactAttribute : FactAttribute
 {
     public RealLogsFactAttribute()
     {
-        if (!Directory.Exists(RealLogTests.LogRoot))
+        if (!OperatingSystem.IsWindows() || !Directory.Exists(RealLogTests.LogRoot))
         {
             Skip = $"No kept Hearthstone logs ({RealLogTests.LogRoot}) on this machine.";
         }

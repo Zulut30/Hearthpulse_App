@@ -64,7 +64,7 @@ internal sealed class DesktopApp : HearthpulseApp
                 try
                 {
                     // A background thread is dying and takes the process with it: say so before it goes.
-                    Dispatcher.UIThread.InvokeAsync(() => CrashWindow.ShowAsync(ex, fatal: true)).Wait(TimeSpan.FromMinutes(5));
+                    Dispatcher.UIThread.InvokeAsync(() => CrashWindow.ShowAsync(ex, fatal: true)).Wait(TimeSpan.FromSeconds(30));
                 }
                 catch (Exception dialogError)
                 {
