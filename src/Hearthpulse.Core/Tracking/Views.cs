@@ -301,8 +301,24 @@ public sealed record SessionSummary(int? StartRating, int? CurrentRating, int Ga
 /// <param name="OfferedHeroes">Battlegrounds heroes offered at the start of the game, when they were seen live.</param>
 public sealed record GameOutcome(string Mode, string Result, int Placement, int? RatingBefore, int? RatingAfter, string HeroCardId, IReadOnlyList<string>? OfferedHeroes = null)
 {
+    /// <summary>How the Battlegrounds game went for the local player, when it was watched live.</summary>
+    public BgGameDetails? Details { get; init; }
+
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 }
+
+/// <summary>The local player's Battlegrounds game at its end: lobby, final board, trinkets, tier-ups and fights.</summary>
+public sealed record BgGameDetails(
+    int Turns,
+    int Tier,
+    int Triples,
+    string? Anomaly,
+    IReadOnlyList<string> Tribes,
+    IReadOnlyList<BgMinion> Board,
+    IReadOnlyList<string> TrinketsOffered,
+    IReadOnlyList<string> Trinkets,
+    IReadOnlyList<TierStep> TierUps,
+    IReadOnlyList<CombatRecord> Combats);
 
 public sealed record LiveSnapshot(
     string Scene,

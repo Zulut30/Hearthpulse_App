@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using Hearthpulse.Core.Pool;
 
 namespace Hearthpulse.Core.Battlegrounds;
 
@@ -48,9 +49,8 @@ public sealed record MetaComp(
     IReadOnlyDictionary<string, (int DataPoints, double Placement)> HeroPlacement);
 
 /// <summary>
-/// Community Battlegrounds statistics (hero placement per MMR bracket and tribe, comp archetypes) from the
-/// public data files published by Firestone (zerotoheroes.com). Cached on disk; a section that fails to parse
-/// is skipped rather than discarding the rest of the data.
+/// Community Battlegrounds statistics: heroes, cards, trinkets and tribes, built by the Hearthpulse stats pool
+/// from games players chose to share (see <see cref="PoolClient"/>).
 /// </summary>
 public sealed class BattlegroundsMeta
 {
@@ -159,6 +159,9 @@ public sealed class BattlegroundsMeta
 
     /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/> unless a fallback was used).</summary>
     public string Source { get; internal init; } = Attribution;
+
+    /// <summary>Main tribe of final boards, from the stats pool.</summary>
+    public IReadOnlyList<PoolTribe> Tribes { get; init; } = [];
 
     /// <summary>Tightest MMR bracket (top X%) whose floor the rating reaches.</summary>
     public int BracketFor(int? rating)

@@ -411,11 +411,11 @@
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton x:Name="TabHeroes" Style="{StaticResource Tab}" Content="Heroes" GroupName="BgTab" IsChecked="True" Checked="OnBgTab"
                                                      ToolTip="Heroes ranked by average final placement" />
-                                        <RadioButton x:Name="TabComps" Style="{StaticResource Tab}" Content="Comps" GroupName="BgTab" Checked="OnBgTab"
-                                                     ToolTip="Board archetypes ranked by average final placement" />
-                                        <RadioButton x:Name="TabTrinkets" Style="{StaticResource Tab}" Content="Trinkets" GroupName="BgTab" Checked="OnBgTab"
+                                        <RadioButton x:Name="TabComps" Style="{StaticResource Tab}" Content="{Binding CompTabLabel}" GroupName="BgTab" Checked="OnBgTab" Visibility="{Binding HasCompTiers, Converter={StaticResource Vis}}"
+                                                     ToolTip="Board archetypes (or, from the stats pool, main tribes) ranked by average final placement" />
+                                        <RadioButton x:Name="TabTrinkets" Style="{StaticResource Tab}" Content="Trinkets" GroupName="BgTab" Checked="OnBgTab" Visibility="{Binding HasTrinketTiers, Converter={StaticResource Vis}}"
                                                      ToolTip="Trinkets ranked by the average placement of players who picked them" />
-                                        <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="Cards" GroupName="BgTab" Checked="OnBgTab"
+                                        <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="Cards" GroupName="BgTab" Checked="OnBgTab" Visibility="{Binding HasCardTiers, Converter={StaticResource Vis}}"
                                                      ToolTip="Minions and tavern spells, ranked inside each tier" />
                                         <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="My heroes" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="Your own results per hero" />
@@ -508,7 +508,7 @@
                             <!-- Comps -->
                             <Border x:Name="CompTierCard" Style="{StaticResource Card}" Visibility="Collapsed">
                                 <StackPanel>
-                                    <TextBlock Text="Board archetypes ranked by how well players who played them finished. Core cards are what the comp needs; tribes must be in your lobby."
+                                    <TextBlock Text="{Binding CompCaption}"
                                                Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
                                     <ItemsControl ItemsSource="{Binding CompTiers}">
                                         <ItemsControl.ItemTemplate>
@@ -526,14 +526,14 @@
                                                             <TextBlock FontWeight="SemiBold" FontSize="14">
                                                                 <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding Tribes, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" FontSize="12" />
                                                             </TextBlock>
-                                                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0">
+                                                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="{Binding KeyCards, Converter={StaticResource Vis}}">
                                                                 <Run Text="Core: " Foreground="{StaticResource Faint}" /><Run Text="{Binding KeyCards, Mode=OneWay}" />
                                                             </TextBlock>
                                                             <TextBlock Text="{Binding Commit}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Text}" Opacity="0.85"
                                                                        Visibility="{Binding Commit, Converter={StaticResource Vis}}" />
                                                         </StackPanel>
                                                         <Border Grid.Column="2" Style="{StaticResource TierBadge}" VerticalAlignment="Top" Background="{Binding Power, Converter={StaticResource KeyBrush}}"
-                                                                ToolTip="Power level (S best)">
+                                                                ToolTip="Tier (S best)">
                                                             <TextBlock Text="{Binding Power}" FontWeight="Bold" FontSize="13" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                         </Border>
@@ -1580,9 +1580,9 @@
                                     <CheckBox Style="{StaticResource Switch}" Content="Keep running in the tray when closed" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
                                     <CheckBox Style="{StaticResource Switch}" Content="Install updates automatically" IsChecked="{Binding Settings.AutoUpdate}" Click="OnSettingChanged"
                                               ToolTip="Hearthpulse checks GitHub for a newer version and installs it when you close the app" Margin="0,0,0,14" />
-                                    <CheckBox Style="{StaticResource Switch}" Content="Share my Battlegrounds results with the stats pool" IsChecked="{Binding PoolSharing}"
+                                    <CheckBox Style="{StaticResource Switch}" Content="Share my Battlegrounds games with the stats pool" IsChecked="{Binding PoolSharing}"
                                               Visibility="{Binding PoolAvailable, Converter={StaticResource Vis}}" Margin="0,0,0,14"
-                                              ToolTip="After each game: the hero you picked, the heroes you were offered, your placement and your rating rounded to 500. No name, BattleTag or account." />
+                                              ToolTip="After each game: the heroes you were offered and the one you picked, your placement, solo or duos, your rating rounded to 500, the lobby's tribes and anomaly, your final board, your trinkets, the turns you leveled up, and each fight's result, damage and predicted odds. Never your name, BattleTag, account or anything about other players." />
                                     <CheckBox Style="{StaticResource Switch}" Content="Start with Windows" IsChecked="{Binding Settings.StartWithWindows}" Click="OnSettingChanged" Margin="0,0,0,14" />
                                     <CheckBox Style="{StaticResource Switch}" Content="Start minimized" IsChecked="{Binding Settings.StartMinimized}" Margin="0,0,0,18" />
                                     <StackPanel Orientation="Horizontal">
@@ -1628,9 +1628,11 @@
                                 <TextBlock Text="&#xF0849;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
                             </Grid>
                             <StackPanel Grid.Column="1" Margin="14,0,20,0" VerticalAlignment="Center">
-                                <TextBlock Text="Share your Battlegrounds results?" FontWeight="Bold" FontSize="14.5" />
-                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,3,0,0"
-                                           Text="After each game Hearthpulse sends the hero you picked, the heroes you were offered, your placement and your rating rounded to 500. No name, BattleTag or account. Everyone's games build the hero tier list. You can change this in Settings." />
+                                <TextBlock Text="Share your Battlegrounds games?" FontWeight="Bold" FontSize="14.5" />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,3,0,0" Foreground="{StaticResource Text}"
+                                           Text="After each game Hearthpulse sends the heroes you were offered and the one you picked, your placement, solo or duos, your rating rounded to 500, the lobby's tribes and anomaly, your final board, your trinkets, the turns you leveled up, and each fight's result, damage and predicted odds." />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                           Text="Never your name, BattleTag, account or anything about other players. Everyone's games build the hero, card, trinket and tribe lists. You can change this any time in Settings." />
                             </StackPanel>
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button Style="{StaticResource GhostButton}" Content="No thanks" Command="{Binding AnswerPool}" CommandParameter="no" Margin="0,0,8,0" />

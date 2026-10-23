@@ -387,8 +387,8 @@ public partial class App : Application
     {
         if (PoolClient.Available(_settings))
         {
-            var pooled = await PoolClient.LoadHeroesAsync(_http, PoolClient.Endpoint(_settings));
-            if (pooled is not null && pooled.HeroesByBracket[100].Count > 0)
+            var pooled = await PoolClient.LoadStatsAsync(_http, PoolClient.Endpoint(_settings));
+            if (pooled is not null)
             {
                 _meta = pooled;
                 _session.SetMeta(pooled);
@@ -557,8 +557,8 @@ public partial class App : Application
     private void OnGameFinished(GameOutcome outcome)
     {
         // The event fires again once the new rating is read; share the game only the first time.
-        if (outcome.RatingAfter is null && _settings.PoolConsent == true && PoolClient.Available(_settings)
-            && PoolGame.From(outcome, _cards.BaseHeroId) is { } game)
+        if (outcome.RatingAfter is null && PoolClient.Sharing(_settings)
+            && PoolGame.From(outcome, _cards.BaseHeroId, id => _cards.Get(id)?.Races ?? [], PoolClient.SharingDetails(_settings)) is { } game)
         {
             _ = PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), game);
         }

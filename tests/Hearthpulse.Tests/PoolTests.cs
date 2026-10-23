@@ -80,4 +80,112 @@ public sealed class PoolTests
         Assert.Equal("https://pool.example.workers.dev", PoolClient.Endpoint(new Hearthpulse.Core.AppSettings { PoolEndpoint = "https://pool.example.workers.dev/" }));
         Assert.False(PoolClient.Available(new Hearthpulse.Core.AppSettings { PoolEndpoint = "http://insecure.example" }));
     }
+
+    private static BgGameDetails Details() => new(
+        14,
+        6,
+        2,
+        "BG_ANOMALY",
+        ["MURLOC", "BEAST", "DEMON"],
+        [
+            new BgMinion("BEAST_A", "A", 40, 30, true, 4, []),
+            new BgMinion("BEAST_B", "B", 10, 10, false, 3, []),
+            new BgMinion("AMALGAM", "C", 5, 5, false, 2, []),
+            new BgMinion("BEAST_C", "D", 7, 7, false, 5, []),
+            new BgMinion("SPELL", "E", 0, 0, false, 1, []) { CardType = "BATTLEGROUND_SPELL" },
+        ],
+        ["TRK_1", "TRK_2"],
+        ["TRK_2", "TRK_9"],
+        [new TierStep(1, 1), new TierStep(3, 2), new TierStep(3, 2), new TierStep(6, 3)],
+        [
+            new CombatRecord(2, 5, "BG_HERO_OTHER", "Win", 0, 3, new Hearthpulse.Core.Battlegrounds.CombatOdds(0.6, 0.1, 0.3, 0)),
+            new CombatRecord(3, 6, "BG_HERO_OTHER", "Tie", 0, 0),
+        ]);
+
+    private static IReadOnlyList<string> Races(string id) => id switch
+    {
+        "AMALGAM" => ["ALL"],
+        "BEAST_A" or "BEAST_B" or "BEAST_C" => ["BEAST"],
+        _ => [],
+    };
+
+    [Fact]
+    public void SendsDetailsOnlyWhenAgreedTo()
+    {
+        var outcome = new GameOutcome("Battlegrounds", "Win", 1, 7000, null, "BG_HERO_1") { Details = Details() };
+
+        Assert.Null(PoolGame.From(outcome, Base, Races, details: false)!.Details);
+        var d = PoolGame.From(outcome, Base, Races, details: true)!.Details!;
+
+        Assert.Equal(4, d.Board.Count);
+        Assert.DoesNotContain(d.Board, m => m.Card == "SPELL");
+        Assert.Equal("BEAST", d.Comp);
+        Assert.Equal(["BEAST", "DEMON", "MURLOC"], d.Tribes);
+        Assert.Equal([2, 3], d.TierUps.Select(t => t.Tier));
+        Assert.Equal(["W", "T"], d.Combats.Select(c => c.Result));
+        Assert.Equal(0.6, d.Combats[0].Win);
+        Assert.Null(d.Combats[1].Win);
+        Assert.Equal(["TRK_1", "TRK_2", "TRK_9"], d.TrinketsOffered);
+        Assert.Equal(["TRK_2", "TRK_9"], d.Trinkets);
+    }
+
+    [Fact]
+    public void NeverSendsOtherPlayers()
+    {
+        var game = PoolGame.From(new GameOutcome("Battlegrounds", "Win", 1, 7000, null, "BG_HERO_1") { Details = Details() }, Base, Races, details: true)!;
+        var json = JsonSerializer.Serialize(PoolClient.Body(game), JsonSerializerOptions.Web);
+
+        Assert.Contains("\"v\":2", json);
+        Assert.Contains("\"tierUps\":[[3,2],[6,3]]", json);
+        Assert.DoesNotContain("BG_HERO_OTHER", json);
+        Assert.Contains("\"v\":1", JsonSerializer.Serialize(PoolClient.Body(game with { Details = null }), JsonSerializerOptions.Web));
+    }
+
+    [Fact]
+    public void MixedBoardsHaveNoMainTribe()
+    {
+        var board = new[] { new PoolMinion("BEAST_A", false, 1, 1), new PoolMinion("X", false, 1, 1), new PoolMinion("Y", false, 1, 1) };
+        Assert.Equal("MIXED", PoolDetails.MainTribe(board, Races));
+        Assert.Null(PoolDetails.MainTribe([], Races));
+    }
+
+    [Fact]
+    public void SharesNothingUntilAPoolIsSetUp()
+    {
+        // Hearthpulse ships without a pool address: consent alone sends nothing anywhere.
+        var settings = new Hearthpulse.Core.AppSettings { PoolConsent = true, PoolConsentVersion = PoolClient.ConsentVersion };
+        Assert.False(PoolClient.Available(settings));
+        Assert.False(PoolClient.Sharing(settings));
+    }
+
+    [Fact]
+    public void AsksAgainWhenTheListGrows()
+    {
+        var settings = new Hearthpulse.Core.AppSettings { PoolConsent = true, PoolConsentVersion = 1, PoolEndpoint = "https://pool.example" };
+        Assert.True(PoolClient.Sharing(settings));
+        Assert.False(PoolClient.SharingDetails(settings));
+        settings.PoolConsentVersion = PoolClient.ConsentVersion;
+        Assert.True(PoolClient.SharingDetails(settings));
+        settings.PoolConsent = false;
+        Assert.False(PoolClient.Sharing(settings));
+    }
+
+    [Fact]
+    public void ReadsCardsTrinketsAndTribes()
+    {
+        using var doc = JsonDocument.Parse("""
+            { "heroes": [],
+              "cards": [ { "card": "BG_CARD_A", "games": 250, "avgPlacement": 3.2 } ],
+              "trinkets": [ { "card": "TRK_2", "offered": 100, "picked": 60, "avgPlacement": 3.9 } ],
+              "comps": [ { "comp": "BEAST", "games": 40, "avgPlacement": 3.5, "top": 0.6, "first": 0.2 },
+                         { "comp": "MIXED", "games": 5, "avgPlacement": 5.5, "top": 0.2, "first": 0 } ] }
+            """);
+        var meta = PoolClient.Parse(doc.RootElement)!;
+
+        Assert.Equal(250, meta.Card("BG_CARD_A")!.DataPoints);
+        Assert.Equal((3.9, 0.6, 60), meta.Trinket("TRK_2", 100));
+        var tribe = Assert.Single(meta.Tribes);
+        Assert.Equal("BEAST", tribe.Tribe);
+        Assert.Equal(0.6, tribe.Top4Rate);
+    }
 }

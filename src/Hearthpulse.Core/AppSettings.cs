@@ -97,6 +97,9 @@ public sealed class AppSettings
     /// <summary>Whether the player shares Battlegrounds results with the stats pool; null until they answer.</summary>
     public bool? PoolConsent { get; set; }
 
+    /// <summary>Which list of shared fields the answer was given for (see <see cref="Pool.PoolClient.ConsentVersion"/>).</summary>
+    public int PoolConsentVersion { get; set; }
+
     /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
     public string? PoolEndpoint { get; set; }
 

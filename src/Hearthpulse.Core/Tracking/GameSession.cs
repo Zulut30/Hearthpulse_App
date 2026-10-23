@@ -31,6 +31,11 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private IReadOnlyList<string>? _offeredHeroes;
     private int _offeredGeneration = -1;
 
+    // The latest Battlegrounds view of the current game, its last non-empty board and every trinket offered.
+    private BgSeen? _bgSeen;
+
+    private sealed record BgSeen(int Generation, BattlegroundsView Last, IReadOnlyList<BgMinion> Board, IReadOnlyList<string> TrinketOffers);
+
     private volatile CardDb _cards = CardDb.Empty;
     private PowerParser? _parser;
     private bool _catchingUp;
@@ -456,7 +461,20 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         else if (record.Result == "Loss") _sessionLosses++;
 
         var offered = _offeredGeneration == _gameGeneration ? _offeredHeroes : null;
-        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered);
+        var details = record.IsBattlegrounds && _bgSeen is { } seen && seen.Generation == _gameGeneration
+            ? new BgGameDetails(
+                record.Turns > 0 ? record.Turns : seen.Last.Turn,
+                record.TavernTier > 0 ? record.TavernTier : seen.Last.TechLevel,
+                seen.Last.Triples,
+                seen.Last.AnomalyCardId,
+                seen.Last.Races,
+                seen.Board,
+                seen.TrinketOffers,
+                seen.Last.Trinkets,
+                seen.Last.TierHistory,
+                seen.Last.Combats)
+            : null;
+        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered) { Details = details };
         GameFinished?.Invoke(_lastOutcome);
         _dirty = true;
     }
@@ -670,6 +688,18 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                 {
                     _offeredHeroes = battlegrounds.HeroOptions.Select(h => h.CardId).ToList();
                     _offeredGeneration = _gameGeneration;
+                }
+                else if (!battlegrounds.IsHeroSelection)
+                {
+                    var seen = _bgSeen is { } s && s.Generation == _gameGeneration ? s : new BgSeen(_gameGeneration, battlegrounds, [], []);
+                    _bgSeen = seen with
+                    {
+                        Last = battlegrounds,
+                        Board = battlegrounds.Board.Count > 0 ? battlegrounds.Board : seen.Board,
+                        TrinketOffers = battlegrounds.TrinketOptions.Count > 1
+                            ? seen.TrinketOffers.Concat(battlegrounds.TrinketOptions.Select(t => t.CardId)).Distinct(StringComparer.Ordinal).ToList()
+                            : seen.TrinketOffers,
+                    };
                 }
 
                 var rating = _rating is null ? (int?)null : game.IsDuos ? _rating.Duos : _rating.Solo;
