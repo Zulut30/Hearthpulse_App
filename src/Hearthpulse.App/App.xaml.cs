@@ -391,9 +391,7 @@ public partial class App : Application
     {
         if (PoolClient.Available(_settings))
         {
-            // The full meta (/v1/meta); the pool's own game totals until it has been imported.
-            var pooled = await PoolClient.LoadMetaAsync(_http, PoolClient.Endpoint(_settings))
-                ?? await PoolClient.LoadStatsAsync(_http, PoolClient.Endpoint(_settings));
+            var pooled = await PoolClient.LoadMetaAsync(_http, PoolClient.Endpoint(_settings));
             if (pooled is not null)
             {
                 _meta = pooled;

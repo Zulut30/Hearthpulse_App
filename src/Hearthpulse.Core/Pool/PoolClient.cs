@@ -374,10 +374,21 @@ public static class PoolClient
     }
 
     /// <summary>
-    /// The Firestone base stats, imported once into the pool (server/pool/import-firestone.mjs) and served by
-    /// /v1/meta. The app never contacts zerotoheroes.com: this is the only source of the full meta.
+    /// The full Battlegrounds meta: the base stats imported once into the pool (/v1/meta) blended with the games
+    /// players chose to share (/v1/stats). The app never contacts a third-party stats service.
     /// </summary>
     public static async Task<BattlegroundsMeta?> LoadMetaAsync(HttpClient http, string endpoint, CancellationToken cancellationToken = default)
+    {
+        var baseTask = LoadBaseMetaAsync(http, endpoint, cancellationToken);
+        var poolTask = LoadStatsAsync(http, endpoint, cancellationToken);
+        await Task.WhenAll(baseTask, poolTask).ConfigureAwait(false);
+
+        var baseMeta = await baseTask.ConfigureAwait(false);
+        var pool = await poolTask.ConfigureAwait(false);
+        return baseMeta is null ? pool : pool is null ? baseMeta : Merge(baseMeta, pool);
+    }
+
+    private static async Task<BattlegroundsMeta?> LoadBaseMetaAsync(HttpClient http, string endpoint, CancellationToken cancellationToken)
     {
         try
         {
@@ -390,6 +401,114 @@ public static class PoolClient
             Diag.Error("Stats pool meta unavailable", ex);
             return null;
         }
+    }
+
+    /// <summary>
+    /// Adds the shared games to the base numbers, weighted by sample size. Hero, card and trinket placements are
+    /// pooled; the base turn results are kept because a shared game does not carry a full per-turn history.
+    /// </summary>
+    internal static BattlegroundsMeta Merge(BattlegroundsMeta baseMeta, BattlegroundsMeta pool)
+    {
+        var heroes = new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>();
+        foreach (var (bracket, list) in baseMeta.HeroesByBracket)
+        {
+            heroes[bracket] = list.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+        }
+
+        foreach (var (bracket, list) in pool.HeroesByBracket)
+        {
+            var target = heroes.TryGetValue(bracket, out var existing)
+                ? new Dictionary<string, MetaHero>(existing, StringComparer.Ordinal)
+                : new Dictionary<string, MetaHero>(StringComparer.Ordinal);
+            foreach (var (id, add) in list)
+            {
+                target[id] = target.TryGetValue(id, out var have) ? Blend(have, add) : add;
+            }
+
+            heroes[bracket] = target;
+        }
+
+        var cards = new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>();
+        foreach (var (bracket, list) in baseMeta.CardsByBracket)
+        {
+            cards[bracket] = list.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+        }
+
+        foreach (var (bracket, list) in pool.CardsByBracket)
+        {
+            var target = cards.TryGetValue(bracket, out var existing)
+                ? new Dictionary<string, MetaCard>(existing, StringComparer.Ordinal)
+                : new Dictionary<string, MetaCard>(StringComparer.Ordinal);
+            foreach (var (id, add) in list)
+            {
+                target[id] = target.TryGetValue(id, out var have) ? Blend(have, add) : add;
+            }
+
+            cards[bracket] = target;
+        }
+
+        var trinkets = baseMeta.Trinkets.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+        foreach (var (id, add) in pool.Trinkets)
+        {
+            trinkets[id] = trinkets.TryGetValue(id, out var have) ? Blend(have, add) : add;
+        }
+
+        return new BattlegroundsMeta(heroes, baseMeta.Percentiles, baseMeta.Comps, trinkets, cards, baseMeta.Updated)
+        {
+            Tribes = pool.Tribes,
+            Source = BattlegroundsMeta.PoolAttribution,
+        };
+    }
+
+    private static MetaHero Blend(MetaHero a, MetaHero b)
+    {
+        var total = a.DataPoints + b.DataPoints;
+        if (total <= 0 || b.DataPoints <= 0)
+        {
+            return a;
+        }
+
+        double Mix(double x, double y) => ((x * a.DataPoints) + (y * b.DataPoints)) / total;
+        var impact = new Dictionary<int, double>(a.TribeImpact);
+        foreach (var (tribe, value) in b.TribeImpact)
+        {
+            impact[tribe] = value;
+        }
+
+        return a with
+        {
+            DataPoints = total,
+            AveragePosition = Mix(a.AveragePosition, b.AveragePosition),
+            PickRate = Mix(a.PickRate, b.PickRate),
+            Top4Rate = Mix(a.Top4Rate, b.Top4Rate),
+            FirstRate = Mix(a.FirstRate, b.FirstRate),
+            TribeImpact = impact,
+        };
+    }
+
+    private static MetaCard Blend(MetaCard a, MetaCard b)
+    {
+        var total = a.DataPoints + b.DataPoints;
+        return total <= 0 || b.DataPoints <= 0
+            ? a
+            : a with
+            {
+                DataPoints = total,
+                AveragePlacement = ((a.AveragePlacement * a.DataPoints) + (b.AveragePlacement * b.DataPoints)) / total,
+            };
+    }
+
+    private static MetaTrinket Blend(MetaTrinket a, MetaTrinket b)
+    {
+        var total = a.DataPoints + b.DataPoints;
+        return total <= 0 || b.DataPoints <= 0
+            ? a
+            : a with
+            {
+                DataPoints = total,
+                AveragePlacement = ((a.AveragePlacement * a.DataPoints) + (b.AveragePlacement * b.DataPoints)) / total,
+                PickRate = ((a.PickRate * a.DataPoints) + (b.PickRate * b.DataPoints)) / total,
+            };
     }
 
     /// <summary>

@@ -321,4 +321,36 @@ public sealed class PoolTests
         using var doc = JsonDocument.Parse("""{ "cards": { "100": [] }, "comps": [] }""");
         Assert.Null(PoolClient.ParseMeta(doc.RootElement));
     }
+
+    [Fact]
+    public void BlendsSharedGamesIntoTheBaseStats()
+    {
+        using var baseDoc = JsonDocument.Parse("""
+            { "heroes": { "100": [["BG_HERO_1", 1000, 2000, 1000, 4.0, 0.5, 0.1, []]] },
+              "cards": { "100": [["BG_CARD_A", 1000, 4.0, [[5, 200, 4.0]]]] },
+              "trinkets": [["TRK_1", 100, 0.5, 4.0, []]] }
+            """);
+        using var poolDoc = JsonDocument.Parse("""
+            { "heroes": [ { "hero": "BG_HERO_1", "games": 100, "avgPlacement": 3.0, "top": 0.6, "first": 0.2, "offered": 200, "picked": 100 } ],
+              "cards": [ { "card": "BG_CARD_A", "games": 100, "avgPlacement": 3.0 } ],
+              "trinkets": [ { "card": "TRK_1", "offered": 100, "picked": 100, "avgPlacement": 3.0 } ] }
+            """);
+
+        var merged = PoolClient.Merge(PoolClient.ParseMeta(baseDoc.RootElement)!, PoolClient.Parse(poolDoc.RootElement)!);
+
+        var hero = merged.Hero("BG_HERO_1", 100)!;
+        Assert.Equal(1100, hero.DataPoints);
+        Assert.Equal(3.909, hero.AveragePosition, 3);
+        Assert.Equal(0.509, hero.Top4Rate, 3);
+        Assert.Equal(0.109, hero.FirstRate, 3);
+
+        var card = merged.Card("BG_CARD_A")!;
+        Assert.Equal(1100, card.DataPoints);
+        Assert.Equal(3.909, card.AveragePlacement, 3);
+        Assert.Equal(200, card.Turns[5].Played);
+
+        var trinket = merged.Trinket("TRK_1", 100)!.Value;
+        Assert.Equal(200, trinket.DataPoints);
+        Assert.Equal(3.5, trinket.Placement, 3);
+    }
 }
