@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
+using Hearthpulse.Core.Tracking.Counters;
 using Hearthpulse.UI;
 using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main;
@@ -134,10 +135,78 @@ internal static class OffscreenRenderer
             await Save(overlay, Path.Combine(folder, name + ".png"));
         }
 
+        await RenderCountersAsync(folder, host, settings, overlay, overlayView);
+
         host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
         host.Overlay.LayoutEditing = true;
         await Save(overlay, Path.Combine(folder, "overlay-layout.png"));
         overlay.Close();
+    }
+
+    /// <summary>
+    /// <c>overlay-counters*.png</c>: the Constructed counters of the latest kept game (or a made-up one) on the overlay,
+    /// the panel alone, the panel with one counter opened by a click, and that counter's tooltip.
+    /// </summary>
+    private static async Task RenderCountersAsync(string folder, AppHost host, AppSettings settings, Window overlay, OverlayView overlayView)
+    {
+        var installDir = host.InstallDirectory;
+        var view = (installDir is null ? null : await Task.Run(() => CounterScene.FromLatestLog(installDir, host.Cards))) ?? CounterScene.Synthetic(host.Cards);
+        var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view };
+        host.Overlay.Update(snapshot, host.Cards, settings, null, null);
+        overlayView.Fit(1920, 1080);
+        await Save(overlay, Path.Combine(folder, "overlay-counters.png"));
+        if (overlayView.FindControl<Control>("CountersCard") is not { } card)
+        {
+            return;
+        }
+
+        SaveCrop(overlay, card, Path.Combine(folder, "overlay-counters-panel.png"));
+        var chips = host.Overlay.OpponentCounters.Concat(host.Overlay.MyCounters).ToList();
+        var shown = chips.FirstOrDefault(c => c.Id == "cthun") ?? chips.FirstOrDefault();
+        if (shown is null)
+        {
+            return;
+        }
+
+        if (overlayView.TryFindResource("CounterTipTemplate", out var template) && template is Avalonia.Controls.Templates.IDataTemplate tipTemplate)
+        {
+            var tip = new Window
+            {
+                SizeToContent = SizeToContent.WidthAndHeight,
+                Background = ThemeBrushes.Get("Bg"),
+                Content = new ContentControl { Margin = new Thickness(12), Content = shown, ContentTemplate = tipTemplate },
+            };
+            tip.Show();
+            await Save(tip, Path.Combine(folder, "overlay-counters-tooltip.png"));
+            tip.Close();
+        }
+
+        host.Overlay.ToggleCounter.Execute(shown.Id);
+        await Save(overlay, Path.Combine(folder, "overlay-counters-open-full.png"));
+        SaveCrop(overlay, card, Path.Combine(folder, "overlay-counters-open.png"));
+        host.Overlay.ToggleCounter.Execute(shown.Id);
+    }
+
+    /// <summary>Writes the part of the window's last frame that shows the control, with a margin around it.</summary>
+    private static void SaveCrop(Window window, Control control, string path)
+    {
+        const int pad = 12;
+        if (window.CaptureRenderedFrame() is not { } frame || control.TranslatePoint(default, window) is not { } origin)
+        {
+            return;
+        }
+
+        var scale = frame.PixelSize.Width / window.Bounds.Width;
+        var source = new Rect(origin.X * scale - pad, origin.Y * scale - pad, control.Bounds.Width * scale + 2 * pad, control.Bounds.Height * scale + 2 * pad)
+            .Intersect(new Rect(0, 0, frame.PixelSize.Width, frame.PixelSize.Height));
+        using var crop = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)source.Width, (int)source.Height));
+        using (var context = crop.CreateDrawingContext())
+        {
+            context.DrawImage(frame, source, new Rect(0, 0, source.Width, source.Height));
+        }
+
+        crop.Save(path);
+        Console.WriteLine("wrote " + path);
     }
 
     /// <summary>Lets layout settle and card art load, then writes the window's rendered frame.</summary>

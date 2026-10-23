@@ -7,6 +7,7 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
+using Hearthpulse.Core.Tracking.Counters;
 
 namespace Hearthpulse.App;
 
@@ -101,6 +102,8 @@ public partial class App
                 await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, hover);
             }
 
+            await RenderCountersAsync(folder);
+
             _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
             _overlayViewModel.LayoutEditing = true;
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-layout.png"), 1920, 1080, 0);
@@ -109,6 +112,78 @@ public partial class App
         {
             Quit();
         }
+    }
+
+    /// <summary>
+    /// <c>overlay-counters*.png</c>: the Constructed counters of the latest kept game (or a made-up one) on the overlay,
+    /// the panel alone at 2x, the panel with one counter opened by a click, and that counter's tooltip.
+    /// </summary>
+    private async Task RenderCountersAsync(string folder)
+    {
+        var installDir = _installDir;
+        var view = (installDir is null ? null : await Task.Run(() => CounterScene.FromLatestLog(installDir, _cards))) ?? CounterScene.Synthetic(_cards);
+        var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view };
+        _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+        await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-counters.png"), 1920, 1080, 0);
+        if (_overlay.FindName("CountersCard") is not FrameworkElement card)
+        {
+            return;
+        }
+
+        SaveScaled(card, Path.Combine(folder, "overlay-counters-panel.png"));
+        var chips = _overlayViewModel.OpponentCounters.Concat(_overlayViewModel.MyCounters).ToList();
+        var shown = chips.FirstOrDefault(c => c.Id == "cthun") ?? chips.FirstOrDefault();
+        if (shown is null)
+        {
+            return;
+        }
+
+        if (_overlay.TryFindResource("CounterTipTemplate") is DataTemplate tipTemplate)
+        {
+            var host = new System.Windows.Controls.ContentControl { Content = shown, ContentTemplate = tipTemplate };
+            host.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            host.Arrange(new Rect(host.DesiredSize));
+            for (var i = 0; i < 8; i++)
+            {
+                await Task.Delay(500);
+                host.UpdateLayout();
+            }
+
+            SaveScaled(host, Path.Combine(folder, "overlay-counters-tooltip.png"));
+        }
+
+        _overlayViewModel.ToggleCounter.Execute(shown.Id);
+        for (var i = 0; i < 8; i++)
+        {
+            await Task.Delay(500);
+            _overlay.UpdateLayout();
+        }
+
+        SaveScaled(card, Path.Combine(folder, "overlay-counters-open.png"));
+        _overlayViewModel.ToggleCounter.Execute(shown.Id);
+    }
+
+    /// <summary>An overlay element alone at twice its size, on the dark stand-in for the game.</summary>
+    private static void SaveScaled(FrameworkElement element, string path)
+    {
+        const double scale = 2;
+        const double pad = 12;
+        var width = (int)Math.Ceiling((element.ActualWidth + 2 * pad) * scale);
+        var height = (int)Math.Ceiling((element.ActualHeight + 2 * pad) * scale);
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x24, 0x19, 0x10)), null, new Rect(0, 0, width, height));
+            dc.DrawRectangle(new VisualBrush(element) { Stretch = Stretch.Fill }, null,
+                new Rect(pad * scale, pad * scale, element.ActualWidth * scale, element.ActualHeight * scale));
+        }
+
+        var bitmap = new RenderTargetBitmap(Math.Max(1, width), Math.Max(1, height), 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(path);
+        encoder.Save(stream);
     }
 
     private static void Save(FrameworkElement element, string path)

@@ -814,7 +814,7 @@
 
             <!-- ============ Constructed: counters (bottom-left) ============ -->
             <o:MovablePanel Id="counters" Title="Counters" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,170">
-                <Border Style="{StaticResource OverlayCard}" Width="240" o:OverlayHit.Interactive="True">
+                <Border x:Name="CountersCard" Style="{StaticResource OverlayCard}" Width="240" o:OverlayHit.Interactive="True">
                     <StackPanel Margin="8">
                         <TextBlock Text="Opponent" Style="{StaticResource SectionLabel}" Margin="4,0,0,2" Visibility="{Binding OpponentCounters, Converter={StaticResource Vis}}" />
                         <ItemsControl ItemsSource="{Binding OpponentCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
