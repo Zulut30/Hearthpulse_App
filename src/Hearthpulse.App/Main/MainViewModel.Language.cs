@@ -24,6 +24,9 @@ public sealed partial class MainViewModel
         RebuildBattlegroundsStats();
         RebuildConstructedStats();
         RebuildArenaStats();
+
+        // The deck list, merge suggestions and the open deck page (shown again from the rebuilt families).
+        RebuildDecks();
         if (_meta is null || _cards.Count == 0)
         {
             MetaUpdated = Loc.T("Main.Bg.CommunityLoading");
