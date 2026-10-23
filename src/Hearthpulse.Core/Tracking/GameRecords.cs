@@ -130,8 +130,19 @@ public static class GameRecords
             RankStarLevel = rankInfo is { StarLevel: > 0 } ? rankInfo.StarLevel : null,
             RankLegend = rankInfo is { LegendRank: > 0 } ? rankInfo.LegendRank : null,
             WentFirst = WentFirst(game),
-            DeckId = deck is { DeckId: > 0 } ? deck.DeckId : null,
+            DeckId = deck is { DeckId: > 0 } && DeckFits(deck, cards.Get(hero?.CardId)?.CardClass, cards) ? deck.DeckId : null,
         };
+    }
+
+    /// <summary>
+    /// False when the deck's hero is of another class than the game's hero: the client did not announce a deck for this
+    /// game (some modes, a reconnect) and the one queued for an earlier game is still held. Unknown classes pass.
+    /// </summary>
+    private static bool DeckFits(DeckDefinition deck, string? playerClass, CardDb cards)
+    {
+        var deckClass = deck.HeroDbfIds.Select(cards.Get).FirstOrDefault(c => c is not null)?.CardClass;
+        return string.IsNullOrEmpty(deckClass) || string.IsNullOrEmpty(playerClass)
+               || string.Equals(deckClass, playerClass, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>True when the local player went first, false on the coin, null when the log did not say.</summary>

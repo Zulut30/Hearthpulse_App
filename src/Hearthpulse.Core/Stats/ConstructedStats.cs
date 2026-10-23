@@ -144,13 +144,29 @@ public static class ConstructedStats
     /// Results per archetype of the player's decks (decks the meta cannot place are left out), compared with the
     /// archetype's community win rate.
     /// </summary>
-    public static IReadOnlyList<GroupStats> ByArchetype(IReadOnlyList<GameRecord> games, Func<GameRecord, MetaArchetype?> archetypeOf) =>
-        games.Select(g => (Game: g, Archetype: archetypeOf(g)))
+    public static IReadOnlyList<GroupStats> ByArchetype(IReadOnlyList<GameRecord> games, Func<GameRecord, MetaArchetype?> archetypeOf)
+    {
+        // Matching decodes the deck and scores every archetype of its class: once per deck, not once per game.
+        var known = new Dictionary<(string? Code, string Class), MetaArchetype?>();
+        MetaArchetype? Of(GameRecord game)
+        {
+            var key = (game.DeckCode, game.PlayerClass);
+            if (!known.TryGetValue(key, out var archetype))
+            {
+                archetype = string.IsNullOrEmpty(game.DeckCode) ? null : archetypeOf(game);
+                known[key] = archetype;
+            }
+
+            return archetype;
+        }
+
+        return games.Select(g => (Game: g, Archetype: Of(g)))
             .Where(x => x.Archetype is not null)
             .GroupBy(x => x.Archetype!.Id)
             .Select(g => new GroupStats(g.First().Archetype!.Key, g.First().Archetype!.Name, WinLoss.Of(g.Select(x => x.Game)), g.First().Archetype!.WinRate))
             .OrderByDescending(g => g.Record.Games)
             .ToList();
+    }
 
     /// <summary>The archetype of a deck code in the meta (by its core cards), or null.</summary>
     public static MetaArchetype? ArchetypeOf(string? deckCode, string? playerClass, ConstructedMeta? meta, CardDb cards)

@@ -187,7 +187,7 @@ public sealed class MyStatsTests
             {"heroStats":[{"heroCardId":"TB_BaconShop_HERO_72","dataPoints":100,"totalOffered":400,"totalPicked":100,"averagePosition":4.16,
               "placementDistribution":[{"rank":1,"percentage":15},{"rank":2,"percentage":13},{"rank":3,"percentage":17},{"rank":4,"percentage":11},
                 {"rank":5,"percentage":12},{"rank":6,"percentage":11},{"rank":7,"percentage":11},{"rank":8,"percentage":10}],
-              "combatWinrate":[{"turn":1,"winrate":100},{"turn":2,"winrate":35.5}]}]}
+              "combatWinrate":[{"turn":1,"winrate":100},{"turn":2,"winrate":35.5},{"turn":3,"winrate":null}]}]}
             """);
 
         var hero = BattlegroundsMeta.ParseHeroes(doc.RootElement)["TB_BaconShop_HERO_72"];
@@ -196,6 +196,7 @@ public sealed class MyStatsTests
         Assert.Equal(8, global.PlacementShares!.Count);
         Assert.Equal(0.15, global.PlacementShares[0], 6);
         Assert.Equal(0.355, global.CombatWinRate![2], 6);
+        Assert.False(global.CombatWinRate.ContainsKey(3));
         Assert.Equal(0.25, global.PickRate);
         Assert.Equal(4.16, global.AveragePlacement);
     }
@@ -286,28 +287,48 @@ public sealed class MyStatsTests
         {
             // Run 1 (no deck ids): 2 wins then 3 losses ends it.
             Arena("Win", -20), Arena("Loss", -19), Arena("Win", -18), Arena("Loss", -17), Arena("Loss", -16),
-            // Run 2: same class, a new run because the first one ended.
-            Arena("Win", -15), Arena("Win", -14),
-            // Run 3 and 4: deck ids split them even with the same class.
-            Arena("Win", -10, deck: 7), Arena("Loss", -9, deck: 7), Arena("Win", -8, deck: 8),
+            // Run 2: same class, a new run because the first one ended; its later games name deck 7 (an update
+            // started saving ids mid-run), which does not split it.
+            Arena("Win", -15), Arena("Win", -14), Arena("Win", -10, deck: 7), Arena("Loss", -9, deck: 7),
+            // Run 3: a different deck id is a new run even with the same class.
+            Arena("Win", -8, deck: 8),
         };
 
         var runs = ArenaStats.Runs(games);
 
-        Assert.Equal(4, runs.Count);
+        Assert.Equal(3, runs.Count);
         Assert.Equal((2, 3, true), (runs[0].Wins, runs[0].Losses, runs[0].Finished));
-        Assert.Equal((2, 0, false), (runs[1].Wins, runs[1].Losses, runs[1].Finished));
-        Assert.Equal(7, runs[2].DeckId);
-        Assert.Single(runs[3].Games);
+        Assert.Equal((3, 1, false), (runs[1].Wins, runs[1].Losses, runs[1].Finished));
+        Assert.Equal(7, runs[1].DeckId);
+        Assert.Equal(8, runs[2].DeckId);
+        Assert.Single(runs[2].Games);
 
         var summary = ArenaStats.Summary(runs);
-        Assert.Equal(4, summary.Runs);
+        Assert.Equal(3, summary.Runs);
         Assert.Equal(2, summary.AverageWins);
-        Assert.Equal(2, summary.BestWins);
+        Assert.Equal(3, summary.BestWins);
         Assert.Equal(new WinLoss(10, 6, 4), summary.Record);
 
         var mage = Assert.Single(ArenaStats.ByClass(runs));
-        Assert.Equal(4, mage.Runs);
+        Assert.Equal(3, mage.Runs);
         Assert.Equal(2, mage.AverageWins);
+    }
+
+    [Fact]
+    public void Arena_games_without_a_deck_id_join_the_run_of_the_same_deck()
+    {
+        GameRecord Arena(string result, int hour, long? deck) =>
+            Ranked(result, cls: "PALADIN", at: Now.AddHours(hour), mode: "Arena", deckId: deck) with { GameType = "GT_ARENA" };
+
+        // 4-1 with deck 7, then an imported game without an id, then 7 again: one 7-3 run that ends at 3 losses.
+        var runs = ArenaStats.Runs(
+        [
+            Arena("Win", -10, 7), Arena("Win", -9, 7), Arena("Loss", -8, 7), Arena("Win", -7, 7), Arena("Win", -6, 7),
+            Arena("Win", -5, null), Arena("Loss", -4, null), Arena("Win", -3, 7), Arena("Win", -2, 7), Arena("Loss", -1, 7),
+        ]);
+
+        var run = Assert.Single(runs);
+        Assert.Equal((7, 3, true), (run.Wins, run.Losses, run.Finished));
+        Assert.Equal(7, run.DeckId);
     }
 }

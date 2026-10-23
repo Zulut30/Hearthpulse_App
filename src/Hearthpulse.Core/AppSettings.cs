@@ -165,6 +165,12 @@ public sealed class AppSettings
 
     public bool HistoryImported { get; set; }
 
+    /// <summary>
+    /// The kept logs were read again once to fill the My Stats fields (who went first, Battlegrounds combats and hero
+    /// offers) of games saved before the app recorded them.
+    /// </summary>
+    public bool HistoryStatsFilled { get; set; }
+
     /// <summary>Colour theme: a preset name, or "Custom" with the three values below.</summary>
     public string Theme { get; set; } = "Tavern";
 

@@ -402,9 +402,11 @@ public sealed class BattlegroundsMeta
             {
                 foreach (var combat in combats.EnumerateArray())
                 {
-                    if (combat.ValueKind == JsonValueKind.Object && GetInt(combat, "turn") is var turn and > 0)
+                    // Turns without data come as "winrate": null; they are left out rather than read as 0%.
+                    if (combat.ValueKind == JsonValueKind.Object && GetInt(combat, "turn") is var turn and > 0
+                        && combat.TryGetProperty("winrate", out var winrate) && winrate.ValueKind == JsonValueKind.Number)
                     {
-                        combatWinRate[turn] = GetDouble(combat, "winrate") / 100;
+                        combatWinRate[turn] = winrate.GetDouble() / 100;
                     }
                 }
             }

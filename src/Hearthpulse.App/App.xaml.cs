@@ -281,7 +281,7 @@ public partial class App : Application
             _session.Cards = _cards;
             _mainViewModel.SetCards(_cards);
 
-            if (!_settings.HistoryImported)
+            if (!_settings.HistoryImported || !_settings.HistoryStatsFilled)
             {
                 await ImportLogsAsync(force: false);
             }
@@ -415,6 +415,7 @@ public partial class App : Application
         var progress = new Progress<string>(text => _mainViewModel.Busy = text);
         var result = await Task.Run(() => LogBackfill.Run(_installDir, _history, _cards, progress));
         _settings.HistoryImported = true;
+        _settings.HistoryStatsFilled = true;
         _settings.Save();
         _mainViewModel.Busy = force || result.GamesAdded > 0
             ? $"Imported {result.GamesAdded} new games from {result.Sessions} log sessions."

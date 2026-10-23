@@ -25,8 +25,9 @@ public static class ArenaStats
     public static int MaxLosses(GameRecord game) => game.GameType.Contains("UNDERGROUND", StringComparison.Ordinal) ? 5 : 3;
 
     /// <summary>
-    /// Splits Arena games into runs. A run is the games played with one deck id (Decks.log names the Arena deck); games
-    /// without one are joined while the class stays the same and the run has not reached its loss or win limit.
+    /// Splits Arena games into runs. Two different deck ids (Decks.log names the Arena deck) are always two runs, the same
+    /// id is one run. A missing id (games saved before the id was recorded, imported games, a reconnect) is unknown, not
+    /// different: such a game joins the run while the class stays the same and the run is below its loss and win limits.
     /// </summary>
     public static IReadOnlyList<ArenaRun> Runs(IEnumerable<GameRecord> games)
     {
@@ -74,10 +75,10 @@ public static class ArenaStats
     private static bool SameRun(List<GameRecord> run, GameRecord game)
     {
         var last = run[^1];
-        // Once either game names its deck, only the same deck id is the same run.
-        if (last.DeckId is > 0 || game.DeckId is > 0)
+        var runDeck = RunDeck(run);
+        if (runDeck is not null && game.DeckId is > 0)
         {
-            return last.DeckId == game.DeckId;
+            return runDeck == game.DeckId;
         }
 
         var wins = run.Count(g => g.Result == "Win");
@@ -85,13 +86,16 @@ public static class ArenaStats
         return last.PlayerClass == game.PlayerClass && wins < MaxWins && losses < MaxLosses(last);
     }
 
+    /// <summary>The run's deck id: the first one any of its games saved.</summary>
+    private static long? RunDeck(List<GameRecord> run) => run.Select(g => g.DeckId).FirstOrDefault(id => id is > 0);
+
     private static ArenaRun Build(List<GameRecord> games)
     {
         var wins = games.Count(g => g.Result == "Win");
         var losses = games.Count(g => g.Result == "Loss");
         return new ArenaRun(
             games[0].PlayerClass,
-            games[0].DeckId is > 0 ? games[0].DeckId : null,
+            RunDeck(games),
             games[0].StartedAt,
             games[^1].EndedAt,
             wins,

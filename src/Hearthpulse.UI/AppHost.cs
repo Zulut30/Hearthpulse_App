@@ -164,7 +164,7 @@ public sealed class AppHost : IDisposable
             Session.Cards = Cards;
             Main.SetCards(Cards);
 
-            if (!Settings.HistoryImported)
+            if (!Settings.HistoryImported || !Settings.HistoryStatsFilled)
             {
                 await ImportLogsAsync(force: false);
             }
@@ -299,6 +299,7 @@ public sealed class AppHost : IDisposable
         var progress = new Progress<string>(text => Main.Busy = text);
         var result = await Task.Run(() => LogBackfill.Run(install, History, Cards, progress));
         Settings.HistoryImported = true;
+        Settings.HistoryStatsFilled = true;
         Settings.Save();
         Main.Busy = force || result.GamesAdded > 0
             ? $"Imported {result.GamesAdded} new games from {result.Sessions} log sessions."

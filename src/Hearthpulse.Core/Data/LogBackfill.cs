@@ -39,6 +39,11 @@ public static class LogBackfill
                     {
                         added++;
                     }
+                    else
+                    {
+                        // A game saved before the My Stats fields existed gets them from its log now.
+                        history.FillMissingFields(record);
+                    }
                 }
             }
         }

@@ -248,6 +248,52 @@ public sealed class HistoryStore
         return inserted > 0;
     }
 
+    /// <summary>
+    /// Fills the My Stats fields (<see cref="AddedColumns"/>) a saved game lacks from a re-read of the same game, e.g. a
+    /// backfill over logs whose games were saved before those fields existed. Values already saved are kept. Returns
+    /// true when the row changed.
+    /// </summary>
+    public bool FillMissingFields(GameRecord game)
+    {
+        int changed;
+        lock (_gate)
+        {
+            using var connection = Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE games SET
+                    combat_results = COALESCE(combat_results, $combats),
+                    offered_heroes = COALESCE(offered_heroes, $offered),
+                    anomaly = COALESCE(anomaly, $anomaly),
+                    rank_star_level = COALESCE(rank_star_level, $stars),
+                    rank_legend = COALESCE(rank_legend, $legend),
+                    went_first = COALESCE(went_first, $first),
+                    deck_id = COALESCE(deck_id, $deckid)
+                WHERE game_key = $key
+                    AND ((combat_results IS NULL AND $combats IS NOT NULL) OR (offered_heroes IS NULL AND $offered IS NOT NULL)
+                        OR (anomaly IS NULL AND $anomaly IS NOT NULL) OR (rank_star_level IS NULL AND $stars IS NOT NULL)
+                        OR (rank_legend IS NULL AND $legend IS NOT NULL) OR (went_first IS NULL AND $first IS NOT NULL)
+                        OR (deck_id IS NULL AND $deckid IS NOT NULL));
+                """;
+            command.Parameters.AddWithValue("$key", game.Key);
+            command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
+            command.Parameters.AddWithValue("$offered", (object?)game.OfferedHeroes ?? DBNull.Value);
+            command.Parameters.AddWithValue("$anomaly", (object?)game.AnomalyCardId ?? DBNull.Value);
+            command.Parameters.AddWithValue("$stars", (object?)game.RankStarLevel ?? DBNull.Value);
+            command.Parameters.AddWithValue("$legend", (object?)game.RankLegend ?? DBNull.Value);
+            command.Parameters.AddWithValue("$first", game.WentFirst is { } first ? first ? 1 : 0 : DBNull.Value);
+            command.Parameters.AddWithValue("$deckid", (object?)game.DeckId ?? DBNull.Value);
+            changed = command.ExecuteNonQuery();
+        }
+
+        if (changed > 0)
+        {
+            Changed?.Invoke();
+        }
+
+        return changed > 0;
+    }
+
     /// <summary>Fills in the post-game rating once the client reports it.</summary>
     public void UpdateRatingAfter(string key, int ratingAfter)
     {
