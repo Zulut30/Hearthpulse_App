@@ -14,6 +14,9 @@ public sealed class ConstructedTracker : IPowerListener
     private readonly List<(int EntityId, int Turn)> _opponentPlayed = new();
     private readonly HashSet<int> _opponentPlayedIds = new();
 
+    /// <summary>The zone each opponent card was in before it last entered the hand (DECK, PLAY, SETASIDE...).</summary>
+    private readonly Dictionary<int, string> _cameToHandFrom = new();
+
     public DeckDefinition? Deck { get; set; }
 
     /// <summary>Community stats for the mulligan panel (the format and rank the player picked on the Constructed page).</summary>
@@ -30,6 +33,7 @@ public sealed class ConstructedTracker : IPowerListener
     {
         _opponentPlayed.Clear();
         _opponentPlayedIds.Clear();
+        _cameToHandFrom.Clear();
         LocalRank = null;
         OpponentRank = null;
     }
@@ -39,6 +43,11 @@ public sealed class ConstructedTracker : IPowerListener
         if (tag != GameTag.Zone || game.LocalPlayerId == 0 || entity.Controller == game.LocalPlayerId)
         {
             return;
+        }
+
+        if (value == "HAND")
+        {
+            _cameToHandFrom[entity.Id] = previous;
         }
 
         if (previous is "HAND" or "DECK" && PlayedZones.Contains(value) && !IgnoredTypes.Contains(entity.CardType)
@@ -78,21 +87,7 @@ public sealed class ConstructedTracker : IPowerListener
 
         var hand = game.Controlled(opponent, "HAND")
             .OrderBy(e => e.ZonePosition)
-            .Select(e =>
-            {
-                var creator = game.Entities.GetValueOrDefault(e.GetInt(GameTag.DisplayedCreator) is > 0 and var d ? d : e.GetInt(GameTag.Creator));
-                var createdBy = creator is { CardId.Length: > 0 } && creator.CardType is not ("PLAYER" or "GAME")
-                    ? cards.NameOf(creator.CardId)
-                    : null;
-                return new HandSlot(
-                    e.ZonePosition,
-                    ToPlayerTurn(e.EnteredHandTurn),
-                    e.CardId.Length > 0 ? e.CardId : null,
-                    e.CardId.Length > 0 ? cards.NameOf(e.CardId) : null,
-                    e.EnteredHandTurn == 0,
-                    e.CardId == "GAME_005",
-                    createdBy);
-            })
+            .Select(e => HandSlotOf(game, cards, e))
             .ToList();
 
         var playerClass = cards.Get(playerHero)?.CardClass ?? string.Empty;
@@ -147,6 +142,38 @@ public sealed class ConstructedTracker : IPowerListener
             : new DeckMetaStat(archetype.Name, archetype.WinRate, archetype.Games, ConstructedMeta.Label(ConstructedMeta.Ranks, Meta.Rank), source);
         _deckMeta = (Deck, Meta, stat);
         return stat;
+    }
+
+    private HandSlot HandSlotOf(GameState game, CardDb cards, Entity e)
+    {
+        var creator = game.Entities.GetValueOrDefault(e.GetInt(GameTag.DisplayedCreator) is > 0 and var d ? d : e.GetInt(GameTag.Creator));
+        var creatorId = creator is { CardId.Length: > 0 } && creator.CardType is not ("PLAYER" or "GAME")
+            ? creator.CardId
+            // A hidden creator can still name its card through CREATOR_DBID.
+            : e.GetInt(GameTag.CreatorDbId) is > 0 and var dbf ? cards.Get(dbf)?.Id : null;
+        var isCoin = e.CardId == "GAME_005";
+        var from = _cameToHandFrom.GetValueOrDefault(e.Id, e.InitialZone);
+        var origin = isCoin ? HandCardOrigin.Coin
+            : e.InitialController == game.LocalPlayerId && game.LocalPlayerId != 0 ? HandCardOrigin.Stolen
+            : from is "PLAY" or "GRAVEYARD" or "SECRET" ? HandCardOrigin.Returned
+            : from == "DECK" && !e.IsOriginalDeckCard ? HandCardOrigin.Shuffled
+            : from != "DECK" && (creatorId is not null || e.CreatedTurn > 0) ? HandCardOrigin.Created
+            : e.EnteredHandTurn == 0 ? HandCardOrigin.Mulligan
+            : HandCardOrigin.Drawn;
+        return new HandSlot(
+            e.ZonePosition,
+            ToPlayerTurn(e.EnteredHandTurn),
+            e.CardId.Length > 0 ? e.CardId : null,
+            e.CardId.Length > 0 ? cards.NameOf(e.CardId) : null,
+            e.EnteredHandTurn == 0,
+            isCoin,
+            creatorId is null ? null : cards.NameOf(creatorId))
+        {
+            EntityId = e.Id,
+            CreatedById = creatorId,
+            CreatorIsYours = creator is not null && creatorId == creator.CardId && creator.Controller == game.LocalPlayerId,
+            Origin = origin,
+        };
     }
 
     private List<DeckCardRow> BuildDeckRows(GameState game, CardDb cards, int local, int deckCount)

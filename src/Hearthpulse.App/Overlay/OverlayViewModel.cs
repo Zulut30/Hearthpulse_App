@@ -361,6 +361,7 @@ public sealed partial class OverlayViewModel : Observable
         }
 
         UpdateLive(constructed, settings);
+        UpdateHandMarks(constructed, settings);
 
         var bg = enabled ? snapshot.Battlegrounds : null;
         _bg = bg;

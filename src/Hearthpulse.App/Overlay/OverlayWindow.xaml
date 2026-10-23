@@ -815,6 +815,12 @@
                 </Border>
             </o:MovablePanel>
 
+            <!-- ============ Constructed: marks under the opponent's hand fan (top centre; move and scale it onto the cards) ============ -->
+            <o:MovablePanel Id="opponent-hand" Title="Opponent's hand" MinWidth="{x:Static o:OverlayViewModel.HandPanelWidth}" Shown="{Binding ShowHandMarks}"
+                            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,92,0,0">
+                <o:OpponentHandPanel />
+            </o:MovablePanel>
+
             <!-- ============ Constructed: counters (bottom-left) ============ -->
             <o:MovablePanel Id="counters" Title="Counters" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,170">
                 <Border Style="{StaticResource OverlayCard}" Width="240" o:OverlayHit.Interactive="True">

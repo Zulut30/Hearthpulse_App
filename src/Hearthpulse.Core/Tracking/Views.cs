@@ -16,7 +16,20 @@ public sealed record DeckCardRow(
 
 public sealed record PlayedCard(string CardId, string Name, int Cost, int Count, int FirstTurn, bool IsCreated);
 
-public sealed record HandSlot(int Position, int Turn, string? CardId, string? CardName, bool FromMulligan, bool IsCoin, string? CreatedBy);
+public sealed record HandSlot(int Position, int Turn, string? CardId, string? CardName, bool FromMulligan, bool IsCoin, string? CreatedBy)
+{
+    /// <summary>The card's entity id (stable while it stays in the hand).</summary>
+    public int EntityId { get; init; }
+
+    /// <summary>Card id of the card that created this one (<see cref="CreatedBy"/> is its name); null when none or hidden.</summary>
+    public string? CreatedById { get; init; }
+
+    /// <summary>True when the creating card is the local player's (e.g. one of yours shuffled it into their deck).</summary>
+    public bool CreatorIsYours { get; init; }
+
+    /// <summary>How the card got into the hand.</summary>
+    public HandCardOrigin Origin { get; init; }
+}
 
 public sealed record ConstructedView(
     int Turn,
