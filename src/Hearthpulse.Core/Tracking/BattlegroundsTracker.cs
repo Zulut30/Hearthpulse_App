@@ -502,6 +502,9 @@ public sealed class BattlegroundsTracker : IPowerListener
     /// <summary>Final board for history, captured at the last combat.</summary>
     public IReadOnlyList<BgMinion> LastOwnBoard => _lastOwnBoard;
 
+    /// <summary>This game's combats so far, oldest first (for history).</summary>
+    public IReadOnlyList<CombatRecord> Combats => _combats;
+
     public int FinalTechLevel => _tiers.Count > 0 ? _tiers[^1].Tier : 1;
 
     private void BeginCombat(GameState game)

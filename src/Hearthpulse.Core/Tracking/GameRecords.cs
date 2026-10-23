@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Tracking;
@@ -36,7 +37,9 @@ public static class GameRecords
         int? ratingBefore = null,
         int? ratingAfter = null,
         string? rank = null,
-        string? races = null)
+        string? races = null,
+        GameFactsTracker? facts = null,
+        RankInfo? rankInfo = null)
     {
         if (game.LocalPlayer is not { } local || game.GameType.Length == 0 || game.GameType == "GT_TUTORIAL")
         {
@@ -86,6 +89,9 @@ public static class GameRecords
                 FinalBoard = board.Count > 0 ? JsonSerializer.Serialize(board) : null,
                 Races = races,
                 Source = source,
+                CombatResults = CombatJson(battlegrounds.Combats),
+                OfferedHeroes = facts is { OfferedHeroes.Count: > 0 } ? string.Join(",", facts.OfferedHeroes) : null,
+                AnomalyCardId = game.GameEntity?.GetInt(GameTag.BaconAnomaly) is > 0 and var anomaly ? cards.Get(anomaly)?.Id : null,
             };
         }
 
@@ -121,6 +127,33 @@ public static class GameRecords
             DeckCode = deck?.Code,
             Rank = rank,
             Source = source,
+            RankStarLevel = rankInfo is { StarLevel: > 0 } ? rankInfo.StarLevel : null,
+            RankLegend = rankInfo is { LegendRank: > 0 } ? rankInfo.LegendRank : null,
+            WentFirst = WentFirst(game),
+            DeckId = deck is { DeckId: > 0 } ? deck.DeckId : null,
         };
     }
+
+    /// <summary>True when the local player went first, false on the coin, null when the log did not say.</summary>
+    private static bool? WentFirst(GameState game)
+    {
+        if (game.LocalPlayerEntity?.GetInt(GameTag.FirstPlayer) == 1)
+        {
+            return true;
+        }
+
+        return game.OpponentPlayerEntity?.GetInt(GameTag.FirstPlayer) == 1 ? false : null;
+    }
+
+    private static string? CombatJson(IReadOnlyList<CombatRecord> combats) =>
+        combats.Count == 0
+            ? null
+            : JsonSerializer.Serialize(combats.Select(c => new
+            {
+                turn = c.Turn,
+                result = c.Result,
+                opponent = c.OpponentHeroCardId,
+                taken = c.DamageTaken,
+                dealt = c.DamageDealt,
+            }));
 }

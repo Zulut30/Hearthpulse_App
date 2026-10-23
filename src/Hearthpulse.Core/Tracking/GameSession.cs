@@ -21,6 +21,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private readonly HearthstoneMemory _memory;
     private readonly ConstructedTracker _constructed = new();
     private readonly BattlegroundsTracker _battlegrounds = new();
+    private readonly GameFactsTracker _facts = new();
     private readonly object _statsGate = new();
 
     // The watchdog can replace a wedged log watcher while its thread is still in here. This lock keeps the old and the
@@ -187,6 +188,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_constructed.Counters);
         _parser.AddListener(_battlegrounds);
         _parser.AddListener(_battlegrounds.Counters);
+        _parser.AddListener(_facts);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
         _dirty = true;
@@ -413,7 +415,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         int? before = _ratingAtGameStart is { } r ? (duos ? r.Duos : r.Solo) : null;
         var rank = _constructed.LocalRank?.Display;
         var races = _battlegrounds.MemoryRaces is { Count: > 0 } list ? string.Join(",", list) : null;
-        var record = GameRecords.Build(game, _battlegrounds, _cards, _constructed.Deck, "live", before is > 0 ? before : null, null, rank, races);
+        var record = GameRecords.Build(game, _battlegrounds, _cards, _constructed.Deck, "live", before is > 0 ? before : null, null, rank, races,
+            _facts, _constructed.LocalRank);
         if (record is null)
         {
             return;

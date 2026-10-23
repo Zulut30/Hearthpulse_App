@@ -56,6 +56,33 @@ public sealed record GameRecord
 
     public string Source { get; init; } = "live";
 
+    // ---- My Stats fields (added by migration; null in rows saved before them) ----
+
+    /// <summary>
+    /// Battlegrounds: every combat of the game as JSON, oldest first:
+    /// <c>[{"turn":3,"result":"Win","opponent":"TB_BaconShop_HERO_08","taken":0,"dealt":5}]</c>.
+    /// <c>result</c> is Win/Loss/Tie from the player's side; <c>taken</c>/<c>dealt</c> is hero damage after the fight.
+    /// </summary>
+    public string? CombatResults { get; init; }
+
+    /// <summary>Battlegrounds: hero card ids offered at the hero pick, comma-separated, in offer order.</summary>
+    public string? OfferedHeroes { get; init; }
+
+    /// <summary>Battlegrounds: card id of the lobby's anomaly, if the game had one.</summary>
+    public string? AnomalyCardId { get; init; }
+
+    /// <summary>Constructed: ranked star level 1-50 (Bronze 10 = 1 ... Diamond 1 = 50, 51+ = Legend) at game start.</summary>
+    public int? RankStarLevel { get; init; }
+
+    /// <summary>Constructed: Legend rank number at game start (null below Legend or when unknown).</summary>
+    public int? RankLegend { get; init; }
+
+    /// <summary>Constructed and Arena: true when the player went first, false when on the coin.</summary>
+    public bool? WentFirst { get; init; }
+
+    /// <summary>Deck id from Decks.log (Constructed decks and Arena runs: one Arena run has one deck id).</summary>
+    public long? DeckId { get; init; }
+
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 
     public TimeSpan Duration => EndedAt - StartedAt;
@@ -123,6 +150,41 @@ public sealed class HistoryStore
             CREATE INDEX IF NOT EXISTS ix_games_started ON games(started_at);
             CREATE INDEX IF NOT EXISTS ix_games_mode ON games(mode);
             """);
+        AddMissingColumns(connection);
+    }
+
+    /// <summary>Columns added after the first schema, with their SQL type. Older databases get them on open.</summary>
+    private static readonly (string Name, string Type)[] AddedColumns =
+    [
+        ("combat_results", "TEXT NULL"),
+        ("offered_heroes", "TEXT NULL"),
+        ("anomaly", "TEXT NULL"),
+        ("rank_star_level", "INTEGER NULL"),
+        ("rank_legend", "INTEGER NULL"),
+        ("went_first", "INTEGER NULL"),
+        ("deck_id", "INTEGER NULL"),
+    ];
+
+    private static void AddMissingColumns(SqliteConnection connection)
+    {
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "PRAGMA table_info(games);";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                existing.Add(reader.GetString(1));
+            }
+        }
+
+        foreach (var (name, type) in AddedColumns)
+        {
+            if (!existing.Contains(name))
+            {
+                Execute(connection, $"ALTER TABLE games ADD COLUMN {name} {type};");
+            }
+        }
     }
 
     public event Action? Changed;
@@ -138,10 +200,19 @@ public sealed class HistoryStore
             command.CommandText = """
                 INSERT OR IGNORE INTO games (game_key, started_at, ended_at, mode, game_type, format, player_name, opponent_name,
                     hero, opponent_hero, player_class, opponent_class, result, placement, rating_before, rating_after, turns,
-                    deck_name, deck_code, tavern_tier, final_board, races, rank, source)
+                    deck_name, deck_code, tavern_tier, final_board, races, rank, source,
+                    combat_results, offered_heroes, anomaly, rank_star_level, rank_legend, went_first, deck_id)
                 VALUES ($key, $started, $ended, $mode, $type, $format, $player, $opponent, $hero, $ohero, $pclass, $oclass,
-                    $result, $placement, $rb, $ra, $turns, $deck, $code, $tier, $board, $races, $rank, $source);
+                    $result, $placement, $rb, $ra, $turns, $deck, $code, $tier, $board, $races, $rank, $source,
+                    $combats, $offered, $anomaly, $stars, $legend, $first, $deckid);
                 """;
+            command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
+            command.Parameters.AddWithValue("$offered", (object?)game.OfferedHeroes ?? DBNull.Value);
+            command.Parameters.AddWithValue("$anomaly", (object?)game.AnomalyCardId ?? DBNull.Value);
+            command.Parameters.AddWithValue("$stars", (object?)game.RankStarLevel ?? DBNull.Value);
+            command.Parameters.AddWithValue("$legend", (object?)game.RankLegend ?? DBNull.Value);
+            command.Parameters.AddWithValue("$first", game.WentFirst is { } first ? first ? 1 : 0 : DBNull.Value);
+            command.Parameters.AddWithValue("$deckid", (object?)game.DeckId ?? DBNull.Value);
             command.Parameters.AddWithValue("$key", game.Key);
             command.Parameters.AddWithValue("$started", game.StartedAt.ToString("O", CultureInfo.InvariantCulture));
             command.Parameters.AddWithValue("$ended", game.EndedAt.ToString("O", CultureInfo.InvariantCulture));
@@ -339,6 +410,13 @@ public sealed class HistoryStore
                     Races = NullableString(reader, "races"),
                     Rank = NullableString(reader, "rank"),
                     Source = reader.GetString(reader.GetOrdinal("source")),
+                    CombatResults = NullableString(reader, "combat_results"),
+                    OfferedHeroes = NullableString(reader, "offered_heroes"),
+                    AnomalyCardId = NullableString(reader, "anomaly"),
+                    RankStarLevel = NullableInt(reader, "rank_star_level"),
+                    RankLegend = NullableInt(reader, "rank_legend"),
+                    WentFirst = NullableInt(reader, "went_first") is { } first ? first != 0 : null,
+                    DeckId = reader.IsDBNull(reader.GetOrdinal("deck_id")) ? null : reader.GetInt64(reader.GetOrdinal("deck_id")),
                 });
             }
 
