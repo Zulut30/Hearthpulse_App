@@ -186,6 +186,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_constructed);
         _parser.AddListener(_constructed.Counters);
         _parser.AddListener(_battlegrounds);
+        _parser.AddListener(_battlegrounds.Counters);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
         _dirty = true;

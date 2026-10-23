@@ -50,6 +50,9 @@ public sealed class BattlegroundsTracker : IPowerListener
     private int _localAlive;
     private int _opponentAlive;
     private IReadOnlyList<BgMinion> _lastOwnBoard = Array.Empty<BgMinion>();
+
+    /// <summary>Cards the player could see in the last tavern phase (tavern, hand, board, trinkets, hero power), for counters.</summary>
+    private IReadOnlyList<string> _lastVisibleCards = Array.Empty<string>();
     private IReadOnlyList<Entity> _trinketOffer = Array.Empty<Entity>();
     private IReadOnlyList<Entity> _discoverOffer = Array.Empty<Entity>();
     private Entity? _discoverSource;
@@ -112,8 +115,12 @@ public sealed class BattlegroundsTracker : IPowerListener
 
     public bool LocalFinished { get; private set; }
 
+    /// <summary>Deaths and summons for the Battlegrounds counters; registered as a Power.log listener by the session.</summary>
+    public BattlegroundsCounterTracker Counters { get; } = new();
+
     public void OnGameStarted(GameState game)
     {
+        _lastVisibleCards = Array.Empty<string>();
         _boards.Clear();
         _combats.Clear();
         _tiers.Clear();
@@ -347,6 +354,18 @@ public sealed class BattlegroundsTracker : IPowerListener
         var anomalyDbf = game.GameEntity?.GetInt(GameTag.BaconAnomaly) ?? 0;
         var maxTier = game.LocalPlayerEntity?.GetInt(GameTag.BaconMaxTechLevel) ?? 0;
 
+        // During combat the tavern is gone and the boards are copies, so counters keep what was visible before the fight.
+        if (!combat && heroChosen)
+        {
+            _lastVisibleCards = ShopCards(game)
+                .Concat(game.Controlled(game.LocalPlayerId, "HAND"))
+                .Concat(game.Controlled(game.LocalPlayerId, "PLAY"))
+                .Where(e => e.CardId.Length > 0)
+                .Select(e => e.CardId)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+        }
+
         return new BattlegroundsView(
             game.BattlegroundsTurn,
             Math.Max(1, techLevel),
@@ -382,6 +401,7 @@ public sealed class BattlegroundsTracker : IPowerListener
             Gold = player is null ? 0 : Math.Max(0, player.GetInt("RESOURCES") + player.GetInt("TEMP_RESOURCES") - player.GetInt("RESOURCES_USED")),
             TavernUpgradeCost = LiveButtonCosts?.Upgrade,
             ButtonCosts = LiveButtonCosts,
+            Counters = BattlegroundsCounters.Build(game, Counters, Cards, _lastVisibleCards),
         };
     }
 
