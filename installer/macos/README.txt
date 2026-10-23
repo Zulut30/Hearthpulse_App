@@ -23,5 +23,5 @@ afterwards. The overlay floats over the game, including in full screen.
 Your rating and the lobby tribes are read from game memory on Windows only; on Mac
 those values stay empty.
 
-Community stats: Firestone (zerotoheroes.com). Card data and art: HearthstoneJSON.
+Community stats: Hearthpulse API (HSReplay, HSGuru data). Card data and art: HearthstoneJSON.
 Not affiliated with Blizzard Entertainment.

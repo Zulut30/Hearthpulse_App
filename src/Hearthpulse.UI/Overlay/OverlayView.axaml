@@ -990,7 +990,7 @@
                 <!-- ============ Battlegrounds: trinket pick badges (HDT: pitch 277, +10 x) ============ -->
                 <o:MovablePanel Id="trinket-row" Title="Trinket pick" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
                     <StackPanel>
-                        <TextBlock Text="Trinket stats: Firestone" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,0,0,2" />
+                        <TextBlock Text="Trinket stats: Hearthpulse stats pool" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,0,0,2" />
                         <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
                     </StackPanel>
                 </o:MovablePanel>

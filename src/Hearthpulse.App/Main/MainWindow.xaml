@@ -387,7 +387,7 @@
                                 <StackPanel>
                                     <TextBlock Text="Battlegrounds" Style="{StaticResource Display}" />
                                     <StackPanel Style="{StaticResource PageSubtitle}">
-                                        <TextBlock Text="Your results and what is strong right now, from Firestone community data." Style="{StaticResource Caption}" FontSize="14"
+                                        <TextBlock Text="Your results and what is strong right now, from community data (HSReplay via the Hearthpulse API)." Style="{StaticResource Caption}" FontSize="14"
                                                    VerticalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
@@ -409,26 +409,35 @@
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton x:Name="TabHeroes" Style="{StaticResource Tab}" Content="Heroes" GroupName="BgTab" IsChecked="True" Checked="OnBgTab"
                                                      ToolTip="Heroes ranked by average final placement" />
-                                        <RadioButton x:Name="TabComps" Style="{StaticResource Tab}" Content="{Binding CompTabLabel}" GroupName="BgTab" Checked="OnBgTab" Visibility="{Binding HasCompTiers, Converter={StaticResource Vis}}"
+                                        <RadioButton x:Name="TabComps" Style="{StaticResource Tab}" Content="{Binding CompTabLabel}" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="Board archetypes (or, from the stats pool, main tribes) ranked by average final placement" />
-                                        <RadioButton x:Name="TabTrinkets" Style="{StaticResource Tab}" Content="Trinkets" GroupName="BgTab" Checked="OnBgTab" Visibility="{Binding HasTrinketTiers, Converter={StaticResource Vis}}"
+                                        <RadioButton x:Name="TabTrinkets" Style="{StaticResource Tab}" Content="Trinkets" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="Trinkets ranked by the average placement of players who picked them" />
-                                        <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="Cards" GroupName="BgTab" Checked="OnBgTab" Visibility="{Binding HasCardTiers, Converter={StaticResource Vis}}"
+                                        <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="Cards" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="Minions and tavern spells, ranked inside each tier" />
                                         <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="My heroes" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="Your own results per hero" />
                                     </StackPanel>
                                 </Border>
-                                <Border x:Name="BracketPicker" HorizontalAlignment="Right" Style="{StaticResource SegmentBar}"
-                                        ToolTip="Use stats from players at this rating. Smaller groups are more precise for high ratings but have fewer games.">
-                                    <StackPanel Orientation="Horizontal">
-                                        <RadioButton Style="{StaticResource Segment}" Content="All" GroupName="Bracket" IsChecked="True" Command="{Binding SetBracket}" CommandParameter="100" />
-                                        <RadioButton Style="{StaticResource Segment}" Content="Top 50%" GroupName="Bracket" Command="{Binding SetBracket}" CommandParameter="50" />
-                                        <RadioButton Style="{StaticResource Segment}" Content="25%" GroupName="Bracket" Command="{Binding SetBracket}" CommandParameter="25" />
-                                        <RadioButton Style="{StaticResource Segment}" Content="10%" GroupName="Bracket" Command="{Binding SetBracket}" CommandParameter="10" />
-                                        <RadioButton Style="{StaticResource Segment}" Content="1%" GroupName="Bracket" Command="{Binding SetBracket}" CommandParameter="1" />
-                                    </StackPanel>
-                                </Border>
+                                <!-- The brackets the loaded stats have (the API: top 50/20/5/1%); hidden when there is no choice -->
+                                <Grid HorizontalAlignment="Right" Visibility="{Binding HasBracketChoice, Converter={StaticResource Vis}}">
+                                    <Border x:Name="BracketPicker" Style="{StaticResource SegmentBar}"
+                                            ToolTip="Use stats from players at this rating. Smaller groups are more precise for high ratings but have fewer games.">
+                                        <ItemsControl ItemsSource="{Binding BracketOptions}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type m:BracketOption}">
+                                                    <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="Bracket" IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                                 Command="{Binding Select}" CommandParameter="{Binding Value}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </Grid>
                             </Grid>
 
                             <!-- Hero tier list -->
@@ -547,6 +556,8 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+                                    <TextBlock Text="{Binding CompEmptyText}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8"
+                                               Visibility="{Binding HasCompTiers, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                     <TextBlock Text="{Binding MetaUpdated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" />
                                 </StackPanel>
                             </Border>
@@ -603,7 +614,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="No trinket data yet." Style="{StaticResource Caption}" Margin="0,8"
+                                    <TextBlock Text="{Binding TrinketEmptyText}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8"
                                                Visibility="{Binding TrinketTiers, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                     <TextBlock Text="{Binding MetaUpdated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" />
                                 </StackPanel>
@@ -662,7 +673,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="No card data for this tier yet." Style="{StaticResource Caption}" Margin="0,8"
+                                    <TextBlock Text="{Binding CardEmptyText}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8"
                                                Visibility="{Binding CardTiers, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                     <TextBlock Text="{Binding MetaUpdated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" />
                                 </StackPanel>

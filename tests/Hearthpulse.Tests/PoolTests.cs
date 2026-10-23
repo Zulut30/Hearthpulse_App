@@ -365,14 +365,73 @@ public sealed class PoolTests
 
         var merged = PoolClient.Merge(downloaded, PoolClient.Parse(poolDoc.RootElement)!);
 
-        // Comps, brackets, percentiles and the attribution stay those of the downloaded stats.
-        Assert.Equal(BattlegroundsMeta.Attribution, merged.Source);
-        Assert.Equal(50, merged.MinHeroGames);
+        // Comps, brackets and percentiles stay those of the downloaded stats; the attribution names both sources.
+        Assert.Equal($"{BattlegroundsMeta.Attribution} + {BattlegroundsMeta.PoolName}", merged.Source);
+        Assert.Equal(PoolClient.MinGames, merged.MinHeroGames);
         Assert.Same(comp, Assert.Single(merged.Comps));
         Assert.Equal(downloaded.Percentiles, merged.Percentiles);
         Assert.Equal(1100, merged.Hero("BG_HERO_1", 100)!.DataPoints);
         Assert.Equal(200, merged.Hero("BG_HERO_1", 10)!.DataPoints);
         Assert.Equal(100, merged.SharedGames);
+    }
+
+    /// <summary>
+    /// Review M3: the API's heroes have no sample size (0). The pool must not replace their numbers with its own few
+    /// games, must not add a bracket of its own, and adds a hero the API lacks only at <see cref="PoolClient.MinGames"/>.
+    /// What the API has none of (comps, trinkets, turn results, tribes) comes from the pool.
+    /// </summary>
+    [Fact]
+    public void PoolFillsGapsInTheApiMetaWithoutReplacingItsHeroes()
+    {
+        var api = new BattlegroundsMeta(
+            new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>
+            {
+                [50] = new Dictionary<string, MetaHero> { ["BG_HERO_1"] = new("BG_HERO_1", 0, 4.0, 0.5, new Dictionary<int, double>(), 0.5, 0.12) },
+                [1] = new Dictionary<string, MetaHero> { ["BG_HERO_1"] = new("BG_HERO_1", 0, 3.1, 0.5, new Dictionary<int, double>(), 0.7, 0.3) },
+            },
+            [],
+            [],
+            new Dictionary<string, MetaTrinket>(),
+            new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>
+            {
+                [100] = new Dictionary<string, MetaCard> { ["BG_CARD_A"] = new("BG_CARD_A", 50000, 4.0, new Dictionary<int, (int, double)>()) },
+            },
+            new DateTime(2026, 10, 23, 9, 0, 0, DateTimeKind.Utc));
+        using var poolDoc = JsonDocument.Parse("""
+            { "updated": "2026-10-23T12:00:00Z",
+              "heroes": { "100": [["BG_HERO_1", 12, 30, 12, 2.0, 0.9, 0.5, []],
+                                  ["BG_HERO_NEW", 25, 40, 25, 4.4, 0.4, 0.1, []],
+                                  ["BG_HERO_THIN", 12, 30, 12, 3.0, 0.5, 0.2, []]] },
+              "cards": { "100": [["BG_CARD_A", 300, 3.0, [[5, 250, 3.9]]]] },
+              "trinkets": [["TRK_1", 100, 0.5, 4.0, []]],
+              "comps": [["beast_beetle", 900, 3.6, [], []]],
+              "guides": [{ "id": "beast_beetle", "name": "Beast Beetle", "power": "A", "difficulty": "Easy",
+                           "tribes": ["BEAST"], "cards": [["BG_CARD_A", "CORE"]] }] }
+            """);
+
+        var merged = PoolClient.Merge(api, PoolClient.ParseMeta(poolDoc.RootElement)!);
+
+        // The API's hero numbers stay (nothing to weigh them by), in every API bracket, and no "all ranks" bracket appears.
+        Assert.Equal(new[] { 50, 1 }, merged.HeroBrackets);
+        var hero = merged.Hero("BG_HERO_1", 50)!;
+        Assert.Equal(0, hero.DataPoints);
+        Assert.Equal(4.0, hero.AveragePosition);
+        Assert.Equal(3.1, merged.Hero("BG_HERO_1", 1)!.AveragePosition);
+        // The tier list keeps the API hero (0 = unknown) and the pool's new hero (25 games).
+        Assert.Equal(25, merged.Hero("BG_HERO_NEW", 50)!.DataPoints);
+        Assert.True(merged.Hero("BG_HERO_NEW", 50)!.DataPoints >= merged.MinHeroGames);
+        Assert.Null(merged.Hero("BG_HERO_THIN", 50));
+
+        // Card numbers blend by sample size; the turn results only the pool has come along.
+        var card = merged.Card("BG_CARD_A")!;
+        Assert.Equal(50300, card.DataPoints);
+        Assert.Equal(250, card.Turns[5].Played);
+        Assert.Equal(3.9, merged.CardAtTurn("BG_CARD_A", 5, 50)!.Value.Placement, 3);
+
+        Assert.Equal("beast_beetle", Assert.Single(merged.Comps).Id);
+        Assert.Contains("TRK_1", merged.Trinkets.Keys);
+        Assert.Equal($"{BattlegroundsMeta.Attribution} + {BattlegroundsMeta.PoolName}", merged.Source);
+        Assert.True(merged.FromPool);
     }
 
     [Fact]

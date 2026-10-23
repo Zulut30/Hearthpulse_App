@@ -53,6 +53,7 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
 | `main-overview`, `-battlegrounds`, `-constructed`, `-history`, `-settings` | 1260x840 window | same | `DevRender.cs` / `OffscreenRenderer.cs` page loop (Arena is not in the loop) |
 | `main-settings-counters` | yes | yes | scrolls to the counters settings |
 | `main-constructed-tiers`, `main-constructed-top` | yes | - (no meta tabs) | `ShowConstructedTab` |
+| `main-battlegrounds-heroes`, `-comps`, `-trinkets`, `-cards` | yes | yes | BG tier list tabs, scrolled to the tabs; comps/trinkets show their empty state until the stats pool runs (`DevRender.BgMeta.cs` / `OffscreenRenderer.BgMeta.cs`) |
 | `main-battlegrounds-full`, `-constructed-full`, `-arena-full` | page content only | full window, tall | `DevRender.MyStats.cs` / `OffscreenRenderer.MyStats.cs` |
 | `main-battlegrounds-hover`, `main-constructed-hover` | if the chart has points | same | My Stats chart hover |
 | `main-compact`, `main-*-compact` | - | 420 wide | compact layout |

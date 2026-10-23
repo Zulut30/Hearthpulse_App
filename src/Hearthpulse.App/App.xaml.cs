@@ -427,15 +427,15 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Community stats: Firestone's with the Hearthpulse API as the fallback, and, when a stats pool is set up, the
-    /// games players chose to share laid over them (or the pool's own meta when nothing else loaded).
+    /// Community stats: heroes and minions from the Hearthpulse API, and, when a stats pool is set up, the pool's meta
+    /// laid over them for what the API lacks (or the pool's own meta when the API did not load). docs/bg-meta-sources.md.
     /// </summary>
     private async Task LoadMetaAsync()
     {
         BattlegroundsMeta? meta = null;
         try
         {
-            meta = await BattlegroundsMeta.LoadAsync(_http, fallback: new HearthpulseData(_api));
+            meta = await BattlegroundsMeta.LoadAsync(new HearthpulseData(_api));
         }
         catch (Exception ex)
         {
@@ -1069,6 +1069,13 @@ public partial class App : Application
         private static readonly System.Drawing.Color Line = System.Drawing.Color.FromArgb(0x3D, 0x2A, 0x19);
 
         protected override void OnRenderToolStripBackground(Forms.ToolStripRenderEventArgs e) => e.Graphics.Clear(Background);
+
+        // The check column is on (ShowCheckMargin); left to the base renderer it is a light grey strip.
+        protected override void OnRenderImageMargin(Forms.ToolStripRenderEventArgs e)
+        {
+            using var brush = new System.Drawing.SolidBrush(Background);
+            e.Graphics.FillRectangle(brush, e.AffectedBounds);
+        }
 
         protected override void OnRenderToolStripBorder(Forms.ToolStripRenderEventArgs e)
         {

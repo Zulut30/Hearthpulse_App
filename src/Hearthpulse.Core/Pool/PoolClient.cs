@@ -389,19 +389,15 @@ public static class PoolClient
     }
 
     /// <summary>
-    /// Lays the shared games over <paramref name="downloaded"/>, the meta the app already has: its comps, brackets
-    /// and percentiles stay, and the pool's hero, card and trinket numbers are blended in by sample size. Without a
-    /// downloaded meta, the pool's own meta (<see cref="LoadMetaAsync"/>) is used.
+    /// Lays the pool's meta (<see cref="LoadMetaAsync"/>: its base stats and the shared games) over
+    /// <paramref name="downloaded"/>, the meta the app loaded from the Hearthpulse API: the API's brackets stay, hero
+    /// and card numbers blend by sample size where the API has one, and what the API lacks (comps, guides, trinkets,
+    /// tribes, turn results, MMR floors) comes from the pool. Without a downloaded meta, the pool's own meta is used.
     /// </summary>
     public static async Task<BattlegroundsMeta?> OverlayAsync(HttpClient http, string endpoint, BattlegroundsMeta? downloaded, CancellationToken cancellationToken = default)
     {
-        if (downloaded is null)
-        {
-            return await LoadMetaAsync(http, endpoint, cancellationToken).ConfigureAwait(false);
-        }
-
-        var pool = await LoadStatsAsync(http, endpoint, cancellationToken).ConfigureAwait(false);
-        return pool is null ? downloaded : Merge(downloaded, pool);
+        var pool = await LoadMetaAsync(http, endpoint, cancellationToken).ConfigureAwait(false);
+        return downloaded is null ? pool : pool is null ? downloaded : Merge(downloaded, pool);
     }
 
     private static async Task<BattlegroundsMeta?> LoadBaseMetaAsync(HttpClient http, string endpoint, CancellationToken cancellationToken)
@@ -422,15 +418,18 @@ public static class PoolClient
     /// <summary>
     /// Adds the shared games to the base numbers, weighted by sample size. Nothing is replaced: the base and the
     /// pool both stay in the average, and the pool's share grows as more games arrive. The pool reports all ranks,
-    /// so its hero and card numbers are merged into every MMR bracket of the base.
+    /// so its hero and card numbers are merged into every MMR bracket of the base. A base row without a sample size
+    /// (the API's heroes) cannot be weighed and keeps its own numbers; a hero the base lacks is added only once the
+    /// pool has <see cref="MinGames"/> games of it. What the base has none of (comps, trinkets, tribes, percentiles,
+    /// turn results) comes from the pool.
     /// </summary>
     internal static BattlegroundsMeta Merge(BattlegroundsMeta baseMeta, BattlegroundsMeta pool)
     {
         var poolHeroes = pool.SharedHeroRows.Count > 0
             ? new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = pool.SharedHeroRows }
             : pool.HeroesByBracket;
-        var heroes = MergeBrackets(baseMeta.HeroesByBracket, poolHeroes, (a, b) => Blend(a, b));
-        var cards = MergeBrackets(baseMeta.CardsByBracket, pool.CardsByBracket, (a, b) => Blend(a, b));
+        var heroes = MergeBrackets(baseMeta.HeroesByBracket, poolHeroes, (a, b) => Blend(a, b), h => h.DataPoints >= MinGames);
+        var cards = MergeBrackets(baseMeta.CardsByBracket, pool.CardsByBracket, (a, b) => Blend(a, b), _ => true);
 
         var trinkets = baseMeta.Trinkets.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
         foreach (var (id, add) in pool.Trinkets)
@@ -439,26 +438,35 @@ public static class PoolClient
         }
 
         var updated = pool.Updated > baseMeta.Updated ? pool.Updated : baseMeta.Updated;
-        return new BattlegroundsMeta(heroes, baseMeta.Percentiles, baseMeta.Comps, trinkets, cards, updated)
+        return new BattlegroundsMeta(
+            heroes,
+            baseMeta.Percentiles.Count > 0 ? baseMeta.Percentiles : pool.Percentiles,
+            baseMeta.Comps.Count > 0 ? baseMeta.Comps : pool.Comps,
+            trinkets,
+            cards,
+            updated)
         {
-            Tribes = pool.Tribes,
+            Tribes = pool.Tribes.Count > 0 ? pool.Tribes : baseMeta.Tribes,
             SharedGames = pool.SharedGames,
-            Source = baseMeta.Source,
+            Source = baseMeta.Source == pool.Source ? baseMeta.Source : $"{baseMeta.Source} + {BattlegroundsMeta.PoolName}",
         };
     }
 
     /// <summary>
     /// Pools two bracket maps. When the pool only has the all-ranks bracket (100), it is merged into every bracket
-    /// of the base; when it has real per-bracket data, only the matching bracket is merged.
+    /// of the base and adds no bracket of its own; when it has real per-bracket data, only the matching bracket is
+    /// merged. Rows the base lacks are added when <paramref name="addMissing"/> allows.
     /// </summary>
     private static Dictionary<int, IReadOnlyDictionary<string, T>> MergeBrackets<T>(
         IReadOnlyDictionary<int, IReadOnlyDictionary<string, T>> baseByBracket,
         IReadOnlyDictionary<int, IReadOnlyDictionary<string, T>> poolByBracket,
-        Func<T, T, T> blend)
+        Func<T, T, T> blend,
+        Func<T, bool> addMissing)
     {
         var allRanksOnly = poolByBracket.Count == 1 && poolByBracket.ContainsKey(100);
+        var brackets = allRanksOnly && baseByBracket.Count > 0 ? baseByBracket.Keys : baseByBracket.Keys.Union(poolByBracket.Keys);
         var result = new Dictionary<int, IReadOnlyDictionary<string, T>>();
-        foreach (var bracket in baseByBracket.Keys.Union(poolByBracket.Keys))
+        foreach (var bracket in brackets)
         {
             var target = baseByBracket.TryGetValue(bracket, out var existing)
                 ? new Dictionary<string, T>(existing, StringComparer.Ordinal)
@@ -468,7 +476,14 @@ public static class PoolClient
             {
                 foreach (var (id, add) in adds)
                 {
-                    target[id] = target.TryGetValue(id, out var have) ? blend(have, add) : add;
+                    if (target.TryGetValue(id, out var have))
+                    {
+                        target[id] = blend(have, add);
+                    }
+                    else if (addMissing(add))
+                    {
+                        target[id] = add;
+                    }
                 }
             }
 
@@ -481,9 +496,10 @@ public static class PoolClient
     private static MetaHero Blend(MetaHero a, MetaHero b)
     {
         var total = a.DataPoints + b.DataPoints;
-        if (total <= 0 || b.DataPoints <= 0)
+        if (a.DataPoints <= 0 || b.DataPoints <= 0)
         {
-            return a;
+            // Without the base's sample size there is nothing to weigh by: its numbers stay, the pool only fills gaps.
+            return a.TribeImpact.Count == 0 && b.TribeImpact.Count > 0 ? a with { TribeImpact = b.TribeImpact } : a;
         }
 
         double Mix(double x, double y) => ((x * a.DataPoints) + (y * b.DataPoints)) / total;
@@ -506,20 +522,23 @@ public static class PoolClient
 
     private static MetaCard Blend(MetaCard a, MetaCard b)
     {
+        // Turn results only come from one side (the API has none), so they are taken as they are, not blended.
+        var turns = a.Turns.Count > 0 ? a.Turns : b.Turns;
         var total = a.DataPoints + b.DataPoints;
-        return total <= 0 || b.DataPoints <= 0
-            ? a
+        return a.DataPoints <= 0 || b.DataPoints <= 0
+            ? a with { Turns = turns }
             : a with
             {
                 DataPoints = total,
                 AveragePlacement = ((a.AveragePlacement * a.DataPoints) + (b.AveragePlacement * b.DataPoints)) / total,
+                Turns = turns,
             };
     }
 
     private static MetaTrinket Blend(MetaTrinket a, MetaTrinket b)
     {
         var total = a.DataPoints + b.DataPoints;
-        return total <= 0 || b.DataPoints <= 0
+        return a.DataPoints <= 0 || b.DataPoints <= 0
             ? a
             : a with
             {

@@ -181,22 +181,20 @@ public sealed class MyStatsTests
     }
 
     [Fact]
-    public void Hero_meta_keeps_the_placement_distribution_and_combat_win_rate()
+    public void Hero_meta_keeps_the_placement_distribution_and_has_no_invented_combat_win_rate()
     {
         using var doc = JsonDocument.Parse("""
-            {"heroStats":[{"heroCardId":"TB_BaconShop_HERO_72","dataPoints":100,"totalOffered":400,"totalPicked":100,"averagePosition":4.16,
-              "placementDistribution":[{"rank":1,"percentage":15},{"rank":2,"percentage":13},{"rank":3,"percentage":17},{"rank":4,"percentage":11},
-                {"rank":5,"percentage":12},{"rank":6,"percentage":11},{"rank":7,"percentage":11},{"rank":8,"percentage":10}],
-              "combatWinrate":[{"turn":1,"winrate":100},{"turn":2,"winrate":35.5},{"turn":3,"winrate":null}]}]}
+            [{"hero":"Patchwerk","id":"TB_BaconShop_HERO_72","avg_placement":4.16,"pick_rate_value":25.0,
+              "placement_distribution":["15.00%","13.00%","17.00%","11.00%","12.00%","11.00%","11.00%","10.00%"]}]
             """);
 
-        var hero = BattlegroundsMeta.ParseHeroes(doc.RootElement)["TB_BaconShop_HERO_72"];
+        var hero = Hearthpulse.Core.Api.HearthpulseData.ParseHeroes(doc.RootElement)["TB_BaconShop_HERO_72"];
         var global = BattlegroundsStats.GlobalOf(hero)!;
 
         Assert.Equal(8, global.PlacementShares!.Count);
         Assert.Equal(0.15, global.PlacementShares[0], 6);
-        Assert.Equal(0.355, global.CombatWinRate![2], 6);
-        Assert.False(global.CombatWinRate.ContainsKey(3));
+        // The API's hero list has no per-turn combat win rate: none is shown rather than zeros.
+        Assert.Null(global.CombatWinRate);
         Assert.Equal(0.25, global.PickRate);
         Assert.Equal(4.16, global.AveragePlacement);
     }

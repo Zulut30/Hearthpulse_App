@@ -143,7 +143,7 @@ public static class BattlegroundsStats
         }
     }
 
-    /// <summary>Community numbers for a hero from Firestone/API meta; solo only (no source publishes Duos heroes).</summary>
+    /// <summary>Community numbers for a hero from the API (or stats pool) meta; solo only (no source publishes Duos heroes).</summary>
     public static BgHeroGlobal? GlobalOf(MetaHero? hero) =>
         hero is null || hero.AveragePosition <= 0
             ? null

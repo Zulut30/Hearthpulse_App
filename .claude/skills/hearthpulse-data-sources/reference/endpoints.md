@@ -56,17 +56,15 @@ Approval page shows the client name "Manacost Tracker"; `/connect?user_code=` pr
 `https://hsbg.cards/api/v1/cards?limit={0}&offset={1}&pool=current`, 100 per page, <= 20 pages, cache
 `cache/bgcards.hsbg.json` 12 h (`BgCardDb`).
 
-## Firestone public data - `https://static.zerotoheroes.com/` (Battlegrounds only)
+## Battlegrounds meta - data API
 
-`BattlegroundsMeta`, cache `cache/meta/`, 6 h, falls back to the data API for heroes/minions:
+`BattlegroundsMeta.LoadAsync(HearthpulseData)`, cache `cache/api/bg-heroes-<mmr>.json` and `bg-minions-<mmr>.json`, 6 h:
 
-- `api/bgs/hero-stats/mmr-{100|50|25|10|1}/last-patch/overview-from-hourly.gz.json`
-- `hearthstone/data/battlegrounds-strategies/bgs-comps-strategies.gz.json`
-- `api/bgs/comp-stats/last-patch/overview-from-hourly.gz.json`
-- `api/bgs/trinket-stats/last-patch/overview-from-hourly.gz.json`
-- `api/bgs/card-stats/mmr-{bracket}/last-patch/overview-from-hourly.gz.json`
+- `api/bg/heroes?mode=solo&mmr={TOP_50_PERCENT|TOP_20_PERCENT|TOP_5_PERCENT|TOP_1_PERCENT}` (bare answer; no `ALL`)
+- `v1/battlegrounds/minions/stats?mmr={ALL|TOP_50_PERCENT|TOP_20_PERCENT}&period=CURRENT_BATTLEGROUNDS_PATCH&limit=500`
 
-(`ConstructedMeta.LoadFirestoneAsync` still knows `api/constructed/stats/...` but nothing calls it.)
+Comps, trinkets, tribe impact, turn results and MMR floors come only from the stats pool (`PoolClient.OverlayAsync`).
+Firestone (`static.zerotoheroes.com`) is not used. Details: `docs/bg-meta-sources.md`.
 
 ## GitHub
 
