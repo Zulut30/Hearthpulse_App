@@ -39,6 +39,7 @@ public sealed partial class AppHost : IDisposable
     private MatchupAggregate? _matchupStats;
     private UpdateInfo? _stagedUpdate;
     private Func<string>? _busy;
+    private bool _archetypeNamesLoaded;
     private Func<string>? _updateStatus;
 
     public AppHost(AppSettings settings)
@@ -334,7 +335,14 @@ public sealed partial class AppHost : IDisposable
         try
         {
             // This app has no Constructed meta page yet; the stats still feed the in-game mulligan panel.
-            var constructed = await ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, Cards.Locale);
+            if (Loc.IsRussian && !_archetypeNamesLoaded)
+            {
+                // Russian archetype names, once per run and only while the interface is Russian (the only language that uses them).
+                _archetypeNamesLoaded = true;
+                ArchetypeTranslations.Current = await ArchetypeTranslations.LoadAsync(Http);
+            }
+
+            var constructed = await ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale);
             if (constructed is not null)
             {
                 ConstructedMeta = constructed;
@@ -417,6 +425,12 @@ public sealed partial class AppHost : IDisposable
     private void OnLanguageChanged()
     {
         RefreshOverlay();
+        // Meta texts (archetype labels, sources, empty states) are made when the meta loads; the caches make this cheap.
+        if (Cards.Count > 0)
+        {
+            LoadMetaAsync().Forget("Community stats load");
+        }
+
         if (_busy is not null)
         {
             Main.Busy = _busy();

@@ -35,6 +35,7 @@ public partial class App : Application
     private Mutex? _mutex;
     private AppSettings _settings = new();
     private HttpClient _http = null!;
+    private bool _archetypeNamesLoaded;
     private HearthpulseApi _api = null!;
     private AccountService _account = null!;
     private HistoryStore _history = null!;
@@ -473,6 +474,16 @@ public partial class App : Application
         }
     }
 
+    /// <summary>Russian archetype names, once per run and only while the interface is Russian (the only language that uses them).</summary>
+    private async Task LoadArchetypeNamesAsync()
+    {
+        if (Loc.IsRussian && !_archetypeNamesLoaded)
+        {
+            _archetypeNamesLoaded = true;
+            ArchetypeTranslations.Current = await ArchetypeTranslations.LoadAsync(_http);
+        }
+    }
+
     private async Task LoadConstructedMetaAsync()
     {
         // Filters can change while a download runs; only the latest request may update the page, and an older one stops.
@@ -491,7 +502,8 @@ public partial class App : Application
         });
         try
         {
-            var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, _cards.Locale, tierList, cancel.Token);
+            await LoadArchetypeNamesAsync();
+            var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, Loc.CardLocale, tierList, cancel.Token);
             done = true;
             if (request == _constructedMetaRequest)
             {
@@ -897,6 +909,13 @@ public partial class App : Application
     private void OnLanguageChanged()
     {
         _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
+        // Meta texts (archetype labels, sources, empty states) are made when the meta loads; the caches make this cheap.
+        if (_cards.Count > 0 && _renderDir is null)
+        {
+            LoadMetaAsync().Forget("Battlegrounds meta load");
+            LoadConstructedMetaAsync().Forget("Constructed meta load");
+        }
+
         SetTrayTexts();
         if (_busy is not null)
         {
