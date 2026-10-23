@@ -29,6 +29,7 @@ public sealed class MatchViewModel : Observable
     private IReadOnlyList<MatchLobbyRow> _lobby = [];
     private string _localDeckNote = string.Empty;
     private string _archetypeLine = string.Empty;
+    private MatchAnalysis? _analysis;
 
     public MatchViewModel(MainViewModel owner)
     {
@@ -185,6 +186,9 @@ public sealed class MatchViewModel : Observable
 
     public IReadOnlyList<MatchLobbyRow> Lobby { get => _lobby; private set => Set(ref _lobby, value); }
 
+    /// <summary>The analysis tab (Constructed replays).</summary>
+    public MatchAnalysis? Analysis { get => _analysis; private set => Set(ref _analysis, value); }
+
     /// <summary>The page being read: clears the previous game.</summary>
     public void BeginLoading()
     {
@@ -210,6 +214,7 @@ public sealed class MatchViewModel : Observable
             : page.OpponentCards.Count > 0 ? "Archetype: not clear from the cards it played" : string.Empty;
         Rounds = page.Rounds;
         Lobby = page.Lobby;
+        Analysis = page.Analysis;
         Raise(nameof(IsConstructed));
         Raise(nameof(IsBattlegrounds));
         Raise(nameof(ShowOpponent));

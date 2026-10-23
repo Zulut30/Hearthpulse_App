@@ -79,6 +79,67 @@ public sealed class MatchPageTests : IDisposable
     }
 
     [Fact]
+    public void Analysis_reads_health_board_mana_key_cards_and_the_mulligan()
+    {
+        string[] events =
+        [
+            "T 1 L 0",
+            "E 1 L PLAY 0 HERO_09 HERO HEALTH=30",
+            "E 2 O PLAY 0 HERO_08 HERO HEALTH=30",
+            "E 3 L HAND 1 CS2_029 SPELL COST=4",
+            "E 4 L HAND 2 BE_012 MINION ATK=3 COST=2 HEALTH=2",
+            "S BEGIN_MULLIGAN",
+            "V L MULLIGAN_STATE INPUT",
+            "C MULLIGAN - CS2_029,BE_012",
+            "c BE_012",
+            "V L MULLIGAN_STATE DEALING",
+            "X 3",
+            "E 5 L HAND 1 CS2_182 MINION ATK=4 COST=4 HEALTH=5",
+            "V L MULLIGAN_STATE DONE",
+            "S MAIN_READY",
+            "V L RESOURCES 2",
+            "B",
+            "E 4 L PLAY 1 BE_012 MINION ATK=3 COST=2 HEALTH=2",
+            "P 4 -",
+            "V L RESOURCES_USED 2",
+            "A 4 2",
+            "V 2 DAMAGE 3",
+            "T 2 O 30",
+            "V O RESOURCES 2",
+            "B",
+            "E 6 O PLAY 1 CS2_120 MINION ATK=2 COST=2 HEALTH=3",
+            "P 6 -",
+            "V O RESOURCES_USED 1",
+            "A 6 4",
+            "V 4 DAMAGE 2",
+            "V 6 DAMAGE 3",
+            "E 4 L GRAVEYARD 0 BE_012 MINION ATK=3 COST=2 HEALTH=2",
+            "E 6 O GRAVEYARD 0 CS2_120 MINION ATK=2 COST=2 HEALTH=3",
+            "T 3 L 60",
+            "V L RESOURCES 3",
+            "V L RESOURCES_USED 0",
+            "R WON",
+        ];
+        var replay = MatchReplay.Parse(ReplayFile.Write(new ReplayHeader(), events))!;
+        var analysis = MatchAnalysis.Build(Game(null), replay, CardDb.Empty, null);
+
+        Assert.Equal("3", analysis.Tiles[0].Value);
+        Assert.Equal([30.0, 30.0], analysis.LocalHealth.Take(2).Select(h => h!.Value));
+        Assert.Equal([27.0, 27.0], analysis.OpponentHealth.Take(2).Select(h => h!.Value));
+        Assert.Equal([1.0], analysis.LocalMana);
+        Assert.Equal([0.5], analysis.OpponentMana);
+        Assert.Equal(("2/2", "1/2"), (analysis.TurnRows[0].Mana, analysis.TurnRows[1].Mana));
+        Assert.Equal("1 · You", analysis.TurnRows[0].Label);
+        var key = Assert.Single(analysis.KeyCards, k => k.Local);
+        Assert.Equal("BE_012", key.CardId);
+        Assert.Equal("Turn 1 · +5 board", key.Reason);
+        Assert.Equal(["Replaced", "Kept"], analysis.Mulligan.Select(m => m.Choice));
+        Assert.Equal(["CS2_182"], analysis.MulliganReceived);
+        Assert.Contains("community meta", analysis.MulliganNote);
+        Assert.Empty(analysis.Meta);
+    }
+
+    [Fact]
     public void Battlegrounds_rounds_and_lobby_are_shown()
     {
         var data = new BattlegroundsReplayData

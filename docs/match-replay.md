@@ -90,9 +90,24 @@ History row -> match page (replaces History, "Back to History"):
    its archetype guess.
 5. Analysis: health/board chart, mana efficiency bars, mulligan, key cards, meta comparison.
 
+## Analysis heuristics (`MatchAnalysis`)
+
+- Health and board: at the last step of each game turn, hero health + armor and the attack + health of each side's
+  minions.
+- Mana: on each completed own turn, (RESOURCES_USED - OVERLOAD_LOCKED) / (RESOURCES + TEMP_RESOURCES -
+  OVERLOAD_LOCKED); the turn the game ended in is left out.
+- Cards that decided the game: per play, hero power, location use or attack, the acting side's board gain minus the
+  other side's, plus face damage (+100 for lethal); a card's best action counts, top three per player.
+- Mulligan: offered cards kept or replaced, against the keep rate and in-hand win rate of the deck's meta archetype
+  (`ConstructedMeta.Match` on the deck code); a choice "agrees" when it follows a majority above 60% / below 40%.
+- Meta: both archetypes' win rates, first/coin win rate of ours, which deck was stronger on paper.
+
 ## Stages
 
-1. Recording and storage (recorder, store, history column, live + backfill wiring, limits).
-2. Replay model + tests (synthetic hidden-info cases, real logs in `D:\Hearthstone\Logs`).
-3. UI in both apps + render scenes.
-4. Analysis.
+1. Recording and storage (recorder, store, history column, live + backfill wiring, limits). Done.
+2. Replay model + tests (synthetic hidden-info cases, real logs in `D:\Hearthstone\Logs`). Done.
+3. UI in both apps + render scenes (`main-match*`, Avalonia also `main-match-compact`). Done.
+4. Analysis. Done.
+
+Known limits: Battlegrounds games keep rounds, not a step-by-step replay; the opponent's rank shows only when the
+client's memory was read during the game (live, not log imports); games played before this feature have no replay.

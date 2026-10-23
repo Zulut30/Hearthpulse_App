@@ -124,9 +124,14 @@ public sealed class ReplayLogTests(ITestOutputHelper output) : IDisposable
             Assert.Equal(mulligan.Replaced.Count, mulligan.Received.Count);
         }
 
+        var analysis = MatchAnalysis.Build(record, replay, CardDb.Empty, null);
+        Assert.All(analysis.LocalMana.Concat(analysis.OpponentMana), m => Assert.InRange(m, 0, 1));
+        Assert.Equal(replay.Turns.Count(t => t.Turn > 0), analysis.TurnRows.Count);
+        Assert.All(analysis.LocalHealth, h => Assert.InRange(h ?? 0, -30, 200));
+
         var last = replay.Frames[^1];
         output.WriteLine($"    {replay.Frames.Count} frames, {replay.Turns.Count} turns, {replay.LocalPlayed.Sum(c => c.Count)} / {replay.OpponentPlayed.Sum(c => c.Count)} played, "
                          + $"{replay.Frames.Count(f => f.Action.Kind == ReplayActionKind.Attack)} attacks, {replay.Choices.Count} choices, "
-                         + $"mulligan {replay.Mulligan?.Kept.Count}/{replay.Mulligan?.Offered.Count} kept, end hp {last.Local.Health}+{last.Local.Armor} vs {last.Opponent.Health}+{last.Opponent.Armor}");
+                         + $"mulligan {replay.Mulligan?.Kept.Count}/{replay.Mulligan?.Offered.Count} kept, mana {(analysis.LocalMana.Count > 0 ? analysis.LocalMana.Average() : 0):P0}, key {string.Join("; ", analysis.KeyCards.Take(2).Select(k => k.CardId + " " + k.Reason))}, end hp {last.Local.Health}+{last.Local.Armor} vs {last.Opponent.Health}+{last.Opponent.Armor}");
     }
 }

@@ -344,7 +344,7 @@
             <!-- ===== Replay ===== -->
             <StackPanel Visibility="{Binding ShowReplay, Converter={StaticResource Vis}}">
                 <ItemsControl ItemsSource="{Binding Turns}" ItemTemplate="{StaticResource TurnChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,0,0,2" />
-                <TextBlock Text="Turns outlined in gold are yours; M is the mulligan." Style="{StaticResource Caption}" FontSize="11.5" Margin="2,0,0,10" />
+                <TextBlock Text="Outlined turns are yours; M is the mulligan." Style="{StaticResource Caption}" FontSize="11.5" Margin="2,0,0,10" />
                 <Grid Margin="0,0,0,14">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -436,10 +436,230 @@
                 </Border>
             </Grid>
 
-            <!-- ===== Analysis (filled in by MatchAnalysis) ===== -->
-            <Border Style="{StaticResource Card}" Visibility="{Binding ShowAnalysis, Converter={StaticResource Vis}}">
-                <TextBlock Text="Analysis is on its way." Style="{StaticResource Caption}" />
-            </Border>
+            <!-- ===== Analysis (Core MatchAnalysis) ===== -->
+            <StackPanel Visibility="{Binding ShowAnalysis, Converter={StaticResource Vis}}">
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <ItemsControl ItemsSource="{Binding Analysis.Tiles}" ItemsPanel="{StaticResource StatsTilesPanel}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type r:AnalysisTile}">
+                                <StackPanel Margin="0,0,18,0" ToolTip="{Binding Detail}">
+                                    <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" />
+                                    <TextBlock Text="{Binding Value}" Style="{StaticResource Stat}" FontSize="25" Margin="0,6,0,2" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <c:Ornament Text="Health by turn" Icon="&#xF02D1;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="Hero health and armor at the end of each turn: you in gold, the opponent dashed." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Sparkline Height="140" Values="{Binding Analysis.LocalHealth}" Compare="{Binding Analysis.OpponentHealth}" Maximum="{Binding Analysis.HealthMaximum}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <StackPanel>
+                            <c:Ornament Text="Board by turn" Icon="&#xF0787;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="Attack plus health of the minions in play: you in gold, the opponent dashed." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Sparkline Height="140" Values="{Binding Analysis.LocalBoard}" Compare="{Binding Analysis.OpponentBoard}" Maximum="{Binding Analysis.BoardMaximum}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Card}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="Cards that decided the game" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="The plays that gained the most board or face damage, by what the replay shows." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <ItemsControl ItemsSource="{Binding Analysis.KeyCards}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type r:KeyCardRow}">
+                                        <Border Style="{StaticResource StatsRow}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="30" Height="30" Margin="0,0,10,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding CardId}" />
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Reason}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <TextBlock x:Name="Who" Grid.Column="2" Text="Opponent" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                            </Grid>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Local}" Value="True">
+                                                <Setter TargetName="Who" Property="Text" Value="You" />
+                                                <Setter TargetName="Who" Property="Foreground" Value="{StaticResource Accent}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="No play stood out." Style="{StaticResource Caption}" Visibility="{Binding Analysis.KeyCards, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="Mulligan" Icon="&#xF0450;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{Binding Analysis.MulliganNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="86" />
+                                    <ColumnDefinition Width="64" />
+                                    <ColumnDefinition Width="58" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="1" Text="You" Style="{StaticResource StatsHead}" />
+                                <TextBlock Grid.Column="2" Text="Meta keep" Style="{StaticResource StatsHead}" HorizontalAlignment="Right" ToolTip="How often the archetype's players keep it" />
+                                <TextBlock Grid.Column="3" Text="Held WR" Style="{StaticResource StatsHead}" HorizontalAlignment="Right" ToolTip="Win rate when the card was in the opening hand" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Analysis.Mulligan}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type r:MulliganCardRow}">
+                                        <Border Style="{StaticResource StatsRow}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="86" />
+                                                    <ColumnDefinition Width="64" />
+                                                    <ColumnDefinition Width="58" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="26" Height="26" Margin="0,0,10,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding CardId}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock x:Name="Mark" Text="" Style="{StaticResource Icon}" FontSize="13" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                                    <TextBlock x:Name="Choice" Text="{Binding Choice}" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="3" Text="{Binding MetaKeep}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="4" Text="{Binding MetaWinRate}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
+                                            </Grid>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Kept}" Value="False">
+                                                <Setter TargetName="Choice" Property="Foreground" Value="{StaticResource Muted}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Agreement}" Value="1">
+                                                <Setter TargetName="Mark" Property="Text" Value="&#xF012C;" />
+                                                <Setter TargetName="Mark" Property="Foreground" Value="{StaticResource Positive}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Agreement}" Value="-1">
+                                                <Setter TargetName="Mark" Property="Text" Value="&#xF0026;" />
+                                                <Setter TargetName="Mark" Property="Foreground" Value="{StaticResource Negative}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Style="{StaticResource Caption}" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="{Binding Analysis.MulliganReceived, Converter={StaticResource Vis}}">
+                                <Run Text="Came instead: " /><Run Text="{Binding Analysis.MulliganReceivedText, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource Card}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="Mana on your turns" Icon="&#xF05E0;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="Share of the mana you spent each turn; the marks are a full spend." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:MiniBars Height="80" Values="{Binding Analysis.LocalMana}" Compare="{Binding Analysis.ManaFull}" ShowLabels="True" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="Against the meta" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding Analysis.Meta}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type r:MatchFact}">
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" />
+                                            <TextBlock Text="{Binding Value}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding Analysis.MetaNote}" Style="{StaticResource Caption}" FontSize="11.5" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <c:Ornament Text="Turn by turn" Icon="&#xF0467;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                        <Grid Margin="10,0,10,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="86" />
+                                <ColumnDefinition Width="86" />
+                                <ColumnDefinition Width="60" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Turn" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="1" Text="Your HP" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="2" Text="Their HP" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="3" Text="Your board" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="4" Text="Their board" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="5" Text="Mana" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="6" Text="Played" Style="{StaticResource StatsHead}" />
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding Analysis.TurnRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type r:AnalysisTurnRow}">
+                                    <Border Style="{StaticResource StatsRow}" Padding="10,5">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120" />
+                                                <ColumnDefinition Width="70" />
+                                                <ColumnDefinition Width="70" />
+                                                <ColumnDefinition Width="86" />
+                                                <ColumnDefinition Width="86" />
+                                                <ColumnDefinition Width="60" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="Label" Text="{Binding Label}" Foreground="{StaticResource Muted}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding LocalHealth}" FontWeight="SemiBold" />
+                                            <TextBlock Grid.Column="2" Text="{Binding OpponentHealth}" />
+                                            <TextBlock Grid.Column="3" Text="{Binding LocalBoard}" FontWeight="SemiBold" />
+                                            <TextBlock Grid.Column="4" Text="{Binding OpponentBoard}" />
+                                            <TextBlock Grid.Column="5" Text="{Binding Mana}" />
+                                            <TextBlock Grid.Column="6" Text="{Binding Played}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Played}" />
+                                        </Grid>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Local}" Value="True">
+                                            <Setter TargetName="Label" Property="Foreground" Value="{StaticResource Accent}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
             <!-- ===== Battlegrounds rounds ===== -->
             <ItemsControl ItemsSource="{Binding Rounds}" Visibility="{Binding ShowRounds, Converter={StaticResource Vis}}">

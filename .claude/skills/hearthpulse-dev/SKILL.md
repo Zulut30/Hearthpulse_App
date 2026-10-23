@@ -68,6 +68,10 @@ Core folders:
   `DeckFamilies` (versions, families, merge suggestions, card diff; `WithFamily` for the overlay deck record),
   `DeckDetails` (deck page: summary, win-rate line, matchups by class/told archetype, per-card mulligan and play stats),
   `ArchetypeGuess` (opponent archetype from its played cards, only a clear call).
+- `Replay/` - match replay (`docs/match-replay.md`): `ReplayRecorder` (IPowerListener writing only what the player saw:
+  card backs, new ids across hidden zones), `ReplayStore` (`<data>/replays/*.hpr` gzip, 300 MB / 3000 files, history
+  column `replay`), `MatchReplay` (frames/turns/actions), `MatchPage` + `MatchAnalysis` (what the match page of both
+  apps shows; opened from History). Battlegrounds rounds come from `BattlegroundsTracker.Rounds.cs`.
 - `Updates/UpdateService.cs` - GitHub releases of `Zulut30/IceCrowV2` (`RepoOwner`/`RepoName` constants),
   download + staged install.
 - `AppSettings.cs` (settings.json), `AppPaths.cs` (+ `Diag` log), `ThemePalette.cs`.

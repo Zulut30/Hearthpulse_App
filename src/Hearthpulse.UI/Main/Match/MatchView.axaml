@@ -180,6 +180,12 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
+        <Style Selector="TextBlock.turnLabel">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="TextBlock.replaced">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
         <Style Selector="Border.art.taunt">
             <Setter Property="BorderBrush" Value="{StaticResource Muted}" />
             <Setter Property="BorderThickness" Value="4" />
@@ -343,7 +349,7 @@
             <!-- ===== Replay ===== -->
             <StackPanel IsVisible="{Binding ShowReplay}">
                 <ItemsControl ItemsSource="{Binding Turns}" ItemTemplate="{StaticResource TurnChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,0,0,2" />
-                <TextBlock Text="Turns outlined in gold are yours; M is the mulligan." Classes="caption" FontSize="11.5" Margin="2,0,0,10" />
+                <TextBlock Text="Outlined turns are yours; M is the mulligan." Classes="caption" FontSize="11.5" Margin="2,0,0,10" />
                 <WrapPanel Margin="0,0,0,14">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,8">
                         <Button Classes="icon" Content="&#xF0600;" Command="{Binding First}" ToolTip.Tip="First step" />
@@ -420,10 +426,170 @@
                 </Border>
             </Grid>
 
-            <!-- ===== Analysis (filled in by MatchAnalysis) ===== -->
-            <Border Classes="card" IsVisible="{Binding ShowAnalysis}">
-                <TextBlock Text="Analysis is on its way." Classes="caption" />
-            </Border>
+            <!-- ===== Analysis (Core MatchAnalysis) ===== -->
+            <StackPanel IsVisible="{Binding ShowAnalysis}">
+                <Border Classes="card" Margin="0,0,0,16">
+                    <ItemsControl ItemsSource="{Binding Analysis.Tiles}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="r:AnalysisTile">
+                                <StackPanel Width="200" Margin="0,0,18,8" ToolTip.Tip="{Binding Detail}">
+                                    <TextBlock Text="{Binding Label}" Classes="label" />
+                                    <TextBlock Text="{Binding Value}" Classes="stat" FontSize="25" Margin="0,6,0,2" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" Margin="0,0,0,16">
+                    <Border Classes="card first">
+                        <StackPanel>
+                            <c:Ornament Text="Health by turn" Icon="&#xF02D1;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="Hero health and armor at the end of each turn: you in gold, the opponent dashed." Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Sparkline Height="140" Values="{Binding Analysis.LocalHealth}" Compare="{Binding Analysis.OpponentHealth}" Maximum="{Binding Analysis.HealthMaximum}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Classes="card second">
+                        <StackPanel>
+                            <c:Ornament Text="Board by turn" Icon="&#xF0787;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="Attack plus health of the minions in play: you in gold, the opponent dashed." Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Sparkline Height="140" Values="{Binding Analysis.LocalBoard}" Compare="{Binding Analysis.OpponentBoard}" Maximum="{Binding Analysis.BoardMaximum}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" Margin="0,0,0,16">
+                    <Border Classes="card first" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="Cards that decided the game" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="The plays that gained the most board or face damage, by what the replay shows." Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <ItemsControl ItemsSource="{Binding Analysis.KeyCards}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="r:KeyCardRow">
+                                        <Border Classes="row" Padding="10,6">
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <Border Width="30" Height="30" CornerRadius="15" Margin="0,0,10,0" Background="{StaticResource Surface4}" ClipToBounds="True"
+                                                        VerticalAlignment="Center" i:CardArt.Portrait="{Binding CardId}" />
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Reason}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="You" Classes="you" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding Local}" />
+                                                <TextBlock Grid.Column="2" Text="Opponent" Classes="caption" VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding !Local}" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="No play stood out." Classes="caption" IsVisible="{Binding Analysis.KeyCards, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Classes="card second" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="Mulligan" Icon="&#xF0450;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="{Binding Analysis.MulliganNote}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <Grid ColumnDefinitions="*,86,64,58" Margin="10,0,10,4">
+                                <TextBlock Grid.Column="1" Text="You" Classes="label" />
+                                <TextBlock Grid.Column="2" Text="Meta keep" Classes="label" HorizontalAlignment="Right" ToolTip.Tip="How often the archetype's players keep it" />
+                                <TextBlock Grid.Column="3" Text="Held WR" Classes="label" HorizontalAlignment="Right" ToolTip.Tip="Win rate when the card was in the opening hand" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Analysis.Mulligan}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="r:MulliganCardRow">
+                                        <Border Classes="row" Padding="10,6">
+                                            <Grid ColumnDefinitions="Auto,*,86,64,58">
+                                                <Border Width="26" Height="26" CornerRadius="13" Margin="0,0,10,0" Background="{StaticResource Surface4}" ClipToBounds="True"
+                                                        VerticalAlignment="Center" i:CardArt.Portrait="{Binding CardId}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="&#xF012C;" Classes="icon" FontSize="13" Foreground="{StaticResource Positive}" Margin="0,0,4,0" VerticalAlignment="Center"
+                                                               IsVisible="{Binding Agrees}" />
+                                                    <TextBlock Text="&#xF0026;" Classes="icon" FontSize="13" Foreground="{StaticResource Negative}" Margin="0,0,4,0" VerticalAlignment="Center"
+                                                               IsVisible="{Binding Differs}" />
+                                                    <TextBlock Text="{Binding Choice}" FontWeight="SemiBold" Classes.replaced="{Binding !Kept}" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="3" Text="{Binding MetaKeep}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="4" Text="{Binding MetaWinRate}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Classes="caption" Margin="0,8,0,0" TextWrapping="Wrap" IsVisible="{Binding Analysis.MulliganReceived, Converter={StaticResource Truthy}}">
+                                <Run Text="Came instead: " /><Run Text="{Binding Analysis.MulliganReceivedText, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" Margin="0,0,0,16">
+                    <Border Classes="card first" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="Mana on your turns" Icon="&#xF05E0;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
+                            <TextBlock Text="Share of the mana you spent each turn; the marks are a full spend." Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:MiniBars Height="80" Values="{Binding Analysis.LocalMana}" Compare="{Binding Analysis.ManaFull}" ShowLabels="True" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Classes="card second" VerticalAlignment="Top">
+                        <StackPanel>
+                            <c:Ornament Text="Against the meta" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding Analysis.Meta}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="r:MatchFact">
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock Text="{Binding Label}" Classes="label" />
+                                            <TextBlock Text="{Binding Value}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding Analysis.MetaNote}" Classes="caption" FontSize="11.5" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Border Classes="card">
+                    <StackPanel>
+                        <c:Ornament Text="Turn by turn" Icon="&#xF0467;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,8" />
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel MinWidth="640">
+                                <Grid ColumnDefinitions="120,70,70,86,86,60,*" Margin="10,0,10,4">
+                                    <TextBlock Text="Turn" Classes="label" />
+                                    <TextBlock Grid.Column="1" Text="Your HP" Classes="label" />
+                                    <TextBlock Grid.Column="2" Text="Their HP" Classes="label" />
+                                    <TextBlock Grid.Column="3" Text="Your board" Classes="label" />
+                                    <TextBlock Grid.Column="4" Text="Their board" Classes="label" />
+                                    <TextBlock Grid.Column="5" Text="Mana" Classes="label" />
+                                    <TextBlock Grid.Column="6" Text="Played" Classes="label" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding Analysis.TurnRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="r:AnalysisTurnRow">
+                                            <Border Classes="row" Padding="10,5">
+                                                <Grid ColumnDefinitions="120,70,70,86,86,60,*">
+                                                    <TextBlock Text="{Binding Label}" Classes="turnLabel" Classes.you="{Binding Local}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding LocalHealth}" FontWeight="SemiBold" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding OpponentHealth}" />
+                                                    <TextBlock Grid.Column="3" Text="{Binding LocalBoard}" FontWeight="SemiBold" />
+                                                    <TextBlock Grid.Column="4" Text="{Binding OpponentBoard}" />
+                                                    <TextBlock Grid.Column="5" Text="{Binding Mana}" />
+                                                    <TextBlock Grid.Column="6" Text="{Binding Played}" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Played}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
             <!-- ===== Battlegrounds rounds ===== -->
             <ItemsControl ItemsSource="{Binding Rounds}" IsVisible="{Binding ShowRounds}">

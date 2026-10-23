@@ -147,6 +147,9 @@ public sealed class MatchPage
 
     public IReadOnlyList<MatchLobbyRow> Lobby { get; private init; } = [];
 
+    /// <summary>The analysis tab, for Constructed replays.</summary>
+    public MatchAnalysis? Analysis { get; private init; }
+
     public bool IsBattlegrounds => Game.IsBattlegrounds;
 
     public int FrameCount => Replay?.Frames.Count ?? 0;
@@ -204,6 +207,7 @@ public sealed class MatchPage
                     $"Turn {c.Turn}", true))
                 .ToList(),
             OpponentArchetype = archetype,
+            Analysis = MatchAnalysis.Build(game, replay, cards, meta, archetype),
         };
     }
 
