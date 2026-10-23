@@ -500,6 +500,35 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- A clickable list row (deck list, matchups): flat plate with a hover layer -->
+    <Style x:Key="RowButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="13,9" />
+        <Setter Property="Margin" Value="0,0,0,3" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRow}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Bd" CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" />
+                        <Border x:Name="State" CornerRadius="8" Background="{StaticResource Hover}" Opacity="0" />
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="State" Property="Opacity" Value="1" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="State" Property="Background" Value="{StaticResource Pressed}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <!-- Window controls: small round buttons -->
     <Style x:Key="CaptionButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
         <Setter Property="Width" Value="26" />

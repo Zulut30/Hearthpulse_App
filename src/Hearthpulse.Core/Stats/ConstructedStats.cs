@@ -111,7 +111,7 @@ public static class ConstructedStats
     /// <summary>Results per deck, most recently played first.</summary>
     public static IReadOnlyList<DeckStats> Decks(IReadOnlyList<GameRecord> games) =>
         games.Where(g => !string.IsNullOrEmpty(g.DeckName) || !string.IsNullOrEmpty(g.DeckCode))
-            .GroupBy(g => g.DeckCode is { Length: > 0 } code ? code : $"{g.DeckName}|{g.PlayerClass}")
+            .GroupBy(DeckRecords.DeckKey)
             .Select(group =>
             {
                 var latest = group.MaxBy(g => g.StartedAt)!;

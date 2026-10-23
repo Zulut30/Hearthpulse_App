@@ -1,0 +1,402 @@
+<UserControl x:Class="Hearthpulse.UI.Main.Decks.DeckDetailsView"
+             x:DataType="d:DeckDetailsViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:d="using:Hearthpulse.UI.Main.Decks"
+             xmlns:m="using:Hearthpulse.UI.Main">
+    <!-- The deck page: one deck family. DataContext is MainViewModel.DeckPage. Colours are theme tokens only. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Card cell: cost gem, round art, name and copies -->
+            <DataTemplate x:Key="CardCell" x:DataType="d:DeckCardStatRow">
+                <Grid ColumnDefinitions="Auto,Auto,*">
+                    <Border Width="22" Height="22" CornerRadius="11" Background="{StaticResource ManaGem}" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <TextBlock Text="{Binding Cost}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="11.5" Foreground="{StaticResource Text}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="1" Width="28" Height="28" CornerRadius="14" Margin="0,0,10,0" Background="{StaticResource Surface4}" ClipToBounds="True"
+                            VerticalAlignment="Center" i:CardArt.Portrait="{Binding CardId}" />
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Copies}" Classes="caption" FontSize="11" />
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.num">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.head">
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.row.selected">
+            <Setter Property="Background" Value="{StaticResource SelectedFill}" />
+            <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+        </Style>
+        <Style Selector=":is(Control).few">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+        <Style Selector="Grid.archetype">
+            <Setter Property="Margin" Value="38,0,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact ContentControl.cardCell">
+            <Setter Property="Grid.ColumnSpan" Value="6" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style Selector="m|MainView.compact TextBlock.cell">
+            <Setter Property="Grid.Row" Value="1" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel>
+        <!-- Header: back, portrait, name, class/format/versions, meta archetype -->
+        <Button Classes="ghost" Command="{Binding Back}" HorizontalAlignment="Left" Margin="0,0,0,16" Padding="12,7" ToolTip.Tip="Back to your decks">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xF004D;" Classes="icon" FontSize="16" Foreground="{StaticResource OnSecondaryContainer}" Margin="0,0,6,0" />
+                <TextBlock Text="Your decks" VerticalAlignment="Center" />
+            </StackPanel>
+        </Button>
+        <Grid Margin="0,0,0,20" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+            <Border Width="64" Height="64" CornerRadius="32" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
+                    ClipToBounds="True" VerticalAlignment="Center" i:CardArt.Portrait="{Binding HeroCardId}" />
+            <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Name}" Classes="display" FontSize="30" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Subtitle}" Classes="caption" FontSize="13.5" Margin="2,2,0,0" TextWrapping="Wrap" />
+                <Border Classes="pill" HorizontalAlignment="Left" Margin="0,8,0,0" Background="{StaticResource AccentContainer}"
+                        IsVisible="{Binding ArchetypeLine, Converter={StaticResource Truthy}}" ToolTip.Tip="The meta archetype the main version matches, and its community win rate">
+                    <TextBlock Text="{Binding ArchetypeLine}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
+                </Border>
+            </StackPanel>
+            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0" ToolTip.Tip="Name the deck (empty: the main version's name)">
+                <TextBox Text="{Binding EditName}" Width="220" VerticalAlignment="Center" />
+                <Button Classes="ghost" Content="Rename" Command="{Binding Rename}" Margin="8,0,0,0" Padding="14,7" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Matchup filter -->
+        <Border Classes="pill" Background="{StaticResource SecondaryContainer}" Padding="12,6" Margin="0,0,0,14" HorizontalAlignment="Left"
+                IsVisible="{Binding FilterText, Converter={StaticResource Truthy}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xF0233;" Classes="icon" FontSize="15" Foreground="{StaticResource Accent}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding FilterText}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
+                <Button Classes="icon" Content="&#xF0156;" Width="24" Height="24" FontSize="14" Margin="8,0,0,0" Command="{Binding ClearMatchup}" ToolTip.Tip="Show every game again" />
+            </StackPanel>
+        </Border>
+
+        <!-- Header numbers -->
+        <Border Classes="card" Margin="0,0,0,16">
+            <ItemsControl ItemsSource="{Binding Tiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel3}" Margin="0,0,0,-14" />
+        </Border>
+
+        <!-- Win rate over time + results by game length -->
+        <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+            <Border Classes="card statsLeft">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <c:Ornament Text="Win rate over time" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
+                        <TextBlock Text="After each game" Classes="caption wide" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <c:StatsLineChart x:Name="WinRateChart" Height="200" Points="{Binding Chart}" EmptyText="Finish a game with this deck to start the line.">
+                        <c:StatsLineChart.HoverTemplate>
+                            <DataTemplate x:DataType="d:DeckGamePoint">
+                                <Border Width="260" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="10" Padding="14,12">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource Surface4}" VerticalAlignment="Top" BorderBrush="{StaticResource GoldTrim}"
+                                                BorderThickness="1" ClipToBounds="True" i:CardArt.Portrait="{Binding OpponentHeroCardId}" />
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <TextBlock Text="{Binding Result}" FontWeight="Bold" Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
+                                                <TextBlock Text=" · " Foreground="{StaticResource Faint}" />
+                                                <TextBlock Text="{Binding ChartLabel}" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding SoFar}" Classes="caption" FontSize="11.5" Margin="0,4,0,0" />
+                                            <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding When}" Classes="caption" FontSize="11.5" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </c:StatsLineChart.HoverTemplate>
+                    </c:StatsLineChart>
+                </DockPanel>
+            </Border>
+            <Border Classes="card statsRight">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <c:Ornament Text="Results by length" Icon="&#xF0128;" Size="13" HorizontalAlignment="Left" />
+                        <TextBlock Text="Your turns" Classes="caption wide" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <c:ResultBars Height="200" Wins="{Binding LengthWins}" Losses="{Binding LengthLosses}" Labels="{Binding LengthLabels}"
+                                  ToolTip.Tip="Wins (green) and losses (red) by how many turns you had" />
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- Matchups (the filter) and versions -->
+        <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Classes="card statsLeft" VerticalAlignment="Top">
+                <StackPanel>
+                    <Grid Classes="statsHead" Margin="0,0,0,8" RowDefinitions="Auto,Auto">
+                        <c:Ornament Text="Matchups" Icon="&#xF04E5;" Size="13" HorizontalAlignment="Left" />
+                        <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter" ToolTip.Tip="Sort">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Classes="segment" Content="Games" GroupName="DeckMatchupSort" IsChecked="True" Command="{Binding SortMatchups}" CommandParameter="Games" />
+                                <RadioButton Classes="segment" Content="Win rate" GroupName="DeckMatchupSort" Command="{Binding SortMatchups}" CommandParameter="WinRate" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    <TextBlock Text="Click a matchup to see only those games below. Archetypes show when the opponent's cards told." Classes="caption"
+                               TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <ItemsControl ItemsSource="{Binding Matchups}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="d:DeckMatchupRow">
+                                <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                        Command="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).SelectMatchup}" CommandParameter="{Binding Key}">
+                                    <Border Classes="row" Classes.selected="{Binding Selected}" BorderThickness="1" BorderBrush="Transparent" Padding="10,6">
+                                        <Grid Classes.archetype="{Binding IsArchetype}" Classes.few="{Binding Few}" ColumnDefinitions="Auto,*,56,Auto">
+                                            <Border Width="28" Height="28" CornerRadius="14" Margin="0,0,10,0" Background="{StaticResource Surface4}" ClipToBounds="True"
+                                                    VerticalAlignment="Center" i:CardArt.Portrait="{Binding HeroCardId}" IsVisible="{Binding !IsArchetype}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Games}" Classes="caption" FontSize="11.5" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding Record}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <Border Width="60" Height="7" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center" Classes="wide" Margin="12,0,0,0">
+                                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
+                                                            Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=60}" />
+                                                </Border>
+                                                <TextBlock Text="{Binding WinRate}" Width="46" TextAlignment="Right" FontWeight="Bold" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="No opponents recorded yet." Classes="caption" IsVisible="{Binding Matchups, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card statsRight" VerticalAlignment="Top">
+                <StackPanel>
+                    <c:Ornament Text="Versions" Icon="&#xF062C;" Size="13" Margin="0,0,0,10" />
+                    <ItemsControl ItemsSource="{Binding Versions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="d:DeckVersionRow">
+                                <Border Classes="row" Margin="-10,0,-10,6">
+                                    <StackPanel>
+                                        <Grid ColumnDefinitions="*,52,Auto">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="220" />
+                                                    <Border Classes="pill" Margin="8,0,0,0" Padding="7,1" Background="{StaticResource AccentContainer}" IsVisible="{Binding IsMain}"
+                                                            ToolTip.Tip="The main version: its name, cards and archetype stand for the deck">
+                                                        <TextBlock Text="main" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding Record}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <Border Width="56" Height="7" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center" Classes="wide" Margin="8,0,0,0">
+                                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
+                                                            Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=56}" />
+                                                </Border>
+                                                <TextBlock Text="{Binding WinRate}" Width="46" TextAlignment="Right" FontWeight="Bold" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding Diff}" Margin="0,6,0,0" IsVisible="{Binding Diff, Converter={StaticResource Truthy}}"
+                                                      ToolTip.Tip="Cards against the main version">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="d:CardDiffRow">
+                                                    <Border Classes="pill" Margin="0,0,5,5" Padding="7,1">
+                                                        <TextBlock Text="{Binding Text}" FontSize="11.5" FontWeight="SemiBold" Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0" IsVisible="{Binding CanManage}">
+                                            <Button Classes="ghost" Content="Make main" Padding="10,4" FontSize="12" Margin="0,0,6,0"
+                                                    Command="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).SetMain}" CommandParameter="{Binding Key}"
+                                                    IsVisible="{Binding !IsMain}" />
+                                            <Button Classes="ghost" Content="Split off" Padding="10,4" FontSize="12"
+                                                    Command="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).Split}" CommandParameter="{Binding Key}"
+                                                    ToolTip.Tip="Make this version a deck of its own again" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Suggested merges with this deck, and a merge by hand -->
+                    <StackPanel IsVisible="{Binding Suggestions, Converter={StaticResource Truthy}}" Margin="0,8,0,0">
+                        <TextBlock Text="Looks like the same deck" Classes="label" Margin="0,0,0,6" />
+                        <ItemsControl ItemsSource="{Binding Suggestions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="d:DeckSuggestionRow">
+                                    <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,6">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Classes="ghost primary" Content="Merge" Padding="12,5" FontSize="12" Margin="8,0,6,0"
+                                                        Command="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).Merge}" CommandParameter="{Binding}" />
+                                                <Button Classes="ghost" Content="Not the same" Padding="10,5" FontSize="12"
+                                                        Command="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).Dismiss}" CommandParameter="{Binding}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                    <Grid Margin="0,8,0,0" ColumnDefinitions="*,Auto" IsVisible="{Binding MergeChoices, Converter={StaticResource Truthy}}">
+                        <ComboBox ItemsSource="{Binding MergeChoices}" SelectedItem="{Binding MergeChoice}" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                  ToolTip.Tip="Another deck of this class that is a version of this one">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="d:DeckChoice">
+                                    <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Grid.Column="1" Classes="ghost" Content="Merge in" Padding="12,6" Margin="8,0,0,0" Command="{Binding MergeChosen}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Personal mulligan (the meta columns hide on narrow screens) -->
+        <Border Classes="card" Margin="0,0,0,16">
+            <StackPanel>
+                <c:Ornament Text="Your mulligan" Icon="&#xF04E1;" Size="13" Margin="0,0,0,10" />
+                <Grid Margin="0,0,0,6" ColumnDefinitions="*,56,56,64,70,Auto">
+                    <TextBlock Text="Card" Classes="head wide" HorizontalAlignment="Left" />
+                    <TextBlock Grid.Column="1" Text="Offered" Classes="head" ToolTip.Tip="Games the card was in your opening hand before the mulligan" />
+                    <TextBlock Grid.Column="2" Text="Kept" Classes="head" ToolTip.Tip="How often you kept it when it was offered" />
+                    <TextBlock Grid.Column="3" Text="WR kept" Classes="head" ToolTip.Tip="Your win rate when you kept it" />
+                    <TextBlock Grid.Column="4" Text="WR repl." Classes="head" ToolTip.Tip="Your win rate when you sent it back" />
+                    <StackPanel Grid.Column="5" Orientation="Horizontal" Classes="wide">
+                        <TextBlock Text="Meta kept" Classes="head" Width="78" Foreground="{StaticResource Faint}" ToolTip.Tip="How often players of the archetype keep it" />
+                        <TextBlock Text="Meta WR" Classes="head" Width="62" Foreground="{StaticResource Faint}" ToolTip.Tip="Community win rate when it stays in the opening hand" />
+                    </StackPanel>
+                </Grid>
+                <ItemsControl ItemsSource="{Binding CardRows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="d:DeckCardStatRow">
+                            <Border Classes="row" Padding="10,7">
+                                <Grid ColumnDefinitions="*,56,56,64,70,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewMulligan}">
+                                    <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Offered}" Classes="num cell" />
+                                    <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Classes="num cell" />
+                                    <TextBlock Grid.Column="3" Text="{Binding KeptWinRate}" Classes="num cell" FontWeight="Bold" Foreground="{Binding KeptSign, Converter={StaticResource SignBrush}}" />
+                                    <TextBlock Grid.Column="4" Text="{Binding ReplacedWinRate}" Classes="num cell" FontWeight="Bold" Foreground="{Binding ReplacedSign, Converter={StaticResource SignBrush}}" />
+                                    <StackPanel Grid.Column="5" Orientation="Horizontal" Classes="wide" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding MetaKeep}" Classes="num" Width="78" TextAlignment="Right" Foreground="{StaticResource Muted}" />
+                                        <TextBlock Text="{Binding MetaWinRate}" Classes="num" Width="62" TextAlignment="Right" Foreground="{StaticResource Muted}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding MulliganNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="2,10,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <!-- Card performance -->
+        <Border Classes="card" Margin="0,0,0,16">
+            <StackPanel>
+                <c:Ornament Text="Card performance" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
+                <Grid Margin="0,0,0,6" ColumnDefinitions="*,54,66,54,66,Auto">
+                    <TextBlock Text="Card" Classes="head wide" HorizontalAlignment="Left" />
+                    <TextBlock Grid.Column="1" Text="Drawn" Classes="head" ToolTip.Tip="Games you had it in hand" />
+                    <TextBlock Grid.Column="2" Text="WR drawn" Classes="head" ToolTip.Tip="Your win rate in those games" />
+                    <TextBlock Grid.Column="3" Text="Played" Classes="head" ToolTip.Tip="Games you played it" />
+                    <TextBlock Grid.Column="4" Text="WR played" Classes="head" ToolTip.Tip="Your win rate in those games" />
+                    <TextBlock Grid.Column="5" Text="Avg. turn" Classes="head wide" Width="70" ToolTip.Tip="The turn you first played it, on average" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding CardRows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="d:DeckCardStatRow">
+                            <Border Classes="row" Padding="10,7">
+                                <Grid ColumnDefinitions="*,54,66,54,66,Auto" RowDefinitions="Auto,Auto" Classes.few="{Binding FewDrawn}">
+                                    <ContentControl Classes="cardCell" Content="{Binding}" ContentTemplate="{StaticResource CardCell}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Drawn}" Classes="num cell" />
+                                    <TextBlock Grid.Column="2" Text="{Binding DrawnWinRate}" Classes="num cell" FontWeight="Bold" Foreground="{Binding DrawnSign, Converter={StaticResource SignBrush}}" />
+                                    <TextBlock Grid.Column="3" Text="{Binding Played}" Classes="num cell" />
+                                    <TextBlock Grid.Column="4" Text="{Binding PlayedWinRate}" Classes="num cell" FontWeight="Bold" Foreground="{Binding PlayedSign, Converter={StaticResource SignBrush}}" />
+                                    <TextBlock Grid.Column="5" Text="{Binding AverageTurn}" Classes="num wide" Width="70" TextAlignment="Right" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding CardsNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="2,10,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <!-- Recent games -->
+        <Border Classes="card" Margin="0,0,0,24">
+            <StackPanel>
+                <c:Ornament Text="Recent games" Icon="&#xF02DA;" Size="13" Margin="0,0,0,10" />
+                <ItemsControl ItemsSource="{Binding Games}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="d:DeckGameRow">
+                            <Border Classes="row" Padding="10,7">
+                                <Grid ColumnDefinitions="Auto,*,60,Auto">
+                                    <Border Width="30" Height="30" CornerRadius="15" Margin="0,0,10,0" Background="{StaticResource Surface4}" ClipToBounds="True"
+                                            VerticalAlignment="Center" i:CardArt.Portrait="{Binding OpponentHeroCardId}" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Opponent}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding When, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Detail, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{Binding Result}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                               Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
+                                    <Button Grid.Column="3" Classes="icon" Content="&#xF02DA;" Margin="10,0,0,0" ToolTip.Tip="Show in History"
+                                            Command="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).OpenGame}" CommandParameter="{Binding Key}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="No games in this matchup." Classes="caption" IsVisible="{Binding Games, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

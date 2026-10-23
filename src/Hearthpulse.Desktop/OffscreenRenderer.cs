@@ -79,6 +79,7 @@ internal static partial class OffscreenRenderer
         }
 
         await RenderMyStatsAsync(main, view, host, folder);
+        await RenderDeckPageAsync(main, view, host, folder);
 
         // Phone-sized dashboard: the compact layout used on narrow windows and mobile.
         main.Width = 420;

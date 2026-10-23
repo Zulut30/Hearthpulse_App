@@ -5,6 +5,7 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              xmlns:core="using:Hearthpulse.Core"
              xmlns:s="using:Hearthpulse.UI.Main.Stats"
+             xmlns:dk="using:Hearthpulse.UI.Main.Decks"
              x:Class="Hearthpulse.UI.Main.MainView"
              x:DataType="m:MainViewModel"
              Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
@@ -53,6 +54,11 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
+        <!-- A History row is selected only when a deck page sends a game there -->
+        <Style Selector="ListBox.history ListBoxItem:selected /template/ ContentPresenter#Presenter">
+            <Setter Property="Background" Value="{StaticResource SelectedFill}" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
         <Style Selector="TextBlock.tableHead">
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -593,29 +599,61 @@
                             <Border Classes="card" VerticalAlignment="Top">
                                 <StackPanel>
                                     <c:Ornament Text="Decks" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
-                                    <TextBlock Text="Click a deck to see its matchups." Classes="caption" Margin="0,0,0,8" />
-                                    <ListBox Classes="plain selectable" ItemsSource="{Binding Decks}" SelectedItem="{Binding SelectedDeck}"
-                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate x:DataType="m:DeckRow">
-                                                <Grid ColumnDefinitions="*,70,150">
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Classes="caption"><Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" /></TextBlock>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Classes="caption"
-                                                               ToolTip.Tip="Wins – losses" />
-                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip.Tip="Win rate">
-                                                        <Border Width="80" Height="8" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
-                                                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
-                                                                    Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=80}" />
-                                                        </Border>
-                                                        <TextBlock Text="{Binding WinRate}" Width="50" TextAlignment="Right" FontWeight="Bold" />
-                                                    </StackPanel>
-                                                </Grid>
+                                    <TextBlock Text="Click a deck for its page: matchups, mulligan, cards and versions." Classes="caption" Margin="0,0,0,8" TextWrapping="Wrap" />
+                                    <!-- Decks that look like versions of one -->
+                                    <ItemsControl ItemsSource="{Binding DeckSuggestions}" Margin="0,0,0,6">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="dk:DeckSuggestionRow">
+                                                <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                                        <TextBlock Text="&#xF062C;" Classes="icon" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis"><Run Text="Same deck? " Foreground="{StaticResource Muted}" /><Run Text="{Binding Title, Mode=OneWay}" /></TextBlock>
+                                                            <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Button Classes="ghost primary" Content="Merge" Padding="12,5" FontSize="12" Margin="8,0,6,0"
+                                                                    Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).MergeSuggested}" CommandParameter="{Binding}"
+                                                                    ToolTip.Tip="Count both as versions of one deck" />
+                                                            <Button Classes="ghost" Content="Not the same" Padding="10,5" FontSize="12"
+                                                                    Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).DismissSuggested}" CommandParameter="{Binding}" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
                                             </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ItemsControl ItemsSource="{Binding Decks}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="m:DeckRow">
+                                                <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                        Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).OpenDeck}" CommandParameter="{Binding}">
+                                                    <Border Classes="row" Padding="13,9" Margin="0,0,0,3">
+                                                        <Grid ColumnDefinitions="*,70,150,22">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Classes="caption"><Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" /></TextBlock>
+                                                                <TextBlock Text="{Binding Versions}" Classes="caption" Foreground="{StaticResource Info}"
+                                                                           IsVisible="{Binding Versions, Converter={StaticResource Truthy}}" ToolTip.Tip="Versions merged into this deck; their games count together" />
+                                                                <TextBlock Text="{Binding Meta}" Classes="caption" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
+                                                                           IsVisible="{Binding Meta, Converter={StaticResource Truthy}}" ToolTip.Tip="The meta archetype this deck matches, and its community win rate" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Classes="caption"
+                                                                       ToolTip.Tip="Wins – losses" />
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip.Tip="Win rate">
+                                                                <Border Width="80" Height="8" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
+                                                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
+                                                                            Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=80}" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding WinRate}" Width="50" TextAlignment="Right" FontWeight="Bold" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="3" Text="&#xF0142;" Classes="icon" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        </Grid>
+                                                    </Border>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                     <TextBlock Text="Decks appear once you finish a game with them." Classes="caption" Margin="0,8"
                                                IsVisible="{Binding Decks, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                                 </StackPanel>
@@ -623,8 +661,7 @@
                             <Border Name="MatchupCard" Grid.Column="2" Classes="card" VerticalAlignment="Top">
                                 <StackPanel>
                                     <c:Ornament Text="Matchups" Icon="&#xF04E5;" Size="13" />
-                                    <TextBlock Text="{Binding SelectedDeck.Name, FallbackValue='All decks', TargetNullValue='All decks'}" FontWeight="SemiBold" Margin="0,8,0,10"
-                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="All decks · open a deck for its own" Classes="caption" Margin="0,8,0,10" TextTrimming="CharacterEllipsis" />
                                     <ItemsControl ItemsSource="{Binding Matchups}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="m:MatchupRow">
@@ -643,6 +680,11 @@
                             </Border>
                         </Grid>
                     </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Deck page (Main/Decks): replaces the Constructed page while a deck is open ===== -->
+                <ScrollViewer Name="PageDeck" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                    <dk:DeckDetailsView Name="DeckDetails" DataContext="{Binding DeckPage}" />
                 </ScrollViewer>
 
                 <!-- ===== Arena ===== -->
@@ -676,7 +718,7 @@
                         </StackPanel>
                         <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Classes="segmentBar wide" ToolTip.Tip="Filter by game mode">
                             <StackPanel Orientation="Horizontal">
-                                <RadioButton Classes="segment" Content="All" GroupName="Hist" IsChecked="True" Command="{Binding SetHistoryFilter}" CommandParameter="All" />
+                                <RadioButton Name="HistoryAll" Classes="segment" Content="All" GroupName="Hist" IsChecked="True" Command="{Binding SetHistoryFilter}" CommandParameter="All" />
                                 <RadioButton Classes="segment" Content="Battlegrounds" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Battlegrounds" />
                                 <RadioButton Classes="segment" Content="Duos" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Duos" />
                                 <RadioButton Classes="segment" Content="Ranked" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Ranked" />
@@ -685,7 +727,7 @@
                         </Border>
                     </Grid>
                     <Border Grid.Row="1" Classes="card" Padding="22,10">
-                        <ListBox Classes="plain" ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource GameRowTemplate}"
+                        <ListBox Name="HistoryList" Classes="plain history" ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource GameRowTemplate}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="10,0" />
                     </Border>
                 </Grid>

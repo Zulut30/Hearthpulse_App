@@ -178,12 +178,7 @@ public sealed class ConstructedTracker : IPowerListener
     }
 
     /// <summary>The <see cref="ConstructedMeta.Format"/> key of a game's FormatType; null for formats without stats.</summary>
-    private static string? MetaFormatOf(string formatType) => formatType switch
-    {
-        "FT_STANDARD" => "standard",
-        "FT_WILD" => "wild",
-        _ => null,
-    };
+    private static string? MetaFormatOf(string formatType) => ConstructedMeta.FormatKeyOf(formatType);
 
     private HandSlot HandSlotOf(GameState game, CardDb cards, Entity e)
     {
@@ -273,5 +268,5 @@ public sealed class ConstructedTracker : IPowerListener
         new(card.Id, card.Name, card.Cost, remaining, total, card.Rarity,
             deckCount > 0 ? Math.Min(1.0, (double)remaining / deckCount) : 0, added);
 
-    private static int ToPlayerTurn(int turn) => turn <= 0 ? 0 : (turn + 1) / 2;
+    private static int ToPlayerTurn(int turn) => GameState.PlayerTurnOf(turn);
 }

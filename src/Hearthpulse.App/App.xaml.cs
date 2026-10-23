@@ -322,7 +322,7 @@ public partial class App : Application
             _mainViewModel.SetCards(_cards);
             LoadCardPoolAsync().Forget("Card pool load");
 
-            if (!_settings.HistoryImported || !_settings.HistoryStatsFilled)
+            if (!_settings.HistoryImported || !_settings.HistoryStatsFilled || !_settings.HistoryCardsFilled)
             {
                 await ImportLogsAsync(force: false);
             }
@@ -510,6 +510,7 @@ public partial class App : Application
         var result = await Task.Run(() => LogBackfill.Run(_installDir, _history, _cards, progress));
         _settings.HistoryImported = true;
         _settings.HistoryStatsFilled = true;
+        _settings.HistoryCardsFilled = true;
         _settings.Save();
         _mainViewModel.Busy = force || result.GamesAdded > 0
             ? $"Imported {result.GamesAdded} new games from {result.Sessions} log sessions."
@@ -607,7 +608,9 @@ public partial class App : Application
         _ = Task.Run(() =>
         {
             var sameDeck = _installDir is { } dir ? DecksLog.CodesOf(DecksLog.ReadAll(dir), view.DeckId) : [];
-            var games = DeckRecords.Matching(_history.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass, sameDeck);
+            var all = _history.Recent(int.MaxValue, "Constructed");
+            // Versions the player merged into one deck count together, as on the deck page.
+            var games = Core.Stats.DeckFamilies.WithFamily(all, DeckRecords.Matching(all, view.DeckName, view.DeckCode, view.PlayerClass, sameDeck), _history.DeckFamilies());
             var deck = DeckRecords.Aggregate(games, view.DeckName, view.DeckCode, view.PlayerClass);
             // The matchup line counts the same games as the record; without any, the class matchup over all decks.
             var matchup = games.Count > 0

@@ -94,6 +94,23 @@ public sealed record GameRecord
     /// <summary>Deck id from Decks.log (Constructed decks and Arena runs: one Arena run has one deck id).</summary>
     public long? DeckId { get; init; }
 
+    // ---- Deck page fields (Constructed; null in rows saved before them) ----
+
+    /// <summary>Local mulligan as JSON (<see cref="GameCards.MulliganJson"/>): offered, replaced and received card ids.</summary>
+    public string? Mulligan { get; init; }
+
+    /// <summary>Deck cards the player drew, JSON <c>[{"id":..,"turn":..}]</c>; turn 0 is the opening hand after the mulligan.</summary>
+    public string? CardsDrawn { get; init; }
+
+    /// <summary>Deck cards the player played from hand, JSON <c>[{"id":..,"turn":..}]</c> (the player's own turn number).</summary>
+    public string? CardsPlayed { get; init; }
+
+    /// <summary>The opponent's starting-deck cards it played face up, JSON <c>[{"id":..,"turn":..}]</c>. Nothing hidden.</summary>
+    public string? OpponentCards { get; init; }
+
+    /// <summary>The opponent's archetype when its played cards placed it clearly (<c>ArchetypeGuess</c>), else null.</summary>
+    public string? OpponentArchetype { get; init; }
+
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 
     public TimeSpan Duration => EndedAt - StartedAt;
@@ -121,7 +138,7 @@ public sealed record MatchupAggregate(string OpponentClass, int Games, int Wins,
 public sealed record RatingPoint(DateTime At, int Rating);
 
 /// <summary>Local game history in SQLite.</summary>
-public sealed class HistoryStore
+public sealed partial class HistoryStore
 {
     private readonly string _connectionString;
     private readonly object _gate = new();
@@ -162,6 +179,7 @@ public sealed class HistoryStore
             CREATE INDEX IF NOT EXISTS ix_games_mode ON games(mode);
             """);
         AddMissingColumns(connection);
+        CreateFamilyTables(connection);
     }
 
     /// <summary>Columns added after the first schema, with their SQL type. Older databases get them on open.</summary>
@@ -174,7 +192,48 @@ public sealed class HistoryStore
         ("rank_legend", "INTEGER NULL"),
         ("went_first", "INTEGER NULL"),
         ("deck_id", "INTEGER NULL"),
+        ("mulligan", "TEXT NULL"),
+        ("cards_drawn", "TEXT NULL"),
+        ("cards_played", "TEXT NULL"),
+        ("opponent_cards", "TEXT NULL"),
+        ("opponent_archetype", "TEXT NULL"),
     ];
+
+    /// <summary>The deck page's per-game card columns: large JSON, read only for the games of an open deck (<see cref="WithCards"/>).</summary>
+    private static readonly HashSet<string> CardColumns = ["mulligan", "cards_drawn", "cards_played", "opponent_cards", "opponent_archetype"];
+
+    private static readonly string[] FirstColumns =
+    [
+        "id", "game_key", "started_at", "ended_at", "mode", "game_type", "format", "player_name", "opponent_name", "hero", "opponent_hero",
+        "player_class", "opponent_class", "result", "placement", "rating_before", "rating_after", "turns", "deck_name", "deck_code",
+        "tavern_tier", "final_board", "races", "rank", "source",
+    ];
+
+    /// <summary>Every column but the card columns (read back as NULL): what lists, stats and the overlay need.</summary>
+    private static readonly string ListSelect = "SELECT "
+        + string.Join(", ", FirstColumns.Concat(AddedColumns.Select(c => c.Name)).Select(c => CardColumns.Contains(c) ? $"NULL AS {c}" : c))
+        + " FROM games";
+
+    /// <summary>
+    /// The same games read again with their card columns (mulligan, cards drawn and played, opponent cards and
+    /// archetype), in the order given; for the deck page, which needs them for one deck's games only.
+    /// </summary>
+    public IReadOnlyList<GameRecord> WithCards(IReadOnlyList<GameRecord> games)
+    {
+        if (games.Count == 0)
+        {
+            return games;
+        }
+
+        var full = Query("SELECT * FROM games WHERE game_key IN (SELECT value FROM json_each($keys));",
+                p => p.AddWithValue("$keys", System.Text.Json.JsonSerializer.Serialize(games.Select(g => g.Key))))
+            .ToDictionary(g => g.Key, StringComparer.Ordinal);
+        return games.Select(g => full.GetValueOrDefault(g.Key) ?? g).ToList();
+    }
+
+    /// <summary>One game with every column, or null when no game has the key.</summary>
+    public GameRecord? Game(string key) =>
+        Query("SELECT * FROM games WHERE game_key = $key;", p => p.AddWithValue("$key", key)).FirstOrDefault();
 
     private static void AddMissingColumns(SqliteConnection connection)
     {
@@ -224,10 +283,12 @@ public sealed class HistoryStore
                 INSERT INTO games (game_key, started_at, ended_at, mode, game_type, format, player_name, opponent_name,
                     hero, opponent_hero, player_class, opponent_class, result, placement, rating_before, rating_after, turns,
                     deck_name, deck_code, tavern_tier, final_board, races, rank, source,
-                    combat_results, offered_heroes, anomaly, rank_star_level, rank_legend, went_first, deck_id)
+                    combat_results, offered_heroes, anomaly, rank_star_level, rank_legend, went_first, deck_id,
+                    mulligan, cards_drawn, cards_played, opponent_cards, opponent_archetype)
                 VALUES ($key, $started, $ended, $mode, $type, $format, $player, $opponent, $hero, $ohero, $pclass, $oclass,
                     $result, $placement, $rb, $ra, $turns, $deck, $code, $tier, $board, $races, $rank, $source,
-                    $combats, $offered, $anomaly, $stars, $legend, $first, $deckid)
+                    $combats, $offered, $anomaly, $stars, $legend, $first, $deckid,
+                    $mulligan, $drawn, $played, $ocards, $oarch)
                 ON CONFLICT (game_key) DO UPDATE SET
                     ended_at = excluded.ended_at, mode = excluded.mode, game_type = excluded.game_type, format = excluded.format,
                     player_name = excluded.player_name, opponent_name = excluded.opponent_name, hero = excluded.hero,
@@ -242,7 +303,12 @@ public sealed class HistoryStore
                     anomaly = COALESCE(excluded.anomaly, games.anomaly),
                     rank_star_level = COALESCE(games.rank_star_level, excluded.rank_star_level),
                     rank_legend = COALESCE(games.rank_legend, excluded.rank_legend),
-                    went_first = COALESCE(excluded.went_first, games.went_first), deck_id = COALESCE(excluded.deck_id, games.deck_id)
+                    went_first = COALESCE(excluded.went_first, games.went_first), deck_id = COALESCE(excluded.deck_id, games.deck_id),
+                    mulligan = COALESCE(excluded.mulligan, games.mulligan),
+                    cards_drawn = COALESCE(excluded.cards_drawn, games.cards_drawn),
+                    cards_played = COALESCE(excluded.cards_played, games.cards_played),
+                    opponent_cards = COALESCE(excluded.opponent_cards, games.opponent_cards),
+                    opponent_archetype = COALESCE(excluded.opponent_archetype, games.opponent_archetype)
                 WHERE games.result = 'Abandoned' AND excluded.result <> 'Abandoned';
                 """;
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
@@ -252,6 +318,7 @@ public sealed class HistoryStore
             command.Parameters.AddWithValue("$legend", (object?)game.RankLegend ?? DBNull.Value);
             command.Parameters.AddWithValue("$first", game.WentFirst is { } first ? first ? 1 : 0 : DBNull.Value);
             command.Parameters.AddWithValue("$deckid", (object?)game.DeckId ?? DBNull.Value);
+            BindCardColumns(command.Parameters, game);
             command.Parameters.AddWithValue("$key", game.Key);
             command.Parameters.AddWithValue("$started", game.StartedAt.ToString("O", CultureInfo.InvariantCulture));
             command.Parameters.AddWithValue("$ended", game.EndedAt.ToString("O", CultureInfo.InvariantCulture));
@@ -367,12 +434,19 @@ public sealed class HistoryStore
                     rank_star_level = COALESCE(rank_star_level, $stars),
                     rank_legend = COALESCE(rank_legend, $legend),
                     went_first = COALESCE(went_first, $first),
-                    deck_id = COALESCE(deck_id, $deckid)
+                    deck_id = COALESCE(deck_id, $deckid),
+                    mulligan = COALESCE(mulligan, $mulligan),
+                    cards_drawn = COALESCE(cards_drawn, $drawn),
+                    cards_played = COALESCE(cards_played, $played),
+                    opponent_cards = COALESCE(opponent_cards, $ocards),
+                    opponent_archetype = COALESCE(opponent_archetype, $oarch)
                 WHERE game_key = $key
                     AND ((combat_results IS NULL AND $combats IS NOT NULL) OR (offered_heroes IS NULL AND $offered IS NOT NULL)
                         OR (anomaly IS NULL AND $anomaly IS NOT NULL) OR (rank_star_level IS NULL AND $stars IS NOT NULL)
                         OR (rank_legend IS NULL AND $legend IS NOT NULL) OR (went_first IS NULL AND $first IS NOT NULL)
-                        OR (deck_id IS NULL AND $deckid IS NOT NULL));
+                        OR (deck_id IS NULL AND $deckid IS NOT NULL) OR (mulligan IS NULL AND $mulligan IS NOT NULL)
+                        OR (cards_drawn IS NULL AND $drawn IS NOT NULL) OR (cards_played IS NULL AND $played IS NOT NULL)
+                        OR (opponent_cards IS NULL AND $ocards IS NOT NULL) OR (opponent_archetype IS NULL AND $oarch IS NOT NULL));
                 """;
             command.Parameters.AddWithValue("$key", game.Key);
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
@@ -382,6 +456,7 @@ public sealed class HistoryStore
             command.Parameters.AddWithValue("$legend", (object?)game.RankLegend ?? DBNull.Value);
             command.Parameters.AddWithValue("$first", game.WentFirst is { } first ? first ? 1 : 0 : DBNull.Value);
             command.Parameters.AddWithValue("$deckid", (object?)game.DeckId ?? DBNull.Value);
+            BindCardColumns(command.Parameters, game);
             changed = command.ExecuteNonQuery();
         }
 
@@ -422,6 +497,9 @@ public sealed class HistoryStore
             using var transaction = connection.BeginTransaction();
             foreach (var fill in fills)
             {
+                // The game's deck version was "name|CLASS"; with a code it becomes the card list. A family or a
+                // "not the same deck" choice made on the old key must follow it (DeckFamilies).
+                var oldKey = NameKeyOf(connection, transaction, fill.GameKey);
                 using var command = connection.CreateCommand();
                 command.Transaction = transaction;
                 command.CommandText = """
@@ -431,7 +509,12 @@ public sealed class HistoryStore
                 command.Parameters.AddWithValue("$code", fill.DeckCode);
                 command.Parameters.AddWithValue("$name", fill.DeckName);
                 command.Parameters.AddWithValue("$key", fill.GameKey);
-                changed += command.ExecuteNonQuery();
+                var updated = command.ExecuteNonQuery();
+                changed += updated;
+                if (updated > 0 && oldKey is not null)
+                {
+                    CarryDeckKey(connection, transaction, oldKey, DeckRecords.CardListKey(fill.DeckCode));
+                }
             }
 
             transaction.Commit();
@@ -466,7 +549,7 @@ public sealed class HistoryStore
             "Constructed" => "WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries')",
             _ => "WHERE mode = $mode",
         };
-        return Query($"SELECT * FROM games {where} ORDER BY started_at DESC LIMIT $limit;", p =>
+        return Query($"{ListSelect} {where} ORDER BY started_at DESC LIMIT $limit;", p =>
         {
             p.AddWithValue("$limit", limit);
             if (modeFilter is not (null or "Battlegrounds" or "Constructed"))
@@ -477,12 +560,12 @@ public sealed class HistoryStore
     }
 
     public IReadOnlyList<GameRecord> Since(DateTime since) =>
-        Query("SELECT * FROM games WHERE started_at >= $since ORDER BY started_at;",
+        Query($"{ListSelect} WHERE started_at >= $since ORDER BY started_at;",
             p => p.AddWithValue("$since", since.ToString("O", CultureInfo.InvariantCulture)));
 
     public IReadOnlyList<HeroAggregate> HeroStats(Func<string, string> baseHero, string mode = "Battlegrounds")
     {
-        var games = Query("SELECT * FROM games WHERE mode = $mode AND placement > 0;", p => p.AddWithValue("$mode", mode));
+        var games = Query($"{ListSelect} WHERE mode = $mode AND placement > 0;", p => p.AddWithValue("$mode", mode));
         var top = mode == "Duos" ? 2 : 4;
         return games
             .GroupBy(g => baseHero(g.HeroCardId))
@@ -498,7 +581,7 @@ public sealed class HistoryStore
     }
 
     public IReadOnlyList<ClassAggregate> ClassStats() =>
-        Query("SELECT * FROM games WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND player_class <> '' AND result <> 'Abandoned';", null)
+        Query($"{ListSelect} WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND player_class <> '' AND result <> 'Abandoned';", null)
             .GroupBy(g => (g.PlayerClass, g.Mode))
             .Select(g => new ClassAggregate(g.Key.PlayerClass, g.Key.Mode, g.Count(),
                 g.Count(x => x.Result == "Win"), g.Count(x => x.Result == "Loss")))
@@ -507,8 +590,8 @@ public sealed class HistoryStore
 
     /// <summary>Constructed results grouped per deck (deck code when known, otherwise name and class).</summary>
     public IReadOnlyList<DeckAggregate> DeckStats() =>
-        Query("SELECT * FROM games WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND deck_name IS NOT NULL AND result <> 'Abandoned';", null)
-            .GroupBy(g => g.DeckCode ?? $"{g.DeckName}|{g.PlayerClass}")
+        Query($"{ListSelect} WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND deck_name IS NOT NULL AND result <> 'Abandoned';", null)
+            .GroupBy(DeckRecords.DeckKey)
             .Select(g =>
             {
                 var latest = g.MaxBy(x => x.StartedAt)!;
@@ -520,7 +603,7 @@ public sealed class HistoryStore
 
     /// <summary>Win rate against each opponent class, optionally for one deck.</summary>
     public IReadOnlyList<MatchupAggregate> MatchupStats(string? deckCode = null) =>
-        Query("SELECT * FROM games WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND opponent_class <> '' AND result <> 'Abandoned'"
+        Query($"{ListSelect} WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND opponent_class <> '' AND result <> 'Abandoned'"
               + (deckCode is null ? ";" : " AND deck_code = $code;"),
                 p =>
                 {
@@ -532,7 +615,7 @@ public sealed class HistoryStore
             .ToList();
 
     public IReadOnlyList<RatingPoint> RatingHistory(string mode = "Battlegrounds", int limit = 300) =>
-        Query("SELECT * FROM games WHERE mode = $mode AND rating_after IS NOT NULL ORDER BY started_at DESC LIMIT $limit;", p =>
+        Query($"{ListSelect} WHERE mode = $mode AND rating_after IS NOT NULL ORDER BY started_at DESC LIMIT $limit;", p =>
             {
                 p.AddWithValue("$mode", mode);
                 p.AddWithValue("$limit", limit);
@@ -544,7 +627,7 @@ public sealed class HistoryStore
     public int[] PlacementDistribution(string mode = "Battlegrounds")
     {
         var distribution = new int[8];
-        foreach (var game in Query("SELECT * FROM games WHERE mode = $mode AND placement BETWEEN 1 AND 8;", p => p.AddWithValue("$mode", mode)))
+        foreach (var game in Query($"{ListSelect} WHERE mode = $mode AND placement BETWEEN 1 AND 8;", p => p.AddWithValue("$mode", mode)))
         {
             distribution[game.Placement - 1]++;
         }
@@ -598,11 +681,25 @@ public sealed class HistoryStore
                     RankLegend = NullableInt(reader, "rank_legend"),
                     WentFirst = NullableInt(reader, "went_first") is { } first ? first != 0 : null,
                     DeckId = reader.IsDBNull(reader.GetOrdinal("deck_id")) ? null : reader.GetInt64(reader.GetOrdinal("deck_id")),
+                    Mulligan = NullableString(reader, "mulligan"),
+                    CardsDrawn = NullableString(reader, "cards_drawn"),
+                    CardsPlayed = NullableString(reader, "cards_played"),
+                    OpponentCards = NullableString(reader, "opponent_cards"),
+                    OpponentArchetype = NullableString(reader, "opponent_archetype"),
                 });
             }
 
             return list;
         }
+    }
+
+    private static void BindCardColumns(SqliteParameterCollection p, GameRecord game)
+    {
+        p.AddWithValue("$mulligan", (object?)game.Mulligan ?? DBNull.Value);
+        p.AddWithValue("$drawn", (object?)game.CardsDrawn ?? DBNull.Value);
+        p.AddWithValue("$played", (object?)game.CardsPlayed ?? DBNull.Value);
+        p.AddWithValue("$ocards", (object?)game.OpponentCards ?? DBNull.Value);
+        p.AddWithValue("$oarch", (object?)game.OpponentArchetype ?? DBNull.Value);
     }
 
     private static int? NullableInt(SqliteDataReader reader, string column)

@@ -54,11 +54,20 @@ Core folders:
   The Firestone loader (`LoadFirestoneAsync`) is kept but unused.
 - `Data/HistoryStore.cs` (SQLite `history.db`), `Data/LogBackfill.cs` (imports games from kept Power logs). Columns added
   after the first schema go in `HistoryStore.AddedColumns` (ALTER TABLE on open, NULL in old rows): `combat_results`
-  (BG combats JSON), `offered_heroes`, `anomaly`, `rank_star_level`, `rank_legend`, `went_first`, `deck_id`.
-  `Tracking/GameFactsTracker.cs` keeps the BG hero offer for the row.
+  (BG combats JSON), `offered_heroes`, `anomaly`, `rank_star_level`, `rank_legend`, `went_first`, `deck_id`, and the deck
+  page's card columns `mulligan`, `cards_drawn`, `cards_played`, `opponent_cards`, `opponent_archetype` (JSON via
+  `Data/GameCards.cs`; lists read them as NULL, `HistoryStore.WithCards` reads them for one deck's games).
+  `Tracking/GameFactsTracker.cs` keeps the BG hero offer for the row; `GameFactsTracker.Cards.cs` the Constructed
+  mulligan, draws, plays and the opponent's played deck cards (only what it showed).
+  Deck families (merged deck versions): `HistoryStore.Families.cs` (tables `deck_families`, `deck_family_members`,
+  `deck_family_dismissed`); a version is `DeckRecords.DeckKey` (card list of the code, else "name|CLASS"),
+  `HistoryStore.FillDecks` carries family keys to the card list when it gives a game its code.
 - `Stats/` - My Stats aggregates, pure functions over `GameRecord`s: `StatsFilter` (period, format), `BattlegroundsStats`
   (summary, rating timeline, per-hero stats vs `MetaHero` placement shares / combat win rate), `ConstructedStats`
-  (rank timeline, classes, matchups, length, archetypes), `ArenaStats` (runs by deck id, else class + loss limit).
+  (rank timeline, classes, matchups, length, archetypes), `ArenaStats` (runs by deck id, else class + loss limit),
+  `DeckFamilies` (versions, families, merge suggestions, card diff; `WithFamily` for the overlay deck record),
+  `DeckDetails` (deck page: summary, win-rate line, matchups by class/told archetype, per-card mulligan and play stats),
+  `ArchetypeGuess` (opponent archetype from its played cards, only a clear call).
 - `Updates/UpdateService.cs` - GitHub releases of `Zulut30/IceCrowV2` (`RepoOwner`/`RepoName` constants),
   download + staged install.
 - `AppSettings.cs` (settings.json), `AppPaths.cs` (+ `Diag` log), `ThemePalette.cs`.

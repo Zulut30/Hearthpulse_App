@@ -557,7 +557,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         var rank = _constructed.LocalRank?.Text;
         var races = _battlegrounds.MemoryRaces is { Count: > 0 } list ? string.Join(",", list) : null;
         var record = GameRecords.Build(game, _battlegrounds, _cards, _constructed.Deck, "live", before is > 0 ? before : null, null, rank, races,
-            _facts, _constructed.LocalRank, abandoned);
+            _facts, _constructed.LocalRank, abandoned, _constructed.Meta);
         if (record is null)
         {
             if (abandoned) _recordedAbandoned = true;

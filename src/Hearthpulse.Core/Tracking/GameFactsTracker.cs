@@ -4,9 +4,10 @@ namespace Hearthpulse.Core.Tracking;
 
 /// <summary>
 /// Facts about a game that the final game state no longer shows but its history row keeps: so far the heroes
-/// offered at the Battlegrounds hero pick (the unpicked ones leave the hand once a hero is chosen).
+/// offered at the Battlegrounds hero pick (the unpicked ones leave the hand once a hero is chosen), and in Constructed
+/// the mulligan, draws and plays (<c>GameFactsTracker.Cards.cs</c>).
 /// </summary>
-public sealed class GameFactsTracker : IPowerListener
+public sealed partial class GameFactsTracker : IPowerListener
 {
     private readonly List<string> _offeredHeroes = new();
     private bool _picking;
@@ -18,10 +19,13 @@ public sealed class GameFactsTracker : IPowerListener
     {
         _offeredHeroes.Clear();
         _picking = false;
+        ResetCards();
     }
 
     public void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
     {
+        NoteMulliganOffer(game, choiceType, options);
+
         // The hero pick is a MULLIGAN choice of hero cards (the parser only reports the local player's choices).
         if (!game.IsBattlegrounds || choiceType != "MULLIGAN" || options.Count == 0
             || !options.All(e => e.IsHero && e.CardId.Length > 0))

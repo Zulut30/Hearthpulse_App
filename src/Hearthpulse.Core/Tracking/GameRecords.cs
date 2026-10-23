@@ -1,9 +1,11 @@
 using System.Globalization;
 using System.Text.Json;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
+using Hearthpulse.Core.Stats;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -44,7 +46,8 @@ public static class GameRecords
         string? races = null,
         GameFactsTracker? facts = null,
         RankInfo? rankInfo = null,
-        bool abandoned = false)
+        bool abandoned = false,
+        ConstructedMeta? meta = null)
     {
         if (game.LocalPlayer is not { } local || game.GameType.Length == 0 || game.GameType == "GT_TUTORIAL")
         {
@@ -108,6 +111,12 @@ public static class GameRecords
         }
 
         var opponentHero = game.OpponentHero?.CardId ?? string.Empty;
+        var opponentClass = cards.Get(opponentHero)?.CardClass ?? string.Empty;
+        // Card facts only for deck games (what the deck page reads), and only when the mulligan was seen: a game the
+        // log picks up mid-way (a reconnect) has lost its opening hand and early draws.
+        var cardFacts = mode is "Ranked" or "Casual" or "Friendly" or "Practice" ? facts : null;
+        var mulligan = cardFacts?.Mulligan(game);
+        var opponentPlayed = cardFacts?.OpponentPlayed(game) ?? [];
         return new GameRecord
         {
             Key = KeyOf(game),
@@ -121,7 +130,7 @@ public static class GameRecords
             HeroCardId = hero?.CardId ?? string.Empty,
             OpponentHeroCardId = opponentHero,
             PlayerClass = cards.Get(hero?.CardId)?.CardClass ?? string.Empty,
-            OpponentClass = cards.Get(opponentHero)?.CardClass ?? string.Empty,
+            OpponentClass = opponentClass,
             Result = left ? GameRecord.AbandonedResult : playState switch
             {
                 "WON" => "Win",
@@ -138,6 +147,13 @@ public static class GameRecords
             RankLegend = rankInfo is { LegendRank: > 0 } ? rankInfo.LegendRank : null,
             WentFirst = WentFirst(game),
             DeckId = deck is { DeckId: > 0 } && DeckFits(deck, cards.Get(hero?.CardId)?.CardClass, cards) ? deck.DeckId : null,
+            Mulligan = GameCards.MulliganJson(mulligan),
+            CardsDrawn = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Drawn(game)),
+            CardsPlayed = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Played(game)),
+            OpponentCards = GameCards.TurnsJson(opponentPlayed),
+            OpponentArchetype = ArchetypeGuess.FitsFormat(meta, game.FormatType)
+                ? ArchetypeGuess.FromSeenCards(meta, opponentClass, opponentPlayed.Select(c => c.CardId))?.Name
+                : null,
         };
     }
 

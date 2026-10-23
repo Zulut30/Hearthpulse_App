@@ -198,6 +198,14 @@ public sealed class ConstructedMeta
         return Parse(format, rank, period, archetypes?.RootElement, decks?.RootElement);
     }
 
+    /// <summary>The <see cref="Format"/> key ("standard", "wild") of a game's FormatType; null for formats without stats.</summary>
+    public static string? FormatKeyOf(string? formatType) => formatType switch
+    {
+        "FT_STANDARD" => "standard",
+        "FT_WILD" => "wild",
+        _ => null,
+    };
+
     /// <summary>Archetypes of one class (a class key such as "priest" or "PRIEST"), most played first.</summary>
     public IEnumerable<MetaArchetype> ForClass(string? heroClass) =>
         Archetypes.Where(a => string.Equals(a.Class, heroClass, StringComparison.OrdinalIgnoreCase));

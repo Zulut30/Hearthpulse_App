@@ -229,6 +229,7 @@ public sealed partial class MainViewModel
         RebuildBattlegroundsStats();
         RebuildConstructedStats();
         RebuildArenaStats();
+        RebuildDecks();
     }
 
     /// <summary>Builds a page off the UI thread; the returned action applies the result unless a newer build started.</summary>
@@ -440,7 +441,7 @@ public sealed partial class MainViewModel
 
     /// <summary>The loaded Constructed meta when it is the tab's format (else nothing to compare with).</summary>
     private ConstructedMeta? ConstructedMetaFor(string format) =>
-        _constructedMeta is { } m && m.Format == (format == "FT_WILD" ? "wild" : "standard") ? m : null;
+        _constructedMeta is { } m && m.Format == ConstructedMeta.FormatKeyOf(format) ? m : null;
 
     private static string ConstructedNote(ConstructedMeta? meta) => meta is null
         ? "vs Global needs the community meta of this format (pick it on the Meta tier list tab)."

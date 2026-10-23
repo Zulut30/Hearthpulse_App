@@ -98,6 +98,8 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
 - `StatsLineChart` - line of `IChartValue` points with a hover card (`HoverTemplate`, `HoverIndex`); `Sparkline` (You vs
   a dashed comparison), `MiniBars` (shares with comparison ticks, marker, 1..N labels). Used by the My Stats views in
   `Main/Stats/` (`BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView` + `StatsResources`) of both UIs.
+- `ResultBars` - wins/losses stacked per group with "W–L" and labels (deck page "Results by length",
+  `Main/Decks/DeckDetailsView` of both UIs; WPF rows that click use the `RowButton` style, Avalonia `Button.bare` + `row`).
 - `RoundClip` (WPF only, attached `RoundClip.Radius`) - clips art to rounded corners; WPF `ClipToBounds` ignores
   CornerRadius.
 - `CardPreview` - attached `CardPreview.CardId` / `Caption` / `Placement` shows a full card render on hover through

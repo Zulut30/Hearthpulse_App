@@ -21,7 +21,8 @@ public sealed record GameRow(
     string ResultKey,
     string Detail,
     string Rating,
-    int RatingValue);
+    int RatingValue,
+    string Key = "");
 
 public sealed record PlacementBar(int Place, int Count, double Fraction, string Share, bool Top);
 
@@ -52,7 +53,8 @@ public sealed record MetaCompRow(
     string Commit,
     string KeyCards);
 
-public sealed record DeckRow(string Key, string Name, string Class, int Games, string Record, string WinRate, double WinFraction, string LastPlayed, string? DeckCode, string ClassKey = "", string Meta = "");
+/// <summary>A deck in "Your decks": a family of versions or a single one (<see cref="Key"/> is the family key).</summary>
+public sealed record DeckRow(string Key, string Name, string Class, int Games, string Record, string WinRate, double WinFraction, string LastPlayed, string? DeckCode, string ClassKey = "", string Meta = "", string Versions = "");
 
 public sealed record MatchupRow(string Class, int Games, string Record, string WinRate, double WinFraction);
 
@@ -255,7 +257,6 @@ public sealed partial class MainViewModel : Observable
     private IReadOnlyList<MetaCompRow> _compTiers = Array.Empty<MetaCompRow>();
     private IReadOnlyList<DeckRow> _decks = Array.Empty<DeckRow>();
     private IReadOnlyList<MatchupRow> _matchups = Array.Empty<MatchupRow>();
-    private DeckRow? _selectedDeck;
     private string _bgMode = "Battlegrounds";
     private string _historyFilter = "All";
     private int _bracket = 100;
@@ -328,18 +329,6 @@ public sealed partial class MainViewModel : Observable
     public int Bracket { get => _bracket; private set => Set(ref _bracket, value); }
     public string MetaUpdated { get => _metaUpdated; private set => Set(ref _metaUpdated, value); }
     public int HistoryCount { get => _historyCount; private set => Set(ref _historyCount, value); }
-
-    public DeckRow? SelectedDeck
-    {
-        get => _selectedDeck;
-        set
-        {
-            if (Set(ref _selectedDeck, value))
-            {
-                LoadMatchupsAsync(value?.DeckCode).Forget("Matchups load");
-            }
-        }
-    }
 
     public void SetCards(CardDb cards)
     {
@@ -486,24 +475,6 @@ public sealed partial class MainViewModel : Observable
                 data.Classes.Where(c => c.Games >= 3).MaxBy(c => c.WinRate) is { } b2 ? b2.WinRate.ToString("P0", CultureInfo.CurrentCulture) : "3+ games needed"),
         ];
 
-        Decks = data.Decks.Select(d => new DeckRow(
-                d.DeckCode ?? d.DeckName,
-                d.DeckName,
-                OverlayViewModel.ClassName(d.PlayerClass),
-                d.Games,
-                $"{d.Wins}–{d.Losses}",
-                d.WinRate.ToString("P0", CultureInfo.CurrentCulture),
-                d.WinRate,
-                When(d.LastPlayed),
-                d.DeckCode,
-                d.PlayerClass ?? string.Empty,
-                DeckMeta(d.DeckCode, d.PlayerClass)))
-            .ToList();
-        if (SelectedDeck is null || Decks.All(d => d.Key != SelectedDeck.Key))
-        {
-            SelectedDeck = Decks.FirstOrDefault();
-        }
-
         var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();
         OverviewTiles =
@@ -516,18 +487,6 @@ public sealed partial class MainViewModel : Observable
         ];
 
         await RefreshMyStatsAsync();
-    }
-
-    private async Task LoadMatchupsAsync(string? deckCode)
-    {
-        var rows = await Task.Run(() => _history.MatchupStats(deckCode)).ConfigureAwait(true);
-        Matchups = rows.Select(m => new MatchupRow(
-                OverlayViewModel.ClassName(m.OpponentClass),
-                m.Games,
-                $"{m.Wins}–{m.Losses}",
-                m.WinRate.ToString("P0", CultureInfo.CurrentCulture),
-                m.WinRate))
-            .ToList();
     }
 
     private void RebuildMeta()
@@ -675,7 +634,8 @@ public sealed partial class MainViewModel : Observable
             resultKey,
             detail,
             g.RatingDelta is { } d ? (d >= 0 ? $"+{d}" : $"−{-d}") : string.Empty,
-            g.RatingDelta ?? 0);
+            g.RatingDelta ?? 0,
+            g.Key);
     }
 
     private static bool FilterMatch(GameRecord g, string filter) => filter switch
@@ -687,7 +647,7 @@ public sealed partial class MainViewModel : Observable
         _ => true,
     };
 
-    private static string When(DateTime at)
+    internal static string When(DateTime at)
     {
         var local = at.Kind == DateTimeKind.Utc ? at.ToLocalTime() : at;
         if (local.Date == DateTime.Today)

@@ -1,0 +1,276 @@
+using System.Globalization;
+using Hearthpulse.App.Infrastructure;
+using Hearthpulse.App.Main.Decks;
+using Hearthpulse.App.Overlay;
+using Hearthpulse.Core;
+using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Stats;
+
+namespace Hearthpulse.App.Main;
+
+/// <summary>Your decks as families (merged versions), merge suggestions and the deck page.</summary>
+public sealed partial class MainViewModel
+{
+    private IReadOnlyList<DeckFamily> _deckFamilies = [];
+    private IReadOnlyList<MergeSuggestion> _mergeSuggestions = [];
+    private IReadOnlyList<DeckSuggestionRow> _deckSuggestions = [];
+    private DeckDetailsViewModel? _deckPage;
+    private bool _deckOpen;
+    private string? _openDeckKey;
+    private int _decksBuild;
+    private bool _familiesWatching;
+    private RelayCommand? _openDeck;
+    private RelayCommand? _mergeSuggested;
+    private RelayCommand? _dismissSuggested;
+
+    /// <summary>The player asked to see a game in History (its game key).</summary>
+    public event Action<string>? HistoryRequested;
+
+    public DeckDetailsViewModel DeckPage => _deckPage ??= new DeckDetailsViewModel(this);
+
+    /// <summary>True while the deck page replaces the Constructed page.</summary>
+    public bool DeckOpen { get => _deckOpen; private set => Set(ref _deckOpen, value); }
+
+    /// <summary>Decks that look like versions of one, for the Decks card.</summary>
+    public IReadOnlyList<DeckSuggestionRow> DeckSuggestions { get => _deckSuggestions; private set => Set(ref _deckSuggestions, value); }
+
+    /// <summary>Opens the deck page of a <see cref="DeckRow"/> (or a family key).</summary>
+    public RelayCommand OpenDeck => _openDeck ??= new RelayCommand(p =>
+    {
+        var key = p is DeckRow row ? row.Key : p as string;
+        if (key is not null)
+        {
+            OpenDeckPage(key);
+        }
+    });
+
+    public RelayCommand MergeSuggested => _mergeSuggested ??= new RelayCommand(p => MergeDecks(p as DeckSuggestionRow));
+
+    public RelayCommand DismissSuggested => _dismissSuggested ??= new RelayCommand(p => DismissDecks(p as DeckSuggestionRow));
+
+    /// <summary>Opens a deck page by family key (also used by the UI render check). False when there is no such deck.</summary>
+    public bool OpenDeckPage(string key)
+    {
+        if (_deckFamilies.FirstOrDefault(f => f.Key == key) is not { } family)
+        {
+            return false;
+        }
+
+        _openDeckKey = key;
+        DeckPage.Show(family, _deckFamilies, _mergeSuggestions, ConstructedMetaFor(family.Format), _cards);
+        DeckOpen = true;
+        return true;
+    }
+
+    /// <summary>The families as last built, most recently played first.</summary>
+    public IReadOnlyList<DeckFamily> DeckFamiliesShown => _deckFamilies;
+
+    internal void CloseDeck()
+    {
+        DeckOpen = false;
+        _openDeckKey = null;
+    }
+
+    /// <summary>The history, for the deck page's card columns (read on its build thread).</summary>
+    internal HistoryStore History => _history;
+
+    internal void ShowHistoryGame(string key) => HistoryRequested?.Invoke(key);
+
+    /// <summary>
+    /// The History row of a game for the deck page's link. A game older than the rows the page lists is added on top,
+    /// so the link always lands on it.
+    /// </summary>
+    public GameRow? HistoryRowFor(string key)
+    {
+        if (HistoryRows.FirstOrDefault(r => r.Key == key) is { } shown)
+        {
+            return shown;
+        }
+
+        if (_history.Game(key) is not { } game)
+        {
+            return null;
+        }
+
+        var row = Row(game);
+        HistoryRows = [row, .. HistoryRows];
+        return row;
+    }
+
+    internal void MergeDecks(DeckSuggestionRow? pair)
+    {
+        var first = _deckFamilies.FirstOrDefault(f => f.Key == pair?.FirstKey);
+        var second = _deckFamilies.FirstOrDefault(f => f.Key == pair?.SecondKey);
+        if (first is null || second is null)
+        {
+            return;
+        }
+
+        // The deck the player is on (or the first of the pair) keeps its name and main version.
+        var keep = _openDeckKey == second.Key ? second : first;
+        var other = keep == first ? second : first;
+        var id = FamilyChange(() => _history.MergeDecks(
+            keep.Versions.Concat(other.Versions).Select(v => v.Key).ToList(),
+            null,
+            keep.Main.Key,
+            into: keep.Id));
+        if (id is { } family && DeckOpen)
+        {
+            _openDeckKey = DeckFamilies.FamilyPrefix + family.ToString(CultureInfo.InvariantCulture);
+        }
+    }
+
+    internal void DismissDecks(DeckSuggestionRow? pair)
+    {
+        var first = _deckFamilies.FirstOrDefault(f => f.Key == pair?.FirstKey);
+        var second = _deckFamilies.FirstOrDefault(f => f.Key == pair?.SecondKey);
+        if (first is not null && second is not null)
+        {
+            FamilyChange(() =>
+            {
+                _history.DismissDeckPair(first.Main.Key, second.Main.Key);
+                return 0;
+            });
+        }
+    }
+
+    internal void RenameDeck(DeckFamily? family, string? name)
+    {
+        if (family is null)
+        {
+            return;
+        }
+
+        if (family.Id is { } id)
+        {
+            FamilyChange(() =>
+            {
+                _history.RenameDeckFamily(id, name);
+                return id;
+            });
+        }
+        else if (!string.IsNullOrWhiteSpace(name) && name.Trim() != family.Name)
+        {
+            // A lone version gets a family of one to hold its name.
+            var created = FamilyChange(() => _history.MergeDecks([family.Main.Key], name, family.Main.Key));
+            if (created is { } fresh)
+            {
+                _openDeckKey = DeckFamilies.FamilyPrefix + fresh.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+    }
+
+    internal void SetMainVersion(DeckFamily? family, string? versionKey)
+    {
+        if (family?.Id is { } id && versionKey is not null)
+        {
+            FamilyChange(() =>
+            {
+                _history.SetDeckFamilyMain(id, versionKey);
+                return id;
+            });
+        }
+    }
+
+    internal void SplitVersion(DeckFamily? family, string? versionKey)
+    {
+        if (family is null || versionKey is null || family.Versions.Count < 2)
+        {
+            return;
+        }
+
+        // The page stays on the family, or on the one version left when the family is dissolved.
+        var rest = family.Versions.Where(v => v.Key != versionKey).ToList();
+        FamilyChange(() =>
+        {
+            _history.SplitDeck(versionKey);
+            return 0;
+        });
+        if (rest.Count == 1 && _openDeckKey == family.Key)
+        {
+            _openDeckKey = rest[0].Key;
+        }
+    }
+
+    /// <summary>Runs a family change on the history; the change event rebuilds the decks. Null when it failed.</summary>
+    private long? FamilyChange(Func<long> change)
+    {
+        try
+        {
+            return change();
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Deck family change failed", ex);
+            return null;
+        }
+    }
+
+    /// <summary>Rebuilds the deck list, suggestions, overall matchups and the open deck page from the loaded games.</summary>
+    private async void RebuildDecks()
+    {
+        if (!_familiesWatching)
+        {
+            _familiesWatching = true;
+            _history.DeckFamiliesChanged += RebuildDecks;
+        }
+
+        var build = ++_decksBuild;
+        var (games, cards) = (_allGames, _cards);
+        try
+        {
+            var data = await Task.Run(() =>
+            {
+                var versions = DeckFamilies.Versions(games);
+                var families = DeckFamilies.Build(versions, _history.DeckFamilies());
+                var suggestions = DeckFamilies.Suggest(families, _history.DismissedDeckPairs());
+                return (Families: families, Suggestions: suggestions,
+                    Matchups: DeckDetails.ByOpponentClass(families.SelectMany(f => f.Games).ToList()));
+            }).ConfigureAwait(true);
+            if (build != _decksBuild)
+            {
+                return;
+            }
+
+            _deckFamilies = data.Families;
+            _mergeSuggestions = data.Suggestions;
+            Decks = data.Families.Select(f => new DeckRow(
+                    f.Key,
+                    f.Name,
+                    OverlayViewModel.ClassName(f.PlayerClass),
+                    f.Record.Games,
+                    $"{f.Record.Wins}–{f.Record.Losses}",
+                    (f.Record.WinRate ?? 0).ToString("P0", CultureInfo.CurrentCulture),
+                    f.Record.WinRate ?? 0,
+                    When(f.LastPlayed),
+                    f.Main.DeckCode,
+                    f.PlayerClass,
+                    DeckMeta(f.Main.DeckCode, f.PlayerClass),
+                    f.Versions.Count > 1 ? $"{f.Versions.Count} versions" : string.Empty))
+                .ToList();
+            DeckSuggestions = data.Suggestions.Select(s => new DeckSuggestionRow(
+                    s.First.Key,
+                    s.Second.Key,
+                    $"{s.First.Name} + {s.Second.Name}",
+                    $"{s.Overlap.ToString("P0", CultureInfo.CurrentCulture)} same cards"
+                    + (s.SameDeckId ? " · same deck slot" : string.Empty) + (s.SimilarNames ? " · alike names" : string.Empty)))
+                .ToList();
+            Matchups = data.Matchups.Select(m => new MatchupRow(
+                    OverlayViewModel.ClassName(m.OpponentClass),
+                    m.Record.Games,
+                    $"{m.Record.Wins}–{m.Record.Losses}",
+                    (m.Record.WinRate ?? 0).ToString("P0", CultureInfo.CurrentCulture),
+                    m.Record.WinRate ?? 0))
+                .ToList();
+
+            if (DeckOpen && _openDeckKey is { } key && !OpenDeckPage(key))
+            {
+                CloseDeck();
+            }
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Deck list build failed", ex);
+        }
+    }
+}
