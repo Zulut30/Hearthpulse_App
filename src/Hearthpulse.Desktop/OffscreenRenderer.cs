@@ -68,6 +68,14 @@ internal static class OffscreenRenderer
             await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
         }
 
+        // The Battlegrounds counters list sits far down the settings page.
+        view.ShowPage("Settings");
+        if (view.FindControl<Control>("BgCountersHeading") is { } heading)
+        {
+            heading.BringIntoView(new Rect(0, 0, heading.Bounds.Width, 640));
+            await Save(main, Path.Combine(folder, "main-settings-counters.png"));
+        }
+
         // Phone-sized dashboard: the compact layout used on narrow windows and mobile.
         main.Width = 420;
         main.Height = 860;
@@ -99,6 +107,7 @@ internal static class OffscreenRenderer
             ("overlay-trinket", v => v is { IsHeroSelection: false, TrinketOptions.Count: > 1 }, 0),
             ("overlay-discover", v => v is { IsHeroSelection: false, DiscoverOptions.Count: > 1 }, 0),
             ("overlay-game", v => v is { InCombat: false, Turn: >= 6, Shop.Count: >= 3 } && v.Opponents.Count(o => o.LastBoard.Count > 0) >= 3, 3),
+            ("overlay-bg-counters", v => v is { IsHeroSelection: false, HeroCardId: not null, InCombat: false, Turn: >= 2, Counters.Count: > 0 }, 0),
         };
         foreach (var (name, when, hover) in moments)
         {

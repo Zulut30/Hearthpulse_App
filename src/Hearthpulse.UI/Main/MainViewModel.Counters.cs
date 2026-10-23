@@ -51,5 +51,6 @@ public sealed partial class MainViewModel
         }
 
         Raise(nameof(CounterRows));
+        Raise(nameof(BgCounterRows));
     }
 }

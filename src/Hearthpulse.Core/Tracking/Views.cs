@@ -288,6 +288,9 @@ public sealed record BattlegroundsView(
     public IReadOnlyList<string> Pairs { get; init; } = Array.Empty<string>();
 
     public string? MetaSource { get; init; }
+
+    /// <summary>Battlegrounds counters (Blood Gem, Tavern spells, Eternal Knight...); the overlay applies each one's mode.</summary>
+    public IReadOnlyList<Counters.CounterView> Counters { get; init; } = [];
 }
 
 public sealed record SessionSummary(int? StartRating, int? CurrentRating, int Games, IReadOnlyList<int> Placements, int Wins, int Losses)
