@@ -144,7 +144,8 @@ public static class CardRender
                             return Bitmap.DecodeToWidth(stream, 256, BitmapInterpolationMode.HighQuality);
                         }).ConfigureAwait(false);
                     }
-                    catch (Exception ex) when (ex is not OutOfMemoryException)
+                    // A file the start-up clean-up just removed is not unreadable: it is fetched again next time.
+                    catch (Exception ex) when (ex is not (OutOfMemoryException or FileNotFoundException or DirectoryNotFoundException))
                     {
                         Failed[key] = true;
                         Diag.Error($"Cached card render {cardId} is unreadable and was deleted", ex);

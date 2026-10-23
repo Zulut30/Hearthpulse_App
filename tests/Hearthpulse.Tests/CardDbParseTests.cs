@@ -44,7 +44,8 @@ public sealed class CardDbParseTests(ITestOutputHelper output)
               "not a card",
               [1, 2],
               {"id": "A4", "name": "dup", "name": "last wins", "mechanics": "TAUNT", "runeCost": [1], "races": {"a": 1}},
-              {"id": "A5", "name": "escaped property", "set": "CORE"}
+              {"id": "A5", "name": "escaped property", "set": "CORE"},
+              {"id": "A6", "collectible": {"x": [1]}, "battlegroundsHero": [true], "isBattlegroundsPoolMinion": "true", "name": "after the odd booleans"}
             ]
             """;
 
@@ -54,6 +55,7 @@ public sealed class CardDbParseTests(ITestOutputHelper output)
         Assert.Equal(["BLOOD", "UNHOLY"], cards.Single(c => c.Id == "A2").Runes);
         Assert.Equal(["MURLOC"], cards.Single(c => c.Id == "A3").Races);
         Assert.Equal("escaped property", cards.Single(c => c.Id == "A5").Name);
+        Assert.Equal("after the odd booleans", cards.Single(c => c.Id == "A6").Name);
     }
 
     [Fact]

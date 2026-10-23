@@ -112,7 +112,8 @@ public static class CardRender
                     {
                         image = await Task.Run(() => Decode(file)).ConfigureAwait(false);
                     }
-                    catch (Exception ex) when (ex is not OutOfMemoryException)
+                    // A file the start-up clean-up just removed is not unreadable: it is fetched again next time.
+                    catch (Exception ex) when (ex is not (OutOfMemoryException or FileNotFoundException or DirectoryNotFoundException))
                     {
                         Failed[key] = true;
                         Diag.Error($"Cached card render {cardId} is unreadable and was deleted", ex);
@@ -205,8 +206,13 @@ public static class CardRender
             return bitmap;
         }
 
-        // A copy of the visible part: a CroppedBitmap would keep the whole 256x388 render alive in the cache.
-        var card = new WriteableBitmap(new CroppedBitmap(bitmap, Visible));
+        // A copy of the visible part: a CroppedBitmap would keep the whole 256x388 render alive in the cache (and a
+        // WriteableBitmap holds two buffers).
+        var crop = new CroppedBitmap(bitmap, Visible);
+        var stride = Visible.Width * ((crop.Format.BitsPerPixel + 7) / 8);
+        var pixels = new byte[stride * Visible.Height];
+        crop.CopyPixels(pixels, stride, 0);
+        var card = BitmapSource.Create(Visible.Width, Visible.Height, bitmap.DpiX, bitmap.DpiY, crop.Format, crop.Palette, pixels, stride);
         card.Freeze();
         return card;
     }

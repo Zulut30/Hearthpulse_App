@@ -286,12 +286,12 @@ public sealed class CardDb
                 case CardField.Races: races = ReadStrings(ref reader, strings); break;
                 case CardField.Mechanics: mechanics = ReadStrings(ref reader, strings); break;
                 case CardField.RuneCost: runes = ReadRunes(ref reader, strings); break;
-                case CardField.Collectible: collectible = reader.TokenType == JsonTokenType.True; break;
+                case CardField.Collectible: collectible = ReadBool(ref reader); break;
                 case CardField.TechLevel: techLevel = ReadInt(ref reader); break;
-                case CardField.PoolMinion: poolMinion = reader.TokenType == JsonTokenType.True; break;
-                case CardField.PoolSpell: poolSpell = reader.TokenType == JsonTokenType.True; break;
-                case CardField.Hero: hero = reader.TokenType == JsonTokenType.True; break;
-                case CardField.DuosExclusive: duosExclusive = reader.TokenType == JsonTokenType.True; break;
+                case CardField.PoolMinion: poolMinion = ReadBool(ref reader); break;
+                case CardField.PoolSpell: poolSpell = ReadBool(ref reader); break;
+                case CardField.Hero: hero = ReadBool(ref reader); break;
+                case CardField.DuosExclusive: duosExclusive = ReadBool(ref reader); break;
                 case CardField.PremiumDbfId: premiumDbfId = ReadInt(ref reader); break;
                 case CardField.NormalDbfId: normalDbfId = ReadInt(ref reader); break;
                 case CardField.SkinParentId: skinParentId = ReadInt(ref reader); break;
@@ -377,6 +377,18 @@ public sealed class CardDb
 
         SkipValue(ref reader);
         return string.Empty;
+    }
+
+    /// <summary>True only for a true value; any other value (an object or array is skipped) reads as false.</summary>
+    private static bool ReadBool(ref Utf8JsonReader reader)
+    {
+        if (reader.TokenType is JsonTokenType.True or JsonTokenType.False)
+        {
+            return reader.TokenType == JsonTokenType.True;
+        }
+
+        SkipValue(ref reader);
+        return false;
     }
 
     private static int ReadInt(ref Utf8JsonReader reader)

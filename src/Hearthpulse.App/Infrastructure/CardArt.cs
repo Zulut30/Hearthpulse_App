@@ -241,7 +241,8 @@ public static class CardArt
                 {
                     image = await DecodeAsync(file, kind).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (ex is not OutOfMemoryException)
+                // A file the start-up clean-up just removed is not unreadable: it is fetched again next time.
+                catch (Exception ex) when (ex is not (OutOfMemoryException or FileNotFoundException or DirectoryNotFoundException))
                 {
                     Discard(Key(kind, cardId), file, ex);
                 }
