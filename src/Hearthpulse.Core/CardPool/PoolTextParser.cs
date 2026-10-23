@@ -293,7 +293,7 @@ public static partial class PoolTextParser
                 }
                 else
                 {
-                    scope = what switch
+                    scope = what.ToLowerInvariant() switch
                     {
                         "any class" => ClassScope.Any,
                         "your class" => ClassScope.Own,

@@ -157,3 +157,19 @@ JAIL_444, BE_571, CATA_161) always matched the `m_mousedOver` flag of the same c
 returns board minions, hero, hero power and weapon, and null when nothing is hovered. While dragging it is the card
 under the cursor; opponent's hidden hand cards have no id (null). `InputManager.s_instance` is rebuilt every match, so
 it is read fresh each time. Not checked: outside a match (expected null), during a Discover choice.
+
+## Verification (2026-10-23)
+
+- **Parser over the whole Standard pool** (1322 cards): 177 generators with a pool, 65 generators without a catalog
+  pool (from the deck/hand, copies, game-state costs, named token groups - see the exception table), 0 not understood.
+- **Tests** `tests/Hearthpulse.Tests/CardPoolTests.cs` on the fixture `Fixtures/card-pool.json.gz` (the real catalog of
+  this date, Wild + HearthstoneJSON minion types, English text for Standard cards): 26 real Standard generators with
+  pool sizes counted by a separate script from the raw API pages (one hand-written filter per card), parser cases
+  (not a generator / not a pool / unrecognized / counts, costs, keyword lists, schools, class clauses), histograms,
+  text rules, the view (filter mechanic left out, highlighted card) and the tracker on a synthetic Power.log (play ->
+  choice -> request). Regenerate the fixture after a rotation together with the expected sizes.
+- **Real logs**: replaying 11 Constructed games (10 Standard, 1 Wild; Power.logs of 2026-10-21..23) met 12 generator
+  plays/choices: 4 pools shown on play (Void Soul 5, Jade Guardians 44, Cryofrozen Champion 196, Drakeadon Mongrel
+  144), 8 correctly without a pool (Cultist Map/Nightmare Fuel - from the deck or a copy; Grim Harvest, Time Machine -
+  token groups). The other choices in those games (C'Thun pieces, Fleshshape, Aya's coins) are not generators.
+- **Render**: `--render-ui` writes `overlay-card-pool.png` and `overlay-card-pool-list.png` in both apps.
