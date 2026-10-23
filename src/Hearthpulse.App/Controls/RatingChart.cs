@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.App.Controls;
 
@@ -11,6 +12,13 @@ public sealed class RatingChart : FrameworkElement
     public static readonly DependencyProperty PointsProperty = DependencyProperty.Register(
         nameof(Points), typeof(IReadOnlyList<RatingPoint>), typeof(RatingChart),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    public RatingChart()
+    {
+        // The empty text is drawn here, so it follows a language switch only by redrawing.
+        Loaded += (_, _) => Loc.Instance.LanguageChanged += InvalidateVisual;
+        Unloaded += (_, _) => Loc.Instance.LanguageChanged -= InvalidateVisual;
+    }
 
     public IReadOnlyList<RatingPoint>? Points
     {
@@ -38,7 +46,7 @@ public sealed class RatingChart : FrameworkElement
         var points = Points;
         if (points is null || points.Count < 2)
         {
-            var empty = new FormattedText("Play a few rated Battlegrounds games to see your rating curve.", CultureInfo.CurrentCulture,
+            var empty = new FormattedText(Loc.T("Stats.Bg.RatingEmpty"), CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight, typeface, 12, faint, dpi);
             dc.DrawText(empty, new Point((w - empty.Width) / 2, (h - empty.Height) / 2));
             return;

@@ -10,7 +10,7 @@
 
         <DataTemplate x:Key="HistogramTemplate" x:DataType="o:PoolHistogramModel">
             <StackPanel Classes="histogram" Classes.attack="{Binding IsAttack}" Classes.health="{Binding IsHealth}" Margin="5,0">
-                <TextBlock Classes="histTitle" Text="{Binding Title}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <TextBlock Classes="histTitle" Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" />
                 <ItemsControl ItemsSource="{Binding Bars}" Height="36" Margin="0,4,0,0">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -38,7 +38,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <TextBlock Text="{Binding MedianText}" FontFamily="{StaticResource DisplayFont}" FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0" />
-                <TextBlock Text="median" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,-2,0,0" />
+                <TextBlock Text="{i:Loc Pool.Median}" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,-2,0,0" />
             </StackPanel>
         </DataTemplate>
 
@@ -133,7 +133,7 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <TextBlock Text="Right-click to see all options" FontSize="10.5" FontStyle="Italic"
+            <TextBlock Text="{i:Loc Pool.RightClickHint}" FontSize="10.5" FontStyle="Italic"
                        Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0"
                        IsVisible="{Binding CardPoolHasCards}" />
         </StackPanel>

@@ -1,3 +1,4 @@
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Pool;
 
 namespace Hearthpulse.Core.Battlegrounds;
@@ -181,18 +182,18 @@ public sealed class BattlegroundsMeta
     public IReadOnlyList<int> HeroBrackets => HeroesByBracket.Keys.OrderByDescending(b => b).ToList();
 
     /// <summary>True when the stats pool is part of these numbers (alone or laid over the API).</summary>
-    public bool FromPool => Source != Attribution;
+    public bool FromPool => _source != Attribution;
 
     /// <summary>
     /// What an empty list of <paramref name="what"/> (comps, trinkets, tavern spells: numbers only the stats pool gives)
     /// says, so an empty list never looks like a failure or like data.
     /// </summary>
     public string PoolPending(string what) => FromPool
-        ? $"No {what} from the Hearthpulse stats pool yet."
-        : $"No {what} yet: they will come from the Hearthpulse stats pool once it is running.";
+        ? Loc.F("Core.BgMeta.PoolPending", what)
+        : Loc.F("Core.BgMeta.PoolNotRunning", what);
 
     /// <summary>"all ranks" or "top X%", for captions.</summary>
-    public static string BracketLabel(int bracket) => bracket >= 100 ? "all ranks" : $"top {bracket}%";
+    public static string BracketLabel(int bracket) => bracket >= 100 ? Loc.T("Core.BgMeta.AllRanks") : Loc.F("Core.BgMeta.Top", bracket);
 
     /// <summary>MMR floor of each percentile; empty when the source does not publish them (the API does not).</summary>
     public IReadOnlyList<(int Percentile, int Mmr)> Percentiles { get; }
@@ -201,8 +202,23 @@ public sealed class BattlegroundsMeta
 
     public DateTime Updated { get; }
 
-    /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/>, the pool's, or both).</summary>
-    public string Source { get; internal init; } = Attribution;
+    /// <summary>
+    /// Where these stats came from, for the attribution line (<see cref="Attribution"/>, the pool's, or both), in the
+    /// interface language. Kept in English (<see cref="StoredSource"/>) and translated when read, so comparisons hold
+    /// and a language switch shows at once.
+    /// </summary>
+    public string Source
+    {
+        get => _source
+            .Replace(PoolAttribution, Loc.Or("Core.BgMeta.PoolAttribution", PoolAttribution), StringComparison.Ordinal)
+            .Replace(PoolName, Loc.Or("Core.BgMeta.PoolName", PoolName), StringComparison.Ordinal);
+        internal init => _source = value;
+    }
+
+    /// <summary><see cref="Source"/> as set, in English: what sources are compared and combined by.</summary>
+    internal string StoredSource => _source;
+
+    private readonly string _source = Attribution;
 
     /// <summary>
     /// Games a hero needs before the tier list shows it. Only the stats pool publishes sample sizes (the API's heroes have

@@ -7,6 +7,7 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
 
 namespace Hearthpulse.UI.Main;
@@ -27,13 +28,14 @@ public sealed record BgGamePoint(
     string When,
     IReadOnlyList<BoardMinionRow> Board) : IChartValue;
 
-/// <summary>A ranked game on the rank chart, with what its hover card shows.</summary>
+/// <summary>A ranked game on the rank chart, with what its hover card shows (<see cref="Result"/> is the saved "Win"/"Loss" for its colour).</summary>
 public sealed record CtGamePoint(
     double ChartValue,
     string ChartLabel,
     string HeroCardId,
     string Title,
     string Result,
+    string ResultText,
     string Detail,
     string When) : IChartValue;
 
@@ -267,11 +269,11 @@ public sealed partial class MainViewModel
         var timed = Math.Max(1, games.Count(g => g.Duration > TimeSpan.Zero));
         IReadOnlyList<StatTile> tiles =
         [
-            new StatTile("Highest MMR", summary.HighestRating is { } top ? top.ToString("N0", CultureInfo.CurrentCulture) : "—",
-                summary.NetRating is { } net ? $"{Signed(net)} net" : "rating not read yet", Math.Sign(summary.NetRating ?? 0)),
-            new StatTile("Avg. placement", summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", "lower is better"),
-            new StatTile("Total games", summary.Games.ToString("N0", CultureInfo.CurrentCulture), duos ? "Duos" : "Solo"),
-            new StatTile("Time played", Hours(summary.TimePlayed), summary.Games > 0 ? $"{(summary.TimePlayed.TotalMinutes / timed):0} min a game" : "—"),
+            new StatTile(Loc.T("Stats.Bg.HighestMmr"), summary.HighestRating is { } top ? top.ToString("N0", CultureInfo.CurrentCulture) : "—",
+                summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : Loc.T("Stats.Bg.RatingNotRead"), Math.Sign(summary.NetRating ?? 0)),
+            new StatTile(Loc.T("Stats.Bg.AvgPlacement"), summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", Loc.T("Stats.Bg.LowerIsBetter")),
+            new StatTile(Loc.T("Stats.TotalGames"), summary.Games.ToString("N0", CultureInfo.CurrentCulture), Loc.T(duos ? "Stats.Bg.Duos" : "Stats.Bg.Solo")),
+            new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), summary.Games > 0 ? Loc.F("Stats.Bg.MinPerGame", summary.TimePlayed.TotalMinutes / timed) : "—"),
         ];
         var total = Math.Max(1, summary.PlacementCounts.Sum());
         var shares = summary.PlacementCounts.Select(c => c / (double)total).ToList();
@@ -305,7 +307,7 @@ public sealed partial class MainViewModel
                 return new BgHeroPerfRow(
                     h.HeroCardId,
                     cards.NameOf(h.HeroCardId),
-                    h.Games == 1 ? "1 game" : $"{h.Games:N0} games",
+                    Loc.P("Stats.Games", h.Games),
                     h.NetRating is { } n ? Signed(n) : "—",
                     h.NetRating ?? 0,
                     Enumerable.Range(1, turns).Select(t => h.CombatWinRate.TryGetValue(t, out var v) ? v : (double?)null).ToList(),
@@ -321,10 +323,10 @@ public sealed partial class MainViewModel
             })
             .ToList();
         var note = duos
-            ? "Community numbers are for solo games, so Duos has no vs Global."
+            ? Loc.T("Stats.Bg.NoteDuos")
             : meta is null
-                ? "Community numbers are loading…"
-                : $"vs Global: {meta.Source}, {BattlegroundsMeta.BracketLabel(meta.WidestBracket)}. Pick rate counts games that saved the hero offer.";
+                ? Loc.T("Stats.Bg.NoteLoading")
+                : Loc.F("Stats.Bg.NoteSource", meta.Source, BattlegroundsMeta.BracketLabel(meta.WidestBracket));
         return () =>
         {
             BgStatTiles = tiles;
@@ -351,13 +353,13 @@ public sealed partial class MainViewModel
         var summary = ConstructedStats.Summary(games);
         IReadOnlyList<StatTile> tiles =
         [
-            new StatTile("Win rate", Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
-            new StatTile("Total games", summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture), format == "FT_WILD" ? "Wild" : "Standard"),
-            new StatTile("Rank", summary.LatestRank ?? "—", summary.BestRank is { } best ? $"best {best}" : "ranked games show it"),
-            new StatTile("Time played", Hours(summary.TimePlayed),
-                summary.AverageDuration is { } avg ? $"{avg.TotalMinutes:0} min, {summary.AverageTurns:0.0} turns a game" : "—"),
-            new StatTile("On the play", Percent(summary.OnPlay.WinRate), $"{summary.OnPlay.Wins}–{summary.OnPlay.Losses} going first"),
-            new StatTile("On the coin", Percent(summary.OnCoin.WinRate), $"{summary.OnCoin.Wins}–{summary.OnCoin.Losses} going second"),
+            new StatTile(Loc.T("Stats.WinRate"), Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
+            new StatTile(Loc.T("Stats.TotalGames"), summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture), Loc.T(format == "FT_WILD" ? "Stats.Ct.Wild" : "Stats.Ct.Standard")),
+            new StatTile(Loc.T("Stats.Ct.Rank"), summary.LatestRank ?? "—", summary.BestRank is { } best ? Loc.F("Stats.Ct.BestRank", best) : Loc.T("Stats.Ct.RankHidden")),
+            new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed),
+                summary.AverageDuration is { } avg ? Loc.F("Stats.Ct.AverageGame", avg.TotalMinutes, summary.AverageTurns) : "—"),
+            new StatTile(Loc.T("Stats.Ct.OnPlay"), Percent(summary.OnPlay.WinRate), Loc.F("Stats.Ct.OnPlayDetail", summary.OnPlay.Wins, summary.OnPlay.Losses)),
+            new StatTile(Loc.T("Stats.Ct.OnCoin"), Percent(summary.OnCoin.WinRate), Loc.F("Stats.Ct.OnCoinDetail", summary.OnCoin.Wins, summary.OnCoin.Losses)),
         ];
 
         var chart = ConstructedStats.RankTimeline(games)
@@ -367,7 +369,10 @@ public sealed partial class MainViewModel
                 r.Game.HeroCardId,
                 r.Game.DeckName is { Length: > 0 } deck ? deck : OverlayViewModel.ClassName(r.Game.PlayerClass),
                 r.Game.Result,
-                string.IsNullOrEmpty(r.Game.OpponentClass) ? $"{r.Game.Turns} turns" : $"vs {OverlayViewModel.ClassName(r.Game.OpponentClass)} · {r.Game.Turns} turns",
+                ResultText(r.Game.Result),
+                string.IsNullOrEmpty(r.Game.OpponentClass)
+                    ? Loc.P("Stats.Turns", r.Game.Turns)
+                    : Loc.F("Stats.Ct.VsOpponent", OverlayViewModel.ClassName(r.Game.OpponentClass), Loc.P("Stats.Turns", r.Game.Turns)),
                 When(r.Game.StartedAt)))
             .ToList();
 
@@ -377,7 +382,7 @@ public sealed partial class MainViewModel
             .Select(g => Group(g, string.Empty, g.Label)).ToList();
         IReadOnlyList<StatGroupRow> lengths = games.Count == 0
             ? []
-            : ConstructedStats.ByLength(games).Select(b => Group(new GroupStats(b.Label, $"{b.Label} turns", b.Record), string.Empty, $"{b.Label} turns")).ToList();
+            : ConstructedStats.ByLength(games).Select(b => Group(new GroupStats(b.Label, Loc.F("Stats.Ct.LengthTurns", b.Label), b.Record), string.Empty, Loc.F("Stats.Ct.LengthTurns", b.Label))).ToList();
         var note = ConstructedNote(meta);
         return () =>
         {
@@ -404,11 +409,11 @@ public sealed partial class MainViewModel
         var summary = ArenaStats.Summary(runs);
         IReadOnlyList<StatTile> tiles =
         [
-            new StatTile("Runs", summary.Runs.ToString("N0", CultureInfo.CurrentCulture), $"{runs.Count(r => r.Finished)} finished"),
-            new StatTile("Avg. wins", summary.AverageWins is { } avg ? avg.ToString("0.0", CultureInfo.CurrentCulture) : "—", "per finished run"),
-            new StatTile("Best run", runs.Count > 0 ? $"{summary.BestWins} wins" : "—", "most wins in one run"),
-            new StatTile("Win rate", Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
-            new StatTile("Time played", Hours(summary.TimePlayed), $"{summary.Record.Games:N0} games"),
+            new StatTile(Loc.T("Stats.Arena.Runs"), summary.Runs.ToString("N0", CultureInfo.CurrentCulture), Loc.F("Stats.Arena.Finished", runs.Count(r => r.Finished))),
+            new StatTile(Loc.T("Stats.Arena.AvgWins"), summary.AverageWins is { } avg ? avg.ToString("0.0", CultureInfo.CurrentCulture) : "—", Loc.T("Stats.Arena.PerFinishedRun")),
+            new StatTile(Loc.T("Stats.Arena.BestRun"), runs.Count > 0 ? Loc.P("Stats.Arena.Wins", summary.BestWins) : "—", Loc.T("Stats.Arena.MostWins")),
+            new StatTile(Loc.T("Stats.WinRate"), Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
+            new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), Loc.P("Stats.Games", summary.Record.Games)),
         ];
         var runRows = runs.AsEnumerable().Reverse().Select(r => new ArenaRunRow(
                 OverlayViewModel.ClassName(r.PlayerClass),
@@ -416,14 +421,14 @@ public sealed partial class MainViewModel
                 $"{r.Wins}–{r.Losses}",
                 r.Wins / (double)ArenaStats.MaxWins,
                 When(r.Started),
-                r.Finished ? $"{r.Games.Count} games" : $"{r.Games.Count} games · in progress",
+                r.Finished ? Loc.P("Stats.Games", r.Games.Count) : Loc.F("Stats.Arena.InProgress", Loc.P("Stats.Games", r.Games.Count)),
                 r.Finished))
             .ToList();
         var classes = ArenaStats.ByClass(runs)
             .Select(c => new StatGroupRow(
                 OverlayViewModel.ClassName(c.PlayerClass),
                 ClassHero(c.PlayerClass),
-                (c.Runs == 1 ? "1 run" : $"{c.Runs} runs") + (c.AverageWins is { } w ? $" · {w:0.0} avg wins" : " · none finished"),
+                Loc.P("Stats.Arena.RunCount", c.Runs) + (c.AverageWins is { } w ? Loc.F("Stats.Arena.AvgWinsSuffix", w) : Loc.T("Stats.Arena.NoneFinished")),
                 $"{c.Record.Wins}–{c.Record.Losses}",
                 Percent(c.Record.WinRate),
                 c.Record.WinRate ?? 0,
@@ -455,12 +460,12 @@ public sealed partial class MainViewModel
         _constructedMeta is { } m && m.Format == ConstructedMeta.FormatKeyOf(format) ? m : null;
 
     private static string ConstructedNote(ConstructedMeta? meta) =>
-        "vs Global and archetypes need the Constructed community meta, which only the Windows app loads.";
+        Loc.T("Stats.Ct.NoteWindowsOnly");
 
     private static StatGroupRow Group(GroupStats g, string cardId, string label) => new(
         label,
         cardId,
-        g.Record.Games == 1 ? "1 game" : $"{g.Record.Games:N0} games",
+        Loc.P("Stats.Games", g.Record.Games),
         $"{g.Record.Wins}–{g.Record.Losses}",
         Percent(g.Record.WinRate),
         g.Record.WinRate ?? 0,
@@ -488,6 +493,7 @@ public sealed partial class MainViewModel
     private static string Signed(int value) => value > 0 ? $"+{value:N0}" : value < 0 ? $"−{-value:N0}" : "±0";
 
     private static string Hours(TimeSpan time) => time.TotalHours >= 1
-        ? $"{(int)time.TotalHours}h {time.Minutes:00}m"
-        : $"{(int)time.TotalMinutes}m";
+        ? Loc.F("Stats.Hours", (int)time.TotalHours, time.Minutes)
+        : Loc.F("Stats.Minutes", (int)time.TotalMinutes);
+
 }

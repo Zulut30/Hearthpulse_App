@@ -27,7 +27,7 @@ public sealed class RealLogTests(ITestOutputHelper output)
     }
 
     /// <summary>Reads a log the running game may still be writing, the way the app does (shared read).</summary>
-    private static IEnumerable<string> SharedLines(string path)
+    internal static IEnumerable<string> SharedLines(string path)
     {
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var reader = new StreamReader(stream);

@@ -1,6 +1,7 @@
 using System.Windows.Media;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.App.Main;
 
@@ -8,7 +9,7 @@ namespace Hearthpulse.App.Main;
 public sealed record ThemeChoice(string Name, Brush Background, Brush Surface, Brush Accent, Brush Text, bool Selected)
 {
     public static ThemeChoice From(ThemeSpec theme, bool selected) => new(
-        theme.Name,
+        Loc.Or("Main.Theme." + theme.Name, theme.Name),
         ThemeEngine.Brush(0xFF140D08, theme),
         ThemeEngine.Brush(0xFF4A331E, theme),
         ThemeEngine.Brush(0xFFE9B949, theme),

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Accounts;
 
@@ -85,16 +86,16 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     public bool SessionEndingSoon => SessionExpires is { } end && end - UtcNow() < EndingSoonWindow;
 
     /// <summary>
-    /// The card's line about the sign-in's end: "Signed in until 22 Nov 2026", then a nudge to sign in again. English
-    /// month names, like the rest of the UI.
+    /// The card's line about the sign-in's end: "Signed in until 22 Nov 2026", then a nudge to sign in again. Month
+    /// names follow the interface language.
     /// </summary>
     public string SessionNote => SessionExpires is not { } end
         ? string.Empty
         : UtcNow() >= end
-            ? $"Sign-in ended on {Day(end, "d MMM")}. Sign in again."
+            ? Loc.F("Core.Account.SignInEnded", Day(end, "d MMM"))
             : SessionEndingSoon
-                ? $"Sign-in ends on {Day(end, "d MMM")}. Sign in again to stay connected."
-                : $"Signed in until {Day(end, "d MMM yyyy")}";
+                ? Loc.F("Core.Account.SignInEnds", Day(end, "d MMM"))
+                : Loc.F("Core.Account.SignedInUntil", Day(end, "d MMM yyyy"));
 
     /// <summary>Waits between polls; tests replace it to run the flow without real time.</summary>
     public Func<TimeSpan, CancellationToken, Task> Delay { get; init; } = Task.Delay;
@@ -448,23 +449,24 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     // 0 = fine, 1 = ending within two days, 2 = ended.
     private int Phase() => SessionExpires is not { } end ? 0 : UtcNow() >= end ? 2 : SessionEndingSoon ? 1 : 0;
 
-    private static string Day(DateTime utc, string format) => utc.ToLocalTime().ToString(format, CultureInfo.InvariantCulture);
+    private static string Day(DateTime utc, string format) =>
+        utc.ToLocalTime().ToString(format, Loc.IsRussian ? CultureInfo.GetCultureInfo("ru-RU") : CultureInfo.InvariantCulture);
 
     /// <summary>Turns an error code into a message for the account card.</summary>
-    internal static AccountError Describe(string code) => new(code, code switch
+    internal static AccountError Describe(string code) => new(code, Loc.T(code switch
     {
-        "CANCELLED" => "Sign-in cancelled.",
-        "ACCESS_DENIED" => "Sign-in was declined on hearthpulse.net.",
-        "EXPIRED_TOKEN" => "The code expired before it was confirmed. Press the button for a new one.",
-        "OFFLINE" => "Can't reach hearthpulse.net. Check your connection and try again.",
-        "SERVER_ERROR" or "TEMPORARILY_UNAVAILABLE" => "hearthpulse.net is busy or has a problem right now. Try again in a few minutes.",
-        "RATE_LIMITED" => "Too many attempts. Wait a few minutes and try again.",
+        "CANCELLED" => "Core.Account.Error.Cancelled",
+        "ACCESS_DENIED" => "Core.Account.Error.AccessDenied",
+        "EXPIRED_TOKEN" => "Core.Account.Error.ExpiredToken",
+        "OFFLINE" => "Core.Account.Error.Offline",
+        "SERVER_ERROR" or "TEMPORARILY_UNAVAILABLE" => "Core.Account.Error.ServerError",
+        "RATE_LIMITED" => "Core.Account.Error.RateLimited",
         "NOT_AVAILABLE" or "INVALID_REQUEST" or "INVALID_CLIENT" or "UNAUTHORIZED_CLIENT" or "UNSUPPORTED_GRANT_TYPE"
-            => "Signing in from the app isn't available on hearthpulse.net right now. Everything else works without an account.",
-        "INVALID_GRANT" or "INVALID_ACCESS_TOKEN" or "WRONG_ACCOUNT" => "The sign-in has ended. Sign in again.",
-        "INSUFFICIENT_SCOPE" => "hearthpulse.net didn't grant the access the app needs. Sign in again.",
-        "BAD_RESPONSE" => "hearthpulse.net sent an answer the app doesn't understand. Try again later.",
-        "SIGNED_OUT" => "You are signed out.",
-        _ => "Something went wrong while signing in. Try again.",
-    });
+            => "Core.Account.Error.NotAvailable",
+        "INVALID_GRANT" or "INVALID_ACCESS_TOKEN" or "WRONG_ACCOUNT" => "Core.Account.Error.SignInEnded",
+        "INSUFFICIENT_SCOPE" => "Core.Account.Error.InsufficientScope",
+        "BAD_RESPONSE" => "Core.Account.Error.BadResponse",
+        "SIGNED_OUT" => "Core.Account.Error.SignedOut",
+        _ => "Core.Account.Error.Other",
+    }));
 }

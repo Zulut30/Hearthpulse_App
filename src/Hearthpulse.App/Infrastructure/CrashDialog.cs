@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.App.Infrastructure;
 
@@ -52,7 +53,7 @@ internal static class CrashDialog
             var text = new StackPanel { Margin = new Thickness(22, 20, 22, 18) };
             text.Children.Add(new TextBlock
             {
-                Text = fatal ? "Hearthpulse has to close" : "Something went wrong",
+                Text = fatal ? Loc.T("Host.Crash.FatalTitle") : Loc.T("Host.Crash.Title"),
                 FontSize = 16,
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 0, 0, 8),
@@ -60,8 +61,8 @@ internal static class CrashDialog
             text.Children.Add(new TextBlock
             {
                 Text = fatal
-                    ? "An unexpected error stopped Hearthpulse. It was written to the log."
-                    : "Hearthpulse hit an unexpected error and keeps running. It was written to the log.",
+                    ? Loc.T("Host.Crash.FatalText")
+                    : Loc.T("Host.Crash.Text"),
                 TextWrapping = TextWrapping.Wrap,
             });
             text.Children.Add(new TextBlock
@@ -74,8 +75,8 @@ internal static class CrashDialog
             });
 
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-            var openLog = new Button { Content = "Open log", Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(14, 6, 14, 6) };
-            var close = new Button { Content = fatal ? "Close" : "Continue", IsDefault = true, IsCancel = true, Padding = new Thickness(14, 6, 14, 6) };
+            var openLog = new Button { Content = Loc.T("Host.Crash.OpenLog"), Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(14, 6, 14, 6) };
+            var close = new Button { Content = fatal ? Loc.T("Host.Crash.Close") : Loc.T("Host.Crash.Continue"), IsDefault = true, IsCancel = true, Padding = new Thickness(14, 6, 14, 6) };
             Style(openLog, "GhostButton");
             Style(close, "PrimaryButton");
             openLog.Click += (_, _) => OpenLog();

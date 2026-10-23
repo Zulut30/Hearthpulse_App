@@ -27,12 +27,12 @@
 
     <!-- "vs Global": arrow and difference, green when it favours you -->
     <DataTemplate x:Key="VsGlobalTemplate" x:DataType="m:VsGlobal">
-        <StackPanel Orientation="Horizontal" IsVisible="{Binding Shown}" ToolTip.Tip="Your number compared with the community's">
+        <StackPanel Orientation="Horizontal" IsVisible="{Binding Shown}" ToolTip.Tip="{i:Loc Stats.VsGlobalTip}">
             <TextBlock Text="{Binding Glyph}" Classes="icon" FontSize="15" Margin="0,0,1,0"
                        Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
             <TextBlock Text="{Binding Text}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
                        Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
-            <TextBlock Text=" vs Global" FontSize="11.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
+            <TextBlock Text="{i:Loc Stats.VsGlobal}" FontSize="11.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
         </StackPanel>
     </DataTemplate>
 
@@ -48,7 +48,7 @@
                     <TextBlock Text="{Binding Games}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <TextBlock Grid.Column="2" Text="{Binding Record}" Classes="caption wide" Width="64" TextAlignment="Right" VerticalAlignment="Center"
-                           ToolTip.Tip="Wins – losses" />
+                           ToolTip.Tip="{i:Loc Stats.RecordTip}" />
                 <StackPanel Grid.Column="3" Width="132" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Border Width="64" Height="7" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
@@ -71,12 +71,12 @@
                     <Border Width="50" Height="50" CornerRadius="25" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
                     <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                        <TextBlock Text="Played as" Classes="label" FontSize="11" />
+                        <TextBlock Text="{i:Loc Stats.Bg.PlayedAs}" Classes="label" FontSize="11" />
                         <TextBlock Text="{Binding HeroName}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding When}" Classes="caption" FontSize="11.5" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
-                        <TextBlock Text="Place" Classes="label" FontSize="11" HorizontalAlignment="Right" />
+                        <TextBlock Text="{i:Loc Stats.Bg.Place}" Classes="label" FontSize="11" HorizontalAlignment="Right" />
                         <TextBlock Text="{Binding Place}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="22" HorizontalAlignment="Right"
                                    Foreground="{Binding PlaceKey, Converter={StaticResource KeyBrush}}" />
                     </StackPanel>
@@ -87,7 +87,7 @@
                     <TextBlock Text="{Binding Delta}" FontWeight="Bold" FontSize="13" Margin="8,0,0,0" VerticalAlignment="Center"
                                Foreground="{Binding DeltaValue, Converter={StaticResource SignBrush}}" />
                 </StackPanel>
-                <TextBlock Text="Final board" Classes="label" Margin="0,12,0,6" />
+                <TextBlock Text="{i:Loc Stats.Bg.FinalBoard}" Classes="label" Margin="0,12,0,6" />
                 <ItemsControl ItemsSource="{Binding Board}" IsVisible="{Binding Board, Converter={StaticResource Truthy}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -109,7 +109,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="No board was saved for this game." Classes="caption" FontSize="11.5"
+                <TextBlock Text="{i:Loc Stats.Bg.NoBoard}" Classes="caption" FontSize="11.5"
                            IsVisible="{Binding Board, Converter={StaticResource Truthy}, ConverterParameter=!}" />
             </StackPanel>
         </Border>
@@ -124,7 +124,7 @@
                 <StackPanel Grid.Column="1" Margin="12,0,0,0">
                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                        <TextBlock Text="{Binding Result}" FontWeight="Bold" Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
+                        <TextBlock Text="{Binding ResultText}" FontWeight="Bold" Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
                         <TextBlock Text=" · " Foreground="{StaticResource Faint}" />
                         <TextBlock Text="{Binding ChartLabel}" FontWeight="SemiBold" />
                     </StackPanel>
