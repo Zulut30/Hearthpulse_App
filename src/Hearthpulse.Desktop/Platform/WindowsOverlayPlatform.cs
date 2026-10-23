@@ -43,7 +43,9 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
     public PixelRect? FindGameClientArea()
     {
         var now = DateTime.UtcNow;
-        if (now >= _nextLookup || !IsWindow(_game))
+        // A process snapshot costs about 10 ms: look again every 1.5 s, or at once when the window that was found closed
+        // (before, every overlay tick while Hearthstone was not running).
+        if (now >= _nextLookup || (_game != IntPtr.Zero && !IsWindow(_game)))
         {
             _nextLookup = now.AddSeconds(1.5);
             _game = FindHearthstoneWindow();

@@ -294,7 +294,7 @@ public static class Counters
     /// <summary>Every counter for both players, yours first; the overlay applies each counter's <see cref="CounterMode"/>.</summary>
     public static IReadOnlyList<CounterView> Build(GameState game, CounterTracker tracker, CardDb cards, DeckDefinition? deck)
     {
-        var result = new List<CounterView>();
+        var result = new List<CounterView>((Defs.Length * 2) + 4);
         if (game.LocalPlayerId == 0)
         {
             return result;
@@ -326,23 +326,27 @@ public static class Counters
         var hero = opponent ? game.OpponentHero : game.LocalHero;
         var allDied = game.Players.Keys.Sum(id => tracker.For(id).Died.Count);
         var context = new CounterContext(game, playerId, player, tracker, tracker.For(playerId), cards, cards.Get(hero?.CardId)?.CardClass ?? string.Empty, allDied);
+        // Built for both players on every overlay update (up to 10 a second): plain loops, and shared empty lists for
+        // the many counters with nothing to list. LINQ here allocated about 200 KB per update.
         foreach (var def in Defs)
         {
             var related = CounterCards.Related.GetValueOrDefault(def.Id) ?? [];
-            var icon = related.FirstOrDefault(seen.ContainsKey);
             var value = def.Compute(context);
             if (value is null)
             {
                 continue;
             }
 
-            var counted = Tally(cards, value.Counted ?? []);
+            var relatedCards = RelatedCards(cards, related, seen);
+            var icon = relatedCards.Count > 0 ? relatedCards[0].CardId : null;
+            var counted = Tally(cards, value.Counted);
             result.Add(new CounterView(def.Id, def.Title, value.Value, value.Progress, opponent,
-                icon ?? counted.FirstOrDefault()?.CardId ?? related.FirstOrDefault(), def.Description, value.Details ?? [], icon is not null || value.Active)
+                icon ?? (counted.Count > 0 ? counted[0].CardId : related.Length > 0 ? related[0] : null), def.Description, value.Details ?? [],
+                icon is not null || value.Active)
             {
                 Counted = counted,
-                RelatedCards = related.Where(seen.ContainsKey).Distinct().Select(id => new CounterCard(id, cards.NameOf(id), seen[id])).ToList(),
-                Parts = value.Parts?.Select(p => new CounterCard(p.CardId, cards.NameOf(p.CardId), 0, p.Done)).ToList() ?? [],
+                RelatedCards = relatedCards,
+                Parts = value.Parts is { Count: > 0 } parts ? parts.Select(p => new CounterCard(p.CardId, cards.NameOf(p.CardId), 0, p.Done)).ToList() : [],
                 Goal = value.Goal,
             });
         }
@@ -361,13 +365,78 @@ public static class Counters
     /// Cards of a player the tracker can see, with the number of entities of each: everything outside the hidden deck
     /// and hand, plus revealed ones.
     /// </summary>
-    private static Dictionary<string, int> Known(GameState game, int playerId) =>
-        game.Entities.Values.Where(e => (e.Controller == playerId || e.InitialController == playerId) && e.CardId.Length > 0)
-            .GroupBy(e => e.CardId).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+    private static Dictionary<string, int> Known(GameState game, int playerId)
+    {
+        var known = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var e in game.Entities.Values)
+        {
+            if ((e.Controller == playerId || e.InitialController == playerId) && e.CardId.Length > 0)
+            {
+                known[e.CardId] = known.GetValueOrDefault(e.CardId) + 1;
+            }
+        }
+
+        return known;
+    }
+
+    /// <summary>The counter's related cards the player is known to have, each once, in the table's order.</summary>
+    private static IReadOnlyList<CounterCard> RelatedCards(CardDb cards, string[] related, Dictionary<string, int> seen)
+    {
+        List<CounterCard>? list = null;
+        foreach (var id in related)
+        {
+            if (seen.TryGetValue(id, out var copies) && IndexOf(list, id) < 0)
+            {
+                (list ??= []).Add(new CounterCard(id, cards.NameOf(id), copies));
+            }
+        }
+
+        return list ?? (IReadOnlyList<CounterCard>)[];
+    }
 
     /// <summary>Counted card ids grouped by card, in the order each was first counted; hidden cards (no id yet) are left out.</summary>
-    private static IReadOnlyList<CounterCard> Tally(CardDb cards, IEnumerable<string> cardIds) =>
-        cardIds.Where(id => id.Length > 0).GroupBy(id => id, StringComparer.Ordinal).Select(g => new CounterCard(g.Key, cards.NameOf(g.Key), g.Count())).ToList();
+    private static IReadOnlyList<CounterCard> Tally(CardDb cards, IReadOnlyList<string>? cardIds)
+    {
+        if (cardIds is null || cardIds.Count == 0)
+        {
+            return [];
+        }
+
+        // A handful of cards at most: a linear search is cheaper than a dictionary.
+        List<CounterCard>? tally = null;
+        foreach (var id in cardIds)
+        {
+            if (id.Length == 0)
+            {
+                continue;
+            }
+
+            var at = IndexOf(tally, id);
+            if (at >= 0)
+            {
+                tally![at] = tally[at] with { Count = tally[at].Count + 1 };
+            }
+            else
+            {
+                (tally ??= []).Add(new CounterCard(id, cards.NameOf(id), 1));
+            }
+        }
+
+        return tally ?? (IReadOnlyList<CounterCard>)[];
+    }
+
+    private static int IndexOf(List<CounterCard>? list, string cardId)
+    {
+        for (var i = 0; i < (list?.Count ?? 0); i++)
+        {
+            if (list![i].CardId == cardId)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     private static CounterValue Num(int value, IReadOnlyList<string>? details = null, IEnumerable<string>? counted = null) =>
         new(value.ToString(CultureInfo.InvariantCulture), Details: details, Active: false, Counted: counted?.ToList());
@@ -436,7 +505,19 @@ public static class Counters
 
         public int Plays(string cardId) => Log.Played.Count(p => p.CardId == cardId);
 
-        public List<string> PlayedIds(Func<PlayedCardInfo, bool> match) => Log.Played.Where(match).Select(p => p.CardId).ToList();
+        public List<string> PlayedIds(Func<PlayedCardInfo, bool> match)
+        {
+            var ids = new List<string>();
+            foreach (var p in Log.Played)
+            {
+                if (match(p))
+                {
+                    ids.Add(p.CardId);
+                }
+            }
+
+            return ids;
+        }
 
         public int Deaths(string cardId) => Log.Died.Count(id => id == cardId);
 
@@ -444,7 +525,11 @@ public static class Counters
         public int Source(string key)
         {
             var table = CounterCards.Sources[key];
-            return Log.Played.Sum(p => table.GetValueOrDefault(p.CardId).Play) + Log.Died.Concat(Log.Destroyed).Sum(id => table.GetValueOrDefault(id).Death);
+            var sum = 0;
+            foreach (var p in Log.Played) sum += table.GetValueOrDefault(p.CardId).Play;
+            foreach (var id in Log.Died) sum += table.GetValueOrDefault(id).Death;
+            foreach (var id in Log.Destroyed) sum += table.GetValueOrDefault(id).Death;
+            return sum;
         }
 
         /// <summary>The played, died and destroyed cards that added to <see cref="Source"/>.</summary>

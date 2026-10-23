@@ -139,7 +139,9 @@ public partial class OverlayWindow : Window
     private void Tick()
     {
         var now = DateTime.UtcNow;
-        if (now >= _nextWindowLookup || !Native.IsWindow(_hearthstone))
+        // A process snapshot costs about 10 ms with a few hundred processes. While Hearthstone was closed it ran on every
+        // 33 ms tick of the UI thread; now every 1.5 s, or at once when the window that was found has closed.
+        if (now >= _nextWindowLookup || (_hearthstone != IntPtr.Zero && !Native.IsWindow(_hearthstone)))
         {
             _nextWindowLookup = now.AddSeconds(1.5);
             _hearthstone = Native.FindHearthstoneWindow();
