@@ -197,6 +197,28 @@ internal static class WpfBench
         }
 
         Memory("every page opened");
+
+        // History filter changes: time and allocations (all threads) until the new rows are in. Each filter must change
+        // the rows (the synthetic history is Constructed only, so "Constructed" would show the same rows as "All").
+        main.ShowPage("History");
+        Pump();
+        foreach (var filter in new[] { "Battlegrounds", "All" })
+        {
+            var rowsChanged = false;
+            void OnChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => rowsChanged |= e.PropertyName == nameof(MainViewModel.HistoryRows);
+            vm.PropertyChanged += OnChanged;
+            Step("(before filter)");
+            vm.SetHistoryFilter.Execute(filter);
+            var wait = Stopwatch.StartNew();
+            while (!rowsChanged && wait.ElapsedMilliseconds < 10_000)
+            {
+                Pump(DispatcherPriority.Background);
+            }
+
+            Pump();
+            Step($"history filter {filter}");
+            vm.PropertyChanged -= OnChanged;
+        }
         foreach (var page in new[] { "Battlegrounds", "Constructed" })
         {
             main.ShowPage(page);

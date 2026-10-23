@@ -96,7 +96,7 @@ public sealed partial class MainViewModel : Observable
         SetHistoryFilter = new RelayCommand(p =>
         {
             HistoryFilter = p as string ?? "All";
-            RefreshAsync().Forget("History refresh");
+            ApplyHistoryFilter();
         });
         SetCardTier = new RelayCommand(p =>
         {
@@ -214,6 +214,12 @@ public sealed partial class MainViewModel : Observable
     // ---- history-derived ------------------------------------------------------------------
     private IReadOnlyList<GameRow> _recent = Array.Empty<GameRow>();
     private IReadOnlyList<GameRow> _historyRows = Array.Empty<GameRow>();
+
+    // Refreshes run off the UI thread; only the newest one may apply its result.
+    private int _refreshRequest;
+
+    // The games the last refresh read; the history filter is applied to them.
+    private IReadOnlyList<GameRecord>? _recentGames;
     private IReadOnlyList<StatTile> _overviewTiles = Array.Empty<StatTile>();
     private IReadOnlyList<StatTile> _bgTiles = Array.Empty<StatTile>();
     private IReadOnlyList<StatTile> _constructedTiles = Array.Empty<StatTile>();
@@ -336,11 +342,24 @@ public sealed partial class MainViewModel : Observable
         }
     }
 
+    /// <summary>History rows for the current filter, cut from the games the last refresh read (no new queries).</summary>
+    private void ApplyHistoryFilter()
+    {
+        if (_recentGames is not { } recent)
+        {
+            RefreshAsync().Forget("History refresh");
+            return;
+        }
+
+        var filter = HistoryFilter;
+        HistoryRows = (filter == "All" ? recent : recent.Where(g => FilterMatch(g, filter))).Take(300).Select(Row).ToList();
+    }
+
     public async Task RefreshAsync()
     {
         var cards = _cards;
         var mode = BgMode;
-        var filter = HistoryFilter;
+        var request = ++_refreshRequest;
         var data = await Task.Run(() =>
         {
             var recent = _history.Recent(400);
@@ -354,13 +373,19 @@ public sealed partial class MainViewModel : Observable
                 Heroes: _history.HeroStats(cards.BaseHeroId, mode),
                 Decks: _history.DeckStats(),
                 Classes: _history.ClassStats(),
-                Filtered: filter == "All" ? recent : recent.Where(g => FilterMatch(g, filter)).ToList(),
                 Session: bgGames);
         }).ConfigureAwait(true);
 
+        // A newer refresh (another mode, a new game) started while this one read the history: its result wins.
+        if (request != _refreshRequest)
+        {
+            return;
+        }
+
+        _recentGames = data.Recent;
         HistoryCount = data.Recent.Count(g => !g.IsAbandoned);
         Recent = data.Recent.Take(8).Select(Row).ToList();
-        HistoryRows = data.Filtered.Take(300).Select(Row).ToList();
+        ApplyHistoryFilter();
         RatingPoints = data.Rating;
 
         var top = mode == "Duos" ? 2 : 4;
