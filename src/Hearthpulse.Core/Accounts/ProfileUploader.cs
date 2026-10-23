@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.Accounts;
@@ -11,8 +12,8 @@ namespace Hearthpulse.Core.Accounts;
 /// rules: docs/profile-upload.md.
 /// </summary>
 /// <remarks>
-/// Only while the player is signed in and has turned <see cref="AppSettings.UploadGamesToProfile"/> on (an opt-in:
-/// null until asked): a game that ends otherwise is not queued, and turning it off drops what waits. Past games go only
+/// Only while the player is signed in and <see cref="AppSettings.UploadGamesToProfile"/> is on (the default): a game
+/// that ends otherwise is not queued, and turning it off drops what waits. Past games go only
 /// when the player asks (<see cref="StartBackfill"/>), read from the history a page at a time. The site keeps the first
 /// copy of an event id forever, so every event is checked with <see cref="ProfileEventSchema"/> first and a failing one
 /// is logged instead of sent, and a Battlegrounds game waits for its new rating up to <see cref="RatingWait"/> after it
@@ -51,7 +52,7 @@ public sealed class ProfileUploader : IDisposable
     private Task? _loop;
     private int _failures;
     private DateTime _retryAt = DateTime.MinValue;
-    private string _status = string.Empty;
+    private StatusState _state = new(StatusKind.None, 0, false, 0, 0, 0);
     private int _withoutStatistics;
     private int _refused;
     private int _notSent;
@@ -91,9 +92,10 @@ public sealed class ProfileUploader : IDisposable
 
     /// <summary>
     /// One line for the Settings card: games waiting (and whether past games follow), the last send, why sending waits,
-    /// and how many games since the start went without statistics or were refused.
+    /// and how many games since the start went without statistics or were refused. Built on each read in the interface
+    /// language, so it follows a language change.
     /// </summary>
-    public string Status => _status;
+    public string Status => Describe(_state);
 
     public int PendingCount => _queue.PendingCount;
 
@@ -253,15 +255,15 @@ public sealed class ProfileUploader : IDisposable
     {
         if (!_enabled())
         {
-            // Turned off (or never turned on): what was waiting is not sent later either.
+            // Turned off: what was waiting is not sent later either.
             _queue.ClearPending();
-            SetStatus(string.Empty);
+            SetStatus(StatusKind.None);
             return Idle;
         }
 
         if (_accountId() is not { Length: > 0 } || !Adopt())
         {
-            SetStatus(string.Empty);
+            SetStatus(StatusKind.None);
             return Idle;
         }
 
@@ -280,7 +282,7 @@ public sealed class ProfileUploader : IDisposable
             if (batch.Count == 0)
             {
                 var pending = _queue.PendingCount;
-                SetStatus(pending > 0 ? Waiting(pending) : sent > 0 || _status.Length > 0 ? Done() : string.Empty);
+                SetStatus(pending > 0 ? StatusKind.Waiting : sent > 0 || _state.Kind != StatusKind.None ? StatusKind.Done : StatusKind.None);
                 return _queue.NextDue() is { } due && due > now ? Min(due - now, Idle) : Idle;
             }
 
@@ -422,49 +424,58 @@ public sealed class ProfileUploader : IDisposable
         var wait = Min(TimeSpan.FromTicks(FirstRetry.Ticks << Math.Min(_failures - 1, 10)), MaxRetry);
         _retryAt = UtcNow() + wait;
         Diag.Info($"profile upload: sending paused ({reason}), next try in {wait.TotalSeconds.ToString("0", CultureInfo.InvariantCulture)} s");
-        SetStatus(Waiting(_queue.PendingCount) + " Sending will be retried.");
+        SetStatus(StatusKind.Retrying);
         return wait;
     }
 
-    private string Waiting(int pending) =>
-        (pending == 1 ? "1 game waiting to be sent." : $"{pending.ToString(CultureInfo.InvariantCulture)} games waiting to be sent.")
-        + (Backfilling ? " More past games follow." : string.Empty) + Problems();
-
-    private string Done() => "All games are on your profile." + Problems();
-
-    private string Problems()
+    private static string Describe(StatusState s)
     {
-        var parts = new List<string>();
-        if (_withoutStatistics > 0)
+        var text = s.Kind switch
         {
-            parts.Add(Games(_withoutStatistics) + " sent without statistics");
+            StatusKind.Waiting or StatusKind.Retrying => string.Join(" ", new[]
+            {
+                Loc.P("Upload.Status.Waiting", s.Pending),
+                s.Backfilling ? Loc.T("Upload.Status.MoreFollow") : null,
+                s.Kind == StatusKind.Retrying ? Loc.T("Upload.Status.Retrying") : null,
+            }.OfType<string>()),
+            StatusKind.Done => Loc.T("Upload.Status.Done"),
+            _ => string.Empty,
+        };
+        if (text.Length == 0)
+        {
+            return text;
         }
 
-        if (_refused > 0)
+        var problems = new[]
         {
-            parts.Add(Games(_refused) + " refused by the site");
-        }
-
-        if (_notSent > 0)
-        {
-            parts.Add(Games(_notSent) + " not sent (unreadable for the site)");
-        }
-
-        return parts.Count == 0 ? string.Empty : " " + string.Join(", ", parts) + "; see hearthpulse.log.";
-
-        static string Games(int n) => n == 1 ? "1 game" : $"{n.ToString(CultureInfo.InvariantCulture)} games";
+            s.WithoutStatistics > 0 ? Loc.P("Upload.Status.WithoutStatistics", s.WithoutStatistics) : null,
+            s.Refused > 0 ? Loc.P("Upload.Status.Refused", s.Refused) : null,
+            s.NotSent > 0 ? Loc.P("Upload.Status.NotSent", s.NotSent) : null,
+        }.OfType<string>().ToList();
+        return problems.Count == 0 ? text : text + " " + Loc.F("Upload.Status.SeeLog", string.Join(", ", problems));
     }
 
     private static TimeSpan Min(TimeSpan a, TimeSpan b) => a < b ? a : b;
 
-    private void SetStatus(string status)
+    private void SetStatus(StatusKind kind)
     {
-        if (status != _status)
+        var state = new StatusState(kind, _queue.PendingCount, Backfilling, _withoutStatistics, _refused, _notSent);
+        if (state != _state)
         {
-            _status = status;
+            _state = state;
             StatusChanged?.Invoke();
         }
     }
+
+    private enum StatusKind
+    {
+        None,
+        Waiting,
+        Retrying,
+        Done,
+    }
+
+    private sealed record StatusState(StatusKind Kind, int Pending, bool Backfilling, int WithoutStatistics, int Refused, int NotSent);
 
     private async Task LoopAsync(CancellationToken cancellationToken)
     {

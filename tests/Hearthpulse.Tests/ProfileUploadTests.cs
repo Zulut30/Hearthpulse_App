@@ -119,30 +119,25 @@ public sealed class ProfileUploadTests : IDisposable
     }
 
     [Fact]
-    public async Task Fresh_settings_send_nothing_until_the_player_turns_sending_on()
+    public async Task Games_are_sent_automatically_with_fresh_settings_until_the_switch_is_turned_off()
     {
         var settings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>("{}")!;
-        Assert.Null(settings.UploadGamesToProfile);
-        Assert.Null(new AppSettings().UploadGamesToProfile);
-        var game = Saved(Ranked());
-        // The hosts' rule: only an explicit yes sends.
-        var uploader = Uploader(() => settings.UploadGamesToProfile == true);
+        Assert.True(settings.UploadGamesToProfile);
+        Assert.True(new AppSettings().UploadGamesToProfile);
+        var first = Saved(Ranked());
+        var second = Saved(Ranked("Loss"));
+        var uploader = Uploader(() => settings.UploadGamesToProfile);
 
-        uploader.OnGameFinished(Outcome(game));
-        await uploader.PassAsync(CancellationToken.None);
-        Assert.False(uploader.StartBackfill());
-        settings.UploadGamesToProfile = false;
-        uploader.OnGameFinished(Outcome(game));
-        await uploader.PassAsync(CancellationToken.None);
-
-        Assert.Empty(_site.Requests);
-        Assert.Equal(0, uploader.PendingCount);
-        Assert.False(File.Exists(QueuePath) && new ProfileUploadQueue(QueuePath).PendingCount > 0);
-
-        settings.UploadGamesToProfile = true;
-        Assert.True(uploader.StartBackfill());
+        uploader.OnGameFinished(Outcome(first));
         await uploader.PassAsync(CancellationToken.None);
         Assert.Single(Assert.Single(_site.Requests).Events);
+
+        settings.UploadGamesToProfile = false;
+        uploader.OnGameFinished(Outcome(second));
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.False(uploader.StartBackfill());
+        Assert.Single(_site.Requests);
+        Assert.Equal(0, uploader.PendingCount);
     }
 
     [Fact]

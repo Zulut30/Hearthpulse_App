@@ -267,6 +267,20 @@ public sealed class ProfileEventsContractTests
     }
 
     [Fact]
+    public void A_battletag_shape_that_appears_only_after_cleaning_drops_the_name_not_the_game()
+    {
+        // A tab removed, or a cut at 80 characters, makes the text look like a BattleTag: only the field is left out.
+        var tab = ProfileEvents.ForGame(ConstructedExample() with { DeckName = "Deck #12	345" })!;
+        var cut = ProfileEvents.ForGame(ConstructedExample() with { DeckName = new string('a', 74) + " #1234567" })!;
+
+        foreach (var e in new[] { tab, cut })
+        {
+            Assert.False(e.Payload.ContainsKey("deckName"));
+            Assert.Null(ProfileEventSchema.Validate(e, new DateTime(2026, 10, 23, 0, 0, 0, DateTimeKind.Utc)));
+        }
+    }
+
+    [Fact]
     public void The_core_schema_checks_the_envelope_limits_like_the_site()
     {
         var e = ProfileEvents.ForGame(ConstructedExample())!;

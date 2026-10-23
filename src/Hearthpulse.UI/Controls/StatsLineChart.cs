@@ -5,6 +5,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Media;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Controls;
@@ -32,8 +33,8 @@ public sealed class StatsLineChart : Control
     public static readonly StyledProperty<int> HoverIndexProperty =
         AvaloniaProperty.Register<StatsLineChart, int>(nameof(HoverIndex), -1);
 
-    public static readonly StyledProperty<string> EmptyTextProperty =
-        AvaloniaProperty.Register<StatsLineChart, string>(nameof(EmptyText), "No games in this time frame yet.");
+    public static readonly StyledProperty<string?> EmptyTextProperty =
+        AvaloniaProperty.Register<StatsLineChart, string?>(nameof(EmptyText));
 
     private const double Right = 14;
     private const double Top = 16;
@@ -61,7 +62,21 @@ public sealed class StatsLineChart : Control
     /// <summary>Index of the hovered point, -1 for none (settable, e.g. to render a hover card off-screen).</summary>
     public int HoverIndex { get => GetValue(HoverIndexProperty); set => SetValue(HoverIndexProperty, value); }
 
-    public string EmptyText { get => GetValue(EmptyTextProperty); set => SetValue(EmptyTextProperty, value); }
+    /// <summary>Shown without points; null for "No games in this time frame yet." in the interface language.</summary>
+    public string? EmptyText { get => GetValue(EmptyTextProperty); set => SetValue(EmptyTextProperty, value); }
+
+    // The default empty text is drawn here, so it follows a language switch only by redrawing.
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        Loc.Instance.LanguageChanged += InvalidateVisual;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        Loc.Instance.LanguageChanged -= InvalidateVisual;
+        base.OnDetachedFromVisualTree(e);
+    }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -151,7 +166,7 @@ public sealed class StatsLineChart : Control
         var points = Points;
         if (points is null || points.Count == 0)
         {
-            var empty = Text(EmptyText, 12, ThemeBrushes.Get("Faint"));
+            var empty = Text(EmptyText ?? Loc.T("Stats.Chart.NoGames"), 12, ThemeBrushes.Get("Faint"));
             empty.MaxTextWidth = Math.Max(10, w - 20);
             empty.TextAlignment = TextAlignment.Center;
             context.DrawText(empty, new Point(10, (h - empty.Height) / 2));

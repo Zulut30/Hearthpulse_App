@@ -45,7 +45,7 @@ public sealed record HsguruAnalysis(IReadOnlyList<HsguruCardStat> Cards, IReadOn
 /// </summary>
 public static class ApiConstructedMeta
 {
-    public const string Attribution = "HearthPulse · HSGuru / HSReplay данные";
+    public const string Attribution = HearthpulseData.Attribution;
 
     /// <summary>The 11 classes; HSGuru writes "Neutral" when it cannot tell, which is not one.</summary>
     internal static readonly HashSet<string> Classes = new(StringComparer.Ordinal)
@@ -62,9 +62,13 @@ public static class ApiConstructedMeta
     /// <summary>HSGuru analyses loaded per meta load (one request each), most played archetypes first.</summary>
     private const int MaxAnalyses = 30;
 
-    public const string HsguruMulliganSource = "Hearthpulse API (HSGuru), Legend, 7 days";
+    /// <summary>Source line of a mulligan guide from the API's own per-archetype analysis (Legend, past week).</summary>
+    public static string HsguruMulliganSource => Localization.Loc.F("Source.MulliganLegendWeek", HearthpulseData.Attribution);
 
-    /// <param name="locale">The card language; "ruRU" shows the Russian archetype labels.</param>
+    /// <param name="locale">
+    /// The card language; "ruRU" shows the Russian archetype labels (<see cref="ArchetypeTranslations.Current"/>, else the
+    /// built-in ones).
+    /// </param>
     /// <param name="tierList">
     /// Gets the meta as soon as the tier list, lists and core cards are in, before the mulligan numbers (many more
     /// requests) are; the returned meta has them too.
@@ -85,7 +89,7 @@ public static class ApiConstructedMeta
 
         var russian = string.Equals(locale, "ruRU", StringComparison.OrdinalIgnoreCase);
         var labels = russian
-            ? ArchetypeNames.Distinct(slice.Items.Select(i => i.Archetype).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(n => n, ArchetypeNames.RussianLabel, StringComparer.OrdinalIgnoreCase))
+            ? ArchetypeNames.Distinct(slice.Items.Select(i => i.Archetype).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(n => n, ArchetypeTranslations.Current.RussianLabel, StringComparer.OrdinalIgnoreCase))
             : null;
 
         var built = new List<(MetaArchetype Archetype, IReadOnlyList<(HsguruDeck Deck, DeckDefinition Cards)> Lists)>();

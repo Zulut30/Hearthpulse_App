@@ -1,3 +1,5 @@
+using Hearthpulse.Core.Localization;
+
 namespace Hearthpulse.Core.Cards;
 
 public sealed record DeckDefinition(string Name, long DeckId, string Code, string Format, IReadOnlyList<int> HeroDbfIds, IReadOnlyDictionary<int, int> Cards)
@@ -98,6 +100,10 @@ public static class Races
         ["ALL"] = ("All", "Tutti"),
     };
 
+    /// <summary>
+    /// The tribe's name: Italian for Italian card data, else in the interface language (the card data has no tribe
+    /// names, so they live in the string tables).
+    /// </summary>
     public static string Display(string race, string locale)
     {
         if (!Names.TryGetValue(race, out var names))
@@ -105,6 +111,6 @@ public static class Races
             return race.Length > 1 ? race[0] + race[1..].ToLowerInvariant() : race;
         }
 
-        return locale.StartsWith("it", StringComparison.OrdinalIgnoreCase) ? names.It : names.En;
+        return locale.StartsWith("it", StringComparison.OrdinalIgnoreCase) ? names.It : Loc.Or("Core.Tribe." + race, names.En);
     }
 }

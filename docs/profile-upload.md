@@ -13,13 +13,11 @@ Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commi
 
 ## When games are sent
 
-- **Opt-in.** `AppSettings.UploadGamesToProfile` is `null` until the player answers; only `true` sends or queues
-  anything. Once signed in (and once for players who signed in before this feature) both apps show a card on top of the
-  main window, "Send your games to your hearthpulse.net profile?", with the list below, a link to the site's privacy
-  policy and the buttons **Turn on** / **Not now** (`MainViewModel.AskUpload`, `AnswerUpload`; in WPF it waits while
-  the stats pool question is up). "Not now" stores `false` and the card does not come back.
-- The switch "Send games to my profile" (Settings → Hearthpulse account, both apps) changes the answer later. Under it:
-  the same list (`MainViewModel.UploadWhat`), links "Privacy policy" (`{site}/privacy/`) and "See, download or delete
+- **Automatic while signed in.** `AppSettings.UploadGamesToProfile` is on by default (the owner's decision: games are
+  collected automatically, no question is asked; the legal review's L-M1 asked for an opt-in instead). Nothing is
+  sent without a signed-in account.
+- The switch "Send games to my profile" (Settings → Hearthpulse account, both apps) turns it off. Under it:
+  the same list (string `Upload.What`; every text of the feature is in `Localization/Strings/{en,ru}/upload.json`), links "Privacy policy" (`{site}/privacy/`) and "See, download or delete
   your data on the site" (`{profile}#account-tracker-data`, the account page's «Данные приложения»: export and
   deletion of everything the tracker stored), the "Send past games" button and the queue status.
 - Only while signed in and switched on: a game that ends otherwise is not queued, and switching off drops what was
@@ -105,7 +103,7 @@ Not sent (not stored): `offers` (Discover, trinket and quest choices).
 | `playerClass`, `opponentClass` | `player_class`, `opponent_class` | one of the 11 classes, game skipped otherwise |
 | `heroCardId`, `opponentHeroCardId` | `hero`, `opponent_hero` | the opponent's hero is on the board for everyone |
 | `deckCode` | `deck_code` | only if it matches `^[A-Za-z0-9+/=_-]{4,256}$` |
-| `deckName` | `deck_name` | control and bidi characters removed, trimmed, at most 80 characters; left out when it holds something shaped like a BattleTag (`#` + 3-6 digits), which the site refuses |
+| `deckName` | `deck_name` | control and bidi characters removed, trimmed, at most 80 characters; left out (the game still goes) when the raw or the cleaned text holds something shaped like a BattleTag (`#` + 3-6 digits), which the site refuses |
 | `opponentArchetype` | `opponent_archetype` | only a clear call from the opponent's played cards (`ArchetypeGuess`); same text rules as `deckName` |
 | `wentFirst` | `went_first` | `false` = the coin, null when unknown |
 | `rankBefore` | `rank_star_level`, `rank_legend` | Ranked only: `{starLevel}` (Legend: 51 + `legendRank`) |
@@ -142,6 +140,6 @@ header and are never logged.
 
 1. Run the site locally (HeartPulse, see its `docs/specs/player-game-stats.md` "Development data") and point the app
    at it: `HEARTHPULSE_SITE_API=http://localhost:<port>/api/v1/`, `HEARTHPULSE_DATA` = a copy of the data folder.
-2. Sign in from Settings, answer **Turn on** on the card (or turn the switch on), press "Send past games".
+2. Sign in from Settings (sending is on by default), press "Send past games".
 3. The status line under the switch counts down ("... More past games follow." while the backfill reads); `hearthpulse.log`
    names any rejected or statistics-less event; `/profile/` shows the games.

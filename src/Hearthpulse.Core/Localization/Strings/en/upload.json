@@ -1,0 +1,22 @@
+{
+  "Upload.What": "After each game: mode, start time and duration, number of turns, result, place or rank, rating, heroes and classes, your deck name and code, the lobby's tribes and anomaly, tavern tier, final board, combats, the heroes you were offered, who went first, your Arena score (wins, losses, game number) and the opponent's archetype when the cards they played showed it. Never your BattleTag, your opponent's name or anything hidden in the game.",
+  "Upload.Switch": "Send games to my profile",
+  "Upload.Intro": "For “My statistics” on hearthpulse.net. Games are sent automatically while you are signed in; turn this off to stop.",
+  "Upload.Privacy": "Privacy policy",
+  "Upload.YourData": "See, download or delete your data on the site",
+  "Upload.PastGames": "Send past games",
+  "Upload.PastGamesTip": "Sends the games already in your history that are not on your profile yet",
+  "Upload.Message.PrivacyFailed": "Couldn't open your browser. The policy is at {0}",
+  "Upload.Message.DataFailed": "Couldn't open your browser. Your data is at {0}",
+  "Upload.Message.TurnOnFirst": "Turn on sending games first.",
+  "Upload.Message.BackfillStarted": "Sending your past games. Games already on your profile are skipped.",
+  "Upload.Message.SignInFirst": "Sign in to send your past games.",
+  "Upload.Status.Waiting": "{0} game waiting to be sent.|{0} games waiting to be sent.",
+  "Upload.Status.MoreFollow": "More past games follow.",
+  "Upload.Status.Retrying": "Sending will be retried.",
+  "Upload.Status.Done": "All games are on your profile.",
+  "Upload.Status.WithoutStatistics": "{0} game sent without statistics|{0} games sent without statistics",
+  "Upload.Status.Refused": "{0} game refused by the site|{0} games refused by the site",
+  "Upload.Status.NotSent": "{0} game not sent (unreadable for the site)|{0} games not sent (unreadable for the site)",
+  "Upload.Status.SeeLog": "{0}; see hearthpulse.log."
+}

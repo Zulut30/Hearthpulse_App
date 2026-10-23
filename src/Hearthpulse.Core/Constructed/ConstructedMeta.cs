@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Constructed;
 
@@ -34,7 +35,14 @@ public sealed record MetaArchetype(
 
 public sealed record MetaDeck(string DeckString, int ArchetypeId, string Archetype, string Class, int Games, int Wins, double WinRate, DateTime LastSeen);
 
-public sealed record MetaOption(string Key, string Label);
+/// <param name="Label">The English label; reading <see cref="Label"/> gives it in the interface language.</param>
+public sealed record MetaOption(string Key, string Label)
+{
+    private readonly string _label = Label;
+
+    /// <summary>The label in the interface language, read each time so a language switch shows at once.</summary>
+    public string Label { get => Loc.Or("Core.MetaOption." + Key, _label); init => _label = value; }
+}
 
 /// <summary>
 /// Ranked Constructed stats: archetypes with win rate, popularity and mulligan data, plus the most played decklists.
@@ -354,8 +362,12 @@ public sealed class ConstructedMeta
             mulligan);
     }
 
-    /// <summary>"Death Knight" for "deathknight" or "DEATHKNIGHT".</summary>
-    public static string ClassName(string? heroClass)
+    /// <summary>"Death Knight" for "deathknight" or "DEATHKNIGHT", in the interface language.</summary>
+    public static string ClassName(string? heroClass) =>
+        string.IsNullOrEmpty(heroClass) ? string.Empty : Loc.Or("Core.Class." + heroClass.ToUpperInvariant(), EnglishClassName(heroClass));
+
+    /// <summary>The English class name: part of archetype names (<see cref="Prettify"/>), which are not translated.</summary>
+    private static string EnglishClassName(string? heroClass)
     {
         if (string.IsNullOrEmpty(heroClass))
         {
@@ -375,12 +387,12 @@ public sealed class ConstructedMeta
     {
         if (key.Length == 0)
         {
-            return ClassName(heroClass);
+            return EnglishClassName(heroClass);
         }
 
         if (string.Equals(key.Replace("-", string.Empty, StringComparison.Ordinal), heroClass, StringComparison.OrdinalIgnoreCase))
         {
-            return "Other " + ClassName(heroClass);
+            return "Other " + EnglishClassName(heroClass);
         }
 
         var words = key.Split('-', StringSplitOptions.RemoveEmptyEntries).Select(w => w switch

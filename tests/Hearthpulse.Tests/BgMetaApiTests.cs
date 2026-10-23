@@ -85,7 +85,7 @@ public sealed class BgMetaApiTests : IDisposable
 
         Assert.NotNull(meta);
         Assert.Equal(BattlegroundsMeta.Attribution, meta.Source);
-        Assert.Equal("Community stats: Hearthpulse API (HSReplay)", meta.Source);
+        Assert.Equal("Hearthpulse data", meta.Source);
         Assert.Equal(new[] { 50, 20, 5, 1 }, meta.HeroBrackets);
         Assert.Equal(new[] { 100, 50, 20 }, meta.CardsByBracket.Keys.OrderDescending());
         Assert.Equal(50, meta.WidestBracket);
@@ -168,7 +168,7 @@ public sealed class BgMetaApiTests : IDisposable
         Assert.Equal(2, advice.DiscoverAdvice.Count);
         Assert.All(advice.DiscoverAdvice, p => Assert.Null(p.Placement));
         Assert.All(advice.ShopAdvice, p => Assert.Null(p.Placement));
-        Assert.Contains("Hearthpulse API (HSReplay) · top 50% ·", advice.MetaSource, StringComparison.Ordinal);
+        Assert.Contains("Hearthpulse data · top 50% ·", advice.MetaSource, StringComparison.Ordinal);
     }
 
     [Fact]

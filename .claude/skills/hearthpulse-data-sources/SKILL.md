@@ -17,6 +17,7 @@ Tests use fake handlers, never the network: [hearthpulse-testing](../hearthpulse
 | **hearthpulse.net site** `https://hearthpulse.net/api/v1/` | account sign-in (OAuth device flow), `/me`, subscription | `Core/Accounts/` (`AccountClient`, `AccountService`, `TokenStore`, `Entitlements`) | `HEARTHPULSE_SITE_API` (https, or http on loopback); session in `account.dat` |
 | **HearthstoneJSON** | all card data (`cards.json` per locale), card art (`art.hearthstonejson.com`), card pool fallback | `Core/Cards/CardDb.cs`, `App|UI/Infrastructure/CardArt.cs`, `CardRender.cs` | `cache/cards.<locale>.json` 2 days, `cache/images/` |
 | **hsbg.cards** | BG tiers, text, current pool | `Core/Cards/BgCardSource.cs` (`BgCardDb`) | `cache/bgcards.hsbg.json` 12 h; 120 req/min anonymous |
+| **Hearthpulse archetype dictionary** `https://api.blizzcore.ru/archetypes?limit=1000` (owner's service, deckview on our server; no separate attribution) | Russian archetype names (`name_en` -> `name_ru`) when the interface is Russian | `Core/Constructed/ArchetypeTranslations.cs` (hosts start `LoadAsync` beside the meta, never before it, and reload the meta when the names arrive; `RussianLabel` in `ApiConstructedMeta`, `Display` for names shown later) | `cache/api/blizzcore-archetypes.json` 12 h, stale copy offline; own 5 s timeout; failures back off 1-6 h (`blizzcore-archetypes.failed`) |
 | **Hearthpulse stats pool** (`PoolClient.Endpoint`, off by default) | BG comps, guides, trinkets, tribes, card turn results, MMR floors; shared games | `Core/Pool/PoolClient.cs` (`OverlayAsync` lays it over the API meta) | none |
 | **GitHub releases** `Zulut30/Hearthpulse_App` | updates | `Core/Updates/UpdateService.cs` | see [hearthpulse-release](../hearthpulse-release/SKILL.md) |
 
@@ -42,8 +43,11 @@ now comes from, and what stays empty until the pool runs: `docs/bg-meta-sources.
    thread never waits for the network.
 6. **Attribution**: each source has an `Attribution` constant shown in the UI next to its numbers (e.g.
    `ApiConstructedMeta.Attribution`, `BattlegroundsMeta.Attribution`, `BgCardDb.Attribution`). Keep it next to new
-   data. The installer notices (`installer/windows/notice.txt`, `installer/*/README.txt`) credit the Hearthpulse API
-   (HSReplay/HSGuru data), HearthstoneJSON and the fonts - update them when you add a source.
+   data. Everything from the data API is called **"Hearthpulse data"** (`HearthpulseData.Attribution`) in anything
+   the player reads - UI, tooltips, attributions, installer texts; never HSReplay or HSGuru (internal names, endpoint
+   paths and these developer docs may keep them; `LocalizationTests` checks the string tables). The installer notices
+   (`installer/windows/notice.txt`, `installer/*/README.txt`) credit Hearthpulse data, HearthstoneJSON and the fonts -
+   update them when you add a source. UI texts are localized: `docs/localization.md`.
 7. **No secrets in the repo**; tokens only through `TokenStore`; never log tokens or e-mail.
 
 ## Account and paid access (hearthpulse.net)
@@ -67,9 +71,8 @@ now comes from, and what stays empty until the pool runs: `docs/bg-meta-sources.
 ## Uploading games (`tracker/events/batch`)
 
 `Core/Accounts/ProfileUploader.cs` sends finished games to the site's "My statistics" (`schemaVersion: 2`) with the
-device-flow token: only while signed in and the player has turned `AppSettings.UploadGamesToProfile` on (opt-in:
-null until a one-time card after sign-in asks; switch, privacy and data-deletion links in the account card of both
-apps), batches of at most 50 events, persistent queue `profile-upload.json` per site account, backoff on
+device-flow token: only while signed in and `AppSettings.UploadGamesToProfile` is on (default on, games are collected
+automatically; switch to turn it off, privacy and data-deletion links in the account card of both apps), batches of at most 50 events, persistent queue `profile-upload.json` per site account, backoff on
 outages, rejected events logged and dropped, idempotent UUID v5 `eventId` per game (without the BattleTag). Mapping
 `GameRecord` -> payload is `ProfileEvents.cs`; every event passes `ProfileEventSchema.cs` (the site's strict check,
 ported) before it is queued, because the site keeps the first copy of an id forever; the contract test checks the

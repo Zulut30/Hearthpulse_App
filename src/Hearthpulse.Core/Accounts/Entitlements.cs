@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Accounts;
 
@@ -41,7 +42,7 @@ public sealed record Entitlements(bool HasAccess, IReadOnlyList<string> Sources,
         {
             if (!HasAccess || Sections.Count == 0)
             {
-                return "No paid subscription";
+                return Loc.T("Core.Account.NoSubscription");
             }
 
             var providers = string.Join(" + ", Sources.Select(s => s switch
@@ -52,9 +53,9 @@ public sealed record Entitlements(bool HasAccess, IReadOnlyList<string> Sources,
                 _ => s,
             }));
             var sections = Known.All(k => Sections.Contains(k.Key, StringComparer.Ordinal))
-                ? "all sections"
-                : string.Join(", ", Known.Where(k => Sections.Contains(k.Key, StringComparer.Ordinal)).Select(k => k.Label));
-            return (providers.Length > 0 ? providers + " subscription: " : "Subscription: ") + sections;
+                ? Loc.T("Core.Account.AllSections")
+                : string.Join(", ", Known.Where(k => Sections.Contains(k.Key, StringComparer.Ordinal)).Select(k => Loc.Or("Core.Account.Section." + k.Key, k.Label)));
+            return providers.Length > 0 ? Loc.F("Core.Account.ProviderSubscription", providers, sections) : Loc.F("Core.Account.Subscription", sections);
         }
     }
 

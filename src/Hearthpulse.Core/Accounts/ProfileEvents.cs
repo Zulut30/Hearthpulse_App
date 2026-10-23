@@ -493,7 +493,7 @@ public static partial class ProfileEvents
     /// </summary>
     private static string? Text(string? text)
     {
-        if (text is null || BattleTagPattern().IsMatch(text))
+        if (text is null)
         {
             return null;
         }
@@ -505,7 +505,8 @@ public static partial class ProfileEvents
             clean = clean[..(char.IsHighSurrogate(clean[79]) ? 79 : 80)].TrimEnd();
         }
 
-        return clean.Length > 0 ? clean : null;
+        // Checked on the raw text and on what would be sent: removing a tab or cutting at 80 can make one appear.
+        return clean.Length > 0 && !BattleTagPattern().IsMatch(text) && !BattleTagPattern().IsMatch(clean) ? clean : null;
     }
 
     private static JsonArray Strings(IEnumerable<string> values) => new([.. values.Select(v => (JsonNode)JsonValue.Create(v))]);

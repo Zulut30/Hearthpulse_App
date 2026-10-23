@@ -6,10 +6,10 @@ description: Use when adding or changing a page, tab, section or settings card i
 # Adding or changing a main-window page or tab
 
 Main window = sidebar (Home, Modes: Battlegrounds / Constructed / Arena, Library: History, Settings at the bottom) +
-one visible page + the floating live bar at the bottom. All UI text is **English**, hardcoded in XAML (no resx):
-"Your session, rating and recent games", "No games yet. Finished games appear here automatically.",
-"Changes apply instantly.". The only Cyrillic is in data (Russian archetype names in `ArchetypeNames.cs`, the
-attribution caption "... HSGuru / HSReplay данные").
+one visible page + the floating live bar at the bottom. UI text is **English and Russian**: every string is a key in
+`src/Hearthpulse.Core/Localization/Strings/{en,ru}/*.json`, used as `{i:Loc Key}` in XAML and `Loc.T/F/P` in view
+models, and the language switches live (Settings -> General). Recipe, conventions and glossary:
+`docs/localization.md`. The data source is named "Hearthpulse data", never HSReplay/HSGuru.
 
 Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof:
 [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md). Overlay panels are a different recipe:
@@ -75,8 +75,11 @@ swallowed in a fire-and-forget task. Computation itself belongs in Core so it ca
 
 ## Recipe: a settings card
 
-Settings page sections in order: "Hearthpulse account", "Theme" (WPF only), "In-game overlay", "Panel layout",
-"Leaderboard hover", "Counters and mulligan", "App", "About". Content `MaxWidth="780"`, left aligned.
+The Settings page has tabs (a `SegmentBar` of `Tab` radios in WPF, `segment` radios in Avalonia; the shown tab is kept in
+`AppSettings.SettingsTab`, `ShowSettingsTab(tag)` on `MainWindow`/`MainView`): **General** (Language, Theme - WPF
+only, App), **Overlay** (In-game overlay, Panel layout + Leaderboard hover), **Tracker** (Deck tracker, Counters and
+mulligan), **Account**, **Data** (Your data, Data sources), **About**. Each tab is a panel named `Settings<Tag>`; a new
+card goes into the tab that fits. Content `MaxWidth="780"`, left aligned. Renders: `main-settings-<tab>.png`.
 
 - New setting: property + default + `/// <summary>` in `src/Hearthpulse.Core/AppSettings.cs`; bind in both UIs
   (WPF `Style="{StaticResource Switch}"`, Avalonia `Classes="switch"`). Toggles are picked up automatically (WPF

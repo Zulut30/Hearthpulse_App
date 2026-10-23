@@ -4,6 +4,7 @@ using Hearthpulse.App.Main.Decks;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Stats;
 
 namespace Hearthpulse.App.Main;
@@ -318,7 +319,7 @@ public sealed partial class MainViewModel
                     f.Main.DeckCode,
                     f.PlayerClass,
                     DeckMeta(f.Main.DeckCode, f.PlayerClass),
-                    f.Versions.Count > 1 ? $"{f.Versions.Count} versions" : string.Empty))
+                    f.Versions.Count > 1 ? Loc.P("Deck.VersionCount", f.Versions.Count) : string.Empty))
                 .ToList();
             DeckSuggestions = data.Suggestions.Select(s => new DeckSuggestionRow(
                     s.First.Key,

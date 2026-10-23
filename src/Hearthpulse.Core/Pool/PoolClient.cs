@@ -448,7 +448,7 @@ public static class PoolClient
         {
             Tribes = pool.Tribes.Count > 0 ? pool.Tribes : baseMeta.Tribes,
             SharedGames = pool.SharedGames,
-            Source = baseMeta.Source == pool.Source ? baseMeta.Source : $"{baseMeta.Source} + {BattlegroundsMeta.PoolName}",
+            Source = baseMeta.StoredSource == pool.StoredSource ? baseMeta.StoredSource : $"{baseMeta.StoredSource} + {BattlegroundsMeta.PoolName}",
         };
     }
 

@@ -123,7 +123,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
         var rows = candidates.First(c => c.Archetype.Id == archetype.Id).Cards;
         var matchups = await data.LoadArchetypeMatchupsAsync(archetype.Id, cancellationToken).ConfigureAwait(false);
         Diag.Info($"Mulligan guide: {archetype.Name} (match score {match.Score:0.00}), {rows.Count} cards");
-        return new GuideArchetype(archetype.Id, archetype.Name, archetype.Class, rows, matchups, HearthpulseData.Attribution + ", Legend EU");
+        return new GuideArchetype(archetype.Id, archetype.Name, archetype.Class, rows, matchups, Localization.Loc.F("Source.MulliganLegendEu", HearthpulseData.Attribution));
     }
 
     /// <summary>
