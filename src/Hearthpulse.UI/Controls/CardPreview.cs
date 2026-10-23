@@ -102,7 +102,8 @@ public sealed class CardPreviewHost : Canvas
 
     private static readonly List<WeakReference<CardPreviewHost>> Hosts = new();
 
-    private readonly Border _frame;
+    private readonly StackPanel _frame;
+    private readonly Border _captionPlate;
     private readonly TextBlock _caption;
     private readonly Image _image;
     private readonly DispatcherTimer _hide;
@@ -111,13 +112,14 @@ public sealed class CardPreviewHost : Canvas
     public CardPreviewHost()
     {
         IsHitTestVisible = false;
-        _caption = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 2, 6), MaxWidth = CardWidth };
+        // The render is a card shape on a transparent square, so it needs no frame; the caption gets its own plate.
+        _caption = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap };
+        _captionPlate = new Border { Padding = new Thickness(9, 6, 9, 7), Child = _caption };
+        _captionPlate.Classes.Add("overlayCard");
         _image = new Image { Width = CardWidth, Height = CardHeight, Stretch = Stretch.Uniform };
-        var stack = new StackPanel { Width = CardWidth };
-        stack.Children.Add(_caption);
-        stack.Children.Add(_image);
-        _frame = new Border { Padding = new Thickness(8), Child = stack, IsVisible = false };
-        _frame.Classes.Add("overlayCard");
+        _frame = new StackPanel { Width = CardWidth, IsVisible = false };
+        _frame.Children.Add(_captionPlate);
+        _frame.Children.Add(_image);
         Children.Add(_frame);
 
         // A short grace period: the pointer crossing the gap between two rows must not close and reopen the preview.
@@ -163,7 +165,7 @@ public sealed class CardPreviewHost : Canvas
         var cardId = CardPreview.GetCardId(control);
         var caption = CardPreview.GetCaption(control);
         _caption.Text = caption ?? string.Empty;
-        _caption.IsVisible = !string.IsNullOrEmpty(caption);
+        _captionPlate.IsVisible = !string.IsNullOrEmpty(caption);
         _image.IsVisible = !string.IsNullOrEmpty(cardId);
         CardArt.SetCard(_image, cardId);
         _frame.IsVisible = true;

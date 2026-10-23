@@ -17,7 +17,7 @@ namespace Hearthpulse.Desktop;
 /// <c>--render-ui &lt;folder&gt;</c>: renders the dashboard pages and the overlay to PNGs with a headless renderer,
 /// using the player's own history and their latest kept Battlegrounds log. Nothing is shown on screen.
 /// </summary>
-internal static class OffscreenRenderer
+internal static partial class OffscreenRenderer
 {
     public static int Run(string folder)
     {
@@ -133,6 +133,8 @@ internal static class OffscreenRenderer
             overlayView.ShowLeaderboardSlot(hover);
             await Save(overlay, Path.Combine(folder, name + ".png"));
         }
+
+        await RenderConstructedAsync(host, settings, overlayView, overlay, folder);
 
         host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
         host.Overlay.LayoutEditing = true;
