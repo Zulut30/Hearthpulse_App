@@ -54,10 +54,10 @@ public sealed partial class GameSession
     /// <summary>Adds the current pool to a Constructed view; called while publishing.</summary>
     private ConstructedView WithCardPool(ConstructedView view, GameState game)
     {
-        // Memory is read only when a pool can be shown: setting on, catalog loaded, a mode with a known pool.
+        // Memory is read only when a pool can be shown: setting on, catalog loaded, a mode and format with a known pool.
         var engine = _cardPoolEnabled ? CardPoolEngineNow() : null;
         _cardPoolHoverWanted = engine is not null && HearthstoneMemory.IsSupported
-                               && PoolContext.SupportedGameTypes.Contains(game.GameType);
+                               && CardPoolTracker.ContextOf(game, _cards).IsSupported;
         if (_cardPoolHoverWanted)
         {
             EnsureHoverThread();
