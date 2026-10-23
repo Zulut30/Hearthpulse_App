@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Developer benchmark: replays kept logs and drives the WPF view models off-screen. Not shipped by any installer. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Hearthpulse.Core\Hearthpulse.Core.csproj" />
+    <ProjectReference Include="..\..\src\Hearthpulse.App\Hearthpulse.App.csproj" />
+  </ItemGroup>
+
+</Project>
