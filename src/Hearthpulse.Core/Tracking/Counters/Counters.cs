@@ -121,6 +121,124 @@ public static class Counters
             var deck = c.Game.Controlled(c.PlayerId, "DECK").Count();
             return new($"Next: {next}", Details: [$"{deck} card{(deck == 1 ? "" : "s")} left in deck."], Active: deck <= 3);
         }),
+        new("cards-drawn-turn", "Cards drawn this turn", "Cards you've drawn this turn.", c => Num(c.Tag("NUM_CARDS_DRAWN_THIS_TURN"))),
+        // The tag of the player whose turn just ended is reset a turn late, so it only counts on the player's own turn.
+        new("cards-played-turn", "Cards played this turn", "Cards you've played this turn.",
+            c => Num(CounterTracker.IsCurrentPlayer(c.Game, c.PlayerId) ? c.Tag("NUM_CARDS_PLAYED_THIS_TURN") : 0)),
+        new("minions-died-turn", "Minions died this turn", "Minions that died this turn, both sides.", c =>
+        {
+            var all = c.Game.Players.Values.Sum(p => c.Game.Entities.GetValueOrDefault(p.EntityId)?.GetInt("NUM_FRIENDLY_MINIONS_THAT_DIED_THIS_TURN") ?? 0);
+            return Num(all, [$"Yours: {c.Tag("NUM_FRIENDLY_MINIONS_THAT_DIED_THIS_TURN")}"]);
+        }),
+        new("cards-2-mana", "Cards played for 2 Mana", "Cards you've played that cost 2 Mana when played.", c => Num(c.Played(p => p.Cost == 2))),
+        new("expensive-spells", "Spells (5+) cast", "Spells you've cast this game that cost 5 or more (Dragoncaller Alanna).",
+            c => Num(c.Played(p => p.CardType == "SPELL" && p.Cost >= 5))),
+        new("paladin-cards", "Paladin cards played", "Paladin cards you've played this game.", c => Num(c.Played(p => c.Cards.Get(p.CardId)?.CardClass == "PALADIN"))),
+        new("spells-on-friendly", "Spells on friendly characters", "Spells you've cast on your own characters this game.",
+            c => Num(c.Played(p => p.CardType == "SPELL" && TargetOf(c, p) is { } target && target.Controller == c.PlayerId))),
+        new("spells-on-characters", "Spells on characters", "Spells you've cast on any character this game.",
+            c => Num(c.Played(p => p.CardType == "SPELL" && TargetOf(c, p) is not null))),
+        new("dragons-summoned", "Dragons summoned", "Dragons you've summoned this game.", c => Num(c.Log.Summoned.Count(id => c.Cards.Get(id)?.HasRace("DRAGON") == true))),
+        new("hero-attacks", "Hero attacks", "Times your hero attacked this game (Infest the Scullery).", c => Num(c.Log.HeroAttacks)),
+        new("self-damage", "Damage taken on your turns", "Damage your hero has taken on your own turns this game (Imprisoned Horror).",
+            c => Num(c.Log.DamageTakenOnOwnTurn)),
+        new("discovers", "Discovers", "Cards you've Discovered this game.", c =>
+        {
+            // Only the local player's picks are in the log.
+            if (c.PlayerId != c.Game.LocalPlayerId)
+            {
+                return null;
+            }
+
+            var turn = CounterTracker.PlayerTurn(c.Game);
+            var picks = c.Log.Choices.Where(p => p.Source.Has("DISCOVER") || p.Source.Has("USE_DISCOVER_VISUALS")
+                || c.Cards.Get(p.Source.CardId)?.Mechanics.Contains("DISCOVER") == true).ToList();
+            return Num(picks.Count, [$"This turn: {picks.Count(p => p.Turn == turn)}"]);
+        }),
+        new("abyssal-curse", "Abyssal Curse", "Damage of the next Abyssal Curse you give: each Curse is worse than the last.",
+            c => new($"Next: {1 + c.Source("abyssal-curse")}")),
+        new("animal-companion", "Animal Companion", "How much more your future Animal Companions cost (they become random Beasts).",
+            c => new($"+{c.Source("animal-companion")} Cost")),
+        new("extra-companion", "Extra Animal Companion", "Extra Animal Companions your cards summon this game.", c => new($"+{c.Source("extra-companion")}")),
+        new("asteroid", "Asteroid damage", "Damage your Asteroids deal.", c => new($"{2 + c.Source("asteroid")} damage")),
+        new("astral-automaton", "Astral Automaton", "Bonus of your next Astral Automaton: +1/+1 for each one you've summoned.", c =>
+        {
+            var n = c.Log.Summoned.Count(id => id == "TTN_401");
+            return new($"+{n}/+{n}");
+        }),
+        new("chaotic-tendril", "Chaotic Tendril", "Cost of the spell your next Chaotic Tendril casts.", c => Next(c.Plays("YOG_514"), "Spell")),
+        new("void-soul", "Void Soul", "Cost of the Demon your next Void Soul summons.", c => Next(c.Plays("JAIL_732"), "Demon")),
+        new("pogo-hopper", "Pogo-Hopper", "Bonus of your next Pogo-Hopper: +2/+2 for each other one you've played.", c =>
+        {
+            var n = 2 * c.Plays("BOT_283");
+            return new($"+{n}/+{n}");
+        }),
+        new("captured-archmage", "Captured Archmage", "Your Captured Archmages that died this game. After 4, the next one casts Fireball.",
+            c => Goal(c.Deaths("JAIL_974"), 4)),
+        new("elwynn-boar", "Elwynn Boar", "Your Elwynn Boars that died this game. At 10, equip the Sword of a Thousand Truths.",
+            c => Goal(c.Deaths("SW_075"), 10)),
+        new("ysondre", "Ysondre", "Times your Ysondre has died this game: Dragons summoned by her next Deathrattle.", c => Num(c.Deaths("EDR_465"))),
+        new("blood-runes", "Blood Runes", "Blood Runes on the cards you've played this game (G'huun).",
+            c => Num(c.Log.Played.Sum(p => CounterCards.BloodRunes.GetValueOrDefault(p.CardId)))),
+        new("colossus", "Protoss spells", "Protoss spells you've cast this game (Colossus).",
+            c => Num(c.Played(p => p.CardType == "SPELL" && (CounterCards.Protoss.Contains(p.CardId) || p.Entity.Has("PROTOSS"))))),
+        new("protoss-discount", "Protoss minion discount", "How much less your Protoss minions cost this game.", c =>
+        {
+            // Photon Cannon only discounts when it kills a minion.
+            var table = CounterCards.Sources["protoss-discount"];
+            var played = c.Log.Played.Where(p => p.CardId != "SC_753" || c.Log.KillsByPlay.GetValueOrDefault(p.Entity.Id) > 0)
+                .Sum(p => table.GetValueOrDefault(p.CardId).Play);
+            return new($"-{played + c.Log.Died.Sum(id => table.GetValueOrDefault(id).Death)}");
+        }),
+        new("libram", "Libram cost reduction", "How much less your Librams cost this game.", c => new($"-{c.Source("libram")}")),
+        new("leyline-cost", "Leyline cost reduction", "How much less your Leylines cost this game.", c => new($"-{c.Source("leyline-cost")}")),
+        new("leyline-effect", "Leyline effect increase", "How much the effects of your Leylines are increased this game.", c => new($"+{c.Source("leyline-effect")}")),
+        new("leyline-trigger", "Leyline extra triggers", "Additional times your Leylines trigger this game.", c => new($"+{c.Source("leyline-trigger")}")),
+        new("excavate", "Excavates", "Times you've Excavated this game.", c => Num(c.Source("excavate"))),
+        new("galakrond", "Galakrond invokes", "Times you've Invoked Galakrond this game.", c => Num(Math.Max(c.Tag("INVOKE_COUNTER"), c.Source("galakrond")))),
+        new("cthun-old", "C'Thun", "Attack and Health of your C'Thun (6/6 plus its buffs, wherever it is).", c =>
+        {
+            int attack = c.Tag("CTHUN_ATTACK_BUFF"), health = c.Tag("CTHUN_HEALTH_BUFF");
+            return new($"{6 + attack}/{6 + health}", Details: c.Tag("CTHUN_TAUNT_BUFF") > 0 ? ["Has Taunt."] : null, Active: attack + health > 0);
+        }),
+        new("silver-hand", "Silver Hand Recruit buff", "Attack and Health your Silver Hand Recruits get for the rest of the game.", c =>
+        {
+            // Named tags as in the log; the numeric ids are what an older client would print instead.
+            int attack = Math.Max(c.Tag("SILVER_HAND_RECRUIT_ATK_BUFF"), c.Tag("4805")), health = Math.Max(c.Tag("SILVER_HAND_RECRUIT_HP_BUFF"), c.Tag("4806"));
+            return new($"+{attack}/+{health}", Active: attack + health > 0);
+        }),
+        new("golakka", "Dive the Golakka Depths", "Times you've completed Dive the Golakka Depths: the Murlocs you summon gain +1/+1 for each.", c =>
+        {
+            var n = c.Log.QuestsCompleted.GetValueOrDefault("TLC_426");
+            return new($"+{n}/+{n}", Active: n > 0);
+        }),
+        new("incindius", "Eruption damage", "Damage of your Eruptions: Incindius upgrades them at the end of each of your turns.",
+            c => new($"{1 + c.Log.Triggers.GetValueOrDefault("VAC_321")} damage")),
+        new("timethief-rafaam", "Timethief Rafaam", "Different Rafaams you've played. Timethief Rafaam destroys the enemy hero once you've played the other 9.", c =>
+        {
+            var rafaams = c.Log.Played.Where(p => p.CardId.StartsWith("TIME_005t", StringComparison.Ordinal) && p.CardId.Length == 10).ToList();
+            var distinct = rafaams.Select(p => p.CardId).Distinct().Count();
+            return new($"{distinct}/9", distinct / 9.0, [$"{rafaams.Count} Rafaam{(rafaams.Count == 1 ? "" : "s")} played."], distinct > 0);
+        }),
+        new("tyrande", "Tyrande", "Spells you play next that cast twice (Tyrande).", c =>
+        {
+            var last = c.Log.Played.FindLastIndex(p => p.CardId == "EDR_464");
+            if (last < 0)
+            {
+                return new("Not played");
+            }
+
+            var left = Math.Max(0, 3 - c.Log.Played.Skip(last + 1).Count(p => p.CardType == "SPELL"));
+            return new($"{left} left", Active: left > 0);
+        }),
+        new("wheel-of-death", "Wheel of Death", "Turns until Wheel of DEATH!!! destroys the enemy hero.", c => Countdown(c, "TOY_529", 5, "Destroyed")),
+        new("aviana", "Lunar cycle", "Turns until the Full Moon rises (Aviana, Elune's Chosen): then your cards cost (1).", c => Countdown(c, "EDR_895", 3, "Full Moon")),
+        new("ceaseless-expanse", "The Ceaseless Expanse", "Cost of The Ceaseless Expanse: (1) less for each card drawn, played or destroyed, both sides.", c =>
+        {
+            var logs = c.Game.Players.Keys.Select(c.Tracker.For).ToList();
+            var times = logs.Sum(l => l.Drawn + l.Played.Count + l.Died.Count + l.Destroyed.Count);
+            return new($"Cost {Math.Max(0, 100 - times)}", Details: [$"{times} cards drawn, played or destroyed."]);
+        }),
     ];
 
     /// <summary>Every counter, in display order, for the settings page.</summary>
@@ -157,7 +275,7 @@ public static class Counters
         var player = game.Players.TryGetValue(playerId, out var slot) ? game.Entities.GetValueOrDefault(slot.EntityId) : null;
         var hero = opponent ? game.OpponentHero : game.LocalHero;
         var allDied = game.Players.Keys.Sum(id => tracker.For(id).Died.Count);
-        var context = new CounterContext(game, playerId, player, tracker.For(playerId), cards, cards.Get(hero?.CardId)?.CardClass ?? string.Empty, allDied);
+        var context = new CounterContext(game, playerId, player, tracker, tracker.For(playerId), cards, cards.Get(hero?.CardId)?.CardClass ?? string.Empty, allDied);
         foreach (var def in Defs)
         {
             var related = CounterCards.Related.GetValueOrDefault(def.Id) ?? [];
@@ -188,6 +306,29 @@ public static class Counters
 
     private static CounterValue School(CounterContext c, int school) => Num(c.Played(p => p.CardType == "SPELL" && p.SpellSchool == school));
 
+    /// <summary>"Improve your future X": the next one makes a card that costs one more for each played.</summary>
+    private static CounterValue Next(int played, string what) =>
+        new($"{played + 1}-Cost {what}", Details: [$"{played} played."]);
+
+    private static CounterValue Goal(int count, int goal) =>
+        new($"{Math.Min(count, goal)}/{goal}", Math.Min(1, (double)count / goal), count > goal ? [$"{count} in total."] : null);
+
+    /// <summary>"In N turns": counted in the player's own turns from the last time the card was played.</summary>
+    private static CounterValue Countdown(CounterContext c, string cardId, int turns, string done)
+    {
+        if (c.Log.Played.LastOrDefault(p => p.CardId == cardId) is not { } played)
+        {
+            return new("Not played");
+        }
+
+        var left = turns - (c.OwnTurn - played.Turn);
+        return left > 0 ? new($"{left} turn{(left == 1 ? "" : "s")}", (double)(turns - left) / turns, Active: true) : new(done, 1);
+    }
+
+    /// <summary>The character a card was played on, if any.</summary>
+    private static Entity? TargetOf(CounterContext c, PlayedCardInfo played) =>
+        played.Target > 0 && c.Game.Entities.GetValueOrDefault(played.Target) is { CardType: "MINION" or "HERO" } target ? target : null;
+
     private static IReadOnlyList<string> Last(CounterContext c, IReadOnlyList<string> cardIds) =>
         cardIds.TakeLast(6).Select(id => c.Cards.NameOf(id)).ToList();
 
@@ -197,10 +338,25 @@ public static class Counters
 
     private sealed record CounterValue(string Value, double? Progress = null, IReadOnlyList<string>? Details = null, bool Active = false);
 
-    private sealed record CounterContext(GameState Game, int PlayerId, Entity? Player, CounterTracker.PlayerLog Log, CardDb Cards, string PlayerClass, int AllDied)
+    private sealed record CounterContext(GameState Game, int PlayerId, Entity? Player, CounterTracker Tracker, CounterTracker.PlayerLog Log, CardDb Cards,
+        string PlayerClass, int AllDied)
     {
         public int Tag(string tag) => Player?.GetInt(tag) ?? 0;
 
         public int Played(Func<PlayedCardInfo, bool> match) => Log.Played.Count(match);
+
+        public int Plays(string cardId) => Log.Played.Count(p => p.CardId == cardId);
+
+        public int Deaths(string cardId) => Log.Died.Count(id => id == cardId);
+
+        /// <summary>Sum of what the player's cards add to a counter when played and when they die (<see cref="CounterCards.Sources"/>).</summary>
+        public int Source(string key)
+        {
+            var table = CounterCards.Sources[key];
+            return Log.Played.Sum(p => table.GetValueOrDefault(p.CardId).Play) + Log.Died.Concat(Log.Destroyed).Sum(id => table.GetValueOrDefault(id).Death);
+        }
+
+        /// <summary>Turns this player has started, the current one included.</summary>
+        public int OwnTurn => Game.Turn <= 0 ? 0 : Tag("FIRST_PLAYER") == 1 ? (Game.Turn + 1) / 2 : Game.Turn / 2;
     }
 }

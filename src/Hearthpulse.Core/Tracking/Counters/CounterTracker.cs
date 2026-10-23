@@ -20,6 +20,9 @@ public sealed record PlayedCardInfo(Entity Entity, int Turn)
     public int Overload => Entity.GetInt("OVERLOAD");
 
     public bool FromDeck => Entity.IsOriginalDeckCard;
+
+    /// <summary>The entity the card was played on (spell or Battlecry target), 0 when none.</summary>
+    public int Target => Entity.GetInt("CARD_TARGET");
 }
 
 /// <summary>
@@ -30,6 +33,7 @@ public sealed record PlayedCardInfo(Entity Entity, int Turn)
 public sealed class CounterTracker : IPowerListener
 {
     private readonly Dictionary<int, PlayerLog> _logs = [];
+    private Entity? _pendingChoice;
 
     /// <summary>What one player did this game.</summary>
     public sealed class PlayerLog
@@ -42,16 +46,40 @@ public sealed class CounterTracker : IPowerListener
         /// <summary>Friendly minions that died, by card id.</summary>
         public List<string> Died { get; } = [];
 
+        /// <summary>Friendly weapons and locations that went from play to the graveyard, by card id.</summary>
+        public List<string> Destroyed { get; } = [];
+
         public List<string> Discarded { get; } = [];
 
         public int Attacks { get; internal set; }
 
+        public int HeroAttacks { get; internal set; }
+
         public int Drawn { get; internal set; }
+
+        /// <summary>Damage the player's hero took while it was the player's own turn.</summary>
+        public int DamageTakenOnOwnTurn { get; internal set; }
+
+        /// <summary>Picks the local player made, with the card that offered them (Discover, Adapt, C'Thun abilities...).</summary>
+        public List<(Entity Source, int Turn)> Choices { get; } = [];
+
+        /// <summary>Minions that died while a card this player played was resolving, by the played entity's id.</summary>
+        public Dictionary<int, int> KillsByPlay { get; } = [];
+
+        /// <summary>Triggered effects (BlockType=TRIGGER: "at the end of your turn"...) of the player's cards, by card id.</summary>
+        public Dictionary<string, int> Triggers { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>Times each quest reached its goal, by card id (repeatable quests complete more than once).</summary>
+        public Dictionary<string, int> QuestsCompleted { get; } = new(StringComparer.Ordinal);
     }
 
     public PlayerLog For(int playerId) => _logs.TryGetValue(playerId, out var log) ? log : _logs[playerId] = new PlayerLog();
 
-    public void OnGameStarted(GameState game) => _logs.Clear();
+    public void OnGameStarted(GameState game)
+    {
+        _logs.Clear();
+        _pendingChoice = null;
+    }
 
     public void OnBlockStart(GameState game, string blockType, Entity? source)
     {
@@ -71,8 +99,31 @@ public sealed class CounterTracker : IPowerListener
         }
         else if (blockType == "ATTACK")
         {
-            For(source.Controller).Attacks++;
+            var log = For(source.Controller);
+            log.Attacks++;
+            if (source.IsHero)
+            {
+                log.HeroAttacks++;
+            }
         }
+        else if (blockType == "TRIGGER" && source.CardId.Length > 0)
+        {
+            var triggers = For(source.Controller).Triggers;
+            triggers[source.CardId] = triggers.GetValueOrDefault(source.CardId) + 1;
+        }
+    }
+
+    public void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options) =>
+        _pendingChoice = choiceType == "GENERAL" ? source : null;
+
+    public void OnChoiceMade(GameState game)
+    {
+        if (_pendingChoice is { } source && game.LocalPlayerId != 0)
+        {
+            For(game.LocalPlayerId).Choices.Add((source, PlayerTurn(game)));
+        }
+
+        _pendingChoice = null;
     }
 
     public void OnTagChanged(GameState game, Entity entity, string tag, string previous, string value)
@@ -80,10 +131,33 @@ public sealed class CounterTracker : IPowerListener
         if (tag == "NUM_CARDS_DRAWN_THIS_TURN")
         {
             // The per-turn count resets to 0 each turn; only increases are draws.
-            var drawn = (int.TryParse(value, out var now) ? now : 0) - (int.TryParse(previous, out var before) ? before : 0);
+            var drawn = Delta(previous, value);
             if (drawn > 0 && game.Players.Values.FirstOrDefault(p => p.EntityId == entity.Id) is { } slot)
             {
                 For(slot.PlayerId).Drawn += drawn;
+            }
+
+            return;
+        }
+
+        if (tag == GameTag.Damage && entity.IsHero && entity.InPlay && entity.Controller != 0)
+        {
+            var taken = Delta(previous, value);
+            if (taken > 0 && IsCurrentPlayer(game, entity.Controller))
+            {
+                For(entity.Controller).DamageTakenOnOwnTurn += taken;
+            }
+
+            return;
+        }
+
+        if (tag == "QUEST_PROGRESS" && entity.Controller != 0 && entity.CardId.Length > 0)
+        {
+            var total = entity.GetInt("QUEST_PROGRESS_TOTAL");
+            if (total > 0 && Parse(value) >= total && Parse(previous) < total)
+            {
+                var done = For(entity.Controller).QuestsCompleted;
+                done[entity.CardId] = done.GetValueOrDefault(entity.CardId) + 1;
             }
 
             return;
@@ -102,6 +176,16 @@ public sealed class CounterTracker : IPowerListener
         else if (entity.IsMinion && previous == "PLAY" && value == "GRAVEYARD")
         {
             player.Died.Add(entity.CardId);
+            // Deaths are resolved inside the block of the card that caused them ("if this kills a minion").
+            if (game.OpenBlocks.FirstOrDefault(b => b.Type == "PLAY") is { Source: { Controller: > 0 } played })
+            {
+                var kills = For(played.Controller).KillsByPlay;
+                kills[played.Id] = kills.GetValueOrDefault(played.Id) + 1;
+            }
+        }
+        else if (entity.CardType is "WEAPON" or "LOCATION" && previous == "PLAY" && value == "GRAVEYARD")
+        {
+            player.Destroyed.Add(entity.CardId);
         }
         else if (previous == "HAND" && value == "GRAVEYARD" && game.OpenBlocks.All(b => b.Type != "PLAY" || b.Source?.Id != entity.Id))
         {
@@ -111,4 +195,12 @@ public sealed class CounterTracker : IPowerListener
 
     /// <summary>The player's own turn number (each player's turns counted separately).</summary>
     internal static int PlayerTurn(GameState game) => game.Turn <= 0 ? 0 : (game.Turn + 1) / 2;
+
+    /// <summary>Whether it is this player's turn (CURRENT_PLAYER on the player entity).</summary>
+    internal static bool IsCurrentPlayer(GameState game, int playerId) =>
+        game.Players.TryGetValue(playerId, out var slot) && game.Entities.GetValueOrDefault(slot.EntityId)?.GetInt("CURRENT_PLAYER") == 1;
+
+    private static int Parse(string value) => int.TryParse(value, out var n) ? n : 0;
+
+    private static int Delta(string previous, string value) => Parse(value) - Parse(previous);
 }
