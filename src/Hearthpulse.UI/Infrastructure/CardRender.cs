@@ -11,18 +11,18 @@ namespace Hearthpulse.UI.Infrastructure;
 /// <summary>
 /// Full Constructed card renders (HearthstoneJSON <c>v1/render/latest/{locale}/256x/{id}.png</c>) for an
 /// <see cref="Image"/>: <c>i:CardRender.Card="{Binding CardId}"</c>. Cached on disk (<c>images/render-{locale}</c>) and
-/// in memory (oldest dropped first), loaded and decoded off the UI thread. Uses <see cref="CardArt.Http"/> and
+/// in memory (least recently used dropped first), loaded and decoded off the UI thread. Uses <see cref="CardArt.Http"/> and
 /// <see cref="CardArt.Locale"/>; kept apart from <see cref="CardArt"/> so both can grow independently.
 /// </summary>
 public static class CardRender
 {
-    // A 256 px render is about 0.4 MB decoded; the pool browser shows a few dozen at a time.
-    private const int MaxCachedImages = 120;
+    // A 256 px render is about 0.4 MB decoded (the crop keeps it whole; about 120 fit); the pool browser shows a few
+    // dozen at a time.
+    private const long MaxCachedBytes = 48L * 1024 * 1024;
 
-    private static readonly ConcurrentDictionary<string, IImage> Memory = new();
+    private static readonly SizedCache<IImage> Memory = new(MaxCachedBytes, PixelBytes);
     private static readonly ConcurrentDictionary<string, Task<Bitmap?>> Pending = new();
     private static readonly ConcurrentDictionary<string, bool> Failed = new();
-    private static readonly Queue<string> MemoryOrder = new();
     private static readonly ConcurrentDictionary<string, bool> TrimmedFolders = new();
 
     // About 200 MB of 256 px renders on disk.
@@ -88,18 +88,17 @@ public static class CardRender
 
     private static IImage Remember(string key, IImage image)
     {
-        Memory[key] = image;
-        lock (MemoryOrder)
-        {
-            MemoryOrder.Enqueue(key);
-            while (MemoryOrder.Count > MaxCachedImages)
-            {
-                Memory.TryRemove(MemoryOrder.Dequeue(), out _);
-            }
-        }
-
+        Memory.Set(key, image);
         return image;
     }
+
+    /// <summary>Decoded size of an image; a cropped bitmap keeps its whole source alive.</summary>
+    private static long PixelBytes(IImage image) => image switch
+    {
+        CroppedBitmap { Source: Bitmap source } => CardArt.PixelBytes(source),
+        Bitmap bitmap => CardArt.PixelBytes(bitmap),
+        _ => 0,
+    };
 
     private static string Key(string cardId) => $"{CardArt.Locale}:{cardId}";
 

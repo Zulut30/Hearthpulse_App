@@ -165,12 +165,16 @@ internal static class WpfBench
 
         var sw = Stopwatch.StartNew();
         var allocated = GC.GetTotalAllocatedBytes();
+        var paused = GC.GetTotalPauseDuration();
+        var gen2 = GC.CollectionCount(2);
         void Step(string what)
         {
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"[pages] {what,-38} {sw.Elapsed.TotalMilliseconds,8:N0} ms  alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1048576.0,6:N1} MB"));
+                $"[pages] {what,-38} {sw.Elapsed.TotalMilliseconds,8:N0} ms  alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1048576.0,6:N1} MB  GC pause {(GC.GetTotalPauseDuration() - paused).TotalMilliseconds,5:N0} ms  gen2 {GC.CollectionCount(2) - gen2}"));
             sw.Restart();
             allocated = GC.GetTotalAllocatedBytes();
+            paused = GC.GetTotalPauseDuration();
+            gen2 = GC.CollectionCount(2);
         }
 
         vm.SetCards(cards);
@@ -271,18 +275,17 @@ internal static class WpfBench
     {
         foreach (var type in new[] { typeof(CardArt), typeof(CardRender) })
         {
-            if (type.GetField("Memory", BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) is not System.Collections.IDictionary cache)
+            if (type.GetField("Memory", BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null) is not SizedCache<System.Windows.Media.ImageSource> cache)
             {
                 Console.WriteLine($"[art] {type.Name}: no Memory cache field");
                 continue;
             }
 
+            Console.WriteLine($"[art] {type.Name,-10} cache {Mb(cache.Size)} of {Mb(cache.Budget)} budget, {cache.Count} images");
             var groups = new SortedDictionary<string, (int Count, long Bytes, string Size)>(StringComparer.Ordinal);
-            foreach (System.Collections.DictionaryEntry entry in cache)
+            foreach (var (key, value, _) in cache.Snapshot())
             {
-                var key = entry.Key.ToString() ?? string.Empty;
                 var kind = key.Contains(':') ? key[..key.IndexOf(':')] : "render";
-                var value = entry.Value;
                 long bytes = 0;
                 var size = string.Empty;
                 if (value is BitmapSource bitmap)

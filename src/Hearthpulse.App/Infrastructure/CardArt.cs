@@ -35,18 +35,17 @@ public enum ArtKind
 public static class CardArt
 {
     /// <summary>
-    /// How many card images stay in memory. A 256 px bitmap is about a quarter of a megabyte, so an unbounded
-    /// cache grows with every card the game shows and pushes a small PC into swapping — the app then appears
-    /// frozen. The oldest images are dropped first.
+    /// Decoded pixels kept in memory. An unbounded cache grows with every card the game shows and pushes a small PC into
+    /// swapping — the app then appears frozen. A limit by count let 160 splash images (1 MB each) stay; by size it holds
+    /// about 150 portraits or 400 deck tiles. The least recently used images are dropped first.
     /// </summary>
-    private const int MaxCachedImages = 160;
+    private const long MaxCachedBytes = 24L * 1024 * 1024;
 
     /// <summary>How many finished load tasks are remembered; they only keep the image reachable.</summary>
     private const int MaxPendingTasks = 2000;
 
-    private static readonly ConcurrentDictionary<string, ImageSource> Memory = new();
+    private static readonly SizedCache<ImageSource> Memory = new(MaxCachedBytes, PixelBytes);
     private static readonly ConcurrentDictionary<string, Task<ImageSource?>> Pending = new();
-    private static readonly Queue<string> MemoryOrder = new();
     private static readonly ConcurrentDictionary<string, bool> Unreadable = new();
     private static readonly SemaphoreSlim Downloads = new(6);
 
@@ -182,19 +181,16 @@ public static class CardArt
         }
     }
 
-    /// <summary>Caches the image and drops the oldest ones when the cache is full.</summary>
-    private static void Remember(string key, ImageSource image)
+    /// <summary>Caches the image; the least recently used ones go when the cache is full.</summary>
+    private static void Remember(string key, ImageSource image) => Memory.Set(key, image);
+
+    /// <summary>Decoded size of an image; a cropped bitmap keeps its whole source alive.</summary>
+    internal static long PixelBytes(ImageSource image) => image switch
     {
-        Memory[key] = image;
-        lock (MemoryOrder)
-        {
-            MemoryOrder.Enqueue(key);
-            while (MemoryOrder.Count > MaxCachedImages)
-            {
-                Memory.TryRemove(MemoryOrder.Dequeue(), out _);
-            }
-        }
-    }
+        CroppedBitmap { Source: { } source } => PixelBytes(source),
+        BitmapSource bitmap => (long)bitmap.PixelWidth * bitmap.PixelHeight * Math.Max(1, (bitmap.Format.BitsPerPixel + 7) / 8),
+        _ => 0,
+    };
 
     private static async Task<ImageSource?> LoadAsync(ArtKind kind, string cardId)
     {
@@ -410,7 +406,15 @@ public static class CardArt
                 return bitmap;
             }
 
-            var cropped = new CroppedBitmap(bitmap, new Int32Rect(crop.X, crop.Y, crop.Size, crop.Size));
+            // A copy of the square only: a CroppedBitmap would keep the whole decoded source alive in the cache.
+            var squareStride = crop.Size * 4;
+            var square = new byte[squareStride * crop.Size];
+            for (var row = 0; row < crop.Size; row++)
+            {
+                Buffer.BlockCopy(buffer, ((crop.Y + row) * stride) + (crop.X * 4), square, row * squareStride, squareStride);
+            }
+
+            var cropped = BitmapSource.Create(crop.Size, crop.Size, bitmap.DpiX, bitmap.DpiY, PixelFormats.Bgra32, null, square, squareStride);
             cropped.Freeze();
             return cropped;
         }

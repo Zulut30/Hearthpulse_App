@@ -12,18 +12,17 @@ namespace Hearthpulse.App.Infrastructure;
 /// <summary>
 /// Full Constructed card renders (HearthstoneJSON <c>v1/render/latest/{locale}/256x/{id}.png</c>) for an
 /// <see cref="Image"/>: <c>i:CardRender.Card="{Binding CardId}"</c>. Cached on disk (<c>images/render-{locale}</c>) and
-/// in memory (oldest dropped first), loaded and decoded off the UI thread, cropped to the card (no transparent margin). Uses <see cref="CardArt.Http"/> and
+/// in memory (least recently used dropped first), loaded and decoded off the UI thread, cropped to the card (no transparent margin). Uses <see cref="CardArt.Http"/> and
 /// <see cref="CardArt.Locale"/>; kept apart from <see cref="CardArt"/> so both can grow independently.
 /// </summary>
 public static class CardRender
 {
-    // A 256 px render is about 0.4 MB decoded; the pool browser shows a few dozen at a time.
-    private const int MaxCachedImages = 120;
+    // A cropped render is about 0.25 MB decoded (about 120 fit); the pool browser shows a few dozen at a time.
+    private const long MaxCachedBytes = 32L * 1024 * 1024;
 
-    private static readonly ConcurrentDictionary<string, ImageSource> Memory = new();
+    private static readonly SizedCache<ImageSource> Memory = new(MaxCachedBytes, CardArt.PixelBytes);
     private static readonly ConcurrentDictionary<string, Task<ImageSource?>> Pending = new();
     private static readonly ConcurrentDictionary<string, bool> Failed = new();
-    private static readonly Queue<string> MemoryOrder = new();
     private static readonly ConcurrentDictionary<string, bool> TrimmedFolders = new();
 
     // About 200 MB of 256 px renders on disk.
@@ -133,15 +132,7 @@ public static class CardRender
 
         if (image is not null)
         {
-            Memory[key] = image;
-            lock (MemoryOrder)
-            {
-                MemoryOrder.Enqueue(key);
-                while (MemoryOrder.Count > MaxCachedImages)
-                {
-                    Memory.TryRemove(MemoryOrder.Dequeue(), out _);
-                }
-            }
+            Memory.Set(key, image);
         }
 
         Pending.TryRemove(key, out _);
@@ -214,7 +205,8 @@ public static class CardRender
             return bitmap;
         }
 
-        var card = new CroppedBitmap(bitmap, Visible);
+        // A copy of the visible part: a CroppedBitmap would keep the whole 256x388 render alive in the cache.
+        var card = new WriteableBitmap(new CroppedBitmap(bitmap, Visible));
         card.Freeze();
         return card;
     }

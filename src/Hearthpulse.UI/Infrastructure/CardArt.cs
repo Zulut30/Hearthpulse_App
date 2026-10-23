@@ -32,18 +32,22 @@ public enum ArtKind
 /// </summary>
 public static class CardArt
 {
-    private static readonly ConcurrentDictionary<string, Bitmap> Memory = new();
+    /// <summary>
+    /// Decoded pixels kept in memory. Without a limit every card a long session shows stays loaded and a small PC starts
+    /// swapping; by size it holds about 150 portraits or 400 deck tiles. The least recently used images are dropped first.
+    /// </summary>
+    private const long MaxCachedBytes = 24L * 1024 * 1024;
+
+    private static readonly SizedCache<Bitmap> Memory = new(MaxCachedBytes, PixelBytes);
     private static readonly ConcurrentDictionary<string, Task<Bitmap?>> Pending = new();
     private static readonly ConcurrentDictionary<string, bool> Unreadable = new();
+    private static readonly SemaphoreSlim Downloads = new(6);
 
     /// <summary>
-    /// How many card images stay in memory. Without a limit every card a long session shows stays loaded and a small
-    /// PC starts swapping; the oldest images are dropped first.
+    /// How many images are decoded at the same time. A burst (the comp panel asks for dozens of cards at once) must not
+    /// take every core; same limit as the Windows app.
     /// </summary>
-    private const int MaxCachedImages = 160;
-
-    private static readonly Queue<string> MemoryOrder = new();
-    private static readonly SemaphoreSlim Downloads = new(6);
+    private static readonly SemaphoreSlim Decodes = new(4);
 
     public static HttpClient? Http { get; set; }
 
@@ -196,6 +200,7 @@ public static class CardArt
 
             if (File.Exists(file))
             {
+                await Decodes.WaitAsync().ConfigureAwait(false);
                 try
                 {
                     await using var stream = File.OpenRead(file);
@@ -210,6 +215,10 @@ public static class CardArt
                 catch (Exception ex) when (ex is not (OutOfMemoryException or IOException))
                 {
                     Discard(Key(kind, cardId), file, ex);
+                }
+                finally
+                {
+                    Decodes.Release();
                 }
             }
         }
@@ -307,20 +316,11 @@ public static class CardArt
         }
     }
 
-    /// <summary>Caches the image and drops the oldest ones when the cache is full.</summary>
-    private static void Remember(string key, Bitmap image)
-    {
-        Memory[key] = image;
-        lock (MemoryOrder)
-        {
-            MemoryOrder.Enqueue(key);
-            while (MemoryOrder.Count > MaxCachedImages)
-            {
-                // The bitmap is not disposed: a control may still show it; the GC frees it once nothing does.
-                Memory.TryRemove(MemoryOrder.Dequeue(), out _);
-            }
-        }
-    }
+    /// <summary>Caches the image; the least recently used ones go when the cache is full (not disposed: a control may still show one).</summary>
+    private static void Remember(string key, Bitmap image) => Memory.Set(key, image);
+
+    /// <summary>Decoded size of a bitmap (32 bits a pixel).</summary>
+    internal static long PixelBytes(Bitmap bitmap) => (long)bitmap.PixelSize.Width * bitmap.PixelSize.Height * 4;
 
     /// <summary>
     /// PNG, JPEG or WebP signature. A proxy or a captive portal can answer 200 with a web page, which must never land
