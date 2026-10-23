@@ -2,6 +2,7 @@ using System.Globalization;
 using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.Core;
 using Hearthpulse.Core.CardPool;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.UI.Overlay;
@@ -9,6 +10,9 @@ namespace Hearthpulse.UI.Overlay;
 /// <summary>One histogram of the card pool panel (Cost, Attack or Health; the view picks the colour).</summary>
 public sealed record PoolHistogramModel(string Title, IReadOnlyList<PoolBarModel> Bars, string MedianText)
 {
+    /// <summary>The title in the interface language (<see cref="Title"/> stays English).</summary>
+    public string Label { get; } = PoolDisplay.Stat(Title);
+
     public bool IsAttack => Title == "Attack";
 
     public bool IsHealth => Title == "Health";
@@ -59,6 +63,7 @@ public sealed partial class OverlayViewModel
     private DateTime _cardPoolPointerSince;
     private ConstructedView? _cardPoolView;
     private AppSettings? _cardPoolSettings;
+    private string _cardPoolLanguage = string.Empty;
 
     private bool _cardPoolBrowserOpen;
     private bool _cardPoolFiltersOpen;
@@ -338,19 +343,20 @@ public sealed partial class OverlayViewModel
         }
 
         _lastRequestedPool = requested;
-        if (ReferenceEquals(pool, _cardPool) && ShowCardPool)
+        if (ReferenceEquals(pool, _cardPool) && ShowCardPool && _cardPoolLanguage == Loc.Instance.Language)
         {
-            // The engine hands back the same view while the pool stays up: nothing to rebuild.
+            // The engine hands back the same view while the pool stays up: nothing to rebuild (unless the language changed).
             RebuildCardPoolBrowser();
             return;
         }
 
         _cardPool = pool;
-        CardPoolTitle = pool.Uncomputed is null ? $"Pool of {CardCount(pool.Count)}" : "Pool not computed";
+        _cardPoolLanguage = Loc.Instance.Language;
+        CardPoolTitle = pool.Uncomputed is null ? Loc.P("Pool.Title", pool.Count, CardCount(pool.Count)) : Loc.T("Pool.NotComputed");
         CardPoolSource = pool.SourceName;
-        CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {reason}" : $"{pool.Phrase} · {pool.Description}";
+        CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {PoolDisplay.Reason(reason)}" : $"{pool.Phrase} · {pool.Description}";
         CardPoolHasCards = pool.Uncomputed is null;
-        CardPoolSourceNote = pool.Uncomputed is null ? $"pool: {pool.Source}" : string.Empty;
+        CardPoolSourceNote = pool.Uncomputed is null ? Loc.F("Pool.SourceNote", PoolDisplay.Source(pool.Source)) : string.Empty;
         UpdateSectionChips();
         CardPoolHistograms = new[] { pool.Cost, pool.Attack, pool.Health }
             .Where(h => h is { Count: > 0 })
@@ -359,9 +365,9 @@ public sealed partial class OverlayViewModel
                 h.Bars.Select(b => new PoolBarModel(b.Label, b.Count, b.Count == 0 ? 1 : 3 + b.Height * (BarMaxHeight - 3), b.IsMedian)).ToList(),
                 h.MedianText))
             .ToList();
-        CardPoolMechanics = pool.Mechanics;
+        CardPoolMechanics = pool.Mechanics.Select(PoolDisplay.Mechanic).ToList();
         CardPoolFeatured = pool.Featured;
-        CardPoolFeaturedNote = pool.FeaturedReason ?? string.Empty;
+        CardPoolFeaturedNote = PoolDisplay.FeaturedReason(pool.FeaturedReason);
         RebuildCardPoolBrowser();
         ShowCardPool = true;
     }
@@ -370,7 +376,7 @@ public sealed partial class OverlayViewModel
     {
         var pool = CardPoolBrowserOpen ? _cardPool : null;
         var key = pool is null ? string.Empty
-            : $"{pool.SourceCardId}|{pool.Description}|{pool.Count}|{_cardPoolSection}|{string.Join(",", _cardPoolSelected.Order(StringComparer.Ordinal))}";
+            : $"{Loc.Instance.Language}|{pool.SourceCardId}|{pool.Description}|{pool.Count}|{_cardPoolSection}|{string.Join(",", _cardPoolSelected.Order(StringComparer.Ordinal))}";
         if (key == _cardPoolBrowserKey)
         {
             return;
@@ -388,14 +394,14 @@ public sealed partial class OverlayViewModel
         }
 
         _cardPoolSelected.IntersectWith(pool.Filters.Select(f => f.Tag));
-        CardPoolBrowserTitle = $"{pool.SourceName} Pool: {CardCount(pool.Count)}";
-        CardPoolFilterChips = pool.Filters.Select(f => new PoolChipModel(f.Tag, f.Label, _cardPoolSelected.Contains(f.Tag))).ToList();
+        CardPoolBrowserTitle = Loc.P("Pool.BrowserTitle", pool.Count, CardCount(pool.Count), pool.SourceName);
+        CardPoolFilterChips = pool.Filters.Select(f => new PoolChipModel(f.Tag, PoolDisplay.Mechanic(f).Label, _cardPoolSelected.Contains(f.Tag))).ToList();
         var cards = pool.Cards
             .Where(c => _cardPoolSection is null || c.Sections.Contains(_cardPoolSection))
             .Where(c => _cardPoolSelected.All(c.Mechanics.Contains))
             .OrderBy(c => c.Cost).ThenBy(c => c.Name, StringComparer.CurrentCulture)
             .ToList();
-        CardPoolBrowserNote = _cardPoolSelected.Count > 0 || _cardPoolSection is not null ? $"{CardCount(cards.Count)} match" : string.Empty;
+        CardPoolBrowserNote = _cardPoolSelected.Count > 0 || _cardPoolSection is not null ? Loc.P("Pool.Match", cards.Count, CardCount(cards.Count)) : string.Empty;
         CardPoolBrowserRows = cards.Chunk(3).Select(row => new PoolCardRowModel(row)).ToList();
     }
 
@@ -405,5 +411,6 @@ public sealed partial class OverlayViewModel
             .Select(s => new PoolChipModel(s.Label, $"{s.Label} {s.Count.ToString("N0", CultureInfo.InvariantCulture)}", CardPoolBrowserOpen && s.Label == _cardPoolSection, Section: true))
             .ToList() ?? [];
 
-    private static string CardCount(int count) => $"{count.ToString("N0", CultureInfo.InvariantCulture)} card{(count == 1 ? string.Empty : "s")}";
+    /// <summary>A card count as the panel writes it ("1,234"), for the plural texts' <c>{1}</c>.</summary>
+    private static string CardCount(int count) => count.ToString("N0", CultureInfo.InvariantCulture);
 }

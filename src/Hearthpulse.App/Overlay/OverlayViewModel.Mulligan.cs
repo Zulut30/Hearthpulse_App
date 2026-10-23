@@ -1,6 +1,8 @@
 using System.Globalization;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.App.Overlay;
@@ -143,8 +145,9 @@ public sealed partial class OverlayViewModel
             return;
         }
 
-        // Snapshots arrive every 100 ms while anything changes; rebuild the badges only when what they show changed.
-        var print = $"{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|"
+        // Snapshots arrive every 100 ms while anything changes; rebuild the badges only when what they show changed. The
+        // language is part of it: after a switch the host pushes the last snapshot again and the texts are made anew.
+        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|"
                     + $"{string.Join(",", _mulliganKept.Order())}|"
                     + string.Join(";", view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.KeepRate:0.0000}"));
         if (print == _mulliganPrint)
@@ -154,30 +157,32 @@ public sealed partial class OverlayViewModel
 
         _mulliganPrint = print;
         var culture = CultureInfo.CurrentCulture;
-        var initiative = view.GoingFirst switch { true => "going first", false => "on the coin", null => null };
+        var initiative = view.GoingFirst switch { true => Loc.T("Mulligan.GoingFirst"), false => Loc.T("Mulligan.OnTheCoin"), null => null };
         if (view.NoStats is { } missing)
         {
             MulliganSummary = missing;
             MulliganSource = initiative ?? string.Empty;
-            MulliganDetails = "Hearthpulse found no mulligan numbers for this deck: the badges show the offered cards only.";
+            MulliganDetails = Loc.T("Mulligan.NoNumbers");
             MulliganImpactGood = MulliganImpactBad = MulliganHasWarnings = false;
         }
         else
         {
             var impact = MulliganGuide.Evaluate(view, _mulliganKept);
             var vsAverage = impact.Expected - view.BaseWinRate;
-            var vsClass = view.OpponentClass is { } opponent ? $" vs {ClassName(opponent)}" : string.Empty;
-            MulliganSummary = $"Expected impact of your keeps: {Points(vsAverage)}%";
-            MulliganSource = string.Join(" · ", new[] { view.Context, view.Source, initiative }.Where(s => !string.IsNullOrEmpty(s)));
+            var vsClass = view.OpponentClass is { } opponent ? Loc.F("Mulligan.VsClass", ClassName(opponent)) : string.Empty;
+            MulliganSummary = Loc.F("Mulligan.Impact", Points(vsAverage));
+            // Archetype names come from the API in English.
+            var context = string.IsNullOrEmpty(view.Context) ? view.Context : ArchetypeTranslations.Current.Display(view.Context);
+            MulliganSource = string.Join(" · ", new[] { context, view.Source, initiative }.Where(s => !string.IsNullOrEmpty(s)));
             var notes = impact.Warnings
-                .Concat(impact.Synergies.Select(s => $"Synergy kept: {s.NameA} + {s.NameB} ({Points(s.Interaction)})"))
+                .Concat(impact.Synergies.Select(s => Loc.F("Mulligan.SynergyKept", s.NameA, s.NameB, Points(s.Interaction))))
                 .ToList();
             MulliganDetails = string.Join("\n", new[]
             {
-                $"Average hand{vsClass}{(initiative is null ? string.Empty : " " + initiative)}: {view.BaseWinRate.ToString("P1", culture)}",
-                $"Your keeps ({impact.Kept} of {view.Cards.Count}): {impact.Expected.ToString("P1", culture)}",
-                $"Full mulligan: {impact.FullMulligan.ToString("P1", culture)} · recommended keeps: {impact.Recommended.ToString("P1", culture)}",
-            }.Concat(notes).Append(view.HasPairData ? string.Empty : "Synergies: the server has no card-pair data yet, so none are shown.")
+                Loc.F("Mulligan.AverageHand", vsClass + (initiative is null ? string.Empty : " " + initiative), view.BaseWinRate.ToString("P1", culture)),
+                Loc.F("Mulligan.YourKeeps", impact.Kept, view.Cards.Count, impact.Expected.ToString("P1", culture)),
+                Loc.F("Mulligan.FullMulligan", impact.FullMulligan.ToString("P1", culture), impact.Recommended.ToString("P1", culture)),
+            }.Concat(notes).Append(view.HasPairData ? string.Empty : Loc.T("Mulligan.NoPairData"))
              .Where(s => s.Length > 0));
             MulliganImpactGood = impact.Expected >= impact.Recommended - 0.0005 && vsAverage > 0.0005;
             MulliganImpactBad = impact.Expected < impact.Recommended - 0.005;
@@ -193,34 +198,34 @@ public sealed partial class OverlayViewModel
             var lines = new List<string> { c.Name };
             if (c.WinRate is { } rate)
             {
-                lines.Add($"Win rate {rate.ToString("P1", culture)} with the card in the opening hand, against {view.CardBaseline.ToString("P1", culture)} for an average hand ({c.Sample.ToString("N0", culture)} offers)");
-                lines.Add($"Kept by {c.KeepRate?.ToString("P0", culture)} of players; usually played on turn {c.ExpectedTurn.ToString("0.#", culture)}");
+                lines.Add(Loc.P("Mulligan.CardWinRate", c.Sample, rate.ToString("P1", culture), view.CardBaseline.ToString("P1", culture)));
+                lines.Add(Loc.F("Mulligan.KeptBy", c.KeepRate?.ToString("P0", culture), c.ExpectedTurn.ToString("0.#", culture)));
             }
             else
             {
-                lines.Add("Not enough games for numbers");
+                lines.Add(Loc.T("Mulligan.NotEnoughGames"));
             }
 
             if (c.Copy > 1)
             {
-                lines.Add("2nd copy: counts once (heuristic)");
+                lines.Add(Loc.T("Mulligan.SecondCopy"));
             }
 
             if (synergy is not null)
             {
-                lines.Add($"Synergy with {(synergy.EntityA == c.EntityId ? synergy.NameB : synergy.NameA)} ({Points(synergy.Interaction)})");
+                lines.Add(Loc.F("Mulligan.SynergyWith", synergy.EntityA == c.EntityId ? synergy.NameB : synergy.NameA, Points(synergy.Interaction)));
             }
 
             if (late)
             {
-                lines.Add($"Late card: usually played turn {c.ExpectedTurn.ToString("0", culture)}");
+                lines.Add(Loc.F("Mulligan.LateCard", c.ExpectedTurn.ToString("0", culture)));
             }
 
-            lines.Add($"{(kept ? "Keeping" : "Replacing")} - click to change");
+            lines.Add(kept ? Loc.T("Mulligan.Keeping") : Loc.T("Mulligan.Replacing"));
             return new MulliganPlate(
                 c.EntityId,
                 c.Name,
-                c.Call switch { Core.Tracking.MulliganCall.Keep => "Keep", Core.Tracking.MulliganCall.Mulligan => "Replace", _ => "No data" },
+                c.Call switch { Core.Tracking.MulliganCall.Keep => Loc.T("Mulligan.Call.Keep"), Core.Tracking.MulliganCall.Mulligan => Loc.T("Mulligan.Call.Replace"), _ => Loc.T("Mulligan.Call.NoData") },
                 c.Call == Core.Tracking.MulliganCall.Keep,
                 c.Call == Core.Tracking.MulliganCall.Mulligan,
                 number,

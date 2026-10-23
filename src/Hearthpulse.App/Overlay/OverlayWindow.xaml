@@ -4,7 +4,7 @@
         xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
         xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
         xmlns:c="clr-namespace:Hearthpulse.App.Controls"
-        Title="Hearthpulse Overlay"
+        Title="{i:Loc Pool.OverlayWindow.Title}"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent" Topmost="True"
         ShowInTaskbar="False" ShowActivated="False" ResizeMode="NoResize" Focusable="False"
         Left="0" Top="0" Width="1" Height="1"
