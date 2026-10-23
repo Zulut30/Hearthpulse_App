@@ -1,0 +1,32 @@
+HEARTHLENS
+
+Hearthlens is a companion app for Hearthstone: a deck tracker, a Battlegrounds
+advisor (heroes, comps, shop, trinkets, Discover picks, combat odds), an in-game
+overlay and your match history.
+
+HOW IT WORKS
+- It reads the log files Hearthstone writes on your computer. On first start it
+  turns on the log sections it needs in Hearthstone's log.config; restart
+  Hearthstone once afterwards.
+- On Windows it also reads a few values from the game's memory, read-only:
+  your Battlegrounds rating, ranked medals and the lobby's tribes.
+- It never changes the game, never sends input to it and never shows hidden
+  information such as your opponent's hand or deck.
+- Your history and settings stay on this computer, in %APPDATA%\Hearthlens.
+
+SHORTCUTS
+- Ctrl+Shift+H  hide or show the overlay
+- Ctrl+Shift+L  arrange overlay panels
+
+DATA AND CREDITS
+- Community statistics: Firestone (zerotoheroes.com).
+- Card data and art: HearthstoneJSON.
+- Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font
+  License 1.1), Material Design Icons (Pictogrammers, Apache 2.0).
+
+Hearthlens is not affiliated with or endorsed by Blizzard Entertainment.
+Hearthstone is a trademark of Blizzard Entertainment, Inc.
+
+UNINSTALL
+Use "Apps & features" in Windows Settings, or run "Uninstall Hearthlens" in the
+install folder. You can choose whether to keep your match history.

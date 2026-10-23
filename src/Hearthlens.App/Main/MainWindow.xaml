@@ -1,0 +1,1546 @@
+<Window x:Class="Hearthlens.App.Main.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:m="clr-namespace:Hearthlens.App.Main"
+        xmlns:c="clr-namespace:Hearthlens.App.Controls"
+        xmlns:i="clr-namespace:Hearthlens.App.Infrastructure"
+        Title="Hearthlens" Width="1260" Height="840" MinWidth="1040" MinHeight="660"
+        Background="{StaticResource WindowFill}" Foreground="{StaticResource Text}"
+        WindowStartupLocation="CenterScreen" UseLayoutRounding="True" Style="{StaticResource AppWindow}"
+        TextOptions.TextFormattingMode="Display" Icon="/Assets/hearthlens.ico">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="52" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <i:VisibleWhen x:Key="Vis" />
+        <i:KeyBrush x:Key="KeyBrush" />
+        <i:SignBrush x:Key="SignBrush" />
+        <i:FractionWidth x:Key="Fraction" />
+
+        <Style x:Key="TableHead" TargetType="TextBlock" BasedOn="{StaticResource Label}">
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- List rows: no rules, a soft highlight on hover -->
+        <Style x:Key="RowBorder" TargetType="Border">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="-10,0,-10,2" />
+            <Setter Property="Background" Value="Transparent" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource Hover}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="TierBadge" TargetType="Border">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style x:Key="NavGroup" TargetType="Grid">
+            <Setter Property="Margin" Value="28,16,20,4" />
+        </Style>
+        <Style x:Key="PageSubtitle" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Margin" Value="2,6,0,24" />
+        </Style>
+
+        <DataTemplate x:Key="StatTileTemplate" DataType="{x:Type m:StatTile}">
+            <Border Margin="0,0,14,0" Padding="20,16" ToolTip="{Binding Detail}">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" />
+                    <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" Margin="0,8,0,2" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Sign}" Value="1">
+                    <Setter TargetName="Value" Property="Foreground" Value="{StaticResource Positive}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Sign}" Value="-1">
+                    <Setter TargetName="Value" Property="Foreground" Value="{StaticResource Negative}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <DataTemplate x:Key="GameRowTemplate" DataType="{x:Type m:GameRow}">
+            <Border Style="{StaticResource RowBorder}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="50" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="76" />
+                        <ColumnDefinition Width="64" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="38" Height="38" CornerRadius="19" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                            i:CardArt.Portrait="{Binding HeroCardId}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,12,0">
+                        <TextBlock Text="{Binding Hero}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Mode}" Style="{StaticResource Caption}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="{Binding Detail}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Detail}" />
+                    <TextBlock Grid.Column="3" Text="{Binding When}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                    <Border Grid.Column="4" CornerRadius="6" Padding="10,3" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{StaticResource Surface3}">
+                        <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                    </Border>
+                    <TextBlock Grid.Column="5" Text="{Binding Rating}" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold"
+                               Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip="Rating change" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Theme picker: each theme is a tile in its own colours, a cookie of its wood with a gem of its accent -->
+        <DataTemplate x:Key="ThemeTile" DataType="{x:Type m:ThemeChoice}">
+            <Border x:Name="Tile" Width="92" Height="92" CornerRadius="16" Background="{Binding Background}" BorderBrush="{StaticResource Border}"
+                    BorderThickness="2" Padding="8,10,8,8">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Bottom" Text="{Binding Name}" Foreground="{Binding Text}" FontSize="12.5" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,6,0,0" />
+                    <Grid Width="50" Height="50" HorizontalAlignment="Center">
+                        <c:Scallop Fill="{Binding Surface}" Lobes="9" Depth="0.12" />
+                        <c:Scallop Width="24" Height="24" Fill="{Binding Accent}" Lobes="6" Depth="0.2" Angle="15" />
+                    </Grid>
+                </DockPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Selected}" Value="True">
+                    <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource Accent}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+        <Style x:Key="ThemeSwatch" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,10,10" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingChip}" />
+            <Setter Property="ContentTemplate" Value="{StaticResource ThemeTile}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter x:Name="Face" RenderTransformOrigin="0.5,0.5" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Face" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.04" ScaleY="1.04" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Face" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.97" ScaleY="0.97" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- The colour wheel laid flat, under the hue sliders -->
+        <LinearGradientBrush x:Key="HueStrip" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#FF4D4D" Offset="0" />
+            <GradientStop Color="#FFD24D" Offset="0.167" />
+            <GradientStop Color="#7DFF4D" Offset="0.333" />
+            <GradientStop Color="#4DFFE0" Offset="0.5" />
+            <GradientStop Color="#4D7DFF" Offset="0.667" />
+            <GradientStop Color="#D24DFF" Offset="0.833" />
+            <GradientStop Color="#FF4D4D" Offset="1" />
+        </LinearGradientBrush>
+
+        <ItemsPanelTemplate x:Key="TilesPanel">
+            <UniformGrid Rows="1" />
+        </ItemsPanelTemplate>
+    </Window.Resources>
+
+    <Border x:Name="Frame">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ================= Navigation ================= -->
+            <Grid x:Name="Sidebar" SizeChanged="OnSidebarSize">
+            <!-- The selected item's pill slides between items -->
+            <Canvas IsHitTestVisible="False">
+                <Border x:Name="NavPill" Canvas.Left="10" Width="230" Height="42" CornerRadius="8" Opacity="0" SnapsToDevicePixels="True"
+                        Background="{StaticResource NavSelectedFill}" BorderBrush="{StaticResource NavSelectedEdge}" BorderThickness="1">
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="NavPillShift" />
+                    </Border.RenderTransform>
+                    <Border Width="3" CornerRadius="2" Margin="0,8" HorizontalAlignment="Left" Background="{StaticResource Accent}">
+                        <Border.Effect>
+                            <DropShadowEffect Color="{StaticResource AccentColor}" BlurRadius="12" ShadowDepth="0" Opacity="0.9" />
+                        </Border.Effect>
+                    </Border>
+                </Border>
+            </Canvas>
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top">
+                    <StackPanel Orientation="Horizontal" Margin="18,14,0,0">
+                        <Button Style="{StaticResource CloseCaptionButton}" Content="&#xF0156;" Click="OnClose" ToolTip="Close (keeps running in the tray if enabled)" />
+                        <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xF05AF;" Click="OnMaximize" ToolTip="Maximize" />
+                        <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="Minimize" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
+                        <Image Source="/Assets/hearthlens.png" Width="42" Height="42" RenderOptions.BitmapScalingMode="HighQuality" />
+                        <TextBlock Text="Hearthlens" Style="{StaticResource H2}" FontSize="21" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}"
+                                   Margin="12,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <RadioButton x:Name="NavOverview" Style="{StaticResource NavItem}" Content="Home" Tag="&#xF02DC;" GroupName="Nav" IsChecked="True" Checked="OnNavigate"
+                                 ToolTip="Your session, rating and recent games" />
+
+                    <Grid Style="{StaticResource NavGroup}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Modes" Style="{StaticResource Label}" />
+                    </Grid>
+                    <RadioButton x:Name="NavBattlegrounds" Style="{StaticResource NavItem}" Content="Battlegrounds" Tag="&#xF0787;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="Hero, comp, trinket and card tier lists, plus your Battlegrounds results" />
+                    <RadioButton x:Name="NavConstructed" Style="{StaticResource NavItem}" Content="Constructed" Tag="&#xF063A;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="Your decks, matchups and the meta tier list" />
+
+                    <Grid Style="{StaticResource NavGroup}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Library" Style="{StaticResource Label}" />
+                    </Grid>
+                    <RadioButton x:Name="NavHistory" Style="{StaticResource NavItem}" Content="History" Tag="&#xF02DA;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="Every game Hearthlens recorded" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
+                    <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="Settings" Tag="&#xF08BB;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="Overlay panels, layout and app options" />
+                    <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}" Margin="28,8,0,0" />
+                </StackPanel>
+                <Border />
+            </DockPanel>
+            </Grid>
+
+            <!-- ================= Content ================= -->
+            <Border Grid.Column="1" Background="{StaticResource ContentFill}" BorderBrush="{StaticResource ContentEdge}" BorderThickness="1" CornerRadius="16"
+                    Margin="0,10,10,10" ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="52" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+
+                    <!-- Your last hero, as faded card art behind the page titles -->
+                    <Border Grid.RowSpan="2" Width="640" Height="340" Margin="0,1,1,0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                            IsHitTestVisible="False" Opacity="0.32">
+                        <Border.OpacityMask>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#00000000" Offset="0" />
+                                <GradientStop Color="#FF000000" Offset="0.65" />
+                            </LinearGradientBrush>
+                        </Border.OpacityMask>
+                        <Border CornerRadius="0,15,0,0" i:CardArt.Splash="{Binding BannerHero}">
+                            <Border.OpacityMask>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#FF000000" Offset="0.3" />
+                                    <GradientStop Color="#00000000" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.OpacityMask>
+                        </Border>
+                    </Border>
+
+                    <!-- Top bar: status chips -->
+                    <TextBlock Text="{Binding Busy}" Style="{StaticResource Caption}" Margin="40,0,0,0" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,22,0">
+                        <!-- A downloaded update: one click installs now, otherwise it installs on the next close -->
+                        <Button Command="{Binding InstallUpdate}" VerticalAlignment="Center" Margin="0,0,8,0" Cursor="Hand" Focusable="False"
+                                WindowChrome.IsHitTestVisibleInChrome="True" Visibility="{Binding UpdateReady, Converter={StaticResource Vis}}"
+                                ToolTip="{Binding UpdateText}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{StaticResource Accent}" CornerRadius="10" Padding="12,5">
+                                        <TextBlock Text="Update ready — restart" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnAccent}" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Border Style="{StaticResource Pill}" Background="{StaticResource Surface3}" Padding="12,5"
+                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                ToolTip="Gold: Hearthstone is running. Green: connected. Hearthlens only reads your rating and the lobby tribes.">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" />
+                                <TextBlock Text="{Binding MemoryStatus}" FontSize="12" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="220" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- ===== Home ===== -->
+                    <ScrollViewer x:Name="PageOverview" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="40,0,40,120">
+                            <TextBlock Text="Home" Style="{StaticResource Display}" />
+                            <StackPanel Style="{StaticResource PageSubtitle}">
+                                <TextBlock Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center">
+                                    <Run Text="{Binding Greeting, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text=". Your session at a glance." />
+                                </TextBlock>
+                            </StackPanel>
+
+                            <Border Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
+                                    Visibility="{Binding SetupWarning, Converter={StaticResource Vis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xF002A;" Style="{StaticResource Icon}" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,12,0" />
+                                    <TextBlock Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                                </StackPanel>
+                            </Border>
+
+                            <ItemsControl ItemsSource="{Binding OverviewTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}"
+                                          Margin="0,0,-14,16" />
+
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="2*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Card}">
+                                    <DockPanel>
+                                        <c:Ornament DockPanel.Dock="Top" Text="Battlegrounds rating" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                                        <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
+                                    </DockPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource Card}">
+                                    <DockPanel>
+                                        <c:Ornament DockPanel.Dock="Top" Text="Placements" Icon="&#xF0D25;" Size="13" Margin="0,0,0,12" />
+                                        <ItemsControl ItemsSource="{Binding Placements}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type m:PlacementBar}">
+                                                    <Grid Height="25">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="22" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="70" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Place}" Style="{StaticResource Caption}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                        <Border Grid.Column="1" Height="12" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                            <Border x:Name="Bar" HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Negative}" Opacity="0.85"
+                                                                    Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=220}" />
+                                                        </Border>
+                                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12">
+                                                            <Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" />
+                                                        </TextBlock>
+                                                    </Grid>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding Top}" Value="True">
+                                                            <Setter TargetName="Bar" Property="Background" Value="{StaticResource Positive}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Place}" Value="1">
+                                                            <Setter TargetName="Bar" Property="Background" Value="{StaticResource TierS}" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DockPanel>
+                                </Border>
+                            </Grid>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,10">
+                                        <c:Ornament Text="Recent games" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
+                                        <Button Content="View all" Style="{StaticResource GhostButton}" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource GameRowTemplate}" />
+                                    <TextBlock Text="No games yet. Finished games appear here automatically." Style="{StaticResource Caption}" Margin="0,8"
+                                               Visibility="{Binding Recent, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ===== Battlegrounds ===== -->
+                    <ScrollViewer x:Name="PageBattlegrounds" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="40,0,40,120">
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="Battlegrounds" Style="{StaticResource Display}" />
+                                    <StackPanel Style="{StaticResource PageSubtitle}">
+                                        <TextBlock Text="Your results and what is strong right now, from Firestone community data." Style="{StaticResource Caption}" FontSize="14"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}"
+                                        ToolTip="Show your results for solo or Duos">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Content="Solo" GroupName="BgMode" IsChecked="True" Command="{Binding SetBgMode}" CommandParameter="Battlegrounds" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="Duos" GroupName="BgMode" Command="{Binding SetBgMode}" CommandParameter="Duos" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <ItemsControl ItemsSource="{Binding BgTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}" Margin="0,0,-14,16" />
+
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,24">
+                                <DockPanel>
+                                    <c:Ornament DockPanel.Dock="Top" Text="Rating" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                                    <c:RatingChart Points="{Binding RatingPoints}" Height="220" />
+                                </DockPanel>
+                            </Border>
+
+                            <c:Ornament Text="Tier lists" Icon="&#xF11D0;" Size="15" Margin="0,0,0,14" />
+                            <Grid Margin="0,0,0,14">
+                                <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="TabHeroes" Style="{StaticResource Tab}" Content="Heroes" GroupName="BgTab" IsChecked="True" Checked="OnBgTab"
+                                                     ToolTip="Heroes ranked by average final placement" />
+                                        <RadioButton x:Name="TabComps" Style="{StaticResource Tab}" Content="Comps" GroupName="BgTab" Checked="OnBgTab"
+                                                     ToolTip="Board archetypes ranked by average final placement" />
+                                        <RadioButton x:Name="TabTrinkets" Style="{StaticResource Tab}" Content="Trinkets" GroupName="BgTab" Checked="OnBgTab"
+                                                     ToolTip="Trinkets ranked by the average placement of players who picked them" />
+                                        <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="Cards" GroupName="BgTab" Checked="OnBgTab"
+                                                     ToolTip="Minions and tavern spells, ranked inside each tier" />
+                                        <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="My heroes" GroupName="BgTab" Checked="OnBgTab"
+                                                     ToolTip="Your own results per hero" />
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="BracketPicker" HorizontalAlignment="Right" Style="{StaticResource SegmentBar}"
+                                        ToolTip="Use stats from players at this rating. Smaller groups are more precise for high ratings but have fewer games.">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Content="All" GroupName="Bracket" IsChecked="True" Command="{Binding SetBracket}" CommandParameter="100" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="Top 50%" GroupName="Bracket" Command="{Binding SetBracket}" CommandParameter="50" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="25%" GroupName="Bracket" Command="{Binding SetBracket}" CommandParameter="25" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="10%" GroupName="Bracket" Command="{Binding SetBracket}" CommandParameter="10" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="1%" GroupName="Bracket" Command="{Binding SetBracket}" CommandParameter="1" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <!-- Hero tier list -->
+                            <Border x:Name="HeroTierCard" Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="50" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="56" />
+                                            <ColumnDefinition Width="190" />
+                                            <ColumnDefinition Width="64" />
+                                            <ColumnDefinition Width="56" />
+                                            <ColumnDefinition Width="72" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="100" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="#" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="2" Text="Hero" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="3" Text="Tier" Style="{StaticResource TableHead}" ToolTip="S is the best, D the worst. Based on average placement." />
+                                        <TextBlock Grid.Column="4" Text="Avg placement" Style="{StaticResource TableHead}" ToolTip="Average final position (1 = first place). Lower is better." />
+                                        <TextBlock Grid.Column="5" Text="Top 4" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Share of games finished in the top 4" />
+                                        <TextBlock Grid.Column="6" Text="1st" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Share of games won" />
+                                        <TextBlock Grid.Column="7" Text="Pick rate" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="How often players pick this hero when offered" />
+                                        <TextBlock Grid.Column="8" Text="Games" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Games behind these numbers" />
+                                        <TextBlock Grid.Column="9" Text="You" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Your games with this hero · your average placement" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding HeroTiers}" VirtualizingPanel.IsVirtualizing="True">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:MetaHeroRow}">
+                                                <Border Style="{StaticResource RowBorder}" Padding="10,6">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="40" />
+                                                            <ColumnDefinition Width="50" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="56" />
+                                                            <ColumnDefinition Width="190" />
+                                                            <ColumnDefinition Width="64" />
+                                                            <ColumnDefinition Width="56" />
+                                                            <ColumnDefinition Width="72" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="100" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Rank}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                                                        <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}"
+                                                                HorizontalAlignment="Left" i:CardArt.Portrait="{Binding CardId}" />
+                                                        <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                        <Border Grid.Column="3" Style="{StaticResource TierBadge}" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
+                                                            <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding AveragePlace}" Width="44" FontWeight="Bold" />
+                                                            <Border Width="128" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                                                                        Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=128}" />
+                                                            </Border>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="5" Text="{Binding Top4}" FontWeight="SemiBold" FontSize="12.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="6" Text="{Binding FirstPlace}" FontSize="12.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="7" Text="{Binding PickRate}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="8" Text="{Binding DataPoints}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="9" Text="{Binding Personal}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="{Binding MetaUpdated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Comps -->
+                            <Border x:Name="CompTierCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="Board archetypes ranked by how well players who played them finished. Core cards are what the comp needs; tribes must be in your lobby."
+                                               Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                    <ItemsControl ItemsSource="{Binding CompTiers}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:MetaCompRow}">
+                                                <Border Style="{StaticResource RowBorder}" Padding="10,10">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="40" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="56" />
+                                                            <ColumnDefinition Width="230" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Rank}" Style="{StaticResource Caption}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                                        <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                                            <TextBlock FontWeight="SemiBold" FontSize="14">
+                                                                <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding Tribes, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" FontSize="12" />
+                                                            </TextBlock>
+                                                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0">
+                                                                <Run Text="Core: " Foreground="{StaticResource Faint}" /><Run Text="{Binding KeyCards, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                            <TextBlock Text="{Binding Commit}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Text}" Opacity="0.85"
+                                                                       Visibility="{Binding Commit, Converter={StaticResource Vis}}" />
+                                                        </StackPanel>
+                                                        <Border Grid.Column="2" Style="{StaticResource TierBadge}" VerticalAlignment="Top" Background="{Binding Power, Converter={StaticResource KeyBrush}}"
+                                                                ToolTip="Power level (S best)">
+                                                            <TextBlock Text="{Binding Power}" FontWeight="Bold" FontSize="13" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,4,0,0" ToolTip="Average final placement (lower is better)">
+                                                            <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
+                                                            <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
+                                                                        Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="{Binding MetaUpdated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Trinkets -->
+                            <Border x:Name="TrinketTierCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="56" />
+                                            <ColumnDefinition Width="230" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="90" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="#" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="1" Text="Trinket" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="2" Text="Tier" Style="{StaticResource TableHead}" ToolTip="S is the best, D the worst" />
+                                        <TextBlock Grid.Column="3" Text="Avg placement" Style="{StaticResource TableHead}" ToolTip="Average final position of players who picked it. Lower is better." />
+                                        <TextBlock Grid.Column="4" Text="Pick rate" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="How often players pick it when offered" />
+                                        <TextBlock Grid.Column="5" Text="Games" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding TrinketTiers}" VirtualizingPanel.IsVirtualizing="True">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:MetaTrinketRow}">
+                                                <Border Style="{StaticResource RowBorder}" Padding="10,7">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="40" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="56" />
+                                                            <ColumnDefinition Width="230" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="90" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Rank}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                        <Border Grid.Column="2" Style="{StaticResource TierBadge}" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
+                                                            <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
+                                                            <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                                                                        Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
+                                                            </Border>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="4" Text="{Binding PickRate}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="5" Text="{Binding DataPoints}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="No trinket data yet." Style="{StaticResource Caption}" Margin="0,8"
+                                               Visibility="{Binding TrinketTiers, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                    <TextBlock Text="{Binding MetaUpdated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Cards -->
+                            <Border x:Name="CardStatsCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,12">
+                                        <TextBlock Text="Average final placement of players who played each card. Only compare cards of the same tier: late, high-tier cards always look better."
+                                                   Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,330,0" VerticalAlignment="Center" />
+                                        <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="Tavern tier to show">
+                                            <StackPanel Orientation="Horizontal">
+                                                <RadioButton Style="{StaticResource Segment}" Content="1" GroupName="CardTier" IsChecked="True" Command="{Binding SetCardTier}" CommandParameter="1" />
+                                                <RadioButton Style="{StaticResource Segment}" Content="2" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="2" />
+                                                <RadioButton Style="{StaticResource Segment}" Content="3" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="3" />
+                                                <RadioButton Style="{StaticResource Segment}" Content="4" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="4" />
+                                                <RadioButton Style="{StaticResource Segment}" Content="5" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="5" />
+                                                <RadioButton Style="{StaticResource Segment}" Content="6" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="6" />
+                                                <RadioButton Style="{StaticResource Segment}" Content="7" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="7" />
+                                                <RadioButton Style="{StaticResource Segment}" Content="Spells" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding CardTiers}" VirtualizingPanel.IsVirtualizing="True">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:MetaCardRow}">
+                                                <Border Style="{StaticResource RowBorder}" Padding="10,6">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="40" />
+                                                            <ColumnDefinition Width="64" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="230" />
+                                                            <ColumnDefinition Width="100" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Rank}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                                                        <Border Grid.Column="1" Width="54" Height="38" CornerRadius="6" c:RoundClip.Radius="6" Background="{StaticResource Surface3}" HorizontalAlignment="Left">
+                                                            <Image i:CardArt.Tile="{Binding CardId}" Stretch="UniformToFill" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,12,0">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Kind}" Style="{StaticResource Caption}" FontSize="11.5" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" ToolTip="Average final placement (lower is better)">
+                                                            <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
+                                                            <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
+                                                                        Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
+                                                            </Border>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="4" Text="{Binding Games}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                   ToolTip="Times played in the sample" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="No card data for this tier yet." Style="{StaticResource Caption}" Margin="0,8"
+                                               Visibility="{Binding CardTiers, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                    <TextBlock Text="{Binding MetaUpdated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- My heroes -->
+                            <Border x:Name="MyHeroesCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="50" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="90" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="1" Text="Hero" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="2" Text="Games" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="3" Text="Avg place" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Your average final position" />
+                                        <TextBlock Grid.Column="4" Text="Top 4" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Share of games you finished in the top 4" />
+                                        <TextBlock Grid.Column="5" Text="Wins" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="First places" />
+                                        <TextBlock Grid.Column="6" Text="Net MMR" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Rating won or lost with this hero" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding MyHeroes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:HeroRow}">
+                                                <Border Style="{StaticResource RowBorder}" Padding="10,6">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="50" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="100" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="90" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                                                i:CardArt.Portrait="{Binding CardId}" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="2" Text="{Binding Games}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="3" Text="{Binding AveragePlace}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"
+                                                                   Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                                        <TextBlock Grid.Column="4" Text="{Binding Top4}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="5" Text="{Binding Wins}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="6" Text="{Binding Net}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"
+                                                                   Foreground="{Binding NetValue, Converter={StaticResource SignBrush}}" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="Play some Battlegrounds and your per-hero results show up here." Style="{StaticResource Caption}" Margin="0,8"
+                                               Visibility="{Binding MyHeroes, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ===== Constructed ===== -->
+                    <ScrollViewer x:Name="PageConstructed" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="40,0,40,120">
+                            <TextBlock Text="Constructed" Style="{StaticResource Display}" />
+                            <StackPanel Style="{StaticResource PageSubtitle}">
+                                <TextBlock Text="Your decks and matchups, plus the current meta from Firestone community data." Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <ItemsControl ItemsSource="{Binding ConstructedTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}" Margin="0,0,-14,16" />
+
+                            <Grid Margin="0,0,0,14">
+                                <Border HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource SegmentBar}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="TabMyDecks" Style="{StaticResource Tab}" Content="Your decks" GroupName="CtTab" IsChecked="True" Checked="OnCtTab"
+                                                     ToolTip="Your decks, their record and matchups" />
+                                        <RadioButton x:Name="TabMetaTiers" Style="{StaticResource Tab}" Content="Meta tier list" GroupName="CtTab" Checked="OnCtTab"
+                                                     ToolTip="Ranked archetypes by win rate, with coin split and a mulligan guide" />
+                                        <RadioButton x:Name="TabMetaDecks" Style="{StaticResource Tab}" Content="Top decks" GroupName="CtTab" Checked="OnCtTab"
+                                                     ToolTip="The best decklists with enough games. Copy one and import it in Hearthstone." />
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="MetaFormatPicker" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource SegmentBar}" Visibility="Collapsed"
+                                        ToolTip="Game format">
+                                    <ItemsControl ItemsSource="{Binding MetaFormats}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:MetaChoice}">
+                                                <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaFormat" IsChecked="{Binding Selected, Mode=OneWay}"
+                                                             Command="{Binding DataContext.SetMetaFormat, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </Grid>
+
+                            <StackPanel x:Name="MetaFilters" Margin="0,0,0,14" Visibility="Collapsed">
+                                <Grid Margin="0,0,0,10">
+                                    <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="Only count games from players at this rank">
+                                        <ItemsControl ItemsSource="{Binding MetaRanks}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:MetaChoice}">
+                                                <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaRank" IsChecked="{Binding Selected, Mode=OneWay}"
+                                                             Command="{Binding DataContext.SetMetaRank, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    </Border>
+                                    <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="How far back the games go">
+                                        <ItemsControl ItemsSource="{Binding MetaPeriods}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:MetaChoice}">
+                                                <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaPeriod" IsChecked="{Binding Selected, Mode=OneWay}"
+                                                             Command="{Binding DataContext.SetMetaPeriod, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    </Border>
+                                </Grid>
+                                <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="Show one class">
+                                    <ItemsControl ItemsSource="{Binding MetaClasses}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:MetaChoice}">
+                                                <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaClass" IsChecked="{Binding Selected, Mode=OneWay}"
+                                                             Command="{Binding DataContext.SetMetaClass, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </StackPanel>
+
+                            <Grid x:Name="MyDecksPanel">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="2*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Card}" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <c:Ornament Text="Decks" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
+                                        <TextBlock Text="Click a deck to see its matchups." Style="{StaticResource Caption}" Margin="0,0,0,8"
+                                                   Visibility="{Binding Decks, Converter={StaticResource Vis}}" />
+                                        <ListBox ItemsSource="{Binding Decks}" SelectedItem="{Binding SelectedDeck}" Background="Transparent" BorderThickness="0">
+                                            <ListBox.Template>
+                                                <ControlTemplate TargetType="ListBox">
+                                                    <ItemsPresenter />
+                                                </ControlTemplate>
+                                            </ListBox.Template>
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                        <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                                    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRow}" />
+                                                    <Setter Property="Cursor" Value="Hand" />
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="ListBoxItem">
+                                                                <Grid>
+                                                                    <Border x:Name="HoverLayer" CornerRadius="8" Margin="0,0,0,3" Background="{StaticResource Hover}" Opacity="0" />
+                                                                    <Border x:Name="Bd" CornerRadius="8" Padding="13,9" Margin="0,0,0,3" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                                                            SnapsToDevicePixels="True">
+                                                                        <ContentPresenter />
+                                                                    </Border>
+                                                                </Grid>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Trigger.EnterActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetName="HoverLayer" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </Trigger.EnterActions>
+                                                                        <Trigger.ExitActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetName="HoverLayer" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </Trigger.ExitActions>
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsSelected" Value="True">
+                                                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource SelectedFill}" />
+                                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type m:DeckRow}">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="70" />
+                                                            <ColumnDefinition Width="150" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Style="{StaticResource Caption}">
+                                                                <Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                            <TextBlock Text="{Binding Meta}" Style="{StaticResource Caption}" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
+                                                                       Visibility="{Binding Meta, Converter={StaticResource Vis}}" ToolTip="The meta archetype this deck matches, and its community win rate" />
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource Caption}"
+                                                                   ToolTip="Wins – losses" />
+                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Win rate">
+                                                            <Border Width="80" Height="8" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
+                                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
+                                                                        Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=80}" />
+                                                            </Border>
+                                                            <TextBlock Text="{Binding WinRate}" Width="50" TextAlignment="Right" FontWeight="Bold" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                        <TextBlock Text="Decks appear once you finish a game with them." Style="{StaticResource Caption}" Margin="0,8"
+                                                   Visibility="{Binding Decks, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <c:Ornament Text="Matchups" Icon="&#xF04E5;" Size="13" />
+                                        <TextBlock Text="{Binding SelectedDeck.Name, FallbackValue='All decks'}" FontWeight="SemiBold" Margin="0,8,0,10" TextTrimming="CharacterEllipsis" />
+                                        <ItemsControl ItemsSource="{Binding Matchups}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type m:MatchupRow}">
+                                                    <Border Style="{StaticResource RowBorder}" Padding="10,8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="60" />
+                                                                <ColumnDefinition Width="56" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="{Binding Class}" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding Record}" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
+                                                            <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="No matchups yet." Style="{StaticResource Caption}" Visibility="{Binding Matchups, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <!-- Meta tier list: archetypes on the left, the chosen one's mulligan guide and best lists on the right -->
+                            <Grid x:Name="MetaTiersPanel" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="2*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Card}" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" Margin="0,0,0,14" ToolTip="Order of the list">
+                                            <StackPanel Orientation="Horizontal">
+                                                <RadioButton Style="{StaticResource Segment}" Content="Best win rate" GroupName="MetaSort" IsChecked="True"
+                                                             Command="{Binding SetMetaSort}" CommandParameter="WinRate" />
+                                                <RadioButton Style="{StaticResource Segment}" Content="Most played" GroupName="MetaSort"
+                                                             Command="{Binding SetMetaSort}" CommandParameter="Popularity" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Grid Margin="10,0,10,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="44" />
+                                                <ColumnDefinition Width="44" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="140" />
+                                                <ColumnDefinition Width="46" />
+                                                <ColumnDefinition Width="46" />
+                                                        </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Tier" Style="{StaticResource TableHead}" ToolTip="S from 56% win rate, A from 53%, B from 50%, C from 47%" />
+                                            <TextBlock Grid.Column="2" Text="Archetype" Style="{StaticResource TableHead}" />
+                                            <TextBlock Grid.Column="3" Text="Win rate" Style="{StaticResource TableHead}" />
+                                            <TextBlock Grid.Column="4" Text="1st" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Win rate when going first" />
+                                            <TextBlock Grid.Column="5" Text="Coin" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Win rate on the coin" />
+                                        </Grid>
+                                        <ListBox ItemsSource="{Binding MetaArchetypes}" SelectedItem="{Binding SelectedArchetype}" Background="Transparent" BorderThickness="0">
+                                            <ListBox.Template>
+                                                <ControlTemplate TargetType="ListBox">
+                                                    <ItemsPresenter />
+                                                </ControlTemplate>
+                                            </ListBox.Template>
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                                    <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                                    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRow}" />
+                                                    <Setter Property="Cursor" Value="Hand" />
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="ListBoxItem">
+                                                                <Grid>
+                                                                    <Border x:Name="HoverLayer" CornerRadius="8" Margin="0,0,0,3" Background="{StaticResource Hover}" Opacity="0" />
+                                                                    <Border x:Name="Bd" CornerRadius="8" Padding="10,6" Margin="0,0,0,3" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                                                            SnapsToDevicePixels="True">
+                                                                        <ContentPresenter />
+                                                                    </Border>
+                                                                </Grid>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Trigger.EnterActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetName="HoverLayer" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </Trigger.EnterActions>
+                                                                        <Trigger.ExitActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetName="HoverLayer" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </Trigger.ExitActions>
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsSelected" Value="True">
+                                                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource SelectedFill}" />
+                                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type m:MetaArchetypeRow}">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="44" />
+                                                            <ColumnDefinition Width="44" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="140" />
+                                                            <ColumnDefinition Width="46" />
+                                                            <ColumnDefinition Width="46" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Style="{StaticResource TierBadge}" HorizontalAlignment="Left" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
+                                                            <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <Border Grid.Column="1" Width="34" Height="34" CornerRadius="17" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                                                i:CardArt.Portrait="{Binding HeroId}" />
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding WinRate}" Width="52" FontWeight="Bold" Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" />
+                                                            <Border Width="80" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                                                                        Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=80}" />
+                                                            </Border>
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="4" Text="{Binding First}" FontSize="12.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <TextBlock Grid.Column="5" Text="{Binding Coin}" FontSize="12.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                        <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding SelectedArchetype.Name, FallbackValue='Pick an archetype'}" FontSize="20" FontWeight="SemiBold"
+                                                   FontFamily="{StaticResource DisplayFont}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding ArchetypeSummary}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,16" Visibility="{Binding SelectedArchetype, Converter={StaticResource Vis}}">
+                                            <Border Style="{StaticResource SegmentBar}" Padding="12,6" Margin="0,0,8,0" ToolTip="Win rate when going first">
+                                                <TextBlock><Run Text="Going first " Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.First, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
+                                            </Border>
+                                            <Border Style="{StaticResource SegmentBar}" Padding="12,6" ToolTip="Win rate on the coin">
+                                                <TextBlock><Run Text="On the coin " Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.Coin, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <c:Ornament Text="Mulligan guide" Icon="&#xF012C;" Size="13" Margin="0,0,0,4" />
+                                        <TextBlock Text="Win rate when the card stays in your opening hand. Green beats the deck's average." Style="{StaticResource Caption}"
+                                                   TextWrapping="Wrap" Margin="0,0,0,8" />
+                                        <ItemsControl ItemsSource="{Binding Mulligan}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type m:MulliganRow}">
+                                                    <Border Style="{StaticResource RowBorder}" Padding="8,5">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="36" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="72" />
+                                                                <ColumnDefinition Width="48" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                                                    i:CardArt.Portrait="{Binding CardId}" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                       ToolTip="How often players keep it when it is offered" />
+                                                            <TextBlock Grid.Column="3" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}">
+                                                                <TextBlock.ToolTip>
+                                                                    <TextBlock><Run Text="Seen in " /><Run Text="{Binding Seen, Mode=OneWay}" /><Run Text=" opening hands" /></TextBlock>
+                                                                </TextBlock.ToolTip>
+                                                            </TextBlock>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="Not enough games for a mulligan guide." Style="{StaticResource Caption}" Margin="0,4"
+                                                   Visibility="{Binding Mulligan, Converter={StaticResource Vis}, ConverterParameter=!}" />
+
+                                        <c:Ornament Text="Best lists" Icon="&#xF0639;" Size="13" Margin="0,18,0,8" />
+                                        <ItemsControl ItemsSource="{Binding ArchetypeDecks}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type m:MetaDeckRow}">
+                                                    <Border Style="{StaticResource RowBorder}" Padding="10,7">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="40" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="64" />
+                                                                <ColumnDefinition Width="64" />
+                                                                <ColumnDefinition Width="64" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Width="30" Height="30" CornerRadius="15" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                                                    i:CardArt.Portrait="{Binding HeroId}" />
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding Class}" Style="{StaticResource Caption}" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip="Win rate" />
+                                                            <TextBlock Grid.Column="3" Text="{Binding Games}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                       ToolTip="Games played with this exact list" />
+                                                            <TextBlock Grid.Column="4" Text="{Binding Dust}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                       ToolTip="Dust to craft the whole deck (Core cards are free)" />
+                                                            <Button Grid.Column="5" Style="{StaticResource GhostButton}" Content="Copy" Padding="12,4" FontSize="12" Margin="12,0,0,0"
+                                                                    Command="{Binding DataContext.CopyDeck, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                                    ToolTip="Copy the deck code. In Hearthstone, start a new deck to import it." />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="No list with enough games yet." Style="{StaticResource Caption}" Margin="0,4"
+                                                   Visibility="{Binding ArchetypeDecks, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <TextBlock Text="{Binding CopyNote}" Style="{StaticResource Caption}" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                                   Visibility="{Binding CopyNote, Converter={StaticResource Vis}}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <!-- Top decks -->
+                            <Border x:Name="MetaDecksPanel" Style="{StaticResource Card}" Visibility="Collapsed">
+                                <StackPanel>
+                                    <Grid Margin="10,0,10,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="64" />
+                                            <ColumnDefinition Width="64" />
+                                            <ColumnDefinition Width="64" />
+                                            <ColumnDefinition Width="76" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="1" Text="Deck" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="2" Text="Win rate" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="3" Text="Games" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="4" Text="Dust" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding MetaDecks}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:MetaDeckRow}">
+                                                    <Border Style="{StaticResource RowBorder}" Padding="10,7">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="40" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="64" />
+                                                                <ColumnDefinition Width="64" />
+                                                                <ColumnDefinition Width="64" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border Width="30" Height="30" CornerRadius="15" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                                                    i:CardArt.Portrait="{Binding HeroId}" />
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Text="{Binding Class}" Style="{StaticResource Caption}" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip="Win rate" />
+                                                            <TextBlock Grid.Column="3" Text="{Binding Games}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                       ToolTip="Games played with this exact list" />
+                                                            <TextBlock Grid.Column="4" Text="{Binding Dust}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                       ToolTip="Dust to craft the whole deck (Core cards are free)" />
+                                                            <Button Grid.Column="5" Style="{StaticResource GhostButton}" Content="Copy" Padding="12,4" FontSize="12" Margin="12,0,0,0"
+                                                                    Command="{Binding DataContext.CopyDeck, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                                    ToolTip="Copy the deck code. In Hearthstone, start a new deck to import it." />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="No decklist with enough games in this slice yet." Style="{StaticResource Caption}" Margin="0,8"
+                                               Visibility="{Binding MetaDecks, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                    <TextBlock Text="{Binding CopyNote}" Style="{StaticResource Caption}" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                               Visibility="{Binding CopyNote, Converter={StaticResource Vis}}" />
+                                    <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ===== History ===== -->
+                    <Grid x:Name="PageHistory" Grid.Row="1" Margin="40,0,40,110" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Text="History" Style="{StaticResource Display}" />
+                                <StackPanel Style="{StaticResource PageSubtitle}">
+                                    <TextBlock Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center">
+                                        <Run Text="{Binding HistoryCount, Mode=OneWay}" /><Run Text=" recent games · stored only on this PC" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </StackPanel>
+                            <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}" ToolTip="Filter by game mode">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Style="{StaticResource Segment}" Content="All" GroupName="Hist" IsChecked="True" Command="{Binding SetHistoryFilter}" CommandParameter="All" />
+                                    <RadioButton Style="{StaticResource Segment}" Content="Battlegrounds" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Battlegrounds" />
+                                    <RadioButton Style="{StaticResource Segment}" Content="Duos" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Duos" />
+                                    <RadioButton Style="{StaticResource Segment}" Content="Ranked" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Ranked" />
+                                    <RadioButton Style="{StaticResource Segment}" Content="Other" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Other" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="22,10">
+                            <ListBox ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource GameRowTemplate}" Background="Transparent" BorderThickness="0"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.ScrollUnit="Pixel">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                        <Setter Property="Focusable" Value="False" />
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <ContentPresenter Margin="10,0" />
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </Border>
+                    </Grid>
+
+                    <!-- ===== Settings ===== -->
+                    <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left" ToggleButton.Checked="OnSettingChanged" ToggleButton.Unchecked="OnSettingChanged">
+                            <TextBlock Text="Settings" Style="{StaticResource Display}" />
+                            <StackPanel Style="{StaticResource PageSubtitle}">
+                                <TextBlock Text="Changes apply instantly." Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <c:Ornament Text="Theme" Icon="&#xF03D8;" Size="13" Margin="0,0,0,6" />
+                                    <TextBlock Text="Pick a look. The app and the overlay redraw in its colors right away." Style="{StaticResource Caption}" Margin="0,0,0,14" />
+                                    <ItemsControl ItemsSource="{Binding Themes}" Focusable="False">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:ThemeChoice}">
+                                                <Button Style="{StaticResource ThemeSwatch}" Content="{Binding}" ToolTip="{Binding Name}" CommandParameter="{Binding Name}"
+                                                        Command="{Binding DataContext.SelectTheme, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="Make your own" Style="{StaticResource Label}" Margin="0,10,0,10" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <ContentControl Content="{Binding CustomPreview}" ContentTemplate="{StaticResource ThemeTile}" VerticalAlignment="Top" Focusable="False" />
+                                        <StackPanel Grid.Column="1" Margin="20,0,0,0">
+                                            <Grid Margin="0,0,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="Accent color" VerticalAlignment="Center" />
+                                                <Border Grid.Column="1" Height="4" CornerRadius="2" Margin="8,0,8,-14" VerticalAlignment="Center" Background="{StaticResource HueStrip}" />
+                                                <Slider Grid.Column="1" Minimum="0" Maximum="360" Value="{Binding AccentHue}" SmallChange="5" LargeChange="30"
+                                                        AutomationProperties.Name="Accent color" />
+                                            </Grid>
+                                            <Grid Margin="0,0,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="Background color" VerticalAlignment="Center" />
+                                                <Border Grid.Column="1" Height="4" CornerRadius="2" Margin="8,0,8,-14" VerticalAlignment="Center" Background="{StaticResource HueStrip}" />
+                                                <Slider Grid.Column="1" Minimum="0" Maximum="360" Value="{Binding BaseHue}" SmallChange="5" LargeChange="30"
+                                                        AutomationProperties.Name="Background color" />
+                                            </Grid>
+                                            <Grid Margin="0,0,0,14">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="Background tint" VerticalAlignment="Center" />
+                                                <Slider Grid.Column="1" Minimum="0" Maximum="1.5" Value="{Binding BaseTint}" SmallChange="0.05" LargeChange="0.25"
+                                                        AutomationProperties.Name="Background tint" ToolTip="Left is grey, right is strongly colored" />
+                                            </Grid>
+                                            <Button Style="{StaticResource PrimaryButton}" Content="Use my theme" Command="{Binding ApplyCustomTheme}" HorizontalAlignment="Left" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                <StackPanel DataContext="{Binding Settings}">
+                                    <c:Ornament Text="In-game overlay" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Show overlay in game" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
+                                              ToolTip="Master switch for everything drawn over Hearthstone. Shortcut: Ctrl+Shift+H." />
+                                    <TextBlock Text="Battlegrounds" Style="{StaticResource Label}" Margin="0,4,0,10" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Top bar: turn, tavern tiers, lobby tribes, rating" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
+                                              ToolTip="Click a tier number in game to see that tier's minions in your lobby." />
+                                    <!-- Pick suggestions: badges over heroes, trinkets, tavern minions and every Discover -->
+                                    <Grid Margin="0,0,0,14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                            <TextBlock Text="Pick suggestions" FontSize="13.5" />
+                                            <TextBlock FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                                                        <Setter Property="Text" Value="The same stats on every option, with nothing marked as the best." />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsChecked, ElementName=PickHintsHighlightOption}" Value="True">
+                                                                <Setter Property="Text" Value="Badges mark the best hero, trinket, buy and Discover option." />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsChecked, ElementName=PickHintsOffOption}" Value="True">
+                                                                <Setter Property="Text" Value="No badges over the choices and no game plan panel." />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" Style="{StaticResource SegmentBar}" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <RadioButton x:Name="PickHintsHighlightOption" Style="{StaticResource Segment}" Content="Mark the best" GroupName="PickHints"
+                                                             IsChecked="{Binding PickHintsHighlight}" />
+                                                <RadioButton x:Name="PickHintsStatsOnlyOption" Style="{StaticResource Segment}" Content="Stats only" GroupName="PickHints"
+                                                             IsChecked="{Binding PickHintsStatsOnly}" />
+                                                <RadioButton x:Name="PickHintsOffOption" Style="{StaticResource Segment}" Content="Off" GroupName="PickHints"
+                                                             IsChecked="{Binding PickHintsOff}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <!-- Game plan comp: who sets the comp the plan, tavern and Discover hints are built around -->
+                                    <Grid Margin="0,0,0,14">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Style.Triggers>
+                                                    <!-- Pick suggestions Off hides the game plan, so this choice has no effect then -->
+                                                    <DataTrigger Binding="{Binding IsChecked, ElementName=PickHintsOffOption}" Value="True">
+                                                        <Setter Property="Opacity" Value="0.5" />
+                                                        <Setter Property="IsEnabled" Value="False" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                            <TextBlock Text="Game plan comp" FontSize="13.5" />
+                                            <TextBlock FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                                                        <Setter Property="Text" Value="You choose the comp in the game plan panel. It is kept for the next games." />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsChecked, ElementName=CompModeAutoOption}" Value="True">
+                                                                <Setter Property="Text" Value="Hearthlens picks a comp for each lobby. A lock overrides it for that game." />
+                                                            </DataTrigger>
+                                                            <!-- Stats only never shows the comp Hearthlens picks: only a lock puts one on screen -->
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding IsChecked, ElementName=CompModeAutoOption}" Value="True" />
+                                                                    <Condition Binding="{Binding IsChecked, ElementName=PickHintsStatsOnlyOption}" Value="True" />
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Text" Value="Stats only keeps the automatic comp hidden. Lock one to plan around it." />
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" Style="{StaticResource SegmentBar}" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <RadioButton x:Name="CompModeManualOption" Style="{StaticResource Segment}" Content="I choose" GroupName="CompMode"
+                                                             IsChecked="{Binding CompModeManual}" />
+                                                <RadioButton x:Name="CompModeAutoOption" Style="{StaticResource Segment}" Content="Automatic" GroupName="CompMode"
+                                                             IsChecked="{Binding CompModeAuto}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <CheckBox Style="{StaticResource Switch}" Content="Opponent boards when you hover the leaderboard" IsChecked="{Binding ShowOpponentBoards}" Margin="0,0,0,14"
+                                              ToolTip="The last board you saw for that player in combat." />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Lobby list: health, tier and last fight" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Combat odds: simulated win, tie and loss" IsChecked="{Binding ShowCombatOdds}" Margin="0,0,0,14"
+                                              ToolTip="Thousands of simulated fights from both boards, shown while the fight plays." />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Session tracker: rating and placements" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,14" />
+                                    <TextBlock Text="Constructed" Style="{StaticResource Label}" Margin="0,4,0,10" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Your deck" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Draw chance per card" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Opponent: played cards and how long cards stayed in hand" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="End of game summary" IsChecked="{Binding ShowGameToasts}" Margin="0,0,0,18" />
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="56" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Size" VerticalAlignment="Center" ToolTip="Scales every overlay panel" />
+                                        <Slider Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" ValueChanged="OnSliderChanged" />
+                                        <TextBlock Grid.Column="2" Text="{Binding OverlayScale, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="56" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Opacity" VerticalAlignment="Center" ToolTip="How see-through the overlay panels are" />
+                                        <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" ValueChanged="OnSliderChanged" />
+                                        <TextBlock Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                <StackPanel DataContext="{Binding Settings}">
+                                    <c:Ornament Text="Panel layout" Icon="&#xF01BE;" Size="13" Margin="0,0,0,8" />
+                                    <TextBlock Text="Drag every overlay panel where you want it in game. Scroll over a panel to resize it, right-click to reset it. Shortcut: Ctrl+Shift+L."
+                                               Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,14" />
+                                    <Button Style="{StaticResource PrimaryButton}" Content="Arrange overlay panels" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24" />
+                                    <c:Ornament Text="Leaderboard hover" Icon="&#xF01A3;" Size="13" Margin="0,0,0,8" />
+                                    <TextBlock Text="Hovered heroes are read from the game directly. These boxes are only a fallback: line them up with the leaderboard if a hover shows the wrong board."
+                                               Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Show calibration boxes in game" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14" />
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Top" VerticalAlignment="Center" />
+                                        <Slider Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" ValueChanged="OnSliderChanged" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Slot height" VerticalAlignment="Center" />
+                                        <Slider Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" ValueChanged="OnSliderChanged" />
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Width" VerticalAlignment="Center" />
+                                        <Slider Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" ValueChanged="OnSliderChanged" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <c:Ornament Text="App" Icon="&#xF0614;" Size="13" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Keep running in the tray when closed" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Install updates automatically" IsChecked="{Binding Settings.AutoUpdate}" Click="OnSettingChanged"
+                                              ToolTip="Hearthlens checks GitHub for a newer version and installs it when you close the app" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Start with Windows" IsChecked="{Binding Settings.StartWithWindows}" Click="OnSettingChanged" Margin="0,0,0,14" />
+                                    <CheckBox Style="{StaticResource Switch}" Content="Start minimized" IsChecked="{Binding Settings.StartMinimized}" Margin="0,0,0,18" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource GhostButton}" Content="Import past games from logs" Click="OnReimport" Margin="0,0,8,0"
+                                                ToolTip="Reads the Hearthstone logs still on disk and adds games that are missing from History" />
+                                        <Button Style="{StaticResource GhostButton}" Content="Open data folder" Click="OnOpenData" ToolTip="Settings, history database and logs" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <c:Ornament Text="About" Icon="&#xF02FD;" Size="13" Margin="0,0,0,10" />
+                                    <TextBlock TextWrapping="Wrap" Style="{StaticResource Caption}">
+                                        Hearthlens reads Hearthstone's own log files and a few read-only values from game memory (your rating, rank and the lobby's tribes).
+                                        It never shows hidden information such as your opponent's hand or deck.
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Attribution}" Style="{StaticResource Caption}" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="Fonts: Montserrat (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0)." Style="{StaticResource Caption}"
+                                               FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="Not affiliated with Blizzard Entertainment." Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ===== Floating live bar (like a now-playing bar) ===== -->
+                    <Border Grid.Row="1" VerticalAlignment="Bottom" Margin="24,0,24,18" CornerRadius="12" Background="{StaticResource Surface3}"
+                            BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="9,9,15,9">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.35" Color="Black" />
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid Width="46" Height="46">
+                                <c:Scallop x:Name="LivePulse" Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
+                                <TextBlock Text="&#xF0EB7;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                            </Grid>
+                            <StackPanel Grid.Column="1" Margin="14,0,12,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding LiveTitle}" FontWeight="Bold" FontSize="14.5" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding LiveDetail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,20,0" ToolTip="This session since Hearthlens started">
+                                <TextBlock Text="{Binding SessionSummary}" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
+                                <TextBlock Text="{Binding SessionDelta}" FontWeight="Bold" HorizontalAlignment="Right"
+                                           Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource IconButton}" Content="&#xF01BE;" Width="38" Height="38" Background="{StaticResource Surface4}" Margin="0,0,14,0"
+                                        Click="OnArrangeOverlay" ToolTip="Arrange overlay panels (Ctrl+Shift+L)" />
+                                <CheckBox x:Name="OverlaySwitch" Style="{StaticResource Switch}" Content="Overlay" IsChecked="{Binding Settings.OverlayEnabled, Mode=OneTime}"
+                                          Click="OnOverlaySwitch" ToolTip="Show or hide the in-game overlay (Ctrl+Shift+H)" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

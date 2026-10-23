@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Hearthlens
+GenericName=Hearthstone companion
+Comment=Deck tracker, Battlegrounds advisor and in-game overlay for Hearthstone
+Comment[it]=Deck tracker, consigli per Battaglia e overlay in gioco per Hearthstone
+Exec=hearthlens
+Icon=hearthlens
+Terminal=false
+Categories=Game;Utility;
+Keywords=Hearthstone;Battlegrounds;deck;tracker;overlay;
+StartupWMClass=Hearthlens

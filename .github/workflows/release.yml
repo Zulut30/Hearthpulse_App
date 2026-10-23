@@ -1,0 +1,149 @@
+# Builds every installer and publishes them as a GitHub Release.
+# Push a tag like v0.2.0, or run it by hand from the Actions tab with a version number.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build and publish (for example 0.2.0)
+        required: true
+        default: "0.7.8"
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+jobs:
+  windows-linux:
+    name: Windows and Linux installers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Version
+        id: v
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then v="$GITHUB_REF_NAME"; else v="$INPUT_VERSION"; fi
+          v="${v#v}"
+          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must look like 0.2.0 (got '$v')"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Packaging tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq nsis rpm zip
+          curl -fsSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          sudo mv appimagetool /usr/local/bin/appimagetool
+      - name: Tests
+        run: dotnet test tests/Hearthlens.Tests/Hearthlens.Tests.csproj
+      - name: Windows setup wizard and preview
+        run: installer/windows/build.sh "${{ steps.v.outputs.version }}"
+      - name: Linux x64 packages
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: installer/linux/build.sh "${{ steps.v.outputs.version }}" x64
+      - name: Linux arm64 packages
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: installer/linux/build.sh "${{ steps.v.outputs.version }}" arm64
+      # The build scripts skip a format they cannot make (useful locally); a release must not.
+      - name: Check every installer was built
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          for f in "Hearthlens-Setup-$V-win-x64.exe" "Hearthlens-Preview-$V-win-x64.zip" \
+                   "hearthlens_${V}_amd64.deb" "hearthlens_${V}_arm64.deb" \
+                   "hearthlens-$V-1.x86_64.rpm" "hearthlens-$V-1.aarch64.rpm" \
+                   "Hearthlens-$V-linux-x64.tar.gz" "Hearthlens-$V-linux-arm64.tar.gz" \
+                   "Hearthlens-$V-linux-x64.AppImage"; do
+            test -s "dist/$f" || { echo "::error::dist/$f was not built"; exit 1; }
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-linux
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz
+            dist/*.AppImage
+
+  macos:
+    name: macOS installers
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Version
+        id: v
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then v="$GITHUB_REF_NAME"; else v="$INPUT_VERSION"; fi
+          v="${v#v}"
+          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must look like 0.2.0 (got '$v')"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Apple silicon and Intel (.dmg, .pkg, .zip)
+        run: installer/macos/build.sh "${{ steps.v.outputs.version }}" arm64 x64
+      - name: Check every installer was built
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          for arch in arm64 x64; do
+            for ext in pkg dmg zip; do
+              f="Hearthlens-$V-macOS-$arch.$ext"
+              test -s "dist/$f" || { echo "::error::dist/$f was not built"; exit 1; }
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          if-no-files-found: error
+          path: |
+            dist/*.dmg
+            dist/*.pkg
+            dist/*.zip
+
+  release:
+    name: Publish the release
+    needs: [windows-linux, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        id: v
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then v="$GITHUB_REF_NAME"; else v="$INPUT_VERSION"; fi
+          v="${v#v}"
+          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must look like 0.2.0 (got '$v')"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.version }}
+          name: Hearthlens ${{ steps.v.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          body_path: installer/RELEASE_NOTES.md
+          files: dist/*
+          fail_on_unmatched_files: true
