@@ -35,6 +35,12 @@ public sealed record GuideArchetype(int Id, string Name, string Class, IReadOnly
 
     /// <summary>The archetype's overall win rate in the same source as <see cref="FirstWinRate"/>.</summary>
     public double? WinRate { get; init; }
+
+    /// <summary>
+    /// The deck's win rate over the same games as the card numbers, when the source publishes it (Firestone does);
+    /// otherwise <see cref="MulliganGuide.Baseline"/> estimates it from the cards.
+    /// </summary>
+    public double? BaselineWinRate { get; init; }
 }
 
 /// <summary>A card offered in the mulligan, left to right.</summary>
@@ -187,7 +193,7 @@ public static class MulliganGuide
     /// <param name="goingFirst">True going first, false on the coin, null when unknown.</param>
     public static MulliganView? Compute(GuideArchetype data, IReadOnlyList<OfferedCard> hand, IReadOnlyDictionary<string, int>? deck, string? opponentClass, bool? goingFirst, string context)
     {
-        if (hand.Count == 0 || Baseline(data.Cards) is not { } baseline)
+        if (hand.Count == 0 || (data.BaselineWinRate ?? Baseline(data.Cards)) is not { } baseline)
         {
             return null;
         }

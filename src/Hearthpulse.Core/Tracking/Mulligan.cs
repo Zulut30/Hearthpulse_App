@@ -111,6 +111,7 @@ public static class Mulligan
         {
             return new GuideArchetype(archetype.Id, archetype.Name, archetype.Class, archetype.Mulligan.Select(m => Card(m, cards)).ToList(), [], meta.Source)
             {
+                BaselineWinRate = archetype.WinRate,
                 WinRate = archetype.WinRate,
                 FirstWinRate = archetype.FirstGames >= MulliganGuide.MinClassGames ? archetype.FirstWinRate : null,
                 CoinWinRate = archetype.CoinGames >= MulliganGuide.MinClassGames ? archetype.CoinWinRate : null,
@@ -133,7 +134,11 @@ public static class Mulligan
             })
             .Select(m => Card(m, cards))
             .ToList();
-        return new GuideArchetype(0, $"{Title(playerClass)} (all decks)", playerClass, pooled, [], meta.Source);
+        var games = archetypes.Sum(a => a.Games);
+        return new GuideArchetype(0, $"{Title(playerClass)} (all decks)", playerClass, pooled, [], meta.Source)
+        {
+            BaselineWinRate = games > 0 ? archetypes.Sum(a => a.WinRate * a.Games) / games : null,
+        };
     }
 
     private static GuideCard Card(MetaMulliganCard m, CardDb cards) =>

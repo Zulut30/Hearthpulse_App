@@ -85,26 +85,41 @@ Observations on the real data (Quest Priest, archetype 56, 250 rows):
 
 ## 3. What Hearthpulse computes, and how honest each part is
 
-Code: `src/Hearthpulse.Core/Tracking/MulliganGuide.cs` (maths) and `MulliganGuideSource.cs` (loading).
+Code: `src/Hearthpulse.Core/Tracking/MulliganGuide.cs` (maths), `MulliganGuideSource.cs` (background loading; disk cache
+through `HearthpulseData`, 6 h), `Mulligan.cs` (entry point, Firestone fallback), `MulliganReplay.cs` (render checks).
+UI: `Overlay/MulliganPanel.xaml` (WPF) / `MulliganPanel.axaml` (Avalonia), view model `OverlayViewModel.Mulligan.cs`.
 
 | Feature | Status | How |
 |---|---|---|
-| Archetype for the player's deck | **data** | Each archetype of the class: best overlap Σ min(count) of the player's 30 cards with its HSReplay decks. Must reach ≥ 50% (15 cards). Ties go to the archetype with more games. |
+| Archetype for the player's deck | **data** | Each archetype of the class gets two scores: (a) the best overlap Σ min(count) of the player's 30 cards with one of its HSReplay lists, which must reach 50%; (b) the deck's *presence* in its mulligan rows (each card weighted by offers relative to the archetype's 10 most offered cards), which must reach 40%. HSReplay's own lists score 0.55–0.6 in their archetype and 0.1–0.2 elsewhere. (b) exists because some archetypes have **no lists** on the server (Herald Death Knight: 51% of DK games, 0 decks; Herald DH). The widest margin over its bar wins. |
 | Keep rate, win rate in opening hand | **data** | `keep_percentage`, `opening_hand_winrate` (HSReplay V1 metrics) |
 | Delta per card | **data** | Δ = opening-hand WR − baseline. The baseline is the opening-hand-weighted mean of the same sample (see above). |
-| Keep / Mulligan label | **data + model** | Keep when Δ beats the expected Δ of a replacement card (the copy-weighted mean Δ of the cards still in the deck) |
+| Keep / Mulligan label | **data + model** | Keep when Δ beats the expected Δ of a replacement card (the copy-weighted mean Δ of the cards still in the deck), with a 0.5-point margin toward keeping: smaller gaps are noise, and keeping is the game's default. Cards without data count as Δ = 0. |
 | Opponent class | **partial** | Only the *baseline* moves by class: the matchups of this archetype grouped by `opponent_class`, as a shift from its all-opponents mean. Card deltas are the same for every class, because there is no data per class. |
 | Going first / coin | **only with Firestone** | The API has no split. The Firestone fallback has `FirstWinRate` / `CoinWinRate` and uses them for the baseline. |
 | Duplicates | **heuristic (labelled)** | The stat describes holding the card, so a second copy adds nothing measurable. In the estimate it counts 0 and blocks a replacement. Recommendation: keep the second copy only for an early play (expected turn ≤ 3) that players keep ≥ 50% of the time. |
-| Mana curve | **heuristic (labelled), warnings only** | Expected turn = `avg_turn_played_on` (else cost). Warnings: no early play kept (nothing by turn 2–3); top-heavy (≥ 2 kept cards played on turn 5+). They do not change the numbers. |
+| Mana curve | **heuristic (labelled), warnings only** | Early = cost ≤ 2 or `avg_turn_played_on` ≤ 3. Late = cost ≥ 5, or cost 4 and usually played on turn 6+. The average turn alone is misleading: HSReplay counts late plays too, so 1-mana Void Soul averages turn 4.4. Warnings: no early play kept; top-heavy (≥ 2 late cards kept); both copies of a non-early card kept. A late card gets a note on its plate. The numbers do not change. |
 | Synergies | **no data → off** | `GuidePair` is ready for a future endpoint (interaction = pair WR − additive estimate). With no pairs the panel says so, and no synergy is ever invented. |
-| Impact of your keeps | **model** | E[WR \| keep K] ≈ baseline + Σ Δ(first copies kept) + (cards replaced) × Δ(replacement). This is additive in win-rate points and clamped to [0, 1], and it assumes card effects add up independently. The panel compares it with the recommended set and with a full mulligan. Clicking a card's plate toggles it, and the line updates. |
-| Firestone fallback | **data** | When the API has no match (Wild, unknown deck, offline), the old Firestone archetype data feeds the same calculation (with no costs/turns from stats: the card's cost is used). |
+| Impact of your keeps | **model + heuristic shrink** | E[WR \| keep K] ≈ baseline + (Σ Δ(first copies kept) + (cards replaced) × Δ(replacement) + kept pair interactions) / √(hand size). A plain sum overshoots, because the deltas are marginal and share causes: a real Void DH hand of three strong cards came out at 71%. The √ shrink brings that to 63% and leaves every comparison between keep sets unchanged. The panel compares the estimate with the recommended keeps and with a full mulligan. Clicking a plate toggles that card, and the line updates. |
+| Firestone fallback | **data** | When the API has no match (Wild, unknown deck, offline), the old Firestone archetype data feeds the same calculation. The cost replaces the average turn. The baseline is Firestone's archetype win rate, because it covers the same games as Firestone's card numbers. |
+| Offered cards | **data** | Cards in the local hand during `MULLIGAN_STATE` INPUT/DEALING, minus the coin. The coin has cosmetic ids, such as `JAIL_COIN3` in a real log, so it is recognised by the name it shares with `GAME_005`. |
 
 The additive model is consistent with how the deltas are defined. If a hand's win rate is β₀ + Σ β(card) over a hand of fixed size, then the
 observed Δ of a card is about β(card) − mean β, and the baseline is β₀ + E[Σ β]. Summing Δ over the kept cards and Δ(replacement)
 over the replaced ones gives back the model's expectation. Its weakness is correlation: cards that are good in the same
 matchups are counted twice. That is why the overlay presents it as an estimate.
+
+### Checks (2026-10-23)
+
+- Tests: `tests/Hearthpulse.Tests/MulliganGuideTests.cs` (12) on fixtures trimmed from real answers
+  (`Fixtures/Mulligan`: Demon Hunter and Priest archetypes, lists, mulligan rows, matchups). The suite has 540 tests;
+  only the 2 known failures remain.
+- Live run: the newest four Standard games in `D:\Hearthstone\Logs` (copies), against the real API:
+  - Rogue matched Coin Rogue.
+  - Two Demon Hunter decks matched Void Demon Hunter.
+  - The newest game, a Death Knight homebrew, matched nothing: at best 40% of an Egg DK list, presence 36%. It
+    fell back to Firestone, as designed.
+- Renders: `--render-ui` writes `overlay-mulligan.png` in both apps.
 
 ## 4. Proposed server endpoints
 
