@@ -1,0 +1,138 @@
+{
+ "type": "bg_heroes",
+ "mode": "solo",
+ "count": 4,
+ "fetched_at": "2026-10-23T16:15:05.437643+00:00",
+ "filters": {
+  "mmr_percentile": "TOP_1_PERCENT",
+  "time_range": "CURRENT_BATTLEGROUNDS_PATCH"
+ },
+ "source": {
+  "api_url": "https://hsreplay.net/api/v1/battlegrounds/heroes/?BattlegroundsMMRPercentile=TOP_1_PERCENT&BattlegroundsTimeRange=CURRENT_BATTLEGROUNDS_PATCH&format=json",
+  "backend": "hsreplay_json_api"
+ },
+ "heroes": [
+  {
+   "hero": "Lord Jaraxxus",
+   "dbfId": 59807,
+   "id": "TB_BaconShop_HERO_37",
+   "tier": "S",
+   "pick_rate": "56.04%",
+   "pick_rate_value": 56.04,
+   "avg_placement": 2.984,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "32.66%",
+    "21.15%",
+    "12.52%",
+    "12.37%",
+    "5.18%",
+    "6.76%",
+    "4.89%",
+    "4.46%"
+   ],
+   "best_composition_id": 9,
+   "best_composition": null,
+   "key_minions_top3": [
+    {
+     "id": "BG36_731_G",
+     "dbfId": 132900,
+     "name": "Imp-lusionist",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "WARLOCK",
+     "techLevel": 4,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false
+  },
+  {
+   "hero": "Lord Barov",
+   "dbfId": 63602,
+   "id": "TB_BaconShop_HERO_72",
+   "tier": "A",
+   "pick_rate": "38.20%",
+   "pick_rate_value": 38.2,
+   "avg_placement": 3.513,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "26.47%",
+    "17.06%",
+    "12.10%",
+    "11.38%",
+    "9.62%",
+    "10.03%",
+    "6.10%",
+    "7.24%"
+   ],
+   "best_composition_id": 41,
+   "best_composition": null,
+   "key_minions_top3": [
+    {
+     "id": "BG30_121_G",
+     "dbfId": 113153,
+     "name": "Hot-Air Surveyor",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "DRUID",
+     "techLevel": 4,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false
+  },
+  {
+   "hero": "Millhouse Manastorm",
+   "dbfId": 60366,
+   "id": "TB_BaconShop_HERO_49",
+   "tier": "B",
+   "pick_rate": "9.26%",
+   "pick_rate_value": 9.26,
+   "avg_placement": 3.555,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "25.93%",
+    "20.37%",
+    "9.26%",
+    "7.41%",
+    "9.26%",
+    "14.81%",
+    "7.41%",
+    "5.56%"
+   ],
+   "best_composition_id": null,
+   "best_composition": null,
+   "key_minions_top3": [],
+   "anomaly_adjusted": false
+  },
+  {
+   "hero": "Guff Runetotem",
+   "dbfId": 68129,
+   "id": "BG20_HERO_242",
+   "tier": "D",
+   "pick_rate": "14.60%",
+   "pick_rate_value": 14.6,
+   "avg_placement": 4.053,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "20.95%",
+    "14.53%",
+    "10.06%",
+    "11.45%",
+    "11.45%",
+    "11.73%",
+    "6.98%",
+    "12.85%"
+   ],
+   "best_composition_id": null,
+   "best_composition": null,
+   "key_minions_top3": [],
+   "anomaly_adjusted": false
+  }
+ ]
+}

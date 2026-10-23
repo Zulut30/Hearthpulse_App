@@ -1,0 +1,259 @@
+{
+ "type": "bg_heroes",
+ "mode": "solo",
+ "count": 4,
+ "fetched_at": "2026-10-22T02:35:02.521411+00:00",
+ "filters": {
+  "mmr_percentile": "TOP_50_PERCENT",
+  "time_range": "CURRENT_BATTLEGROUNDS_PATCH"
+ },
+ "source": {
+  "backend": "hsreplay_json_api",
+  "hero_count": 116,
+  "detail_count": 116,
+  "duos_hero_count": 115,
+  "composition_names": 46
+ },
+ "heroes": [
+  {
+   "hero": "Lord Jaraxxus",
+   "dbfId": 59807,
+   "id": "TB_BaconShop_HERO_37",
+   "tier": "S",
+   "pick_rate": "55.07%",
+   "pick_rate_value": 55.07,
+   "avg_placement": 3.702,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "22.00%",
+    "18.23%",
+    "13.63%",
+    "11.11%",
+    "9.30%",
+    "8.56%",
+    "8.80%",
+    "8.37%"
+   ],
+   "best_composition_id": 9,
+   "best_composition": {
+    "composition_id": 9,
+    "name": "Демоны",
+    "num_games": 19299,
+    "avg_placement": 3.624,
+    "placement_distribution": [
+     "22.77%",
+     "18.80%",
+     "13.89%",
+     "11.18%",
+     "9.15%",
+     "8.17%",
+     "8.34%",
+     "7.71%"
+    ],
+    "confidence_interval": 0.04,
+    "popularity": "92.52%",
+    "popularity_value": 92.52,
+    "popularity_first_place": "94.78%",
+    "popularity_top_4": "94.24%",
+    "is_recent": true,
+    "num_days": 20
+   },
+   "key_minions_top3": [
+    {
+     "id": "BG36_731_G",
+     "dbfId": 132900,
+     "name": "Imp-lusionist",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "WARLOCK",
+     "techLevel": 4,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false,
+   "detail_available": true
+  },
+  {
+   "hero": "Lord Barov",
+   "dbfId": 63602,
+   "id": "TB_BaconShop_HERO_72",
+   "tier": "B",
+   "pick_rate": "29.00%",
+   "pick_rate_value": 29.0,
+   "avg_placement": 4.398,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "14.23%",
+    "12.82%",
+    "12.87%",
+    "12.31%",
+    "11.62%",
+    "11.63%",
+    "12.02%",
+    "12.51%"
+   ],
+   "best_composition_id": 56,
+   "best_composition": {
+    "composition_id": 56,
+    "name": "Aberrations",
+    "num_games": 2642,
+    "avg_placement": 3.992,
+    "placement_distribution": [
+     "11.96%",
+     "16.69%",
+     "18.85%",
+     "14.88%",
+     "11.28%",
+     "9.58%",
+     "8.52%",
+     "8.25%"
+    ],
+    "confidence_interval": 0.1,
+    "popularity": "13.11%",
+    "popularity_value": 13.11,
+    "popularity_first_place": "10.93%",
+    "popularity_top_4": "15.49%",
+    "is_recent": true,
+    "num_days": 20
+   },
+   "key_minions_top3": [
+    {
+     "id": "BG36_115_G",
+     "dbfId": 133103,
+     "name": "Nightmare Corroder",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "PRIEST",
+     "techLevel": 4,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false,
+   "detail_available": true
+  },
+  {
+   "hero": "Millhouse Manastorm",
+   "dbfId": 60366,
+   "id": "TB_BaconShop_HERO_49",
+   "tier": "C",
+   "pick_rate": "12.40%",
+   "pick_rate_value": 12.4,
+   "avg_placement": 4.56,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "8.65%",
+    "10.70%",
+    "13.76%",
+    "15.16%",
+    "15.58%",
+    "15.19%",
+    "12.75%",
+    "8.22%"
+   ],
+   "best_composition_id": 9,
+   "best_composition": {
+    "composition_id": 9,
+    "name": "Демоны",
+    "num_games": 1198,
+    "avg_placement": 4.243,
+    "placement_distribution": [
+     "11.44%",
+     "14.19%",
+     "14.77%",
+     "13.86%",
+     "14.11%",
+     "13.69%",
+     "11.44%",
+     "6.51%"
+    ],
+    "confidence_interval": 0.15,
+    "popularity": "13.86%",
+    "popularity_value": 13.86,
+    "popularity_first_place": "18.15%",
+    "popularity_top_4": "15.30%",
+    "is_recent": true,
+    "num_days": 20
+   },
+   "key_minions_top3": [
+    {
+     "id": "BG36_731_G",
+     "dbfId": 132900,
+     "name": "Imp-lusionist",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "WARLOCK",
+     "techLevel": 4,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false,
+   "detail_available": true
+  },
+  {
+   "hero": "Guff Runetotem",
+   "dbfId": 68129,
+   "id": "BG20_HERO_242",
+   "tier": "D",
+   "pick_rate": "29.67%",
+   "pick_rate_value": 29.67,
+   "avg_placement": 4.743,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "12.42%",
+    "10.69%",
+    "10.65%",
+    "10.96%",
+    "12.26%",
+    "13.26%",
+    "14.22%",
+    "15.54%"
+   ],
+   "best_composition_id": 41,
+   "best_composition": {
+    "composition_id": 41,
+    "name": "Свинобраз",
+    "num_games": 3307,
+    "avg_placement": 4.555,
+    "placement_distribution": [
+     "17.24%",
+     "11.58%",
+     "8.71%",
+     "9.89%",
+     "10.43%",
+     "12.16%",
+     "13.37%",
+     "16.63%"
+    ],
+    "confidence_interval": 0.09,
+    "popularity": "15.86%",
+    "popularity_value": 15.86,
+    "popularity_first_place": "21.99%",
+    "popularity_top_4": "16.66%",
+    "is_recent": true,
+    "num_days": 20
+   },
+   "key_minions_top3": [
+    {
+     "id": "BG30_121_G",
+     "dbfId": 113153,
+     "name": "Hot-Air Surveyor",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "DRUID",
+     "techLevel": 4,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false,
+   "detail_available": true
+  }
+ ]
+}

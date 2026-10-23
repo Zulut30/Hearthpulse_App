@@ -59,7 +59,9 @@ All read-only, `{"data": ..., "meta": {source_id, fetched_at, stale}}` like `/v1
    `data: [{"id": "TB_BaconShop_HERO_37", "rounds": [{"combat_round": 3, "data_points": 6815, "combat_winrate": 52.47}]}]`.
 6. **Compositions** - `GET /v1/battlegrounds/compositions?mmr=` → `data: [{"composition_id": 9, "name": "Demons",
    "name_ru": "Демоны", "num_games", "avg_placement", "placement_distribution", "tribes": ["DEMON"], "core_cards":
-   [{"card_id", "at_least_one": 0.74}], "heroes": [{"id", "num_games", "avg_placement"}]}]`. Guides (tips, when to
-   commit) stay with the pool or editorial content.
+   [{"card_id", "at_least_one": 0.74}], "heroes": [{"id", "num_games", "avg_placement"}]}]`. The server already
+   stores HSReplay comp datasets (`hsreplay_battlegrounds_comps`, `hsreplay_battlegrounds_compositions`) without a
+   route; its `firestone_battlegrounds_comps` dataset must not feed the app. Guides (tips, when to commit) stay with the
+   pool or editorial content.
 7. **Trinkets with real sample sizes** - `games` as counted, not estimated; then `/api/bg/trinkets` can feed the
    trinket pick.

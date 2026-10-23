@@ -1,0 +1,103 @@
+{
+ "data": [
+  {
+   "dbf_id": 97408,
+   "card_id": "BG25_354",
+   "name": "Titus Rivendare",
+   "name_ru": "Тит Ривендер",
+   "tavern_tier": 5,
+   "normal": {
+    "impact": 0.0122,
+    "combat_winrate": 56.145,
+    "popularity": 8.688,
+    "games_with_minion": 51583,
+    "games_without_minion": 1471126,
+    "avg_placement_with": 3.5133,
+    "avg_placement_without": 3.4996,
+    "wins": 70566,
+    "losses": 55120
+   },
+   "golden": {
+    "impact": 0.2349,
+    "combat_winrate": 66.152,
+    "popularity": 3.006,
+    "games_with_minion": 6449,
+    "games_without_minion": 1246063,
+    "avg_placement_with": 2.5922,
+    "avg_placement_without": 3.3713,
+    "wins": 15670,
+    "losses": 8018
+   }
+  },
+  {
+   "dbf_id": 130298,
+   "card_id": "BG35_883",
+   "name": "Balinda Stonehearth",
+   "name_ru": "Балинда Каменный Очаг",
+   "tavern_tier": 6,
+   "normal": {
+    "impact": 0.0881,
+    "combat_winrate": 59.194,
+    "popularity": 8.622,
+    "games_with_minion": 74263,
+    "games_without_minion": 1009525,
+    "avg_placement_with": 3.0488,
+    "avg_placement_without": 3.2341,
+    "wins": 67348,
+    "losses": 46427
+   },
+   "golden": {
+    "impact": 0.256,
+    "combat_winrate": 67.527,
+    "popularity": 2.512,
+    "games_with_minion": 5940,
+    "games_without_minion": 843539,
+    "avg_placement_with": 2.4145,
+    "avg_placement_without": 3.0727,
+    "wins": 13032,
+    "losses": 6267
+   }
+  },
+  {
+   "dbf_id": 132899,
+   "card_id": "BG36_731",
+   "name": "Imp-lusionist",
+   "name_ru": "Бес-иллюзионист",
+   "tavern_tier": 4,
+   "normal": {
+    "impact": 0.1151,
+    "combat_winrate": 54.937,
+    "popularity": 4.013,
+    "games_with_minion": 37669,
+    "games_without_minion": 1750017,
+    "avg_placement_with": 3.5649,
+    "avg_placement_without": 3.6111,
+    "wins": 47323,
+    "losses": 38817
+   },
+   "golden": {
+    "impact": 0.1922,
+    "combat_winrate": 63.176,
+    "popularity": 2.801,
+    "games_with_minion": 7671,
+    "games_without_minion": 1514305,
+    "avg_placement_with": 3.1769,
+    "avg_placement_without": 3.5143,
+    "wins": 18999,
+    "losses": 11074
+   }
+  }
+ ],
+ "meta": {
+  "source_id": "hsreplay_battlegrounds_minion_stats",
+  "fetched_at": "2026-10-23T14:20:01.793266+00:00",
+  "stale": false,
+  "beta": null,
+  "serving_cached_dataset": null,
+  "cached_after_failure": null,
+  "fresh_candidate_published": null,
+  "count": 3,
+  "limit": 500,
+  "offset": 0
+ }
+}
