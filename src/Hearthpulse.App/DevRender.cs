@@ -138,9 +138,25 @@ public partial class App
             return;
         }
 
-        if (_overlay.TryFindResource("CounterTipTemplate") is DataTemplate tipTemplate)
+        // The goal's parts (C'Thun) and, when a counter has them, the counted cards.
+        var tips = new[] { (Chip: shown, Name: "overlay-counters-tooltip"), (Chip: chips.Where(c => c.Counted.Count > 0).MaxBy(c => c.Counted.Count), Name: "overlay-counters-tooltip-counted") };
+        foreach (var (chip, name) in tips)
         {
-            var host = new System.Windows.Controls.ContentControl { Content = shown, ContentTemplate = tipTemplate };
+            if (chip is null || _overlay.TryFindResource("CounterTipTemplate") is not DataTemplate tipTemplate)
+            {
+                continue;
+            }
+
+            // Dressed like the theme's ToolTip, which is a popup and cannot be rendered off-screen.
+            var host = new System.Windows.Controls.Border
+            {
+                Background = (Brush)_overlay.FindResource("CardFill"),
+                BorderBrush = (Brush)_overlay.FindResource("CardEdge"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(11, 6, 11, 6),
+                Child = new System.Windows.Controls.ContentControl { Content = chip, ContentTemplate = tipTemplate },
+            };
             host.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             host.Arrange(new Rect(host.DesiredSize));
             for (var i = 0; i < 8; i++)
@@ -149,7 +165,7 @@ public partial class App
                 host.UpdateLayout();
             }
 
-            SaveScaled(host, Path.Combine(folder, "overlay-counters-tooltip.png"));
+            SaveScaled(host, Path.Combine(folder, name + ".png"));
         }
 
         _overlayViewModel.ToggleCounter.Execute(shown.Id);

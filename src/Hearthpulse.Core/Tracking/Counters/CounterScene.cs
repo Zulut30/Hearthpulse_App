@@ -38,6 +38,7 @@ public static class CounterScene
             Counter("corpses", "16", false, "RLK_060") with { RelatedCards = [Card("RLK_060", 2), Card("RLK_120", 1)] },
             Counter("spells-cast", "5", false, "RLK_025") with { Counted = [Card("RLK_025", 2), Card("RLK_060"), Card("RLK_035", 2)] },
             Counter("minions-died-turn", "0", false, "RLK_060"),
+            Counter("minion-mana", "21/30", false, "BE_784", 0.7) with { Counted = [Card("RLK_120"), Card("CORE_RLK_012", 2)], RelatedCards = [Card("BE_784")] },
             Counter("cthun", "1/4", true, "BE_013", 0.25) with
             {
                 Goal = 4,

@@ -94,6 +94,7 @@
                 <GradientStop Color="#662E1F13" Offset="0.8" />
                 <GradientStop Color="#142E1F13" Offset="1" />
             </LinearGradientBrush>
+            <SolidColorBrush x:Key="OverlayBadgeShade" Color="#CC140D08" />
 
             <!-- Gold trim, framed edges and the selected / primary fills. -->
             <SolidColorBrush x:Key="GoldTrim" Color="#8A6533" />

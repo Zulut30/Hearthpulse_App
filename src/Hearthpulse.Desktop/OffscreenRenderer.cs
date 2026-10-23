@@ -168,17 +168,34 @@ internal static class OffscreenRenderer
             return;
         }
 
-        if (overlayView.TryFindResource("CounterTipTemplate", out var template) && template is Avalonia.Controls.Templates.IDataTemplate tipTemplate)
+        // The goal's parts (C'Thun) and, when a counter has them, the counted cards.
+        var tips = new[] { (Chip: shown, Name: "overlay-counters-tooltip"), (Chip: chips.Where(c => c.Counted.Count > 0).MaxBy(c => c.Counted.Count), Name: "overlay-counters-tooltip-counted") };
+        foreach (var (chip, name) in tips)
         {
-            var tip = new Window
+            if (chip is null || !overlayView.TryFindResource("CounterTipTemplate", out var template) || template is not Avalonia.Controls.Templates.IDataTemplate tipTemplate)
             {
-                SizeToContent = SizeToContent.WidthAndHeight,
-                Background = ThemeBrushes.Get("Bg"),
-                Content = new ContentControl { Margin = new Thickness(12), Content = shown, ContentTemplate = tipTemplate },
+                continue;
+            }
+
+            // Dressed like the theme's ToolTip, which opens in a popup that the headless capture does not include; it sits on
+            // the overlay itself so the overlay's styles apply.
+            var tip = new Border
+            {
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+                Margin = new Thickness(40),
+                Background = ThemeBrushes.Get("Surface4"),
+                BorderBrush = ThemeBrushes.Get("Outline"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(12, 7),
+                Child = new ContentControl { Content = chip, ContentTemplate = tipTemplate },
             };
-            tip.Show();
-            await Save(tip, Path.Combine(folder, "overlay-counters-tooltip.png"));
-            tip.Close();
+            var root = overlayView.FindControl<Panel>("Root")!;
+            root.Children.Add(tip);
+            await Save(overlay, Path.Combine(folder, name + "-full.png"));
+            SaveCrop(overlay, tip, Path.Combine(folder, name + ".png"));
+            root.Children.Remove(tip);
         }
 
         host.Overlay.ToggleCounter.Execute(shown.Id);
