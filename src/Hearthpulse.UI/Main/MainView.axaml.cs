@@ -258,11 +258,28 @@ public partial class MainView : UserControl
                 UpdatePages();
                 PageDeck.Offset = default;
                 break;
+            case nameof(MainViewModel.MatchOpen):
+                // A game opened from the Overview's recent games goes to History, where its page lives.
+                if (_viewModel.MatchOpen && NavHistory.IsChecked != true)
+                {
+                    NavHistory.IsChecked = true;
+                }
+
+                UpdatePages();
+                PageMatch.Offset = default;
+                break;
         }
     }
 
     private void UpdatePages()
     {
+        // Leaving History lets go of the open match: only the match on screen is kept in memory.
+        if (_viewModel is { MatchOpen: true } && NavHistory.IsChecked != true
+            && new[] { NavOverview, NavBattlegrounds, NavConstructed, NavArena, NavSettings }.Any(n => n.IsChecked == true))
+        {
+            _viewModel.CloseMatch();
+        }
+
         PageOverview.IsVisible = NavOverview.IsChecked == true;
         PageBattlegrounds.IsVisible = NavBattlegrounds.IsChecked == true;
         // The deck page stands in for the Constructed page while a deck is open (the nav stays on Constructed).
@@ -270,7 +287,10 @@ public partial class MainView : UserControl
         PageConstructed.IsVisible = NavConstructed.IsChecked == true && !deckOpen;
         PageDeck.IsVisible = NavConstructed.IsChecked == true && deckOpen;
         PageArena.IsVisible = NavArena.IsChecked == true;
-        PageHistory.IsVisible = NavHistory.IsChecked == true;
+        // The match page stands in for the History list while a game is open.
+        var matchOpen = _viewModel?.MatchOpen == true;
+        PageHistory.IsVisible = NavHistory.IsChecked == true && !matchOpen;
+        PageMatch.IsVisible = NavHistory.IsChecked == true && matchOpen;
         PageSettings.IsVisible = NavSettings.IsChecked == true;
         // Panels of a page that was hidden are created on its first layout.
         Dispatcher.UIThread.Post(UpdateTilePanels, DispatcherPriority.Loaded);
@@ -330,6 +350,7 @@ public partial class MainView : UserControl
             return;
         }
 
+        viewModel.CloseMatch();
         NavHistory.IsChecked = true;
         if (viewModel.HistoryFilter != "All")
         {

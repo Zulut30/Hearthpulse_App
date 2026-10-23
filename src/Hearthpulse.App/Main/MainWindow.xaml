@@ -6,6 +6,7 @@
         xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
         xmlns:s="clr-namespace:Hearthpulse.App.Main.Stats"
         xmlns:dk="clr-namespace:Hearthpulse.App.Main.Decks"
+        xmlns:mt="clr-namespace:Hearthpulse.App.Main.Match"
         Title="Hearthpulse" Width="1260" Height="840" MinWidth="1040" MinHeight="660"
         Background="{StaticResource WindowFill}" Foreground="{StaticResource Text}"
         WindowStartupLocation="CenterScreen" UseLayoutRounding="True" Style="{StaticResource AppWindow}"
@@ -104,6 +105,23 @@
                                Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Game.RatingChange}" />
                 </Grid>
             </Border>
+        </DataTemplate>
+
+        <!-- A game row that opens the match page (History, recent games) -->
+        <Style x:Key="BareRow" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <DataTemplate x:Key="OpenGameRow" DataType="{x:Type m:GameRow}">
+            <Button Style="{StaticResource BareRow}" Command="{Binding DataContext.OpenMatch, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                    Content="{Binding}" ContentTemplate="{StaticResource GameRowTemplate}" ToolTip="{i:Loc Match.View.OpenTip}" />
         </DataTemplate>
 
         <!-- Theme picker: each theme is a tile in its own colours, a cookie of its wood with a gem of its accent -->
@@ -372,7 +390,7 @@
                                         <c:Ornament Text="{i:Loc Main.Home.RecentGames}" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
                                         <Button Content="{i:Loc Main.Home.ViewAll}" Style="{StaticResource GhostButton}" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
                                     </Grid>
-                                    <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource GameRowTemplate}" />
+                                    <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
                                     <TextBlock Text="{i:Loc Main.Home.NoGames}" Style="{StaticResource Caption}" Margin="0,8"
                                                Visibility="{Binding Recent, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                 </StackPanel>
@@ -1230,7 +1248,7 @@
                             </Border>
                         </Grid>
                         <Border Grid.Row="1" Style="{StaticResource Card}" Padding="22,10">
-                            <ListBox x:Name="HistoryList" ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource GameRowTemplate}" Background="Transparent" BorderThickness="0"
+                            <ListBox x:Name="HistoryList" ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource OpenGameRow}" Background="Transparent" BorderThickness="0"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.ScrollUnit="Pixel">
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
@@ -1257,6 +1275,11 @@
                             </ListBox>
                         </Border>
                     </Grid>
+
+                    <!-- ===== Match page (Main/Match): replaces the History list while a game is open ===== -->
+                    <ScrollViewer x:Name="PageMatch" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <mt:MatchView x:Name="MatchDetails" DataContext="{Binding MatchPage}" Margin="40,0,40,120" />
+                    </ScrollViewer>
 
                     <!-- ===== Settings: tabs General / Overlay / Tracker / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                     <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
@@ -1719,6 +1742,7 @@
                                             <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Data.OpenFolder}" Click="OnOpenData" ToolTip="{i:Loc Settings.Data.OpenFolderTip}" />
                                         </StackPanel>
                                         <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
+                                        <TextBlock Text="{i:Loc Match.Settings.ReplayLimit}" Style="{StaticResource Caption}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
                                     </StackPanel>
                                 </Border>
 

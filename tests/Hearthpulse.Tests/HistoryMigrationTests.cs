@@ -54,6 +54,7 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
         Assert.Null(old.RankLegend);
         Assert.Null(old.WentFirst);
         Assert.Null(old.DeckId);
+        Assert.Null(old.Replay);
 
         // Opening again is a no-op (the columns are there now).
         store = new HistoryStore(path);
@@ -92,6 +93,7 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
             RankStarLevel = 34,
             WentFirst = false,
             DeckId = 2774348185,
+            Replay = "20261020220000-abc.hpr",
         }));
 
         var games = store.Recent().ToDictionary(g => g.Key);
@@ -103,6 +105,15 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
         Assert.Null(games["ranked"].RankLegend);
         Assert.False(games["ranked"].WentFirst);
         Assert.Equal(2774348185, games["ranked"].DeckId);
+        Assert.Equal("20261020220000-abc.hpr", games["ranked"].Replay);
+        Assert.Null(games["bg"].Replay);
+
+        // A re-import fills a missing replay without touching one already saved.
+        Assert.True(store.FillMissingFields(new GameRecord { Key = "bg", Replay = "bg.hpr" }));
+        Assert.False(store.FillMissingFields(new GameRecord { Key = "ranked", Replay = "other.hpr" }));
+        games = store.Recent().ToDictionary(g => g.Key);
+        Assert.Equal("bg.hpr", games["bg"].Replay);
+        Assert.Equal("20261020220000-abc.hpr", games["ranked"].Replay);
         SqliteConnection.ClearAllPools();
         File.Delete(path);
     }
