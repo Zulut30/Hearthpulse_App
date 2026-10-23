@@ -1104,7 +1104,9 @@
         </Setter>
     </Style>
 
-    <!-- Context menus (e.g. a row's ⋯ menu): a card of plain rows, glyph in Icon. No submenus. -->
+    <!-- Context menus: a card of plain rows (a row's ⋯ menu on the deck page, the built-in Cut/Copy/Paste of text
+         boxes, whose system look is a light grey box). A glyph goes in Icon (its column folds away without one), the
+         shortcut in InputGestureText. No submenus. -->
     <Style TargetType="ContextMenu">
         <Setter Property="Foreground" Value="{StaticResource Text}" />
         <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
@@ -1113,8 +1115,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
-                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="10" Padding="4" MinWidth="200">
-                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="10" Padding="4" MinWidth="160">
+                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
@@ -1122,23 +1124,25 @@
     </Style>
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{StaticResource Text}" />
-        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Padding" Value="10,6" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="MenuItem">
                     <Border x:Name="Bd" CornerRadius="6" Background="Transparent" Padding="{TemplateBinding Padding}" Margin="0,1">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="26" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <ContentPresenter ContentSource="Icon" VerticalAlignment="Center" HorizontalAlignment="Left" TextElement.Foreground="{StaticResource Accent}" />
-                            <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
-                        </Grid>
+                        <DockPanel>
+                            <ContentPresenter x:Name="IconSite" DockPanel.Dock="Left" Width="26" ContentSource="Icon" VerticalAlignment="Center" HorizontalAlignment="Left"
+                                              TextElement.Foreground="{StaticResource Accent}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{TemplateBinding InputGestureText}" Foreground="{StaticResource Muted}" Margin="18,0,0,0"
+                                       VerticalAlignment="Center" />
+                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
+                        </DockPanel>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="Icon" Value="{x:Null}">
+                            <Setter TargetName="IconSite" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Hover}" />
                         </Trigger>
@@ -1175,44 +1179,4 @@
         </Setter>
     </Style>
 
-    <!-- Context menus (the built-in Cut/Copy/Paste of text boxes): the system look is a light grey box. -->
-    <Style TargetType="ContextMenu">
-        <Setter Property="Foreground" Value="{StaticResource Text}" />
-        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-        <Setter Property="FontSize" Value="12.5" />
-        <Setter Property="HasDropShadow" Value="False" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ContextMenu">
-                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="8" Padding="4">
-                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style TargetType="MenuItem">
-        <Setter Property="Foreground" Value="{StaticResource Text}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="MenuItem">
-                    <Border x:Name="Bd" Background="Transparent" CornerRadius="5" Padding="10,5" MinWidth="140">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Right" Text="{TemplateBinding InputGestureText}" Foreground="{StaticResource Muted}" Margin="18,0,0,0" />
-                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
-                        </DockPanel>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsHighlighted" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Surface4}" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Opacity" Value="0.45" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
 </ResourceDictionary>
