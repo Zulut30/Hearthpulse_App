@@ -9,6 +9,8 @@ namespace Hearthpulse.App.Overlay;
 /// </summary>
 internal static partial class PoolInput
 {
+    public const int LeftButton = 0x01;
+
     public const int RightButton = 0x02;
 
     public const int Escape = 0x1B;

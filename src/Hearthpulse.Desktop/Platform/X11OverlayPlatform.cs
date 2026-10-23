@@ -86,6 +86,12 @@ internal sealed class X11OverlayPlatform : IOverlayPlatform
     public PixelPoint? PointerPosition() =>
         XQueryPointer(_display, _root, out _, out _, out var x, out var y, out _, out _, out _) != 0 ? new PixelPoint(x, y) : null;
 
+    // Button1Mask (1 << 8) is the left button, Button3Mask (1 << 10) the right one.
+    public (bool Left, bool Right) MouseButtons() =>
+        XQueryPointer(_display, _root, out _, out _, out _, out _, out _, out _, out var mask) != 0
+            ? ((mask & (1u << 8)) != 0, (mask & (1u << 10)) != 0)
+            : (false, false);
+
     public void SetClickThrough(bool clickThrough)
     {
         if (_overlay == 0 || clickThrough == _clickThrough)

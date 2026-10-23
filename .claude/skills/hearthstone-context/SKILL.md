@@ -1,6 +1,6 @@
 ---
 name: hearthstone-context
-description: Use when a Hearthpulse task needs Hearthstone domain knowledge - game modes, Constructed decks/ranks/mulligan, Battlegrounds heroes/tiers/tribes/trinkets/combat rules, card ids/dbfIds/golden, Power.log format, log.config - or data from api.kolodahearthstone.com.
+description: Use when a Hearthpulse task needs Hearthstone domain knowledge - game modes, Constructed decks/ranks/mulligan/archetypes, the Coin and opening hand, Discover and card generation, counters' game mechanics, Battlegrounds heroes/tiers/tribes/trinkets/combat rules, card ids/dbfIds/golden, Power.log format and tags, log.config - or field-level data from api.kolodahearthstone.com.
 ---
 
 # Hearthstone for Hearthpulse developers
@@ -38,10 +38,13 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
 - Mulligan: at the start each player may replace any of the opening cards; the second player also gets **The Coin**
   (`GAME_005`, excluded from original-deck cards in `Entity.IsOriginalDeckCard`). `Entity.Mulliganed`,
   `MULLIGAN_STATE` tag; mulligan stats per archetype in `ConstructedMeta` (`MetaMulliganCard`: keep rate,
-  in-hand win rate).
+  in-hand win rate) and the in-game mulligan guide (`Tracking/MulliganGuide.cs`, `docs/mulligan-v2.md`). In real logs
+  `TURN=1` is set before the opening deal, and the Coin is often a cosmetic skin (e.g. `JAIL_COIN3` with
+  `COIN_CARD=1`) rather than `GAME_005` - match the tag, not the id.
 - Archetype: a family of similar decks ("Zoolock", "XL Rafaamlock"); matchups = archetype-vs-archetype win rates.
-  Source in app: Firestone stats (`ConstructedMeta`, `Attribution`); also the API (`/api/db/archetypes*`,
-  `/v1/hsguru/*`).
+  Source in app: the Hearthpulse API only (`ApiConstructedMeta`: HSGuru `/v1/hsguru/*` meta and archetypes, HSReplay
+  `/api/db/archetypes*` decks/mulligan/matchups); Russian archetype names come from `Constructed/ArchetypeNames.cs`.
+  Firestone is no longer used for Constructed.
 - Ranks (per format): Bronze, Silver, Gold, Platinum, Diamond, each 10 -> 1, then Legend with a number.
   `RankInfo` in `Memory/HearthstoneMemory.cs`: star level 1-50 -> league/rank, >= 51 or a legend rank -> Legend;
   `MatchPlayerInfo` has Standard/Wild/Classic/Twist ranks read from memory.
@@ -49,7 +52,12 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
   hero dbfIds, then lists of cards with 1 copy, 2 copies, and N copies (dbfId + count). `Cards/DeckString.cs`
   (`DeckDefinition`). The deck being played comes from `Decks.log` (`### name`, `# Deck ID:`, code).
 - Tracking: `ConstructedTracker` (deck/opponent cards; ignores HERO, HERO_POWER, ENCHANTMENT, PLAYER, GAME entities),
-  views `ConstructedView`, `DeckCardRow`, `PlayedCard`, `HandSlot` in `Tracking/Views.cs`.
+  views `ConstructedView`, `DeckCardRow`, `PlayedCard`, `HandSlot` in `Tracking/Views.cs`. The opponent's hand shows
+  only what the player can see (a drawn card stays a card back until revealed; `CREATOR_DBID` is never used).
+- Discover / random generation: "Discover" offers 3 cards from a pool defined by class, format and card text; the
+  overlay's card pool (`Core/CardPool/`, `docs/discover-pool.md`) shows that pool and its odds.
+- Counters: game-wide running values (Corpses, Herald, C'Thun abilities, spells cast by school, quests...) - see the
+  `hearthpulse-counters` skill and `docs/counters-constructed.md`.
 
 ## Battlegrounds
 
@@ -102,7 +110,8 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
 - Hero skins: `Card.BattlegroundsSkinParentId`; `CardDb.BaseHeroId` maps a skin to its hero.
 - Data sources: HearthstoneJSON (`https://api.hearthstonejson.com/v1/latest/{locale}/cards.json`, all cards, used by
   `CardDb`), hsbg.cards (`BgCardSource`: BG tiers, text, current pool), Firestone (`static.zerotoheroes.com`:
-  community stats), and the kolodahearthstone API.
+  Battlegrounds community stats only), and the kolodahearthstone API (Constructed meta, mulligan, card pool, BG
+  fallback). Rules and licences: `hearthpulse-data-sources` skill.
 - `Card` fields: `Id`, `DbfId`, `Name`, `Text`, `Cost`, `Attack`, `Health`, `Armor`, `Type`, `Rarity`, `CardClass`,
   `Set`, `Races`, `Mechanics`, `Collectible`, `TechLevel`, `IsBattlegroundsPoolMinion/Spell`, `IsBattlegroundsHero`,
   `IsBattlegroundsDuosExclusive`. Rarities: COMMON, RARE, EPIC, LEGENDARY (theme brushes `Rarity*`).

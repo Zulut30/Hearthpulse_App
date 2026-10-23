@@ -1,0 +1,73 @@
+# Endpoints Hearthpulse calls (checked in code on main 2e8d9be, 2026-10-23)
+
+Paths are relative to each base URL. Cache files live under the data folder (`AppPaths.Cache` = `<data>/cache`).
+
+## Hearthpulse data API - `https://api.kolodahearthstone.com/`
+
+Transport: `HearthpulseApi(HttpClient http, string? baseUrl = null)` - base URL from the ctor, else `HEARTHPULSE_API`,
+else `DefaultBaseUrl`; `GetAsync(path, bearer?, ct)`, `PostAsync(path, body, bearer?, ct)`; `Accept: application/json`;
+20 s per call; result `ApiResult { Data, Meta, Error, Ok }`; POST bodies in snake_case, nulls omitted.
+
+Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)`, cache `cache/api/`, `MaxAge` 6 h.
+
+| Call | Cache file | Used by |
+|---|---|---|
+| `v1/battlegrounds/heroes?mode={mode}&limit=200` | `bg-heroes-{mode}.json` | `BattlegroundsMeta` fallback |
+| `v1/battlegrounds/minions/stats?limit=500` | `bg-minions.json` | `BattlegroundsMeta` fallback |
+| `api/db/archetypes?game_type=RANKED_STANDARD\|RANKED_WILD&rank_range=LEGEND\|DIAMOND_THROUGH_LEGEND\|ALL&limit=200` | per query | Constructed meta, mulligan |
+| `api/db/archetypes/{id}/decks?limit=200` | per id | decks of an archetype |
+| `api/db/archetypes/{id}/mulligan?display_only=false&limit=250` | per id | `MulliganGuideSource` (HSReplay, Standard Legend) |
+| `api/db/archetypes/{id}/matchups?limit=500` | per id | matchups |
+| `v1/hsguru/meta?format=&rank=&period=&min_games=100` | `hsguru-meta-{format}-{rank}-{period}.json` | tier list (period probed via `past_day` -> `current_period`) |
+| `v1/hsguru/archetypes?format=&min_games=50&limit=500` | per format | archetype list |
+| `v1/hsguru/archetypes/analysis?archetype=&format=` | `hsguru-analysis-{format}-{hash}.json` | Wild/HSGuru mulligan |
+| `api/v1/constructed-cards?format=wild&per_page=200&page=N` (<= 80 pages) | `cache/api/card-pool.json`, 1 day | `CardPoolCatalog` |
+
+Not used: `/v1/meta-intelligence/cards` (needs a token). Docs: `docs/constructed-meta-api.md`, `docs/mulligan-v2.md`,
+`docs/discover-pool.md`. Server map (owner's notes): `C:\Users\zulut\Downloads\HeartLens-main\reference\server-151.md`.
+
+## hearthpulse.net - `https://hearthpulse.net/api/v1/`
+
+`AccountClient(HttpClient http, string? baseUrl = null)`, `ClientId = "manacost-tracker"`, form-encoded bodies.
+
+| Call | Notes |
+|---|---|
+| `POST oauth/device/code` | `client_id`, `scope`; defaults `expires_in` 600, `interval` 5 |
+| `POST oauth/token` | `grant_type=urn:ietf:params:oauth:grant-type:device_code` or `refresh_token`; refresh rotates |
+| `POST oauth/revoke` | refresh token only |
+| `GET me` (Bearer) | `user{id,name,profileUrl}`, `subscription` -> `Entitlements`; e-mail is never read or stored |
+| `POST tracker/events/batch` | **not called by the app yet** - contract in shared notes `player-games-upload-contract.md` |
+
+Approval page shows the client name "Manacost Tracker"; `/connect?user_code=` pre-fills the code. Staging identity:
+`test.hearthpulse.net` (set `HEARTHPULSE_SITE_API` to try it).
+
+## HearthstoneJSON
+
+- `https://api.hearthstonejson.com/v1/latest/{locale}/cards.json` -> `cache/cards.{locale}.json`, 2 days (`CardDb`).
+- `https://api.hearthstonejson.com/v1/latest/enUS/cards.collectible.json` -> `cache/cards.enUS.collectible.json`,
+  2 days (card pool fallback).
+- Art (`CardArt`, `CardRender` in both UIs): `https://art.hearthstonejson.com/v1/tiles/{id}.png`, `v1/256x/{id}.jpg`,
+  `v1/512x/{id}.jpg` (WPF), `v1/render/latest/{locale}/256x/{id}.png`, `v1/bgs/latest/{locale}/256x/{id}.png`.
+- Generators read the enUS dump you download yourself: `tools/counters/gen_counter_cards.py`,
+  `tools/cardpool/gen_pool_tables.py`, `tools/effects/*.py`.
+
+## hsbg.cards
+
+`https://hsbg.cards/api/v1/cards?limit={0}&offset={1}&pool=current`, 100 per page, <= 20 pages, cache
+`cache/bgcards.hsbg.json` 12 h (`BgCardDb`).
+
+## Firestone public data - `https://static.zerotoheroes.com/` (Battlegrounds only)
+
+`BattlegroundsMeta`, cache `cache/meta/`, 6 h, falls back to the data API for heroes/minions:
+
+- `api/bgs/hero-stats/mmr-{100|50|25|10|1}/last-patch/overview-from-hourly.gz.json`
+- `hearthstone/data/battlegrounds-strategies/bgs-comps-strategies.gz.json`
+- `api/bgs/comp-stats/last-patch/overview-from-hourly.gz.json`
+- `api/bgs/trinket-stats/last-patch/overview-from-hourly.gz.json`
+- `api/bgs/card-stats/mmr-{bracket}/last-patch/overview-from-hourly.gz.json`
+
+(`ConstructedMeta.LoadFirestoneAsync` still knows `api/constructed/stats/...` but nothing calls it.)
+
+## GitHub
+
+`https://api.github.com/repos/Zulut30/IceCrowV2/releases/latest` - see `hearthpulse-release`.

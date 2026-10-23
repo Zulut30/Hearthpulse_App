@@ -73,6 +73,8 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
 
     public PixelPoint? PointerPosition() => GetCursorPos(out var p) ? new PixelPoint(p.X, p.Y) : null;
 
+    public (bool Left, bool Right) MouseButtons() => ((GetAsyncKeyState(0x01) & 0x8000) != 0, (GetAsyncKeyState(0x02) & 0x8000) != 0);
+
     public void SetClickThrough(bool clickThrough)
     {
         if (clickThrough == _clickThrough || _overlay == IntPtr.Zero)
@@ -167,6 +169,9 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetCursorPos(out POINT point);
+
+    [LibraryImport("user32.dll")]
+    private static partial short GetAsyncKeyState(int key);
 
     [LibraryImport("user32.dll")]
     private static partial IntPtr GetForegroundWindow();
