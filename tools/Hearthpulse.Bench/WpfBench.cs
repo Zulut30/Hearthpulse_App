@@ -255,6 +255,39 @@ internal static class WpfBench
         GC.KeepAlive(catalog);
     }
 
+    /// <summary>
+    /// The overlay window with no Hearthstone window to follow (the app idling in the tray): CPU time of this process
+    /// over 20 s. Run it while Hearthstone is closed.
+    /// </summary>
+    public static void OverlayIdle()
+    {
+        var (app, settings) = NewApplication();
+        var overlay = new OverlayWindow(new OverlayViewModel(), settings);
+        overlay.Show();
+        Pump();
+        var settle = Stopwatch.StartNew();
+        while (settle.ElapsedMilliseconds < 3000)
+        {
+            Pump(DispatcherPriority.Background);
+            Thread.Sleep(10);
+        }
+
+        using var process = Process.GetCurrentProcess();
+        var cpu = process.TotalProcessorTime;
+        var operations = 0;
+        Dispatcher.CurrentDispatcher.Hooks.OperationCompleted += (_, _) => operations++;
+        var frame = new DispatcherFrame();
+        var stop = new DispatcherTimer(TimeSpan.FromSeconds(20), DispatcherPriority.Normal, (_, _) => frame.Continue = false, Dispatcher.CurrentDispatcher);
+        stop.Start();
+        Dispatcher.PushFrame(frame);
+        stop.Stop();
+        process.Refresh();
+        var used = process.TotalProcessorTime - cpu;
+        Console.WriteLine($"[idle] overlay without a game window: CPU {used.TotalMilliseconds:N0} ms in 20 s ({used.TotalMilliseconds / 20:N1} ms/s), {operations} dispatcher operations");
+        overlay.Close();
+        GC.KeepAlive(app);
+    }
+
     private static (Application App, AppSettings Settings) NewApplication()
     {
         // Relative pack URIs (Themes/Theme.xaml) resolve against the entry assembly; point them at the app's.

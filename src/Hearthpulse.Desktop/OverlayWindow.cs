@@ -15,6 +15,11 @@ namespace Hearthpulse.Desktop;
 /// </summary>
 internal sealed class OverlayWindow : Window
 {
+    /// <summary>Overlay tick while the game window is there (follow it, pointer, click-through) and while it is not.</summary>
+    private static readonly TimeSpan ActiveTick = TimeSpan.FromMilliseconds(33);
+
+    private static readonly TimeSpan IdleTick = TimeSpan.FromMilliseconds(500);
+
     private readonly AppHost _host;
     private readonly IOverlayPlatform _platform;
     private readonly OverlayView _view;
@@ -45,7 +50,7 @@ internal sealed class OverlayWindow : Window
         _view.LayoutChanged += host.OnSettingsChanged;
         Content = _view;
 
-        _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(33), DispatcherPriority.Render, (_, _) => Tick());
+        _timer = new DispatcherTimer(ActiveTick, DispatcherPriority.Render, (_, _) => Tick());
         Opened += (_, _) =>
         {
             _platform.Attach(this);
@@ -81,6 +86,13 @@ internal sealed class OverlayWindow : Window
     {
         var vm = _host.Overlay;
         var area = _platform.FindGameClientArea();
+        // Without a game window there is nothing to draw or follow: tick twice a second instead of thirty times.
+        var interval = area is null ? IdleTick : ActiveTick;
+        if (_timer.Interval != interval)
+        {
+            _timer.Interval = interval;
+        }
+
         // Layout mode stays up while the player arranges panels from the dashboard as well.
         var visible = area is not null && !Suppressed
                       && (vm.LayoutEditing || (_host.Settings.OverlayEnabled && _platform.IsGameForeground()));

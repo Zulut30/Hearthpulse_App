@@ -31,6 +31,11 @@ public partial class OverlayWindow : Window
 {
     private const double ReferenceHeight = 1080;
 
+    /// <summary>Overlay tick while the game window is there (follow it, mouse, click-through) and while it is not.</summary>
+    private static readonly TimeSpan ActiveTick = TimeSpan.FromMilliseconds(33);
+
+    private static readonly TimeSpan IdleTick = TimeSpan.FromMilliseconds(500);
+
     private readonly AppSettings _settings;
     private readonly DispatcherTimer _timer;
     private readonly DispatcherTimer _toastTimer;
@@ -56,7 +61,7 @@ public partial class OverlayWindow : Window
         DataContext = viewModel;
         ViewModel = viewModel;
         _settings = settings;
-        _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(33) };
+        _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = ActiveTick };
         _timer.Tick += (_, _) => Tick();
         _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(9) };
         _toastTimer.Tick += (_, _) =>
@@ -148,6 +153,13 @@ public partial class OverlayWindow : Window
         }
 
         var rect = Native.ClientRectOnScreen(_hearthstone);
+        // Without a game window there is nothing to draw or follow: tick twice a second instead of thirty times.
+        var interval = rect is null ? IdleTick : ActiveTick;
+        if (_timer.Interval != interval)
+        {
+            _timer.Interval = interval;
+        }
+
         var foreground = Native.GetForegroundWindow();
         // Layout mode stays up while the player arranges panels from the dashboard as well.
         var visible = rect is not null && !Suppressed
