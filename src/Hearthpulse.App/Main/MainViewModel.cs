@@ -66,6 +66,9 @@ public sealed record MetaTrinketRow(int Rank, string CardId, string Name, string
 /// <summary>One minion or tavern spell in the community card list (compare cards of the same tier).</summary>
 public sealed record MetaCardRow(int Rank, string CardId, string Name, string Kind, string Tier, string Placement, string Games, double BarFraction);
 
+/// <summary>One MMR bracket the community stats have ("All", "Top 50%", "20%"...), for the tier lists' picker.</summary>
+public sealed record BracketOption(int Value, string Label, bool IsSelected, RelayCommand Select);
+
 public sealed partial class MainViewModel : Observable
 {
     private readonly HistoryStore _history;
@@ -208,7 +211,7 @@ public sealed partial class MainViewModel : Observable
 
     public string DataFolder => AppPaths.Root;
 
-    public string Attribution => BattlegroundsMeta.Attribution + " · Hearthpulse API (api.kolodahearthstone.com) · Card data & art: HearthstoneJSON";
+    public string Attribution => BattlegroundsMeta.Attribution + " (api.kolodahearthstone.com) · " + BattlegroundsMeta.PoolName + " when set up · Card data & art: HearthstoneJSON";
 
     // ---- live status ----------------------------------------------------------------------
     private bool _hearthstoneRunning;
@@ -298,6 +301,23 @@ public sealed partial class MainViewModel : Observable
     public IReadOnlyList<MetaCompRow> CompTiers { get => _compTiers; private set { if (Set(ref _compTiers, value)) Raise(nameof(HasCompTiers)); } }
 
     public bool HasCompTiers => _compTiers.Count > 0;
+
+    private IReadOnlyList<BracketOption> _bracketOptions = Array.Empty<BracketOption>();
+    private string _compEmptyText = string.Empty;
+    private string _trinketEmptyText = string.Empty;
+    private string _cardEmptyText = string.Empty;
+
+    /// <summary>The MMR brackets the loaded stats have; the picker shows only when there is a choice.</summary>
+    public IReadOnlyList<BracketOption> BracketOptions { get => _bracketOptions; private set { if (Set(ref _bracketOptions, value)) Raise(nameof(HasBracketChoice)); } }
+
+    public bool HasBracketChoice => _bracketOptions.Count > 1;
+
+    /// <summary>What the empty comp, trinket and card lists say: which source those numbers will come from.</summary>
+    public string CompEmptyText { get => _compEmptyText; private set => Set(ref _compEmptyText, value); }
+
+    public string TrinketEmptyText { get => _trinketEmptyText; private set => Set(ref _trinketEmptyText, value); }
+
+    public string CardEmptyText { get => _cardEmptyText; private set => Set(ref _cardEmptyText, value); }
 
     private string _compTabLabel = "Comps";
 
@@ -496,11 +516,17 @@ public sealed partial class MainViewModel : Observable
             return;
         }
 
-        var personal = MyHeroes.ToDictionary(h => h.CardId);
-        if (!meta.HeroesByBracket.TryGetValue(Bracket, out var heroes))
+        // Only the brackets the source has are offered (the API: top 50/20/5/1%, no all-ranks hero slice).
+        var brackets = meta.HeroBrackets;
+        if (!brackets.Contains(Bracket))
         {
-            heroes = meta.HeroesByBracket.GetValueOrDefault(100) ?? new Dictionary<string, MetaHero>();
+            Bracket = meta.WidestBracket;
         }
+
+        BracketOptions = brackets.Select((b, i) => new BracketOption(b, b >= 100 ? "All" : i == 0 ? $"Top {b}%" : $"{b}%", b == Bracket, SetBracket)).ToList();
+
+        var personal = MyHeroes.ToDictionary(h => h.CardId);
+        var heroes = meta.HeroesByBracket.GetValueOrDefault(Bracket) ?? new Dictionary<string, MetaHero>();
 
         var ranked = heroes.Values.Where(h => h.DataPoints == 0 || h.DataPoints >= meta.MinHeroGames).OrderBy(h => h.AveragePosition).ToList();
         var best = ranked.Count > 0 ? ranked[0].AveragePosition : 3.5;
@@ -582,8 +608,12 @@ public sealed partial class MainViewModel : Observable
                 tWorst - tBest < 0.01 ? 1 : 1 - ((t.Stats.Value.Placement - tBest) / (tWorst - tBest) * 0.85)))
             .ToList();
 
+        CompEmptyText = meta.PoolPending("comp stats");
+        TrinketEmptyText = meta.PoolPending("trinket stats");
+
         // Cards are only comparable within one tavern tier: late, high-tier cards always look better overall.
-        var cardStats = meta.CardsByBracket.TryGetValue(Bracket, out var byBracket) ? byBracket : meta.CardsByBracket.GetValueOrDefault(100);
+        var cardBracket = meta.CardsByBracket.ContainsKey(Bracket) ? Bracket : 100;
+        var cardStats = meta.CardsByBracket.GetValueOrDefault(cardBracket);
         var cards = (cardStats?.Values ?? Enumerable.Empty<MetaCard>())
             .Where(c => c.DataPoints >= BattlegroundsMeta.MinCardGames)
             .Select(c => (Stats: c, Card: _cards.Get(c.CardId)))
@@ -605,7 +635,10 @@ public sealed partial class MainViewModel : Observable
                 kWorst - kBest < 0.01 ? 1 : 1 - ((c.Stats.AveragePlacement - kBest) / (kWorst - kBest) * 0.85)))
             .ToList();
 
-        var bracketText = Bracket == 100 ? "all ranks" : $"top {Bracket}%";
+        // The API publishes tavern spells nowhere and has fewer minion brackets than hero brackets: both are said, not hidden.
+        CardEmptyText = CardTier == 0 ? meta.PoolPending("tavern spell stats") : "No card data for this tier yet.";
+        var bracketText = BattlegroundsMeta.BracketLabel(Bracket)
+            + (cardBracket != Bracket && meta.CardsByBracket.Count > 0 ? $" (cards: {BattlegroundsMeta.BracketLabel(cardBracket)})" : string.Empty);
         var sharedText = meta.SharedGames > 0 ? $" · {meta.SharedGames:N0} shared games" : string.Empty;
         MetaUpdated = $"{meta.Source} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}{sharedText}";
     }
