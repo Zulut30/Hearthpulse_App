@@ -136,7 +136,14 @@ public sealed class ReplayRecorder : IPowerListener
 
         var pending = new Pending(blockType, source, source?.GetInt("CARD_TARGET") ?? 0);
         _blocks.Add(pending);
-        if (blockType == "PLAY" && source is { Zone: not "HAND" })
+        if (blockType != "PLAY")
+        {
+            return;
+        }
+
+        // A step boundary: what follows (the card leaving the hand, its effects) belongs to this play.
+        Emit("B");
+        if (source is { Zone: not "HAND" })
         {
             EmitPlay(game, pending);
         }

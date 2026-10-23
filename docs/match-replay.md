@@ -49,12 +49,16 @@ Events (space-separated; `L`/`O` = local/opponent side; `n` = replay id; `-` = u
 | `E n side zone pos card type [TAG=v ...]` | Card `n` now is in `zone` at `pos` (card `-` = card back); face-up tags follow |
 | `X n` | Card `n` left view (moved to a hidden zone under a new id, or set aside) |
 | `V n TAG v` | Face-up tag change (`n` may be `L`/`O` for the player: mana) |
+| `B` | A card is about to be played: a step boundary (its `P` follows once the card left the hand) |
 | `P n target` | Card `n` played (target `n` or `-`) |
 | `A n target` | `n` attacks `target` |
 | `C kind source opt,opt,..` | Local choice offered (Discover etc.); `c card` = picked |
-| `M side n,n..` | Opening hand (local: ids; opponent: count only via card backs) |
+| `Z n pos` | Card `n` moved within its zone |
+| `S step` | Game step `BEGIN_MULLIGAN`, `MAIN_READY`, `FINAL_GAMEOVER` |
 | `R result` | Local PLAYSTATE at the end |
-| `H origin n` | Hand origin of card back `n` (drawn/created/returned/mulligan/coin) |
+
+A card back in the opponent's hand carries `ORIGIN=start|drawn|created|returned|stolen|coin` instead of tags. The
+mulligan is `C MULLIGAN - <offered>` followed by one `c` per kept card.
 
 Battlegrounds games are not recorded as events (combat floods the log); their file holds one JSON line after the
 header: rounds (turn, tier, health, our board, the combat opponent's hero and board as fought, shop offers, result

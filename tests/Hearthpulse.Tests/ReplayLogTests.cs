@@ -82,6 +82,8 @@ public sealed class ReplayLogTests(ITestOutputHelper output) : IDisposable
                         {
                             Assert.Contains(body, l => l.StartsWith("P ", StringComparison.Ordinal));
                         }
+
+                        CheckModel(record, MatchReplay.Parse(text!)!);
                     }
                     else
                     {
@@ -94,5 +96,37 @@ public sealed class ReplayLogTests(ITestOutputHelper output) : IDisposable
         }
 
         output.WriteLine($"{games} replays");
+    }
+
+    /// <summary>The folded replay of a real game: card backs stay card backs at every step, turns run in order, the end matches the row.</summary>
+    private void CheckModel(GameRecord record, MatchReplay replay)
+    {
+        Assert.NotEmpty(replay.Frames);
+        foreach (var frame in replay.Frames)
+        {
+            Assert.All(frame.Opponent.Hand, c => Assert.True(c.IsCardBack));
+            Assert.All(frame.Opponent.Secrets.Where(s => s.Type == "-"), c => Assert.True(c.IsCardBack));
+            Assert.All(frame.Local.Hand, c => Assert.False(c.IsCardBack));
+            Assert.InRange(frame.Local.DeckCount, 0, 80);
+            Assert.InRange(frame.Local.Hand.Count + frame.Opponent.Hand.Count, 0, 20);
+        }
+
+        Assert.True(replay.Turns.Select(t => t.Turn).SequenceEqual(replay.Turns.Select(t => t.Turn).Order()));
+        var expected = record.Result switch { "Win" => "WON", "Loss" => "LOST", "Tie" => "TIED", _ => null };
+        if (expected is not null)
+        {
+            Assert.True(replay.Result == expected || (expected == "LOST" && replay.Result == "CONCEDED"), $"{record.Result} vs {replay.Result}");
+        }
+
+        if (replay.Mulligan is { } mulligan)
+        {
+            Assert.InRange(mulligan.Offered.Count, 3, 5);
+            Assert.Equal(mulligan.Replaced.Count, mulligan.Received.Count);
+        }
+
+        var last = replay.Frames[^1];
+        output.WriteLine($"    {replay.Frames.Count} frames, {replay.Turns.Count} turns, {replay.LocalPlayed.Sum(c => c.Count)} / {replay.OpponentPlayed.Sum(c => c.Count)} played, "
+                         + $"{replay.Frames.Count(f => f.Action.Kind == ReplayActionKind.Attack)} attacks, {replay.Choices.Count} choices, "
+                         + $"mulligan {replay.Mulligan?.Kept.Count}/{replay.Mulligan?.Offered.Count} kept, end hp {last.Local.Health}+{last.Local.Armor} vs {last.Opponent.Health}+{last.Opponent.Armor}");
     }
 }
