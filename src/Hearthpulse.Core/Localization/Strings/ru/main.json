@@ -263,5 +263,8 @@
   "Main.Theme.Ember": "Жар",
   "Main.Theme.Tide": "Прилив",
   "Main.Theme.Shadow": "Тьма",
-  "Main.Theme.Custom": "Своя"
+  "Main.Theme.Custom": "Своя",
+  "Main.Bg.PoolWhat.Comps": "статистика сборок",
+  "Main.Bg.PoolWhat.Trinkets": "статистика безделушек",
+  "Main.Bg.PoolWhat.Spells": "статистика заклинаний таверны"
 }

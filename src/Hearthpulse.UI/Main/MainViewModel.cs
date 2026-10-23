@@ -497,8 +497,8 @@ public sealed partial class MainViewModel : Observable
                 tWorst - tBest < 0.01 ? 1 : 1 - ((t.Stats.Value.Placement - tBest) / (tWorst - tBest) * 0.85)))
             .ToList();
 
-        CompEmptyText = meta.PoolPending("comp stats");
-        TrinketEmptyText = meta.PoolPending("trinket stats");
+        CompEmptyText = meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Comps"));
+        TrinketEmptyText = meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Trinkets"));
 
         // Cards are only comparable within one tavern tier: late, high-tier cards always look better overall.
         var cardBracket = meta.CardsByBracket.ContainsKey(Bracket) ? Bracket : 100;
@@ -525,7 +525,7 @@ public sealed partial class MainViewModel : Observable
             .ToList();
 
         // The API publishes tavern spells nowhere and has fewer minion brackets than hero brackets: both are said, not hidden.
-        CardEmptyText = CardTier == 0 ? meta.PoolPending("tavern spell stats") : Loc.T("Main.Bg.NoCardData");
+        CardEmptyText = CardTier == 0 ? meta.PoolPending(Loc.T("Main.Bg.PoolWhat.Spells")) : Loc.T("Main.Bg.NoCardData");
         var bracketText = BattlegroundsMeta.BracketLabel(Bracket)
             + (cardBracket != Bracket && meta.CardsByBracket.Count > 0 ? Loc.F("Main.Bg.CardsBracket", BattlegroundsMeta.BracketLabel(cardBracket)) : string.Empty);
         var sharedText = meta.SharedGames > 0 ? Loc.F("Main.Bg.SharedGames", meta.SharedGames) : string.Empty;

@@ -263,5 +263,8 @@
   "Main.Theme.Ember": "Ember",
   "Main.Theme.Tide": "Tide",
   "Main.Theme.Shadow": "Shadow",
-  "Main.Theme.Custom": "Custom"
+  "Main.Theme.Custom": "Custom",
+  "Main.Bg.PoolWhat.Comps": "comp stats",
+  "Main.Bg.PoolWhat.Trinkets": "trinket stats",
+  "Main.Bg.PoolWhat.Spells": "tavern spell stats"
 }
