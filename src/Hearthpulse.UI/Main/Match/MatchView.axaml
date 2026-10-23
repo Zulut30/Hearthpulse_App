@@ -1,0 +1,488 @@
+<UserControl x:Class="Hearthpulse.UI.Main.Match.MatchView"
+             x:DataType="mt:MatchViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:r="using:Hearthpulse.Core.Replay"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:mt="using:Hearthpulse.UI.Main.Match">
+    <!-- The match page: one History game. DataContext is MainViewModel.MatchPage. Colours are theme tokens only. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- A minion on the board: oval art, attack and health badges, taunt/golden rim, divine shield halo -->
+            <DataTemplate x:Key="Minion" x:DataType="r:MatchCardView">
+                <Panel Width="66" Height="86" Margin="3,0" ToolTip.Tip="{Binding Tooltip}">
+                    <Border Width="64" Height="80" CornerRadius="32" BorderBrush="{StaticResource Info}" BorderThickness="2" Opacity="0.8"
+                            HorizontalAlignment="Center" VerticalAlignment="Top" IsVisible="{Binding DivineShield}" />
+                    <Border Classes="art" Classes.taunt="{Binding Taunt}" Classes.golden="{Binding Golden}" Width="56" Height="72" Margin="0,4,0,0" CornerRadius="28"
+                            Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}" BorderThickness="2" ClipToBounds="True"
+                            HorizontalAlignment="Center" VerticalAlignment="Top" i:CardArt.Portrait="{Binding CardId}" />
+                    <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1"
+                            HorizontalAlignment="Left" VerticalAlignment="Bottom" IsVisible="{Binding ShowStats}">
+                        <TextBlock Text="{Binding Attack}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom" IsVisible="{Binding ShowStats}">
+                        <TextBlock Classes="hp" Classes.damaged="{Binding Damaged}" Text="{Binding Health}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Panel>
+            </DataTemplate>
+
+            <!-- A card in hand: art with a cost gem, or a card back with how it got there -->
+            <DataTemplate x:Key="HandCard" x:DataType="r:MatchCardView">
+                <StackPanel Width="50" Margin="2,0" ToolTip.Tip="{Binding Tooltip}">
+                    <Panel Height="64">
+                        <Border CornerRadius="7" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}" BorderThickness="1" ClipToBounds="True"
+                                i:CardArt.Portrait="{Binding CardId}" IsVisible="{Binding !CardBack}" />
+                        <Border CornerRadius="7" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5" IsVisible="{Binding CardBack}">
+                            <Panel>
+                                <c:Scallop Width="28" Height="28" Fill="{StaticResource Decor}" Lobes="9" Depth="0.12" />
+                                <TextBlock Text="&#xF0639;" Classes="icon" FontSize="15" Foreground="{StaticResource GoldTrim}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Panel>
+                        </Border>
+                        <Border Width="20" Height="20" CornerRadius="10" Background="{StaticResource ManaGem}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-4,0,0"
+                                IsVisible="{Binding !CardBack}">
+                            <TextBlock Text="{Binding Cost}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="11" Foreground="{StaticResource Text}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Panel>
+                    <TextBlock Text="{Binding Note}" Classes="caption" FontSize="10.5" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- A small round card (weapon, hero power, secret) -->
+            <DataTemplate x:Key="Chip" x:DataType="r:MatchCardView">
+                <Panel Width="40" Height="40" Margin="4,0,0,0" ToolTip.Tip="{Binding Tooltip}">
+                    <Border CornerRadius="20" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5" ClipToBounds="True"
+                            i:CardArt.Portrait="{Binding CardId}" IsVisible="{Binding !CardBack}" />
+                    <Border CornerRadius="20" Background="{StaticResource Surface3}" BorderBrush="{StaticResource Accent}" BorderThickness="1.5" IsVisible="{Binding CardBack}">
+                        <TextBlock Text="?" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="{Binding Attack}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="11" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                               Margin="-2,0,0,-4" IsVisible="{Binding ShowStats}" />
+                    <TextBlock Text="{Binding Health}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                               Margin="0,0,-2,-4" IsVisible="{Binding ShowStats}" />
+                </Panel>
+            </DataTemplate>
+
+            <ItemsPanelTemplate x:Key="Row">
+                <WrapPanel HorizontalAlignment="Center" />
+            </ItemsPanelTemplate>
+            <ItemsPanelTemplate x:Key="Wrap">
+                <WrapPanel />
+            </ItemsPanelTemplate>
+
+            <!-- A side's hero line: portrait with health, weapon, hero power, secrets, mana and deck -->
+            <DataTemplate x:Key="HeroLine" x:DataType="r:MatchSideView">
+                <Grid Margin="0,8" ColumnDefinitions="*,Auto,*">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0">
+                        <ItemsControl ItemsSource="{Binding Secrets}" ItemTemplate="{StaticResource Chip}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <ContentControl Content="{Binding Weapon}" ContentTemplate="{StaticResource Chip}" IsVisible="{Binding Weapon, Converter={StaticResource Truthy}}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Panel Width="62" Height="62" ToolTip.Tip="{Binding Hero}">
+                            <Border CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="2" ClipToBounds="True"
+                                    i:CardArt.Portrait="{Binding HeroCardId}" />
+                            <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="6,1"
+                                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-10,-4">
+                                <TextBlock Text="{Binding HealthText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" />
+                            </Border>
+                        </Panel>
+                        <ContentControl Content="{Binding HeroPower}" ContentTemplate="{StaticResource Chip}" Margin="14,0,0,0" VerticalAlignment="Center"
+                                        IsVisible="{Binding HeroPower, Converter={StaticResource Truthy}}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="18,0,0,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Label}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Border Classes="pill" Background="{StaticResource SecondaryContainer}" Margin="8,0,0,0" ToolTip.Tip="Mana left / crystals this turn">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="9" Height="9" Fill="{StaticResource ManaGem}" Margin="0,0,5,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Mana}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Deck}" Classes="caption" FontSize="11.5" Margin="0,3,0,0" />
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>
+
+            <!-- An action of the turn: clicking it shows its step -->
+            <DataTemplate x:Key="ActionRow" x:DataType="r:MatchActionRow">
+                <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Margin="0,0,0,2"
+                        Command="{Binding $parent[mt:MatchView].((mt:MatchViewModel)DataContext).GoFrame}" CommandParameter="{Binding}">
+                    <Border Classes="row step" Classes.current="{Binding Current}" BorderThickness="1" BorderBrush="Transparent" Padding="10,7">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="{Binding Icon}" Classes="icon glyph" Classes.mine="{Binding Local}" FontSize="15"
+                                       VerticalAlignment="Top" Margin="0,1,10,0" />
+                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                        </DockPanel>
+                    </Border>
+                </Button>
+            </DataTemplate>
+
+            <!-- A turn chip: number, gold for your turns, filled while its step is on screen -->
+            <DataTemplate x:Key="TurnChip" x:DataType="mt:MatchTurnRow">
+                <Button Classes="bare" Margin="0,0,5,5" ToolTip.Tip="{Binding Tooltip}"
+                        Command="{Binding $parent[mt:MatchView].((mt:MatchViewModel)DataContext).GoFrame}" CommandParameter="{Binding}">
+                    <Border Classes="turn" Classes.mine="{Binding Local}" Classes.current="{Binding Selected}" MinWidth="30" Height="30" CornerRadius="8"
+                            Background="{StaticResource Surface3}" BorderBrush="{StaticResource Border}" BorderThickness="1" Padding="7,0">
+                        <TextBlock Text="{Binding Label}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Button>
+            </DataTemplate>
+
+            <!-- A deck list row: cost gem, round art, name, copies, note -->
+            <DataTemplate x:Key="DeckRow" x:DataType="r:MatchDeckRow">
+                <Border Classes="row" Padding="10,6">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" Classes.unused="{Binding !Used}">
+                        <Border Width="22" Height="22" CornerRadius="11" Background="{StaticResource ManaGem}" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <TextBlock Text="{Binding Cost}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="11.5" Foreground="{StaticResource Text}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="1" Width="26" Height="26" CornerRadius="13" Margin="0,0,10,0" Background="{StaticResource Surface4}" ClipToBounds="True"
+                                VerticalAlignment="Center" i:CardArt.Portrait="{Binding CardId}" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Note}" Classes="caption" FontSize="11" IsVisible="{Binding Note, Converter={StaticResource Truthy}}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="3" Text="{Binding Count}" FontWeight="Bold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+            <!-- A Battlegrounds minion (round art with stats) -->
+            <DataTemplate x:Key="BgMinion" x:DataType="r:MatchCardView">
+                <Panel Width="52" Height="60" Margin="2,0" ToolTip.Tip="{Binding Tooltip}">
+                    <Border Classes="art" Classes.golden="{Binding Golden}" Width="48" Height="56" CornerRadius="24" Background="{StaticResource Surface4}"
+                            BorderBrush="{StaticResource Border}" BorderThickness="2" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            i:CardArt.Portrait="{Binding CardId}" />
+                    <Border Width="20" Height="20" CornerRadius="10" Background="{StaticResource Surface3}" HorizontalAlignment="Left" VerticalAlignment="Bottom" IsVisible="{Binding ShowStats}">
+                        <TextBlock Text="{Binding Attack}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="10.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Border Width="20" Height="20" CornerRadius="10" Background="{StaticResource Surface3}" HorizontalAlignment="Right" VerticalAlignment="Bottom" IsVisible="{Binding ShowStats}">
+                        <TextBlock Text="{Binding Health}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="10.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Panel>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Border.art.taunt">
+            <Setter Property="BorderBrush" Value="{StaticResource Muted}" />
+            <Setter Property="BorderThickness" Value="4" />
+        </Style>
+        <Style Selector="Border.art.golden">
+            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="TextBlock.hp.damaged">
+            <Setter Property="Foreground" Value="{StaticResource Negative}" />
+        </Style>
+        <Style Selector="TextBlock.glyph">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="TextBlock.glyph.mine">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="Border.step.current">
+            <Setter Property="Background" Value="{StaticResource SelectedFill}" />
+            <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+        </Style>
+        <Style Selector="Border.turn TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="Border.turn.mine">
+            <Setter Property="BorderBrush" Value="{StaticResource GoldTrim}" />
+        </Style>
+        <Style Selector="Border.turn.mine TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Text}" />
+        </Style>
+        <Style Selector="Border.turn.current">
+            <Setter Property="Background" Value="{StaticResource AccentContainer}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="Border.turn.current TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource OnAccentContainer}" />
+        </Style>
+        <Style Selector="Grid.unused">
+            <Setter Property="Opacity" Value="0.55" />
+        </Style>
+        <Style Selector="TextBlock.you">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <!-- Phone width: the turn's actions go under the table, the decks stack -->
+        <Style Selector="m|MainView.compact Border.actions">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+            <Setter Property="Margin" Value="0,16,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Border.table">
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+        </Style>
+        <Style Selector="m|MainView.compact Border.second">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+            <Setter Property="Margin" Value="0,16,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Border.first">
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+        </Style>
+        <Style Selector="m|MainView.compact Border.result">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,12,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact StackPanel.opponent">
+            <Setter Property="Grid.Row" Value="2" />
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,12,0,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel>
+        <Button Classes="ghost" Command="{Binding Back}" HorizontalAlignment="Left" Margin="0,0,0,16" Padding="12,7" ToolTip.Tip="Back to History">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xF004D;" Classes="icon" FontSize="16" Foreground="{StaticResource OnSecondaryContainer}" Margin="0,0,6,0" />
+                <TextBlock Text="History" VerticalAlignment="Center" />
+            </StackPanel>
+        </Button>
+
+        <TextBlock Text="Reading the game&#x2026;" Classes="caption" FontSize="14" IsVisible="{Binding Loading}" />
+
+        <StackPanel IsVisible="{Binding !Loading}">
+            <!-- Header: you, the result, the opponent -->
+            <TextBlock Text="{Binding Header.Title}" Classes="display" FontSize="30" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Header.Subtitle}" Classes="caption" FontSize="13.5" Margin="2,2,0,18" TextWrapping="Wrap" />
+            <Border Classes="card" Margin="0,0,0,16">
+                <StackPanel>
+                    <Grid ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto,Auto">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="60" Height="60" CornerRadius="30" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
+                                    ClipToBounds="True" i:CardArt.Portrait="{Binding Header.Local.HeroCardId}" />
+                            <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Header.Local.Name}" FontWeight="Bold" FontSize="16" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Header.Local.Hero}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Header.Local.Rank}" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,3,0,0"
+                                           IsVisible="{Binding Header.Local.Rank, Converter={StaticResource Truthy}}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <Border Grid.Column="1" Classes="pill result" Padding="18,6" Background="{StaticResource Surface3}" VerticalAlignment="Center" Margin="16,0">
+                            <TextBlock Text="{Binding Header.Result}" FontFamily="{DynamicResource DisplayFont}" FontWeight="ExtraBold" FontSize="17"
+                                       Foreground="{Binding Header.ResultKey, Converter={StaticResource KeyBrush}}" />
+                        </Border>
+                        <StackPanel Grid.Column="2" Classes="opponent" Orientation="Horizontal" HorizontalAlignment="Right" IsVisible="{Binding ShowOpponent}">
+                            <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Header.Opponent.Name}" FontWeight="Bold" FontSize="16" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Header.Opponent.Hero}" Classes="caption" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Header.Opponent.Rank}" FontWeight="SemiBold" Foreground="{StaticResource Accent}" HorizontalAlignment="Right" Margin="0,3,0,0"
+                                           IsVisible="{Binding Header.Opponent.Rank, Converter={StaticResource Truthy}}" />
+                            </StackPanel>
+                            <Border Width="60" Height="60" CornerRadius="30" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
+                                    ClipToBounds="True" i:CardArt.Portrait="{Binding Header.Opponent.HeroCardId}" />
+                        </StackPanel>
+                    </Grid>
+                    <Rectangle Height="1" Fill="{StaticResource Border}" Margin="0,16,0,12" />
+                    <ItemsControl ItemsSource="{Binding Header.Facts}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="r:MatchFact">
+                                <StackPanel Width="160" Margin="0,0,14,8">
+                                    <TextBlock Text="{Binding Label}" Classes="label" />
+                                    <TextBlock Text="{Binding Value}" FontWeight="SemiBold" FontSize="14" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding Missing, Converter={StaticResource Truthy}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xF02FC;" Classes="icon" FontSize="18" Foreground="{StaticResource Muted}" Margin="0,0,10,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Missing}" Classes="caption" FontSize="13.5" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <!-- Tabs -->
+            <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,16" IsVisible="{Binding IsConstructed}">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Classes="segment" Content="Replay" GroupName="MatchTab" IsChecked="{Binding ShowReplay}" />
+                    <RadioButton Classes="segment" Content="Decks" GroupName="MatchTab" IsChecked="{Binding ShowDecks}" />
+                    <RadioButton Classes="segment" Content="Analysis" GroupName="MatchTab" IsChecked="{Binding ShowAnalysis}" />
+                </StackPanel>
+            </Border>
+            <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,16" IsVisible="{Binding IsBattlegrounds}">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Classes="segment" Content="Rounds" GroupName="MatchBgTab" IsChecked="{Binding ShowRounds}" />
+                    <RadioButton Classes="segment" Content="Lobby" GroupName="MatchBgTab" IsChecked="{Binding ShowLobby}" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Replay ===== -->
+            <StackPanel IsVisible="{Binding ShowReplay}">
+                <ItemsControl ItemsSource="{Binding Turns}" ItemTemplate="{StaticResource TurnChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,0,0,2" />
+                <TextBlock Text="Turns outlined in gold are yours; M is the mulligan." Classes="caption" FontSize="11.5" Margin="2,0,0,10" />
+                <WrapPanel Margin="0,0,0,14">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,8">
+                        <Button Classes="icon" Content="&#xF0600;" Command="{Binding First}" ToolTip.Tip="First step" />
+                        <Button Classes="icon" Content="&#xF04AE;" Command="{Binding PreviousTurn}" ToolTip.Tip="Previous turn" Margin="4,0,0,0" />
+                        <Button Classes="icon" Content="&#xF0141;" Command="{Binding Previous}" ToolTip.Tip="Previous step" Margin="4,0,0,0" />
+                        <Button Classes="icon" Content="&#xF0142;" Command="{Binding Next}" ToolTip.Tip="Next step" Margin="4,0,0,0" />
+                        <Button Classes="icon" Content="&#xF04AD;" Command="{Binding NextTurn}" ToolTip.Tip="Next turn" Margin="4,0,0,0" />
+                        <Button Classes="icon" Content="&#xF0601;" Command="{Binding Last}" ToolTip.Tip="Last step" Margin="4,0,0,0" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,8">
+                        <Slider Width="300" Minimum="0" Maximum="{Binding FrameMax}" Value="{Binding Frame}" IsSnapToTickEnabled="True" TickFrequency="1" SmallChange="1" LargeChange="5"
+                                VerticalAlignment="Center" ToolTip.Tip="Drag through the game" />
+                        <TextBlock Text="{Binding Position}" Classes="caption" VerticalAlignment="Center" Margin="12,0,0,0" />
+                    </StackPanel>
+                    <Border Classes="segmentBar" Margin="0,0,0,8" ToolTip.Tip="Whose side of the table is at the bottom">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Classes="segment" Content="My side" GroupName="MatchSide" IsChecked="{Binding BottomLocal}" />
+                            <RadioButton Classes="segment" Content="Opponent's side" GroupName="MatchSide" IsChecked="{Binding BottomOpponent}" />
+                        </StackPanel>
+                    </Border>
+                </WrapPanel>
+
+                <Grid ColumnDefinitions="*,16,300" RowDefinitions="Auto,Auto">
+                    <!-- The table -->
+                    <Border Classes="card table" Padding="18,14">
+                        <StackPanel DataContext="{Binding Step}" x:DataType="r:MatchStepView">
+                            <ItemsControl ItemsSource="{Binding Top.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource Row}" MinHeight="80" />
+                            <ContentControl Content="{Binding Top}" ContentTemplate="{StaticResource HeroLine}" />
+                            <ItemsControl ItemsSource="{Binding Top.Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource Row}" MinHeight="88" Margin="0,4" />
+                            <Border Background="{StaticResource Surface2}" CornerRadius="8" Padding="12,7" Margin="0,8">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Text="{Binding Turn}" FontWeight="Bold" Foreground="{StaticResource Accent}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Action}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding Detail}" />
+                                </DockPanel>
+                            </Border>
+                            <ItemsControl ItemsSource="{Binding Bottom.Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource Row}" MinHeight="88" Margin="0,4" />
+                            <ContentControl Content="{Binding Bottom}" ContentTemplate="{StaticResource HeroLine}" />
+                            <ItemsControl ItemsSource="{Binding Bottom.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource Row}" MinHeight="80" />
+                        </StackPanel>
+                    </Border>
+                    <!-- The turn's actions -->
+                    <Border Grid.Column="2" Classes="card actions" Padding="16,14">
+                        <DockPanel>
+                            <c:Ornament DockPanel.Dock="Top" Text="This turn" Icon="&#xF0467;" Size="13" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding Actions}" ItemTemplate="{StaticResource ActionRow}" />
+                        </DockPanel>
+                    </Border>
+                </Grid>
+                <TextBlock Text="Only what you could see: the opponent's hand and both decks stay card backs, as they were on screen."
+                           Classes="caption" FontSize="11.5" Margin="2,10,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- ===== Decks ===== -->
+            <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowDecks}">
+                <Border Classes="card first" VerticalAlignment="Top">
+                    <StackPanel>
+                        <c:Ornament Text="Your deck" Icon="&#xF0638;" Size="13" Margin="0,0,0,4" />
+                        <TextBlock Text="{Binding LocalDeckNote}" Classes="caption" Margin="0,0,0,10" TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{Binding LocalDeck}" ItemTemplate="{StaticResource DeckRow}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Classes="card second" VerticalAlignment="Top">
+                    <StackPanel>
+                        <c:Ornament Text="Opponent's cards" Icon="&#xF06D0;" Size="13" Margin="0,0,0,4" />
+                        <TextBlock Text="Cards it played from hand, with the turn it first played them. Nothing it kept hidden." Classes="caption"
+                                   Margin="0,0,0,8" TextWrapping="Wrap" />
+                        <Border Classes="pill" HorizontalAlignment="Left" Margin="0,0,0,10" Background="{StaticResource AccentContainer}"
+                                IsVisible="{Binding ArchetypeLine, Converter={StaticResource Truthy}}">
+                            <TextBlock Text="{Binding ArchetypeLine}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding OpponentCards}" ItemTemplate="{StaticResource DeckRow}" />
+                        <TextBlock Text="It played no card from hand." Classes="caption" IsVisible="{Binding OpponentCards, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ===== Analysis (filled in by MatchAnalysis) ===== -->
+            <Border Classes="card" IsVisible="{Binding ShowAnalysis}">
+                <TextBlock Text="Analysis is on its way." Classes="caption" />
+            </Border>
+
+            <!-- ===== Battlegrounds rounds ===== -->
+            <ItemsControl ItemsSource="{Binding Rounds}" IsVisible="{Binding ShowRounds}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="r:MatchRoundView">
+                        <Border Classes="card" Margin="0,0,0,12" Padding="20,14">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,10">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Result}" FontWeight="Bold" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Title}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Detail}" Classes="caption" Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                                <WrapPanel>
+                                    <StackPanel Margin="0,0,24,8">
+                                        <TextBlock Text="Your board" Classes="label" Margin="0,0,0,6" />
+                                        <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource BgMinion}" ItemsPanel="{StaticResource Wrap}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8" IsVisible="{Binding OpponentHeroCardId, Converter={StaticResource Truthy}}">
+                                        <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                            <Border Width="44" Height="44" CornerRadius="22" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1"
+                                                    ClipToBounds="True" i:CardArt.Portrait="{Binding OpponentHeroCardId}" ToolTip.Tip="{Binding OpponentHero}" />
+                                            <TextBlock Text="vs" Classes="caption" HorizontalAlignment="Center" />
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding OpponentHero}" Classes="label" Margin="0,0,0,6" />
+                                            <ItemsControl ItemsSource="{Binding OpponentBoard}" ItemTemplate="{StaticResource BgMinion}" ItemsPanel="{StaticResource Wrap}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <StackPanel Margin="0,6,0,0" IsVisible="{Binding Shop, Converter={StaticResource Truthy}}">
+                                    <TextBlock Text="Tavern offers" Classes="label" Margin="0,0,0,6" />
+                                    <ItemsControl ItemsSource="{Binding Shop}" ItemTemplate="{StaticResource BgMinion}" ItemsPanel="{StaticResource Wrap}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- ===== Battlegrounds lobby ===== -->
+            <Border Classes="card" IsVisible="{Binding ShowLobby}">
+                <StackPanel>
+                    <c:Ornament Text="Lobby" Icon="&#xF0849;" Size="13" Margin="0,0,0,8" />
+                    <ItemsControl ItemsSource="{Binding Lobby}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="r:MatchLobbyRow">
+                                <Border Classes="row" Padding="10,6">
+                                    <Grid ColumnDefinitions="48,Auto,*">
+                                        <TextBlock Text="{Binding Place}" Classes.you="{Binding Local}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" VerticalAlignment="Center" />
+                                        <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Margin="0,0,12,0" Background="{StaticResource Surface4}" ClipToBounds="True"
+                                                i:CardArt.Portrait="{Binding HeroCardId}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Hero}" Classes.you="{Binding Local}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

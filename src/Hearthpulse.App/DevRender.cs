@@ -75,6 +75,7 @@ public partial class App
             await RenderMyStatsAsync(folder);
             await RenderBattlegroundsTiersAsync(folder);
             await RenderDeckPageAsync(folder);
+            await RenderMatchPageAsync(folder);
 
             // The stats pool banner and switch, as a first start shows them (settings are not changed).
             if (_settings.PoolConsent is null)

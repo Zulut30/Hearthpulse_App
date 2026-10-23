@@ -217,6 +217,16 @@ public partial class MainView : UserControl
                 UpdatePages();
                 PageDeck.Offset = default;
                 break;
+            case nameof(MainViewModel.MatchOpen):
+                // A game opened from the Overview's recent games goes to History, where its page lives.
+                if (_viewModel.MatchOpen && NavHistory.IsChecked != true)
+                {
+                    NavHistory.IsChecked = true;
+                }
+
+                UpdatePages();
+                PageMatch.Offset = default;
+                break;
         }
     }
 
@@ -229,7 +239,10 @@ public partial class MainView : UserControl
         PageConstructed.IsVisible = NavConstructed.IsChecked == true && !deckOpen;
         PageDeck.IsVisible = NavConstructed.IsChecked == true && deckOpen;
         PageArena.IsVisible = NavArena.IsChecked == true;
-        PageHistory.IsVisible = NavHistory.IsChecked == true;
+        // The match page stands in for the History list while a game is open.
+        var matchOpen = _viewModel?.MatchOpen == true;
+        PageHistory.IsVisible = NavHistory.IsChecked == true && !matchOpen;
+        PageMatch.IsVisible = NavHistory.IsChecked == true && matchOpen;
         PageSettings.IsVisible = NavSettings.IsChecked == true;
         // Panels of a page that was hidden are created on its first layout.
         Dispatcher.UIThread.Post(UpdateTilePanels, DispatcherPriority.Loaded);
@@ -287,6 +300,7 @@ public partial class MainView : UserControl
             return;
         }
 
+        _viewModel.CloseMatch();
         NavHistory.IsChecked = true;
         var refilter = _viewModel.HistoryFilter != "All";
         if (refilter)

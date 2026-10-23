@@ -145,7 +145,8 @@ public sealed class ReplayRecorder : IPowerListener
         Emit("B");
         if (source is { Zone: not "HAND" })
         {
-            EmitPlay(game, pending);
+            // Already on the table: a hero power or a location being used, not a card played from hand.
+            EmitPlay(game, pending, used: true);
         }
     }
 
@@ -423,7 +424,7 @@ public sealed class ReplayRecorder : IPowerListener
         Emit(string.Create(CultureInfo.InvariantCulture, $"X {shown.Id}"));
     }
 
-    private void EmitPlay(GameState game, Pending block)
+    private void EmitPlay(GameState game, Pending block, bool used = false)
     {
         if (block.Source is not { } source || !_shown.TryGetValue(source.Id, out var shown))
         {
@@ -431,7 +432,7 @@ public sealed class ReplayRecorder : IPowerListener
         }
 
         block.Emitted = true;
-        Emit($"P {shown.Id} {FaceUpId(block.Target)}");
+        Emit($"{(used ? 'U' : 'P')} {shown.Id} {FaceUpId(block.Target)}");
     }
 
     private void EmitAttack(GameState game, Pending block, int defender)

@@ -80,6 +80,9 @@ public enum ReplayActionKind
     TurnStart,
     Play,
     HeroPower,
+
+    /// <summary>A card on the table used (a location).</summary>
+    Use,
     Attack,
     Choice,
     End,
@@ -298,7 +301,10 @@ public sealed class MatchReplay
                     _pendingPlay = true;
                     break;
                 case "P":
-                    Play(t);
+                    Play(t, used: false);
+                    break;
+                case "U":
+                    Play(t, used: true);
                     break;
                 case "A":
                     var attacker = Card(t[1]);
@@ -336,10 +342,10 @@ public sealed class MatchReplay
 
         private int _turnStartFrame;
 
-        private void Play(string[] t)
+        private void Play(string[] t, bool used)
         {
             var card = Card(t[1]);
-            var kind = card?.Type == "HERO_POWER" ? ReplayActionKind.HeroPower : ReplayActionKind.Play;
+            var kind = card?.Type == "HERO_POWER" ? ReplayActionKind.HeroPower : used ? ReplayActionKind.Use : ReplayActionKind.Play;
             var action = new ReplayAction(kind, card?.Player ?? _active) { CardId = card?.CardId, TargetId = Card(t[2])?.CardId };
             if (_pendingPlay)
             {

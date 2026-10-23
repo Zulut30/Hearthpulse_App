@@ -298,7 +298,7 @@ internal static class ReplayChecks
                 case "Z":
                     Assert.True(live.ContainsKey(t[1]), line);
                     break;
-                case "P" or "A":
+                case "P" or "U" or "A":
                     Assert.True(t[2] == "-" || (live.TryGetValue(t[2], out var aimed) && !aimed.Hidden), $"hidden target: {line}");
                     break;
             }

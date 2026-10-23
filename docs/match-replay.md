@@ -50,7 +50,8 @@ Events (space-separated; `L`/`O` = local/opponent side; `n` = replay id; `-` = u
 | `X n` | Card `n` left view (moved to a hidden zone under a new id, or set aside) |
 | `V n TAG v` | Face-up tag change (`n` may be `L`/`O` for the player: mana) |
 | `B` | A card is about to be played: a step boundary (its `P` follows once the card left the hand) |
-| `P n target` | Card `n` played (target `n` or `-`) |
+| `P n target` | Card `n` played from hand (target `n` or `-`) |
+| `U n target` | Card `n` already on the table used: hero power, location |
 | `A n target` | `n` attacks `target` |
 | `C kind source opt,opt,..` | Local choice offered (Discover etc.); `c card` = picked |
 | `Z n pos` | Card `n` moved within its zone |

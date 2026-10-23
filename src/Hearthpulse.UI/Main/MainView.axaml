@@ -6,6 +6,7 @@
              xmlns:core="using:Hearthpulse.Core"
              xmlns:s="using:Hearthpulse.UI.Main.Stats"
              xmlns:dk="using:Hearthpulse.UI.Main.Decks"
+             xmlns:mt="using:Hearthpulse.UI.Main.Match"
              x:Class="Hearthpulse.UI.Main.MainView"
              x:DataType="m:MainViewModel"
              Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
@@ -46,6 +47,13 @@
                                Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip.Tip="Rating change" />
                 </Grid>
             </Border>
+        </DataTemplate>
+
+        <!-- A game row that opens the match page (History, recent games) -->
+        <DataTemplate x:Key="OpenGameRow" x:DataType="m:GameRow">
+            <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="Open the match: replay, decks and analysis"
+                    Command="{Binding $parent[m:MainView].((m:MainViewModel)DataContext).OpenMatch}" CommandParameter="{Binding}"
+                    Content="{Binding}" ContentTemplate="{StaticResource GameRowTemplate}" />
         </DataTemplate>
 
         <ItemsPanelTemplate x:Key="TilesPanel">
@@ -305,7 +313,7 @@
                                     <c:Ornament Text="Recent games" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
                                     <Button Content="View all" Classes="ghost" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
                                 </Grid>
-                                <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource GameRowTemplate}" />
+                                <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
                                 <TextBlock Text="No games yet. Finished games appear here automatically." Classes="caption" Margin="0,8"
                                            IsVisible="{Binding Recent, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                             </StackPanel>
@@ -738,10 +746,15 @@
                         </Border>
                     </Grid>
                     <Border Grid.Row="1" Classes="card" Padding="22,10">
-                        <ListBox Name="HistoryList" Classes="plain history" ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource GameRowTemplate}"
+                        <ListBox Name="HistoryList" Classes="plain history" ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource OpenGameRow}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="10,0" />
                     </Border>
                 </Grid>
+
+                <!-- ===== Match page (Main/Match): replaces the History list while a game is open ===== -->
+                <ScrollViewer Name="PageMatch" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                    <mt:MatchView Name="MatchDetails" DataContext="{Binding MatchPage}" />
+                </ScrollViewer>
 
                 <!-- ===== Settings ===== -->
                 <ScrollViewer Name="PageSettings" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">

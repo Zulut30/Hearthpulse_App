@@ -109,6 +109,18 @@ public partial class MainWindow : Window
                 }
 
                 break;
+            case nameof(MainViewModel.MatchOpen):
+                // A game opened from the Overview's recent games goes to History, where its page lives.
+                if (_viewModel.MatchOpen && NavHistory.IsChecked != true)
+                {
+                    NavHistory.IsChecked = true;
+                }
+                else if (NavHistory.IsChecked == true)
+                {
+                    OnNavigate(this, new RoutedEventArgs());
+                }
+
+                break;
         }
     }
 
@@ -136,9 +148,16 @@ public partial class MainWindow : Window
         }
 
         PageArena.Visibility = NavArena.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        PageHistory.Visibility = NavHistory.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        // The match page stands in for the History list while a game is open.
+        PageHistory.Visibility = NavHistory.IsChecked == true && !_viewModel.MatchOpen ? Visibility.Visible : Visibility.Collapsed;
+        PageMatch.Visibility = NavHistory.IsChecked == true && _viewModel.MatchOpen ? Visibility.Visible : Visibility.Collapsed;
+        if (PageMatch.Visibility == Visibility.Visible)
+        {
+            PageMatch.ScrollToTop();
+        }
+
         PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        Reveal(new FrameworkElement[] { PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageArena, PageHistory, PageSettings }
+        Reveal(new FrameworkElement[] { PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageArena, PageHistory, PageMatch, PageSettings }
             .First(p => p.Visibility == Visibility.Visible));
         PlacePill(animate: true);
     }
@@ -227,6 +246,9 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>The match page view (used by the UI render check).</summary>
+    public Match.MatchView MatchDetailsPage => MatchDetails;
+
     /// <summary>The deck page view (used by the UI render check).</summary>
     public Decks.DeckDetailsView DeckDetailsPage => DeckDetails;
 
@@ -259,6 +281,7 @@ public partial class MainWindow : Window
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
     private void ShowHistoryGame(string key)
     {
+        _viewModel.CloseMatch();
         NavHistory.IsChecked = true;
         var refilter = _viewModel.HistoryFilter != "All";
         if (refilter)

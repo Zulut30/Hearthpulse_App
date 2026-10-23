@@ -47,6 +47,23 @@ public sealed class MatchReplayTests
     }
 
     [Fact]
+    public void A_location_used_from_the_table_is_not_a_card_played()
+    {
+        var replay = Fold(
+        [
+            .. Card(68, "TLC_100", "PLAY", 2, "LOCATION", "tag=HEALTH value=3"),
+            "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=L id=68 zone=PLAY zonePos=1 cardId=TLC_100 player=2] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
+            Tag(68, "DAMAGE", "1"),
+            "DebugPrintPower() - BLOCK_END",
+        ]);
+
+        var use = Assert.Single(replay.Frames, f => f.Action.Kind == ReplayActionKind.Use);
+        Assert.Equal("TLC_100", use.Action.CardId);
+        Assert.Empty(replay.OpponentPlayed);
+        Assert.Equal(2, Assert.Single(use.Opponent.Minions).Health);
+    }
+
+    [Fact]
     public void An_attack_records_damage_and_the_death_it_caused()
     {
         var replay = Fold(
