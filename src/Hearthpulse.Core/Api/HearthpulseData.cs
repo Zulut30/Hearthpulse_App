@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.Api;
 
@@ -37,6 +38,26 @@ public sealed class HearthpulseData(HearthpulseApi api)
         var rankRange = RankRange(rank);
         using var doc = await FetchAsync($"api/db/archetypes?game_type={gameType}&rank_range={rankRange}&limit=200", $"archetypes-{gameType}-{rankRange}.json", cancellationToken).ConfigureAwait(false);
         return doc is null ? [] : Read(() => ParseArchetypes(Data(doc)), "archetypes", new List<MetaArchetype>());
+    }
+
+    /// <summary>An archetype's HSReplay decklists (Standard Legend), for matching the player's deck to an archetype.</summary>
+    public async Task<IReadOnlyList<GuideDeck>> LoadArchetypeDecksAsync(int archetypeId, CancellationToken cancellationToken = default)
+    {
+        using var doc = await FetchAsync($"api/db/archetypes/{archetypeId}/decks?limit=200", $"archetype-{archetypeId}-decks.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? [] : Read(() => ParseArchetypeDecks(Data(doc)), "archetype decks", new List<GuideDeck>());
+    }
+
+    /// <summary>Every card's mulligan numbers for an archetype (Standard Legend), not only the rows HSReplay displays.</summary>
+    public async Task<IReadOnlyList<GuideCard>> LoadArchetypeMulliganAsync(int archetypeId, CancellationToken cancellationToken = default)
+    {
+        using var doc = await FetchAsync($"api/db/archetypes/{archetypeId}/mulligan?display_only=false&limit=250", $"archetype-{archetypeId}-mulligan.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? [] : Read(() => ParseMulligan(Data(doc)), "archetype mulligan", new List<GuideCard>());
+    }
+
+    public async Task<IReadOnlyList<GuideMatchup>> LoadArchetypeMatchupsAsync(int archetypeId, CancellationToken cancellationToken = default)
+    {
+        using var doc = await FetchAsync($"api/db/archetypes/{archetypeId}/matchups?limit=500", $"archetype-{archetypeId}-matchups.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? [] : Read(() => ParseMatchups(Data(doc)), "archetype matchups", new List<GuideMatchup>());
     }
 
     /// <summary>HSReplay publishes Legend and a few brackets; anything wider than Legend maps to its all-ranks view.</summary>
@@ -125,6 +146,91 @@ public sealed class HearthpulseData(HearthpulseApi api)
         return result;
     }
 
+    /// <summary><c>{"decks": [{"total_games", "raw_deck_list": "[[dbf, copies], ...]"}]}</c>; sideboards are left out.</summary>
+    internal static List<GuideDeck> ParseArchetypeDecks(JsonElement root)
+    {
+        var result = new List<GuideDeck>();
+        if (!root.TryGetProperty("decks", out var list))
+        {
+            return result;
+        }
+
+        foreach (var deck in Items(list))
+        {
+            if (Str(deck, "raw_deck_list") is not { Length: > 0 } raw)
+            {
+                continue;
+            }
+
+            using var cards = JsonDocument.Parse(raw);
+            var counts = new Dictionary<int, int>();
+            foreach (var pair in Items(cards.RootElement, JsonValueKind.Array))
+            {
+                if (pair.GetArrayLength() == 2 && pair[0].TryGetInt32(out var dbf) && pair[1].TryGetInt32(out var copies))
+                {
+                    counts[dbf] = counts.GetValueOrDefault(dbf) + copies;
+                }
+            }
+
+            if (counts.Count > 0)
+            {
+                result.Add(new GuideDeck((int)(Num(deck, "total_games") ?? 0), counts));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary><c>{"mulligan": [...]}</c>; percentages become fractions. Rows without a card id are skipped.</summary>
+    internal static List<GuideCard> ParseMulligan(JsonElement root)
+    {
+        var result = new List<GuideCard>();
+        if (!root.TryGetProperty("mulligan", out var list))
+        {
+            return result;
+        }
+
+        foreach (var row in Items(list))
+        {
+            if (Str(row, "card_id") is not { Length: > 0 } id)
+            {
+                continue;
+            }
+
+            result.Add(new GuideCard(
+                id,
+                (int)(Num(row, "dbf_id") ?? 0),
+                (int)(Num(row, "cost") ?? 0),
+                (int)(Num(row, "times_presented_in_initial_cards") ?? 0),
+                (Num(row, "keep_percentage") ?? 0) / 100,
+                (int)(Num(row, "times_in_opening_hand") ?? 0),
+                Num(row, "opening_hand_winrate") / 100,
+                Num(row, "avg_turn_played_on")));
+        }
+
+        return result;
+    }
+
+    /// <summary><c>{"matchups": [{"opponent_class", "total_games", "win_rate"}]}</c>.</summary>
+    internal static List<GuideMatchup> ParseMatchups(JsonElement root)
+    {
+        var result = new List<GuideMatchup>();
+        if (!root.TryGetProperty("matchups", out var list))
+        {
+            return result;
+        }
+
+        foreach (var m in Items(list))
+        {
+            if (Str(m, "opponent_class") is { Length: > 0 } opponent && Num(m, "win_rate") is { } winRate && Num(m, "total_games") is { } games && games > 0)
+            {
+                result.Add(new GuideMatchup(opponent, (int)games, winRate / 100));
+            }
+        }
+
+        return result;
+    }
+
     private async Task<JsonDocument?> FetchAsync(string path, string cacheName, CancellationToken cancellationToken)
     {
         var file = Path.Combine(AppPaths.Cache, "api", cacheName);
@@ -178,8 +284,8 @@ public sealed class HearthpulseData(HearthpulseApi api)
         }
     }
 
-    private static IEnumerable<JsonElement> Items(JsonElement list) =>
-        list.ValueKind == JsonValueKind.Array ? list.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Object) : [];
+    private static IEnumerable<JsonElement> Items(JsonElement list, JsonValueKind kind = JsonValueKind.Object) =>
+        list.ValueKind == JsonValueKind.Array ? list.EnumerateArray().Where(e => e.ValueKind == kind) : [];
 
     private static string? Str(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;

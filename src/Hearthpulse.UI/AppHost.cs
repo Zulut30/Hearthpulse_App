@@ -56,6 +56,7 @@ public sealed class AppHost : IDisposable
         History = new HistoryStore(AppPaths.Database);
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
+        Session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(Api)));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
         _ = Account.RestoreAsync();
