@@ -7,9 +7,9 @@ using Hearthpulse.Core.Tracking;
 namespace Hearthpulse.Core.Api;
 
 /// <summary>
-/// Community stats from the Hearthpulse API (HSReplay-based): Battlegrounds heroes and minions, ranked Constructed
-/// archetypes. The app's main source stays Firestone; these fill in when it cannot be reached. Answers are cached on
-/// disk, and a stale cache is used when the server is down. Never throws.
+/// Community stats from the Hearthpulse API: Battlegrounds heroes and minions (a fallback for Firestone), and every
+/// ranked Constructed number the app shows (HSGuru meta and decks, HSReplay archetypes, mulligan and matchups).
+/// Answers are cached on disk, and a stale cache is used when the server is down. Never throws.
 /// </summary>
 public sealed class HearthpulseData(HearthpulseApi api)
 {
@@ -58,6 +58,23 @@ public sealed class HearthpulseData(HearthpulseApi api)
     {
         using var doc = await FetchAsync($"api/db/archetypes/{archetypeId}/matchups?limit=500", $"archetype-{archetypeId}-matchups.json", cancellationToken).ConfigureAwait(false);
         return doc is null ? [] : Read(() => ParseMatchups(Data(doc)), "archetype matchups", new List<GuideMatchup>());
+    }
+
+    /// <summary>
+    /// HSGuru's meta for one format, rank and period (keys as the API takes them, e.g. "standard", "legend",
+    /// "past_week"), with the periods the API offers. Null when neither the server nor the cache has it.
+    /// </summary>
+    public async Task<HsguruMetaSlice?> LoadHsguruMetaAsync(string format, string rank, string period, CancellationToken cancellationToken = default)
+    {
+        using var doc = await FetchAsync($"v1/hsguru/meta?format={format}&rank={rank}&period={Uri.EscapeDataString(period)}&min_games=100", $"hsguru-meta-{format}-{rank}-{period}.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? null : Read<HsguruMetaSlice?>(() => ParseHsguruMeta(doc.RootElement), "HSGuru meta", null);
+    }
+
+    /// <summary>Every HSGuru archetype of a format (current expansion, all ranks) with its most played decklists.</summary>
+    public async Task<IReadOnlyList<HsguruArchetype>> LoadHsguruArchetypesAsync(string format, CancellationToken cancellationToken = default)
+    {
+        using var doc = await FetchAsync($"v1/hsguru/archetypes?format={format}&min_games=50&limit=500", $"hsguru-archetypes-{format}.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? [] : Read(() => ParseHsguruArchetypes(Data(doc)), "HSGuru archetypes", new List<HsguruArchetype>());
     }
 
     /// <summary>HSReplay publishes Legend and a few brackets; anything wider than Legend maps to its all-ranks view.</summary>
@@ -141,6 +158,65 @@ public sealed class HearthpulseData(HearthpulseApi api)
                 winRate,
                 (Num(a, "pct_of_total") ?? 0) / 100,
                 0, 0, 0, 0, [], []));
+        }
+
+        return result;
+    }
+
+    /// <summary>The cached <c>{"data": {"items": [...]}, "meta": {"fetched_at", "current_period", "current_patch_period"}}</c>; rates as fractions.</summary>
+    internal static HsguruMetaSlice ParseHsguruMeta(JsonElement root)
+    {
+        var items = new List<HsguruMetaItem>();
+        if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object && data.TryGetProperty("items", out var list))
+        {
+            foreach (var item in Items(list))
+            {
+                if (Str(item, "archetype") is { Length: > 0 } name && Num(item, "winrate") is { } winRate && Num(item, "games") is { } games && games > 0)
+                {
+                    items.Add(new HsguruMetaItem(name, winRate / 100, (Num(item, "popularity") ?? 0) / 100, (int)games));
+                }
+            }
+        }
+
+        var meta = root.TryGetProperty("meta", out var m) && m.ValueKind == JsonValueKind.Object ? m : default;
+        var fetched = meta.ValueKind == JsonValueKind.Object && Str(meta, "fetched_at") is { } at
+                      && DateTime.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var time)
+            ? time
+            : DateTime.MinValue;
+        return new HsguruMetaSlice(
+            items,
+            fetched,
+            meta.ValueKind == JsonValueKind.Object ? Str(meta, "current_period") : null,
+            meta.ValueKind == JsonValueKind.Object ? Str(meta, "current_patch_period") : null);
+    }
+
+    /// <summary><c>[{"archetype", "games", "winrate", "decks": [{"class", "deck_code", "games", "win_rate", "updated_at"}]}]</c>.</summary>
+    internal static List<HsguruArchetype> ParseHsguruArchetypes(JsonElement list)
+    {
+        var result = new List<HsguruArchetype>();
+        foreach (var a in Items(list))
+        {
+            if (Str(a, "archetype") is not { Length: > 0 } name)
+            {
+                continue;
+            }
+
+            var decks = new List<HsguruDeck>();
+            if (a.TryGetProperty("decks", out var deckList))
+            {
+                foreach (var d in Items(deckList))
+                {
+                    if (Str(d, "deck_code") is { Length: > 0 } code)
+                    {
+                        var updated = Str(d, "updated_at") is { } at && DateTime.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var time)
+                            ? time
+                            : DateTime.MinValue;
+                        decks.Add(new HsguruDeck(code, Str(d, "class") ?? string.Empty, (int)(Num(d, "games") ?? 0), (Num(d, "win_rate") ?? 0) / 100, updated));
+                    }
+                }
+            }
+
+            result.Add(new HsguruArchetype(name, (int)(Num(a, "games") ?? 0), (Num(a, "winrate") ?? 0) / 100, decks));
         }
 
         return result;
@@ -240,18 +316,22 @@ public sealed class HearthpulseData(HearthpulseApi api)
             var result = await api.GetAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (result.Ok)
             {
+                // "meta" (periods, fetch time) is kept next to "data" when the endpoint sends it.
+                var text = result.Meta.ValueKind == JsonValueKind.Undefined
+                    ? JsonSerializer.Serialize(new { data = result.Data })
+                    : JsonSerializer.Serialize(new { data = result.Data, meta = result.Meta });
                 try
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(file)!);
                     // The whole answer is kept (not only "data"): some endpoints put their list next to it.
-                    await File.WriteAllTextAsync(file, JsonSerializer.Serialize(new { data = result.Data }), cancellationToken).ConfigureAwait(false);
+                    await File.WriteAllTextAsync(file, text, cancellationToken).ConfigureAwait(false);
                 }
                 catch (IOException ex)
                 {
                     Diag.Error($"Hearthpulse API cache not written ({cacheName})", ex);
                 }
 
-                return JsonDocument.Parse(JsonSerializer.Serialize(new { data = result.Data }));
+                return JsonDocument.Parse(text);
             }
 
             Diag.Info($"Hearthpulse API {path}: {result.Error!.Code} {result.Error.Message}");

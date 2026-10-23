@@ -21,15 +21,26 @@ public sealed record MetaArchetype(
     int CoinGames,
     double CoinWinRate,
     IReadOnlyList<string> CoreCards,
-    IReadOnlyList<MetaMulliganCard> Mulligan);
+    IReadOnlyList<MetaMulliganCard> Mulligan)
+{
+    /// <summary>
+    /// The win rate the mulligan numbers compare against: the deck's win rate over the same games (they come from
+    /// HSReplay while <see cref="WinRate"/> is HSGuru's). Null means <see cref="WinRate"/> (one source for both).
+    /// </summary>
+    public double? MulliganBaseline { get; init; }
+
+    /// <summary>The HSReplay archetype the mulligan numbers belong to; several HSGuru archetypes can share one.</summary>
+    public int? MulliganArchetypeId { get; init; }
+}
 
 public sealed record MetaDeck(string DeckString, int ArchetypeId, string Archetype, string Class, int Games, int Wins, double WinRate, DateTime LastSeen);
 
 public sealed record MetaOption(string Key, string Label);
 
 /// <summary>
-/// Ranked Constructed stats published by Firestone (zerotoheroes.com): archetypes with win rate, popularity, coin
-/// split and mulligan data, plus the most played decklists. One instance holds one format, rank and time period.
+/// Ranked Constructed stats: archetypes with win rate, popularity and mulligan data, plus the most played decklists.
+/// One instance holds one format, rank and time period. The app loads them from the Hearthpulse API
+/// (<see cref="ApiConstructedMeta"/>: HSGuru meta and decks, HSReplay mulligan); the Firestone loader is kept but unused.
 /// </summary>
 public sealed class ConstructedMeta
 {
@@ -42,23 +53,52 @@ public sealed class ConstructedMeta
 
     public static IReadOnlyList<MetaOption> Formats { get; } = [new("standard", "Standard"), new("wild", "Wild")];
 
+    /// <summary>
+    /// HSGuru's rank brackets (the keys are the API's). The API also has diamond, diamond_4to1 and top_legend; six
+    /// fit the page's filter row.
+    /// </summary>
     public static IReadOnlyList<MetaOption> Ranks { get; } =
     [
         new("all", "All ranks"),
-        new("bronze-gold", "Bronze–Gold"),
-        new("platinum", "Platinum"),
-        new("diamond", "Diamond"),
+        new("diamond_to_legend", "Diamond+"),
         new("legend", "Legend"),
-        new("top-2000-legend", "Top 2000"),
+        new("top_5k", "Top 5K"),
+        new("top_500", "Top 500"),
+        new("top_100", "Top 100"),
     ];
 
+    /// <summary>
+    /// HSGuru's periods; "expansion" and "patch" stand for whatever the API calls the current ones. The API also has
+    /// 3 and 6 hours and 2 weeks.
+    /// </summary>
     public static IReadOnlyList<MetaOption> Periods { get; } =
     [
-        new("past-3", "3 days"),
-        new("past-7", "7 days"),
-        new("past-20", "20 days"),
-        new("last-patch", "Patch"),
+        new("past_day", "1 day"),
+        new("past_3_days", "3 days"),
+        new("past_week", "7 days"),
+        new("past_30_days", "30 days"),
+        new("patch", "Patch"),
+        new("expansion", "Expansion"),
     ];
+
+    /// <summary>Filter keys saved by earlier versions (Firestone's) and the option they become.</summary>
+    private static readonly Dictionary<string, string> OldKeys = new(StringComparer.Ordinal)
+    {
+        ["bronze-gold"] = "all",
+        ["platinum"] = "all",
+        ["diamond"] = "diamond_to_legend",
+        ["top-2000-legend"] = "top_5k",
+        ["past-3"] = "past_3_days",
+        ["past-7"] = "past_week",
+        ["past-20"] = "past_30_days",
+        ["last-patch"] = "patch",
+    };
+
+    private static readonly IReadOnlyList<MetaOption> FirestoneRanks =
+        [new("all", "All ranks"), new("bronze-gold", "Bronze–Gold"), new("platinum", "Platinum"), new("diamond", "Diamond"), new("legend", "Legend"), new("top-2000-legend", "Top 2000")];
+
+    private static readonly IReadOnlyList<MetaOption> FirestonePeriods =
+        [new("past-3", "3 days"), new("past-7", "7 days"), new("past-20", "20 days"), new("last-patch", "Patch")];
 
     private static readonly HashSet<string> Acronyms = new(StringComparer.Ordinal) { "dk", "dh", "xl", "otk", "bbu", "bub", "ubb", "fff", "uuu", "bbb" };
 
@@ -85,7 +125,7 @@ public sealed class ConstructedMeta
     public int Games { get; }
 
     /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/> unless a fallback was used).</summary>
-    public string Source { get; private init; } = Attribution;
+    public string Source { get; internal init; } = Attribution;
 
     /// <summary>Most played first.</summary>
     public IReadOnlyList<MetaArchetype> Archetypes { get; }
@@ -93,22 +133,31 @@ public sealed class ConstructedMeta
     /// <summary>Most played first.</summary>
     public IReadOnlyList<MetaDeck> Decks { get; }
 
-    public static string Key(IReadOnlyList<MetaOption> options, string? key) =>
-        options.FirstOrDefault(o => string.Equals(o.Key, key, StringComparison.Ordinal))?.Key ?? options[0].Key;
+    public static string Key(IReadOnlyList<MetaOption> options, string? key) => Option(options, key).Key;
 
-    public static string Label(IReadOnlyList<MetaOption> options, string? key) =>
-        options.FirstOrDefault(o => string.Equals(o.Key, key, StringComparison.Ordinal))?.Label ?? options[0].Label;
+    public static string Label(IReadOnlyList<MetaOption> options, string? key) => Option(options, key).Label;
+
+    private static MetaOption Option(IReadOnlyList<MetaOption> options, string? key) =>
+        options.FirstOrDefault(o => string.Equals(o.Key, key, StringComparison.Ordinal))
+        ?? options.FirstOrDefault(o => key is not null && OldKeys.TryGetValue(key, out var renamed) && o.Key == renamed)
+        ?? options[0];
+
+    /// <summary>Loads the stats from the Hearthpulse API (<see cref="ApiConstructedMeta"/>); null when it has nothing.</summary>
+    /// <param name="locale">The card language; "ruRU" shows Russian archetype names.</param>
+    public static Task<ConstructedMeta?> LoadAsync(Api.HearthpulseData data, Cards.CardDb cards, string? format, string? rank, string? period, string? locale, CancellationToken cancellationToken = default) =>
+        ApiConstructedMeta.LoadAsync(data, cards, Key(Formats, format), Key(Ranks, rank ?? "all"), Key(Periods, period ?? "past_week"), locale, cancellationToken);
 
     /// <summary>
-    /// Loads Firestone's stats; when they cannot be had, <paramref name="fallback"/> (the Hearthpulse API) supplies the
-    /// archetypes (win rate and popularity, without decklists or mulligan data).
+    /// Loads Firestone's stats (Firestone rank and period keys); when they cannot be had, <paramref name="fallback"/>
+    /// supplies the archetypes (win rate and popularity, without decklists or mulligan data). Not called by the app since
+    /// Constructed moved to the Hearthpulse API (<see cref="LoadAsync(Api.HearthpulseData, Cards.CardDb, string?, string?, string?, string?, CancellationToken)"/>).
     /// </summary>
-    public static async Task<ConstructedMeta?> LoadAsync(HttpClient http, string? format, string? rank, string? period, CancellationToken cancellationToken = default, Api.HearthpulseData? fallback = null)
+    public static async Task<ConstructedMeta?> LoadFirestoneAsync(HttpClient http, string? format, string? rank, string? period, CancellationToken cancellationToken = default, Api.HearthpulseData? fallback = null)
     {
         // Only known keys reach the URL and the cache file name.
         format = Key(Formats, format);
-        rank = Key(Ranks, rank ?? "all");
-        period = Key(Periods, period ?? "past-7");
+        rank = Key(FirestoneRanks, rank ?? "all");
+        period = Key(FirestonePeriods, period ?? "past-7");
         var tail = $"{format}/{rank}/{period}/overview-from-hourly.gz.json";
         var tag = $"{format}-{rank}-{period}";
 

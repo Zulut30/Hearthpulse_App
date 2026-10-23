@@ -390,7 +390,7 @@ public partial class App : Application
         var request = ++_constructedMetaRequest;
         try
         {
-            var meta = await ConstructedMeta.LoadAsync(_http, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, fallback: new HearthpulseData(_api));
+            var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, _cards.Locale);
             if (request == _constructedMetaRequest)
             {
                 _constructedMeta = meta ?? _constructedMeta;

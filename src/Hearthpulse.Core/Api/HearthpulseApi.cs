@@ -28,7 +28,12 @@ public sealed class ApiResult
 
     public bool Ok => Error is null;
 
+    /// <summary>The <c>meta</c> element next to <c>data</c> (paging, periods, freshness), or <c>default</c> when there is none.</summary>
+    public JsonElement Meta { get; private init; }
+
     internal static ApiResult Success(JsonElement data) => new(data, null);
+
+    internal static ApiResult Success(JsonElement data, JsonElement meta) => new(data, null) { Meta = meta };
 
     internal static ApiResult Failure(ApiError error) => new(default, error);
 }
@@ -103,7 +108,12 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
 
         if (status is >= 200 and < 300)
         {
-            return ApiResult.Success(root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var data) ? data : root);
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var data))
+            {
+                return ApiResult.Success(data, root.TryGetProperty("meta", out var meta) ? meta : default);
+            }
+
+            return ApiResult.Success(root);
         }
 
         var code = StatusCode(status);

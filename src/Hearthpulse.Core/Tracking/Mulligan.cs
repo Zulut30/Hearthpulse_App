@@ -49,8 +49,8 @@ public sealed record MulliganView(string Context, double BaseWinRate, IReadOnlyL
 
 /// <summary>
 /// Builds the mulligan panel while the local player chooses their opening hand (docs/mulligan-v2.md). Numbers come
-/// from the Hearthpulse API (HSReplay Legend, Standard) for the archetype the deck matches; Firestone's archetype data
-/// is the fallback (other formats, unknown deck, server down), pooled over the class when no archetype matches.
+/// from the Hearthpulse API (HSReplay Legend, Standard) for the archetype the deck matches; the meta's archetypes
+/// (<see cref="ConstructedMeta"/>, matched by core cards) are the fallback, pooled over the class when none matches.
 /// </summary>
 public static class Mulligan
 {
@@ -101,24 +101,28 @@ public static class Mulligan
     }
 
     /// <summary>
-    /// Firestone's numbers in the guide's shape: the archetype the deck matches, or every archetype of the class pooled
+    /// The meta's numbers in the guide's shape: the archetype the deck matches, or every archetype of the class pooled
     /// (weighted by how often each card was offered) when the deck is unknown or matches none.
     /// </summary>
     internal static GuideArchetype? FromMeta(ConstructedMeta meta, CardDb cards, string playerClass, IReadOnlyDictionary<string, int>? deck)
     {
+        // An archetype without mulligan numbers (no HSReplay counterpart) leaves the class pool to speak for it.
         var archetype = deck is { Count: > 0 } ? meta.Match(playerClass, deck.Keys.ToList()) : null;
-        if (archetype is not null)
+        if (archetype is { Mulligan.Count: > 0 })
         {
             return new GuideArchetype(archetype.Id, archetype.Name, archetype.Class, archetype.Mulligan.Select(m => Card(m, cards)).ToList(), [], meta.Source)
             {
-                BaselineWinRate = archetype.WinRate,
+                BaselineWinRate = archetype.MulliganBaseline ?? archetype.WinRate,
                 WinRate = archetype.WinRate,
                 FirstWinRate = archetype.FirstGames >= MulliganGuide.MinClassGames ? archetype.FirstWinRate : null,
                 CoinWinRate = archetype.CoinGames >= MulliganGuide.MinClassGames ? archetype.CoinWinRate : null,
             };
         }
 
-        var archetypes = meta.ForClass(playerClass).ToList();
+        // Several archetypes can share one HSReplay archetype's numbers: count those once.
+        var archetypes = meta.ForClass(playerClass).Where(a => a.Mulligan.Count > 0)
+            .DistinctBy(a => a.MulliganArchetypeId is { } id ? $"hsreplay-{id}" : $"own-{a.Id}")
+            .ToList();
         if (archetypes.Count == 0)
         {
             return null;
@@ -137,7 +141,8 @@ public static class Mulligan
         var games = archetypes.Sum(a => a.Games);
         return new GuideArchetype(0, $"{Title(playerClass)} (all decks)", playerClass, pooled, [], meta.Source)
         {
-            BaselineWinRate = games > 0 ? archetypes.Sum(a => a.WinRate * a.Games) / games : null,
+            // Mixed sources (HSGuru win rates, HSReplay cards): the cards' own sample gives the baseline.
+            BaselineWinRate = games > 0 && archetypes.All(a => a.MulliganBaseline is null) ? archetypes.Sum(a => a.WinRate * a.Games) / games : null,
         };
     }
 
