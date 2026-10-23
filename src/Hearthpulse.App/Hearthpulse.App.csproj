@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Hearthpulse.App</RootNamespace>
+    <AssemblyName>Hearthpulse</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\hearthpulse.ico</ApplicationIcon>
+    <Version>0.7.8</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- PerMonitorV2 is declared in app.manifest for WPF; the WinForms analyzer only covers the tray icon. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hearthpulse.Core\Hearthpulse.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\hearthpulse.ico" />
+    <Resource Include="Assets\hearthpulse.png" />
+    <!-- Montserrat: SIL Open Font License 1.1. Material Design Icons: Pictogrammers (Apache 2.0). -->
+    <Resource Include="Assets\Fonts\*.ttf" />
+    <!-- The theme source is also kept as text so other colour themes can be built from it at runtime. -->
+    <EmbeddedResource Include="Themes\Theme.xaml" LogicalName="Hearthpulse.Theme.xaml" />
+  </ItemGroup>
+
+</Project>
+

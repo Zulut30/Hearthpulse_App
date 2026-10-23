@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Hearthpulse.Core/Hearthpulse.Core.csproj" />
+    <Project Path="src/Hearthpulse.UI/Hearthpulse.UI.csproj" />
+    <Project Path="src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj" />
+    <Project Path="src/Hearthpulse.App/Hearthpulse.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Hearthpulse.Probe/Hearthpulse.Probe.csproj" />
+  </Folder>
+</Solution>

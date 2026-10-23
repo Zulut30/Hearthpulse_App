@@ -1,0 +1,10 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:main="using:Hearthpulse.UI.Main"
+        x:Class="Hearthpulse.Desktop.MainWindow"
+        Title="Hearthpulse" Width="1260" Height="840" MinWidth="480" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Icon="avares://Hearthpulse.UI/Assets/hearthpulse.ico"
+        Background="{StaticResource Bg}">
+    <main:MainView Name="View" />
+</Window>

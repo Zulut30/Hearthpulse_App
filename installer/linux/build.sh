@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Linux packages of the cross-platform app (needs the .NET 10 SDK; dpkg-deb and rpmbuild for the packages):
-#   dist/hearthlens_<version>_<amd64|arm64>.deb          Debian, Ubuntu, Mint, Pop!_OS…
-#   dist/hearthlens-<version>-1.<x86_64|aarch64>.rpm     Fedora, openSUSE, RHEL…
-#   dist/Hearthlens-<version>-linux-<x64|arm64>.tar.gz   any distribution: unpack and run ./install.sh
-#   dist/Hearthlens-<version>-linux-<x64|arm64>.AppImage when appimagetool is installed
+#   dist/hearthpulse_<version>_<amd64|arm64>.deb          Debian, Ubuntu, Mint, Pop!_OS…
+#   dist/hearthpulse-<version>-1.<x86_64|aarch64>.rpm     Fedora, openSUSE, RHEL…
+#   dist/Hearthpulse-<version>-linux-<x64|arm64>.tar.gz   any distribution: unpack and run ./install.sh
+#   dist/Hearthpulse-<version>-linux-<x64|arm64>.AppImage when appimagetool is installed
 # Every package adds a menu entry, the icon and a desktop shortcut, and uninstalls cleanly.
 set -euo pipefail
 
@@ -24,20 +24,20 @@ rm -rf "$WORK"
 mkdir -p "$WORK" "$DIST"
 
 echo "== Publishing the app (linux-$ARCH, self-contained)"
-dotnet publish "$ROOT/src/Hearthlens.Desktop/Hearthlens.Desktop.csproj" -c Release -r "linux-$ARCH" --self-contained true \
+dotnet publish "$ROOT/src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj" -c Release -r "linux-$ARCH" --self-contained true \
   -p:Version="$VERSION" -o "$WORK/app" -nologo -v q
-chmod +x "$WORK/app/Hearthlens"
+chmod +x "$WORK/app/Hearthpulse"
 
 # ---- Shared system layout for .deb and .rpm -------------------------------------------------
 SYS="$WORK/sysroot"
-mkdir -p "$SYS/opt/hearthlens" "$SYS/usr/bin" "$SYS/usr/share/applications" "$SYS/usr/share/pixmaps"
-cp -a "$WORK/app" "$SYS/opt/hearthlens/app"
-ln -s /opt/hearthlens/app/Hearthlens "$SYS/usr/bin/hearthlens"
-install -m 644 "$HERE/hearthlens.desktop" "$SYS/usr/share/applications/hearthlens.desktop"
+mkdir -p "$SYS/opt/hearthpulse" "$SYS/usr/bin" "$SYS/usr/share/applications" "$SYS/usr/share/pixmaps"
+cp -a "$WORK/app" "$SYS/opt/hearthpulse/app"
+ln -s /opt/hearthpulse/app/Hearthpulse "$SYS/usr/bin/hearthpulse"
+install -m 644 "$HERE/hearthpulse.desktop" "$SYS/usr/share/applications/hearthpulse.desktop"
 for size in 16 24 32 48 64 128 256 512; do
-  install -D -m 644 "$ASSETS/icons/hearthlens-$size.png" "$SYS/usr/share/icons/hicolor/${size}x${size}/apps/hearthlens.png"
+  install -D -m 644 "$ASSETS/icons/hearthpulse-$size.png" "$SYS/usr/share/icons/hicolor/${size}x${size}/apps/hearthpulse.png"
 done
-install -m 644 "$ASSETS/icons/hearthlens-256.png" "$SYS/usr/share/pixmaps/hearthlens.png"
+install -m 644 "$ASSETS/icons/hearthpulse-256.png" "$SYS/usr/share/pixmaps/hearthpulse.png"
 
 # Scripts shared by both package formats: desktop shortcut for the installing user, caches, clean removal.
 cat > "$WORK/after-install.sh" <<'SH'
@@ -51,19 +51,19 @@ if [ -n "$user" ] && [ "$user" != root ]; then
   desk="$(su "$user" -s /bin/sh -c 'xdg-user-dir DESKTOP' 2>/dev/null || true)"
   { [ -n "$desk" ] && [ "$desk" != "$home" ]; } || desk="$home/Desktop"
   if [ -d "$desk" ]; then
-    install -m 755 -o "$user" /usr/share/applications/hearthlens.desktop "$desk/hearthlens.desktop" || true
-    su "$user" -s /bin/sh -c "gio set '$desk/hearthlens.desktop' metadata::trusted true" 2>/dev/null || true
-    mkdir -p /var/lib/hearthlens
-    echo "$desk/hearthlens.desktop" >> /var/lib/hearthlens/desktop-shortcuts
+    install -m 755 -o "$user" /usr/share/applications/hearthpulse.desktop "$desk/hearthpulse.desktop" || true
+    su "$user" -s /bin/sh -c "gio set '$desk/hearthpulse.desktop' metadata::trusted true" 2>/dev/null || true
+    mkdir -p /var/lib/hearthpulse
+    echo "$desk/hearthpulse.desktop" >> /var/lib/hearthpulse/desktop-shortcuts
   fi
 fi
 true
 SH
 cat > "$WORK/before-remove.sh" <<'SH'
-pkill -x Hearthlens 2>/dev/null || true
-if [ -f /var/lib/hearthlens/desktop-shortcuts ]; then
-  while read -r shortcut; do rm -f "$shortcut"; done < /var/lib/hearthlens/desktop-shortcuts
-  rm -rf /var/lib/hearthlens
+pkill -x Hearthpulse 2>/dev/null || true
+if [ -f /var/lib/hearthpulse/desktop-shortcuts ]; then
+  while read -r shortcut; do rm -f "$shortcut"; done < /var/lib/hearthpulse/desktop-shortcuts
+  rm -rf /var/lib/hearthpulse
 fi
 true
 SH
@@ -73,7 +73,7 @@ true
 SH
 
 SUMMARY="Hearthstone companion: deck tracker, Battlegrounds advisor and in-game overlay"
-DESCRIPTION="Hearthlens reads Hearthstone's own log files (the game runs under Wine, Lutris, Bottles or Steam/Proton) and shows a deck tracker, Battlegrounds advice, combat odds and your match history, plus an in-game overlay on X11 and XWayland. It never changes the game and never shows hidden information."
+DESCRIPTION="Hearthpulse reads Hearthstone's own log files (the game runs under Wine, Lutris, Bottles or Steam/Proton) and shows a deck tracker, Battlegrounds advice, combat odds and your match history, plus an in-game overlay on X11 and XWayland. It never changes the game and never shows hidden information."
 
 # ---- .deb ------------------------------------------------------------------------------------
 if command -v dpkg-deb >/dev/null; then
@@ -84,10 +84,10 @@ if command -v dpkg-deb >/dev/null; then
   SIZE_KB="$(du -sk "$DEB" | cut -f1)"
   ICU="libicu78 | libicu77 | libicu76 | libicu75 | libicu74 | libicu73 | libicu72 | libicu71 | libicu70 | libicu69 | libicu68 | libicu67 | libicu66"
   cat > "$DEB/DEBIAN/control" <<CONTROL
-Package: hearthlens
+Package: hearthpulse
 Version: $VERSION
 Architecture: $DEB_ARCH
-Maintainer: Hearthlens <aqquastudios28@gmail.com>
+Maintainer: Hearthpulse <aqquastudios28@gmail.com>
 Section: games
 Priority: optional
 Installed-Size: $SIZE_KB
@@ -99,8 +99,8 @@ CONTROL
   { echo '#!/bin/sh'; cat "$WORK/before-remove.sh"; } > "$DEB/DEBIAN/prerm"
   { echo '#!/bin/sh'; cat "$WORK/after-remove.sh"; } > "$DEB/DEBIAN/postrm"
   chmod 755 "$DEB/DEBIAN/postinst" "$DEB/DEBIAN/prerm" "$DEB/DEBIAN/postrm"
-  dpkg-deb --root-owner-group -Zxz --build "$DEB" "$DIST/hearthlens_${VERSION}_${DEB_ARCH}.deb" >/dev/null
-  echo "wrote $DIST/hearthlens_${VERSION}_${DEB_ARCH}.deb"
+  dpkg-deb --root-owner-group -Zxz --build "$DEB" "$DIST/hearthpulse_${VERSION}_${DEB_ARCH}.deb" >/dev/null
+  echo "wrote $DIST/hearthpulse_${VERSION}_${DEB_ARCH}.deb"
 fi
 
 # ---- .rpm ------------------------------------------------------------------------------------
@@ -108,13 +108,13 @@ if command -v rpmbuild >/dev/null; then
   echo "== Building .rpm"
   TOP="$WORK/rpm"
   mkdir -p "$TOP"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-  cat > "$TOP/SPECS/hearthlens.spec" <<SPEC
-Name:           hearthlens
+  cat > "$TOP/SPECS/hearthpulse.spec" <<SPEC
+Name:           hearthpulse
 Version:        $VERSION
 Release:        1
 Summary:        $SUMMARY
 License:        Proprietary
-URL:            https://github.com/Dev-NotAqua/HeartLens
+URL:            https://github.com/Zulut30/IceCrowV2
 AutoReqProv:    no
 Requires:       libX11, libXext, libXi, libXrandr, libXcursor, libICE, libSM, fontconfig, libicu
 %global debug_package %{nil}
@@ -129,11 +129,11 @@ mkdir -p %{buildroot}
 cp -a $SYS/. %{buildroot}/
 
 %files
-/opt/hearthlens
-/usr/bin/hearthlens
-/usr/share/applications/hearthlens.desktop
-/usr/share/icons/hicolor/*/apps/hearthlens.png
-/usr/share/pixmaps/hearthlens.png
+/opt/hearthpulse
+/usr/bin/hearthpulse
+/usr/share/applications/hearthpulse.desktop
+/usr/share/icons/hicolor/*/apps/hearthpulse.png
+/usr/share/pixmaps/hearthpulse.png
 
 %post
 $(cat "$WORK/after-install.sh")
@@ -148,19 +148,19 @@ $(cat "$WORK/after-remove.sh")
 SPEC
   # The architecture comes from --target only: a BuildArch line makes rpmbuild refuse to
   # package arm64 on an x86_64 machine ("No compatible architectures found for build").
-  rpmbuild --quiet --define "_topdir $TOP" --target "$RPM_ARCH" -bb "$TOP/SPECS/hearthlens.spec" >/dev/null
-  cp "$TOP/RPMS/$RPM_ARCH/hearthlens-$VERSION-1.$RPM_ARCH.rpm" "$DIST/"
-  echo "wrote $DIST/hearthlens-$VERSION-1.$RPM_ARCH.rpm"
+  rpmbuild --quiet --define "_topdir $TOP" --target "$RPM_ARCH" -bb "$TOP/SPECS/hearthpulse.spec" >/dev/null
+  cp "$TOP/RPMS/$RPM_ARCH/hearthpulse-$VERSION-1.$RPM_ARCH.rpm" "$DIST/"
+  echo "wrote $DIST/hearthpulse-$VERSION-1.$RPM_ARCH.rpm"
 fi
 
 # ---- Portable .tar.gz with install / uninstall scripts ---------------------------------------
 echo "== Building .tar.gz"
-NAME="Hearthlens-$VERSION-linux-$ARCH"
+NAME="Hearthpulse-$VERSION-linux-$ARCH"
 PKG="$WORK/$NAME"
 mkdir -p "$PKG/icons"
 cp -a "$WORK/app" "$PKG/app"
-cp "$HERE/install.sh" "$HERE/uninstall.sh" "$HERE/hearthlens.desktop" "$PKG/"
-cp "$ASSETS"/icons/hearthlens-*.png "$PKG/icons/"
+cp "$HERE/install.sh" "$HERE/uninstall.sh" "$HERE/hearthpulse.desktop" "$PKG/"
+cp "$ASSETS"/icons/hearthpulse-*.png "$PKG/icons/"
 cp "$HERE/README.txt" "$PKG/README.txt"
 chmod +x "$PKG/install.sh" "$PKG/uninstall.sh"
 tar -C "$WORK" -czf "$DIST/$NAME.tar.gz" "$NAME"
@@ -169,20 +169,20 @@ echo "wrote $DIST/$NAME.tar.gz"
 # ---- AppImage (optional) ---------------------------------------------------------------------
 if command -v appimagetool >/dev/null; then
   echo "== Building AppImage"
-  APPDIR="$WORK/Hearthlens.AppDir"
+  APPDIR="$WORK/Hearthpulse.AppDir"
   mkdir -p "$APPDIR/usr"
   cp -a "$WORK/app" "$APPDIR/usr/lib"
-  cp "$HERE/hearthlens.desktop" "$APPDIR/hearthlens.desktop"
-  cp "$ASSETS/icons/hearthlens-256.png" "$APPDIR/hearthlens.png"
+  cp "$HERE/hearthpulse.desktop" "$APPDIR/hearthpulse.desktop"
+  cp "$ASSETS/icons/hearthpulse-256.png" "$APPDIR/hearthpulse.png"
   cat > "$APPDIR/AppRun" <<'SH'
 #!/bin/sh
 HERE="$(dirname "$(readlink -f "$0")")"
-exec "$HERE/usr/lib/Hearthlens" "$@"
+exec "$HERE/usr/lib/Hearthpulse" "$@"
 SH
   chmod +x "$APPDIR/AppRun"
   # Optional extra: a failure here (e.g. no network for the AppImage runtime) must not lose the other packages.
-  if ARCH="$APPIMAGE_ARCH" appimagetool --no-appstream "$APPDIR" "$DIST/Hearthlens-$VERSION-linux-$ARCH.AppImage" >/dev/null; then
-    echo "wrote $DIST/Hearthlens-$VERSION-linux-$ARCH.AppImage"
+  if ARCH="$APPIMAGE_ARCH" appimagetool --no-appstream "$APPDIR" "$DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage" >/dev/null; then
+    echo "wrote $DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage"
   else
     echo "AppImage not built (appimagetool failed)" >&2
   fi

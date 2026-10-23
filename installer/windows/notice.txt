@@ -1,6 +1,6 @@
-HEARTHLENS
+HEARTHPULSE
 
-Hearthlens is a companion app for Hearthstone: a deck tracker, a Battlegrounds
+Hearthpulse is a companion app for Hearthstone: a deck tracker, a Battlegrounds
 advisor (heroes, comps, shop, trinkets, Discover picks, combat odds), an in-game
 overlay and your match history.
 
@@ -12,7 +12,7 @@ HOW IT WORKS
   your Battlegrounds rating, ranked medals and the lobby's tribes.
 - It never changes the game, never sends input to it and never shows hidden
   information such as your opponent's hand or deck.
-- Your history and settings stay on this computer, in %APPDATA%\Hearthlens.
+- Your history and settings stay on this computer, in %APPDATA%\Hearthpulse.
 
 SHORTCUTS
 - Ctrl+Shift+H  hide or show the overlay
@@ -24,9 +24,9 @@ DATA AND CREDITS
 - Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font
   License 1.1), Material Design Icons (Pictogrammers, Apache 2.0).
 
-Hearthlens is not affiliated with or endorsed by Blizzard Entertainment.
+Hearthpulse is not affiliated with or endorsed by Blizzard Entertainment.
 Hearthstone is a trademark of Blizzard Entertainment, Inc.
 
 UNINSTALL
-Use "Apps & features" in Windows Settings, or run "Uninstall Hearthlens" in the
+Use "Apps & features" in Windows Settings, or run "Uninstall Hearthpulse" in the
 install folder. You can choose whether to keep your match history.

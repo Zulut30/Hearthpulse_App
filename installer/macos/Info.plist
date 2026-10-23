@@ -3,19 +3,19 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Hearthlens</string>
+    <string>Hearthpulse</string>
     <key>CFBundleDisplayName</key>
-    <string>Hearthlens</string>
+    <string>Hearthpulse</string>
     <key>CFBundleIdentifier</key>
-    <string>app.hearthlens.desktop</string>
+    <string>app.hearthpulse.desktop</string>
     <key>CFBundleVersion</key>
     <string>@VERSION@</string>
     <key>CFBundleShortVersionString</key>
     <string>@VERSION@</string>
     <key>CFBundleExecutable</key>
-    <string>Hearthlens</string>
+    <string>Hearthpulse</string>
     <key>CFBundleIconFile</key>
-    <string>hearthlens</string>
+    <string>hearthpulse</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
