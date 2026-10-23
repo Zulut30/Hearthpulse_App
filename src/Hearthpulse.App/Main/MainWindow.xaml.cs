@@ -66,7 +66,7 @@ public partial class MainWindow : Window
         var radio = new[] { SettingsTabOverlay, SettingsTabTracker, SettingsTabAccount, SettingsTabData, SettingsTabAbout }
             .FirstOrDefault(r => (string)r.Tag == tab) ?? SettingsTabGeneral;
         radio.IsChecked = true;
-        OnSettingsTab(radio, new RoutedEventArgs());
+        UpdateSettingsTab(radio);
     }
 
     public void SyncOverlaySwitch() => OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
@@ -304,15 +304,20 @@ public partial class MainWindow : Window
 
     private void OnSettingsTab(object sender, RoutedEventArgs e)
     {
+        // A tab is not a setting: stop Checked here so the page's OnSettingChanged does not re-apply every setting. The
+        // tab is saved with the next change or on exit.
+        e.Handled = true;
+        UpdateSettingsTab(sender);
+    }
+
+    private void UpdateSettingsTab(object sender)
+    {
         // Checked fires while InitializeComponent is still building the page.
         if (SettingsAbout is null || _viewModel is null || sender is not RadioButton { Tag: string tab })
         {
             return;
         }
 
-        // A tab is not a setting: stop Checked here so the page's OnSettingChanged does not re-apply every setting. The
-        // tab is saved with the next change or on exit.
-        e.Handled = true;
         _viewModel.Settings.SettingsTab = tab;
         SettingsGeneral.Visibility = SettingsTabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsOverlay.Visibility = SettingsTabOverlay.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
