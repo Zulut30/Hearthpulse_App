@@ -24,6 +24,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The GC compacts sooner instead of keeping freed heap committed: about 20 MB less working set with every page
+         open (tools/Hearthpulse.Bench ram), for ~6 % more GC time on a log replay. -->
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Hearthpulse.Core\Hearthpulse.Core.csproj" />
   </ItemGroup>
 

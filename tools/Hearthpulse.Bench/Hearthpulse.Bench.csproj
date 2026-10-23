@@ -15,4 +15,9 @@
     <ProjectReference Include="..\..\src\Hearthpulse.App\Hearthpulse.App.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Measure under the GC settings the app ships with (Hearthpulse.App.csproj). -->
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
+  </ItemGroup>
+
 </Project>
