@@ -10,7 +10,7 @@
 
   "Settings.Language.Title": "Language",
   "Settings.Language.Label": "Interface language",
-  "Settings.Language.Caption": "Menus, the overlay and card names. System uses your computer's language, or English.",
+  "Settings.Language.Caption": "Menus, the overlay and card names. System follows your Hearthstone client or computer, else English.",
   "Settings.Language.System": "System",
   "Settings.Language.RestartHint": "Card names switch to the new language after you restart Hearthpulse.",
 

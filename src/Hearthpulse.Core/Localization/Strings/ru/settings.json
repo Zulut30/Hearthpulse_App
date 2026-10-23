@@ -10,7 +10,7 @@
 
   "Settings.Language.Title": "Язык",
   "Settings.Language.Label": "Язык интерфейса",
-  "Settings.Language.Caption": "Меню, оверлей и названия карт. «Как в системе» — язык компьютера, иначе английский.",
+  "Settings.Language.Caption": "Меню, оверлей и названия карт. «Как в системе» — язык клиента Hearthstone или компьютера, иначе английский.",
   "Settings.Language.System": "Как в системе",
   "Settings.Language.RestartHint": "Названия карт перейдут на новый язык после перезапуска Hearthpulse.",
 
