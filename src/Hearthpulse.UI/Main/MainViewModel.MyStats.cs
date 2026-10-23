@@ -229,6 +229,7 @@ public sealed partial class MainViewModel
         RebuildBattlegroundsStats();
         RebuildConstructedStats();
         RebuildArenaStats();
+        RebuildDecks();
     }
 
     /// <summary>Builds a page off the UI thread; the returned action applies the result unless a newer build started.</summary>
@@ -454,7 +455,7 @@ public sealed partial class MainViewModel
         VsGlobal.Of(g.Record.WinRate, g.GlobalWinRate, lowerIsBetter: false, "0", 100, "%"));
 
     /// <summary>The class's default hero, for its portrait.</summary>
-    private static string ClassHero(string heroClass) => heroClass.ToUpperInvariant() switch
+    internal static string ClassHero(string heroClass) => heroClass.ToUpperInvariant() switch
     {
         "WARRIOR" => "HERO_01",
         "SHAMAN" => "HERO_02",

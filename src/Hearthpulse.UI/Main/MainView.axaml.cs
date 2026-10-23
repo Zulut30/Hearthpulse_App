@@ -51,6 +51,7 @@ public partial class MainView : UserControl
         if (_viewModel is not null)
         {
             _viewModel.PropertyChanged -= OnViewModelChanged;
+            _viewModel.HistoryRequested -= ShowHistoryGame;
         }
 
         _viewModel = DataContext as MainViewModel;
@@ -60,6 +61,7 @@ public partial class MainView : UserControl
         }
 
         _viewModel.PropertyChanged += OnViewModelChanged;
+        _viewModel.HistoryRequested += ShowHistoryGame;
         SyncOverlaySwitch();
         foreach (var box in this.GetLogicalDescendantsOfType<CheckBox>())
         {
@@ -123,6 +125,9 @@ public partial class MainView : UserControl
     /// <summary>Shows the hover card of one point of the rank chart (-1 hides it), for the render check.</summary>
     public void HoverConstructedGame(int index) => CtStats.HoverGame(index);
 
+    /// <summary>Shows the hover card of one point of the deck page's win-rate chart (-1 hides it), for the render check.</summary>
+    public void HoverDeckGame(int index) => DeckDetails.HoverGame(index);
+
     public void SyncOverlaySwitch()
     {
         if (_viewModel is not null)
@@ -178,6 +183,10 @@ public partial class MainView : UserControl
             case nameof(MainViewModel.InGame):
                 LivePulse.Fill = ThemeBrushes.Get(_viewModel.InGame ? "AccentContainer" : "Surface4");
                 break;
+            case nameof(MainViewModel.DeckOpen):
+                UpdatePages();
+                PageDeck.Offset = default;
+                break;
         }
     }
 
@@ -185,7 +194,10 @@ public partial class MainView : UserControl
     {
         PageOverview.IsVisible = NavOverview.IsChecked == true;
         PageBattlegrounds.IsVisible = NavBattlegrounds.IsChecked == true;
-        PageConstructed.IsVisible = NavConstructed.IsChecked == true;
+        // The deck page stands in for the Constructed page while a deck is open (the nav stays on Constructed).
+        var deckOpen = _viewModel?.DeckOpen == true;
+        PageConstructed.IsVisible = NavConstructed.IsChecked == true && !deckOpen;
+        PageDeck.IsVisible = NavConstructed.IsChecked == true && deckOpen;
         PageArena.IsVisible = NavArena.IsChecked == true;
         PageHistory.IsVisible = NavHistory.IsChecked == true;
         PageSettings.IsVisible = NavSettings.IsChecked == true;
@@ -219,6 +231,58 @@ public partial class MainView : UserControl
     }
 
     private void OnViewHistory(object? sender, RoutedEventArgs e) => NavHistory.IsChecked = true;
+
+    /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
+    private void ShowHistoryGame(string key)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        NavHistory.IsChecked = true;
+        var refilter = _viewModel.HistoryFilter != "All";
+        if (refilter)
+        {
+            HistoryAll.IsChecked = true;
+            _viewModel.SetHistoryFilter.Execute("All");
+        }
+
+        SelectHistoryRow(key, waitForRows: refilter);
+    }
+
+    private void SelectHistoryRow(string key, bool waitForRows)
+    {
+        if (_viewModel is not { } viewModel)
+        {
+            return;
+        }
+
+        if (waitForRows)
+        {
+            // The "All" rows arrive after a reload: select the game once they are there.
+            PropertyChangedEventHandler? handler = null;
+            handler = (_, e) =>
+            {
+                if (e.PropertyName == nameof(MainViewModel.HistoryRows))
+                {
+                    viewModel.PropertyChanged -= handler;
+                    SelectHistoryRow(key, waitForRows: false);
+                }
+            };
+            viewModel.PropertyChanged += handler;
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (viewModel.HistoryRows.FirstOrDefault(r => r.Key == key) is { } row)
+            {
+                HistoryList.SelectedItem = row;
+                HistoryList.ScrollIntoView(row);
+            }
+        }, DispatcherPriority.Loaded);
+    }
 
     private void OnOverlaySwitch(object? sender, RoutedEventArgs e)
     {
