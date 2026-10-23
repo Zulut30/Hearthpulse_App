@@ -85,7 +85,7 @@
                         <ColumnDefinition Width="2*" />
                         <ColumnDefinition Width="3*" />
                         <ColumnDefinition Width="110" />
-                        <ColumnDefinition Width="76" />
+                        <ColumnDefinition Width="92" />
                         <ColumnDefinition Width="64" />
                     </Grid.ColumnDefinitions>
                     <Border Width="38" Height="38" CornerRadius="19" Background="{StaticResource Surface3}" HorizontalAlignment="Left"

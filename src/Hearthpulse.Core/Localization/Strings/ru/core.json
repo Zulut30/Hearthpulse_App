@@ -400,5 +400,12 @@
   "Core.Account.NoSubscription": "Нет платной подписки",
   "Core.Account.AllSections": "все разделы",
   "Core.Account.ProviderSubscription": "Подписка {0}: {1}",
-  "Core.Account.Subscription": "Подписка: {0}"
+  "Core.Account.Subscription": "Подписка: {0}",
+  "Core.Rank.Bronze": "Бронза",
+  "Core.Rank.Silver": "Серебро",
+  "Core.Rank.Gold": "Золото",
+  "Core.Rank.Platinum": "Платина",
+  "Core.Rank.Diamond": "Алмаз",
+  "Core.Rank.Legend": "Легенда",
+  "Core.Rank.Unranked": "Без ранга"
 }

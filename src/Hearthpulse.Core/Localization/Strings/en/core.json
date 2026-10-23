@@ -400,5 +400,12 @@
   "Core.Account.NoSubscription": "No paid subscription",
   "Core.Account.AllSections": "all sections",
   "Core.Account.ProviderSubscription": "{0} subscription: {1}",
-  "Core.Account.Subscription": "Subscription: {0}"
+  "Core.Account.Subscription": "Subscription: {0}",
+  "Core.Rank.Bronze": "Bronze",
+  "Core.Rank.Silver": "Silver",
+  "Core.Rank.Gold": "Gold",
+  "Core.Rank.Platinum": "Platinum",
+  "Core.Rank.Diamond": "Diamond",
+  "Core.Rank.Legend": "Legend",
+  "Core.Rank.Unranked": "Unranked"
 }

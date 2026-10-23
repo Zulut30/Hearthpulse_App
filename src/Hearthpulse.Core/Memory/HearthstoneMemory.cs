@@ -22,8 +22,11 @@ public sealed record RankInfo(string Format, int LeagueId, int StarLevel, int Le
     /// </summary>
     public string Text => FormatIn(CultureInfo.InvariantCulture);
 
-    /// <summary>Rank for the UI, the legend number grouped for the current culture ("Legend 1 204" on ru-RU).</summary>
-    public string Display => FormatIn(CultureInfo.CurrentCulture);
+    /// <summary>
+    /// Rank for the UI in the interface language, the legend number grouped for the current culture ("Legend 1 204" on
+    /// ru-RU, "Легенда 1 204" in Russian).
+    /// </summary>
+    public string Display => Translate(FormatIn(CultureInfo.CurrentCulture))!;
 
     private string FormatIn(IFormatProvider culture)
     {
@@ -57,14 +60,25 @@ public sealed record RankInfo(string Format, int LeagueId, int StarLevel, int Le
     }
 
     /// <summary>Saved rank text for the UI: the legend number grouped for <paramref name="culture"/> (current by default).</summary>
-    public static string? Localize(string? text, CultureInfo? culture = null)
+    public static string? Localize(string? text, CultureInfo? culture = null) =>
+        Translate(LegendNumber(text) is { } legend ? string.Format(culture ?? CultureInfo.CurrentCulture, "Legend {0:N0}", legend) : text);
+
+    /// <summary>
+    /// The league word of an English rank text ("Gold 4", "Legend 1 204", "Unranked") in the interface language; the
+    /// stored text stays English because <see cref="Stats.ConstructedStats"/> parses it.
+    /// </summary>
+    private static string? Translate(string? text)
     {
-        if (LegendNumber(text) is not { } legend)
+        if (text is null)
         {
-            return text;
+            return null;
         }
 
-        return string.Format(culture ?? CultureInfo.CurrentCulture, "Legend {0:N0}", legend);
+        var space = text.IndexOf(' ', StringComparison.Ordinal);
+        var league = space < 0 ? text : text[..space];
+        return league is "Bronze" or "Silver" or "Gold" or "Platinum" or "Diamond" or "Legend" or "Unranked"
+            ? Localization.Loc.T("Core.Rank." + league) + (space < 0 ? string.Empty : text[space..])
+            : text;
     }
 
     /// <summary>The number of a saved "Legend N" text, whatever digit grouping it was written with.</summary>

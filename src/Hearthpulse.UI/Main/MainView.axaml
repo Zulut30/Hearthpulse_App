@@ -29,7 +29,7 @@
 
         <DataTemplate x:Key="GameRowTemplate" x:DataType="m:GameRow">
             <Border Classes="row">
-                <Grid ColumnDefinitions="50,2*,3*,110,76,64">
+                <Grid ColumnDefinitions="50,2*,3*,110,92,64">
                     <Border Width="38" Height="38" CornerRadius="19" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                             ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,12,0">
