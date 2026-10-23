@@ -94,7 +94,7 @@ public sealed class TokenStore(string path)
                 file.Flush(flushToDisk: true);
             }
 
-            File.Move(temp, path, overwrite: true);
+            MoveWithRetry(temp, path);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicFailure)
@@ -102,6 +102,26 @@ public sealed class TokenStore(string path)
             Diag.Error("account: could not save the session", ex);
             TryDelete(temp);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Replaces the session file, retrying briefly: on Windows an antivirus scanner or the search indexer can hold the
+    /// freshly written file for a moment, and losing the rotated refresh token to that would end the sign-in.
+    /// </summary>
+    private static void MoveWithRetry(string temp, string target)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                File.Move(temp, target, overwrite: true);
+                return;
+            }
+            catch (Exception ex) when (attempt < 4 && ex is IOException or UnauthorizedAccessException)
+            {
+                Thread.Sleep(25 << attempt);
+            }
         }
     }
 
