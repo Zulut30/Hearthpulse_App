@@ -34,6 +34,18 @@ Cached as a compact list in `%APPDATA%\Hearthpulse\cache\api\card-pool.json`, re
 used while the API is down. **Fallback**: HearthstoneJSON `cards.collectible.json` (enUS), Standard decided by
 `CardPoolTables.StandardSets`.
 
+**Pools first from Hearthstone Wiki** (2026-10-23): `GET /api/v1/constructed-cards/{card_id}/wiki` ->
+`data.generated_card_pools[] {pool, cards[{card_id}] | card_ids[], query_url}` (`WikiPools.Parse`, cache
+`cache/api/card-wiki-{id}.json`, 6 h). `WikiPoolSource` loads a card on demand in the background (the first hover, play
+or choice; the deck's generators are asked for when the deck is known) and the overlay rebuilds the pool when it
+arrives. Order in `CardPoolEngine.Build`: wiki pools -> the card text -> "Pool not computed". Wiki pools are Standard
+queries for one class (`query_url` `options_format`, `options_heroClasses`): not used in Wild or for another class (a
+stolen generator). Several pools (Scion of Insight: Blood 29, Frost 21, Unholy 33) become sections: chips on the
+compact panel, clickable in the browser (one section's cards); the stats count every card once. The page is read now
+and then, so a wiki list that the card text finds whole and more of is older (Hematurge: 23 of 29 on 2026-10-12, the
+newest set missing): the text pool is shown, with that note as the source. The panel names its source ("pool:
+Hearthstone Wiki" / "pool: card text").
+
 The panel's highlighted card is the pool card played in the most meta-deck games (`ConstructedMeta.Decks`, sum of
 `Games` over decks that run it). No per-card win rate is public on the API (`/v1/meta-intelligence/cards` needs a
 token), so there is no "strongest card" rule; without meta data no card is highlighted.
@@ -44,7 +56,8 @@ token), so there is no "strongest card" rule; without meta data no card is highl
    `minion_types,spell_school,mechanics,referenced_tags,mana_cost,attack,health,durability,rarity,card_set` - the
    current items carry `tile_layout` and image URLs, ~3.7 KB per card for ~0.3 KB the client needs.
 2. `minion_types[]` with every type (today `minion_type` drops the second of dual-type minions) and `rune_cost`
-   {blood, frost, unholy} (Death Knight "Discover a Frost Rune card" pools cannot be built without it).
+   {blood, frost, unholy} (the app takes Death Knight rune costs from HearthstoneJSON `runeCost` meanwhile:
+   `CardPoolCatalog.WithRaces` copies them onto the API cards).
 3. Optional pool endpoint: `GET /api/v1/card-pool?format=standard&type=MINION&class=MAGE&include_neutral=1&race=BEAST`
    `&school=&mechanic=BATTLECRY&cost=3&cost_min=&cost_max=&rarity=&past=1` returning card ids and the same stats the
    panel draws (histograms, mechanic shares). The app does not need it - the full list is small - but other clients
@@ -108,9 +121,12 @@ panel, and `hearthpulse.log` gets `Card pool: <name> (<id>) not understood: <res
 them (ids written to `CardPoolTables.Overrides`):
 
 - `skip` - generates, but the catalog cannot answer: cost from the game state (`with Cost equal to`, `of that Cost`,
-  `playable spell`), pool from another card (`of the same Cost/Rarity`), rune costs (`Frost Rune card`), named token
-  groups (Animal Companions, Dormant Dreadseeds, Dream cards, Leylines, Shatter, Masks, Rewind cards, Wild Gods, Old
-  Gods, contraband, Mimiron's tech card). Logged as `has no catalog pool: <reason>`.
+  `playable spell`), pool from another card (`of the same Cost/Rarity`), named token groups (Animal Companions,
+  Dormant Dreadseeds, Dream cards, Leylines, Shatter, Masks, Rewind cards, Wild Gods, Old Gods, contraband, Mimiron's
+  tech card). Status `Uncomputed`: the compact panel says "Pool not computed" with the reason (on a Discover from the
+  card, while it is hovered and after it is played) instead of showing nothing; logged as `pool not computed`.
+  Rune pools ("Discover a Blood Rune card", "a Blood, Frost or Unholy card") are read by the parser since
+  2026-10-23: `PoolQuery.Runes`, rune costs from HearthstoneJSON, any class (only Death Knight cards have runes).
 - `sub` / `text` - parse a corrected text (`2-Cost minion that is Dormant for 2 turns` -> `2-Cost minion`,
   `into random Druid ones` -> `random Druid cards`, Fyrakk's `Fire spells at random enemies` -> `random Fire spells`).
 
@@ -204,6 +220,8 @@ it is read fresh each time. Not checked: outside a match (expected null), during
 
 - **Parser over the whole Standard pool** (1322 cards): 177 generators with a pool, 65 generators without a catalog
   pool (from the deck/hand, copies, game-state costs, named token groups - see the exception table), 0 not understood.
+  After the rune fix (same day): 182 with a pool (+5 rune generators), 39 "Pool not computed" panels, 21 not from the
+  catalog (deck, hand, copies), 0 not understood.
 - **Tests** `tests/Hearthpulse.Tests/CardPoolTests.cs` on the fixture `Fixtures/card-pool.json.gz` (the real catalog of
   this date, Wild + HearthstoneJSON minion types, English text for Standard cards): 26 real Standard generators with
   pool sizes counted by a separate script from the raw API pages (one hand-written filter per card), parser cases

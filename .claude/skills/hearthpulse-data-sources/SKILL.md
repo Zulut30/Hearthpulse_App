@@ -19,7 +19,7 @@ Tests use fake handlers, never the network: [hearthpulse-testing](../hearthpulse
 | **hsbg.cards** | BG tiers, text, current pool | `Core/Cards/BgCardSource.cs` (`BgCardDb`) | `cache/bgcards.hsbg.json` 12 h; 120 req/min anonymous |
 | **blizzcore archetype names** `https://api.blizzcore.ru/archetypes?limit=1000` | Russian archetype names (`name_en` -> `name_ru`) when the interface is Russian | `Core/Constructed/ArchetypeTranslations.cs` (`LoadAsync` by the hosts -> `ArchetypeTranslations.Current`; `RussianLabel` in `ApiConstructedMeta`, `Display` for names shown later) | `cache/api/blizzcore-archetypes.json` 12 h, stale copy offline |
 | **Hearthpulse stats pool** (`PoolClient.Endpoint`, off by default) | BG comps, guides, trinkets, tribes, card turn results, MMR floors; shared games | `Core/Pool/PoolClient.cs` (`OverlayAsync` lays it over the API meta) | none |
-| **GitHub releases** `Zulut30/IceCrowV2` | updates | `Core/Updates/UpdateService.cs` | see [hearthpulse-release](../hearthpulse-release/SKILL.md) |
+| **GitHub releases** `Zulut30/Hearthpulse_App` | updates | `Core/Updates/UpdateService.cs` | see [hearthpulse-release](../hearthpulse-release/SKILL.md) |
 
 Firestone (`static.zerotoheroes.com`) is **not used at all**: there is no permission for its data, and upstream HeartLens
 dropped it for the same reason. Its loaders were deleted - do not add any request to it. What each Battlegrounds number

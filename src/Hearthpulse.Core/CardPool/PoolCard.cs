@@ -30,6 +30,12 @@ public sealed record PoolCard(
     /// <summary>The Russian name when the source has one (shown in a ruRU client).</summary>
     public string? NameRu { get; init; }
 
+    /// <summary>
+    /// Death Knight rune types in the cost (BLOOD, FROST, UNHOLY). The API has no rune costs: they come from
+    /// HearthstoneJSON (<see cref="CardPoolCatalog.WithRaces"/>, or the HearthstoneJSON fallback catalog).
+    /// </summary>
+    public IReadOnlyList<string> Runes { get; init; } = [];
+
     public bool IsNeutral => Classes.Count == 0 || Classes.Contains("NEUTRAL");
 
     public bool HasClass(string cardClass) => Classes.Contains(cardClass);

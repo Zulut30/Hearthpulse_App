@@ -63,6 +63,9 @@ public sealed record PoolQuery
 
     public IReadOnlySet<string> Schools { get; init; } = new HashSet<string>();
 
+    /// <summary>Death Knight runes ("a Blood Rune card", "a Blood, Frost or Unholy card"): the card's cost has one of them.</summary>
+    public IReadOnlySet<string> Runes { get; init; } = new HashSet<string>();
+
     /// <summary>Keyword groups: each group needs one of its tags ("Combo, Battlecry, or Stealth" is one group).</summary>
     public IReadOnlyList<IReadOnlySet<string>> Mechanics { get; init; } = [];
 
@@ -112,6 +115,11 @@ public sealed record PoolQuery
         }
 
         if (Schools.Count > 0 && (card.SpellSchool is null || !Schools.Contains(card.SpellSchool)))
+        {
+            return false;
+        }
+
+        if (Runes.Count > 0 && !card.Runes.Any(Runes.Contains))
         {
             return false;
         }

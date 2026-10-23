@@ -54,7 +54,7 @@ public static class UpdateService
 {
     public const string RepoOwner = "Zulut30";
 
-    public const string RepoName = "IceCrowV2";
+    public const string RepoName = "Hearthpulse_App";
 
     /// <summary>Where the newest published release is described. Drafts and pre-releases are never returned.</summary>
     public static string LatestApi => $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases/latest";

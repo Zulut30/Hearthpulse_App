@@ -75,7 +75,7 @@ public partial class CardPoolBrowser : UserControl
     {
         if (sender is FrameworkElement { DataContext: PoolChipModel chip })
         {
-            ViewModel?.ToggleCardPoolMechanic.Execute(chip.Key);
+            (chip.Section ? ViewModel?.ToggleCardPoolSection : ViewModel?.ToggleCardPoolMechanic)?.Execute(chip.Key);
             e.Handled = true;
         }
     }

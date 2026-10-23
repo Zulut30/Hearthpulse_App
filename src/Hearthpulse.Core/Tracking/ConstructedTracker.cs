@@ -44,6 +44,7 @@ public sealed class ConstructedTracker : IPowerListener
         _opponentPlayedIds.Clear();
         _cameToHandFrom.Clear();
         _hiddenDraws.Clear();
+        _mulliganNote = null;
         LocalRank = null;
         OpponentRank = null;
     }
@@ -140,12 +141,32 @@ public sealed class ConstructedTracker : IPowerListener
             LocalRank,
             OpponentRank)
         {
-            Mulligan = Mulligan.Build(game, cards, Deck, Meta, playerClass, guide),
+            Mulligan = NoteMulligan(game, Mulligan.Build(game, cards, Deck, Meta, playerClass, guide), guide is not null),
             Counters = Tracking.Counters.Counters.Build(game, Counters, cards, Deck),
             DeckId = Deck?.DeckId ?? 0,
             DeckCode = Deck?.Code,
             DeckMeta = DeckMetaFor(cards, playerClass, game.FormatType),
         };
+    }
+
+    private string? _mulliganNote;
+
+    /// <summary>Logs whether the mulligan panel has something to show, once per change while the mulligan is on.</summary>
+    private MulliganView? NoteMulligan(GameState game, MulliganView? view, bool hasGuide)
+    {
+        if (!Mulligan.InProgress(game))
+        {
+            return view;
+        }
+
+        var note = Mulligan.Explain(game, view, Deck, hasGuide, Meta);
+        if (note != _mulliganNote)
+        {
+            _mulliganNote = note;
+            Diag.Info(char.ToUpperInvariant(note[0]) + note[1..]);
+        }
+
+        return view;
     }
 
     private (DeckDefinition? Deck, ConstructedMeta? Meta, DeckMetaStat? Stat) _deckMeta;

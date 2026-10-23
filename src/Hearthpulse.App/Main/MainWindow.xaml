@@ -880,10 +880,7 @@
                                                             <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource Caption}"
                                                                        ToolTip="{i:Loc Main.Ct.RecordTip}" />
                                                             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="{i:Loc Main.Table.WinRate}">
-                                                                <Border Width="80" Height="8" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
-                                                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
-                                                                            Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=80}" />
-                                                                </Border>
+                                                                <c:WinBar Width="80" Height="8" VerticalAlignment="Center" Fraction="{Binding WinFraction}" Games="{Binding Games}" Few="{Binding Few}" />
                                                                 <TextBlock Text="{Binding WinRate}" Width="50" TextAlignment="Right" FontWeight="Bold" />
                                                             </StackPanel>
                                                             <TextBlock Grid.Column="3" Text="&#xF0142;" Style="{StaticResource Icon}" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center" />
@@ -1800,6 +1797,9 @@
                     </Border>
                 </Grid>
             </Border>
+
+            <!-- Card preview on hover (deck page card tiles): top layer, never takes the mouse -->
+            <c:CardPreviewHost Grid.ColumnSpan="2" />
         </Grid>
     </Border>
 </Window>

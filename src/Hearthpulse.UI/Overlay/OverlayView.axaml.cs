@@ -226,7 +226,7 @@ public partial class OverlayView : UserControl
     {
         foreach (var panel in _panels)
         {
-            panel.Apply(Settings.Panels.GetValueOrDefault(panel.Id), _layoutSize);
+            panel.Apply(Settings.Panels.GetValueOrDefault(panel.Id), _layoutSize, Math.Clamp(Settings.OverlayScale, 0.6, 1.6));
         }
     }
 
@@ -241,7 +241,7 @@ public partial class OverlayView : UserControl
             Settings.Panels[panel.Id] = placement;
         }
 
-        panel.Apply(placement, _layoutSize);
+        panel.Apply(placement, _layoutSize, Math.Clamp(Settings.OverlayScale, 0.6, 1.6));
         LayoutChanged?.Invoke();
     }
 

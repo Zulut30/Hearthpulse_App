@@ -79,4 +79,4 @@ Firestone (`static.zerotoheroes.com`) is not used. Details: `docs/bg-meta-source
 
 ## GitHub
 
-`https://api.github.com/repos/Zulut30/IceCrowV2/releases/latest` - see `hearthpulse-release`.
+`https://api.github.com/repos/Zulut30/Hearthpulse_App/releases/latest` - see `hearthpulse-release`.
