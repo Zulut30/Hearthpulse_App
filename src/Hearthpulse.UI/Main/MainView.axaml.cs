@@ -241,6 +241,23 @@ public partial class MainView : UserControl
         Dispatcher.UIThread.Post(UpdateTilePanels, DispatcherPriority.Loaded);
     }
 
+    /// <summary>
+    /// Opens a Battlegrounds tier list tab ("Heroes", "Comps", "Trinkets", "Cards") and scrolls the tabs to the top of the
+    /// page (used by the UI render check).
+    /// </summary>
+    public void ShowBattlegroundsTab(string tab)
+    {
+        (tab switch
+        {
+            "Comps" => TabComps,
+            "Trinkets" => TabTrinkets,
+            "Cards" => TabCards,
+            _ => TabHeroes,
+        }).IsChecked = true;
+        UpdateTabs();
+        TabHeroes.BringIntoView(new Rect(0, 0, TabHeroes.Bounds.Width, 700));
+    }
+
     private void UpdateTabs()
     {
         HeroTierCard.IsVisible = TabHeroes.IsChecked == true;

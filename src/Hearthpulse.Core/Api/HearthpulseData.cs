@@ -7,7 +7,7 @@ using Hearthpulse.Core.Tracking;
 namespace Hearthpulse.Core.Api;
 
 /// <summary>
-/// Community stats from the Hearthpulse API: Battlegrounds heroes and minions (a fallback for Firestone), and every
+/// Community stats from the Hearthpulse API: Battlegrounds heroes and minions per MMR slice, and every
 /// ranked Constructed number the app shows (HSGuru meta and decks, HSReplay archetypes, mulligan and matchups).
 /// Answers are cached on disk, and a stale cache is used when the server is down. Never throws.
 /// </summary>
@@ -23,17 +23,40 @@ public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory =
 
     private readonly string _cacheDirectory = cacheDirectory ?? Path.Combine(AppPaths.Cache, "api");
 
-    /// <summary>Solo (or "duos") hero results, by hero card id. Sample sizes are not published: DataPoints is 0.</summary>
-    public async Task<IReadOnlyDictionary<string, MetaHero>> LoadHeroesAsync(string mode = "solo", CancellationToken cancellationToken = default)
+    /// <summary>MMR slices the API serves for heroes (<c>/api/bg/heroes</c>); it has no all-ranks slice.</summary>
+    private static readonly HashSet<string> HeroMmrs = new(StringComparer.Ordinal) { "TOP_50_PERCENT", "TOP_20_PERCENT", "TOP_5_PERCENT", "TOP_1_PERCENT" };
+
+    /// <summary>MMR slices the API serves for minions (<c>/v1/battlegrounds/minions/stats/slices</c>).</summary>
+    private static readonly HashSet<string> MinionMmrs = new(StringComparer.Ordinal) { "ALL", "TOP_50_PERCENT", "TOP_20_PERCENT" };
+
+    /// <summary>
+    /// Solo hero results of one MMR slice (current Battlegrounds patch), by hero card id, with the time the server fetched
+    /// them. Sample sizes are not published: DataPoints is 0. Empty for a slice the API does not have.
+    /// </summary>
+    public async Task<BgHeroSlice> LoadHeroesAsync(string mmr = "TOP_50_PERCENT", CancellationToken cancellationToken = default)
     {
-        using var doc = await FetchAsync($"v1/battlegrounds/heroes?mode={mode}&limit=200", $"bg-heroes-{mode}.json", cancellationToken).ConfigureAwait(false);
-        return doc is null ? new Dictionary<string, MetaHero>() : Read(() => ParseHeroes(Data(doc)), "heroes", new Dictionary<string, MetaHero>());
+        var empty = new BgHeroSlice(new Dictionary<string, MetaHero>(), default);
+        if (!HeroMmrs.Contains(mmr))
+        {
+            return empty;
+        }
+
+        using var doc = await FetchAsync($"api/bg/heroes?mode=solo&mmr={mmr}", $"bg-heroes-{mmr.ToLowerInvariant()}.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? empty : Read(() => ParseHeroSlice(Data(doc)), "heroes", empty);
     }
 
-    /// <summary>All-ranks minion results, by card id: average final placement of players who had the minion.</summary>
-    public async Task<IReadOnlyDictionary<string, MetaCard>> LoadMinionsAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Minion results of one MMR slice ("ALL" = all ranks, current Battlegrounds patch), by card id: average final
+    /// placement of players who had the minion and how many games that is. No per-turn results.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, MetaCard>> LoadMinionsAsync(string mmr = "ALL", CancellationToken cancellationToken = default)
     {
-        using var doc = await FetchAsync("v1/battlegrounds/minions/stats?limit=500", "bg-minions.json", cancellationToken).ConfigureAwait(false);
+        if (!MinionMmrs.Contains(mmr))
+        {
+            return new Dictionary<string, MetaCard>();
+        }
+
+        using var doc = await FetchAsync($"v1/battlegrounds/minions/stats?mmr={mmr}&period=CURRENT_BATTLEGROUNDS_PATCH&limit=500", $"bg-minions-{mmr.ToLowerInvariant()}.json", cancellationToken).ConfigureAwait(false);
         return doc is null ? new Dictionary<string, MetaCard>() : Read(() => ParseMinions(Data(doc)), "minions", new Dictionary<string, MetaCard>());
     }
 
@@ -113,6 +136,24 @@ public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory =
         _ => "ALL",
     };
 
+    /// <summary>
+    /// The bare <c>/api/bg/heroes</c> answer: <c>{"fetched_at", "filters", "heroes": [...]}</c>. A plain hero list (the
+    /// <c>/v1/battlegrounds/heroes</c> "data") reads too, without a fetch time.
+    /// </summary>
+    internal static BgHeroSlice ParseHeroSlice(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return new BgHeroSlice(ParseHeroes(root), default);
+        }
+
+        var fetched = Str(root, "fetched_at") is { } at
+                      && DateTime.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var time)
+            ? time
+            : default;
+        return new BgHeroSlice(root.TryGetProperty("heroes", out var list) ? ParseHeroes(list) : new Dictionary<string, MetaHero>(), fetched);
+    }
+
     internal static Dictionary<string, MetaHero> ParseHeroes(JsonElement list)
     {
         var result = new Dictionary<string, MetaHero>(StringComparer.Ordinal);
@@ -124,19 +165,21 @@ public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory =
             }
 
             double top4 = 0, first = 0;
+            var shares = new List<double>();
             if (hero.TryGetProperty("placement_distribution", out var places) && places.ValueKind == JsonValueKind.Array)
             {
-                var rank = 0;
                 foreach (var place in places.EnumerateArray())
                 {
-                    rank++;
                     var share = Percent(place) / 100;
-                    top4 += rank <= 4 ? share : 0;
-                    first = rank == 1 ? share : first;
+                    shares.Add(share);
+                    top4 += shares.Count <= 4 ? share : 0;
+                    first = shares.Count == 1 ? share : first;
                 }
             }
 
-            result[id] = new MetaHero(id, 0, placement, (Num(hero, "pick_rate_value") ?? 0) / 100, new Dictionary<int, double>(), Math.Min(1, top4), first);
+            // Tribe impact and the per-turn combat win rate are not in the API's hero list: left empty, not zero.
+            result[id] = new MetaHero(id, 0, placement, (Num(hero, "pick_rate_value") ?? 0) / 100, new Dictionary<int, double>(), Math.Min(1, top4), first,
+                shares.Count == 8 ? shares : null);
         }
 
         return result;
@@ -492,3 +535,6 @@ public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory =
         _ => 0,
     };
 }
+
+/// <summary>One MMR slice of hero results and when the server fetched it (default when unknown).</summary>
+public sealed record BgHeroSlice(IReadOnlyDictionary<string, MetaHero> Heroes, DateTime FetchedAt);

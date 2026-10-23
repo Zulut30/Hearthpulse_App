@@ -13,15 +13,16 @@ Tests use fake handlers, never the network: [hearthpulse-testing](../hearthpulse
 
 | Source | Used for | Code | Override / cache |
 |---|---|---|---|
-| **Hearthpulse data API** `https://api.kolodahearthstone.com/` (owner's server) | Constructed meta (HSGuru meta/archetypes/analysis, HSReplay archetypes/decks/mulligan/matchups), BG fallback (heroes, minions), card pool | `Core/Api/HearthpulseApi.cs` (transport), `Core/Api/HearthpulseData.cs` (typed calls), `Core/Constructed/ApiConstructedMeta.cs`, `Core/Tracking/MulliganGuideSource.cs`, `Core/CardPool/CardPoolCatalog.cs` | `HEARTHPULSE_API`; `cache/api/*.json` 6 h (card pool 1 day) |
+| **Hearthpulse data API** `https://api.kolodahearthstone.com/` (owner's server) | Constructed meta (HSGuru meta/archetypes/analysis, HSReplay archetypes/decks/mulligan/matchups), **Battlegrounds** heroes (top 50/20/5/1%) and minions (all/50/20%), card pool | `Core/Api/HearthpulseApi.cs` (transport), `Core/Api/HearthpulseData.cs` (typed calls), `Core/Constructed/ApiConstructedMeta.cs`, `Core/Battlegrounds/BattlegroundsMeta.cs`, `Core/Tracking/MulliganGuideSource.cs`, `Core/CardPool/CardPoolCatalog.cs` | `HEARTHPULSE_API`; `cache/api/*.json` 6 h (card pool 1 day) |
 | **hearthpulse.net site** `https://hearthpulse.net/api/v1/` | account sign-in (OAuth device flow), `/me`, subscription | `Core/Accounts/` (`AccountClient`, `AccountService`, `TokenStore`, `Entitlements`) | `HEARTHPULSE_SITE_API` (https, or http on loopback); session in `account.dat` |
 | **HearthstoneJSON** | all card data (`cards.json` per locale), card art (`art.hearthstonejson.com`), card pool fallback | `Core/Cards/CardDb.cs`, `App|UI/Infrastructure/CardArt.cs`, `CardRender.cs` | `cache/cards.<locale>.json` 2 days, `cache/images/` |
 | **hsbg.cards** | BG tiers, text, current pool | `Core/Cards/BgCardSource.cs` (`BgCardDb`) | `cache/bgcards.hsbg.json` 12 h; 120 req/min anonymous |
-| **Firestone public stats** `static.zerotoheroes.com` | **Battlegrounds only**: hero/comp/trinket/card stats, comp strategies | `Core/Battlegrounds/BattlegroundsMeta.cs` (falls back to our API) | `cache/meta/` 6 h |
+| **Hearthpulse stats pool** (`PoolClient.Endpoint`, off by default) | BG comps, guides, trinkets, tribes, card turn results, MMR floors; shared games | `Core/Pool/PoolClient.cs` (`OverlayAsync` lays it over the API meta) | none |
 | **GitHub releases** `Zulut30/IceCrowV2` | updates | `Core/Updates/UpdateService.cs` | see [hearthpulse-release](../hearthpulse-release/SKILL.md) |
 
-Constructed no longer uses Firestone: `ConstructedMeta.LoadFirestoneAsync` is kept but has no caller - do not wire
-it back. All shared HTTP goes through one `HttpClient` built in `App.xaml.cs` / `UI/AppHost.cs`
+Firestone (`static.zerotoheroes.com`) is **not used at all**: there is no permission for its data, and upstream HeartLens
+dropped it for the same reason. Its loaders were deleted - do not add any request to it. What each Battlegrounds number
+now comes from, and what stays empty until the pool runs: `docs/bg-meta-sources.md`. All shared HTTP goes through one `HttpClient` built in `App.xaml.cs` / `UI/AppHost.cs`
 (`SocketsHttpHandler`, decompression, 40 s timeout, User-Agent `Hearthpulse/<version>`).
 
 ## Rules for any network code
@@ -41,8 +42,8 @@ it back. All shared HTTP goes through one `HttpClient` built in `App.xaml.cs` / 
    thread never waits for the network.
 6. **Attribution**: each source has an `Attribution` constant shown in the UI next to its numbers (e.g.
    `ApiConstructedMeta.Attribution`, `BattlegroundsMeta.Attribution`, `BgCardDb.Attribution`). Keep it next to new
-   data. The installer notice `installer/windows/notice.txt` credits Firestone, HearthstoneJSON and the fonts but
-   not the Hearthpulse API/HSGuru/HSReplay/hsbg.cards yet - update it when you add a source.
+   data. The installer notices (`installer/windows/notice.txt`, `installer/*/README.txt`) credit the Hearthpulse API
+   (HSReplay/HSGuru data), HearthstoneJSON and the fonts - update them when you add a source.
 7. **No secrets in the repo**; tokens only through `TokenStore`; never log tokens or e-mail.
 
 ## Account and paid access (hearthpulse.net)
@@ -78,7 +79,7 @@ what the contract asks, and agree the payload with the site session.
 | Project | Licence | Allowed |
 |---|---|---|
 | Hearthstone Deck Tracker (HearthSim/HDT) | All rights reserved (source published for reading) | **Ideas only.** No code, no XAML structure, no copied UI strings; do not mirror its layouts element by element (card-pool review). |
-| Firestone (Zero-to-Heroes) | No licence = all rights reserved; ToS forbids derivatives | **Ideas only** for code/UI. Its public stats files (`static.zerotoheroes.com`) are used as data for Battlegrounds, with attribution. |
+| Firestone (Zero-to-Heroes) | No licence = all rights reserved; ToS forbids derivatives | **Ideas only** for code/UI. Its stats files (`static.zerotoheroes.com`) are **not** used: no permission. |
 | HdtArenaHelper (`reference/repos/ideas/HdtArenaHelper`) | MIT, (c) 2026 Alessandro Colace | Code may be adapted **with attribution**: keep the copyright + MIT notice (file header and the notice file). |
 | bgtracker (`reference/repos/ideas/bgtracker`) | MIT, (c) 2026 the bgtracker contributors | Same as above: reuse with the MIT notice and credit. |
 | tavern-ledger (`reference/repos/ideas/tavern-ledger`) | AGPL-3.0-only | **Ideas only.** Copying code would put Hearthpulse under AGPL. |

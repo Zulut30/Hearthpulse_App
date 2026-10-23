@@ -73,6 +73,7 @@ public partial class App
 
             _main.ShowConstructedTab("Decks");
             await RenderMyStatsAsync(folder);
+            await RenderBattlegroundsTiersAsync(folder);
             await RenderDeckPageAsync(folder);
 
             // The stats pool banner and switch, as a first start shows them (settings are not changed).

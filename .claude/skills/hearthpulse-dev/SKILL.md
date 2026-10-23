@@ -45,13 +45,13 @@ Core folders:
   `log.config` sections; `ClientConfig` sets `Log.FileSizeLimit.Int=-1` in `client.config`.
 - `Cards/` - `CardDb` (HearthstoneJSON `https://api.hearthstonejson.com/v1/latest/{locale}/cards.json`, cached in
   `AppPaths.Cache`, plus hsbg.cards via `BgCardSource`), `Card`, `DeckString` (deck codes), `Races`.
-- `Battlegrounds/` - `BattlegroundsMeta` (Firestone community stats from `static.zerotoheroes.com`),
+- `Battlegrounds/` - `BattlegroundsMeta` (community stats: heroes/minions from the Hearthpulse API, the rest from the
+  stats pool when set up; `docs/bg-meta-sources.md`),
   `BattlegroundsAdvisor` (hero/trinket/shop/Discover/comp advice), `CombatSimulator` + `Simulation/`
   (`Fight`, `Side`, `Unit`, `Traits`) + `Effects/` (per-card combat effects), `BattlegroundsCounters` +
   `BattlegroundsCounterTracker` (BG counter chips, spec `docs/counters-battlegrounds.md`).
 - `Constructed/ConstructedMeta.cs` - ranked Constructed stats (archetypes, decks, mulligan), loaded from the Hearthpulse
   API by `ApiConstructedMeta` (HSGuru meta/decks + HSReplay mulligan, names via `ArchetypeNames`; docs/constructed-meta-api.md).
-  The Firestone loader (`LoadFirestoneAsync`) is kept but unused.
 - `Data/HistoryStore.cs` (SQLite `history.db`), `Data/LogBackfill.cs` (imports games from kept Power logs). Columns added
   after the first schema go in `HistoryStore.AddedColumns` (ALTER TABLE on open, NULL in old rows): `combat_results`
   (BG combats JSON), `offered_heroes`, `anomaly`, `rank_star_level`, `rank_legend`, `went_first`, `deck_id`, and the deck
@@ -73,8 +73,8 @@ Core folders:
 - `AppSettings.cs` (settings.json), `AppPaths.cs` (+ `Diag` log), `ThemePalette.cs`.
 - `Api/HearthpulseApi.cs` (client for `api.kolodahearthstone.com`, `HEARTHPULSE_API` env override; `{"data"}` and
   bare answers, `{"detail"}` errors) and `Api/HearthpulseData.cs` (every Constructed number: HSGuru meta, lists and
-  per-archetype analysis, HSReplay archetypes/mulligan/matchups; plus the Battlegrounds fallback used by
-  `BattlegroundsMeta.LoadAsync(..., fallback:)` when Firestone fails). Answers are cached in `cache/api` (6 h, written
+  per-archetype analysis, HSReplay archetypes/mulligan/matchups; plus the Battlegrounds heroes and minions per MMR slice
+  read by `BattlegroundsMeta.LoadAsync`). Answers are cached in `cache/api` (6 h, written
   atomically; a 404 is cached as `{"data":null}`).
 - `Accounts/` - sign-in with a hearthpulse.net account via the OAuth device flow (`AccountClient`, `AccountService`,
   `TokenStore` = DPAPI on Windows, `Entitlements` = paid access, read from `/me`; no feature is gated yet). Contract: `docs/accounts-api.md`

@@ -1,5 +1,6 @@
 using System.Net;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Power;
@@ -31,7 +32,7 @@ public sealed class DiscoverTests(ITestOutputHelper output)
         }
 
         using var http = new HttpClient(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.All });
-        var meta = await BattlegroundsMeta.LoadAsync(http);
+        var meta = await BattlegroundsMeta.LoadAsync(new HearthpulseData(new HearthpulseApi(http)));
         if (meta is null)
         {
             return;
@@ -103,7 +104,7 @@ public sealed class DiscoverTests(ITestOutputHelper output)
         }
 
         using var http = new HttpClient(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.All });
-        var meta = await BattlegroundsMeta.LoadAsync(http);
+        var meta = await BattlegroundsMeta.LoadAsync(new HearthpulseData(new HearthpulseApi(http)));
         if (meta is null)
         {
             return;

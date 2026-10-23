@@ -44,7 +44,7 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
 - Archetype: a family of similar decks ("Zoolock", "XL Rafaamlock"); matchups = archetype-vs-archetype win rates.
   Source in app: the Hearthpulse API only (`ApiConstructedMeta`: HSGuru `/v1/hsguru/*` meta and archetypes, HSReplay
   `/api/db/archetypes*` decks/mulligan/matchups); Russian archetype names come from `Constructed/ArchetypeNames.cs`.
-  Firestone is no longer used for Constructed.
+  Firestone is not used anywhere.
 - Ranks (per format): Bronze, Silver, Gold, Platinum, Diamond, each 10 -> 1, then Legend with a number.
   `RankInfo` in `Memory/HearthstoneMemory.cs`: star level 1-50 -> league/rank, >= 51 or a legend rank -> Legend;
   `MatchPlayerInfo` has Standard/Wild/Classic/Twist ranks read from memory.
@@ -77,7 +77,7 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
 | Quests / quest rewards | Past-season mechanic: complete a quest for a reward card | card type `BATTLEGROUND_QUEST_REWARD` (treated as player-level card in the tracker); API `/api/v1/quests` |
 | Buddies | Past-season hero-specific minions | not modelled in Core; API hero items have a `buddy` field |
 | Timewarped | Timewarped Tavern cards | `BgCardSource.IsTimewarped` (excluded from the pool); `CombatRelevance`; API `/api/v1/timewarped-cards` |
-| Comps | Target board archetypes (Firestone comps) | `MetaComp`, `CompAdvice`, `AppSettings.CompMode`/`ChosenCompId`/`CompFocus` |
+| Comps | Target board archetypes (from the stats pool; empty until it runs) | `MetaComp`, `CompAdvice`, `AppSettings.CompMode`/`ChosenCompId`/`CompFocus` |
 | Rating (MMR) | BG rating, separate for Solo and Duos; placement 1-8 changes it | `BattlegroundsRating(Solo, Duos)` from memory; `RatingPoint` history; meta brackets top 100/50/25/10/1 % |
 | Leaderboard | Players by health; place 1-8 at the end | `PLAYER_LEADERBOARD_PLACE`; `BgOpponent` (health, armor, tier, triples, last board, last result) |
 | Next opponent | Who you fight next | `NEXT_OPPONENT_PLAYER_ID`; `BgOpponent.IsNextOpponent` |
@@ -109,9 +109,8 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
   link them. Effects are keyed by the **normal** id plus `Golden` (`BattlegroundsTracker` normalises).
 - Hero skins: `Card.BattlegroundsSkinParentId`; `CardDb.BaseHeroId` maps a skin to its hero.
 - Data sources: HearthstoneJSON (`https://api.hearthstonejson.com/v1/latest/{locale}/cards.json`, all cards, used by
-  `CardDb`), hsbg.cards (`BgCardSource`: BG tiers, text, current pool), Firestone (`static.zerotoheroes.com`:
-  Battlegrounds community stats only), and the kolodahearthstone API (Constructed meta, mulligan, card pool, BG
-  fallback). Rules and licences: `hearthpulse-data-sources` skill.
+  `CardDb`), hsbg.cards (`BgCardSource`: BG tiers, text, current pool), the kolodahearthstone API (Constructed meta, mulligan,
+  card pool, BG heroes and minions) and the Hearthpulse stats pool (BG comps, trinkets, turn results, when set up). Rules and licences: `hearthpulse-data-sources` skill.
 - `Card` fields: `Id`, `DbfId`, `Name`, `Text`, `Cost`, `Attack`, `Health`, `Armor`, `Type`, `Rarity`, `CardClass`,
   `Set`, `Races`, `Mechanics`, `Collectible`, `TechLevel`, `IsBattlegroundsPoolMinion/Spell`, `IsBattlegroundsHero`,
   `IsBattlegroundsDuosExclusive`. Rarities: COMMON, RARE, EPIC, LEGENDARY (theme brushes `Rarity*`).

@@ -1,0 +1,164 @@
+{
+ "type": "bg_heroes",
+ "mode": "solo",
+ "count": 4,
+ "fetched_at": "2026-10-23T16:15:11.916768+00:00",
+ "filters": {
+  "mmr_percentile": "TOP_20_PERCENT",
+  "time_range": "CURRENT_BATTLEGROUNDS_PATCH"
+ },
+ "source": {
+  "api_url": "https://hsreplay.net/api/v1/battlegrounds/heroes/?BattlegroundsMMRPercentile=TOP_20_PERCENT&BattlegroundsTimeRange=CURRENT_BATTLEGROUNDS_PATCH&format=json",
+  "backend": "hsreplay_json_api"
+ },
+ "heroes": [
+  {
+   "hero": "Lord Jaraxxus",
+   "dbfId": 59807,
+   "id": "TB_BaconShop_HERO_37",
+   "tier": "S",
+   "pick_rate": "55.74%",
+   "pick_rate_value": 55.74,
+   "avg_placement": 3.709,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "21.05%",
+    "18.54%",
+    "14.11%",
+    "11.47%",
+    "9.51%",
+    "8.46%",
+    "8.64%",
+    "8.23%"
+   ],
+   "best_composition_id": 9,
+   "best_composition": null,
+   "key_minions_top3": [
+    {
+     "id": "BG36_731_G",
+     "dbfId": 132900,
+     "name": "Imp-lusionist",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "WARLOCK",
+     "techLevel": 4,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false
+  },
+  {
+   "hero": "Lord Barov",
+   "dbfId": 63602,
+   "id": "TB_BaconShop_HERO_72",
+   "tier": "B",
+   "pick_rate": "30.26%",
+   "pick_rate_value": 30.26,
+   "avg_placement": 4.373,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "13.63%",
+    "13.23%",
+    "13.29%",
+    "12.78%",
+    "11.87%",
+    "11.68%",
+    "11.38%",
+    "12.14%"
+   ],
+   "best_composition_id": 56,
+   "best_composition": null,
+   "key_minions_top3": [
+    {
+     "id": "BG36_115_G",
+     "dbfId": 133103,
+     "name": "Nightmare Corroder",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "PRIEST",
+     "techLevel": 4,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false
+  },
+  {
+   "hero": "Millhouse Manastorm",
+   "dbfId": 60366,
+   "id": "TB_BaconShop_HERO_49",
+   "tier": "C",
+   "pick_rate": "10.20%",
+   "pick_rate_value": 10.2,
+   "avg_placement": 4.569,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "8.76%",
+    "10.89%",
+    "13.59%",
+    "14.98%",
+    "15.08%",
+    "15.41%",
+    "12.49%",
+    "8.79%"
+   ],
+   "best_composition_id": 9,
+   "best_composition": null,
+   "key_minions_top3": [
+    {
+     "id": "BG36_731_G",
+     "dbfId": 132900,
+     "name": "Imp-lusionist",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "WARLOCK",
+     "techLevel": 4,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false
+  },
+  {
+   "hero": "Guff Runetotem",
+   "dbfId": 68129,
+   "id": "BG20_HERO_242",
+   "tier": "D",
+   "pick_rate": "25.05%",
+   "pick_rate_value": 25.05,
+   "avg_placement": 4.755,
+   "adjusted_avg_placement": null,
+   "placement_distribution": [
+    "11.92%",
+    "11.22%",
+    "10.44%",
+    "10.74%",
+    "12.74%",
+    "13.09%",
+    "14.15%",
+    "15.70%"
+   ],
+   "best_composition_id": 47,
+   "best_composition": null,
+   "key_minions_top3": [
+    {
+     "id": "BG36_515_G",
+     "dbfId": 133084,
+     "name": "Snazzy Phantom",
+     "cost": 0,
+     "type": "MINION",
+     "rarity": null,
+     "cardClass": "DEATHKNIGHT",
+     "techLevel": 6,
+     "isBattlegroundsPoolMinion": null,
+     "isBattlegroundsPoolSpell": null
+    }
+   ],
+   "anomaly_adjusted": false
+  }
+ ]
+}
