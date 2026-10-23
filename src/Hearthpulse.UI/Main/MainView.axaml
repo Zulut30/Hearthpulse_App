@@ -974,6 +974,8 @@
                                 <TextBlock Text="Fonts: Montserrat (SIL Open Font License) · Inter (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0)." Classes="caption"
                                            FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
                                 <TextBlock Text="Not affiliated with Blizzard Entertainment." Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,4,0,0" />
+                                <TextBlock Text="{Binding VersionText}" Classes="caption" FontSize="11" Margin="0,10,0,0" />
+                                <TextBlock Text="{Binding UpdateStatus}" Classes="caption" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

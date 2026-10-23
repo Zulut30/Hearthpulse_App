@@ -7,6 +7,7 @@ using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
+using Hearthpulse.Core.Updates;
 
 namespace Hearthpulse.App.Main;
 
@@ -125,7 +126,23 @@ public sealed partial class MainViewModel : Observable
     {
         UpdateText = $"Version {version} is downloaded — it installs when you close Hearthpulse.";
         UpdateReady = true;
+        UpdateStatus = UpdateText;
     }
+
+    private string _updateStatus = "Updates have not been checked yet.";
+
+    /// <summary>The last update check in a sentence for Settings → About (up to date, failed and why, unverified file).</summary>
+    public string UpdateStatus
+    {
+        get => _updateStatus;
+        private set => Set(ref _updateStatus, value);
+    }
+
+    /// <summary>Shows what the last update check found.</summary>
+    public void SetUpdateStatus(string status) => UpdateStatus = status;
+
+    /// <summary>The running version, for Settings → About.</summary>
+    public string VersionText => $"Hearthpulse {UpdateService.CurrentVersion}";
 
     /// <summary>"Good morning" / "Good afternoon" / "Good evening" for the page header.</summary>
     public string Greeting => DateTime.Now.Hour switch

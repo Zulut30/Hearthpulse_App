@@ -334,6 +334,7 @@ public partial class App : Application
     {
         if (!_settings.AutoUpdate)
         {
+            _mainViewModel.SetUpdateStatus("Automatic updates are off.");
             return;
         }
 
@@ -344,14 +345,19 @@ public partial class App : Application
             {
                 try
                 {
-                    var info = await UpdateService.CheckAsync(_http);
-                    if (info is not null && await UpdateService.DownloadAsync(_http, info) is not null)
+                    var check = await UpdateService.CheckForUpdateAsync(_http);
+                    var info = check.Update;
+                    if (info is { Sha256: not null } && await UpdateService.DownloadAsync(_http, info) is not null)
                     {
                         _stagedUpdate = info;
                         _ = Dispatcher.BeginInvoke(() => _mainViewModel.SetUpdateReady(info.Version));
                         Notify("Hearthpulse update ready", $"{info.Version} is downloaded — it installs when you close Hearthpulse.");
                         return;
                     }
+
+                    // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
+                    var status = info is { Sha256: not null } ? $"Version {info.Version} could not be downloaded; Hearthpulse tries again later." : check.Message;
+                    _ = Dispatcher.BeginInvoke(() => _mainViewModel.SetUpdateStatus(status));
                 }
                 catch (Exception ex)
                 {

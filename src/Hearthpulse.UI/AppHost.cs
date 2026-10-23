@@ -216,6 +216,7 @@ public sealed partial class AppHost : IDisposable
     {
         if (!Settings.AutoUpdate || OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
+            Main.SetUpdateStatus("Automatic updates are off.");
             return;
         }
 
@@ -226,14 +227,19 @@ public sealed partial class AppHost : IDisposable
             {
                 try
                 {
-                    var info = await UpdateService.CheckAsync(Http);
-                    if (info is not null && await UpdateService.DownloadAsync(Http, info) is not null)
+                    var check = await UpdateService.CheckForUpdateAsync(Http);
+                    var info = check.Update;
+                    if (info is { Sha256: not null } && await UpdateService.DownloadAsync(Http, info) is not null)
                     {
                         _stagedUpdate = info;
                         Dispatcher.UIThread.Post(() => Main.SetUpdateReady(info.Version));
                         Notification?.Invoke("Hearthpulse update ready", $"{info.Version} is downloaded — it installs when you close Hearthpulse.");
                         return;
                     }
+
+                    // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
+                    var status = info is { Sha256: not null } ? $"Version {info.Version} could not be downloaded; Hearthpulse tries again later." : check.Message;
+                    Dispatcher.UIThread.Post(() => Main.SetUpdateStatus(status));
                 }
                 catch (Exception ex)
                 {
