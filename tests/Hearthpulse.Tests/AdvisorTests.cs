@@ -21,7 +21,8 @@ public sealed class AdvisorTests(ITestOutputHelper output)
         var cardsPath = Path.Combine(Path.GetTempPath(), "hl", "cards.json");
         var log = Directory.Exists(@"D:\Hearthstone\Logs")
             ? Directory.EnumerateFiles(@"D:\Hearthstone\Logs", "Power*.log", SearchOption.AllDirectories)
-                .FirstOrDefault(f => File.ReadLines(f).Take(20_000).Any(x => x.Contains("GameType=GT_BATTLEGROUNDS")))
+                // The running client keeps its Power.log open for writing: read it shared, as the app does.
+                .FirstOrDefault(f => RealLogTests.SharedLines(f).Take(20_000).Any(x => x.Contains("GameType=GT_BATTLEGROUNDS")))
             : null;
         if (!File.Exists(cardsPath) || log is null)
         {
@@ -49,7 +50,7 @@ public sealed class AdvisorTests(ITestOutputHelper output)
         BattlegroundsView? pick = null;
         BattlegroundsView? shop = null;
         var lines = 0;
-        foreach (var line in File.ReadLines(log))
+        foreach (var line in RealLogTests.SharedLines(log))
         {
             parser.Feed(line);
             if (++lines % 200 != 0 || parser.Game is not { IsBattlegrounds: true, LocalPlayerId: > 0 } game)
