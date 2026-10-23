@@ -222,7 +222,7 @@ internal static class OffscreenRenderer
             context.DrawImage(frame, source, new Rect(0, 0, source.Width, source.Height));
         }
 
-        crop.Save(path);
+        crop.Save(path, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
         Console.WriteLine("wrote " + path);
     }
 
