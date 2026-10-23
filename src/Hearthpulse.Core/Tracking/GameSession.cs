@@ -3,6 +3,7 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Hearthstone;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
@@ -411,7 +412,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _logConfigMissing = LogConfig.MissingSections(InstallDirectory);
             if (ClientConfig.LimitActive(InstallDirectory))
             {
-                _logConfigMissing = [.. _logConfigMissing, "log size limit"];
+                _logConfigMissing = [.. _logConfigMissing, Loc.T("Core.Session.LogSizeLimit")];
                 if (now >= _nextClientConfigFix && ClientConfig.LogSizeLimit(InstallDirectory) is not -1)
                 {
                     // Removed again (a game repair, another tool): put it back so the next client start has no limit.

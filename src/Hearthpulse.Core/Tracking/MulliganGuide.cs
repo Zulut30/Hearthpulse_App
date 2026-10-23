@@ -1,4 +1,5 @@
 using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -264,18 +265,18 @@ public static class MulliganGuide
         var warnings = new List<string>();
         if (keptCards.Count > 0 && !keptCards.Any(IsEarly))
         {
-            warnings.Add($"No early play kept: nothing you keep costs {EarlyCost} or less (curve heuristic).");
+            warnings.Add(Loc.F("Mulligan.Warn.NoEarly", EarlyCost));
         }
 
         var late = keptCards.Count(IsLate);
         if (late >= 2)
         {
-            warnings.Add($"Top-heavy: {late} kept cards cost {LateCost}+ or are usually played on turn {LateTurn:0}+ (curve heuristic).");
+            warnings.Add(Loc.P("Mulligan.Warn.TopHeavy", late, LateCost, LateTurn));
         }
 
         foreach (var pair in keptCards.GroupBy(c => c.CardId).Where(g => g.Count() > 1 && !IsEarly(g.First())))
         {
-            warnings.Add($"Both copies of {pair.First().Name} kept: the stats count the card once, so the second copy adds nothing measurable (duplicate heuristic).");
+            warnings.Add(Loc.F("Mulligan.Warn.BothCopies", pair.First().Name));
         }
 
         return new MulliganImpact(

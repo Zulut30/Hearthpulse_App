@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text.Json;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Updates;
 
@@ -208,7 +209,14 @@ public static class UpdateService
                     _ => response.ReasonPhrase ?? "error",
                 };
                 Diag.Info($"Update check: GitHub answered {status} ({reason}) for {LatestApi}.");
-                return new UpdateCheck(UpdateCheckOutcome.Failed, null, $"Update check failed: GitHub answered {status} ({reason}).");
+                var shownReason = reason switch
+                {
+                    "no published release" => Loc.T("Core.Update.NoRelease"),
+                    "rate limited" => Loc.T("Core.Update.RateLimited"),
+                    "forbidden" => Loc.T("Core.Update.Forbidden"),
+                    _ => reason,
+                };
+                return new UpdateCheck(UpdateCheckOutcome.Failed, null, Loc.F("Core.Update.GitHubFailed", status, shownReason));
             }
 
             var json = await response.Content.ReadAsStringAsync(cts.Token);
@@ -217,28 +225,28 @@ public static class UpdateService
             {
                 // Released, but the file for this platform is not uploaded yet (or was not built): not "up to date".
                 Diag.Info($"Update check: {tag} has no {AssetName(tag, DetectTarget(), RuntimeArchitecture(), LinuxFlavor())} yet.");
-                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, $"Version {tag} is out, but there is no file for this platform yet.");
+                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, Loc.F("Core.Update.NoFileYet", tag));
             }
 
             if (info is null || !IsNewer(info.Version))
             {
-                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, $"Hearthpulse {CurrentVersion} is up to date.");
+                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, Loc.F("Core.Update.UpToDate", CurrentVersion));
             }
 
             Diag.Info($"Update available: {info.Version} ({info.AssetName}){(info.Sha256 is null ? ", no SHA-256 published" : string.Empty)}.");
             return new UpdateCheck(UpdateCheckOutcome.Available, info,
-                info.Sha256 is null ? UnverifiedMessage(info) : $"Version {info.Version} is available.");
+                info.Sha256 is null ? UnverifiedMessage(info) : Loc.F("Core.Update.Available", info.Version));
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException or IOException or InvalidOperationException)
         {
             Diag.Info($"Update check skipped: {ex.Message}");
-            return new UpdateCheck(UpdateCheckOutcome.Failed, null, $"Update check failed: {ex.Message}");
+            return new UpdateCheck(UpdateCheckOutcome.Failed, null, Loc.F("Core.Update.Failed", ex.Message));
         }
     }
 
     /// <summary>Why a release without a published checksum is not installed, for the log and the settings page.</summary>
     public static string UnverifiedMessage(UpdateInfo info) =>
-        $"Version {info.Version} is out, but GitHub lists no SHA-256 checksum for {info.AssetName}, so it is not installed automatically. Download it from the releases page.";
+        Loc.F("Core.Update.Unverified", info.Version, info.AssetName);
 
     /// <summary>Where a downloaded update waits until the app closes. Shared with the next run, so it is downloaded once.</summary>
     public static string StagedPath(UpdateInfo info) => Path.Combine(AppPaths.Root, "updates", info.AssetName);

@@ -51,8 +51,11 @@ public partial class App
                 Save(_main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
             }
 
-            // The Battlegrounds counters list sits far down the settings page.
+            await RenderSettingsTabsAsync(folder);
+
+            // The Battlegrounds counters list sits far down the Tracker tab of the settings page.
             _main.ShowPage("Settings");
+            _main.ShowSettingsTab("Tracker");
             if (_main.FindName("BgCountersHeading") is FrameworkElement heading)
             {
                 await Task.Delay(500);

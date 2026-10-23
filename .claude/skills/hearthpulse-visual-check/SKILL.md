@@ -40,6 +40,8 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
 - `--artifacts-path` must be short; parallel sessions should each use their own.
 - WPF is Windows only and prints nothing (WinExe) - judge by the PNG list. Avalonia prints `wrote <path>` and
   "`<scene>`: no kept Battlegrounds log reaches this moment, skipped".
+- Language: the data copy's `settings.json` decides (`"Language": "ru"` or `"en"`; `"auto"` = the machine's). Render
+  each language from its own copy (`--data %TEMP%\hpd-ru`, `--data %TEMP%\hpd-en`); see `docs/localization.md`.
 - No other arguments exist (no scene filter, no size). Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
   honoured only while rendering, WPF only (Avalonia has no theme engine).
 - Data: main pages from `history.db`; overlay moments replayed from the **kept Hearthstone logs**
@@ -51,7 +53,8 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
 | PNG | WPF | Avalonia | Source |
 |---|---|---|---|
 | `main-overview`, `-battlegrounds`, `-constructed`, `-history`, `-settings` | 1260x840 window | same | `DevRender.cs` / `OffscreenRenderer.cs` page loop (Arena is not in the loop) |
-| `main-settings-counters` | yes | yes | scrolls to the counters settings |
+| `main-settings-general`, `-overlay`, `-tracker`, `-account`, `-data`, `-about` | yes | yes | each Settings tab (`DevRender.Settings.cs` / `OffscreenRenderer.Settings.cs`) |
+| `main-settings-counters` | yes | yes | Tracker tab, scrolled to the Battlegrounds counters |
 | `main-constructed-tiers`, `main-constructed-top` | yes | - (no meta tabs) | `ShowConstructedTab` |
 | `main-battlegrounds-heroes`, `-comps`, `-trinkets`, `-cards` | yes | yes | BG tier list tabs, scrolled to the tabs; comps/trinkets show their empty state until the stats pool runs (`DevRender.BgMeta.cs` / `OffscreenRenderer.BgMeta.cs`) |
 | `main-battlegrounds-full`, `-constructed-full`, `-arena-full` | page content only | full window, tall | `DevRender.MyStats.cs` / `OffscreenRenderer.MyStats.cs` |

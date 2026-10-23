@@ -1,26 +1,27 @@
 <UserControl x:Class="Hearthpulse.App.Main.Stats.ConstructedStatsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="clr-namespace:Hearthpulse.App.Controls">
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
     <!-- Constructed "My stats" per format: header numbers, rank over time, classes, matchups, archetypes, game length -->
     <UserControl.Resources>
         <ResourceDictionary Source="StatsResources.xaml" />
     </UserControl.Resources>
     <StackPanel>
         <Grid Margin="0,0,0,14">
-            <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="Ranked and Casual games of this format">
+            <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Stats.Ct.FormatTip}">
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Style="{StaticResource Tab}" Content="Standard" GroupName="CtFormat" IsChecked="True" Command="{Binding SetCtFormat}" CommandParameter="FT_STANDARD" />
-                    <RadioButton Style="{StaticResource Tab}" Content="Wild" GroupName="CtFormat" Command="{Binding SetCtFormat}" CommandParameter="FT_WILD" />
+                    <RadioButton Style="{StaticResource Tab}" Content="{i:Loc Stats.Ct.Standard}" GroupName="CtFormat" IsChecked="True" Command="{Binding SetCtFormat}" CommandParameter="FT_STANDARD" />
+                    <RadioButton Style="{StaticResource Tab}" Content="{i:Loc Stats.Ct.Wild}" GroupName="CtFormat" Command="{Binding SetCtFormat}" CommandParameter="FT_WILD" />
                 </StackPanel>
             </Border>
-            <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="Time frame">
+            <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Stats.Period.Tip}">
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton Style="{StaticResource Segment}" Content="All time" GroupName="CtPeriod" IsChecked="True" Command="{Binding SetCtPeriod}" CommandParameter="All" />
-                    <RadioButton Style="{StaticResource Segment}" Content="7 days" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Week" />
-                    <RadioButton Style="{StaticResource Segment}" Content="30 days" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Month" />
-                    <RadioButton Style="{StaticResource Segment}" Content="Season" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Season"
-                                 ToolTip="This month's ranked season" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.All}" GroupName="CtPeriod" IsChecked="True" Command="{Binding SetCtPeriod}" CommandParameter="All" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Week}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Week" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Month}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Month" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.Season}" GroupName="CtPeriod" Command="{Binding SetCtPeriod}" CommandParameter="Season"
+                                 ToolTip="{i:Loc Stats.Period.SeasonTip}" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -38,11 +39,11 @@
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <DockPanel>
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <c:Ornament Text="Rank over time" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
-                    <TextBlock Text="Rank at the start of each ranked game" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <c:Ornament Text="{i:Loc Stats.Ct.RankTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
+                    <TextBlock Text="{i:Loc Stats.Ct.RankHint}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                 </Grid>
                 <c:StatsLineChart x:Name="RankChart" Height="210" Points="{Binding CtRankChart}" HoverTemplate="{StaticResource CtHoverCard}"
-                                  EmptyText="Play a few ranked games of this format to see your rank climb." />
+                                  EmptyText="{i:Loc Stats.Ct.RankEmpty}" />
             </DockPanel>
         </Border>
 
@@ -54,16 +55,16 @@
             </Grid.ColumnDefinitions>
             <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="Your classes" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
+                    <c:Ornament Text="{i:Loc Stats.Ct.YourClasses}" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
                     <ItemsControl ItemsSource="{Binding CtClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <TextBlock Text="No games in this time frame yet." Style="{StaticResource Caption}" Visibility="{Binding CtClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <TextBlock Text="{i:Loc Stats.Chart.NoGames}" Style="{StaticResource Caption}" Visibility="{Binding CtClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
             <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="Opponent classes" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10" />
+                    <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10" />
                     <ItemsControl ItemsSource="{Binding CtOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <TextBlock Text="No matchups yet." Style="{StaticResource Caption}" Visibility="{Binding CtOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <TextBlock Text="{i:Loc Stats.NoMatchups}" Style="{StaticResource Caption}" Visibility="{Binding CtOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -76,17 +77,17 @@
             </Grid.ColumnDefinitions>
             <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="Archetypes" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
+                    <c:Ornament Text="{i:Loc Stats.Ct.Archetypes}" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
                     <ItemsControl ItemsSource="{Binding CtArchetypes}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <TextBlock Text="Decks with a saved deck code are matched to a meta archetype here." Style="{StaticResource Caption}" TextWrapping="Wrap"
+                    <TextBlock Text="{i:Loc Stats.Ct.ArchetypesEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap"
                                Visibility="{Binding CtArchetypes, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
             <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="Game length" Icon="&#xF02DA;" Size="13" Margin="0,0,0,10" />
+                    <c:Ornament Text="{i:Loc Stats.Ct.GameLength}" Icon="&#xF02DA;" Size="13" Margin="0,0,0,10" />
                     <ItemsControl ItemsSource="{Binding CtLengths}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <TextBlock Text="No games in this time frame yet." Style="{StaticResource Caption}" Visibility="{Binding CtLengths, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <TextBlock Text="{i:Loc Stats.Chart.NoGames}" Style="{StaticResource Caption}" Visibility="{Binding CtLengths, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
         </Grid>

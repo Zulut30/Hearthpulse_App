@@ -1,6 +1,7 @@
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
 
@@ -504,20 +505,25 @@ public sealed partial class BattlegroundsTracker : IPowerListener
 
         var card = Cards.Get(source.CardId);
         var name = card?.Name is { Length: > 0 } n ? n : source.Name;
-        var kind = source.CardId switch
+        if (source.CardId.StartsWith("TB_BaconShop_Triples", StringComparison.Ordinal))
         {
-            var id when id.StartsWith("TB_BaconShop_Triples", StringComparison.Ordinal) => "Triple reward",
-            var id when id.StartsWith("BG36_MidGameEffect", StringComparison.Ordinal) => "Dark Gift",
-            _ => (card?.Type ?? source.CardType) switch
-            {
-                "HERO_POWER" => "Hero power",
-                "MINION" => "Minion",
-                "BATTLEGROUND_TRINKET" => "Trinket",
-                "SPELL" or "BATTLEGROUND_SPELL" => "Spell",
-                _ => "Discover",
-            },
-        };
-        return kind is "Triple reward" or "Dark Gift" ? kind : $"{kind} · {name}";
+            return Loc.T("Core.Bg.Source.TripleReward");
+        }
+
+        if (source.CardId.StartsWith("BG36_MidGameEffect", StringComparison.Ordinal))
+        {
+            return Loc.T("Core.Bg.Source.DarkGift");
+        }
+
+        var kind = Loc.T((card?.Type ?? source.CardType) switch
+        {
+            "HERO_POWER" => "Core.Bg.Source.HeroPower",
+            "MINION" => "Core.Bg.Source.Minion",
+            "BATTLEGROUND_TRINKET" => "Core.Bg.Source.Trinket",
+            "SPELL" or "BATTLEGROUND_SPELL" => "Core.Bg.Source.Spell",
+            _ => "Core.Bg.Source.Discover",
+        });
+        return $"{kind} · {name}";
     }
 
     /// <summary>

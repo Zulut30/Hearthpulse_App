@@ -22,7 +22,7 @@ Recipes: [hearthpulse-tracking](../hearthpulse-tracking/SKILL.md), [hearthpulse-
 | `src/Hearthpulse.App` | net10.0-windows, WPF, AssemblyName `Hearthpulse` | The Windows app the installer ships. |
 | `src/Hearthpulse.UI` | net10.0, Avalonia 12.1.4 | Cross-platform views/view models ("preview"). |
 | `src/Hearthpulse.Desktop` | net10.0, AssemblyName `Hearthpulse` | Avalonia desktop host: windows, per-OS overlay platform. |
-| `tests/Hearthpulse.Tests` | net10.0, xunit | Tests; references Core only. |
+| `tests/Hearthpulse.Tests` | net10.0, xunit | Tests; reference Core, and Hearthpulse.UI + Avalonia.Headless for the `{i:Loc}` binding test only. |
 | `tools/Hearthpulse.Probe` | net10.0 | Dev probe: `heroes <Power.log>`, `mem`, `class <Name>` (read live client memory). |
 | `tools/effects/*.py` | Python | Generators for `CombatRelevance.g.cs` and effect pools (`*Pool.g.cs`). |
 | `tools/counters/gen_counter_cards.py` | Python | Generates `Tracking/Counters/CounterCards.g.cs` from enUS HearthstoneJSON. |

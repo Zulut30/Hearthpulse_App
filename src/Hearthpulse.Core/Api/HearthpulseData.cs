@@ -14,7 +14,8 @@ namespace Hearthpulse.Core.Api;
 /// <param name="cacheDirectory">Where answers are cached; the app's cache folder by default (tests pass a scratch one).</param>
 public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 {
-    public const string Attribution = "Community stats: Hearthpulse API (HSReplay)";
+    /// <summary>The name every number from the Hearthpulse API goes by in the UI, in both languages.</summary>
+    public const string Attribution = "Hearthpulse data";
 
     private static readonly TimeSpan MaxAge = TimeSpan.FromHours(6);
 

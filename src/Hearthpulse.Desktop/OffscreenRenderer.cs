@@ -70,8 +70,11 @@ internal static partial class OffscreenRenderer
             await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
         }
 
-        // The Battlegrounds counters list sits far down the settings page.
+        await RenderSettingsTabsAsync(main, view, folder);
+
+        // The Battlegrounds counters list sits far down the Tracker tab of the settings page.
         view.ShowPage("Settings");
+        view.ShowSettingsTab("Tracker");
         if (view.FindControl<Control>("BgCountersHeading") is { } heading)
         {
             heading.BringIntoView(new Rect(0, 0, heading.Bounds.Width, 640));

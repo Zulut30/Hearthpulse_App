@@ -187,7 +187,7 @@ public sealed class ConstructedTracker : IPowerListener
 
         var ids = Deck.Cards.Keys.Select(cards.Get).OfType<Card>().Select(c => c.Id).ToList();
         var archetype = Meta.Match(playerClass, ids);
-        var source = Meta.Source == Constructed.ApiConstructedMeta.Attribution ? "HSGuru" : "HSReplay";
+        var source = Meta.Source;
         var stat = archetype is null
             ? null
             : new DeckMetaStat(archetype.Name, archetype.WinRate, archetype.Games, ConstructedMeta.Label(ConstructedMeta.Ranks, Meta.Rank), source)

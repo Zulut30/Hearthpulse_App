@@ -30,8 +30,36 @@ public sealed class AppSettings
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
 
-    /// <summary>"auto" follows the installed client language.</summary>
+    /// <summary>
+    /// Card data language (HearthstoneJSON locale such as "ruRU"); "auto" decides by <see cref="CardLocale"/>.
+    /// </summary>
     public string Locale { get; set; } = "auto";
+
+    /// <summary>Interface language: "en", "ru", or "auto" for the operating system's language (English when it is neither).</summary>
+    public string Language { get; set; } = Localization.Loc.Auto;
+
+    /// <summary>The Settings page tab shown last ("General", "Overlay", "Tracker", "Account", "Data", "About").</summary>
+    public string SettingsTab { get; set; } = "General";
+
+    /// <summary>
+    /// Text locale of the installed Hearthstone client ("ruRU", "deDE"...; <c>HearthstoneInstall.DetectLocale</c>), set by
+    /// the hosts once they found the install; null until then.
+    /// </summary>
+    [JsonIgnore]
+    public string? ClientLocale { get; set; }
+
+    /// <summary>
+    /// The card locale to load: <see cref="Locale"/> when set by hand; else the chosen interface language's ("ru" ->
+    /// ruRU, "en" -> enUS); with the language on "auto", the installed client's language, as before the interface had
+    /// languages (a German client keeps German cards), or the interface language while the client is unknown.
+    /// </summary>
+    public string CardLocale() =>
+        Locale is { Length: > 0 } locale && locale != "auto" ? locale
+        : Language is Localization.Loc.English or Localization.Loc.Russian ? Localization.Loc.CardLocaleOf(Language)
+        : ClientLocale ?? Localization.Loc.CardLocaleOf(InterfaceLanguage());
+
+    /// <summary>The interface language to show: <see cref="Language"/>, with "auto" resolved by the client and the system.</summary>
+    public string InterfaceLanguage() => Localization.Loc.Resolve(Language, clientLocale: ClientLocale);
 
     public string? HearthstonePath { get; set; }
 
@@ -143,6 +171,18 @@ public sealed class AppSettings
     /// <summary>Game plan comp: "Automatic".</summary>
     [JsonIgnore]
     public bool CompModeAuto { get => CompMode == CompMode.Auto; set => SetIf(value, () => CompMode = CompMode.Auto); }
+
+    /// <summary>Interface language: follow the system.</summary>
+    [JsonIgnore]
+    public bool LanguageAuto { get => Language is not (Localization.Loc.English or Localization.Loc.Russian); set => SetIf(value, () => Language = Localization.Loc.Auto); }
+
+    /// <summary>Interface language: English.</summary>
+    [JsonIgnore]
+    public bool LanguageEnglish { get => Language == Localization.Loc.English; set => SetIf(value, () => Language = Localization.Loc.English); }
+
+    /// <summary>Interface language: Russian.</summary>
+    [JsonIgnore]
+    public bool LanguageRussian { get => Language == Localization.Loc.Russian; set => SetIf(value, () => Language = Localization.Loc.Russian); }
 
     public bool ShowGameToasts { get; set; } = true;
 

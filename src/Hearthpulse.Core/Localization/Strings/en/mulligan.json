@@ -1,0 +1,33 @@
+{
+  "Mulligan.GoingFirst": "going first",
+  "Mulligan.OnTheCoin": "on the coin",
+  "Mulligan.NoNumbers": "Hearthpulse found no mulligan numbers for this deck: the badges show the offered cards only.",
+  "Mulligan.VsClass": " vs {0}",
+  "Mulligan.Impact": "Expected impact of your keeps: {0}%",
+  "Mulligan.SynergyKept": "Synergy kept: {0} + {1} ({2})",
+  "Mulligan.AverageHand": "Average hand{0}: {1}",
+  "Mulligan.YourKeeps": "Your keeps ({0} of {1}): {2}",
+  "Mulligan.FullMulligan": "Full mulligan: {0} · recommended keeps: {1}",
+  "Mulligan.NoPairData": "Synergies: the server has no card-pair data yet, so none are shown.",
+
+  "Mulligan.CardWinRate": "Win rate {1} with the card in the opening hand, against {2} for an average hand ({0:N0} offer)|Win rate {1} with the card in the opening hand, against {2} for an average hand ({0:N0} offers)",
+  "Mulligan.KeptBy": "Kept by {0} of players; usually played on turn {1}",
+  "Mulligan.NotEnoughGames": "Not enough games for numbers",
+  "Mulligan.SecondCopy": "2nd copy: counts once (heuristic)",
+  "Mulligan.SynergyWith": "Synergy with {0} ({1})",
+  "Mulligan.LateCard": "Late card: usually played turn {0}",
+  "Mulligan.Keeping": "Keeping - click to change",
+  "Mulligan.Replacing": "Replacing - click to change",
+  "Mulligan.Call.Keep": "Keep",
+  "Mulligan.Call.Replace": "Replace",
+  "Mulligan.Call.NoData": "No data",
+
+  "Mulligan.NoStats.NoDeck": "No mulligan stats: Decks.log named no deck for this game",
+  "Mulligan.NoStats.NotYet": "No mulligan stats for this deck yet",
+  "Mulligan.NoStats.None": "No mulligan stats for this deck",
+  "Mulligan.ClassPool": "{0} (all decks)",
+
+  "Mulligan.Warn.NoEarly": "No early play kept: nothing you keep costs {0} or less (curve heuristic).",
+  "Mulligan.Warn.TopHeavy": "Top-heavy: {0} kept card costs {1}+ or is usually played on turn {2:0}+ (curve heuristic).|Top-heavy: {0} kept cards cost {1}+ or are usually played on turn {2:0}+ (curve heuristic).",
+  "Mulligan.Warn.BothCopies": "Both copies of {0} kept: the stats count the card once, so the second copy adds nothing measurable (duplicate heuristic)."
+}
