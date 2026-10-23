@@ -137,6 +137,7 @@ public sealed partial class AppHost : IDisposable
         try
         {
             Main.Busy = "Looking for Hearthstone…";
+            Task.Run(CacheCleanup.Run).Forget("Cache clean-up");
             InstallDirectory = await Task.Run(() => HearthstoneInstall.FindInstallDirectory(Settings.HearthstonePath));
             if (InstallDirectory is not null && Settings.HearthstonePath != InstallDirectory)
             {

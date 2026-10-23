@@ -286,6 +286,7 @@ public partial class App : Application
         try
         {
             _mainViewModel.Busy = "Looking for Hearthstone…";
+            Task.Run(CacheCleanup.Run).Forget("Cache clean-up");
             _installDir = await Task.Run(() => HearthstoneInstall.FindInstallDirectory(_settings.HearthstonePath));
             if (_installDir is not null && _settings.HearthstonePath != _installDir)
             {

@@ -136,6 +136,25 @@ internal static class CoreBench
         Console.WriteLine($"[hover] reads before {readsBefore:N0} ({readsBefore / Math.Max(1, inGame.TotalMinutes):N0}/min), now {readsNow:N0} ({readsNow / Math.Max(1, inGame.TotalMinutes):N0}/min): {100 - (100 * readsNow / Math.Max(1, readsBefore)):N0}% fewer");
     }
 
+    /// <summary>Runs <see cref="CacheCleanup"/> on the data copy's cache and prints its size per folder before and after.</summary>
+    public static void Cleanup()
+    {
+        void Sizes(string when)
+        {
+            foreach (var dir in new DirectoryInfo(AppPaths.Cache).EnumerateDirectories().Prepend(new DirectoryInfo(AppPaths.Cache)))
+            {
+                var files = dir.EnumerateFiles("*", dir.FullName == AppPaths.Cache ? SearchOption.TopDirectoryOnly : SearchOption.AllDirectories).ToList();
+                Console.WriteLine($"[cleanup] {when,-6} {(dir.FullName == AppPaths.Cache ? "cache/" : dir.Name + "/"),-12} {files.Count,5} files {Mb(files.Sum(f => f.Length)),10}  (.tmp: {files.Count(f => f.Extension == ".tmp")})");
+            }
+        }
+
+        Sizes("before");
+        var started = Stopwatch.StartNew();
+        var result = CacheCleanup.Run();
+        Console.WriteLine($"[cleanup] removed {result.Files} files, {Mb(result.Bytes)} in {started.ElapsedMilliseconds} ms");
+        Sizes("after");
+    }
+
     public static void History(Options options)
     {
         using var http = Http();
