@@ -12,21 +12,27 @@ namespace Hearthpulse.Core.Accounts;
 /// </summary>
 /// <remarks>
 /// Only while the player is signed in and has turned <see cref="AppSettings.UploadGamesToProfile"/> on (an opt-in:
-/// null until asked): a game that ends otherwise is not queued, and turning it off drops what waits (the backfill
-/// button sends past games on request). Events wait in
-/// <see cref="ProfileUploadQueue"/>, go out in batches within the site's limits, and are retried with a growing pause
-/// after an outage. Events the site rejects are dropped and logged, never retried. A Battlegrounds game waits up to
-/// <see cref="RatingWait"/> for its new rating. Runs on its own task, never on the log thread or the UI thread.
+/// null until asked): a game that ends otherwise is not queued, and turning it off drops what waits. Past games go only
+/// when the player asks (<see cref="StartBackfill"/>), read from the history a page at a time. The site keeps the first
+/// copy of an event id forever, so every event is checked with <see cref="ProfileEventSchema"/> first and a failing one
+/// is logged instead of sent, and a Battlegrounds game waits for its new rating up to <see cref="RatingWait"/> after it
+/// ended (counted from the history row, so the wait survives a restart). Events wait in <see cref="ProfileUploadQueue"/>,
+/// go out in batches within the site's limits, and are retried with a growing pause after an outage. Events the site
+/// rejects, or stores without statistics (<c>warnings</c>), are logged and counted in <see cref="Status"/>, never
+/// retried. Runs on its own task, never on the log thread or the UI thread.
 /// </remarks>
 public sealed class ProfileUploader : IDisposable
 {
     /// <summary>The site takes 1-50 events per call.</summary>
     public const int MaxBatchEvents = 50;
 
-    /// <summary>Bytes per call we allow ourselves; the site's limit is 5 MiB per request, 512 KiB per event.</summary>
+    /// <summary>Bytes per call we allow ourselves; the site's limit is 5 MiB per request, 32 KiB per game event.</summary>
     public const int MaxBatchBytes = 1024 * 1024;
 
-    /// <summary>How long a Battlegrounds game waits for the rating read after it (the session waits 120 s).</summary>
+    /// <summary>History rows a backfill reads at a time, and the queue length below which it reads the next page.</summary>
+    public const int BackfillPage = 1_000;
+
+    /// <summary>How long after its end a Battlegrounds game waits for the rating read after it (the session waits 120 s).</summary>
     public static readonly TimeSpan RatingWait = TimeSpan.FromSeconds(130);
 
     private static readonly TimeSpan FirstRetry = TimeSpan.FromSeconds(30);
@@ -46,6 +52,9 @@ public sealed class ProfileUploader : IDisposable
     private int _failures;
     private DateTime _retryAt = DateTime.MinValue;
     private string _status = string.Empty;
+    private int _withoutStatistics;
+    private int _refused;
+    private int _notSent;
 
     /// <param name="client">The site API (its base URL is the one the account signs in to).</param>
     /// <param name="accessToken">A valid access token, or null when signed out or offline (<see cref="AccountService.GetAccessTokenAsync"/>).</param>
@@ -74,13 +83,22 @@ public sealed class ProfileUploader : IDisposable
     /// <summary>UTC clock; tests move it.</summary>
     internal Func<DateTime> UtcNow { get; init; } = () => DateTime.UtcNow;
 
+    /// <summary><see cref="BackfillPage"/>; tests make it small.</summary>
+    internal int BackfillPageSize { get; init; } = BackfillPage;
+
     /// <summary>Raised (on any thread) when <see cref="Status"/> changes.</summary>
     public event Action? StatusChanged;
 
-    /// <summary>One line for the Settings card: queued games, the last send, or why sending waits.</summary>
+    /// <summary>
+    /// One line for the Settings card: games waiting (and whether past games follow), the last send, why sending waits,
+    /// and how many games since the start went without statistics or were refused.
+    /// </summary>
     public string Status => _status;
 
     public int PendingCount => _queue.PendingCount;
+
+    /// <summary>Whether a backfill is still reading past games from the history.</summary>
+    public bool Backfilling => _queue.BackfillAfter is not null;
 
     /// <summary>Whether sending is possible right now (signed in to a named account and the setting on).</summary>
     public bool Active => _enabled() && _accountId() is { Length: > 0 };
@@ -112,13 +130,7 @@ public sealed class ProfileUploader : IDisposable
 
         try
         {
-            var now = UtcNow();
-            if (_history.Game(key) is not { } game)
-            {
-                return;
-            }
-
-            if (!Adopt())
+            if (_history.Game(key) is not { } game || !Adopt())
             {
                 return;
             }
@@ -126,14 +138,14 @@ public sealed class ProfileUploader : IDisposable
             if (game.Mode == "Arena")
             {
                 var arena = _history.Recent(200, "Arena");
-                _queue.Enqueue(ProfileEvents.ForArena(arena.Select(g => g.Key == key ? game : g), new HashSet<string> { key }), now);
+                Queue(ProfileEvents.ForArena(arena.Select(g => g.Key == key ? game : g), new HashSet<string> { key }).Select(e => (e, (GameRecord?)null)));
             }
             else if (ProfileEvents.ForGame(game, BaseHero) is { } e)
             {
-                var waitForRating = game.IsBattlegrounds && game.RatingBefore is > 0 && game.RatingAfter is null && outcome.RatingAfter is null;
-                _queue.Enqueue([e], waitForRating ? now + RatingWait : now);
+                Queue([(e, game)]);
             }
 
+            _queue.Flush();
             Kick();
         }
         catch (Exception ex)
@@ -143,37 +155,26 @@ public sealed class ProfileUploader : IDisposable
     }
 
     /// <summary>
-    /// Queues every past game of the history the site has not settled yet (the Settings button). Returns how many events
-    /// were queued; 0 when signed out or the setting is off.
+    /// Starts sending every past game of the history the site has not settled yet (the Settings button). The history is
+    /// read a page at a time while the queue drains; <see cref="Status"/> shows the progress. False when signed out or the
+    /// setting is off.
     /// </summary>
-    public async Task<int> BackfillAsync(CancellationToken cancellationToken = default)
+    public bool StartBackfill()
     {
         if (!Active || !Adopt())
         {
-            return 0;
+            return false;
         }
 
-        var count = await Task.Run(() =>
+        if (_queue.BackfillAfter is null)
         {
-            var games = _history.Since(DateTime.MinValue);
-            var events = new List<ProfileEvent>();
-            var constructed = _history.WithCards(games.Where(g => g.Mode is "Ranked" or "Casual").ToList());
-            foreach (var game in games.Where(g => g.IsBattlegrounds).Concat(constructed))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (ProfileEvents.ForGame(game, BaseHero) is { } e && !_queue.Knows(e.EventId))
-                {
-                    events.Add(e);
-                }
-            }
+            _queue.BackfillAfter = 0;
+            _queue.Flush();
+            Diag.Info("profile upload: backfill started");
+        }
 
-            events.AddRange(ProfileEvents.ForArena(games.Where(g => g.Mode == "Arena")).Where(e => !_queue.Knows(e.EventId)));
-            return _queue.Enqueue(events.OrderBy(e => e.OccurredAt, StringComparer.Ordinal), UtcNow());
-        }, cancellationToken).ConfigureAwait(false);
-
-        Diag.Info($"profile upload: backfill queued {count.ToString(CultureInfo.InvariantCulture)} events");
         Kick();
-        return count;
+        return true;
     }
 
     /// <summary>
@@ -189,7 +190,62 @@ public sealed class ProfileUploader : IDisposable
         }
         finally
         {
+            _queue.Flush();
             _pass.Release();
+        }
+    }
+
+    // Checks each event against the site's schema, then queues it; a Battlegrounds game without its new rating waits
+    // until RatingWait after its end.
+    private void Queue(IEnumerable<(ProfileEvent Event, GameRecord? Game)> events)
+    {
+        var now = UtcNow();
+        var due = new List<ProfileEvent>();
+        foreach (var (e, game) in events)
+        {
+            if (ProfileEventSchema.Validate(e, now) is { } field)
+            {
+                _notSent++;
+                Diag.Info($"profile upload: {e.Type} {e.EventId} not sent, the site would not read its {field}");
+                continue;
+            }
+
+            if (game is { IsBattlegrounds: true, RatingBefore: > 0, RatingAfter: null } && game.EndedAt.ToUniversalTime() + RatingWait is var until && until > now)
+            {
+                _queue.Enqueue([e], until);
+            }
+            else
+            {
+                due.Add(e);
+            }
+        }
+
+        _queue.Enqueue(due, now);
+    }
+
+    // Tops the queue up from the history while a backfill runs: a page of rows at a time, until the queue holds a page's
+    // worth of events or the history ends. Arena runs are built from all Arena games at once, on the first page.
+    private void FillFromBackfill()
+    {
+        while (_queue.BackfillAfter is { } after && _queue.PendingCount < BackfillPageSize)
+        {
+            if (after == 0)
+            {
+                var arena = ProfileEvents.ForArena(_history.Recent(int.MaxValue, "Arena"));
+                Queue(arena.Where(e => !_queue.Knows(e.EventId)).Select(e => (e, (GameRecord?)null)));
+            }
+
+            var page = _history.PageForUpload(after, BackfillPageSize);
+            Queue(page.Where(g => g.Mode != "Arena")
+                .Select(g => (Event: ProfileEvents.ForGame(g, BaseHero), Game: g))
+                .Where(x => x.Event is not null && !_queue.Knows(x.Event.EventId))
+                .Select(x => (x.Event!, (GameRecord?)x.Game)));
+            _queue.BackfillAfter = page.Count < BackfillPageSize ? null : page[^1].Id;
+            _queue.Flush();
+            if (_queue.BackfillAfter is null)
+            {
+                Diag.Info("profile upload: backfill has queued every past game");
+            }
         }
     }
 
@@ -198,11 +254,7 @@ public sealed class ProfileUploader : IDisposable
         if (!_enabled())
         {
             // Turned off (or never turned on): what was waiting is not sent later either.
-            if (_queue.PendingCount > 0)
-            {
-                _queue.ClearPending();
-            }
-
+            _queue.ClearPending();
             SetStatus(string.Empty);
             return Idle;
         }
@@ -222,12 +274,13 @@ public sealed class ProfileUploader : IDisposable
         var sent = 0;
         while (true)
         {
+            FillFromBackfill();
             now = UtcNow();
             var batch = _queue.NextBatch(now, MaxBatchEvents, MaxBatchBytes);
             if (batch.Count == 0)
             {
                 var pending = _queue.PendingCount;
-                SetStatus(pending > 0 ? Waiting(pending) : sent > 0 ? "All games are on your profile." : _status);
+                SetStatus(pending > 0 ? Waiting(pending) : sent > 0 || _status.Length > 0 ? Done() : string.Empty);
                 return _queue.NextDue() is { } due && due > now ? Min(due - now, Idle) : Idle;
             }
 
@@ -240,7 +293,7 @@ public sealed class ProfileUploader : IDisposable
             TrackerBatchAnswer answer;
             try
             {
-                answer = await _client.PostEventsAsync(token, Body(batch), cancellationToken).ConfigureAwait(false);
+                answer = await _client.PostEventsAsync(token, Body(batch.Select(b => b.Event)), cancellationToken).ConfigureAwait(false);
             }
             catch (AccountException ex)
             {
@@ -249,18 +302,12 @@ public sealed class ProfileUploader : IDisposable
 
             if (answer.Answered)
             {
-                foreach (var rejected in answer.Rejected)
-                {
-                    var e = batch.FirstOrDefault(b => b.EventId.Equals(rejected.EventId, StringComparison.OrdinalIgnoreCase));
-                    Diag.Info($"profile upload: {e?.Type ?? "event"} {rejected.EventId} rejected: {rejected.Code}{(rejected.Field is { } f ? " (" + f + ")" : string.Empty)}");
-                }
-
-                LogWarnings(answer, batch);
+                Record(answer, batch);
 
                 // Whatever the answer names is settled. An event it does not name (it should not happen) is retried later.
-                _queue.Settle(answer.Accepted.Concat(answer.Rejected.Select(r => r.EventId)));
                 var named = new HashSet<string>(answer.Accepted.Concat(answer.Rejected.Select(r => r.EventId)), StringComparer.OrdinalIgnoreCase);
-                if (!batch.Any(b => named.Contains(b.EventId)))
+                _queue.Settle(batch.Where(b => named.Contains(b.Event.EventId)).Select(b => (b.Event.EventId, b.Version)));
+                if (!batch.Any(b => named.Contains(b.Event.EventId)))
                 {
                     return Backoff("answer named no event");
                 }
@@ -276,8 +323,7 @@ public sealed class ProfileUploader : IDisposable
                 // event is dropped; a larger batch is sent again one event at a time to find the culprit.
                 if (batch.Count == 1)
                 {
-                    Diag.Info($"profile upload: {batch[0].Type} {batch[0].EventId} refused: HTTP {answer.Status.ToString(CultureInfo.InvariantCulture)} {answer.ErrorCode}");
-                    _queue.Settle([batch[0].EventId]);
+                    Refuse(batch[0], answer);
                     continue;
                 }
 
@@ -294,14 +340,14 @@ public sealed class ProfileUploader : IDisposable
     }
 
     // A refused batch, again one event per call. Returns a wait when a call fails for another reason.
-    private async Task<TimeSpan?> SendOneByOneAsync(IReadOnlyList<ProfileEvent> batch, string token, CancellationToken cancellationToken)
+    private async Task<TimeSpan?> SendOneByOneAsync(IReadOnlyList<QueuedEvent> batch, string token, CancellationToken cancellationToken)
     {
-        foreach (var e in batch)
+        foreach (var item in batch)
         {
             TrackerBatchAnswer answer;
             try
             {
-                answer = await _client.PostEventsAsync(token, Body([e]), cancellationToken).ConfigureAwait(false);
+                answer = await _client.PostEventsAsync(token, Body([item.Event]), cancellationToken).ConfigureAwait(false);
             }
             catch (AccountException ex)
             {
@@ -310,19 +356,12 @@ public sealed class ProfileUploader : IDisposable
 
             if (answer.Answered)
             {
-                foreach (var rejected in answer.Rejected)
-                {
-                    Diag.Info($"profile upload: {e.Type} {rejected.EventId} rejected: {rejected.Code}{(rejected.Field is { } f ? " (" + f + ")" : string.Empty)}");
-                }
-
-                LogWarnings(answer, [e]);
-
-                _queue.Settle([e.EventId]);
+                Record(answer, [item]);
+                _queue.Settle([(item.Event.EventId, item.Version)]);
             }
             else if (answer.Status is 400 or 413 or 422)
             {
-                Diag.Info($"profile upload: {e.Type} {e.EventId} refused: HTTP {answer.Status.ToString(CultureInfo.InvariantCulture)} {answer.ErrorCode}");
-                _queue.Settle([e.EventId]);
+                Refuse(item, answer);
             }
             else
             {
@@ -333,15 +372,34 @@ public sealed class ProfileUploader : IDisposable
         return null;
     }
 
-    // Accepted, but the site could not use the statistics: a mapping bug to fix here, so it goes to the log.
-    private static void LogWarnings(TrackerBatchAnswer answer, IReadOnlyList<ProfileEvent> batch)
+    private void Refuse(QueuedEvent item, TrackerBatchAnswer answer)
     {
+        _refused++;
+        Diag.Info($"profile upload: {item.Event.Type} {item.Event.EventId} refused: HTTP {answer.Status.ToString(CultureInfo.InvariantCulture)} {answer.ErrorCode}");
+        _queue.Settle([(item.Event.EventId, item.Version)]);
+    }
+
+    // Logs and counts what the site rejected, and what it stored without statistics (warnings): either is final for the
+    // id, so both are mapping bugs or limits to look at here.
+    private void Record(TrackerBatchAnswer answer, IReadOnlyList<QueuedEvent> batch)
+    {
+        string TypeOf(string id) =>
+            batch.FirstOrDefault(b => b.Event.EventId.Equals(id, StringComparison.OrdinalIgnoreCase))?.Event.Type ?? "event";
+
+        foreach (var rejected in answer.Rejected)
+        {
+            _refused++;
+            Diag.Info($"profile upload: {TypeOf(rejected.EventId)} {rejected.EventId} rejected: {rejected.Code}{Field(rejected.Field)}");
+        }
+
         foreach (var warning in answer.Warnings)
         {
-            var e = batch.FirstOrDefault(b => b.EventId.Equals(warning.EventId, StringComparison.OrdinalIgnoreCase));
-            Diag.Info($"profile upload: {e?.Type ?? "event"} {warning.EventId} stored without statistics: {warning.Code}{(warning.Field is { } f ? " (" + f + ")" : string.Empty)}");
+            _withoutStatistics++;
+            Diag.Info($"profile upload: {TypeOf(warning.EventId)} {warning.EventId} stored without statistics: {warning.Code}{Field(warning.Field)}");
         }
     }
+
+    private static string Field(string? field) => field is { } f ? " (" + f + ")" : string.Empty;
 
     internal static string Body(IEnumerable<ProfileEvent> batch) =>
         new JsonObject { ["events"] = new JsonArray([.. batch.Select(e => (JsonNode)e.ToJson())]) }.ToJsonString();
@@ -368,8 +426,34 @@ public sealed class ProfileUploader : IDisposable
         return wait;
     }
 
-    private static string Waiting(int pending) =>
-        pending == 1 ? "1 game waiting to be sent." : $"{pending.ToString(CultureInfo.InvariantCulture)} games waiting to be sent.";
+    private string Waiting(int pending) =>
+        (pending == 1 ? "1 game waiting to be sent." : $"{pending.ToString(CultureInfo.InvariantCulture)} games waiting to be sent.")
+        + (Backfilling ? " More past games follow." : string.Empty) + Problems();
+
+    private string Done() => "All games are on your profile." + Problems();
+
+    private string Problems()
+    {
+        var parts = new List<string>();
+        if (_withoutStatistics > 0)
+        {
+            parts.Add(Games(_withoutStatistics) + " sent without statistics");
+        }
+
+        if (_refused > 0)
+        {
+            parts.Add(Games(_refused) + " refused by the site");
+        }
+
+        if (_notSent > 0)
+        {
+            parts.Add(Games(_notSent) + " not sent (unreadable for the site)");
+        }
+
+        return parts.Count == 0 ? string.Empty : " " + string.Join(", ", parts) + "; see hearthpulse.log.";
+
+        static string Games(int n) => n == 1 ? "1 game" : $"{n.ToString(CultureInfo.InvariantCulture)} games";
+    }
 
     private static TimeSpan Min(TimeSpan a, TimeSpan b) => a < b ? a : b;
 

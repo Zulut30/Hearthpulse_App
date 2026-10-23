@@ -36,11 +36,13 @@ public sealed class ProfileUploadTests : IDisposable
 
     private string QueuePath => Path.Combine(_dir, "profile-upload.json");
 
-    private ProfileUploader Uploader(Func<bool>? enabled = null) => new(new AccountClient(new HttpClient(_site), "https://site.test/api/v1/"),
-        _ => Task.FromResult(_token), () => _user, enabled ?? (() => _enabled), _history, new ProfileUploadQueue(QueuePath))
-    {
-        UtcNow = () => _now,
-    };
+    private ProfileUploader Uploader(Func<bool>? enabled = null, int backfillPage = ProfileUploader.BackfillPage) =>
+        new(new AccountClient(new HttpClient(_site), "https://site.test/api/v1/"),
+            _ => Task.FromResult(_token), () => _user, enabled ?? (() => _enabled), _history, new ProfileUploadQueue(QueuePath))
+        {
+            UtcNow = () => _now,
+            BackfillPageSize = backfillPage,
+        };
 
     private static int _games;
 
@@ -109,7 +111,8 @@ public sealed class ProfileUploadTests : IDisposable
         _enabled = false;
         uploader.OnGameFinished(Outcome(game));
         await uploader.PassAsync(CancellationToken.None);
-        Assert.Equal(0, await uploader.BackfillAsync());
+        Assert.False(uploader.StartBackfill());
+        await uploader.PassAsync(CancellationToken.None);
 
         Assert.Empty(_site.Requests);
         Assert.Equal(0, uploader.PendingCount);
@@ -127,7 +130,7 @@ public sealed class ProfileUploadTests : IDisposable
 
         uploader.OnGameFinished(Outcome(game));
         await uploader.PassAsync(CancellationToken.None);
-        Assert.Equal(0, await uploader.BackfillAsync());
+        Assert.False(uploader.StartBackfill());
         settings.UploadGamesToProfile = false;
         uploader.OnGameFinished(Outcome(game));
         await uploader.PassAsync(CancellationToken.None);
@@ -137,9 +140,9 @@ public sealed class ProfileUploadTests : IDisposable
         Assert.False(File.Exists(QueuePath) && new ProfileUploadQueue(QueuePath).PendingCount > 0);
 
         settings.UploadGamesToProfile = true;
-        Assert.Equal(1, await uploader.BackfillAsync());
+        Assert.True(uploader.StartBackfill());
         await uploader.PassAsync(CancellationToken.None);
-        Assert.Single(_site.Requests);
+        Assert.Single(Assert.Single(_site.Requests).Events);
     }
 
     [Fact]
@@ -179,6 +182,7 @@ public sealed class ProfileUploadTests : IDisposable
 
         Assert.Single(_site.Requests);
         Assert.Equal(0, uploader.PendingCount);
+        Assert.Equal("All games are on your profile. 1 game sent without statistics, 1 game refused by the site; see hearthpulse.log.", uploader.Status);
         var log = TestDataFolder.ReadLog();
         Assert.Contains($"profile upload: constructed_match {ProfileEvents.GameEventId(warned)} stored without statistics: INVALID_STATISTICS (rankBefore.starLevel)", log);
         Assert.Contains($"profile upload: constructed_match {ProfileEvents.GameEventId(over)} rejected: QUOTA_EXCEEDED", log);
@@ -225,7 +229,8 @@ public sealed class ProfileUploadTests : IDisposable
 
         await uploader.PassAsync(CancellationToken.None);
         await uploader.PassAsync(CancellationToken.None);
-        Assert.Equal(0, await uploader.BackfillAsync());
+        Assert.True(uploader.StartBackfill());
+        await uploader.PassAsync(CancellationToken.None);
 
         Assert.Single(_site.Requests);
         Assert.Equal(0, uploader.PendingCount);
@@ -259,35 +264,74 @@ public sealed class ProfileUploadTests : IDisposable
         Saved(Ranked() with { Mode = "Brawl", GameType = "GT_TAVERNBRAWL" });
         var uploader = Uploader();
 
-        Assert.Equal(120, await uploader.BackfillAsync());
+        Assert.True(uploader.StartBackfill());
         await uploader.PassAsync(CancellationToken.None);
 
         Assert.Equal([50, 50, 20], _site.Requests.Select(r => r.Events.Count));
-        Assert.Equal(120, _site.Requests.SelectMany(r => r.Events).Select(e => (string)e["eventId"]!).Distinct().Count());
-        Assert.Equal(0, await uploader.BackfillAsync());
-        // A new install of the app (no queue file) backfills the same ids: the site only acknowledges them.
+        Assert.Equal(120, Ids(_site.Requests.Take(3)).Count);
+        Assert.False(uploader.Backfilling);
+        Assert.True(uploader.StartBackfill());
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.Equal(3, _site.Requests.Count);
+
+        // A new install of the app (no queue files) backfills the same ids: the site only acknowledges them.
         File.Delete(QueuePath);
-        Assert.Equal(120, await Uploader().BackfillAsync());
-        Assert.True(_site.Requests.Take(3).SelectMany(r => r.Events).Select(e => (string)e["eventId"]!).ToHashSet()
-            .SetEquals(new ProfileUploadQueue(QueuePath).NextBatch(_now, 500, int.MaxValue).Select(e => e.EventId)));
+        File.Delete(QueuePath + ".settled");
+        var reinstalled = Uploader();
+        Assert.True(reinstalled.StartBackfill());
+        await reinstalled.PassAsync(CancellationToken.None);
+        Assert.True(Ids(_site.Requests.Take(3)).SetEquals(Ids(_site.Requests.Skip(3))));
     }
+
+    [Fact]
+    public async Task Backfill_reads_the_history_a_page_at_a_time_and_counts_honestly()
+    {
+        for (var i = 0; i < 120; i++)
+        {
+            Saved(Ranked());
+        }
+
+        var uploader = Uploader(backfillPage: 50);
+        _site.Offline = true;
+        Assert.True(uploader.StartBackfill());
+        await uploader.PassAsync(CancellationToken.None);
+
+        // Only one page is read while the site is away: the queue never holds the whole history.
+        Assert.Equal(50, uploader.PendingCount);
+        Assert.Equal(50L, new ProfileUploadQueue(QueuePath).BackfillAfter);
+        Assert.StartsWith("50 games waiting to be sent. More past games follow.", uploader.Status, StringComparison.Ordinal);
+
+        // A restart keeps the cursor; the rest goes once the site is back.
+        _site.Offline = false;
+        _now += TimeSpan.FromMinutes(1);
+        var restarted = Uploader(backfillPage: 50);
+        await restarted.PassAsync(CancellationToken.None);
+        Assert.Equal([50, 50, 20], _site.Requests.Select(r => r.Events.Count));
+        Assert.Equal(120, Ids(_site.Requests).Count);
+        Assert.False(restarted.Backfilling);
+        Assert.Equal("All games are on your profile.", restarted.Status);
+    }
+
+    private static HashSet<string> Ids(IEnumerable<(string Authorization, string Body, List<JsonObject> Events, int Status)> requests) =>
+        requests.SelectMany(r => r.Events).Select(e => (string)e["eventId"]!).ToHashSet();
+
+    private GameRecord RatedBattlegrounds(int placement, string result) => Saved(new GameRecord
+    {
+        Key = $"{_now.AddMinutes(-20):yyyyMMddHHmmss}|Secret#1234|GT_BATTLEGROUNDS",
+        StartedAt = _now.AddMinutes(-20),
+        EndedAt = _now,
+        Mode = "Battlegrounds",
+        GameType = "GT_BATTLEGROUNDS",
+        HeroCardId = "BG20_HERO_242",
+        Placement = placement,
+        RatingBefore = 6400,
+        Result = result,
+    });
 
     [Fact]
     public async Task A_battlegrounds_game_waits_for_its_new_rating()
     {
-        var start = new DateTime(2026, 10, 22, 15, 0, 0, DateTimeKind.Utc);
-        var game = Saved(new GameRecord
-        {
-            Key = $"{start:yyyyMMddHHmmss}|Secret#1234|GT_BATTLEGROUNDS",
-            StartedAt = start,
-            EndedAt = start.AddMinutes(20),
-            Mode = "Battlegrounds",
-            GameType = "GT_BATTLEGROUNDS",
-            HeroCardId = "BG20_HERO_242",
-            Placement = 3,
-            RatingBefore = 6400,
-            Result = "Win",
-        });
+        var game = RatedBattlegrounds(3, "Win");
         var uploader = Uploader();
 
         uploader.OnGameFinished(Outcome(game));
@@ -303,27 +347,19 @@ public sealed class ProfileUploadTests : IDisposable
     }
 
     [Fact]
-    public async Task A_battlegrounds_game_whose_rating_never_comes_goes_after_the_wait()
+    public async Task A_battlegrounds_game_whose_rating_never_comes_goes_after_the_wait_even_across_a_restart()
     {
-        var start = new DateTime(2026, 10, 22, 16, 0, 0, DateTimeKind.Utc);
-        var game = Saved(new GameRecord
-        {
-            Key = $"{start:yyyyMMddHHmmss}|Secret#1234|GT_BATTLEGROUNDS",
-            StartedAt = start,
-            EndedAt = start.AddMinutes(20),
-            Mode = "Battlegrounds",
-            GameType = "GT_BATTLEGROUNDS",
-            HeroCardId = "BG20_HERO_242",
-            Placement = 6,
-            RatingBefore = 6400,
-            Result = "Loss",
-        });
-        var uploader = Uploader();
-        uploader.OnGameFinished(Outcome(game));
+        var game = RatedBattlegrounds(6, "Loss");
+        Uploader().OnGameFinished(Outcome(game));
+
+        // The app closes 30 s after the game and starts again: the wait is counted from the game's end, not the start.
+        _now += TimeSpan.FromSeconds(30);
+        var restarted = Uploader();
+        Assert.Equal(ProfileUploader.RatingWait - TimeSpan.FromSeconds(30), await restarted.PassAsync(CancellationToken.None));
+        Assert.Empty(_site.Requests);
 
         _now += ProfileUploader.RatingWait;
-        await uploader.PassAsync(CancellationToken.None);
-
+        await restarted.PassAsync(CancellationToken.None);
         Assert.Null(Assert.Single(Assert.Single(_site.Requests).Events)["payload"]!["ratingAfter"]);
     }
 
@@ -385,14 +421,33 @@ public sealed class ProfileUploadTests : IDisposable
         queue.Enqueue([e], _now.AddMinutes(5));
         queue.Enqueue([e with { Payload = new JsonObject { ["v"] = 2 } }], _now);
 
+        queue.Flush();
         var batch = Assert.Single(new ProfileUploadQueue(QueuePath).NextBatch(_now, 50, int.MaxValue));
-        Assert.Equal(2, (int)batch.Payload["v"]!);
+        Assert.Equal(2, (int)batch.Event.Payload["v"]!);
 
         queue.Enqueue(Enumerable.Range(0, ProfileUploadQueue.MaxPending + 10)
             .Select(i => new ProfileEvent(ProfileEvents.EventId("n" + i), ProfileEvents.Constructed, "2026-10-22T10:00:00Z", new JsonObject())), _now);
         Assert.Equal(ProfileUploadQueue.MaxPending, queue.PendingCount);
         // Byte limit: a batch stops before it would grow past it, but always carries one event.
         Assert.Single(queue.NextBatch(_now, 50, 10));
+    }
+
+    [Fact]
+    public void An_event_replaced_while_it_was_being_sent_is_not_lost_silently()
+    {
+        var queue = new ProfileUploadQueue(QueuePath);
+        queue.Adopt("u-1");
+        var e = new ProfileEvent(ProfileEvents.EventId("y"), ProfileEvents.Battlegrounds, "2026-10-22T10:00:00Z", new JsonObject { ["v"] = 1 });
+        queue.Enqueue([e], _now);
+        var sending = Assert.Single(queue.NextBatch(_now, 50, int.MaxValue));
+        queue.Enqueue([e with { Payload = new JsonObject { ["v"] = 2 } }], _now);
+
+        queue.Settle([(sending.Event.EventId, sending.Version)]);
+
+        Assert.Equal(1, queue.PendingCount);
+        Assert.Contains($"profile upload: {e.EventId} changed while it was being sent", TestDataFolder.ReadLog());
+        // Settled ids are on disk at once (appended), so a backfill after a restart skips them.
+        Assert.True(new ProfileUploadQueue(QueuePath).Knows(e.EventId));
     }
 
     /// <summary>A fake <c>tracker/events/batch</c>: accepts, rejects or refuses events and records every request.</summary>

@@ -9,7 +9,7 @@ namespace Hearthpulse.Tests;
 /// The payload sent to hearthpulse.net against the site's contract (HeartPulse <c>docs/specs/player-game-stats.md</c>
 /// and the strict check <c>server/modules/playerGames/schema/gameSchema.ts</c>, site commit 0ac2bcf). The fixture is the
 /// spec's own example; history rows that describe the same games must map to the same names and values. Every
-/// generated payload also passes <see cref="SiteSchema"/>, a port of the site's check, and uses only documented fields.
+/// generated payload also passes <see cref="ProfileEventSchema"/> (the site's check, ported into Core), and uses only documented fields.
 /// </summary>
 public sealed class ProfileEventsContractTests
 {
@@ -97,7 +97,7 @@ public sealed class ProfileEventsContractTests
         Assert.Equal(2, (int?)e.ToJson()["schemaVersion"]);
         // Every name and value of the example, and nothing else apart from the documented optional fields.
         AssertSameFields(expected["payload"]!.AsObject(), e.Payload, notSent: []);
-        Assert.Null(SiteSchema.Validate(e.Type, e.Payload));
+        Assert.Null(ProfileEventSchema.Validate(e.Type, e.Payload));
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class ProfileEventsContractTests
         // The history has no own archetype, no stars within a level, no rank after the game (it is only read in game)
         // and keeps the mulligan for the deck page: those example fields are not sent (docs/profile-upload.md).
         AssertSameFields(expected["payload"]!.AsObject(), e.Payload, notSent: ["archetype", "rankAfter", "playerMulligan", "rankBefore.stars"]);
-        Assert.Null(SiteSchema.Validate(e.Type, e.Payload));
+        Assert.Null(ProfileEventSchema.Validate(e.Type, e.Payload));
     }
 
     [Fact]
@@ -132,8 +132,8 @@ public sealed class ProfileEventsContractTests
         Assert.Equal((string)match.Payload["runId"]!, (string)run.Payload["runId"]!);
         AssertSameFields(expectedRun["payload"]!.AsObject(), run.Payload, notSent: [], ignore: ["runId"]);
 
-        Assert.Null(SiteSchema.Validate(match.Type, match.Payload));
-        Assert.Null(SiteSchema.Validate(run.Type, run.Payload));
+        Assert.Null(ProfileEventSchema.Validate(match.Type, match.Payload));
+        Assert.Null(ProfileEventSchema.Validate(run.Type, run.Payload));
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public sealed class ProfileEventsContractTests
         var e = ProfileEvents.ForGame(bg, id => id.Replace("_SKIN_A", string.Empty))!;
         var p = e.Payload;
 
-        Assert.Null(SiteSchema.Validate(e.Type, p));
+        Assert.Null(ProfileEventSchema.Validate(e.Type, p));
         Assert.True((bool)p["duos"]!);
         Assert.Equal("BG20_HERO_242", (string)p["heroCardId"]!);
         Assert.Equal(14_400, (int)p["durationSeconds"]!);
@@ -240,7 +240,7 @@ public sealed class ProfileEventsContractTests
         var e = ProfileEvents.ForGame(game)!;
         var p = e.Payload;
 
-        Assert.Null(SiteSchema.Validate(e.Type, p));
+        Assert.Null(ProfileEventSchema.Validate(e.Type, p));
         Assert.Equal("wild", (string)p["format"]!);
         Assert.Equal((51, 1204), ((int)p["rankBefore"]!["starLevel"]!, (int)p["rankBefore"]!["legendRank"]!));
         Assert.Equal(80, ((string)p["deckName"]!).Length);
@@ -263,7 +263,27 @@ public sealed class ProfileEventsContractTests
         var bidi = ProfileEvents.ForGame(ConstructedExample() with { DeckName = "\u202EKD doolB\u202C", OpponentArchetype = "Control #1 Priest" })!;
         Assert.Equal("KD doolB", (string)bidi.Payload["deckName"]!);
         Assert.Equal("Control #1 Priest", (string)bidi.Payload["opponentArchetype"]!);
-        Assert.Null(SiteSchema.Validate(bidi.Type, bidi.Payload));
+        Assert.Null(ProfileEventSchema.Validate(bidi.Type, bidi.Payload));
+    }
+
+    [Fact]
+    public void The_core_schema_checks_the_envelope_limits_like_the_site()
+    {
+        var e = ProfileEvents.ForGame(ConstructedExample())!;
+        var now = new DateTime(2026, 10, 23, 0, 0, 0, DateTimeKind.Utc);
+
+        Assert.Null(ProfileEventSchema.Validate(e, now));
+        Assert.Equal("occurredAt", ProfileEventSchema.Validate(e with { OccurredAt = "2026-10-25T00:00:00Z" }, now));
+        Assert.Equal("occurredAt", ProfileEventSchema.Validate(e with { OccurredAt = "2013-12-31T23:59:59Z" }, now));
+        var big = (System.Text.Json.Nodes.JsonObject)e.Payload.DeepClone();
+        big["deckName"] = new string('x', 40_000);
+        Assert.Equal("payload", ProfileEventSchema.Validate(e with { Payload = big }, now));
+        var unknown = (System.Text.Json.Nodes.JsonObject)e.Payload.DeepClone();
+        unknown["playerName"] = "Secret";
+        Assert.Equal("unknown:playerName", ProfileEventSchema.Validate(e with { Payload = unknown }, now));
+        var tagged = (System.Text.Json.Nodes.JsonObject)e.Payload.DeepClone();
+        tagged["deckName"] = "Secret#1234";
+        Assert.Equal("deckName", ProfileEventSchema.Validate(e with { Payload = tagged }, now));
     }
 
     [Fact]
@@ -294,12 +314,12 @@ public sealed class ProfileEventsContractTests
         var all = ProfileEvents.ForArena(games);
         Assert.Equal(9, all.Count(e => e.Type == ProfileEvents.ArenaMatch));
         Assert.Single(all, e => e.Type == ProfileEvents.ArenaRun);
-        Assert.All(all, e => Assert.Null(SiteSchema.Validate(e.Type, e.Payload)));
+        Assert.All(all, e => Assert.Null(ProfileEventSchema.Validate(e.Type, e.Payload)));
     }
 
     /// <summary>
     /// The example's names and values are ours, except <paramref name="notSent"/> (dotted paths we knowingly leave out);
-    /// fields we send beyond the example must be documented ones (<see cref="SiteSchema.Fields"/>).
+    /// fields we send beyond the example must be documented ones (<see cref="ProfileEventSchema.Fields"/>).
     /// </summary>
     private static void AssertSameFields(JsonObject expected, JsonObject actual, string[] notSent, string[]? ignore = null)
     {
@@ -330,224 +350,6 @@ public sealed class ProfileEventsContractTests
             else
             {
                 Assert.True(JsonNode.DeepEquals(value, actual[name]), $"{path}: expected {value?.ToJsonString()}, sent {actual[name]?.ToJsonString()}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// A port of the site's strict v2 check (<c>gameSchema.ts</c>, <c>fields.ts</c>) plus the documented field names:
-    /// returns the first failing field like the site's <c>INVALID_EVENT</c> answer, or "unknown:name" for a field the spec
-    /// does not list.
-    /// </summary>
-    internal static class SiteSchema
-    {
-        public static readonly Dictionary<string, string[]> Fields = new()
-        {
-            [ProfileEvents.Battlegrounds] = ["durationSeconds", "turns", "result", "heroCardId", "placement", "duos", "ratingBefore", "ratingAfter",
-                "anomalyCardId", "races", "tavernTier", "finalBoard", "combats", "heroOptions", "offers"],
-            [ProfileEvents.Constructed] = ["durationSeconds", "turns", "result", "format", "ranked", "playerClass", "opponentClass", "heroCardId",
-                "opponentHeroCardId", "deckCode", "deckName", "archetype", "opponentArchetype", "wentFirst", "rankBefore", "rankAfter",
-                "playerMulligan", "opponentDeck"],
-            [ProfileEvents.ArenaMatch] = ["durationSeconds", "turns", "result", "runId", "playerClass", "opponentClass", "gameNumber", "winsBefore",
-                "lossesBefore", "underground", "wentFirst", "deckCode", "playerMulligan"],
-            [ProfileEvents.ArenaRun] = ["runId", "playerClass", "wins", "losses", "complete", "underground", "finalDeckCardIds"],
-        };
-
-        private static readonly string[] Classes = ["DEATHKNIGHT", "DEMONHUNTER", "DRUID", "HUNTER", "MAGE", "PALADIN", "PRIEST", "ROGUE", "SHAMAN", "WARLOCK", "WARRIOR"];
-        private static readonly string[] Races = ["BEAST", "DEMON", "DRAGON", "ELEMENTAL", "MECHANICAL", "MURLOC", "NAGA", "PIRATE", "QUILBOAR", "UNDEAD"];
-        private static readonly string[] Results = ["win", "loss", "tie"];
-        private static readonly Regex CardId = new("^[A-Za-z0-9_]{2,64}$");
-        private static readonly Regex ClientId = new("^[A-Za-z0-9][A-Za-z0-9._:-]{7,63}$");
-        private static readonly Regex DeckCode = new("^[A-Za-z0-9+/=_-]{4,256}$");
-        private static readonly Regex BattleTag = new(@"#\d{3,6}(?!\d)");
-        private static readonly Regex Bidi = new("[\u202A-\u202E\u2066-\u2069]");
-
-        private sealed class Invalid(string field) : Exception(field)
-        {
-            public string Field { get; } = field;
-        }
-
-        public static string? Validate(string type, JsonObject p)
-        {
-            if (p.Select(x => x.Key).FirstOrDefault(k => !Fields[type].Contains(k)) is { } unknown)
-            {
-                return "unknown:" + unknown;
-            }
-
-            try
-            {
-                if (type == ProfileEvents.ArenaRun)
-                {
-                    Pattern(p["runId"], "runId", ClientId);
-                    OneOf(p["playerClass"], "playerClass", Classes);
-                    Int(p["wins"], "wins", 0, 12);
-                    Int(p["losses"], "losses", 0, 3);
-                    OptBool(p["complete"], "complete");
-                    OptBool(p["underground"], "underground");
-                    return null;
-                }
-
-                Int(p["durationSeconds"], "durationSeconds", 0, 14_400);
-                OptInt(p["turns"], "turns", 0, 200);
-                if (type != ProfileEvents.Battlegrounds)
-                {
-                    OneOf(p["result"], "result", Results);
-                }
-
-                if (type == ProfileEvents.Battlegrounds)
-                {
-                    var duos = OptBool(p["duos"], "duos") ?? false;
-                    Card(p["heroCardId"], "heroCardId");
-                    Int(p["placement"], "placement", 1, duos ? 4 : 8);
-                    OptInt(p["ratingBefore"], "ratingBefore", 0, 30_000);
-                    OptInt(p["ratingAfter"], "ratingAfter", 0, 30_000);
-                    OptCard(p["anomalyCardId"], "anomalyCardId");
-                    List(p["races"], "races", 6, (r, f) => OneOf(r, f, Races));
-                    OptInt(p["tavernTier"], "tavernTier", 1, 7);
-                    var board = p["finalBoard"] is null ? null : Obj(p["finalBoard"], "finalBoard");
-                    List(board?["minions"], "finalBoard.minions", 7, (m, f) =>
-                    {
-                        var minion = Obj(m, f);
-                        Card(minion["cardId"], f + ".cardId");
-                        Int(minion["attack"], f + ".attack", 0, 100_000);
-                        Int(minion["health"], f + ".health", 0, 100_000);
-                        OptBool(minion["golden"], f + ".golden");
-                    });
-                    List(p["combats"], "combats", 60, (c, f) =>
-                    {
-                        var combat = Obj(c, f);
-                        Int(combat["turn"], f + ".turn", 1, 60);
-                        OneOf(combat["result"], f + ".result", Results);
-                        Int(combat["damageDealt"] ?? 0, f + ".damageDealt", 0, 200);
-                        Int(combat["damageTaken"] ?? 0, f + ".damageTaken", 0, 200);
-                        OptCard(combat["opponentHeroCardId"], f + ".opponentHeroCardId");
-                    });
-                    List(p["heroOptions"], "heroOptions", 4, Card);
-                }
-                else if (type == ProfileEvents.Constructed)
-                {
-                    OneOf(p["format"], "format", ["standard", "wild"]);
-                    OptBool(p["ranked"], "ranked");
-                    OneOf(p["playerClass"], "playerClass", Classes);
-                    OneOf(p["opponentClass"], "opponentClass", Classes);
-                    OptCard(p["heroCardId"], "heroCardId");
-                    OptCard(p["opponentHeroCardId"], "opponentHeroCardId");
-                    if (p["deckCode"] is not null) Pattern(p["deckCode"], "deckCode", DeckCode);
-                    OptText(p["deckName"], "deckName");
-                    OptText(p["archetype"], "archetype");
-                    OptText(p["opponentArchetype"], "opponentArchetype");
-                    OptBool(p["wentFirst"], "wentFirst");
-                    Rank(p["rankBefore"], "rankBefore");
-                    Rank(p["rankAfter"], "rankAfter");
-                }
-                else
-                {
-                    Pattern(p["runId"], "runId", ClientId);
-                    OneOf(p["playerClass"], "playerClass", Classes);
-                    OneOf(p["opponentClass"], "opponentClass", Classes);
-                    Int(p["gameNumber"], "gameNumber", 1, 20);
-                    OptInt(p["winsBefore"], "winsBefore", 0, 12);
-                    OptInt(p["lossesBefore"], "lossesBefore", 0, 3);
-                    OptBool(p["underground"], "underground");
-                    OptBool(p["wentFirst"], "wentFirst");
-                    if (p["deckCode"] is not null) Pattern(p["deckCode"], "deckCode", DeckCode);
-                }
-
-                return null;
-            }
-            catch (Invalid ex)
-            {
-                return ex.Field;
-            }
-        }
-
-        private static void Rank(JsonNode? value, string field)
-        {
-            if (value is null)
-            {
-                return;
-            }
-
-            var rank = Obj(value, field);
-            var level = Int(rank["starLevel"], field + ".starLevel", 1, 51);
-            var legend = OptInt(rank["legendRank"], field + ".legendRank", 1, 1_000_000);
-            if (legend is not null && level != 51)
-            {
-                throw new Invalid(field + ".legendRank");
-            }
-
-            OptInt(rank["stars"], field + ".stars", 0, 3);
-        }
-
-        private static JsonObject Obj(JsonNode? value, string field) => value as JsonObject ?? throw new Invalid(field);
-
-        private static int Int(JsonNode? value, string field, int min, int max) =>
-            value is JsonValue v && v.GetValueKind() == System.Text.Json.JsonValueKind.Number && v.TryGetValue<int>(out var n) && n >= min && n <= max
-                ? n
-                : throw new Invalid(field);
-
-        private static int? OptInt(JsonNode? value, string field, int min, int max) => value is null ? null : Int(value, field, min, max);
-
-        private static bool? OptBool(JsonNode? value, string field) =>
-            value is null ? null
-            : value.GetValueKind() is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False ? (bool)value
-            : throw new Invalid(field);
-
-        private static void OneOf(JsonNode? value, string field, string[] allowed)
-        {
-            if (value is not JsonValue v || !v.TryGetValue<string>(out var s) || !allowed.Contains(s))
-            {
-                throw new Invalid(field);
-            }
-        }
-
-        private static void Pattern(JsonNode? value, string field, Regex pattern)
-        {
-            if (value is not JsonValue v || !v.TryGetValue<string>(out var s) || !pattern.IsMatch(s))
-            {
-                throw new Invalid(field);
-            }
-        }
-
-        private static void Card(JsonNode? value, string field) => Pattern(value, field, CardId);
-
-        private static void OptCard(JsonNode? value, string field)
-        {
-            if (value is not null)
-            {
-                Card(value, field);
-            }
-        }
-
-        private static void OptText(JsonNode? value, string field)
-        {
-            if (value is null)
-            {
-                return;
-            }
-
-            if (value is not JsonValue v || !v.TryGetValue<string>(out var s) || s.Length > 80 || s.Any(c => c < 32 || c == 127)
-                || Bidi.IsMatch(s) || BattleTag.IsMatch(s))
-            {
-                throw new Invalid(field);
-            }
-        }
-
-        private static void List(JsonNode? value, string field, int max, Action<JsonNode?, string> read)
-        {
-            if (value is null)
-            {
-                return;
-            }
-
-            if (value is not JsonArray array || array.Count > max)
-            {
-                throw new Invalid(field);
-            }
-
-            for (var i = 0; i < array.Count; i++)
-            {
-                read(array[i], $"{field}.{i}");
             }
         }
     }

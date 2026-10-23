@@ -22,7 +22,6 @@ public sealed partial class MainViewModel
     private RelayCommand? _answerUpload;
     private RelayCommand? _openPrivacy;
     private RelayCommand? _openTrackerData;
-    private bool _uploadBackfilling;
     private string _uploadMessage = string.Empty;
 
     /// <summary>Raised when the player turns sending games to the profile on or off; the host saves the settings.</summary>
@@ -93,40 +92,21 @@ public sealed partial class MainViewModel
     /// <summary>The answer to the "Send past games" button.</summary>
     public string UploadMessage { get => _uploadMessage; private set => Set(ref _uploadMessage, value); }
 
-    /// <summary>Queues every past game of the history that is not on the profile yet.</summary>
-    public RelayCommand UploadPastGames => _uploadPastGames ??= new RelayCommand(async () =>
+    /// <summary>
+    /// Sends every past game of the history that is not on the profile yet. The uploader reads the history a page at a
+    /// time; the status line beside the button counts what still waits.
+    /// </summary>
+    public RelayCommand UploadPastGames => _uploadPastGames ??= new RelayCommand(() =>
     {
-        if (_uploader is null || _uploadBackfilling)
+        if (_uploader is null)
         {
             return;
         }
 
-        if (!UploadGames)
-        {
-            UploadMessage = "Turn on sending games first.";
-            return;
-        }
-
-        _uploadBackfilling = true;
-        UploadMessage = "Looking through your history…";
-        try
-        {
-            var count = await _uploader.BackfillAsync();
-            UploadMessage = count switch
-            {
-                0 => "Every past game is already on your profile.",
-                1 => "1 past game queued. It is being sent now.",
-                _ => $"{count} past games queued. They are being sent now.",
-            };
-        }
-        catch (Exception ex)
-        {
-            Core.Diag.Error("profile upload: backfill failed", ex);
-            UploadMessage = "Couldn't read your history.";
-        }
-        finally
-        {
-            _uploadBackfilling = false;
-        }
+        UploadMessage = !UploadGames
+            ? "Turn on sending games first."
+            : _uploader.StartBackfill()
+                ? "Sending your past games. Games already on your profile are skipped."
+                : "Sign in to send your past games.";
     });
 }

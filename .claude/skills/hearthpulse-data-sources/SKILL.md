@@ -71,9 +71,10 @@ device-flow token: only while signed in and the player has turned `AppSettings.U
 null until a one-time card after sign-in asks; switch, privacy and data-deletion links in the account card of both
 apps), batches of at most 50 events, persistent queue `profile-upload.json` per site account, backoff on
 outages, rejected events logged and dropped, idempotent UUID v5 `eventId` per game (without the BattleTag). Mapping
-`GameRecord` -> payload is `ProfileEvents.cs`; the contract test checks it against the site spec's example and a port
-of the site's strict check. Full rules and mapping: `docs/profile-upload.md`. When the site changes its schema
-(`server/modules/playerGames/schema/gameSchema.ts`), update `ProfileEvents`, the test's `SiteSchema` and the fixture.
+`GameRecord` -> payload is `ProfileEvents.cs`; every event passes `ProfileEventSchema.cs` (the site's strict check,
+ported) before it is queued, because the site keeps the first copy of an id forever; the contract test checks the
+mapping against the site spec's example. Full rules and mapping: `docs/profile-upload.md`. When the site changes its
+schema (`server/modules/playerGames/schema/gameSchema.ts`), update `ProfileEvents`, `ProfileEventSchema` and the fixture.
 
 ## Licences: what may be reused
 

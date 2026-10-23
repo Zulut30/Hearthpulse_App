@@ -2,7 +2,8 @@
 
 The app sends finished games to the player's profile on hearthpulse.net, where `/profile/` shows Battlegrounds,
 Standard, Wild and Arena statistics built from them. Code: `src/Hearthpulse.Core/Accounts/ProfileEvents.cs` (mapping),
-`ProfileUploadQueue.cs` (queue), `ProfileUploader.cs` (sending), `AccountClient.PostEventsAsync` (HTTP). Tests:
+`ProfileEventSchema.cs` (the site's check, ported), `ProfileUploadQueue.cs` (queue), `ProfileUploader.cs` (sending),
+`AccountClient.PostEventsAsync` (HTTP), `HistoryStore.PageForUpload` (backfill reads). Tests:
 `tests/Hearthpulse.Tests/ProfileEventsContractTests.cs` (contract, fixture `Fixtures/ProfileUpload/`) and
 `ProfileUploadTests.cs`.
 
@@ -22,9 +23,17 @@ Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commi
   your data on the site" (`{profile}#account-tracker-data`, the account page's «Данные приложения»: export and
   deletion of everything the tracker stored), the "Send past games" button and the queue status.
 - Only while signed in and switched on: a game that ends otherwise is not queued, and switching off drops what was
-  waiting. "Send past games" (only when switched on) queues every game of `history.db` the site has not settled yet.
-- Each game is sent once, after it ends. A Battlegrounds game with a rating at its start waits up to 130 s for the new
-  rating (the session reads it for 120 s), then goes with or without it.
+  waiting (and a backfill under way).
+- "Send past games" (only when switched on) starts a backfill: the history is read 1 000 rows at a time
+  (`PageForUpload`, by row id, with only the `opponent_archetype` card column) whenever fewer than 1 000 events wait,
+  so the queue never holds the whole history. Its cursor (the last row queued) is saved with the queue and survives a
+  restart; Arena runs are built from all Arena games on the first page. Games the site already settled are skipped.
+- Each game is sent once, after it ends. The site keeps the first copy of an id forever, so:
+  - every event passes `ProfileEventSchema` (the site's checks: fields, ranges, free text, `occurredAt` from 2014 to a
+    day ahead, 32 KiB) before it is queued; one that fails is logged (`not sent, the site would not read its <field>`)
+    and not sent, so a fixed mapping can still send it later under the same id;
+  - a Battlegrounds game with a rating at its start and none after waits until 130 s after its end (`ended_at`, so the
+    wait survives a restart; the session reads the rating for 120 s), then goes with or without it.
 
 ## Request
 
@@ -32,7 +41,7 @@ Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commi
 (scope `tracker.write`), JSON `{"events": [...]}`. Each event: `eventId`, `type`, `schemaVersion: 2`, `occurredAt`
 (UTC, `yyyy-MM-ddTHH:mm:ssZ`), `payload`.
 
-- **Batches**: at most 50 events and 1 MiB of JSON per call (the site allows 5 MiB per request, 512 KiB per event).
+- **Batches**: at most 50 events and 1 MiB of JSON per call (the site allows 5 MiB per request, 32 KiB per game event).
 - **eventId**: UUID version 5 (SHA-1, fixed namespace) of the game's start second and game type taken from the history
   key, without the BattleTag. The same game always gets the same id, on any install, so a repeated send or a backfill
   after a reinstall is only acknowledged by the site. `arena_run`: UUID v5 of `runId` + number of games in the run (a
@@ -42,14 +51,19 @@ Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commi
     (`INVALID_EVENT`, `EVENT_LIMIT_EXCEEDED`, `QUOTA_EXCEEDED` past 100 000 events per account) is logged to
     `hearthpulse.log` (`profile upload: <type> <eventId> rejected: <code> (<field>)`) and never retried. An event in
     `warnings` (`INVALID_STATISTICS`: stored, but the statistics skip it) is logged as `stored without statistics` -
-    a mapping bug to fix here; resending the same id changes nothing on the site.
+    a mapping bug to fix here; resending the same id changes nothing on the site. The status line counts both since
+    the app started ("2 games sent without statistics, 1 game refused by the site; see hearthpulse.log").
   - 400/413/422 (bad envelope, too large): the batch is sent again one event at a time; an event refused alone is
     logged and dropped.
   - no connection, 401/403, 429, 5xx, 404, or a 2xx without the answer object (captive portal): the events stay and
     sending pauses 30 s, 60 s, 120 s ... up to 30 min. A new game, sign-in or the switch tries again at once.
-- **Queue**: `profile-upload.json` in the data folder, written atomically. At most 5 000 waiting events (oldest dropped,
-  logged) and 50 000 remembered settled ids. It belongs to one site account (`owner` = user id from `/me`); when
-  another account signs in it starts empty, so one player's games never reach another profile.
+- **Queue**: `profile-upload.json` in the data folder (waiting events, backfill cursor, owner), indexed by event id in
+  memory and written atomically in batches: after a game is queued, after a backfill page, at the end of each send
+  pass, and at once for a change of account or the switch turned off. Settled ids are appended to
+  `profile-upload.json.settled` as they come (at most 50 000 kept, rewritten past that). At most 5 000 waiting events
+  (oldest dropped, logged; the backfill never gets near it). An entry replaced while it was being sent stays and is
+  logged (the site keeps the copy it got first). Everything belongs to one site account (`owner` = user id from `/me`);
+  when another account signs in it starts empty, so one player's games never reach another profile.
 
 ## Mapping from `GameRecord` (history.db `games`)
 
@@ -129,4 +143,5 @@ header and are never logged.
 1. Run the site locally (HeartPulse, see its `docs/specs/player-game-stats.md` "Development data") and point the app
    at it: `HEARTHPULSE_SITE_API=http://localhost:<port>/api/v1/`, `HEARTHPULSE_DATA` = a copy of the data folder.
 2. Sign in from Settings, answer **Turn on** on the card (or turn the switch on), press "Send past games".
-3. The status line under the switch counts down; `hearthpulse.log` names any rejected event; `/profile/` shows the games.
+3. The status line under the switch counts down ("... More past games follow." while the backfill reads); `hearthpulse.log`
+   names any rejected or statistics-less event; `/profile/` shows the games.
