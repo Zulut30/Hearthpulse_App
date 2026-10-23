@@ -496,12 +496,4 @@ public sealed partial class MainViewModel
         ? Loc.F("Stats.Hours", (int)time.TotalHours, time.Minutes)
         : Loc.F("Stats.Minutes", (int)time.TotalMinutes);
 
-    /// <summary>A saved result ("Win", "Loss", "Tie") in the interface language; anything else as saved.</summary>
-    private static string ResultText(string result) => result switch
-    {
-        "Win" => Loc.T("Stats.Result.Win"),
-        "Loss" => Loc.T("Stats.Result.Loss"),
-        "Tie" => Loc.T("Stats.Result.Tie"),
-        _ => result,
-    };
 }

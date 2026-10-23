@@ -27,9 +27,6 @@
   "Stats.Turns": "{0} turn|{0} turns",
   "Stats.Hours": "{0}h {1:00}m",
   "Stats.Minutes": "{0}m",
-  "Stats.Result.Win": "Win",
-  "Stats.Result.Loss": "Loss",
-  "Stats.Result.Tie": "Tie",
 
   "Stats.Bg.Placements": "Placements",
   "Stats.Bg.PlacementsTip": "Share of your games per final place; the line is your average",

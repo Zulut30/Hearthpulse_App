@@ -27,9 +27,6 @@
   "Stats.Turns": "{0} ход|{0} хода|{0} ходов",
   "Stats.Hours": "{0} ч {1:00} мин",
   "Stats.Minutes": "{0} мин",
-  "Stats.Result.Win": "Победа",
-  "Stats.Result.Loss": "Поражение",
-  "Stats.Result.Tie": "Ничья",
 
   "Stats.Bg.Placements": "Места",
   "Stats.Bg.PlacementsTip": "Доля ваших игр по итоговому месту; черта — ваше среднее",
