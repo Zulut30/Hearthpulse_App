@@ -268,9 +268,13 @@ public static class DeckFamilies
             .ToList();
     }
 
-    /// <summary>Cards added (+) and taken out (−) going from one version to another, most changed first.</summary>
-    public static IReadOnlyList<CardDelta> Diff(DeckVersion from, DeckVersion to) =>
-        from.Cards.Keys.Union(to.Cards.Keys)
+    /// <summary>
+    /// Cards added (+) and taken out (−) going from one version to another, most changed first. Empty when either list
+    /// is unknown (a version saved without a deck code), not "all cards changed".
+    /// </summary>
+    public static IReadOnlyList<CardDelta> Diff(DeckVersion from, DeckVersion to) => from.Cards.Count == 0 || to.Cards.Count == 0
+        ? []
+        : from.Cards.Keys.Union(to.Cards.Keys)
             .Select(dbf => new CardDelta(dbf, to.Cards.GetValueOrDefault(dbf) - from.Cards.GetValueOrDefault(dbf)))
             .Where(d => d.Delta != 0)
             .OrderByDescending(d => d.Delta > 0)

@@ -330,6 +330,28 @@ public sealed partial class HistoryStore
         DeckFamiliesChanged?.Invoke();
     }
 
+    /// <summary>
+    /// <see cref="MergeDecks"/> with the state before it for <see cref="RestoreDeckFamilies"/>, under one lock. When the
+    /// versions already are one family (a second click on a stale "Merge"), nothing changes: that family and no snapshot.
+    /// </summary>
+    public (long Family, DeckFamilySnapshot? Before) MergeDecksUndoable(IReadOnlyCollection<string> keys, string? mainKey = null, long? into = null)
+    {
+        lock (_gate)
+        {
+            using (var connection = Open())
+            {
+                var ids = keys.Select(k => FamilyOf(connection, null, k)).Distinct().ToList();
+                if (keys.Count > 0 && ids is [long same])
+                {
+                    return (same, null);
+                }
+            }
+
+            var before = SnapshotDeckFamilies(keys);
+            return (MergeDecks(keys, null, mainKey, into), before);
+        }
+    }
+
     /// <summary>The families of these deck versions and the dismissed pairs among them, before a merge (see <see cref="RestoreDeckFamilies"/>).</summary>
     public DeckFamilySnapshot SnapshotDeckFamilies(IReadOnlyCollection<string> keys)
     {

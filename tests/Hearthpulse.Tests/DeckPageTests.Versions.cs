@@ -52,6 +52,46 @@ public sealed partial class DeckPageTests
         Drop(path);
     }
 
+    [Fact]
+    public void A_second_merge_of_stale_decks_changes_nothing_and_the_first_undo_still_works()
+    {
+        var path = TempDb();
+        var store = new HistoryStore(path);
+        store.MergeDecks(["a1", "a2"], "Alpha", "a1");
+        var before = store.DeckFamilies();
+
+        // First click on Merge: b1 into Alpha, which keeps its main version.
+        var (alpha, snapshot) = store.MergeDecksUndoable(["a1", "a2", "b1"], "a1", into: before[0].Id);
+        Assert.NotNull(snapshot);
+
+        // Second click, on the stale rows: the page would now keep b1 as the main version. Nothing happens.
+        var (again, none) = store.MergeDecksUndoable(["b1", "a1", "a2"], "b1");
+        Assert.Equal(alpha, again);
+        Assert.Null(none);
+        Assert.Equal("a1", store.DeckFamilies().Single().MainKey);
+
+        store.RestoreDeckFamilies(snapshot!);
+        AssertSameFamilies(before, store.DeckFamilies());
+        Drop(path);
+    }
+
+    [Fact]
+    public void A_version_without_a_deck_code_has_no_card_differences()
+    {
+        var versions = DeckFamilies.Versions(
+        [
+            Game("g1", "Рыцарь смерти2", Code(Deck(1000)), "Win", 0),
+            Game("g2", "Рыцарь смерти3", Code(Deck(1000, 1014)), "Loss", 10),
+            Game("g3", "Рыцарь смерти old", string.Empty, "Loss", 20),
+        ]);
+        var (v2, v3, old) = (versions.Single(v => v.Name == "Рыцарь смерти2"), versions.Single(v => v.Name == "Рыцарь смерти3"),
+            versions.Single(v => v.DeckCode is null));
+
+        Assert.Empty(DeckFamilies.Diff(v2, old));
+        Assert.Empty(DeckFamilies.Diff(old, v2));
+        Assert.Equal([new CardDelta(1514, 2), new CardDelta(1014, -2)], DeckFamilies.Diff(v2, v3));
+    }
+
     private static void AssertSameFamilies(IReadOnlyList<DeckFamilyRecord> expected, IReadOnlyList<DeckFamilyRecord> actual)
     {
         static string Text(IEnumerable<DeckFamilyRecord> families) => string.Join("; ", families.OrderBy(f => f.Id)

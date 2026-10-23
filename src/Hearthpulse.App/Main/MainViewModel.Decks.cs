@@ -12,12 +12,19 @@ namespace Hearthpulse.App.Main;
 public sealed partial class MainViewModel
 {
     /// <summary>
-    /// The last merge, until another family change: the state to put back, the deck merged in (for the "Merged ..."
-    /// line), the deck page shown before it and the family it made.
+    /// The last merge, until another family change or a history change (a saved game, deck codes filled in): the state
+    /// to put back, the deck merged in (for the "Merged ..." line), the deck page shown before it (null when merged from
+    /// "Your decks"), the key the kept deck had before and the family it made.
     /// </summary>
-    private sealed record MergeUndo(DeckFamilySnapshot Before, string MergedName, string? PageBefore, string Result);
+    private sealed record MergeUndo(DeckFamilySnapshot Before, string MergedName, string? PageBefore, string KeptBefore, string Result);
 
     private MergeUndo? _mergeUndo;
+
+    /// <summary>
+    /// True from a family change (or a history reload) until the deck list is rebuilt: the families shown are stale, so
+    /// merge, "not the same", undo and the version actions wait (a double click on Merge would act on the old ones).
+    /// </summary>
+    private bool _decksStale;
     private IReadOnlyList<DeckFamily> _deckFamilies = [];
     private IReadOnlyList<MergeSuggestion> _mergeSuggestions = [];
     private IReadOnlyList<DeckSuggestionRow> _deckSuggestions = [];
@@ -106,6 +113,11 @@ public sealed partial class MainViewModel
 
     internal void MergeDecks(DeckSuggestionRow? pair)
     {
+        if (_decksStale)
+        {
+            return;
+        }
+
         var first = _deckFamilies.FirstOrDefault(f => f.Key == pair?.FirstKey);
         var second = _deckFamilies.FirstOrDefault(f => f.Key == pair?.SecondKey);
         if (first is null || second is null)
@@ -117,12 +129,13 @@ public sealed partial class MainViewModel
         var keep = _openDeckKey == second.Key ? second : first;
         var other = keep == first ? second : first;
         var keys = keep.Versions.Concat(other.Versions).Select(v => v.Key).ToList();
+        var previous = _mergeUndo;
         DeckFamilySnapshot? before = null;
         var pageBefore = _openDeckKey;
         var id = FamilyChange(() =>
         {
-            before = _history.SnapshotDeckFamilies(keys);
-            return _history.MergeDecks(keys, null, keep.Main.Key, into: keep.Id);
+            (var merged, before) = _history.MergeDecksUndoable(keys, keep.Main.Key, into: keep.Id);
+            return merged;
         });
         if (id is not { } family)
         {
@@ -130,7 +143,9 @@ public sealed partial class MainViewModel
         }
 
         var result = DeckFamilies.FamilyPrefix + family.ToString(CultureInfo.InvariantCulture);
-        _mergeUndo = before is null ? null : new MergeUndo(before, other.Name, pageBefore, result);
+
+        // Nothing merged (already one deck): the undo of the merge that did it stays.
+        _mergeUndo = before is null ? previous : new MergeUndo(before, other.Name, pageBefore, keep.Key, result);
         if (DeckOpen)
         {
             _openDeckKey = result;
@@ -144,14 +159,15 @@ public sealed partial class MainViewModel
     /// <summary>Puts the families back as they were before the last merge; the deck page goes back to the deck it showed.</summary>
     internal void UndoMerge()
     {
-        if (_mergeUndo is not { } undo)
+        if (_decksStale || _mergeUndo is not { } undo)
         {
             return;
         }
 
-        if (DeckOpen && _openDeckKey == undo.Result && undo.PageBefore is { } page)
+        // The page goes back to the deck it showed; after a merge from "Your decks", to the deck that was kept.
+        if (DeckOpen && _openDeckKey == undo.Result)
         {
-            _openDeckKey = page;
+            _openDeckKey = undo.PageBefore ?? undo.KeptBefore;
         }
 
         FamilyChange(() =>
@@ -163,6 +179,11 @@ public sealed partial class MainViewModel
 
     internal void DismissDecks(DeckSuggestionRow? pair)
     {
+        if (_decksStale)
+        {
+            return;
+        }
+
         var first = _deckFamilies.FirstOrDefault(f => f.Key == pair?.FirstKey);
         var second = _deckFamilies.FirstOrDefault(f => f.Key == pair?.SecondKey);
         if (first is not null && second is not null)
@@ -204,7 +225,7 @@ public sealed partial class MainViewModel
 
     internal void SetMainVersion(DeckFamily? family, string? versionKey)
     {
-        if (family?.Id is { } id && versionKey is not null)
+        if (!_decksStale && family?.Id is { } id && versionKey is not null)
         {
             FamilyChange(() =>
             {
@@ -216,7 +237,7 @@ public sealed partial class MainViewModel
 
     internal void SplitVersion(DeckFamily? family, string? versionKey)
     {
-        if (family is null || versionKey is null || family.Versions.Count < 2)
+        if (_decksStale || family is null || versionKey is null || family.Versions.Count < 2)
         {
             return;
         }
@@ -259,9 +280,13 @@ public sealed partial class MainViewModel
         {
             _familiesWatching = true;
             _history.DeckFamiliesChanged += RebuildDecks;
+
+            // A saved game or filled-in deck codes can move versions into a family: an older snapshot would lose them.
+            _history.Changed += () => _mergeUndo = null;
         }
 
         var build = ++_decksBuild;
+        _decksStale = true;
         var (games, cards) = (_allGames, _cards);
         try
         {
@@ -280,6 +305,7 @@ public sealed partial class MainViewModel
 
             _deckFamilies = data.Families;
             _mergeSuggestions = data.Suggestions;
+            _decksStale = false;
             Decks = data.Families.Select(f => new DeckRow(
                     f.Key,
                     f.Name,
@@ -316,6 +342,10 @@ public sealed partial class MainViewModel
         catch (Exception ex)
         {
             Diag.Error("Deck list build failed", ex);
+            if (build == _decksBuild)
+            {
+                _decksStale = false;
+            }
         }
     }
 }
