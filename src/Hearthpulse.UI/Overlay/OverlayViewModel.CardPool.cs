@@ -20,21 +20,20 @@ public sealed record PoolBarModel(string Label, int Count, double Height, bool I
     public string ToolTip => $"{Label}: {Count}";
 }
 
-/// <summary>A row of the full pool list.</summary>
-public sealed record PoolRowModel(string CardId, string Name, int Cost, string Stats, string RarityKey, string Meta);
-
-/// <summary>A filter or sort chip of the full list.</summary>
+/// <summary>A mechanic filter chip of the pool browser.</summary>
 public sealed record PoolChipModel(string Key, string Label, bool Selected);
 
-/// <summary>The card pool panel: the pool of the generator being discovered from, hovered or just played.</summary>
+/// <summary>One row of the pool browser's card grid (up to three cards).</summary>
+public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards);
+
+/// <summary>
+/// The card pool: a compact panel (pool of the generator being discovered from, hovered or just played) and the pool
+/// browser, a full-height side panel with every card, opened by right-click on the compact panel or by
+/// <see cref="GameSession.ShowCardPool"/>.
+/// </summary>
 public sealed partial class OverlayViewModel
 {
     private const double BarMaxHeight = 34;
-
-    private static readonly (string Key, string Label, int Min, int Max)[] CostFilters =
-        [("all", "All", 0, 99), ("0-2", "0-2", 0, 2), ("3-4", "3-4", 3, 4), ("5-6", "5-6", 5, 6), ("7+", "7+", 7, 99)];
-
-    private static readonly (string Key, string Label)[] Sorts = [("cost", "Cost"), ("name", "Name"), ("meta", "Played")];
 
     private bool _showCardPool;
     private CardPoolView? _cardPool;
@@ -45,18 +44,27 @@ public sealed partial class OverlayViewModel
     private IReadOnlyList<PoolMechanic> _cardPoolMechanics = [];
     private PoolEntry? _cardPoolFeatured;
     private string _cardPoolFeaturedNote = string.Empty;
-    private bool _cardPoolListOpen;
-    private IReadOnlyList<PoolRowModel> _cardPoolRows = [];
-    private IReadOnlyList<PoolChipModel> _cardPoolFilters = [];
-    private IReadOnlyList<PoolChipModel> _cardPoolSorts = [];
-    private string _cardPoolFilter = "all";
-    private string _cardPoolSort = "cost";
     private bool _cardPoolHeld;
     private ConstructedView? _cardPoolView;
     private AppSettings? _cardPoolSettings;
-    private RelayCommand? _toggleCardPoolList;
-    private RelayCommand? _setCardPoolFilter;
-    private RelayCommand? _setCardPoolSort;
+
+    private bool _cardPoolBrowserOpen;
+    private bool _cardPoolFiltersOpen;
+    private string _cardPoolBrowserTitle = string.Empty;
+    private string _cardPoolBrowserNote = string.Empty;
+    private IReadOnlyList<PoolChipModel> _cardPoolFilterChips = [];
+    private IReadOnlyList<PoolCardRowModel> _cardPoolBrowserRows = [];
+    private double _cardPoolBrowserWidth = AppSettings.DefaultCardPoolBrowserWidth;
+    private readonly HashSet<string> _cardPoolSelected = new(StringComparer.Ordinal);
+    private string _cardPoolBrowserKey = string.Empty;
+    private string? _lastRequestedPool;
+    private RelayCommand? _openCardPoolBrowser;
+    private RelayCommand? _closeCardPoolBrowser;
+    private RelayCommand? _toggleCardPoolFilters;
+    private RelayCommand? _toggleCardPoolMechanic;
+
+    /// <summary>The player resized the pool browser (its width is stored in the settings).</summary>
+    public event Action? CardPoolBrowserResized;
 
     public bool ShowCardPool { get => _showCardPool; private set => Set(ref _showCardPool, value); }
 
@@ -78,16 +86,7 @@ public sealed partial class OverlayViewModel
 
     public string CardPoolFeaturedNote { get => _cardPoolFeaturedNote; private set => Set(ref _cardPoolFeaturedNote, value); }
 
-    /// <summary>The full list is open (right-click on the panel).</summary>
-    public bool CardPoolListOpen { get => _cardPoolListOpen; private set => Set(ref _cardPoolListOpen, value); }
-
-    public IReadOnlyList<PoolRowModel> CardPoolRows { get => _cardPoolRows; private set => Set(ref _cardPoolRows, value); }
-
-    public IReadOnlyList<PoolChipModel> CardPoolFilters { get => _cardPoolFilters; private set => Set(ref _cardPoolFilters, value); }
-
-    public IReadOnlyList<PoolChipModel> CardPoolSorts { get => _cardPoolSorts; private set => Set(ref _cardPoolSorts, value); }
-
-    /// <summary>The mouse is over the panel: keep showing the current pool while the player reads or clicks it.</summary>
+    /// <summary>The mouse is over a pool panel: keep showing the current pool while the player reads or clicks it.</summary>
     public bool CardPoolHeld
     {
         get => _cardPoolHeld;
@@ -101,46 +100,135 @@ public sealed partial class OverlayViewModel
         }
     }
 
-    public RelayCommand ToggleCardPoolList => _toggleCardPoolList ??= new RelayCommand(() =>
+    /// <summary>The pool browser (full-height side panel) is open.</summary>
+    public bool CardPoolBrowserOpen { get => _cardPoolBrowserOpen; private set => Set(ref _cardPoolBrowserOpen, value); }
+
+    /// <summary>"Thief's Tools Pool: 47 cards".</summary>
+    public string CardPoolBrowserTitle { get => _cardPoolBrowserTitle; private set => Set(ref _cardPoolBrowserTitle, value); }
+
+    /// <summary>"12 cards match" while filters are on; empty otherwise.</summary>
+    public string CardPoolBrowserNote { get => _cardPoolBrowserNote; private set => Set(ref _cardPoolBrowserNote, value); }
+
+    /// <summary>The FILTERS block is expanded.</summary>
+    public bool CardPoolFiltersOpen { get => _cardPoolFiltersOpen; private set => Set(ref _cardPoolFiltersOpen, value); }
+
+    /// <summary>At least one mechanic filter is on (the dot next to FILTERS).</summary>
+    public bool CardPoolFilterActive => _cardPoolSelected.Count > 0;
+
+    /// <summary>Mechanics found in this pool; selected ones must all be on a card (AND).</summary>
+    public IReadOnlyList<PoolChipModel> CardPoolFilterChips { get => _cardPoolFilterChips; private set => Set(ref _cardPoolFilterChips, value); }
+
+    /// <summary>The card grid, three per row, by cost then name.</summary>
+    public IReadOnlyList<PoolCardRowModel> CardPoolBrowserRows { get => _cardPoolBrowserRows; private set => Set(ref _cardPoolBrowserRows, value); }
+
+    /// <summary>Width of the pool browser in overlay units (the player drags its left edge).</summary>
+    public double CardPoolBrowserWidth
     {
-        CardPoolListOpen = !CardPoolListOpen && _cardPool is not null;
-        RebuildCardPoolList();
+        get => _cardPoolBrowserWidth;
+        set
+        {
+            if (!Set(ref _cardPoolBrowserWidth, Math.Clamp(value, 280, 640)))
+            {
+                return;
+            }
+
+            Raise(nameof(CardPoolCardHeight));
+            if (_cardPoolSettings is not null)
+            {
+                _cardPoolSettings.CardPoolBrowserWidth = _cardPoolBrowserWidth;
+            }
+        }
+    }
+
+    /// <summary>Height of a card in the grid: three card renders (215x303 without margins) side by side fill the width.</summary>
+    public double CardPoolCardHeight => Math.Floor((CardPoolBrowserWidth - 40) / 3 * 303 / 215);
+
+    /// <summary>Right-click on the compact panel: open the browser (or close it when open).</summary>
+    public RelayCommand OpenCardPoolBrowser => _openCardPoolBrowser ??= new RelayCommand(() =>
+    {
+        if (CardPoolBrowserOpen)
+        {
+            CloseCardPoolBrowserCore();
+        }
+        else if (_cardPool is not null)
+        {
+            CardPoolBrowserOpen = true;
+            RebuildCardPoolBrowser();
+        }
     });
 
-    public RelayCommand SetCardPoolFilter => _setCardPoolFilter ??= new RelayCommand(p =>
+    /// <summary>The × button or Esc.</summary>
+    public RelayCommand CloseCardPoolBrowser => _closeCardPoolBrowser ??= new RelayCommand(CloseCardPoolBrowserCore);
+
+    public RelayCommand ToggleCardPoolFilters => _toggleCardPoolFilters ??= new RelayCommand(() => CardPoolFiltersOpen = !CardPoolFiltersOpen);
+
+    /// <summary>Turns a mechanic filter (tag) on or off.</summary>
+    public RelayCommand ToggleCardPoolMechanic => _toggleCardPoolMechanic ??= new RelayCommand(p =>
     {
-        _cardPoolFilter = p as string ?? "all";
-        RebuildCardPoolList();
+        if (p is string tag && !_cardPoolSelected.Remove(tag))
+        {
+            _cardPoolSelected.Add(tag);
+        }
+
+        RebuildCardPoolBrowser();
     });
 
-    public RelayCommand SetCardPoolSort => _setCardPoolSort ??= new RelayCommand(p =>
+    /// <summary>Called when the drag on the browser's edge ends: saves the width.</summary>
+    public void CommitCardPoolBrowserWidth() => CardPoolBrowserResized?.Invoke();
+
+    private void CloseCardPoolBrowserCore()
     {
-        _cardPoolSort = p as string ?? "cost";
-        RebuildCardPoolList();
-    });
+        CardPoolBrowserOpen = false;
+        if (_cardPoolSettings is not null)
+        {
+            UpdateCardPool(_cardPoolView, _cardPoolSettings);
+        }
+
+        RebuildCardPoolBrowser();
+    }
 
     private void UpdateCardPool(ConstructedView? view, AppSettings settings)
     {
         _cardPoolView = view;
         _cardPoolSettings = settings;
-        var pool = settings.ShowCardPool ? view?.CardPool : null;
-        if (pool is null && view is not null && settings.ShowCardPool && (CardPoolHeld || CardPoolListOpen) && _cardPool is not null)
+        if (Math.Abs(_cardPoolBrowserWidth - settings.CardPoolBrowserWidth) > 0.5)
         {
-            // The player is reading the panel or its list: the pool that triggered it has gone, keep it until they leave.
+            CardPoolBrowserWidth = settings.CardPoolBrowserWidth;
+        }
+
+        var pool = settings.ShowCardPool ? view?.CardPool : null;
+        if (pool is null && view is not null && settings.ShowCardPool && (CardPoolHeld || CardPoolBrowserOpen) && _cardPool is not null)
+        {
+            // The player is reading a pool panel: the pool that triggered it has gone, keep it until they leave or close.
             return;
         }
 
         if (pool is null)
         {
             _cardPool = null;
+            _lastRequestedPool = null;
             ShowCardPool = false;
-            CardPoolListOpen = false;
+            CardPoolBrowserOpen = false;
+            RebuildCardPoolBrowser();
             return;
         }
 
-        var changed = !ReferenceEquals(pool, _cardPool) && (_cardPool is null || _cardPool.SourceCardId != pool.SourceCardId || _cardPool.Count != pool.Count);
+        if (_cardPool is null || _cardPool.SourceCardId != pool.SourceCardId || _cardPool.Count != pool.Count)
+        {
+            _cardPoolSelected.Clear();
+            CardPoolBrowserOpen = false;
+        }
+
+        // "Show the pool for this card" (deck or hand row) opens the browser right away.
+        var requested = pool.Trigger == PoolTrigger.Request ? pool.SourceCardId : null;
+        if (requested is not null && requested != _lastRequestedPool)
+        {
+            CardPoolBrowserOpen = true;
+        }
+
+        _lastRequestedPool = requested;
         _cardPool = pool;
-        CardPoolTitle = $"Pool of {pool.Count.ToString("N0", CultureInfo.InvariantCulture)} card{(pool.Count == 1 ? string.Empty : "s")}";
+        CardPoolTitle = $"Pool of {CardCount(pool.Count)}";
         CardPoolSource = pool.SourceName;
         CardPoolDescription = $"{pool.Phrase} · {pool.Description}";
         CardPoolHistograms = new[] { (pool.Cost, "ManaGem"), (pool.Attack, "TierS"), (pool.Health, "Negative") }
@@ -154,46 +242,40 @@ public sealed partial class OverlayViewModel
         CardPoolMechanics = pool.Mechanics;
         CardPoolFeatured = pool.Featured;
         CardPoolFeaturedNote = pool.FeaturedReason ?? string.Empty;
-        if (changed)
-        {
-            _cardPoolFilter = "all";
-            CardPoolListOpen = false;
-        }
-
-        RebuildCardPoolList();
+        RebuildCardPoolBrowser();
         ShowCardPool = true;
     }
 
-    private void RebuildCardPoolList()
+    private void RebuildCardPoolBrowser()
     {
-        CardPoolFilters = CostFilters.Select(f => new PoolChipModel(f.Key, f.Label, f.Key == _cardPoolFilter)).ToList();
-        CardPoolSorts = Sorts.Select(s => new PoolChipModel(s.Key, s.Label, s.Key == _cardPoolSort)).ToList();
-        if (!CardPoolListOpen || _cardPool is null)
+        var pool = CardPoolBrowserOpen ? _cardPool : null;
+        var key = pool is null ? string.Empty
+            : $"{pool.SourceCardId}|{pool.Description}|{pool.Count}|{string.Join(",", _cardPoolSelected.Order(StringComparer.Ordinal))}";
+        if (key == _cardPoolBrowserKey)
         {
-            CardPoolRows = [];
             return;
         }
 
-        var filter = CostFilters.FirstOrDefault(f => f.Key == _cardPoolFilter);
-        var rows = _cardPool.Cards.Where(c => filter.Key is null || c.Cost >= filter.Min && c.Cost <= filter.Max);
-        rows = _cardPoolSort switch
+        // Only a new pool or other filters rebuild the grid, so its scroll position survives overlay updates.
+        _cardPoolBrowserKey = key;
+        Raise(nameof(CardPoolFilterActive));
+        if (pool is null)
         {
-            "name" => rows.OrderBy(c => c.Name, StringComparer.CurrentCulture),
-            "meta" => rows.OrderByDescending(c => c.MetaGames).ThenBy(c => c.Cost),
-            _ => rows.OrderBy(c => c.Cost).ThenBy(c => c.Name, StringComparer.CurrentCulture),
-        };
-        CardPoolRows = rows.Select(c => new PoolRowModel(
-            c.CardId,
-            c.Name,
-            c.Cost,
-            c.Type switch
-            {
-                "MINION" or "WEAPON" => $"{c.Attack}/{c.Health?.ToString(CultureInfo.InvariantCulture) ?? "-"}",
-                _ => Title(c.Type),
-            },
-            c.Rarity,
-            c.MetaGames > 0 ? c.MetaGames.ToString("N0", CultureInfo.InvariantCulture) : string.Empty)).ToList();
+            CardPoolBrowserRows = [];
+            CardPoolFilterChips = [];
+            return;
+        }
 
-        static string Title(string type) => type.Length > 1 ? type[0] + type[1..].ToLowerInvariant() : type;
+        _cardPoolSelected.IntersectWith(pool.Filters.Select(f => f.Tag));
+        CardPoolBrowserTitle = $"{pool.SourceName} Pool: {CardCount(pool.Count)}";
+        CardPoolFilterChips = pool.Filters.Select(f => new PoolChipModel(f.Tag, f.Label, _cardPoolSelected.Contains(f.Tag))).ToList();
+        var cards = pool.Cards
+            .Where(c => _cardPoolSelected.All(c.Mechanics.Contains))
+            .OrderBy(c => c.Cost).ThenBy(c => c.Name, StringComparer.CurrentCulture)
+            .ToList();
+        CardPoolBrowserNote = _cardPoolSelected.Count > 0 ? $"{CardCount(cards.Count)} match" : string.Empty;
+        CardPoolBrowserRows = cards.Chunk(3).Select(row => new PoolCardRowModel(row)).ToList();
     }
+
+    private static string CardCount(int count) => $"{count.ToString("N0", CultureInfo.InvariantCulture)} card{(count == 1 ? string.Empty : "s")}";
 }

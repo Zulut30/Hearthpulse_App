@@ -45,7 +45,11 @@ public sealed record PoolEntry(
     string Type,
     string Rarity,
     string CardClass,
-    int MetaGames);
+    int MetaGames)
+{
+    /// <summary>The shown mechanics this card has (tags of <see cref="PoolKeywords.Shown"/>), for the list filters.</summary>
+    public IReadOnlyList<string> Mechanics { get; init; } = [];
+}
 
 /// <summary>Everything the pool panel shows for one generator.</summary>
 /// <param name="Description">The pool in words: "Battlecry minions · Mage + Neutral · Standard".</param>
@@ -63,4 +67,8 @@ public sealed record CardPoolView(
     IReadOnlyList<PoolMechanic> Mechanics,
     PoolEntry? Featured,
     string? FeaturedReason,
-    IReadOnlyList<PoolEntry> Cards);
+    IReadOnlyList<PoolEntry> Cards)
+{
+    /// <summary>Every mechanic some but not all pool cards have, highest share first: the full list's filter chips.</summary>
+    public IReadOnlyList<PoolMechanic> Filters { get; init; } = [];
+}

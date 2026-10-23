@@ -1,0 +1,121 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:p="using:Hearthpulse.Core.CardPool"
+             x:Class="Hearthpulse.UI.Overlay.CardPoolBrowser"
+             x:DataType="o:OverlayViewModel">
+    <!-- The pool browser (MovablePanel "card-pool-browser"): every card of the pool. DataContext is the OverlayViewModel. -->
+    <UserControl.Resources>
+        <DataTemplate x:Key="FilterChipTemplate" x:DataType="o:PoolChipModel">
+            <Border Classes="poolFilter" Classes.selected="{Binding Selected}" CornerRadius="6" Padding="8,3" Margin="0,0,5,5" Cursor="Hand"
+                    BorderThickness="1" PointerReleased="OnChipReleased">
+                <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" />
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="CardTemplate" x:DataType="p:PoolEntry">
+            <Image i:CardRender.Card="{Binding CardId}" Stretch="Uniform" Margin="2,0" Cursor="Hand"
+                   Height="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).CardPoolCardHeight, FallbackValue=150}"
+                   ToolTip.ShowDelay="150" ToolTip.Placement="Left" ToolTip.HorizontalOffset="-8">
+                <ToolTip.Tip>
+                    <Image i:CardRender.Card="{Binding CardId}" Width="258" Height="364" Stretch="Uniform" />
+                </ToolTip.Tip>
+            </Image>
+        </DataTemplate>
+
+        <DataTemplate x:Key="RowTemplate" x:DataType="o:PoolCardRowModel">
+            <ItemsControl ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource CardTemplate}" Margin="0,0,0,6">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="3" Rows="1" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Border.poolFilter">
+            <Setter Property="Background" Value="{StaticResource Surface3}" />
+            <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+        </Style>
+        <Style Selector="Border.poolFilter TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="Border.poolFilter.selected">
+            <Setter Property="Background" Value="{StaticResource AccentContainer}" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+        </Style>
+        <Style Selector="Border.poolFilter.selected TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource OnAccentContainer}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Height="1064" Width="{Binding CardPoolBrowserWidth}"
+            o:OverlayHit.Interactive="True" PointerEntered="OnPointerEntered" PointerExited="OnPointerExited">
+        <Grid RowDefinitions="Auto,Auto,Auto,*">
+            <!-- Header: "<Card> Pool: N cards" and the close button -->
+            <DockPanel Margin="14,10,8,8">
+                <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0156;" VerticalAlignment="Top" Focusable="False"
+                        Command="{Binding CloseCardPoolBrowser}" ToolTip.Tip="Close (Esc)" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CardPoolBrowserTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding CardPoolDescription}" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Highlighted card, as on the compact panel -->
+            <Border Grid.Row="1" Height="30" Background="{StaticResource Row}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="0,1"
+                    IsVisible="{Binding CardPoolFeatured, Converter={x:Static ObjectConverters.IsNotNull}}" ToolTip.Tip="{Binding CardPoolFeaturedNote}">
+                <Panel>
+                    <Panel Width="200" HorizontalAlignment="Right">
+                        <Image i:CardArt.Tile="{Binding CardPoolFeatured.CardId, FallbackValue={x:Null}}" Width="150" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                        <Rectangle Fill="{StaticResource TileFade}" />
+                    </Panel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="&#xF04CE;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding CardPoolFeatured.Name, FallbackValue=''}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Panel>
+            </Border>
+
+            <!-- FILTERS: mechanics of this pool; the selected ones must all be on a card -->
+            <StackPanel Grid.Row="2" Margin="14,8,14,4">
+                <DockPanel Background="Transparent" Cursor="Hand" PointerReleased="OnFiltersReleased">
+                    <Panel DockPanel.Dock="Right" VerticalAlignment="Center">
+                        <TextBlock Text="&#xF0140;" Classes="icon" FontSize="16" IsVisible="{Binding !CardPoolFiltersOpen}" />
+                        <TextBlock Text="&#xF0143;" Classes="icon" FontSize="16" IsVisible="{Binding CardPoolFiltersOpen}" />
+                    </Panel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="FILTERS" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Muted}" />
+                        <Ellipse Width="6" Height="6" Fill="{StaticResource Accent}" Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding CardPoolFilterActive}" />
+                        <TextBlock Text="{Binding CardPoolBrowserNote}" FontSize="10.5" Foreground="{StaticResource Faint}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </DockPanel>
+                <ItemsControl ItemsSource="{Binding CardPoolFilterChips}" ItemTemplate="{StaticResource FilterChipTemplate}" Margin="0,8,0,0"
+                              IsVisible="{Binding CardPoolFiltersOpen}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Card grid: rows of three, virtualized, wheel scrolling eased in code-behind -->
+            <ScrollViewer Grid.Row="3" x:Name="Scroller" Margin="10,4,4,10" Padding="0,0,6,0" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding CardPoolBrowserRows}" ItemTemplate="{StaticResource RowTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Left edge: drag to change the width -->
+            <Thumb Grid.RowSpan="4" Width="6" HorizontalAlignment="Left" Cursor="SizeWestEast" Opacity="0" DragDelta="OnResize" DragCompleted="OnResized" />
+        </Grid>
+    </Border>
+</UserControl>

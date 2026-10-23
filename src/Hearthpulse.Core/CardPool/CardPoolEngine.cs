@@ -17,6 +17,10 @@ public sealed class CardPoolEngine
 {
     private readonly ConcurrentDictionary<string, PoolParse> _parsed = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, byte> _logged = new(StringComparer.Ordinal);
+
+    // Views are rebuilt on every overlay update while a pool is up; the same pool must come back as the same object
+    // (cheap, and the UI keeps its list and scroll position).
+    private readonly ConcurrentDictionary<(string CardId, PoolContext Context), CardPoolView> _views = new();
     private readonly IReadOnlyDictionary<string, int> _metaGames;
     private readonly CardDb _cards;
 
@@ -76,6 +80,23 @@ public sealed class CardPoolEngine
             return null;
         }
 
+        if (_views.TryGetValue((cardId, context), out var known))
+        {
+            return known.Trigger == trigger ? known : known with { Trigger = trigger };
+        }
+
+        var built = BuildCore(cardId, context, trigger);
+        if (built is not null)
+        {
+            _views[(cardId, context)] = built;
+        }
+
+        return built;
+    }
+
+    private CardPoolView? BuildCore(string cardId, PoolContext context, PoolTrigger trigger)
+    {
+
         var parse = Parse(cardId);
         if (parse.Status is PoolParseStatus.Unrecognized or PoolParseStatus.NotPool && _logged.TryAdd(cardId, 0))
         {
@@ -91,7 +112,10 @@ public sealed class CardPoolEngine
         var (cost, attack, health) = PoolStats.Histograms(pool);
         var entries = pool
             .Select(c => new PoolEntry(c.Id, NameOf(c.Id, c), c.Cost, c.Attack, c.Type is "MINION" or "WEAPON" ? c.Health : null, c.Type, c.Rarity,
-                c.Classes.Count == 1 ? c.Classes[0] : "MULTI", _metaGames.GetValueOrDefault(c.Id)))
+                c.Classes.Count == 1 ? c.Classes[0] : "MULTI", _metaGames.GetValueOrDefault(c.Id))
+            {
+                Mechanics = PoolKeywords.Shown.Where(m => PoolStats.Has(c, m.Tag)).Select(m => m.Tag).ToList(),
+            })
             .OrderBy(e => e.Cost).ThenBy(e => e.Name, StringComparer.CurrentCulture)
             .ToList();
         var featured = entries.Where(e => e.MetaGames > 0).MaxBy(e => e.MetaGames);
@@ -108,7 +132,10 @@ public sealed class CardPoolEngine
             PoolStats.Mechanics(pool),
             featured,
             featured is null ? null : "Most played in meta decks",
-            entries);
+            entries)
+        {
+            Filters = PoolStats.Mechanics(pool, int.MaxValue),
+        };
     }
 
     /// <summary>Games per card id over a meta's decks (a deck counts once per card it runs).</summary>

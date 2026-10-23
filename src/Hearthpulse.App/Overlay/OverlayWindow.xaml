@@ -854,6 +854,11 @@
                 <o:CardPoolPanel />
             </o:MovablePanel>
 
+            <!-- ============ Constructed: card pool browser (every card; right-click on the pool panel) ============ -->
+            <o:MovablePanel Id="card-pool-browser" Title="Card pool: all options" Shown="{Binding CardPoolBrowserOpen}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,8,0">
+                <o:CardPoolBrowser />
+            </o:MovablePanel>
+
             <!-- ============ Constructed: mulligan stats (under the offered cards) ============ -->
             <o:MovablePanel Id="mulligan" Title="Mulligan stats" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,300">
                 <StackPanel>

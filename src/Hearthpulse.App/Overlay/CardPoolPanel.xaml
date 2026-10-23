@@ -63,45 +63,6 @@
             </Border>
         </DataTemplate>
 
-        <DataTemplate x:Key="ChipTemplate" DataType="{x:Type o:PoolChipModel}">
-            <Border x:Name="Chip" CornerRadius="5" Padding="7,1" Margin="0,0,3,0" Background="Transparent" Cursor="Hand">
-                <TextBlock x:Name="Text" Text="{Binding Label}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
-            </Border>
-            <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding Selected}" Value="True">
-                    <Setter TargetName="Chip" Property="Background" Value="{StaticResource AccentContainer}" />
-                    <Setter TargetName="Text" Property="Foreground" Value="{StaticResource OnAccentContainer}" />
-                </DataTrigger>
-            </DataTemplate.Triggers>
-        </DataTemplate>
-
-        <DataTemplate x:Key="RowTemplate" DataType="{x:Type o:PoolRowModel}">
-            <Grid x:Name="Row" Height="24" Background="Transparent" ToolTipService.InitialShowDelay="120" ToolTipService.Placement="Left">
-                <Grid.ToolTip>
-                    <ToolTip Padding="0" Background="Transparent" BorderThickness="0">
-                        <Border Style="{StaticResource OverlayCard}" Padding="4">
-                            <StackPanel>
-                                <Border Width="180" Height="180" CornerRadius="6" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding CardId}" />
-                                <TextBlock Text="{Binding Name}" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,4,0,2" Foreground="{StaticResource Text}" />
-                            </StackPanel>
-                        </Border>
-                    </ToolTip>
-                </Grid.ToolTip>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="24" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="46" />
-                </Grid.ColumnDefinitions>
-                <Border Width="18" Height="18" CornerRadius="4" Background="{StaticResource ManaGem}" VerticalAlignment="Center" HorizontalAlignment="Left">
-                    <TextBlock Text="{Binding Cost}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource Text}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                           Foreground="{Binding RarityKey, Converter={StaticResource KeyBrush}}" />
-                <TextBlock Grid.Column="2" Text="{Binding Stats}" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="6,0,0,0" />
-                <TextBlock Grid.Column="3" Text="{Binding Meta}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" HorizontalAlignment="Right" />
-            </Grid>
-        </DataTemplate>
     </UserControl.Resources>
 
     <Border Style="{StaticResource OverlayCard}" Width="372" o:OverlayHit.Interactive="True" Background="{StaticResource OverlayPanelSolid}"
@@ -142,52 +103,7 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <!-- Full list (right-click): cost filter, sort, rows with the card art on hover -->
-            <StackPanel Visibility="{Binding CardPoolListOpen, Converter={StaticResource Vis}}" Margin="0,4,0,0">
-                <Border Height="1" Background="{StaticResource OverlayBorder}" Margin="-10,0,-10,6" />
-                <DockPanel Margin="0,0,0,4">
-                    <ItemsControl DockPanel.Dock="Right" ItemsSource="{Binding CardPoolSorts}" Focusable="False">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type o:PoolChipModel}">
-                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ChipTemplate}" Tag="sort" MouseLeftButtonUp="OnChipClick" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <ItemsControl ItemsSource="{Binding CardPoolFilters}" Focusable="False">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type o:PoolChipModel}">
-                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ChipTemplate}" Tag="filter" MouseLeftButtonUp="OnChipClick" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </DockPanel>
-                <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto" Focusable="False">
-                    <ItemsControl ItemsSource="{Binding CardPoolRows}" ItemTemplate="{StaticResource RowTemplate}" Focusable="False" Margin="0,0,10,0" />
-                </ScrollViewer>
-            </StackPanel>
-
-            <TextBlock FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Text" Value="Right-click to see all options" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding CardPoolListOpen}" Value="True">
-                                <Setter Property="Text" Value="Right-click to close the list" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
+            <TextBlock Text="Right-click to see all options" FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0" />
         </StackPanel>
     </Border>
 </UserControl>

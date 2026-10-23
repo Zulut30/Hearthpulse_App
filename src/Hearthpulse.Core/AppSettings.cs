@@ -67,6 +67,11 @@ public sealed class AppSettings
     /// </summary>
     public bool ShowCardPool { get; set; } = true;
 
+    public const double DefaultCardPoolBrowserWidth = 350;
+
+    /// <summary>Width of the card pool browser (the full-height list of a pool's cards), in overlay units.</summary>
+    public double CardPoolBrowserWidth { get; set; } = DefaultCardPoolBrowserWidth;
+
     /// <summary>Per counter id: "Auto" (when a card that cares is in play), "Always" or "Off". Missing means Auto.</summary>
     public Dictionary<string, string> CounterModes { get; set; } = new(StringComparer.Ordinal);
 

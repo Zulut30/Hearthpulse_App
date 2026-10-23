@@ -4,7 +4,7 @@ using Avalonia.Input;
 namespace Hearthpulse.UI.Overlay;
 
 /// <summary>
-/// The card pool panel. Right-click opens or closes the full list; while the pointer is over the panel the pool
+/// The card pool panel. Right-click opens or closes the pool browser (every card); while the pointer is over the panel the pool
 /// stays up even when what triggered it (a hovered card, a finished Discover) is gone.
 /// </summary>
 public partial class CardPoolPanel : UserControl
@@ -36,20 +36,8 @@ public partial class CardPoolPanel : UserControl
     {
         if (e.InitialPressMouseButton == MouseButton.Right)
         {
-            ViewModel?.ToggleCardPoolList.Execute(null);
+            ViewModel?.OpenCardPoolBrowser.Execute(null);
             e.Handled = true;
         }
-    }
-
-    private void OnChipReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (e.InitialPressMouseButton != MouseButton.Left || ViewModel is not { } vm
-            || sender is not Control { DataContext: PoolChipModel chip, Tag: string kind })
-        {
-            return;
-        }
-
-        (kind == "sort" ? vm.SetCardPoolSort : vm.SetCardPoolFilter).Execute(chip.Key);
-        e.Handled = true;
     }
 }

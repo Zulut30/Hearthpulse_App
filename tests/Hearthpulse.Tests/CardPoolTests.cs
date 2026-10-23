@@ -193,6 +193,28 @@ public sealed class CardPoolTests
         Assert.Equal(156, view.Cost.Count);
         Assert.Equal(view.Cards.OrderBy(c => c.Cost).Select(c => c.Cost), view.Cards.Select(c => c.Cost));
         Assert.Null(new CardPoolEngine(Fixture.Value, CardDb.Empty).Build("EDR_841", Standard("WARLOCK"), PoolTrigger.Played));
+
+        // The browser's filter chips: every mechanic some but not all cards have; each card knows its own.
+        Assert.True(view.Filters.Count >= view.Mechanics.Count);
+        Assert.All(view.Filters, f => Assert.InRange(f.Count, 1, view.Count - 1));
+        var taunt = view.Filters.Single(f => f.Tag == "TAUNT");
+        Assert.Equal(taunt.Count, view.Cards.Count(c => c.Mechanics.Contains("TAUNT")));
+        Assert.Equal(
+            view.Cards.Count(c => c.Mechanics.Contains("TAUNT") && c.Mechanics.Contains(PoolStats.CardDrawTag)),
+            Fixture.Value.Cards.Count(c => view.Cards.Any(e => e.CardId == c.Id) && PoolStats.Has(c, "TAUNT") && PoolStats.DrawsCards(c.Text)));
+    }
+
+    [Fact]
+    public void The_same_pool_comes_back_as_the_same_view()
+    {
+        var engine = Engine();
+        var first = engine.Build("JAIL_706", Standard("ROGUE"), PoolTrigger.Choice)!;
+
+        Assert.Same(first, engine.Build("JAIL_706", Standard("ROGUE"), PoolTrigger.Choice));
+        var requested = engine.Build("JAIL_706", Standard("ROGUE"), PoolTrigger.Request)!;
+        Assert.Equal(PoolTrigger.Request, requested.Trigger);
+        Assert.Same(first.Cards, requested.Cards);
+        Assert.Equal(51, first.Count);
     }
 
     [Fact]

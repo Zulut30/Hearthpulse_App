@@ -50,7 +50,7 @@ public static partial class PoolStats
     }
 
     /// <summary>Mechanic shares, highest first; mechanics every card has (the filter itself) or none has are left out.</summary>
-    public static IReadOnlyList<PoolMechanic> Mechanics(IReadOnlyCollection<PoolCard> pool)
+    public static IReadOnlyList<PoolMechanic> Mechanics(IReadOnlyCollection<PoolCard> pool, int max = MaxMechanics)
     {
         if (pool.Count == 0)
         {
@@ -68,7 +68,7 @@ public static partial class PoolStats
         }
 
         // Stable: equal shares keep the display order of PoolKeywords.Shown.
-        return result.OrderByDescending(m => m.Count).Take(MaxMechanics).ToList();
+        return result.OrderByDescending(m => m.Count).Take(max).ToList();
     }
 
     public static bool Has(PoolCard card, string tag) => tag switch

@@ -1,8 +1,8 @@
 # Card pool panel ("Discover pool")
 
 For a card that Discovers or creates random cards, the overlay shows the pool the cards come from: size,
-Cost/Attack/Health histograms with medians, the share of each mechanic, a highlighted card and, on right-click, the full
-list. Everything is built from game data and card text; no other tracker's code is used.
+Cost/Attack/Health histograms with medians, the share of each mechanic, a highlighted card and, on right-click, the pool
+browser with every card. Everything is built from game data and card text; no other tracker's code is used.
 
 Code: `src/Hearthpulse.Core/CardPool/` (catalog, parser, engine, stats, tracker), `Tracking/GameSession.CardPool.cs`,
 panels `Overlay/CardPoolPanel.*` in both UIs. Generated table: `CardPoolTables.g.cs` from
@@ -148,6 +148,25 @@ median is the usual median of the cards that have the stat (halves shown as 3.5)
 
 Only in Constructed-like games (not Battlegrounds/Mercenaries) and with the overlay setting "Show card pool" on.
 
+## Pool browser ("all options")
+
+A full-height side panel (`CardPoolBrowser`, MovablePanel `card-pool-browser`, right edge, default 350 units wide;
+drag its left edge to resize, stored in `AppSettings.CardPoolBrowserWidth`). Opened by right-click on the compact
+panel and by `GameSession.ShowCardPool(cardId)`; closed by the × button or Esc (the overlay never takes keyboard focus,
+so Esc is read from the keyboard state while the browser is open; the game sees the key too).
+
+- Header "<card> Pool: N cards", the pool description, the highlighted card.
+- FILTERS (collapsible, a gold dot when any is on): chips for every mechanic some but not all pool cards have
+  (`CardPoolView.Filters`, same rules as the percentages, no 12-tile limit); selected chips combine with AND
+  (`PoolEntry.Mechanics`).
+- Grid of full card renders, three per row, by cost then name; rows are virtualized, wheel scrolling glides to its
+  target (WPF only when Windows animations are on). Hover shows the card larger.
+- Card renders: HearthstoneJSON `v1/render/latest/{locale}/256x/{id}.png`, `Infrastructure/CardRender.cs` in both UIs
+  (disk cache `images/render-{locale}`, the transparent margin cropped to the 215x303 card). Kept apart from
+  `CardArt.cs` on purpose; it can be merged into a `CardArt` kind later.
+- The engine caches each built view per (card, format, classes), so a pool that stays up is the same object on every
+  overlay update and the grid keeps its scroll position.
+
 ### Card under the mouse (game memory)
 
 Found by reading the client's classes with `tools/Hearthpulse.Probe` (`class`, `hover`), no other tracker's code:
@@ -172,4 +191,6 @@ it is read fresh each time. Not checked: outside a match (expected null), during
   plays/choices: 4 pools shown on play (Void Soul 5, Jade Guardians 44, Cryofrozen Champion 196, Drakeadon Mongrel
   144), 8 correctly without a pool (Cultist Map/Nightmare Fuel - from the deck or a copy; Grim Harvest, Time Machine -
   token groups). The other choices in those games (C'Thun pieces, Fleshshape, Aya's coins) are not generators.
-- **Render**: `--render-ui` writes `overlay-card-pool.png` and `overlay-card-pool-list.png` in both apps.
+- **Render**: `--render-ui` writes `overlay-card-pool.png` (Blazing Invocation as a Shaman),
+  `overlay-card-pool-browser.png` (Thief's Tools, filters open) and `overlay-card-pool-browser-filtered.png` (one
+  filter on) in both apps.
