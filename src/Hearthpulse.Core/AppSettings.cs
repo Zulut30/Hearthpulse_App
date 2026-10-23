@@ -61,6 +61,12 @@ public sealed class AppSettings
 
     public bool ShowOpponentCounters { get; set; } = true;
 
+    /// <summary>
+    /// The card pool panel: for a card that Discovers or creates random cards, the pool it draws from (during the
+    /// Discover, right after it is played, or while hovered in hand).
+    /// </summary>
+    public bool ShowCardPool { get; set; } = true;
+
     /// <summary>Per counter id: "Auto" (when a card that cares is in play), "Always" or "Off". Missing means Auto.</summary>
     public Dictionary<string, string> CounterModes { get; set; } = new(StringComparer.Ordinal);
 

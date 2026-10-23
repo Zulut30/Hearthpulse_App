@@ -117,7 +117,7 @@ public sealed partial class GameSession
             {
                 // Attaching is MemoryPoller's job; only read once it is done.
                 var hovered = _cardPoolHoverWanted && Current.Constructed is not null && _memory.IsAttached ? _memory.GetHoveredCardId() : null;
-                if (_cardPool.SetHovered(hovered))
+                if (_cardPool.SetHovered(hovered, DateTime.UtcNow))
                 {
                     _dirty = true;
                 }

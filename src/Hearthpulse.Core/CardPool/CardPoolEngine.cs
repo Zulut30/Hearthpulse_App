@@ -90,7 +90,7 @@ public sealed class CardPoolEngine
 
         var (cost, attack, health) = PoolStats.Histograms(pool);
         var entries = pool
-            .Select(c => new PoolEntry(c.Id, NameOf(c.Id, c), c.Cost, c.Attack, c.Type == "MINION" ? c.Health : null, c.Type, c.Rarity,
+            .Select(c => new PoolEntry(c.Id, NameOf(c.Id, c), c.Cost, c.Attack, c.Type is "MINION" or "WEAPON" ? c.Health : null, c.Type, c.Rarity,
                 c.Classes.Count == 1 ? c.Classes[0] : "MULTI", _metaGames.GetValueOrDefault(c.Id)))
             .OrderBy(e => e.Cost).ThenBy(e => e.Name, StringComparer.CurrentCulture)
             .ToList();

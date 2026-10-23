@@ -754,6 +754,8 @@
                                 <CheckBox Classes="switch" Content="Your deck" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
                                 <CheckBox Classes="switch" Content="Draw chance per card" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
                                 <CheckBox Classes="switch" Content="Opponent: played cards and how long cards stayed in hand" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14" />
+                                <CheckBox Classes="switch" Content="Show card pool: what a Discover or random card can give" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
+                                          ToolTip.Tip="During a Discover, right after you play such a card, and while you hover it in hand. Right-click the panel for the full list." />
                                 <CheckBox Classes="switch" Content="End of game summary" IsChecked="{Binding ShowGameToasts}" Margin="0,0,0,18" />
 
                                 <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">

@@ -134,6 +134,12 @@ internal static class OffscreenRenderer
             await Save(overlay, Path.Combine(folder, name + ".png"));
         }
 
+        await CardPoolRender.RenderAsync(host, settings, folder, path =>
+        {
+            overlayView.Fit(1920, 1080);
+            return Save(overlay, path);
+        });
+
         host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
         host.Overlay.LayoutEditing = true;
         await Save(overlay, Path.Combine(folder, "overlay-layout.png"));

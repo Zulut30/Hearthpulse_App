@@ -101,6 +101,8 @@ public partial class App
                 await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, hover);
             }
 
+            await RenderCardPoolAsync(folder);
+
             _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
             _overlayViewModel.LayoutEditing = true;
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-layout.png"), 1920, 1080, 0);

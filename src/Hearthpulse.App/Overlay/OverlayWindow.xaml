@@ -849,6 +849,11 @@
                 </Border>
             </o:MovablePanel>
 
+            <!-- ============ Constructed: card pool of a Discover / random generator ============ -->
+            <o:MovablePanel Id="card-pool" Title="Card pool" Shown="{Binding ShowCardPool}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="262,0,0,60">
+                <o:CardPoolPanel />
+            </o:MovablePanel>
+
             <!-- ============ Constructed: mulligan stats (under the offered cards) ============ -->
             <o:MovablePanel Id="mulligan" Title="Mulligan stats" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,300">
                 <StackPanel>

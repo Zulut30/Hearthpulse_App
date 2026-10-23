@@ -14,11 +14,16 @@ public sealed class CardPoolTracker : IPowerListener
     /// <summary>How long the pool of a played generator stays up.</summary>
     public static readonly TimeSpan PlayedFor = TimeSpan.FromSeconds(6);
 
+    /// <summary>How long a hovered card's pool stays after the mouse leaves it, so the panel can be reached.</summary>
+    public static readonly TimeSpan HoverLinger = TimeSpan.FromSeconds(1.5);
+
     private readonly object _gate = new();
     private string? _choiceSource;
     private string? _played;
     private DateTime _playedAt;
     private string? _hovered;
+    private string? _lingering;
+    private DateTime _lingerUntil;
     private string? _requested;
 
     /// <summary>Set by the host once the catalog is loaded; without it nothing is shown.</summary>
@@ -31,6 +36,7 @@ public sealed class CardPoolTracker : IPowerListener
             _choiceSource = null;
             _played = null;
             _hovered = null;
+            _lingering = null;
             _requested = null;
         }
     }
@@ -108,16 +114,25 @@ public sealed class CardPoolTracker : IPowerListener
     }
 
     /// <summary>The card under the mouse (from game memory), or null. Only cards in your hand count.</summary>
-    /// <returns>Whether the value changed.</returns>
-    public bool SetHovered(string? cardId)
+    /// <param name="utcNow">Now (UTC); a card the mouse left stays for <see cref="HoverLinger"/>.</param>
+    /// <returns>Whether what is shown may have changed (a new card, or the linger ran out).</returns>
+    public bool SetHovered(string? cardId, DateTime utcNow)
     {
         lock (_gate)
         {
             if (_hovered == cardId)
             {
+                if (_lingering is not null && utcNow > _lingerUntil)
+                {
+                    _lingering = null;
+                    return true;
+                }
+
                 return false;
             }
 
+            _lingering = cardId is null ? _hovered : null;
+            _lingerUntil = utcNow + HoverLinger;
             _hovered = cardId;
             return true;
         }
@@ -137,7 +152,7 @@ public sealed class CardPoolTracker : IPowerListener
         {
             choice = _choiceSource;
             requested = _requested;
-            hovered = _hovered;
+            hovered = _hovered ?? (_lingering is not null && DateTime.UtcNow <= _lingerUntil ? _lingering : null);
             played = _played is not null && now - _playedAt <= PlayedFor ? _played : null;
         }
 
