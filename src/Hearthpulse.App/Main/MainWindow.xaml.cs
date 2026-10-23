@@ -238,6 +238,22 @@ public partial class MainWindow : Window
         _ => TabMyDecks,
     }).IsChecked = true;
 
+    /// <summary>
+    /// Opens a Battlegrounds tier list tab ("Heroes", "Comps", "Trinkets", "Cards") and scrolls the tabs to the top of the
+    /// page (used by the UI render check).
+    /// </summary>
+    public void ShowBattlegroundsTab(string tab)
+    {
+        (tab switch
+        {
+            "Comps" => TabComps,
+            "Trinkets" => TabTrinkets,
+            "Cards" => TabCards,
+            _ => TabHeroes,
+        }).IsChecked = true;
+        TabHeroes.BringIntoView(new Rect(0, 0, TabHeroes.ActualWidth, 700));
+    }
+
     private void OnViewHistory(object sender, RoutedEventArgs e) => NavHistory.IsChecked = true;
 
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>

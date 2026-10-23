@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json;
-using Hearthpulse.Core.Battlegrounds;
 
 namespace Hearthpulse.Core.Constructed;
 
@@ -40,11 +39,11 @@ public sealed record MetaOption(string Key, string Label);
 /// <summary>
 /// Ranked Constructed stats: archetypes with win rate, popularity and mulligan data, plus the most played decklists.
 /// One instance holds one format, rank and time period. The app loads them from the Hearthpulse API
-/// (<see cref="ApiConstructedMeta"/>: HSGuru meta and decks, HSReplay mulligan); the Firestone loader is kept but unused.
+/// (<see cref="ApiConstructedMeta"/>: HSGuru meta and decks, HSReplay mulligan).
 /// </summary>
 public sealed class ConstructedMeta
 {
-    public const string Attribution = "Constructed stats: Firestone (zerotoheroes.com)";
+    public const string Attribution = Api.HearthpulseData.Attribution;
 
     /// <summary>Archetypes and decks with fewer games are too noisy to show.</summary>
     public const int MinArchetypeGames = 100;
@@ -93,12 +92,6 @@ public sealed class ConstructedMeta
         ["past-20"] = "past_30_days",
         ["last-patch"] = "patch",
     };
-
-    private static readonly IReadOnlyList<MetaOption> FirestoneRanks =
-        [new("all", "All ranks"), new("bronze-gold", "Bronze–Gold"), new("platinum", "Platinum"), new("diamond", "Diamond"), new("legend", "Legend"), new("top-2000-legend", "Top 2000")];
-
-    private static readonly IReadOnlyList<MetaOption> FirestonePeriods =
-        [new("past-3", "3 days"), new("past-7", "7 days"), new("past-20", "20 days"), new("last-patch", "Patch")];
 
     private static readonly HashSet<string> Acronyms = new(StringComparer.Ordinal) { "dk", "dh", "xl", "otk", "bbu", "bub", "ubb", "fff", "uuu", "bbb" };
 
@@ -151,52 +144,6 @@ public sealed class ConstructedMeta
     public static Task<ConstructedMeta?> LoadAsync(Api.HearthpulseData data, Cards.CardDb cards, string? format, string? rank, string? period, string? locale,
         IProgress<ConstructedMeta>? tierList = null, CancellationToken cancellationToken = default) =>
         ApiConstructedMeta.LoadAsync(data, cards, Key(Formats, format), Key(Ranks, rank ?? "all"), Key(Periods, period ?? "past_week"), locale, tierList, cancellationToken);
-
-    /// <summary>
-    /// Loads Firestone's stats (Firestone rank and period keys); when they cannot be had, <paramref name="fallback"/>
-    /// supplies the archetypes (win rate and popularity, without decklists or mulligan data). Not called by the app since
-    /// Constructed moved to the Hearthpulse API (<see cref="LoadAsync"/>).
-    /// </summary>
-    public static async Task<ConstructedMeta?> LoadFirestoneAsync(HttpClient http, string? format, string? rank, string? period, CancellationToken cancellationToken = default, Api.HearthpulseData? fallback = null)
-    {
-        // Only known keys reach the URL and the cache file name.
-        format = Key(Formats, format);
-        rank = Key(FirestoneRanks, rank ?? "all");
-        period = Key(FirestonePeriods, period ?? "past-7");
-        var tail = $"{format}/{rank}/{period}/overview-from-hourly.gz.json";
-        var tag = $"{format}-{rank}-{period}";
-
-        var archetypeTask = BattlegroundsMeta.CacheFileAsync(http, "api/constructed/stats/archetypes/" + tail, $"constructed-archetypes-{tag}.json", cancellationToken);
-        var deckTask = BattlegroundsMeta.CacheFileAsync(http, "api/constructed/stats/decks/" + tail, $"constructed-decks-{tag}.json", cancellationToken);
-        await Task.WhenAll(archetypeTask, deckTask).ConfigureAwait(false);
-        if (archetypeTask.Result is null && deckTask.Result is null)
-        {
-            if (fallback is null)
-            {
-                return null;
-            }
-
-            // The API publishes few rank ranges (Standard Legend at least); the closest one it has is shown under its own label.
-            var list = await fallback.LoadArchetypesAsync(format, rank, cancellationToken).ConfigureAwait(false);
-            if (list.Count == 0 && rank != "legend")
-            {
-                rank = "legend";
-                list = await fallback.LoadArchetypesAsync(format, rank, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (list.Count == 0)
-            {
-                return null;
-            }
-
-            var ordered = list.OrderByDescending(a => a.Games).ToList();
-            return new ConstructedMeta(format, rank, period, DateTime.UtcNow, ordered.Sum(a => a.Games), ordered, []) { Source = Api.HearthpulseData.Attribution };
-        }
-
-        using var archetypes = await ReadAsync(archetypeTask.Result, cancellationToken).ConfigureAwait(false);
-        using var decks = await ReadAsync(deckTask.Result, cancellationToken).ConfigureAwait(false);
-        return Parse(format, rank, period, archetypes?.RootElement, decks?.RootElement);
-    }
 
     /// <summary>The <see cref="Format"/> key ("standard", "wild") of a game's FormatType; null for formats without stats.</summary>
     public static string? FormatKeyOf(string? formatType) => formatType switch
@@ -445,25 +392,6 @@ public sealed class ConstructedMeta
             _ => char.ToUpperInvariant(w[0]) + w[1..],
         });
         return string.Join(' ', words);
-    }
-
-    private static async Task<JsonDocument?> ReadAsync(string? file, CancellationToken cancellationToken)
-    {
-        if (file is null)
-        {
-            return null;
-        }
-
-        try
-        {
-            await using var stream = File.OpenRead(file);
-            return await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is JsonException or IOException)
-        {
-            Diag.Error($"Constructed stats unreadable ({Path.GetFileName(file)})", ex);
-            return null;
-        }
     }
 
     private static string GetString(JsonElement e, string name) =>

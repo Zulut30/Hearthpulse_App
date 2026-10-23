@@ -293,7 +293,7 @@ public sealed partial class MainViewModel
             .ToList();
 
         var heroes = BattlegroundsStats.Heroes(games, cards.BaseHeroId, duos,
-            meta is null ? null : id => BattlegroundsStats.GlobalOf(meta.Hero(id, 100)));
+            meta is null ? null : id => BattlegroundsStats.GlobalOf(meta.Hero(id, meta.WidestBracket)));
         var shown = BattlegroundsStats.Sort(heroes, sort, minGames);
         var maxPick = Math.Max(0.01, shown.Select(h => Math.Max(h.PickRate ?? 0, h.Global?.PickRate ?? 0)).DefaultIfEmpty(0).Max());
         var places = duos ? 4 : 8;
@@ -324,7 +324,7 @@ public sealed partial class MainViewModel
             ? "Community numbers are for solo games, so Duos has no vs Global."
             : meta is null
                 ? "Community numbers are loading…"
-                : $"vs Global: {meta.Source}, all ranks. Pick rate counts games that saved the hero offer.";
+                : $"vs Global: {meta.Source}, {BattlegroundsMeta.BracketLabel(meta.WidestBracket)}. Pick rate counts games that saved the hero offer.";
         return () =>
         {
             BgStatTiles = tiles;

@@ -1,8 +1,8 @@
 # Constructed stats from the Hearthpulse API
 
 Since this change every Constructed number in the app comes from our API (`api.kolodahearthstone.com`). Firestone is
-no longer called for Constructed: `ConstructedMeta.LoadFirestoneAsync` is kept but has no caller. Battlegrounds still
-uses Firestone (section 4). Checked against the live API on 2026-10-23.
+not called at all (its loaders were removed); Battlegrounds moved to the API too, see `docs/bg-meta-sources.md`.
+Checked against the live API on 2026-10-23.
 
 ## 1. Sources
 
@@ -63,25 +63,7 @@ Gained:
 - **Russian names**, matching the site.
 - **Mulligan numbers from HSReplay.**
 
-## 4. Battlegrounds: what our API could replace (not done)
+## 4. Battlegrounds
 
-`BattlegroundsMeta` reads four Firestone files per MMR bracket (top 100/50/25/10/1%):
-- hero stats (placement, pick rate, top-4/1st, per-tribe impact, the percentile→MMR table);
-- card stats (placement overall and by the turn the card was played);
-- comp strategies with comp stats (placement overall, by MMR and by hero);
-- trinket stats (placement, pick rate, placement by MMR).
-
-| Firestone data | Our API | Verdict |
-|---|---|---|
-| Hero placement, pick rate, top-4, 1st | `/v1/battlegrounds/heroes` (`mode`=solo/duos: tier, pick rate, avg placement, placement distribution) and `/api/bg/heroes?mmr=` | **Replaceable.** HSReplay brackets are ALL / TOP_50 / TOP_20 (some data TOP_5 / TOP_1), not Firestone's five, and there is no percentile→MMR table. |
-| Hero tribe impact | none | **Lost** (used to rank heroes by lobby tribes). |
-| Hero detail (tavern-up, hero power and combat win rate by turn, best comp) | `/api/bg/heroes/{dbf}` and sub-routes | **New data** Firestone does not give. |
-| Minion placement | `/v1/battlegrounds/minions/stats?mmr=&period=` (impact, combat win rate, avg placement with/without, games; normal and golden) | **Replaceable**, at a different measure: impact or with/without instead of placement. |
-| Minion placement by turn played | none | **Lost** (the advisor's buy hints by turn use it). |
-| Comps: strategies (name, tribes, core/addon cards, when to commit, tips, power level) | sources `firestone_battlegrounds_comps`, `hsreplay_battlegrounds_comps`, `hsreplay_battlegrounds_compositions` exist on the server, but only `/api/bg/compositions/screenshot/*` and the per-hero `compositions`/`best_composition` are routed | **Partly.** A route for the comp datasets is needed. HSReplay compositions have lineups and placement but no tips or core/addon split. |
-| Comp placement by MMR and by hero | per-hero compositions only | **Mostly lost.** |
-| Trinkets | `/api/bg/trinkets?mmr=&timeRange=` (pick rate, avg placement, distribution, games); slices ALL / TOP_50 / TOP_20 / TOP_5 / TOP_1 × patch / 7 days | **Replaceable.** Five MMR slices exist, so "placement at MMR" can be rebuilt from five calls. |
-| MMR brackets for everything | ALL, TOP_50, TOP_20 (minions); trinkets add TOP_5, TOP_1 | **Coarser**, and there is no top 25% / 10% bracket. |
-
-In short, heroes, minions and trinkets can move to our API. Comps would also need a server route for the comp
-datasets, and tribe impact and placement by turn would be lost.
+Done since: see `docs/bg-meta-sources.md` (what each number comes from, what stays empty until the stats pool runs,
+and what the server could add).

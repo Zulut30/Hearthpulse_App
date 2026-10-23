@@ -95,7 +95,7 @@ public sealed class BattlegroundsAdvisor
             plan = PlanShop(view, target, shop, cards);
         }
 
-        var percentile = bracket == 100 ? "all ranks" : $"top {bracket}%";
+        var percentile = BattlegroundsMeta.BracketLabel(bracket);
         return view with
         {
             HeroOptions = options,

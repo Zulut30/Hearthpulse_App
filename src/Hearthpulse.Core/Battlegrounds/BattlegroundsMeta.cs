@@ -1,6 +1,3 @@
-using System.Net;
-using System.Net.Http;
-using System.Text.Json;
 using Hearthpulse.Core.Pool;
 
 namespace Hearthpulse.Core.Battlegrounds;
@@ -9,7 +6,7 @@ public sealed record MetaTribeImpact(int Tribe, double Impact);
 
 /// <summary>Community results for a hero at one MMR bracket.</summary>
 /// <param name="PlacementShares">Share of games ending in place 1..8 (index 0 = 1st), when the source publishes them.</param>
-/// <param name="CombatWinRate">Share of combats won on each turn (Firestone's <c>combatWinrate</c>), when published.</param>
+/// <param name="CombatWinRate">Share of combats won on each turn, when the source publishes it.</param>
 public sealed record MetaHero(
     string HeroCardId,
     int DataPoints,
@@ -54,19 +51,30 @@ public sealed record MetaComp(
     IReadOnlyDictionary<string, (int DataPoints, double Placement)> HeroPlacement);
 
 /// <summary>
-/// Community Battlegrounds statistics: heroes, cards, trinkets and tribes, built by the Hearthpulse stats pool
-/// from games players chose to share (see <see cref="PoolClient"/>).
+/// Community Battlegrounds statistics: heroes and minions from the Hearthpulse API (HSReplay data), with comps,
+/// trinkets, tribes and turn results from the Hearthpulse stats pool when it is set up (see <see cref="PoolClient"/>).
+/// Sources per number: docs/bg-meta-sources.md.
 /// </summary>
 public sealed class BattlegroundsMeta
 {
-    public const string Attribution = "Community stats: Firestone (zerotoheroes.com)";
+    public const string Attribution = Api.HearthpulseData.Attribution;
 
     /// <summary>Attribution of stats read from the stats pool (<see cref="Pool.PoolClient"/>).</summary>
     public const string PoolAttribution = "Community stats: Hearthpulse players who share their games";
 
-    private static readonly int[] Brackets = [100, 50, 25, 10, 1];
-    private static readonly TimeSpan MaxAge = TimeSpan.FromHours(6);
-    private const string Root = "https://static.zerotoheroes.com/";
+    /// <summary>Added to <see cref="Source"/> when the stats pool is laid over another source.</summary>
+    public const string PoolName = "Hearthpulse stats pool";
+
+    /// <summary>
+    /// Hero slices of the API (<c>/api/bg/heroes?mmr=</c>, current patch) and the bracket each becomes. The API has no
+    /// all-ranks slice for heroes: top 50% is the widest.
+    /// </summary>
+    internal static readonly (int Bracket, string Mmr)[] HeroSlices =
+        [(50, "TOP_50_PERCENT"), (20, "TOP_20_PERCENT"), (5, "TOP_5_PERCENT"), (1, "TOP_1_PERCENT")];
+
+    /// <summary>Minion slices of the API (<c>/v1/battlegrounds/minions/stats?mmr=</c>, current patch); 100 = all ranks.</summary>
+    internal static readonly (int Bracket, string Mmr)[] CardSlices =
+        [(100, "ALL"), (50, "TOP_50_PERCENT"), (20, "TOP_20_PERCENT")];
 
     private static readonly Dictionary<string, string> PrefixTribes = new(StringComparer.Ordinal)
     {
@@ -163,20 +171,44 @@ public sealed class BattlegroundsMeta
 
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, MetaHero>> HeroesByBracket { get; }
 
+    /// <summary>
+    /// The widest hero bracket: 100 (all ranks) when the source has it, else its widest top-X% slice (50 for the API).
+    /// Advice and global comparisons use it when the player's own bracket is unknown.
+    /// </summary>
+    public int WidestBracket => HeroesByBracket.Count > 0 ? HeroesByBracket.Keys.Max() : 100;
+
+    /// <summary>The hero brackets this meta has, widest first: what a bracket picker can offer.</summary>
+    public IReadOnlyList<int> HeroBrackets => HeroesByBracket.Keys.OrderByDescending(b => b).ToList();
+
+    /// <summary>True when the stats pool is part of these numbers (alone or laid over the API).</summary>
+    public bool FromPool => Source != Attribution;
+
+    /// <summary>
+    /// What an empty list of <paramref name="what"/> (comps, trinkets, tavern spells: numbers only the stats pool gives)
+    /// says, so an empty list never looks like a failure or like data.
+    /// </summary>
+    public string PoolPending(string what) => FromPool
+        ? $"No {what} from the Hearthpulse stats pool yet."
+        : $"No {what} yet: they will come from the Hearthpulse stats pool once it is running.";
+
+    /// <summary>"all ranks" or "top X%", for captions.</summary>
+    public static string BracketLabel(int bracket) => bracket >= 100 ? "all ranks" : $"top {bracket}%";
+
+    /// <summary>MMR floor of each percentile; empty when the source does not publish them (the API does not).</summary>
     public IReadOnlyList<(int Percentile, int Mmr)> Percentiles { get; }
 
     public IReadOnlyList<MetaComp> Comps { get; }
 
     public DateTime Updated { get; }
 
-    /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/> unless a fallback was used).</summary>
+    /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/>, the pool's, or both).</summary>
     public string Source { get; internal init; } = Attribution;
 
     /// <summary>
-    /// Games a hero needs before the tier list shows it: the stats pool's own minimum for pool-only stats, 50 for the
-    /// much larger downloaded samples.
+    /// Games a hero needs before the tier list shows it. Only the stats pool publishes sample sizes (the API's heroes have
+    /// 0 = unknown and are always shown), so this is the pool's own minimum, the same one it adds missing heroes at.
     /// </summary>
-    public int MinHeroGames => Source == PoolAttribution ? Pool.PoolClient.MinGames : 50;
+    public int MinHeroGames => Pool.PoolClient.MinGames;
 
     /// <summary>Main tribe of final boards, from the stats pool.</summary>
     public IReadOnlyList<PoolTribe> Tribes { get; init; } = [];
@@ -188,15 +220,18 @@ public sealed class BattlegroundsMeta
     internal IReadOnlyDictionary<string, MetaHero> SharedHeroRows { get; init; } =
         new Dictionary<string, MetaHero>(StringComparer.Ordinal);
 
-    /// <summary>Tightest MMR bracket (top X%) whose floor the rating reaches.</summary>
+    /// <summary>
+    /// Tightest MMR bracket (top X%) whose floor the rating reaches; <see cref="WidestBracket"/> without a rating or
+    /// without published floors.
+    /// </summary>
     public int BracketFor(int? rating)
     {
+        var best = WidestBracket;
         if (rating is not > 0)
         {
-            return 100;
+            return best;
         }
 
-        var best = 100;
         foreach (var (percentile, mmr) in Percentiles)
         {
             if (rating >= mmr && percentile < best && HeroesByBracket.ContainsKey(percentile))
@@ -208,771 +243,73 @@ public sealed class BattlegroundsMeta
         return best;
     }
 
+    /// <summary>
+    /// The hero's results at <paramref name="bracket"/>; a thin sample there (under 100 games) falls back to the widest
+    /// bracket that has the hero. A sample size of 0 means the source does not publish it (the API) and only lists heroes
+    /// with enough games, so the row is trusted.
+    /// </summary>
     public MetaHero? Hero(string baseHeroId, int bracket)
     {
-        if (HeroesByBracket.TryGetValue(bracket, out var heroes) && heroes.TryGetValue(baseHeroId, out var hero) && hero.DataPoints >= 100)
+        if (HeroesByBracket.TryGetValue(bracket, out var heroes) && heroes.TryGetValue(baseHeroId, out var hero) && hero.DataPoints is 0 or >= 100)
         {
             return hero;
         }
 
-        return HeroesByBracket.TryGetValue(100, out var all) ? all.GetValueOrDefault(baseHeroId) : null;
+        foreach (var wider in HeroesByBracket.Keys.OrderByDescending(b => b))
+        {
+            if (HeroesByBracket[wider].TryGetValue(baseHeroId, out var found))
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
-    /// Loads Firestone's data; when its hero stats cannot be had, <paramref name="fallback"/> (the Hearthpulse API)
-    /// supplies heroes and minions instead (no comps, trinkets or MMR brackets).
+    /// Loads the community stats from the Hearthpulse API (HSReplay data): hero results for each MMR slice the API
+    /// publishes (<see cref="HeroSlices"/>) and minion results per bracket (<see cref="CardSlices"/>). Comps, guides,
+    /// trinkets, tribe impact, turn results and MMR floors are not in the API: they stay empty until the stats pool
+    /// supplies them (<see cref="PoolClient.OverlayAsync"/>). Null when no hero slice could be had (offline, no cache).
     /// </summary>
-    public static async Task<BattlegroundsMeta?> LoadAsync(HttpClient http, CancellationToken cancellationToken = default, Api.HearthpulseData? fallback = null)
+    public static async Task<BattlegroundsMeta?> LoadAsync(Api.HearthpulseData api, CancellationToken cancellationToken = default)
     {
-        try
+        var heroTasks = HeroSlices.Select(s => api.LoadHeroesAsync(s.Mmr, cancellationToken)).ToList();
+        var cardTasks = CardSlices.Select(s => api.LoadMinionsAsync(s.Mmr, cancellationToken)).ToList();
+        await Task.WhenAll(heroTasks.Concat<Task>(cardTasks)).ConfigureAwait(false);
+
+        var heroes = new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>();
+        DateTime updated = default;
+        for (var i = 0; i < HeroSlices.Length; i++)
         {
-            var heroes = new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>();
-            var percentiles = new List<(int, int)>();
-            DateTime updated = default;
-            foreach (var bracket in Brackets)
+            var slice = await heroTasks[i].ConfigureAwait(false);
+            if (slice.Heroes.Count > 0)
             {
-                var doc = await FetchAsync(http, $"api/bgs/hero-stats/mmr-{bracket}/last-patch/overview-from-hourly.gz.json", $"heroes-{bracket}.json", cancellationToken).ConfigureAwait(false);
-                if (doc is null)
-                {
-                    continue;
-                }
-
-                using (doc)
-                {
-                    Guard($"heroes {bracket}", () =>
-                    {
-                        heroes[bracket] = ParseHeroes(doc.RootElement);
-                        if (bracket != 100)
-                        {
-                            return;
-                        }
-
-                        if (doc.RootElement.TryGetProperty("mmrPercentiles", out var pct) && pct.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var p in pct.EnumerateArray())
-                            {
-                                if (p.ValueKind == JsonValueKind.Object && p.TryGetProperty("percentile", out var percent) && percent.ValueKind == JsonValueKind.Number && percent.TryGetInt32(out var percentileValue)
-                                    && p.TryGetProperty("mmr", out var mmr) && mmr.ValueKind == JsonValueKind.Number && mmr.TryGetInt32(out var mmrValue))
-                                {
-                                    percentiles.Add((percentileValue, mmrValue));
-                                }
-                            }
-                        }
-
-                        if (doc.RootElement.TryGetProperty("lastUpdateDate", out var date) && date.ValueKind == JsonValueKind.String && date.TryGetDateTime(out var parsed))
-                        {
-                            updated = parsed;
-                        }
-                    });
-                }
+                heroes[HeroSlices[i].Bracket] = slice.Heroes;
+                updated = slice.FetchedAt > updated ? slice.FetchedAt : updated;
             }
-
-            if (!heroes.ContainsKey(100))
-            {
-                return fallback is null ? null : await LoadFallbackAsync(fallback, cancellationToken).ConfigureAwait(false);
-            }
-
-            var comps = new List<MetaComp>();
-            using (var strategies = await FetchAsync(http, "hearthstone/data/battlegrounds-strategies/bgs-comps-strategies.gz.json", "comp-strategies.json", cancellationToken).ConfigureAwait(false))
-            {
-                var compStatsFile = await CacheFileAsync(http, "api/bgs/comp-stats/last-patch/overview-from-hourly.gz.json", "comp-stats.json", cancellationToken).ConfigureAwait(false);
-                if (compStatsFile is not null)
-                {
-                    // The comp file is tens of megabytes. It is streamed instead of parsed into a document, which
-                    // would need several hundred megabytes of memory and stalls the app on a small PC.
-                    Guard("comps", () => comps.AddRange(ParseCompsFile(compStatsFile, strategies?.RootElement)));
-                }
-            }
-
-            var trinkets = new Dictionary<string, MetaTrinket>(StringComparer.Ordinal);
-            using (var trinketStats = await FetchAsync(http, "api/bgs/trinket-stats/last-patch/overview-from-hourly.gz.json", "trinket-stats.json", cancellationToken).ConfigureAwait(false))
-            {
-                if (trinketStats is not null)
-                {
-                    Guard("trinkets", () => trinkets = ParseTrinkets(trinketStats.RootElement));
-                }
-            }
-
-            var cardStats = new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>();
-            foreach (var bracket in Brackets)
-            {
-                using var doc = await FetchAsync(http, $"api/bgs/card-stats/mmr-{bracket}/last-patch/overview-from-hourly.gz.json", $"cards-{bracket}.json", cancellationToken).ConfigureAwait(false);
-                if (doc is null)
-                {
-                    continue;
-                }
-
-                Guard($"cards {bracket}", () =>
-                {
-                    if (ParseCards(doc.RootElement) is { Count: > 0 } parsed)
-                    {
-                        cardStats[bracket] = parsed;
-                    }
-                });
-            }
-
-            return new BattlegroundsMeta(heroes, percentiles, comps, trinkets, cardStats, updated);
         }
-        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or IOException)
-        {
-            Diag.Error("Battlegrounds meta unreadable", ex);
-            return null;
-        }
-    }
 
-    private static async Task<BattlegroundsMeta?> LoadFallbackAsync(Api.HearthpulseData fallback, CancellationToken cancellationToken)
-    {
-        var heroes = await fallback.LoadHeroesAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         if (heroes.Count == 0)
         {
             return null;
         }
 
-        var minions = await fallback.LoadMinionsAsync(cancellationToken).ConfigureAwait(false);
-        Diag.Info($"Battlegrounds meta from the Hearthpulse API ({heroes.Count} heroes, {minions.Count} minions)");
-        return new BattlegroundsMeta(
-            new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = heroes },
-            [],
-            [],
-            new Dictionary<string, MetaTrinket>(StringComparer.Ordinal),
-            minions.Count > 0 ? new Dictionary<int, IReadOnlyDictionary<string, MetaCard>> { [100] = minions } : new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(),
-            DateTime.UtcNow)
+        var cards = new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>();
+        for (var i = 0; i < CardSlices.Length; i++)
         {
-            Source = Api.HearthpulseData.Attribution,
-        };
+            if (await cardTasks[i].ConfigureAwait(false) is { Count: > 0 } minions)
+            {
+                cards[CardSlices[i].Bracket] = minions;
+            }
+        }
+
+        Diag.Info($"Battlegrounds meta from the Hearthpulse API: heroes in brackets {string.Join("/", heroes.Keys)}, minions in {string.Join("/", cards.Keys)}");
+        return new BattlegroundsMeta(heroes, [], [], new Dictionary<string, MetaTrinket>(StringComparer.Ordinal), cards,
+            updated == default ? DateTime.UtcNow : updated);
     }
-
-    /// <summary>Parses one section; a malformed section is logged and skipped instead of losing the whole meta.</summary>
-    private static void Guard(string section, Action action)
-    {
-        try
-        {
-            action();
-        }
-        catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or InvalidCastException or FormatException or ArgumentException)
-        {
-            Diag.Error($"Battlegrounds meta section unreadable ({section})", ex);
-        }
-    }
-
-    internal static Dictionary<string, MetaHero> ParseHeroes(JsonElement root)
-    {
-        var result = new Dictionary<string, MetaHero>(StringComparer.Ordinal);
-        if (!root.TryGetProperty("heroStats", out var list) || list.ValueKind != JsonValueKind.Array)
-        {
-            return result;
-        }
-
-        foreach (var hero in list.EnumerateArray())
-        {
-            if (hero.ValueKind != JsonValueKind.Object
-                || !hero.TryGetProperty("heroCardId", out var idElement) || idElement.ValueKind != JsonValueKind.String)
-            {
-                continue;
-            }
-
-            var id = idElement.GetString() ?? string.Empty;
-            if (id.Length == 0)
-            {
-                continue;
-            }
-
-            var impact = new Dictionary<int, double>();
-            if (hero.TryGetProperty("tribeStats", out var tribes) && tribes.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var tribe in tribes.EnumerateArray())
-                {
-                    if (tribe.ValueKind == JsonValueKind.Object
-                        && tribe.TryGetProperty("tribe", out var tribeId) && tribeId.ValueKind == JsonValueKind.Number && tribeId.TryGetInt32(out var tribeValue)
-                        && tribe.TryGetProperty("impactAveragePosition", out var impactValue) && impactValue.ValueKind == JsonValueKind.Number)
-                    {
-                        impact[tribeValue] = impactValue.GetDouble();
-                    }
-                }
-            }
-
-            double top4 = 0, first = 0;
-            var shares = new double[8];
-            var hasShares = false;
-            if (hero.TryGetProperty("placementDistribution", out var places) && places.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var place in places.EnumerateArray())
-                {
-                    if (place.ValueKind != JsonValueKind.Object)
-                    {
-                        continue;
-                    }
-
-                    var rank = GetInt(place, "rank");
-                    var share = GetDouble(place, "percentage") / 100;
-                    if (rank is >= 1 and <= 4)
-                    {
-                        top4 += share;
-                    }
-
-                    if (rank == 1)
-                    {
-                        first = share;
-                    }
-
-                    if (rank is >= 1 and <= 8)
-                    {
-                        shares[rank - 1] = share;
-                        hasShares = true;
-                    }
-                }
-            }
-
-            var combatWinRate = new Dictionary<int, double>();
-            if (hero.TryGetProperty("combatWinrate", out var combats) && combats.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var combat in combats.EnumerateArray())
-                {
-                    // Turns without data come as "winrate": null; they are left out rather than read as 0%.
-                    if (combat.ValueKind == JsonValueKind.Object && GetInt(combat, "turn") is var turn and > 0
-                        && combat.TryGetProperty("winrate", out var winrate) && winrate.ValueKind == JsonValueKind.Number)
-                    {
-                        combatWinRate[turn] = winrate.GetDouble() / 100;
-                    }
-                }
-            }
-
-            var offered = GetDouble(hero, "totalOffered");
-            var picked = GetDouble(hero, "totalPicked");
-            result[id] = new MetaHero(
-                id,
-                GetInt(hero, "dataPoints"),
-                GetDouble(hero, "averagePosition"),
-                offered > 0 ? picked / offered : 0,
-                impact,
-                Math.Min(1, top4),
-                first,
-                hasShares ? shares : null,
-                combatWinRate.Count > 0 ? combatWinRate : null);
-        }
-
-        return result;
-    }
-
-    internal static IEnumerable<MetaComp> ParseComps(JsonElement stats, JsonElement? strategies)
-    {
-        var strategyById = StrategyIndex(strategies);
-        if (!stats.TryGetProperty("compStats", out var compList) || compList.ValueKind != JsonValueKind.Array)
-        {
-            yield break;
-        }
-
-        foreach (var comp in compList.EnumerateArray())
-        {
-            if (comp.ValueKind != JsonValueKind.Object)
-            {
-                continue;
-            }
-
-            var id = GetString(comp, "archetype");
-            var dataPoints = GetInt(comp, "dataPoints");
-            if (id.Length == 0 || dataPoints < 500)
-            {
-                continue;
-            }
-
-            var atMmr = new Dictionary<int, double>();
-            if (comp.TryGetProperty("averagePlacementAtMmr", out var mmrList) && mmrList.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var m in mmrList.EnumerateArray())
-                {
-                    if (m.ValueKind == JsonValueKind.Object && GetInt(m, "dataPoints") >= 200
-                        && m.TryGetProperty("mmr", out var mmr) && mmr.ValueKind == JsonValueKind.Number && mmr.TryGetInt32(out var mmrValue))
-                    {
-                        atMmr[mmrValue] = GetDouble(m, "placement");
-                    }
-                }
-            }
-
-            var heroPlacement = new Dictionary<string, (int, double)>(StringComparer.Ordinal);
-            if (comp.TryGetProperty("heroStats", out var heroList) && heroList.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var h in heroList.EnumerateArray())
-                {
-                    if (h.ValueKind == JsonValueKind.Object && GetString(h, "heroCardId") is { Length: > 0 } heroId)
-                    {
-                        heroPlacement[heroId] = (GetInt(h, "dataPoints"), GetDouble(h, "averagePlacement"));
-                    }
-                }
-            }
-
-            yield return BuildComp(id, GetDouble(comp, "averagePlacement"), atMmr, heroPlacement, strategyById);
-        }
-    }
-
-    /// <summary>
-    /// Reads the comp statistics straight from the file. The file is tens of megabytes; a document would cost
-    /// several hundred megabytes of memory and stall the app on a small PC, so only the fields the advisor uses
-    /// are read and everything else is skipped.
-    /// </summary>
-    internal static List<MetaComp> ParseCompsFile(string path, JsonElement? strategies)
-    {
-        var strategyById = StrategyIndex(strategies);
-        var result = new List<MetaComp>();
-        var bytes = File.ReadAllBytes(path);
-        var reader = new Utf8JsonReader(bytes);
-        while (reader.Read())
-        {
-            if (reader.TokenType != JsonTokenType.PropertyName || reader.GetString() != "compStats")
-            {
-                continue;
-            }
-
-            if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
-            {
-                break;
-            }
-
-            while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
-            {
-                var comp = ReadCompStats(ref reader, strategyById);
-                if (comp is not null)
-                {
-                    result.Add(comp);
-                }
-            }
-
-            break;
-        }
-
-        return result;
-    }
-
-    private static MetaComp? ReadCompStats(ref Utf8JsonReader reader, Dictionary<string, JsonElement> strategyById)
-    {
-        if (reader.TokenType != JsonTokenType.StartObject)
-        {
-            reader.Skip();
-            return null;
-        }
-
-        var id = string.Empty;
-        var dataPoints = 0;
-        var average = 0d;
-        var atMmr = new Dictionary<int, double>();
-        var heroPlacement = new Dictionary<string, (int, double)>(StringComparer.Ordinal);
-
-        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
-        {
-            if (reader.TokenType != JsonTokenType.PropertyName)
-            {
-                continue;
-            }
-
-            var property = reader.GetString();
-            if (!reader.Read())
-            {
-                break;
-            }
-
-            switch (property)
-            {
-                case "archetype":
-                    id = reader.TokenType == JsonTokenType.String ? reader.GetString() ?? string.Empty : string.Empty;
-                    break;
-                case "dataPoints":
-                    dataPoints = reader.TryGetInt32(out var points) ? points : 0;
-                    break;
-                case "averagePlacement":
-                    average = reader.TokenType == JsonTokenType.Number ? reader.GetDouble() : 0;
-                    break;
-                case "averagePlacementAtMmr":
-                    ReadPlacementAtMmr(ref reader, atMmr);
-                    break;
-                case "heroStats":
-                    ReadHeroStats(ref reader, heroPlacement);
-                    break;
-                default:
-                    reader.Skip();
-                    break;
-            }
-        }
-
-        return id.Length == 0 || dataPoints < 500
-            ? null
-            : BuildComp(id, average, atMmr, heroPlacement, strategyById);
-    }
-
-    private static void ReadPlacementAtMmr(ref Utf8JsonReader reader, Dictionary<int, double> atMmr)
-    {
-        if (reader.TokenType != JsonTokenType.StartArray)
-        {
-            reader.Skip();
-            return;
-        }
-
-        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
-        {
-            if (reader.TokenType != JsonTokenType.StartObject)
-            {
-                reader.Skip();
-                continue;
-            }
-
-            var mmr = -1;
-            var points = 0;
-            var placement = 0d;
-            while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
-            {
-                if (reader.TokenType != JsonTokenType.PropertyName)
-                {
-                    continue;
-                }
-
-                var name = reader.GetString();
-                if (!reader.Read())
-                {
-                    break;
-                }
-
-                switch (name)
-                {
-                    case "mmr": mmr = reader.TryGetInt32(out var m) ? m : -1; break;
-                    case "dataPoints": points = reader.TryGetInt32(out var p) ? p : 0; break;
-                    case "placement": placement = reader.TokenType == JsonTokenType.Number ? reader.GetDouble() : 0; break;
-                    default: reader.Skip(); break;
-                }
-            }
-
-            if (mmr >= 0 && points >= 200)
-            {
-                atMmr[mmr] = placement;
-            }
-        }
-    }
-
-    private static void ReadHeroStats(ref Utf8JsonReader reader, Dictionary<string, (int, double)> heroPlacement)
-    {
-        if (reader.TokenType != JsonTokenType.StartArray)
-        {
-            reader.Skip();
-            return;
-        }
-
-        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
-        {
-            if (reader.TokenType != JsonTokenType.StartObject)
-            {
-                reader.Skip();
-                continue;
-            }
-
-            var heroId = string.Empty;
-            var points = 0;
-            var average = 0d;
-            while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
-            {
-                if (reader.TokenType != JsonTokenType.PropertyName)
-                {
-                    continue;
-                }
-
-                var name = reader.GetString();
-                if (!reader.Read())
-                {
-                    break;
-                }
-
-                switch (name)
-                {
-                    case "heroCardId": heroId = reader.TokenType == JsonTokenType.String ? reader.GetString() ?? string.Empty : string.Empty; break;
-                    case "dataPoints": points = reader.TryGetInt32(out var p) ? p : 0; break;
-                    case "averagePlacement": average = reader.TokenType == JsonTokenType.Number ? reader.GetDouble() : 0; break;
-                    default: reader.Skip(); break;
-                }
-            }
-
-            if (heroId.Length > 0)
-            {
-                heroPlacement[heroId] = (points, average);
-            }
-        }
-    }
-
-    private static Dictionary<string, JsonElement> StrategyIndex(JsonElement? strategies)
-    {
-        var index = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
-        if (strategies is not { ValueKind: JsonValueKind.Array } list)
-        {
-            return index;
-        }
-
-        foreach (var s in list.EnumerateArray())
-        {
-            if (s.ValueKind != JsonValueKind.Object)
-            {
-                continue;
-            }
-
-            var id = (GetString(s, "compId")).Trim();
-            if (id.Length > 0)
-            {
-                index[id] = s;
-            }
-        }
-
-        return index;
-    }
-
-    private static MetaComp BuildComp(
-        string id,
-        double averagePlacement,
-        Dictionary<int, double> atMmr,
-        Dictionary<string, (int, double)> heroPlacement,
-        Dictionary<string, JsonElement> strategyById)
-    {
-        var cards = new List<MetaCompCard>();
-        string name = Prettify(id), power = string.Empty, difficulty = string.Empty;
-        string? when = null, tip = null;
-        var tribes = new List<string>();
-        if (strategyById.TryGetValue(id, out var strategy))
-        {
-            name = GetString(strategy, "name") is { Length: > 0 } n ? n : name;
-            power = GetString(strategy, "powerLevel");
-            difficulty = GetString(strategy, "difficulty");
-            if (strategy.TryGetProperty("cards", out var cardList) && cardList.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var card in cardList.EnumerateArray())
-                {
-                    if (card.ValueKind != JsonValueKind.Object)
-                    {
-                        continue;
-                    }
-
-                    cards.Add(new MetaCompCard(GetString(card, "cardId"), GetString(card, "status") is { Length: > 0 } st ? st : "ADDON"));
-                }
-            }
-
-            if (strategy.TryGetProperty("tips", out var tips) && tips.ValueKind == JsonValueKind.Array)
-            {
-                var english = tips.EnumerateArray().FirstOrDefault(t => t.ValueKind == JsonValueKind.Object && GetString(t, "language") == "enUS");
-                if (english.ValueKind == JsonValueKind.Object)
-                {
-                    tip = GetString(english, "tip") is { Length: > 0 } tv ? tv : null;
-                    when = GetString(english, "whenToCommit") is { Length: > 0 } wv ? wv : null;
-                }
-            }
-
-            if (strategy.TryGetProperty("forcedTribes", out var forced) && forced.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var f in forced.EnumerateArray())
-                {
-                    if (f.ValueKind == JsonValueKind.Number && Cards.Races.ById.TryGetValue(f.GetInt32(), out var race))
-                    {
-                        tribes.Add(race);
-                    }
-                    else if (f.ValueKind == JsonValueKind.String && f.GetString() is { Length: > 0 } raceName)
-                    {
-                        tribes.Add(raceName);
-                    }
-                }
-            }
-        }
-
-        if (tribes.Count == 0 && TribeForComp(id) is { } prefixTribe)
-        {
-            tribes.Add(prefixTribe);
-        }
-
-        return new MetaComp(id, name, power, difficulty, tribes, cards, when, tip, averagePlacement, atMmr, heroPlacement);
-    }
-
-    internal static Dictionary<string, MetaTrinket> ParseTrinkets(JsonElement root)
-    {
-        var result = new Dictionary<string, MetaTrinket>(StringComparer.Ordinal);
-        if (!root.TryGetProperty("trinketStats", out var list) || list.ValueKind != JsonValueKind.Array)
-        {
-            return result;
-        }
-
-        foreach (var t in list.EnumerateArray())
-        {
-            if (t.ValueKind != JsonValueKind.Object)
-            {
-                continue;
-            }
-
-            var id = GetString(t, "trinketCardId");
-            if (id.Length == 0)
-            {
-                continue;
-            }
-
-            var byMmr = new Dictionary<int, (double, int)>();
-            if (t.TryGetProperty("averagePlacementAtMmr", out var at) && at.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var m in at.EnumerateArray())
-                {
-                    if (m.ValueKind == JsonValueKind.Object && m.TryGetProperty("mmr", out var mmr) && mmr.ValueKind == JsonValueKind.Number && mmr.TryGetInt32(out var mmrValue))
-                    {
-                        byMmr[mmrValue] = (GetDouble(m, "placement"), GetInt(m, "dataPoints"));
-                    }
-                }
-            }
-
-            result[id] = new MetaTrinket(
-                id,
-                GetInt(t, "dataPoints"),
-                GetDouble(t, "averagePlacement"),
-                GetDouble(t, "pickRate"),
-                byMmr);
-        }
-
-        return result;
-    }
-
-    internal static Dictionary<string, MetaCard> ParseCards(JsonElement root)
-    {
-        var result = new Dictionary<string, MetaCard>(StringComparer.Ordinal);
-        if (!root.TryGetProperty("cardStats", out var list) || list.ValueKind != JsonValueKind.Array)
-        {
-            return result;
-        }
-
-        foreach (var c in list.EnumerateArray())
-        {
-            if (c.ValueKind != JsonValueKind.Object)
-            {
-                continue;
-            }
-
-            var id = GetString(c, "cardId");
-            if (id.Length == 0 || !c.TryGetProperty("averagePlacement", out var avg) || avg.ValueKind != JsonValueKind.Number)
-            {
-                continue;
-            }
-
-            var turns = new Dictionary<int, (int, double)>();
-            if (c.TryGetProperty("turnStats", out var ts) && ts.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var t in ts.EnumerateArray())
-                {
-                    if (t.ValueKind == JsonValueKind.Object
-                        && t.TryGetProperty("turn", out var turn) && turn.ValueKind == JsonValueKind.Number && turn.TryGetInt32(out var turnValue)
-                        && t.TryGetProperty("totalPlayed", out var played) && played.ValueKind == JsonValueKind.Number && played.TryGetInt32(out var playedValue)
-                        && t.TryGetProperty("averagePlacement", out var placement) && placement.ValueKind == JsonValueKind.Number)
-                    {
-                        turns[turnValue] = (playedValue, placement.GetDouble());
-                    }
-                }
-            }
-
-            result[id] = new MetaCard(id, GetInt(c, "totalPlayed"), avg.GetDouble(), turns);
-        }
-
-        return result;
-    }
-
-    private static string GetString(JsonElement e, string name) =>
-        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? string.Empty : string.Empty;
-
-    private static int GetInt(JsonElement e, string name) =>
-        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : 0;
-
-    private static double GetDouble(JsonElement e, string name) =>
-        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
 
     internal static string Prettify(string archetype) =>
         string.Join(' ', archetype.Split('_', StringSplitOptions.RemoveEmptyEntries)
             .Select(w => w == "apm" ? "APM" : char.ToUpperInvariant(w[0]) + w[1..]));
-
-    /// <summary>
-    /// Makes sure the file is in the cache and returns its path. The download is streamed straight to disk, so a
-    /// large file is never held in memory twice, and a response that is not JSON never replaces a good cache file.
-    /// </summary>
-    internal static async Task<string?> CacheFileAsync(HttpClient http, string path, string cacheName, CancellationToken cancellationToken)
-    {
-        var dir = Directory.CreateDirectory(Path.Combine(AppPaths.Cache, "meta")).FullName;
-        var file = Path.Combine(dir, cacheName);
-        var info = new FileInfo(file);
-        if (!info.Exists || DateTime.UtcNow - info.LastWriteTimeUtc > MaxAge)
-        {
-            try
-            {
-                using var request = new HttpRequestMessage(HttpMethod.Get, Root + path);
-                using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-                if (response.StatusCode == HttpStatusCode.OK)
-                {
-                    var temp = file + "." + Guid.NewGuid().ToString("N") + ".tmp";
-                    await using (var target = File.Create(temp))
-                    {
-                        await response.Content.CopyToAsync(target, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    if (LooksLikeJson(temp))
-                    {
-                        File.Move(temp, file, overwrite: true);
-                    }
-                    else
-                    {
-                        File.Delete(temp);
-                    }
-                }
-            }
-            catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
-            {
-                Diag.Error($"Meta download failed ({path})", ex);
-            }
-        }
-
-        return File.Exists(file) ? file : null;
-    }
-
-    /// <summary>Guards against an error page replacing a good cache file.</summary>
-    private static bool LooksLikeJson(string path)
-    {
-        try
-        {
-            var info = new FileInfo(path);
-            if (info.Length < 64)
-            {
-                return false;
-            }
-
-            using var stream = File.OpenRead(path);
-            var head = new byte[64];
-            var read = stream.Read(head, 0, head.Length);
-            for (var i = 0; i < read; i++)
-            {
-                var c = (char)head[i];
-                if (char.IsWhiteSpace(c))
-                {
-                    continue;
-                }
-
-                return c == '{' || c == '[';
-            }
-
-            return false;
-        }
-        catch (IOException)
-        {
-            return false;
-        }
-    }
-
-    private static async Task<JsonDocument?> FetchAsync(HttpClient http, string path, string cacheName, CancellationToken cancellationToken)
-    {
-        var file = await CacheFileAsync(http, path, cacheName, cancellationToken).ConfigureAwait(false);
-        if (file is null)
-        {
-            return null;
-        }
-
-        try
-        {
-            await using var stream = File.OpenRead(file);
-            return await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is JsonException or IOException)
-        {
-            Diag.Error($"Meta cache unreadable ({path})", ex);
-            return null;
-        }
-    }
 }
