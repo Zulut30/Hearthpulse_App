@@ -170,6 +170,13 @@ public sealed class BattlegroundsMeta
     /// <summary>Main tribe of final boards, from the stats pool.</summary>
     public IReadOnlyList<PoolTribe> Tribes { get; init; } = [];
 
+    /// <summary>Shared games behind this snapshot; 0 for the imported base alone.</summary>
+    public int SharedGames { get; init; }
+
+    /// <summary>Every shared hero row, including samples below <see cref="PoolClient.MinGames"/>, for merging.</summary>
+    internal IReadOnlyDictionary<string, MetaHero> SharedHeroRows { get; init; } =
+        new Dictionary<string, MetaHero>(StringComparer.Ordinal);
+
     /// <summary>Tightest MMR bracket (top X%) whose floor the rating reaches.</summary>
     public int BracketFor(int? rating)
     {

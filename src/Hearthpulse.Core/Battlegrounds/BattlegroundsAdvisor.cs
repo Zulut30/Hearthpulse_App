@@ -108,7 +108,8 @@ public sealed class BattlegroundsAdvisor
             FreezeAdvice = FreezeTip(view, shop, target),
             Pairs = pairs,
             ShopPlan = plan,
-            MetaSource = $"{meta.Source} · {percentile} · {meta.Updated:dd MMM HH:mm}",
+            MetaSource = $"{meta.Source} · {percentile} · {meta.Updated:dd MMM HH:mm}"
+                + (meta.SharedGames > 0 ? $" · {meta.SharedGames:N0} shared games" : string.Empty),
         };
     }
 

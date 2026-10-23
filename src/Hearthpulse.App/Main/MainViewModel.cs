@@ -616,7 +616,8 @@ public sealed partial class MainViewModel : Observable
             .ToList();
 
         var bracketText = Bracket == 100 ? "all ranks" : $"top {Bracket}%";
-        MetaUpdated = $"{meta.Source} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}";
+        var sharedText = meta.SharedGames > 0 ? $" · {meta.SharedGames:N0} shared games" : string.Empty;
+        MetaUpdated = $"{meta.Source} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}{sharedText}";
     }
 
     private GameRow Row(GameRecord g)

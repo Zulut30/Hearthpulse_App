@@ -344,17 +344,30 @@ public sealed class PoolTests
     public void BlendsSharedGamesIntoTheBaseStats()
     {
         using var baseDoc = JsonDocument.Parse("""
-            { "heroes": { "100": [["BG_HERO_1", 1000, 2000, 1000, 4.0, 0.5, 0.1, []]] },
-              "cards": { "100": [["BG_CARD_A", 1000, 4.0, [[5, 200, 4.0]]]] },
+            { "updated": "2026-10-23T09:10:37.893Z",
+              "heroes": {
+                "100": [["BG_HERO_1", 1000, 2000, 1000, 4.0, 0.5, 0.1, []],
+                        ["BG_HERO_3", 1000, 2000, 1000, 4.0, 0.5, 0.1, []]],
+                "50":  [["BG_HERO_2", 200, 300, 150, 4.2, 0.4, 0.05, []]] },
+              "cards": {
+                "100": [["BG_CARD_A", 1000, 4.0, [[5, 200, 4.0]]]],
+                "50":  [["BG_CARD_B", 200, 4.2, []]] },
               "trinkets": [["TRK_1", 100, 0.5, 4.0, []]] }
             """);
         using var poolDoc = JsonDocument.Parse("""
-            { "heroes": [ { "hero": "BG_HERO_1", "games": 100, "avgPlacement": 3.0, "top": 0.6, "first": 0.2, "offered": 200, "picked": 100 } ],
-              "cards": [ { "card": "BG_CARD_A", "games": 100, "avgPlacement": 3.0 } ],
+            { "games": 100, "updated": "2026-10-23T12:00:00Z",
+              "heroes": [ { "hero": "BG_HERO_1", "games": 100, "avgPlacement": 3.0, "top": 0.6, "first": 0.2, "offered": 200, "picked": 100 },
+                          { "hero": "BG_HERO_2", "games": 100, "avgPlacement": 3.0, "top": 0.6, "first": 0.2, "offered": 200, "picked": 100 },
+                          { "hero": "BG_HERO_3", "games": 5, "avgPlacement": 3.0, "top": 0.6, "first": 0.2, "offered": 10, "picked": 5 } ],
+              "cards": [ { "card": "BG_CARD_A", "games": 100, "avgPlacement": 3.0 },
+                         { "card": "BG_CARD_B", "games": 100, "avgPlacement": 3.0 } ],
               "trinkets": [ { "card": "TRK_1", "offered": 100, "picked": 100, "avgPlacement": 3.0 } ] }
             """);
 
         var merged = PoolClient.Merge(PoolClient.ParseMeta(baseDoc.RootElement)!, PoolClient.Parse(poolDoc.RootElement)!);
+
+        Assert.Equal(100, merged.SharedGames);
+        Assert.Equal(new DateTime(2026, 10, 23, 12, 0, 0, DateTimeKind.Utc), merged.Updated);
 
         var hero = merged.Hero("BG_HERO_1", 100)!;
         Assert.Equal(1100, hero.DataPoints);
@@ -362,10 +375,24 @@ public sealed class PoolTests
         Assert.Equal(0.509, hero.Top4Rate, 3);
         Assert.Equal(0.109, hero.FirstRate, 3);
 
+        // A hero below the 20-game display threshold still merges, with its real sample size.
+        var thinHero = merged.Hero("BG_HERO_3", 100)!;
+        Assert.Equal(1005, thinHero.DataPoints);
+        Assert.Equal(3.995, thinHero.AveragePosition, 3);
+
+        // The pool only reports all ranks, so its heroes and cards merge into the lower brackets too.
+        var lowerHero = merged.Hero("BG_HERO_2", 50)!;
+        Assert.Equal(300, lowerHero.DataPoints);
+        Assert.Equal(3.8, lowerHero.AveragePosition, 3);
+
         var card = merged.Card("BG_CARD_A")!;
         Assert.Equal(1100, card.DataPoints);
         Assert.Equal(3.909, card.AveragePlacement, 3);
         Assert.Equal(200, card.Turns[5].Played);
+
+        var lowerCard = merged.CardsByBracket[50]["BG_CARD_B"];
+        Assert.Equal(300, lowerCard.DataPoints);
+        Assert.Equal(3.8, lowerCard.AveragePlacement, 3);
 
         var trinket = merged.Trinket("TRK_1", 100)!.Value;
         Assert.Equal(200, trinket.DataPoints);

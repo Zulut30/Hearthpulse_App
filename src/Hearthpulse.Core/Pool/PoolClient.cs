@@ -404,48 +404,17 @@ public static class PoolClient
     }
 
     /// <summary>
-    /// Adds the shared games to the base numbers, weighted by sample size. Hero, card and trinket placements are
-    /// pooled; the base turn results are kept because a shared game does not carry a full per-turn history.
+    /// Adds the shared games to the base numbers, weighted by sample size. Nothing is replaced: the base and the
+    /// pool both stay in the average, and the pool's share grows as more games arrive. The pool reports all ranks,
+    /// so its hero and card numbers are merged into every MMR bracket of the base.
     /// </summary>
     internal static BattlegroundsMeta Merge(BattlegroundsMeta baseMeta, BattlegroundsMeta pool)
     {
-        var heroes = new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>();
-        foreach (var (bracket, list) in baseMeta.HeroesByBracket)
-        {
-            heroes[bracket] = list.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
-        }
-
-        foreach (var (bracket, list) in pool.HeroesByBracket)
-        {
-            var target = heroes.TryGetValue(bracket, out var existing)
-                ? new Dictionary<string, MetaHero>(existing, StringComparer.Ordinal)
-                : new Dictionary<string, MetaHero>(StringComparer.Ordinal);
-            foreach (var (id, add) in list)
-            {
-                target[id] = target.TryGetValue(id, out var have) ? Blend(have, add) : add;
-            }
-
-            heroes[bracket] = target;
-        }
-
-        var cards = new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>();
-        foreach (var (bracket, list) in baseMeta.CardsByBracket)
-        {
-            cards[bracket] = list.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
-        }
-
-        foreach (var (bracket, list) in pool.CardsByBracket)
-        {
-            var target = cards.TryGetValue(bracket, out var existing)
-                ? new Dictionary<string, MetaCard>(existing, StringComparer.Ordinal)
-                : new Dictionary<string, MetaCard>(StringComparer.Ordinal);
-            foreach (var (id, add) in list)
-            {
-                target[id] = target.TryGetValue(id, out var have) ? Blend(have, add) : add;
-            }
-
-            cards[bracket] = target;
-        }
+        var poolHeroes = pool.SharedHeroRows.Count > 0
+            ? new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = pool.SharedHeroRows }
+            : pool.HeroesByBracket;
+        var heroes = MergeBrackets(baseMeta.HeroesByBracket, poolHeroes, (a, b) => Blend(a, b));
+        var cards = MergeBrackets(baseMeta.CardsByBracket, pool.CardsByBracket, (a, b) => Blend(a, b));
 
         var trinkets = baseMeta.Trinkets.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
         foreach (var (id, add) in pool.Trinkets)
@@ -453,11 +422,44 @@ public static class PoolClient
             trinkets[id] = trinkets.TryGetValue(id, out var have) ? Blend(have, add) : add;
         }
 
-        return new BattlegroundsMeta(heroes, baseMeta.Percentiles, baseMeta.Comps, trinkets, cards, baseMeta.Updated)
+        var updated = pool.Updated > baseMeta.Updated ? pool.Updated : baseMeta.Updated;
+        return new BattlegroundsMeta(heroes, baseMeta.Percentiles, baseMeta.Comps, trinkets, cards, updated)
         {
             Tribes = pool.Tribes,
+            SharedGames = pool.SharedGames,
             Source = BattlegroundsMeta.PoolAttribution,
         };
+    }
+
+    /// <summary>
+    /// Pools two bracket maps. When the pool only has the all-ranks bracket (100), it is merged into every bracket
+    /// of the base; when it has real per-bracket data, only the matching bracket is merged.
+    /// </summary>
+    private static Dictionary<int, IReadOnlyDictionary<string, T>> MergeBrackets<T>(
+        IReadOnlyDictionary<int, IReadOnlyDictionary<string, T>> baseByBracket,
+        IReadOnlyDictionary<int, IReadOnlyDictionary<string, T>> poolByBracket,
+        Func<T, T, T> blend)
+    {
+        var allRanksOnly = poolByBracket.Count == 1 && poolByBracket.ContainsKey(100);
+        var result = new Dictionary<int, IReadOnlyDictionary<string, T>>();
+        foreach (var bracket in baseByBracket.Keys.Union(poolByBracket.Keys))
+        {
+            var target = baseByBracket.TryGetValue(bracket, out var existing)
+                ? new Dictionary<string, T>(existing, StringComparer.Ordinal)
+                : new Dictionary<string, T>(StringComparer.Ordinal);
+            var adds = allRanksOnly ? poolByBracket.GetValueOrDefault(100) : poolByBracket.GetValueOrDefault(bracket);
+            if (adds is not null)
+            {
+                foreach (var (id, add) in adds)
+                {
+                    target[id] = target.TryGetValue(id, out var have) ? blend(have, add) : add;
+                }
+            }
+
+            result[bracket] = target;
+        }
+
+        return result;
     }
 
     private static MetaHero Blend(MetaHero a, MetaHero b)
@@ -790,17 +792,18 @@ public static class PoolClient
         }
 
         var heroes = new Dictionary<string, MetaHero>(StringComparer.Ordinal);
+        var allHeroes = new Dictionary<string, MetaHero>(StringComparer.Ordinal);
         foreach (var hero in list.EnumerateArray())
         {
             var id = Text(hero, "hero");
             var games = Int(hero, "games");
-            if (string.IsNullOrEmpty(id) || games < MinGames)
+            if (string.IsNullOrEmpty(id) || games < 1)
             {
                 continue;
             }
 
             var offered = Int(hero, "offered");
-            heroes[id] = new MetaHero(
+            var stats = new MetaHero(
                 id,
                 games,
                 Number(hero, "avgPlacement"),
@@ -808,6 +811,11 @@ public static class PoolClient
                 new Dictionary<int, double>(),
                 Number(hero, "top"),
                 Number(hero, "first"));
+            allHeroes[id] = stats;
+            if (games >= MinGames)
+            {
+                heroes[id] = stats;
+            }
         }
 
         var cards = new Dictionary<string, MetaCard>(StringComparer.Ordinal);
@@ -852,6 +860,8 @@ public static class PoolClient
             updated)
         {
             Tribes = tribes,
+            SharedGames = Int(root, "games"),
+            SharedHeroRows = allHeroes,
             Source = BattlegroundsMeta.PoolAttribution,
         };
     }
