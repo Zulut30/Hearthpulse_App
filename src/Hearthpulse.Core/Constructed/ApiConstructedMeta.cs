@@ -65,7 +65,10 @@ public static class ApiConstructedMeta
     /// <summary>Source line of a mulligan guide from the API's own per-archetype analysis (Legend, past week).</summary>
     public static string HsguruMulliganSource => Localization.Loc.F("Source.MulliganLegendWeek", HearthpulseData.Attribution);
 
-    /// <param name="locale">The card language; "ruRU" shows the Russian archetype labels.</param>
+    /// <param name="locale">
+    /// The card language; "ruRU" shows the Russian archetype labels (<see cref="ArchetypeTranslations.Current"/>, else the
+    /// built-in ones).
+    /// </param>
     /// <param name="tierList">
     /// Gets the meta as soon as the tier list, lists and core cards are in, before the mulligan numbers (many more
     /// requests) are; the returned meta has them too.
@@ -86,7 +89,7 @@ public static class ApiConstructedMeta
 
         var russian = string.Equals(locale, "ruRU", StringComparison.OrdinalIgnoreCase);
         var labels = russian
-            ? ArchetypeNames.Distinct(slice.Items.Select(i => i.Archetype).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(n => n, ArchetypeNames.RussianLabel, StringComparer.OrdinalIgnoreCase))
+            ? ArchetypeNames.Distinct(slice.Items.Select(i => i.Archetype).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(n => n, ArchetypeTranslations.Current.RussianLabel, StringComparer.OrdinalIgnoreCase))
             : null;
 
         var built = new List<(MetaArchetype Archetype, IReadOnlyList<(HsguruDeck Deck, DeckDefinition Cards)> Lists)>();

@@ -26,5 +26,5 @@ The in-game overlay works on X11 and on Wayland desktops through XWayland (the
 default for Wine games). Your rating and the lobby tribes are read from game
 memory on Windows only; on Linux those values stay empty.
 
-Community stats: Hearthpulse API (HSReplay, HSGuru data). Card data and art: HearthstoneJSON.
+Community stats: Hearthpulse data (api.kolodahearthstone.com). Card data and art: HearthstoneJSON.
 Not affiliated with Blizzard Entertainment.

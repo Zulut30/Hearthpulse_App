@@ -19,8 +19,8 @@ SHORTCUTS
 - Ctrl+Shift+L  arrange overlay panels
 
 DATA AND CREDITS
-- Community statistics: Hearthpulse API (api.kolodahearthstone.com; HSReplay
-  and HSGuru data), and the Hearthpulse stats pool when it is set up.
+- Community statistics: Hearthpulse data (api.kolodahearthstone.com), and the
+  Hearthpulse stats pool when it is set up.
 - Card data and art: HearthstoneJSON.
 - Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font
   License 1.1), Material Design Icons (Pictogrammers, Apache 2.0).

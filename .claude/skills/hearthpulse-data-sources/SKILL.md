@@ -17,6 +17,7 @@ Tests use fake handlers, never the network: [hearthpulse-testing](../hearthpulse
 | **hearthpulse.net site** `https://hearthpulse.net/api/v1/` | account sign-in (OAuth device flow), `/me`, subscription | `Core/Accounts/` (`AccountClient`, `AccountService`, `TokenStore`, `Entitlements`) | `HEARTHPULSE_SITE_API` (https, or http on loopback); session in `account.dat` |
 | **HearthstoneJSON** | all card data (`cards.json` per locale), card art (`art.hearthstonejson.com`), card pool fallback | `Core/Cards/CardDb.cs`, `App|UI/Infrastructure/CardArt.cs`, `CardRender.cs` | `cache/cards.<locale>.json` 2 days, `cache/images/` |
 | **hsbg.cards** | BG tiers, text, current pool | `Core/Cards/BgCardSource.cs` (`BgCardDb`) | `cache/bgcards.hsbg.json` 12 h; 120 req/min anonymous |
+| **blizzcore archetype names** `https://api.blizzcore.ru/archetypes?limit=1000` | Russian archetype names (`name_en` -> `name_ru`) when the interface is Russian | `Core/Constructed/ArchetypeTranslations.cs` (`LoadAsync` by the hosts -> `ArchetypeTranslations.Current`; `RussianLabel` in `ApiConstructedMeta`, `Display` for names shown later) | `cache/api/blizzcore-archetypes.json` 12 h, stale copy offline |
 | **Hearthpulse stats pool** (`PoolClient.Endpoint`, off by default) | BG comps, guides, trinkets, tribes, card turn results, MMR floors; shared games | `Core/Pool/PoolClient.cs` (`OverlayAsync` lays it over the API meta) | none |
 | **GitHub releases** `Zulut30/IceCrowV2` | updates | `Core/Updates/UpdateService.cs` | see [hearthpulse-release](../hearthpulse-release/SKILL.md) |
 
@@ -42,8 +43,11 @@ now comes from, and what stays empty until the pool runs: `docs/bg-meta-sources.
    thread never waits for the network.
 6. **Attribution**: each source has an `Attribution` constant shown in the UI next to its numbers (e.g.
    `ApiConstructedMeta.Attribution`, `BattlegroundsMeta.Attribution`, `BgCardDb.Attribution`). Keep it next to new
-   data. The installer notices (`installer/windows/notice.txt`, `installer/*/README.txt`) credit the Hearthpulse API
-   (HSReplay/HSGuru data), HearthstoneJSON and the fonts - update them when you add a source.
+   data. Everything from the data API is called **"Hearthpulse data"** (`HearthpulseData.Attribution`) in anything
+   the player reads - UI, tooltips, attributions, installer texts; never HSReplay or HSGuru (internal names, endpoint
+   paths and these developer docs may keep them; `LocalizationTests` checks the string tables). The installer notices
+   (`installer/windows/notice.txt`, `installer/*/README.txt`) credit Hearthpulse data, HearthstoneJSON and the fonts -
+   update them when you add a source. UI texts are localized: `docs/localization.md`.
 7. **No secrets in the repo**; tokens only through `TokenStore`; never log tokens or e-mail.
 
 ## Account and paid access (hearthpulse.net)
