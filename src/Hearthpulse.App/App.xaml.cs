@@ -1069,6 +1069,13 @@ public partial class App : Application
 
         protected override void OnRenderToolStripBackground(Forms.ToolStripRenderEventArgs e) => e.Graphics.Clear(Background);
 
+        // The check column is on (ShowCheckMargin); left to the base renderer it is a light grey strip.
+        protected override void OnRenderImageMargin(Forms.ToolStripRenderEventArgs e)
+        {
+            using var brush = new System.Drawing.SolidBrush(Background);
+            e.Graphics.FillRectangle(brush, e.AffectedBounds);
+        }
+
         protected override void OnRenderToolStripBorder(Forms.ToolStripRenderEventArgs e)
         {
             using var pen = new System.Drawing.Pen(Line);

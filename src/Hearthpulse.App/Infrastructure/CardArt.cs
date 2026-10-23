@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Cards;
 
 namespace Hearthpulse.App.Infrastructure;
 
@@ -133,10 +134,22 @@ public static class CardArt
                 brush.ImageSource = source;
                 break;
             case Border border:
-                border.Background = source is null ? null : new ImageBrush(source) { Stretch = Stretch.UniformToFill, AlignmentX = AlignmentX.Right };
+                // The border's own background (a dark surface token) stays the placeholder while art loads or is missing.
+                if (border.ReadLocalValue(PlaceholderProperty) == DependencyProperty.UnsetValue)
+                {
+                    border.SetValue(PlaceholderProperty, border.Background);
+                }
+
+                border.Background = source is null
+                    ? (Brush?)border.GetValue(PlaceholderProperty)
+                    : new ImageBrush(source) { Stretch = Stretch.UniformToFill, AlignmentX = AlignmentX.Right };
                 break;
         }
     }
+
+    /// <summary>The background a border had before card art replaced it.</summary>
+    private static readonly DependencyProperty PlaceholderProperty =
+        DependencyProperty.RegisterAttached("Placeholder", typeof(Brush), typeof(CardArt), new PropertyMetadata(null));
 
     private static string Key(ArtKind kind, string cardId) => $"{kind}:{cardId}";
 
@@ -338,7 +351,7 @@ public static class CardArt
         }
     }
 
-    private static BitmapImage Decode(string file, ArtKind kind)
+    private static BitmapSource Decode(string file, ArtKind kind)
     {
         var bitmap = new BitmapImage();
         bitmap.BeginInit();
@@ -348,6 +361,63 @@ public static class CardArt
         bitmap.UriSource = new Uri(file);
         bitmap.EndInit();
         bitmap.Freeze();
-        return bitmap;
+        return kind switch
+        {
+            ArtKind.Portrait or ArtKind.Splash => TrimMargins(bitmap),
+            ArtKind.Tile => FadeTileMargin(bitmap),
+            _ => bitmap,
+        };
+    }
+
+    /// <summary>Turns the white block some deck tiles carry left of the art into a transparent fade (and hides a white edge line).</summary>
+    private static BitmapSource FadeTileMargin(BitmapSource bitmap)
+    {
+        // A failure here keeps the art as it is: the caller would delete the cached file as unreadable.
+        try
+        {
+            var pixels = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+            var stride = pixels.PixelWidth * 4;
+            var buffer = new byte[stride * pixels.PixelHeight];
+            pixels.CopyPixels(buffer, stride, 0);
+            if (!ArtTrim.CleanTile(buffer, pixels.PixelWidth, pixels.PixelHeight, stride, premultiplied: false))
+            {
+                return bitmap;
+            }
+
+            var faded = BitmapSource.Create(pixels.PixelWidth, pixels.PixelHeight, bitmap.DpiX, bitmap.DpiY, PixelFormats.Bgra32, null, buffer, stride);
+            faded.Freeze();
+            return faded;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Diag.Error("Tile margin was not faded", ex);
+            return bitmap;
+        }
+    }
+
+    /// <summary>Cuts the white paper margins around square art, which show as a light ring on round portraits.</summary>
+    private static BitmapSource TrimMargins(BitmapSource bitmap)
+    {
+        // A failure here keeps the art as it is: the caller would delete the cached file as unreadable.
+        try
+        {
+            var pixels = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+            var stride = pixels.PixelWidth * 4;
+            var buffer = new byte[stride * pixels.PixelHeight];
+            pixels.CopyPixels(buffer, stride, 0);
+            if (ArtTrim.FindSquare(buffer, pixels.PixelWidth, pixels.PixelHeight, stride) is not { } crop)
+            {
+                return bitmap;
+            }
+
+            var cropped = new CroppedBitmap(bitmap, new Int32Rect(crop.X, crop.Y, crop.Size, crop.Size));
+            cropped.Freeze();
+            return cropped;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Diag.Error("Art margins were not trimmed", ex);
+            return bitmap;
+        }
     }
 }

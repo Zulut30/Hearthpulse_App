@@ -1,10 +1,13 @@
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Cards;
 
 namespace Hearthpulse.UI.Infrastructure;
 
@@ -130,10 +133,22 @@ public static class CardArt
                 image.Source = source;
                 break;
             case Border border:
-                border.Background = source is null ? null : new ImageBrush(source) { Stretch = Stretch.UniformToFill, AlignmentX = AlignmentX.Right };
+                // The border's own background (a dark surface token) stays the placeholder while art loads or is missing.
+                if (!border.IsSet(PlaceholderProperty))
+                {
+                    border.SetValue(PlaceholderProperty, border.Background);
+                }
+
+                border.Background = source is null
+                    ? border.GetValue(PlaceholderProperty)
+                    : new ImageBrush(source) { Stretch = Stretch.UniformToFill, AlignmentX = AlignmentX.Right };
                 break;
         }
     }
+
+    /// <summary>The background a border had before card art replaced it.</summary>
+    private static readonly AttachedProperty<IBrush?> PlaceholderProperty =
+        AvaloniaProperty.RegisterAttached<Border, IBrush?>("Placeholder", typeof(CardArt));
 
     private static string Key(ArtKind kind, string cardId) => $"{kind}:{cardId}";
 
@@ -185,6 +200,12 @@ public static class CardArt
                 {
                     await using var stream = File.OpenRead(file);
                     image = Bitmap.DecodeToWidth(stream, kind is ArtKind.Tile or ArtKind.Card ? 256 : 200, BitmapInterpolationMode.HighQuality);
+                    image = kind switch
+                    {
+                        ArtKind.Portrait => TrimMargins(image),
+                        ArtKind.Tile => FadeTileMargin(image),
+                        _ => image,
+                    };
                 }
                 catch (Exception ex) when (ex is not (OutOfMemoryException or IOException))
                 {
@@ -208,6 +229,82 @@ public static class CardArt
         Pending.TryRemove(Key(kind, cardId), out _);
 
         return image;
+    }
+
+    /// <summary>Cuts the white paper margins around square art, which show as a light ring on round portraits.</summary>
+    private static Bitmap TrimMargins(Bitmap bitmap)
+    {
+        if (bitmap.Format is not { BitsPerPixel: 32 } format || bitmap.AlphaFormat is not { } alpha)
+        {
+            return bitmap;
+        }
+
+        var size = bitmap.PixelSize;
+        var stride = size.Width * 4;
+        var buffer = new byte[stride * size.Height];
+        var pin = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+        try
+        {
+            var address = pin.AddrOfPinnedObject();
+            bitmap.CopyPixels(new PixelRect(size), address, buffer.Length, stride);
+            if (ArtTrim.FindSquare(buffer, size.Width, size.Height, stride) is not { } crop)
+            {
+                return bitmap;
+            }
+
+            var cropped = new Bitmap(format, alpha, address + (crop.Y * stride) + (crop.X * 4), new PixelSize(crop.Size, crop.Size), bitmap.Dpi, stride);
+            bitmap.Dispose();
+            return cropped;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // The art stays as it is: the caller would delete the cached file as unreadable.
+            Diag.Error("Art margins were not trimmed", ex);
+            return bitmap;
+        }
+        finally
+        {
+            pin.Free();
+        }
+    }
+
+    /// <summary>Turns the white block some deck tiles carry left of the art into a transparent fade (and hides a white edge line).</summary>
+    private static Bitmap FadeTileMargin(Bitmap bitmap)
+    {
+        if (bitmap.Format is not { BitsPerPixel: 32 } format || bitmap.AlphaFormat is not { } alpha)
+        {
+            return bitmap;
+        }
+
+        var size = bitmap.PixelSize;
+        var stride = size.Width * 4;
+        var buffer = new byte[stride * size.Height];
+        var pin = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+        try
+        {
+            var address = pin.AddrOfPinnedObject();
+            bitmap.CopyPixels(new PixelRect(size), address, buffer.Length, stride);
+            // Opaque pixels read the same premultiplied or not; the faded copy needs an alpha channel either way.
+            var premultiplied = alpha != AlphaFormat.Unpremul;
+            if (!ArtTrim.CleanTile(buffer, size.Width, size.Height, stride, premultiplied))
+            {
+                return bitmap;
+            }
+
+            var faded = new Bitmap(format, premultiplied ? AlphaFormat.Premul : AlphaFormat.Unpremul, address, size, bitmap.Dpi, stride);
+            bitmap.Dispose();
+            return faded;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // The art stays as it is: the caller would delete the cached file as unreadable.
+            Diag.Error("Tile margin was not faded", ex);
+            return bitmap;
+        }
+        finally
+        {
+            pin.Free();
+        }
     }
 
     /// <summary>Caches the image and drops the oldest ones when the cache is full.</summary>
