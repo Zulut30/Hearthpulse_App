@@ -52,6 +52,17 @@
             <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#4A331E" />
             <SolidColorBrush x:Key="SliderTrackFillDisabled" Color="#3A2817" />
             <SolidColorBrush x:Key="SliderThumbBackgroundDisabled" Color="#8F7A5C" />
+            <!-- Fluent turns the thumb near-white on hover and grey when pressed: keep it gold. -->
+            <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="{StaticResource SystemAccentColorLight1}" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="{StaticResource AccentDeepColor}" />
+
+            <!-- Fluent text boxes: a light border and a near-black hover/focus fill; keep the warm surface and an
+                 Outline border that turns gold on focus, like the WPF text box. -->
+            <SolidColorBrush x:Key="TextControlBorderBrush" Color="{StaticResource OutlineColor}" />
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{StaticResource OutlineColor}" />
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource Surface3Color}" />
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource Surface3Color}" />
             <SolidColorBrush x:Key="SliderTrackValueFillDisabled" Color="#8F7A5C" />
 
             <!-- Fluent combo boxes and menu flyouts: the text box frame, a card for the list, gold for the selected row. -->

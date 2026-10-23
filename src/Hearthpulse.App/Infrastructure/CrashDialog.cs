@@ -43,6 +43,12 @@ internal static class CrashDialog
                 window.FontFamily = font;
             }
 
+            // The dark surface gets a dark title bar too; with Windows in light mode it would be a white strip on top.
+            if (Application.Current?.TryFindResource("Surface") is not null)
+            {
+                window.SourceInitialized += (_, _) => Native.UseDarkChrome(new System.Windows.Interop.WindowInteropHelper(window).Handle);
+            }
+
             var text = new StackPanel { Margin = new Thickness(22, 20, 22, 18) };
             text.Children.Add(new TextBlock
             {
