@@ -63,8 +63,14 @@ public partial class MainView : UserControl
 
             viewModel.AccountCodeCopied(clipboard is not null);
         }
-        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.ExternalException)
+        catch (Exception ex)
         {
+            // An async event handler: anything that escaped would reach the crash handler for a failed clipboard copy.
+            if (ex is not (InvalidOperationException or System.Runtime.InteropServices.ExternalException))
+            {
+                Diag.Error("Copying the account code failed", ex);
+            }
+
             viewModel.AccountCodeCopied(false);
         }
     }

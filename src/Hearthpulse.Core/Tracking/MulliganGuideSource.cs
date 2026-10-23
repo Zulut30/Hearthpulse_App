@@ -55,7 +55,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
 
             _retryAt = DateTime.UtcNow + RetryAfter;
             var requested = _key;
-            _ = Task.Run(() => LoadAsync(requested!, format, playerClass, deck, cards));
+            Task.Run(() => LoadAsync(requested!, format, playerClass, deck, cards)).Forget("Mulligan guide lookup");
             return null;
         }
     }

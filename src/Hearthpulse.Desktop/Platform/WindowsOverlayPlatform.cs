@@ -105,18 +105,31 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
 
     private static IntPtr FindHearthstoneWindow()
     {
-        foreach (var process in Process.GetProcessesByName("Hearthstone"))
+        Process[] processes;
+        try
         {
+            processes = Process.GetProcessesByName("Hearthstone");
+        }
+        catch (OutOfMemoryException)
+        {
+            // The process snapshot fails like this when the system is short of memory: try again on the next lookup.
+            return IntPtr.Zero;
+        }
+
+        var window = IntPtr.Zero;
+        foreach (var process in processes)
+        {
+            // Every Process holds a handle until disposed, also the ones after the window was found.
             using (process)
             {
-                if (process.MainWindowHandle != IntPtr.Zero)
+                if (window == IntPtr.Zero && process.MainWindowHandle != IntPtr.Zero)
                 {
-                    return process.MainWindowHandle;
+                    window = process.MainWindowHandle;
                 }
             }
         }
 
-        return IntPtr.Zero;
+        return window;
     }
 
     [StructLayout(LayoutKind.Sequential)]

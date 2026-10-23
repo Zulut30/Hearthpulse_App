@@ -81,12 +81,12 @@ public sealed partial class MainViewModel : Observable
         SetBgMode = new RelayCommand(p =>
         {
             BgMode = p as string ?? "Battlegrounds";
-            _ = RefreshAsync();
+            RefreshAsync().Forget("History refresh");
         });
         SetHistoryFilter = new RelayCommand(p =>
         {
             HistoryFilter = p as string ?? "All";
-            _ = RefreshAsync();
+            RefreshAsync().Forget("History refresh");
         });
         SetCardTier = new RelayCommand(p =>
         {
@@ -268,7 +268,7 @@ public sealed partial class MainViewModel : Observable
         {
             if (Set(ref _selectedDeck, value))
             {
-                _ = LoadMatchupsAsync(value?.DeckCode);
+                LoadMatchupsAsync(value?.DeckCode).Forget("Matchups load");
             }
         }
     }
@@ -276,7 +276,7 @@ public sealed partial class MainViewModel : Observable
     public void SetCards(CardDb cards)
     {
         _cards = cards;
-        _ = RefreshAsync();
+        RefreshAsync().Forget("History refresh");
         RebuildMeta();
     }
 

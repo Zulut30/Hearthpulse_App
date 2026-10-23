@@ -101,14 +101,39 @@ public partial class App : Application
             return;
         }
 
+        // Every unexpected error is logged; the player sees a window (Open log / Continue) the first time a kind of error
+        // happens, instead of a silent stop or nothing at all. Not while rendering pages off-screen (--render-ui).
         DispatcherUnhandledException += (_, args) =>
         {
-            Diag.Error("UI error", args.Exception);
             args.Handled = true;
+            if (CrashLog.Record("UI error", args.Exception) && _renderDir is null)
+            {
+                // This handler runs inside the dispatcher's exception filter, where a modal window is never drawn:
+                // show it once the failed operation has unwound.
+                var error = args.Exception;
+                Dispatcher.BeginInvoke(() => CrashDialog.Show(error, fatal: false));
+            }
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            var ex = args.ExceptionObject as Exception ?? new InvalidOperationException(args.ExceptionObject?.ToString());
+            CrashLog.Record(args.IsTerminating ? "Fatal error" : "Unhandled error", ex);
+            if (args.IsTerminating && _renderDir is null)
+            {
+                try
+                {
+                    // A background thread is dying and takes the process with it: say so before it goes.
+                    Dispatcher.Invoke(() => CrashDialog.Show(ex, fatal: true));
+                }
+                catch (Exception dialogError)
+                {
+                    Diag.Error("Error window could not be shown", dialogError);
+                }
+            }
         };
         TaskScheduler.UnobservedTaskException += (_, args) =>
         {
-            Diag.Error("Background error", args.Exception);
+            CrashLog.Record("Background error", args.Exception);
             args.SetObserved();
         };
 
@@ -144,7 +169,7 @@ public partial class App : Application
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
         _account = new AccountService(new AccountClient(_http));
         _mainViewModel.AttachAccount(_account);
-        _ = _account.RestoreAsync();
+        _account.RestoreAsync().Forget("Account restore");
         _overlayViewModel = new OverlayViewModel();
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
@@ -170,7 +195,7 @@ public partial class App : Application
         {
             _settingsDebounce.Stop();
             _settingsDebounce.Start();
-            _ = LoadConstructedMetaAsync();
+            LoadConstructedMetaAsync().Forget("Constructed meta load");
         };
         _main = CreateMainWindow();
         _overlay = CreateOverlay();
@@ -187,13 +212,13 @@ public partial class App : Application
             }
         }
 
-        _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _ = _mainViewModel.RefreshAsync());
+        _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _mainViewModel.RefreshAsync().Forget("History refresh"));
         _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), _settings.Save);
         _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(3) };
         _metaRefresh.Tick += (_, _) =>
         {
-            _ = LoadMetaAsync();
-            _ = LoadConstructedMetaAsync();
+            LoadMetaAsync().Forget("Battlegrounds meta load");
+            LoadConstructedMetaAsync().Forget("Constructed meta load");
         };
 
         _session.SnapshotChanged += OnSnapshot;
@@ -211,7 +236,7 @@ public partial class App : Application
             RegisterHotkey();
         }
 
-        _ = InitializeAsync();
+        InitializeAsync().Forget("Start-up");
         StartUpdateChecks();
     }
 
@@ -284,7 +309,7 @@ public partial class App : Application
 
             _session.Cards = _cards;
             _mainViewModel.SetCards(_cards);
-            _ = LoadCardPoolAsync();
+            LoadCardPoolAsync().Forget("Card pool load");
 
             if (!_settings.HistoryImported || !_settings.HistoryStatsFilled)
             {
@@ -293,7 +318,7 @@ public partial class App : Application
             else if (_installDir is { } install)
             {
                 // Games saved before Decks.log was read correctly (and imported ones) have no deck yet.
-                _ = Task.Run(() => LogBackfill.FillDecks(install, _history, _cards));
+                Task.Run(() => LogBackfill.FillDecks(install, _history, _cards)).Forget("Deck backfill");
             }
 
             if (_renderDir is not null)
@@ -554,6 +579,11 @@ public partial class App : Application
             return (deck, matchup);
         }).ContinueWith(t =>
         {
+            if (t.IsFaulted)
+            {
+                Diag.Error("Deck stats lookup failed", t.Exception);
+            }
+
             if (t.IsCompletedSuccessfully && _deckStatsKey == key)
             {
                 (_deckStats, _matchupStats) = t.Result;
@@ -574,7 +604,7 @@ public partial class App : Application
     {
         var main = new MainWindow(_mainViewModel);
         main.SettingsChanged += OnSettingsChanged;
-        main.ReimportRequested += () => _ = ImportLogsAsync(force: true);
+        main.ReimportRequested += () => ImportLogsAsync(force: true).Forget("Log import");
         main.ArrangeOverlayRequested += () => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing;
         return main;
     }
@@ -658,7 +688,7 @@ public partial class App : Application
 
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
-        _ = LoadCardPoolAsync();
+        LoadCardPoolAsync().Forget("Card pool load");
         _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
         Autostart.Apply(_settings.StartWithWindows);
     }
@@ -785,7 +815,7 @@ public partial class App : Application
             {
                 _capNotified = true;
                 var install = _installDir;
-                _ = Task.Run(() => LogConfig.EnsureAll(install));
+                Task.Run(() => LogConfig.EnsureAll(install)).Forget("log.config update");
                 Notify("Restart Hearthstone", "Hearthstone stopped writing its game log at its 10 MB limit, so tracking stopped. Hearthpulse removed the limit: restart Hearthstone to keep tracking.");
             }
         }

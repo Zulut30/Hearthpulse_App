@@ -119,8 +119,9 @@ public static class Diag
                 File.AppendAllText(AppPaths.LogFile, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {level} {message}{Environment.NewLine}");
             }
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
+            // Logging must never throw: it runs inside the crash handlers.
         }
     }
 }

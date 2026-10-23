@@ -86,7 +86,10 @@ public static class CardArt
         DependencyProperty.RegisterAttached(name, typeof(string), typeof(CardArt),
             new PropertyMetadata(null, (d, e) => Apply(d, kind, e.NewValue as string)));
 
-    private static async void Apply(DependencyObject target, ArtKind kind, string? cardId)
+    // Property callbacks cannot await; a failed load is logged instead of reaching the app's crash handler.
+    private static void Apply(DependencyObject target, ArtKind kind, string? cardId) => ApplyAsync(target, kind, cardId).Forget("Card art");
+
+    private static async Task ApplyAsync(DependencyObject target, ArtKind kind, string? cardId)
     {
         if (string.IsNullOrEmpty(cardId))
         {
