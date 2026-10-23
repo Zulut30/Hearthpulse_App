@@ -152,6 +152,7 @@ public partial class OverlayWindow : Window
         // Layout mode stays up while the player arranges panels from the dashboard as well.
         var visible = rect is not null && !Suppressed
                       && (ViewModel.LayoutEditing || (_settings.OverlayEnabled && (foreground == _hearthstone || foreground == _hwnd)));
+        NoteVisibility(visible, rect, foreground);
         if (!visible)
         {
             if (_shown)
@@ -212,6 +213,42 @@ public partial class OverlayWindow : Window
         UpdateClickThrough(cursor, r);
         UpdateLeaderboardHover(cursor, r);
         UpdateGuides(r);
+    }
+
+    private string? _visibilityNote;
+
+    /// <summary>
+    /// One log line whenever the overlay starts or stops showing, with the reason, so "I did not see the panel" can be
+    /// told apart in hearthpulse.log from a hidden overlay (another window in front, the hotkey, the setting).
+    /// </summary>
+    private void NoteVisibility(bool visible, Native.RECT? rect, IntPtr foreground)
+    {
+        var note = visible ? ViewModel.LayoutEditing ? "shown (layout mode)" : $"shown over Hearthstone {rect!.Value.Width}x{rect.Value.Height}"
+            : rect is null ? "hidden: no Hearthstone window"
+            : Suppressed ? "hidden with Ctrl+Shift+H"
+            : !_settings.OverlayEnabled ? "hidden: the overlay is off in Settings"
+            : "hidden: Hearthstone is not the foreground window";
+        if (note == _visibilityNote)
+        {
+            return;
+        }
+
+        _visibilityNote = note;
+        Diag.Info(note.EndsWith("foreground window", StringComparison.Ordinal) ? $"Overlay {note} (foreground: {ProcessNameOf(foreground)})" : $"Overlay {note}");
+    }
+
+    private static string ProcessNameOf(IntPtr window)
+    {
+        try
+        {
+            Native.GetWindowThreadProcessId(window, out var id);
+            using var process = System.Diagnostics.Process.GetProcessById((int)id);
+            return process.ProcessName;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return "unknown";
+        }
     }
 
     private void UpdateClickThrough(Native.POINT cursor, Native.RECT r)

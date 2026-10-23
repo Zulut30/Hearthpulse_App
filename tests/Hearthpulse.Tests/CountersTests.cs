@@ -489,6 +489,42 @@ public sealed class CountersTests
     }
 
     [Fact]
+    public void The_log_says_why_the_mulligan_panel_is_shown_or_hidden()
+    {
+        // A live game (2026-10-23) left no trace of why the panel was not seen: now each state is one log line.
+        string[] hand =
+        [
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=MULLIGAN_STATE value=INPUT ",
+            .. Card(30, "BE_012", "HAND", 1, "MINION", "tag=ZONE_POSITION value=1"),
+            .. Card(31, "BE_014", "HAND", 1, "MINION", "tag=ZONE_POSITION value=2"),
+        ];
+        var deck = new DeckDefinition("Mine", 1, "code", "Standard", [813], new Dictionary<int, int> { [120003] = 2, [120005] = 2 });
+
+        var nothing = Play(hand);
+        nothing.Tracker.Deck = deck;
+        Assert.Null(View(nothing).Mulligan);
+        Assert.Equal("mulligan panel hidden: no API guide for this deck (yet) and the community stats are not loaded",
+            Hearthpulse.Core.Tracking.Mulligan.Explain(nothing.Game, null, deck, hasGuide: false, meta: null));
+
+        var archetype = new MetaArchetype(1, "cthun-priest", "C'Thun Priest", "PRIEST", 1000, 550, 0.55, 0.1, 0, 0, 0, 0,
+            ["BE_012", "BE_014"],
+            [new MetaMulliganCard("BE_012", 400, 0.8, 300, 0.6), new MetaMulliganCard("BE_014", 10, 0.5, 5, 0.4)]);
+        var shown = Play(hand);
+        shown.Tracker.Deck = deck;
+        shown.Tracker.Meta = new ConstructedMeta("standard", "all", "past-7", DateTime.UtcNow, 1000, [archetype], []);
+        var view = View(shown).Mulligan;
+        Assert.Equal("mulligan panel shown: C'Thun Priest, keep stats for 1/3 cards (" + view!.Source + ")",
+            Hearthpulse.Core.Tracking.Mulligan.Explain(shown.Game, view, deck, hasGuide: false, shown.Tracker.Meta));
+        Assert.Contains("Mulligan panel shown: C'Thun Priest, keep stats for 1/3 cards", TestDataFolder.ReadLog());
+
+        var wild = new ConstructedMeta("wild", "all", "past-7", DateTime.UtcNow, 1000, [archetype], []);
+        Assert.Equal("mulligan panel hidden: no API guide for this deck and the community stats are for wild, the game is FT_STANDARD",
+            Hearthpulse.Core.Tracking.Mulligan.Explain(shown.Game, null, deck, hasGuide: false, wild));
+        Assert.Equal("mulligan panel hidden: no keep stats for 2/2 cards (Priest, test)",
+            Hearthpulse.Core.Tracking.Mulligan.Explain(shown.Game, view with { Context = "Priest", Source = "test", Cards = view.Cards.Where(c => c.KeepRate is null).ToList() }, deck, hasGuide: false, wild));
+    }
+
+    [Fact]
     public void Mulligan_panel_closes_once_the_hand_is_kept()
     {
         var state = Play([

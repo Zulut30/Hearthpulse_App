@@ -42,6 +42,7 @@ public sealed partial class OverlayViewModel
     private string? _mulliganHand;
     private string? _mulliganPrint;
     private bool _mulliganTouched;
+    private bool _mulliganOffNoted;
     private readonly HashSet<int> _mulliganKept = new();
     private RelayCommand? _toggleMulliganCard;
 
@@ -84,6 +85,14 @@ public sealed partial class OverlayViewModel
     private void UpdateMulligan(MulliganView? mulligan, AppSettings settings)
     {
         ShowMulligan = settings.ShowMulligan && mulligan is not null && mulligan.Cards.Any(c => c.KeepRate is not null);
+        // The tracker logs why the panel has or lacks numbers; only the setting is known here.
+        var offBySetting = mulligan is not null && !settings.ShowMulligan;
+        if (offBySetting && !_mulliganOffNoted)
+        {
+            Diag.Info("Mulligan panel hidden: \"Mulligan stats over your opening hand\" is off in Settings");
+        }
+
+        _mulliganOffNoted = offBySetting;
         _mulligan = mulligan;
         if (mulligan is null)
         {

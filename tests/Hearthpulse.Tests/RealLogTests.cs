@@ -78,19 +78,30 @@ public sealed class RealLogTests(ITestOutputHelper output)
     {
         // Machine-dependent smoke run over the newest kept Battlegrounds log; the deterministic check is
         // BattlegroundsFixtureTests, which runs the same code on a fragment kept in the repository.
-        var log = PowerLogs().LastOrDefault(l => File.ReadLines(l.Path).Take(20_000).Any(x => x.Contains("GameType=GT_BATTLEGROUNDS")));
+        var log = PowerLogs().LastOrDefault(l => ReadShared(l.Path).Take(20_000).Any(x => x.Contains("GameType=GT_BATTLEGROUNDS")));
         if (log.Path is null)
         {
             output.WriteLine("No Battlegrounds game in the kept logs.");
             return;
         }
 
-        var replay = BattlegroundsReplay.Run(File.ReadLines(log.Path), log.Date, Cards, every: 10);
+        var replay = BattlegroundsReplay.Run(ReadShared(log.Path), log.Date, Cards, every: 10);
         Assert.NotNull(replay.HeroPick);
         Assert.InRange(replay.HeroPick!.HeroOptions.Count, 2, 4);
         Assert.NotNull(replay.Best);
         replay.Print(output, Cards);
         Assert.Equal(7, replay.Best!.Opponents.Count);
+    }
+
+    /// <summary>The newest Power.log may be the one Hearthstone is writing right now: read it without locking it.</summary>
+    private static IEnumerable<string> ReadShared(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var reader = new StreamReader(stream);
+        while (reader.ReadLine() is { } line)
+        {
+            yield return line;
+        }
     }
 }
 

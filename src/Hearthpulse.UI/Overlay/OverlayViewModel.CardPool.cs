@@ -47,6 +47,7 @@ public sealed partial class OverlayViewModel
     private IReadOnlyList<PoolMechanic> _cardPoolMechanics = [];
     private PoolEntry? _cardPoolFeatured;
     private string _cardPoolFeaturedNote = string.Empty;
+    private bool _cardPoolHasCards;
     private bool _cardPoolHeld;
     private bool _cardPoolPointerOver;
     private bool _cardPoolHeldByPointer;
@@ -106,6 +107,9 @@ public sealed partial class OverlayViewModel
     public PoolEntry? CardPoolFeatured { get => _cardPoolFeatured; private set => Set(ref _cardPoolFeatured, value); }
 
     public string CardPoolFeaturedNote { get => _cardPoolFeaturedNote; private set => Set(ref _cardPoolFeaturedNote, value); }
+
+    /// <summary>False for a "Pool not computed" panel: no stats, no browser (the right-click hint is hidden).</summary>
+    public bool CardPoolHasCards { get => _cardPoolHasCards; private set => Set(ref _cardPoolHasCards, value); }
 
     /// <summary>The mouse is over a pool panel: keep showing the current pool while the player reads or clicks it.</summary>
     public bool CardPoolHeld
@@ -181,7 +185,7 @@ public sealed partial class OverlayViewModel
         {
             CloseCardPoolBrowserCore();
         }
-        else if (_cardPool is not null)
+        else if (_cardPool is { Uncomputed: null })
         {
             OpenBrowser();
             RebuildCardPoolBrowser();
@@ -297,7 +301,7 @@ public sealed partial class OverlayViewModel
         }
 
         // "Show the pool for this card" (deck or hand row) opens the browser right away.
-        var requested = pool.Trigger == PoolTrigger.Request ? pool.SourceCardId : null;
+        var requested = pool.Trigger == PoolTrigger.Request && pool.Uncomputed is null ? pool.SourceCardId : null;
         if (requested is not null && requested != _lastRequestedPool)
         {
             OpenBrowser();
@@ -312,9 +316,10 @@ public sealed partial class OverlayViewModel
         }
 
         _cardPool = pool;
-        CardPoolTitle = $"Pool of {CardCount(pool.Count)}";
+        CardPoolTitle = pool.Uncomputed is null ? $"Pool of {CardCount(pool.Count)}" : "Pool not computed";
         CardPoolSource = pool.SourceName;
-        CardPoolDescription = $"{pool.Phrase} · {pool.Description}";
+        CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {reason}" : $"{pool.Phrase} · {pool.Description}";
+        CardPoolHasCards = pool.Uncomputed is null;
         CardPoolHistograms = new[] { pool.Cost, pool.Attack, pool.Health }
             .Where(h => h is { Count: > 0 })
             .Select(h => new PoolHistogramModel(

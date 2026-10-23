@@ -9,8 +9,9 @@ using Hearthpulse.UI.Infrastructure;
 namespace Hearthpulse.Desktop;
 
 /// <summary>
-/// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman), then the pool browser for
-/// Thief's Tools with its filters open, and with one filter on.
+/// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman), Scion of Insight's rune pool,
+/// the "Pool not computed" panel of Dreadsoul Corrupter, then the pool browser for Thief's Tools with its filters open,
+/// and with one filter on.
 /// </summary>
 internal static class CardPoolRender
 {
@@ -28,6 +29,20 @@ internal static class CardPoolRender
 
         Show(pool);
         await save(Path.Combine(folder, "overlay-card-pool.png"));
+
+        // Death Knight runes (from HearthstoneJSON) and a named group the catalog cannot answer.
+        foreach (var (cardId, ownClass, trigger, name) in new[]
+                 {
+                     ("BE_298", "DEATHKNIGHT", PoolTrigger.Choice, "overlay-card-pool-runes.png"),
+                     ("EDR_841", "DEMONHUNTER", PoolTrigger.Played, "overlay-card-pool-uncomputed.png"),
+                 })
+        {
+            if (engine.Build(cardId, new PoolContext("FT_STANDARD", ownClass, "WARRIOR"), trigger) is { } extra)
+            {
+                Show(extra);
+                await save(Path.Combine(folder, name));
+            }
+        }
 
         // A requested pool opens the browser; card renders load after the first layout.
         Show(browse);

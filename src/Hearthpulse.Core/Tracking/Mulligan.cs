@@ -105,6 +105,38 @@ public static class Mulligan
     }
 
     /// <summary>
+    /// One line for hearthpulse.log while the mulligan is on: whether the panel has something to show, and why not
+    /// ("mulligan panel hidden: no keep stats for 3/3 cards"). The overlay shows the panel when a card has a keep rate.
+    /// </summary>
+    public static string Explain(GameState game, MulliganView? view, DeckDefinition? deck, bool hasGuide, ConstructedMeta? meta)
+    {
+        var hand = game.Controlled(game.LocalPlayerId, "HAND").Count(e => e.CardId.Length > 0);
+        if (view is not null)
+        {
+            var withStats = view.Cards.Count(c => c.KeepRate is not null);
+            return withStats > 0
+                ? $"mulligan panel shown: {view.Context}, keep stats for {withStats}/{view.Cards.Count} cards ({view.Source})"
+                : $"mulligan panel hidden: no keep stats for {view.Cards.Count}/{view.Cards.Count} cards ({view.Context}, {view.Source})";
+        }
+
+        if (hand == 0)
+        {
+            return "mulligan panel hidden: the opening hand is not in the log yet";
+        }
+
+        if (!hasGuide && meta is null)
+        {
+            return deck is null
+                ? "mulligan panel hidden: Decks.log named no deck for this game and the community stats are not loaded"
+                : "mulligan panel hidden: no API guide for this deck (yet) and the community stats are not loaded";
+        }
+
+        return meta is not null && !FormatMatches(game.FormatType, meta.Format)
+            ? $"mulligan panel hidden: no API guide for this deck and the community stats are for {meta.Format}, the game is {game.FormatType}"
+            : "mulligan panel hidden: neither the API guide nor the community stats have numbers for this deck's class";
+    }
+
+    /// <summary>
     /// The meta's numbers in the guide's shape: the archetype the deck matches, or every archetype of the class pooled
     /// (weighted by how often each card was offered) when the deck is unknown or matches none.
     /// </summary>

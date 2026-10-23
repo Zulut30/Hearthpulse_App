@@ -49,7 +49,6 @@ OVERRIDES = [
      ("skip", "the pool depends on the game state")),
     (r"random (?:minion|spell|card) of the same (?:Cost|Rarity)|Discover a card of the same Rarity",
      ("skip", "the pool depends on another card")),
-    (r"Rune card|Blood, Frost or Unholy card", ("skip", "rune costs are not in the card catalog")),
     (r"Animal Companion|Beast Companion|Dormant Dreadseed|Dream card|random Leyline|Shatter card|random Mask\b"
      r"|Rewind card|Wild God|Fel Beast|Paladin Aura|contraband|random Old God|the perfect tech card",
      ("skip", "a named group of cards that the catalog does not mark")),

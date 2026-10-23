@@ -71,4 +71,10 @@ public sealed record CardPoolView(
 {
     /// <summary>Every mechanic some but not all pool cards have, highest share first: the full list's filter chips.</summary>
     public IReadOnlyList<PoolMechanic> Filters { get; init; } = [];
+
+    /// <summary>
+    /// Why the pool is not computed ("a named group of cards that the catalog does not mark"); null for a computed pool.
+    /// Such a view has no cards: the panel shows "Pool not computed" with this reason instead of nothing.
+    /// </summary>
+    public string? Uncomputed { get; init; }
 }

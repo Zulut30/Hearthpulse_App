@@ -40,7 +40,7 @@ public sealed class CardPoolEngine
         {
             if (o.Skip is not null)
             {
-                return new PoolParse(PoolParseStatus.NotPool, Detail: o.Skip);
+                return new PoolParse(PoolParseStatus.Uncomputed, Detail: o.Skip);
             }
 
             if (o.Text is not null)
@@ -93,14 +93,30 @@ public sealed class CardPoolEngine
     {
 
         var parse = Parse(cardId);
-        if (parse.Status is PoolParseStatus.Unrecognized or PoolParseStatus.NotPool && _logged.TryAdd(cardId, 0))
+        if (parse.Status is PoolParseStatus.Unrecognized or PoolParseStatus.NotPool or PoolParseStatus.Uncomputed && _logged.TryAdd(cardId, 0))
         {
-            Diag.Info($"Card pool: {NameOf(cardId)} ({cardId}) {(parse.Status == PoolParseStatus.Unrecognized ? "not understood" : "has no catalog pool")}: "
-                      + $"{parse.Detail} | {TextOf(cardId)}");
+            var what = parse.Status switch
+            {
+                PoolParseStatus.Unrecognized => "not understood",
+                PoolParseStatus.Uncomputed => "pool not computed (panel says so)",
+                _ => "has no catalog pool",
+            };
+            Diag.Info($"Card pool: {NameOf(cardId)} ({cardId}) {what}: {parse.Detail} | {TextOf(cardId)}");
+        }
+
+        if (parse.Status == PoolParseStatus.Uncomputed)
+        {
+            return Uncomputed(cardId, trigger, parse.Detail ?? "the catalog cannot answer this pool");
         }
 
         if (parse.Generator is not { } generator || Pool(cardId, context) is not { Count: > 0 } pool)
         {
+            if (parse.Generator is not null && _logged.TryAdd(cardId, 0))
+            {
+                Diag.Info($"Card pool: {NameOf(cardId)} ({cardId}) pool panel hidden: no catalog card matches \"{parse.Generator.Phrase}\" "
+                          + $"({context.Format}, {Catalog.Count} cards in the catalog from {Catalog.Source})");
+            }
+
             return null;
         }
 
@@ -132,6 +148,13 @@ public sealed class CardPoolEngine
             Filters = PoolStats.Mechanics(pool, int.MaxValue),
         };
     }
+
+    /// <summary>The "Pool not computed" view of a generator from the exception table: no cards, only the reason.</summary>
+    private CardPoolView Uncomputed(string cardId, PoolTrigger trigger, string reason) =>
+        new(cardId, NameOf(cardId), trigger, string.Empty, reason, 0, PoolStats.Histogram("Cost", [], 0, 7), null, null, [], null, null, [])
+        {
+            Uncomputed = reason,
+        };
 
     /// <summary>Games per card id over a meta's decks (a deck counts once per card it runs).</summary>
     public static IReadOnlyDictionary<string, int> MetaGames(Constructed.ConstructedMeta? meta, CardDb cards)

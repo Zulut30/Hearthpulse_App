@@ -102,7 +102,8 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <TextBlock Text="Right-click to see all options" FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+            <TextBlock Text="Right-click to see all options" FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0"
+                       Visibility="{Binding CardPoolHasCards, Converter={StaticResource Vis}}" />
         </StackPanel>
     </Border>
 </UserControl>

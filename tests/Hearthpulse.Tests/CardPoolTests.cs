@@ -52,6 +52,11 @@ public sealed class CardPoolTests
     [InlineData("TLC_334", "MAGE", 17)] // Relic of Kings: a spell from any class that costs (8) or more
     [InlineData("JAIL_878", "HUNTER", 16)] // Guard Dog: a random 1-Cost Deathrattle minion
     [InlineData("TIME_016", "PALADIN", 27)] // Neon Innovation: a Paladin Mech from the past
+    [InlineData("CORE_RLK_066", "DEATHKNIGHT", 29)] // Hematurge: Spend a Corpse to Discover a Blood Rune card
+    [InlineData("TLC_435", "DEATHKNIGHT", 21)] // Discover a Frost Rune card
+    [InlineData("RLK_025", "DEATHKNIGHT", 21)] // Frost Strike: if it dies, Discover a Frost Rune card
+    [InlineData("CORE_RLK_116", "DEATHKNIGHT", 33)] // Discover an Unholy Rune card
+    [InlineData("BE_298", "DEATHKNIGHT", 70)] // Scion of Insight: a Blood, Frost or Unholy card (multi-rune cards once)
     public void Real_standard_generators_have_the_pools_counted_by_hand(string cardId, string ownClass, int expected)
     {
         var pool = Engine().Pool(cardId, Standard(ownClass));
@@ -196,7 +201,8 @@ public sealed class CardPoolTests
         Assert.Equal("Shaman + Neutral · Standard", view.Description);
         Assert.Equal(156, view.Cost.Count);
         Assert.Equal(view.Cards.OrderBy(c => c.Cost).Select(c => c.Cost), view.Cards.Select(c => c.Cost));
-        Assert.Null(new CardPoolEngine(Fixture.Value, CardDb.Empty).Build("EDR_841", Standard("WARLOCK"), PoolTrigger.Played));
+        // A named group the catalog does not mark has no cards, only the reason (the "Pool not computed" panel).
+        Assert.Equal(0, new CardPoolEngine(Fixture.Value, CardDb.Empty).Build("EDR_841", Standard("WARLOCK"), PoolTrigger.Played)!.Count);
 
         // The browser's filter chips: every mechanic some but not all cards have; each card knows its own.
         Assert.True(view.Filters.Count >= view.Mechanics.Count);
@@ -315,6 +321,154 @@ public sealed class CardPoolTests
         Assert.False(tracker.PlayedExpired(logTime.AddSeconds(1)));
         Assert.True(tracker.PlayedExpired(logTime.AddMinutes(1)));
         Assert.False(tracker.PlayedExpired(logTime.AddMinutes(2)));
+    }
+
+    [Fact]
+    public void Rune_costs_come_from_hearthstone_json_and_reach_the_catalog()
+    {
+        var cards = CardDb.Parse("enUS", new MemoryStream("""
+            [
+              {"id":"CORE_RLK_066","dbfId":111320,"name":"Hematurge","type":"MINION","cardClass":"DEATHKNIGHT","runeCost":{"blood":1,"frost":0,"unholy":0}},
+              {"id":"EDR_814","dbfId":1,"name":"Unholy and Frost","type":"SPELL","cardClass":"DEATHKNIGHT","runeCost":{"blood":0,"frost":1,"unholy":2}},
+              {"id":"CORE_CS2_029","dbfId":2,"name":"Fireball","type":"SPELL","cardClass":"MAGE"}
+            ]
+            """u8.ToArray()));
+
+        Assert.Equal(["BLOOD"], cards.Get("CORE_RLK_066")!.Runes);
+        Assert.Equal(["FROST", "UNHOLY"], cards.Get("EDR_814")!.Runes);
+        Assert.Empty(cards.Get("CORE_CS2_029")!.Runes);
+
+        // The API catalog has no rune costs: WithRaces copies them from HearthstoneJSON.
+        var api = new CardPoolCatalog([Fixture.Value.Get("CORE_RLK_066")! with { Runes = [] }], CardPoolCatalog.ApiSource, DateTime.UtcNow);
+        Assert.Equal(["BLOOD"], api.WithRaces(cards).Get("CORE_RLK_066")!.Runes);
+    }
+
+    [Fact]
+    public void Rune_words_are_runes_before_card_and_spell_schools_before_spell()
+    {
+        var rune = PoolTextParser.Parse("Battlecry: Spend a Corpse to Discover a Blood Rune card.");
+        Assert.Equal(PoolParseStatus.Pool, rune.Status);
+        Assert.Equal(["BLOOD"], rune.Generator!.Query.Runes);
+        Assert.Equal("Discover a Blood Rune card", rune.Generator.Phrase);
+
+        var three = PoolTextParser.Parse("Battlecry: Discover a Blood, Frost or Unholy card. Gain Lifesteal, Reborn or Rush based on your choice.");
+        Assert.Equal(["BLOOD", "FROST", "UNHOLY"], three.Generator!.Query.Runes.Order());
+
+        var school = PoolTextParser.Parse("Discover a Frost spell.");
+        Assert.Empty(school.Generator!.Query.Runes);
+        Assert.Equal(["FROST"], school.Generator.Query.Schools);
+
+        // A Sidequest is not a Discover of cards.
+        Assert.NotEqual(PoolParseStatus.Unrecognized, PoolTextParser.Parse("Battlecry: Go on a Sidequest to Discover amazing loot! Play 3 cards from other classes to complete it.").Status);
+    }
+
+    [Fact]
+    public void A_stolen_rune_generator_still_offers_death_knight_cards()
+    {
+        var pool = Engine().Pool("CORE_RLK_066", Standard("MAGE"))!;
+
+        Assert.Equal(29, pool.Count);
+        Assert.All(pool, c => Assert.Contains("BLOOD", c.Runes));
+    }
+
+    [Theory]
+    [InlineData("EDR_841", "a named group of cards that the catalog does not mark")] // Dreadsoul Corrupter: a random Dormant Dreadseed
+    [InlineData("CORE_BOT_256", "the pool depends on the game state")] // a minion with Cost equal to your hand size
+    public void Generators_the_catalog_cannot_answer_get_a_pool_not_computed_view(string cardId, string reason)
+    {
+        var view = Engine().Build(cardId, Standard("DEMONHUNTER"), PoolTrigger.Played)!;
+
+        Assert.Equal(PoolParseStatus.Uncomputed, Engine().Parse(cardId).Status);
+        Assert.Equal(reason, view.Uncomputed);
+        Assert.Equal(0, view.Count);
+        Assert.Empty(view.Cards);
+        Assert.Null(Engine().Build("CORE_CS2_029", Standard("MAGE"), PoolTrigger.Played)); // Fireball generates nothing
+    }
+
+    [Fact]
+    public void The_scion_discover_of_a_real_game_shows_its_rune_pool_and_a_played_named_group_says_why_it_has_none()
+    {
+        // Lines from Hearthstone_2026_10_23_18_17_17 (18:29:16): Scion of Insight offers an Unholy, a Frost and a Blood card.
+        var cards = CardDb.Parse("enUS", new MemoryStream("""
+            [
+              {"id":"HERO_11","dbfId":78065,"name":"The Lich King","type":"HERO","cardClass":"DEATHKNIGHT"},
+              {"id":"HERO_01","dbfId":7,"name":"Garrosh","type":"HERO","cardClass":"WARRIOR"}
+            ]
+            """u8.ToArray()));
+        var tracker = new CardPoolTracker { Engine = new CardPoolEngine(Fixture.Value, cards) };
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        parser.AddListener(tracker);
+        string[] lines =
+        [
+            "DebugPrintPower() - CREATE_GAME",
+            "DebugPrintPower() -     GameEntity EntityID=1",
+            "DebugPrintPower() -         tag=CARDTYPE value=GAME",
+            "DebugPrintPower() -         tag=TURN value=13",
+            "DebugPrintPower() -     Player EntityID=2 PlayerID=1 GameAccountId=[hi=144115198130930503 lo=11]",
+            "DebugPrintPower() -         tag=CONTROLLER value=1",
+            "DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+            "DebugPrintPower() -         tag=HERO_ENTITY value=64",
+            "DebugPrintPower() -     Player EntityID=3 PlayerID=2 GameAccountId=[hi=144115198130930503 lo=22]",
+            "DebugPrintPower() -         tag=CONTROLLER value=2",
+            "DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+            "DebugPrintPower() -         tag=HERO_ENTITY value=66",
+            "DebugPrintPower() - FULL_ENTITY - Creating ID=64 CardID=HERO_11",
+            "DebugPrintPower() -     tag=ZONE value=PLAY",
+            "DebugPrintPower() -     tag=CONTROLLER value=1",
+            "DebugPrintPower() -     tag=CARDTYPE value=HERO",
+            "DebugPrintPower() - FULL_ENTITY - Creating ID=66 CardID=HERO_01",
+            "DebugPrintPower() -     tag=ZONE value=PLAY",
+            "DebugPrintPower() -     tag=CONTROLLER value=2",
+            "DebugPrintPower() -     tag=CARDTYPE value=HERO",
+            "DebugPrintGame() - GameType=GT_RANKED",
+            "DebugPrintGame() - FormatType=FT_STANDARD",
+            "DebugPrintGame() - PlayerID=1, PlayerName=Ardas#2269",
+            "DebugPrintGame() - PlayerID=2, PlayerName=Blaze#27349",
+            "DebugPrintPower() - FULL_ENTITY - Creating ID=26 CardID=BE_298",
+            "DebugPrintPower() -     tag=ZONE value=HAND",
+            "DebugPrintPower() -     tag=CONTROLLER value=1",
+            "DebugPrintPower() -     tag=CARDTYPE value=MINION",
+            "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=Отросток Прозрения id=26 zone=HAND zonePos=5 cardId=BE_298 player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
+            "DebugPrintPower() -     TAG_CHANGE Entity=[entityName=Отросток Прозрения id=26 zone=HAND zonePos=5 cardId=BE_298 player=1] tag=ZONE value=PLAY ",
+            "DebugPrintEntityChoices() - id=6 Player=Ardas#2269 TaskList=655 ChoiceType=GENERAL CountMin=1 CountMax=1",
+            "DebugPrintEntityChoices() -   Source=[entityName=Отросток Прозрения id=26 zone=HAND zonePos=5 cardId=BE_298 player=1]",
+            "DebugPrintEntityChoices() -   Entities[0]=[entityName=Заразное дыхание id=149 zone=SETASIDE zonePos=0 cardId=EDR_814 player=1]",
+            "DebugPrintEntityChoices() -   Entities[1]=[entityName=Беспощадность зимы id=150 zone=SETASIDE zonePos=0 cardId=RLK_709 player=1]",
+            "DebugPrintEntityChoices() -   Entities[2]=[entityName=Жестокий обряд id=151 zone=SETASIDE zonePos=0 cardId=EDR_811 player=1]",
+        ];
+        foreach (var line in lines)
+        {
+            parser.Feed("D 18:29:16.9805014 GameState." + line);
+        }
+
+        parser.Flush();
+        var game = parser.Game!;
+        var choice = tracker.BuildView(game, cards, game.LastActivity)!;
+        Assert.Equal(PoolTrigger.Choice, choice.Trigger);
+        Assert.Equal("BE_298", choice.SourceCardId);
+        Assert.Equal(70, choice.Count);
+        Assert.All(new[] { "EDR_814", "RLK_709", "EDR_811" }, id => Assert.Contains(choice.Cards, c => c.CardId == id));
+
+        tracker.OnChoiceMade(game);
+        foreach (var line in new[]
+                 {
+                     "DebugPrintPower() - BLOCK_END",
+                     "DebugPrintPower() - FULL_ENTITY - Creating ID=27 CardID=EDR_841",
+                     "DebugPrintPower() -     tag=ZONE value=HAND",
+                     "DebugPrintPower() -     tag=CONTROLLER value=1",
+                     "DebugPrintPower() -     tag=CARDTYPE value=MINION",
+                     "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=X id=27 zone=HAND zonePos=1 cardId=EDR_841 player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
+                     "DebugPrintPower() - BLOCK_END",
+                 })
+        {
+            parser.Feed("D 18:30:00.0000000 GameState." + line);
+        }
+
+        parser.Flush();
+        var played = tracker.BuildView(game, cards, game.LastActivity)!;
+        Assert.Equal(PoolTrigger.Played, played.Trigger);
+        Assert.Equal("EDR_841", played.SourceCardId);
+        Assert.Equal("a named group of cards that the catalog does not mark", played.Uncomputed);
     }
 
     [Theory]

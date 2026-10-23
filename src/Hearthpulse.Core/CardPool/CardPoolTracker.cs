@@ -71,7 +71,7 @@ public sealed class CardPoolTracker : IPowerListener
         for (var i = game.OpenBlocks.Count - 1; i >= 0; i--)
         {
             if (game.OpenBlocks[i].Source is { CardId.Length: > 0 } outer && IsHelperOf(source, outer)
-                && Engine?.Parse(outer.CardId).Status == PoolParseStatus.Pool)
+                && Engine?.Parse(outer.CardId).Status is PoolParseStatus.Pool or PoolParseStatus.Uncomputed)
             {
                 return outer.CardId;
             }
@@ -91,7 +91,7 @@ public sealed class CardPoolTracker : IPowerListener
     public void OnBlockStart(GameState game, string blockType, Entity? source)
     {
         if (blockType != "PLAY" || game.IsBattlegrounds || source is not { CardId.Length: > 0 } || source.Controller != game.LocalPlayerId
-            || Engine?.Parse(source.CardId).Status != PoolParseStatus.Pool)
+            || Engine?.Parse(source.CardId).Status is not (PoolParseStatus.Pool or PoolParseStatus.Uncomputed))
         {
             return;
         }

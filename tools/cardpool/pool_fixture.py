@@ -77,8 +77,15 @@ def pool_card(c, hsj):
         "Classes": [CLASS_IDS[i] for i in c["multi_class"] if i in CLASS_IDS] or [c["class"] or "NEUTRAL"],
         "Races": races, "SpellSchool": c["spell_school"], "Mechanics": c.get("mechanics") or [],
         "ReferencedTags": c.get("referenced_tags") or [], "Set": c["card_set"] or "", "Standard": std,
+        # Death Knight rune costs: only HearthstoneJSON has them (WithRaces copies them); left out when there are none.
+        "Runes": runes_of(hsj.get(c["card_id"], {})) or None,
     }
     return {k: v for k, v in card.items() if v is not None}
+
+
+def runes_of(hsj_card):
+    """BLOOD/FROST/UNHOLY in the card's runeCost, as CardDb.RunesOf reads it."""
+    return [k.upper() for k, v in (hsj_card.get("runeCost") or {}).items() if v > 0]
 
 
 def fixture(folder, cards_json, out):
@@ -107,6 +114,9 @@ def check(folder, cards_json):
 
     def mine(c, cls):  # Discover without a class: your class + neutral
         return cls in c["Classes"] or "NEUTRAL" in c["Classes"]
+
+    def rune(c, *runes):
+        return any(r in c.get("Runes", []) for r in runes)
 
     def other(c, cls):  # from another class: class cards that are not yours
         return "NEUTRAL" not in c["Classes"] and cls not in c["Classes"]
@@ -141,6 +151,10 @@ def check(folder, cards_json):
         "JAIL_878": [c for c in std if minion(c) and c["Cost"] == 1 and mech(c, "DEATHRATTLE")],
         "TIME_016": [c for c in past if minion(c) and race(c, "MECHANICAL") and "PALADIN" in c["Classes"]],
         "JAIL_706": [c for c in std if spell(c) and c["Cost"] == 4],
+        "CORE_RLK_066": [c for c in std if rune(c, "BLOOD")],
+        "TLC_435": [c for c in std if rune(c, "FROST")],
+        "CORE_RLK_116": [c for c in std if rune(c, "UNHOLY")],
+        "BE_298": [c for c in std if rune(c, "BLOOD", "FROST", "UNHOLY")],
     }
     for name, pool in checks.items():
         print(f"{len(pool):5d}  {name}")
