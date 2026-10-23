@@ -68,7 +68,7 @@ Core folders:
   `DeckFamilies` (versions, families, merge suggestions, card diff; `WithFamily` for the overlay deck record),
   `DeckDetails` (deck page: summary, win-rate line, matchups by class/told archetype, per-card mulligan and play stats),
   `ArchetypeGuess` (opponent archetype from its played cards, only a clear call).
-- `Updates/UpdateService.cs` - GitHub releases of `Zulut30/IceCrowV2` (`RepoOwner`/`RepoName` constants),
+- `Updates/UpdateService.cs` - GitHub releases of `Zulut30/Hearthpulse_App` (`RepoOwner`/`RepoName` constants),
   download + staged install.
 - `AppSettings.cs` (settings.json), `AppPaths.cs` (+ `Diag` log), `ThemePalette.cs`.
 - `Api/HearthpulseApi.cs` (client for `api.kolodahearthstone.com`, `HEARTHPULSE_API` env override; `{"data"}` and
@@ -186,7 +186,7 @@ dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore
 
 ## Release
 
-Tags `vX.Y.Z` -> `.github/workflows/release.yml` -> GitHub release in `Zulut30/IceCrowV2`, which `UpdateService`
+Tags `vX.Y.Z` -> `.github/workflows/release.yml` -> GitHub release in `Zulut30/Hearthpulse_App`, which `UpdateService`
 offers to users. Versions, installers, updater and the pre-release checklist: [hearthpulse-release](../hearthpulse-release/SKILL.md).
 Tagging/pushing/publishing only with explicit permission.
 

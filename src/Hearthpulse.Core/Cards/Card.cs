@@ -30,6 +30,9 @@ public sealed class Card
 
     public IReadOnlyList<string> Mechanics { get; init; } = Array.Empty<string>();
 
+    /// <summary>Death Knight rune types in the card's cost (BLOOD, FROST, UNHOLY; HearthstoneJSON <c>runeCost</c>); empty for other cards.</summary>
+    public IReadOnlyList<string> Runes { get; init; } = Array.Empty<string>();
+
     public bool Collectible { get; init; }
 
     public int TechLevel { get; init; }

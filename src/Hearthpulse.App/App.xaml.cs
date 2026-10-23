@@ -168,6 +168,7 @@ public partial class App : Application
         _memory = new HearthstoneMemory();
         _session = new GameSession(_history, _memory);
         _session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(_api)));
+        _session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(_api)));
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;

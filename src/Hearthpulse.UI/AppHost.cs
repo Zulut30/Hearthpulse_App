@@ -59,6 +59,7 @@ public sealed partial class AppHost : IDisposable
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
         Session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(Api)));
+        Session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(Api)));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
         Uploader = ProfileUploader.For(accountClient, Account, () => Settings.UploadGamesToProfile, History);

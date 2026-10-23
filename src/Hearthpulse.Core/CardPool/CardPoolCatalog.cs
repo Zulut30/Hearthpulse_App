@@ -73,7 +73,8 @@ public sealed class CardPoolCatalog
 
     /// <summary>
     /// The same cards with every minion type HearthstoneJSON knows: the API keeps one type per minion, so dual-type
-    /// minions (Beast + Dragon...) would miss from one of their tribes' pools.
+    /// minions (Beast + Dragon...) would miss from one of their tribes' pools. Death Knight rune costs, which the API
+    /// does not have at all ("Discover a Blood Rune card"), come from HearthstoneJSON the same way.
     /// </summary>
     public CardPoolCatalog WithRaces(CardDb cards)
     {
@@ -86,15 +87,20 @@ public sealed class CardPoolCatalog
         var list = new List<PoolCard>(Cards.Count);
         foreach (var card in Cards)
         {
-            if (cards.Get(card.Id) is { Races.Count: > 1 } known && !known.Races.All(card.Races.Contains))
+            var known = cards.Get(card.Id);
+            var result = card;
+            if (known is { Races.Count: > 1 } && !known.Races.All(card.Races.Contains))
             {
-                list.Add(card with { Races = known.Races.ToArray() });
-                changed = true;
+                result = result with { Races = known.Races.ToArray() };
             }
-            else
+
+            if (known is { Runes.Count: > 0 } && !known.Runes.SequenceEqual(card.Runes))
             {
-                list.Add(card);
+                result = result with { Runes = known.Runes };
             }
+
+            changed |= !ReferenceEquals(result, card);
+            list.Add(result);
         }
 
         return changed ? new CardPoolCatalog(list, Source, Updated) : this;
@@ -286,7 +292,10 @@ public sealed class CardPoolCatalog
                 Strings(c, "mechanics"),
                 Strings(c, "referencedTags"),
                 set,
-                CardPoolTables.StandardSets.Contains(set)));
+                CardPoolTables.StandardSets.Contains(set))
+            {
+                Runes = CardDb.RunesOf(c),
+            });
         }
 
         return list;

@@ -20,8 +20,8 @@ public sealed record PoolBarModel(string Label, int Count, double Height, bool I
     public string ToolTip => $"{Label}: {Count}";
 }
 
-/// <summary>A mechanic filter chip of the pool browser.</summary>
-public sealed record PoolChipModel(string Key, string Label, bool Selected);
+/// <summary>A mechanic filter chip of the pool browser, or (Section) one of the generator's pools.</summary>
+public sealed record PoolChipModel(string Key, string Label, bool Selected, bool Section = false);
 
 /// <summary>One row of the pool browser's card grid (up to three cards).</summary>
 public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards);
@@ -47,6 +47,11 @@ public sealed partial class OverlayViewModel
     private IReadOnlyList<PoolMechanic> _cardPoolMechanics = [];
     private PoolEntry? _cardPoolFeatured;
     private string _cardPoolFeaturedNote = string.Empty;
+    private bool _cardPoolHasCards;
+    private string _cardPoolSourceNote = string.Empty;
+    private IReadOnlyList<PoolChipModel> _cardPoolSections = [];
+    private string? _cardPoolSection;
+    private RelayCommand? _toggleCardPoolSection;
     private bool _cardPoolHeld;
     private bool _cardPoolPointerOver;
     private bool _cardPoolHeldByPointer;
@@ -106,6 +111,34 @@ public sealed partial class OverlayViewModel
     public PoolEntry? CardPoolFeatured { get => _cardPoolFeatured; private set => Set(ref _cardPoolFeatured, value); }
 
     public string CardPoolFeaturedNote { get => _cardPoolFeaturedNote; private set => Set(ref _cardPoolFeaturedNote, value); }
+
+    /// <summary>"pool: Hearthstone Wiki" or "pool: card text".</summary>
+    public string CardPoolSourceNote { get => _cardPoolSourceNote; private set => Set(ref _cardPoolSourceNote, value); }
+
+    /// <summary>The generator's separate pools ("Blood Rune 29"); in the browser the selected one filters the grid.</summary>
+    public IReadOnlyList<PoolChipModel> CardPoolSections
+    {
+        get => _cardPoolSections;
+        private set
+        {
+            if (Set(ref _cardPoolSections, value))
+            {
+                Raise(nameof(CardPoolHasSections));
+            }
+        }
+    }
+
+    public bool CardPoolHasSections => _cardPoolSections.Count > 0;
+
+    /// <summary>Click a section in the browser: show only its cards (again: all of them).</summary>
+    public RelayCommand ToggleCardPoolSection => _toggleCardPoolSection ??= new RelayCommand(p =>
+    {
+        _cardPoolSection = p is string label && label != _cardPoolSection ? label : null;
+        RebuildCardPoolBrowser();
+    });
+
+    /// <summary>False for a "Pool not computed" panel: no stats, no browser (the right-click hint is hidden).</summary>
+    public bool CardPoolHasCards { get => _cardPoolHasCards; private set => Set(ref _cardPoolHasCards, value); }
 
     /// <summary>The mouse is over a pool panel: keep showing the current pool while the player reads or clicks it.</summary>
     public bool CardPoolHeld
@@ -181,7 +214,7 @@ public sealed partial class OverlayViewModel
         {
             CloseCardPoolBrowserCore();
         }
-        else if (_cardPool is not null)
+        else if (_cardPool is { Uncomputed: null })
         {
             OpenBrowser();
             RebuildCardPoolBrowser();
@@ -293,11 +326,12 @@ public sealed partial class OverlayViewModel
         if (_cardPool is null || _cardPool.SourceCardId != pool.SourceCardId || _cardPool.Count != pool.Count)
         {
             _cardPoolSelected.Clear();
+            _cardPoolSection = null;
             CardPoolBrowserOpen = false;
         }
 
         // "Show the pool for this card" (deck or hand row) opens the browser right away.
-        var requested = pool.Trigger == PoolTrigger.Request ? pool.SourceCardId : null;
+        var requested = pool.Trigger == PoolTrigger.Request && pool.Uncomputed is null ? pool.SourceCardId : null;
         if (requested is not null && requested != _lastRequestedPool)
         {
             OpenBrowser();
@@ -312,9 +346,12 @@ public sealed partial class OverlayViewModel
         }
 
         _cardPool = pool;
-        CardPoolTitle = $"Pool of {CardCount(pool.Count)}";
+        CardPoolTitle = pool.Uncomputed is null ? $"Pool of {CardCount(pool.Count)}" : "Pool not computed";
         CardPoolSource = pool.SourceName;
-        CardPoolDescription = $"{pool.Phrase} · {pool.Description}";
+        CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {reason}" : $"{pool.Phrase} · {pool.Description}";
+        CardPoolHasCards = pool.Uncomputed is null;
+        CardPoolSourceNote = pool.Uncomputed is null ? $"pool: {pool.Source}" : string.Empty;
+        UpdateSectionChips();
         CardPoolHistograms = new[] { pool.Cost, pool.Attack, pool.Health }
             .Where(h => h is { Count: > 0 })
             .Select(h => new PoolHistogramModel(
@@ -333,7 +370,7 @@ public sealed partial class OverlayViewModel
     {
         var pool = CardPoolBrowserOpen ? _cardPool : null;
         var key = pool is null ? string.Empty
-            : $"{pool.SourceCardId}|{pool.Description}|{pool.Count}|{string.Join(",", _cardPoolSelected.Order(StringComparer.Ordinal))}";
+            : $"{pool.SourceCardId}|{pool.Description}|{pool.Count}|{_cardPoolSection}|{string.Join(",", _cardPoolSelected.Order(StringComparer.Ordinal))}";
         if (key == _cardPoolBrowserKey)
         {
             return;
@@ -342,6 +379,7 @@ public sealed partial class OverlayViewModel
         // Only a new pool or other filters rebuild the grid, so its scroll position survives overlay updates.
         _cardPoolBrowserKey = key;
         Raise(nameof(CardPoolFilterActive));
+        UpdateSectionChips();
         if (pool is null)
         {
             CardPoolBrowserRows = [];
@@ -353,12 +391,19 @@ public sealed partial class OverlayViewModel
         CardPoolBrowserTitle = $"{pool.SourceName} Pool: {CardCount(pool.Count)}";
         CardPoolFilterChips = pool.Filters.Select(f => new PoolChipModel(f.Tag, f.Label, _cardPoolSelected.Contains(f.Tag))).ToList();
         var cards = pool.Cards
+            .Where(c => _cardPoolSection is null || c.Sections.Contains(_cardPoolSection))
             .Where(c => _cardPoolSelected.All(c.Mechanics.Contains))
             .OrderBy(c => c.Cost).ThenBy(c => c.Name, StringComparer.CurrentCulture)
             .ToList();
-        CardPoolBrowserNote = _cardPoolSelected.Count > 0 ? $"{CardCount(cards.Count)} match" : string.Empty;
+        CardPoolBrowserNote = _cardPoolSelected.Count > 0 || _cardPoolSection is not null ? $"{CardCount(cards.Count)} match" : string.Empty;
         CardPoolBrowserRows = cards.Chunk(3).Select(row => new PoolCardRowModel(row)).ToList();
     }
+
+    /// <summary>The section chips of the current pool; the selected one only while the browser is open.</summary>
+    private void UpdateSectionChips() =>
+        CardPoolSections = _cardPool?.Sections
+            .Select(s => new PoolChipModel(s.Label, $"{s.Label} {s.Count.ToString("N0", CultureInfo.InvariantCulture)}", CardPoolBrowserOpen && s.Label == _cardPoolSection, Section: true))
+            .ToList() ?? [];
 
     private static string CardCount(int count) => $"{count.ToString("N0", CultureInfo.InvariantCulture)} card{(count == 1 ? string.Empty : "s")}";
 }

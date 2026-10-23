@@ -14,7 +14,8 @@ namespace Hearthpulse.Core.Tracking;
 public static class MulliganReplay
 {
     /// <summary>The Constructed view at the first mulligan of the newest Standard game whose deck Decks.log names, or null.</summary>
-    public static async Task<ConstructedView?> LatestAsync(string installDirectory, CardDb cards, HearthpulseData? data, ConstructedMeta? meta, CancellationToken cancellationToken = default)
+    /// <param name="offered">Only a mulligan with this many offered cards (3 going first, 4 on the coin); null for any.</param>
+    public static async Task<ConstructedView?> LatestAsync(string installDirectory, CardDb cards, HearthpulseData? data, ConstructedMeta? meta, int? offered = null, CancellationToken cancellationToken = default)
     {
         foreach (var dir in HearthstoneInstall.AllLogSessions(installDirectory).Reverse())
         {
@@ -25,7 +26,7 @@ public static class MulliganReplay
                 continue;
             }
 
-            var found = Replay(power, ReadDecks(decks), cards);
+            var found = Replay(power, ReadDecks(decks), cards, offered);
             if (found is null)
             {
                 continue;
@@ -41,8 +42,9 @@ public static class MulliganReplay
         return null;
     }
 
-    private static (GameState Game, DeckDefinition Deck, ConstructedTracker Tracker)? Replay(string log, List<(TimeSpan Time, DeckDefinition Deck)> decks, CardDb cards)
+    private static (GameState Game, DeckDefinition Deck, ConstructedTracker Tracker)? Replay(string log, List<(TimeSpan Time, DeckDefinition Deck)> decks, CardDb cards, int? offered)
     {
+        var coin = cards.Get("GAME_005")?.Name;
         if (decks.Count == 0)
         {
             return null;
@@ -69,6 +71,12 @@ public static class MulliganReplay
             parser.Flush();
             if (parser.Game is not { FormatType: "FT_STANDARD", LocalPlayerId: > 0 } game || !game.IsConstructedLike || !Mulligan.InProgress(game)
                 || !game.Controlled(game.LocalPlayerId, "HAND").Any(e => e.CardId.Length > 0))
+            {
+                continue;
+            }
+
+            if (offered is { } count && game.Controlled(game.LocalPlayerId, "HAND")
+                    .Count(e => e.CardId.Length > 0 && e.CardId != "GAME_005" && (coin is null || cards.Get(e.CardId)?.Name != coin)) != count)
             {
                 continue;
             }
