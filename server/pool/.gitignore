@@ -2,5 +2,5 @@
 .wrangler/
 node_modules/
 
-# One-time base stats download (see import-base-stats.mjs)
+# Local caches
 .cache/

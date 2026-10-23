@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS snap (
   body TEXT NOT NULL          -- the JSON returned by /v1/stats
 );
 
--- The Battlegrounds base stats, imported once (import-base-stats.mjs + migrations/0004_meta.sql) and served by
+-- The Battlegrounds base stats, imported once (migrations/0004_meta.sql) and served by
 -- /v1/meta. The body is one JSON document split into chunks small enough for a D1 statement.
 CREATE TABLE IF NOT EXISTS meta (
   seq INTEGER PRIMARY KEY,    -- chunk order

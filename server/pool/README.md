@@ -45,20 +45,15 @@ npx wrangler deploy
 To move an existing pool to a new version, run the new file in `migrations/` with
 `npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/<file>.sql`, then `npx wrangler deploy`.
 
-## Base stats (one-time import)
+## Base stats
 
 `migrations/0004_meta.sql` holds the compact base data: heroes per MMR bracket, cards per bracket with their
 turn results, trinkets per MMR, comps with their MMR and hero placement, and the comp guides. It is 1.05 MB in 22
-rows; the 92 MB source file is mostly raw final-board dumps the app never reads.
-
-To refresh it deliberately (this is the only step that downloads anything):
+rows and is already applied to the live database. A fresh database only needs:
 
 ```
-node import-base-stats.mjs
 npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sql --yes
 ```
-
-The download is cached in `.cache/base-stats`; delete that folder to fetch it again.
 
 ## API
 
