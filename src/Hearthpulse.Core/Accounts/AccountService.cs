@@ -105,6 +105,16 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// <summary>Opens the profile page in the browser.</summary>
     public bool OpenProfile() => (openBrowser ?? SystemBrowser.Open)(ProfileUrl);
 
+    /// <summary>The site's privacy policy, which covers the games the tracker sends.</summary>
+    public Uri PrivacyUrl => new(client.Site + "/privacy/");
+
+    /// <summary>"App data" on the account page: what the tracker stored, its export and its deletion.</summary>
+    public Uri TrackerDataUrl => new UriBuilder(ProfileUrl) { Fragment = "account-tracker-data" }.Uri;
+
+    public bool OpenPrivacy() => (openBrowser ?? SystemBrowser.Open)(PrivacyUrl);
+
+    public bool OpenTrackerData() => (openBrowser ?? SystemBrowser.Open)(TrackerDataUrl);
+
     /// <summary>Opens the page where the player confirms <paramref name="device"/>, with the code filled in when the site allows.</summary>
     public bool OpenSignInPage(DeviceCode device) => (openBrowser ?? SystemBrowser.Open)(device.VerificationUriComplete ?? device.VerificationUri);
 

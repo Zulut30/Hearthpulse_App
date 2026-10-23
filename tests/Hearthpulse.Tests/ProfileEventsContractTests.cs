@@ -7,7 +7,7 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// The payload sent to hearthpulse.net against the site's contract (HeartPulse <c>docs/specs/player-game-stats.md</c>
-/// and the strict check <c>server/modules/playerGames/schema/gameSchema.ts</c>, site commit c0f0ca0). The fixture is the
+/// and the strict check <c>server/modules/playerGames/schema/gameSchema.ts</c>, site commit 0ac2bcf). The fixture is the
 /// spec's own example; history rows that describe the same games must map to the same names and values. Every
 /// generated payload also passes <see cref="SiteSchema"/>, a port of the site's check, and uses only documented fields.
 /// </summary>
@@ -254,6 +254,29 @@ public sealed class ProfileEventsContractTests
     }
 
     [Fact]
+    public void Text_shaped_like_a_battletag_or_with_bidi_marks_is_not_sent_as_is()
+    {
+        var tagged = ProfileEvents.ForGame(ConstructedExample() with { DeckName = "Deck from Secret#1234", OpponentArchetype = "Rival#56789 deck" })!;
+        Assert.False(tagged.Payload.ContainsKey("deckName"));
+        Assert.False(tagged.Payload.ContainsKey("opponentArchetype"));
+
+        var bidi = ProfileEvents.ForGame(ConstructedExample() with { DeckName = "\u202EKD doolB\u202C", OpponentArchetype = "Control #1 Priest" })!;
+        Assert.Equal("KD doolB", (string)bidi.Payload["deckName"]!);
+        Assert.Equal("Control #1 Priest", (string)bidi.Payload["opponentArchetype"]!);
+        Assert.Null(SiteSchema.Validate(bidi.Type, bidi.Payload));
+    }
+
+    [Fact]
+    public void Games_dated_before_hearthstone_are_not_sent()
+    {
+        var old = new DateTime(2010, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        Assert.Null(ProfileEvents.ForGame(ConstructedExample() with { StartedAt = old, EndedAt = old.AddMinutes(5) }));
+        Assert.Null(ProfileEvents.ForGame(BattlegroundsExample() with { StartedAt = old, EndedAt = old.AddMinutes(5) }));
+        var arena = ArenaExample().Select(g => g with { StartedAt = old, EndedAt = old.AddMinutes(5) });
+        Assert.Empty(ProfileEvents.ForArena(arena));
+    }
+
+    [Fact]
     public void Arena_run_score_is_a_new_record_per_game_and_counts_the_run()
     {
         var games = ArenaExample();
@@ -336,6 +359,8 @@ public sealed class ProfileEventsContractTests
         private static readonly Regex CardId = new("^[A-Za-z0-9_]{2,64}$");
         private static readonly Regex ClientId = new("^[A-Za-z0-9][A-Za-z0-9._:-]{7,63}$");
         private static readonly Regex DeckCode = new("^[A-Za-z0-9+/=_-]{4,256}$");
+        private static readonly Regex BattleTag = new(@"#\d{3,6}(?!\d)");
+        private static readonly Regex Bidi = new("[\u202A-\u202E\u2066-\u2069]");
 
         private sealed class Invalid(string field) : Exception(field)
         {
@@ -501,7 +526,8 @@ public sealed class ProfileEventsContractTests
                 return;
             }
 
-            if (value is not JsonValue v || !v.TryGetValue<string>(out var s) || s.Length > 80 || s.Any(c => c < 32 || c == 127))
+            if (value is not JsonValue v || !v.TryGetValue<string>(out var s) || s.Length > 80 || s.Any(c => c < 32 || c == 127)
+                || Bidi.IsMatch(s) || BattleTag.IsMatch(s))
             {
                 throw new Invalid(field);
             }

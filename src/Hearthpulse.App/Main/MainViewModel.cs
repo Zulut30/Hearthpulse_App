@@ -179,6 +179,7 @@ public sealed partial class MainViewModel : Observable
             if (Set(ref _poolAvailable, value))
             {
                 Raise(nameof(AskPoolConsent));
+                Raise(nameof(AskUpload));
             }
         }
     }
@@ -196,6 +197,7 @@ public sealed partial class MainViewModel : Observable
             Settings.PoolConsentVersion = PoolClient.ConsentVersion;
             Raise();
             Raise(nameof(AskPoolConsent));
+            Raise(nameof(AskUpload));
             PoolConsentChanged?.Invoke();
         }
     }

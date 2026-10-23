@@ -175,7 +175,7 @@ public partial class App : Application
         var accountClient = new AccountClient(_http);
         _account = new AccountService(accountClient);
         _mainViewModel.AttachAccount(_account);
-        _uploader = ProfileUploader.For(accountClient, _account, () => _settings.UploadGamesToProfile, _history);
+        _uploader = ProfileUploader.For(accountClient, _account, () => _settings.UploadGamesToProfile == true, _history);
         _uploader.BaseHero = id => _cards.BaseHeroId(id);
         _account.Changed += _uploader.Kick;
         _mainViewModel.AttachUploader(_uploader);

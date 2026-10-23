@@ -164,5 +164,6 @@ public sealed partial class MainViewModel
         Raise(nameof(AccountName));
         Raise(nameof(AccountSubscription));
         Raise(nameof(AccountHasSubscription));
+        Raise(nameof(AskUpload));
     }
 }

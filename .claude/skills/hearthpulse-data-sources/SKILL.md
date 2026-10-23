@@ -67,8 +67,9 @@ now comes from, and what stays empty until the pool runs: `docs/bg-meta-sources.
 ## Uploading games (`tracker/events/batch`)
 
 `Core/Accounts/ProfileUploader.cs` sends finished games to the site's "My statistics" (`schemaVersion: 2`) with the
-device-flow token: only while signed in and `AppSettings.UploadGamesToProfile` is on (default on, switch in the account
-card of both apps), batches of at most 50 events, persistent queue `profile-upload.json` per site account, backoff on
+device-flow token: only while signed in and the player has turned `AppSettings.UploadGamesToProfile` on (opt-in:
+null until a one-time card after sign-in asks; switch, privacy and data-deletion links in the account card of both
+apps), batches of at most 50 events, persistent queue `profile-upload.json` per site account, backoff on
 outages, rejected events logged and dropped, idempotent UUID v5 `eventId` per game (without the BattleTag). Mapping
 `GameRecord` -> payload is `ProfileEvents.cs`; the contract test checks it against the site spec's example and a port
 of the site's strict check. Full rules and mapping: `docs/profile-upload.md`. When the site changes its schema

@@ -11,8 +11,9 @@ namespace Hearthpulse.Core.Accounts;
 /// rules: docs/profile-upload.md.
 /// </summary>
 /// <remarks>
-/// Only while the player is signed in and <see cref="AppSettings.UploadGamesToProfile"/> is on: a game that ends
-/// otherwise is not queued (the backfill button sends past games on request). Events wait in
+/// Only while the player is signed in and has turned <see cref="AppSettings.UploadGamesToProfile"/> on (an opt-in:
+/// null until asked): a game that ends otherwise is not queued, and turning it off drops what waits (the backfill
+/// button sends past games on request). Events wait in
 /// <see cref="ProfileUploadQueue"/>, go out in batches within the site's limits, and are retried with a growing pause
 /// after an outage. Events the site rejects are dropped and logged, never retried. A Battlegrounds game waits up to
 /// <see cref="RatingWait"/> for its new rating. Runs on its own task, never on the log thread or the UI thread.
@@ -196,6 +197,12 @@ public sealed class ProfileUploader : IDisposable
     {
         if (!_enabled())
         {
+            // Turned off (or never turned on): what was waiting is not sent later either.
+            if (_queue.PendingCount > 0)
+            {
+                _queue.ClearPending();
+            }
+
             SetStatus(string.Empty);
             return Idle;
         }
@@ -247,6 +254,8 @@ public sealed class ProfileUploader : IDisposable
                     var e = batch.FirstOrDefault(b => b.EventId.Equals(rejected.EventId, StringComparison.OrdinalIgnoreCase));
                     Diag.Info($"profile upload: {e?.Type ?? "event"} {rejected.EventId} rejected: {rejected.Code}{(rejected.Field is { } f ? " (" + f + ")" : string.Empty)}");
                 }
+
+                LogWarnings(answer, batch);
 
                 // Whatever the answer names is settled. An event it does not name (it should not happen) is retried later.
                 _queue.Settle(answer.Accepted.Concat(answer.Rejected.Select(r => r.EventId)));
@@ -306,6 +315,8 @@ public sealed class ProfileUploader : IDisposable
                     Diag.Info($"profile upload: {e.Type} {rejected.EventId} rejected: {rejected.Code}{(rejected.Field is { } f ? " (" + f + ")" : string.Empty)}");
                 }
 
+                LogWarnings(answer, [e]);
+
                 _queue.Settle([e.EventId]);
             }
             else if (answer.Status is 400 or 413 or 422)
@@ -320,6 +331,16 @@ public sealed class ProfileUploader : IDisposable
         }
 
         return null;
+    }
+
+    // Accepted, but the site could not use the statistics: a mapping bug to fix here, so it goes to the log.
+    private static void LogWarnings(TrackerBatchAnswer answer, IReadOnlyList<ProfileEvent> batch)
+    {
+        foreach (var warning in answer.Warnings)
+        {
+            var e = batch.FirstOrDefault(b => b.EventId.Equals(warning.EventId, StringComparison.OrdinalIgnoreCase));
+            Diag.Info($"profile upload: {e?.Type ?? "event"} {warning.EventId} stored without statistics: {warning.Code}{(warning.Field is { } f ? " (" + f + ")" : string.Empty)}");
+        }
     }
 
     internal static string Body(IEnumerable<ProfileEvent> batch) =>

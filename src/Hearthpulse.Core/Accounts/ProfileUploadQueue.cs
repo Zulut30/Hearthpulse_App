@@ -137,6 +137,20 @@ public sealed class ProfileUploadQueue
         }
     }
 
+    /// <summary>Drops every waiting event (the player turned sending off); settled ids are kept.</summary>
+    public void ClearPending()
+    {
+        lock (_gate)
+        {
+            if (_pending.Count > 0)
+            {
+                Diag.Info($"profile upload: sending turned off, {_pending.Count.ToString(CultureInfo.InvariantCulture)} queued games dropped");
+                _pending.Clear();
+                Save();
+            }
+        }
+    }
+
     /// <summary>Lets every waiting event go now (the rating it waited for came, or will not).</summary>
     public void Release(string eventId, DateTime now)
     {

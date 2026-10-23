@@ -1291,8 +1291,13 @@
                                         </TextBlock>
                                         <!-- Games to the profile on the site ("My statistics") -->
                                         <CheckBox Style="{StaticResource Switch}" Content="Send games to my profile" IsChecked="{Binding UploadGames}" Margin="0,14,0,4" />
-                                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
-                                                   Text="For &#x201C;My statistics&#x201D; on hearthpulse.net, after each game: mode, result, place or rank, rating, heroes and classes, your deck, final board, combats and duration. Never your BattleTag, your opponent&#x2019;s name or anything hidden in the game." />
+                                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Text="For &#x201C;My statistics&#x201D; on hearthpulse.net. Nothing is sent until you turn this on." />
+                                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,2,0,0" Text="{Binding UploadWhatText}" />
+                                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0">
+                                            <Hyperlink Command="{Binding OpenPrivacy}" Foreground="{StaticResource Accent}"><Run Text="Privacy policy" /></Hyperlink>
+                                            <Run Text="  &#xB7;  " />
+                                            <Hyperlink Command="{Binding OpenTrackerData}" Foreground="{StaticResource Accent}"><Run Text="See, download or delete your data on the site" /></Hyperlink>
+                                        </TextBlock>
                                         <WrapPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding UploadGames, Converter={StaticResource Vis}}">
                                             <Button Style="{StaticResource GhostButton}" Content="Send past games" Command="{Binding UploadPastGames}" Margin="0,0,12,0"
                                                     ToolTip="Sends the games already in your history that are not on your profile yet" />
@@ -1709,6 +1714,40 @@
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button Style="{StaticResource GhostButton}" Content="No thanks" Command="{Binding AnswerPool}" CommandParameter="no" Margin="0,0,8,0" />
                                 <Button Style="{StaticResource PrimaryButton}" Content="Share results" Command="{Binding AnswerPool}" CommandParameter="yes" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- ===== Signed in, never asked: send games to the profile? (opt-in, docs/profile-upload.md) ===== -->
+                    <Border Grid.Row="1" VerticalAlignment="Top" Margin="24,2,24,0" CornerRadius="16" Background="{StaticResource Surface3}" Panel.ZIndex="5"
+                            BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12"
+                            Visibility="{Binding AskUpload, Converter={StaticResource Vis}}">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.35" Color="Black" />
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid Width="46" Height="46">
+                                <c:Scallop Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
+                                <TextBlock Text="&#xF0004;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                            </Grid>
+                            <StackPanel Grid.Column="1" Margin="14,0,20,0" VerticalAlignment="Center">
+                                <TextBlock Text="Send your games to your hearthpulse.net profile?" FontWeight="Bold" FontSize="14.5" />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,3,0,0" Foreground="{StaticResource Text}"
+                                           Text="They build &#x201C;My statistics&#x201D; on your account page. Nothing is sent until you turn this on; past games only when you ask in Settings." />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding UploadWhatText}" />
+                                <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0">
+                                    <Hyperlink Command="{Binding OpenPrivacy}" Foreground="{StaticResource Accent}"><Run Text="Privacy policy" /></Hyperlink>
+                                    <Run Text="  &#xB7;  You can change this any time in Settings and delete what was sent on the site." />
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource GhostButton}" Content="Not now" Command="{Binding AnswerUpload}" CommandParameter="no" Margin="0,0,8,0" />
+                                <Button Style="{StaticResource PrimaryButton}" Content="Turn on" Command="{Binding AnswerUpload}" CommandParameter="yes" />
                             </StackPanel>
                         </Grid>
                     </Border>

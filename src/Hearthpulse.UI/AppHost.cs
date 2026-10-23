@@ -62,7 +62,7 @@ public sealed partial class AppHost : IDisposable
         Session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(Api)));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
-        Uploader = ProfileUploader.For(accountClient, Account, () => Settings.UploadGamesToProfile, History);
+        Uploader = ProfileUploader.For(accountClient, Account, () => Settings.UploadGamesToProfile == true, History);
         Uploader.BaseHero = id => Cards.BaseHeroId(id);
         Account.Changed += Uploader.Kick;
         Main.AttachUploader(Uploader);

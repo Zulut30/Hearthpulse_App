@@ -6,17 +6,23 @@ Standard, Wild and Arena statistics built from them. Code: `src/Hearthpulse.Core
 `tests/Hearthpulse.Tests/ProfileEventsContractTests.cs` (contract, fixture `Fixtures/ProfileUpload/`) and
 `ProfileUploadTests.cs`.
 
-Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commit c0f0ca0):
+Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commit 0ac2bcf):
 `docs/specs/player-game-stats.md`, `docs/specs/tracker-ingestion.md`, strict check
 `server/modules/playerGames/schema/gameSchema.ts`.
 
 ## When games are sent
 
-- Only while the player is signed in to a Hearthpulse account (device flow, `docs/accounts-api.md`) **and** the switch
-  "Send games to my profile" is on (Settings → Hearthpulse account, both apps; `AppSettings.UploadGamesToProfile`,
-  default on: signing in is the opt-in, and the switch with its caption sits right under the account name).
-- A game that ends while signed out or with the switch off is not queued. "Send past games" queues every game of
-  `history.db` that the site has not settled yet.
+- **Opt-in.** `AppSettings.UploadGamesToProfile` is `null` until the player answers; only `true` sends or queues
+  anything. Once signed in (and once for players who signed in before this feature) both apps show a card on top of the
+  main window, "Send your games to your hearthpulse.net profile?", with the list below, a link to the site's privacy
+  policy and the buttons **Turn on** / **Not now** (`MainViewModel.AskUpload`, `AnswerUpload`; in WPF it waits while
+  the stats pool question is up). "Not now" stores `false` and the card does not come back.
+- The switch "Send games to my profile" (Settings → Hearthpulse account, both apps) changes the answer later. Under it:
+  the same list (`MainViewModel.UploadWhat`), links "Privacy policy" (`{site}/privacy/`) and "See, download or delete
+  your data on the site" (`{profile}#account-tracker-data`, the account page's «Данные приложения»: export and
+  deletion of everything the tracker stored), the "Send past games" button and the queue status.
+- Only while signed in and switched on: a game that ends otherwise is not queued, and switching off drops what was
+  waiting. "Send past games" (only when switched on) queues every game of `history.db` the site has not settled yet.
 - Each game is sent once, after it ends. A Battlegrounds game with a rating at its start waits up to 130 s for the new
   rating (the session reads it for 120 s), then goes with or without it.
 
@@ -32,8 +38,11 @@ Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commi
   after a reinstall is only acknowledged by the site. `arena_run`: UUID v5 of `runId` + number of games in the run (a
   new score is a new record; the site shows the newest one).
 - **Answers**:
-  - 202 `{accepted, rejected}`: both lists are settled and leave the queue; every rejected event is logged to
-    `hearthpulse.log` (`profile upload: <type> <eventId> rejected: <code> (<field>)`) and never retried.
+  - 202 `{accepted, rejected, warnings?}`: both lists are settled and leave the queue; every rejected event
+    (`INVALID_EVENT`, `EVENT_LIMIT_EXCEEDED`, `QUOTA_EXCEEDED` past 100 000 events per account) is logged to
+    `hearthpulse.log` (`profile upload: <type> <eventId> rejected: <code> (<field>)`) and never retried. An event in
+    `warnings` (`INVALID_STATISTICS`: stored, but the statistics skip it) is logged as `stored without statistics` -
+    a mapping bug to fix here; resending the same id changes nothing on the site.
   - 400/413/422 (bad envelope, too large): the batch is sent again one event at a time; an event refused alone is
     logged and dropped.
   - no connection, 401/403, 429, 5xx, 404, or a 2xx without the answer object (captive portal): the events stay and
@@ -53,7 +62,7 @@ Common to all games:
 | `turns` | `turns` | left out outside 0-200 |
 | `result` | `result` | `Win/Loss/Tie` → `win/loss/tie`; Constructed and Arena games with `Unknown` are not sent; not sent for Battlegrounds (the site derives it from the place) |
 
-Not sent at all: `Abandoned` games, Brawl, Practice, Friendly, Mercenaries, Other, and Constructed formats other than
+Not sent at all: games dated before 2014-01-01 (a broken clock; the site ignores them), `Abandoned` games, Brawl, Practice, Friendly, Mercenaries, Other, and Constructed formats other than
 `FT_STANDARD`/`FT_WILD` (Classic, Twist).
 
 ### `battlegrounds_match` (modes Battlegrounds, Duos)
@@ -82,8 +91,8 @@ Not sent (not stored): `offers` (Discover, trinket and quest choices).
 | `playerClass`, `opponentClass` | `player_class`, `opponent_class` | one of the 11 classes, game skipped otherwise |
 | `heroCardId`, `opponentHeroCardId` | `hero`, `opponent_hero` | the opponent's hero is on the board for everyone |
 | `deckCode` | `deck_code` | only if it matches `^[A-Za-z0-9+/=_-]{4,256}$` |
-| `deckName` | `deck_name` | control characters removed, trimmed, at most 80 characters |
-| `opponentArchetype` | `opponent_archetype` | only a clear call from the opponent's played cards (`ArchetypeGuess`) |
+| `deckName` | `deck_name` | control and bidi characters removed, trimmed, at most 80 characters; left out when it holds something shaped like a BattleTag (`#` + 3-6 digits), which the site refuses |
+| `opponentArchetype` | `opponent_archetype` | only a clear call from the opponent's played cards (`ArchetypeGuess`); same text rules as `deckName` |
 | `wentFirst` | `went_first` | `false` = the coin, null when unknown |
 | `rankBefore` | `rank_star_level`, `rank_legend` | Ranked only: `{starLevel}` (Legend: 51 + `legendRank`) |
 
@@ -119,5 +128,5 @@ header and are never logged.
 
 1. Run the site locally (HeartPulse, see its `docs/specs/player-game-stats.md` "Development data") and point the app
    at it: `HEARTHPULSE_SITE_API=http://localhost:<port>/api/v1/`, `HEARTHPULSE_DATA` = a copy of the data folder.
-2. Sign in from Settings, keep "Send games to my profile" on, press "Send past games".
+2. Sign in from Settings, answer **Turn on** on the card (or turn the switch on), press "Send past games".
 3. The status line under the switch counts down; `hearthpulse.log` names any rejected event; `/profile/` shows the games.

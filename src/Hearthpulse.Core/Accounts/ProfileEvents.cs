@@ -56,13 +56,20 @@ public static partial class ProfileEvents
     [GeneratedRegex("^[A-Za-z0-9+/=_-]{4,256}$")]
     private static partial Regex DeckCodePattern();
 
+    // The site refuses free text shaped like a BattleTag ("#" and 3-6 digits): a name must never reach a deck name.
+    [GeneratedRegex(@"#\d{3,6}(?!\d)")]
+    private static partial Regex BattleTagPattern();
+
+    // Games are dated from the game's launch; the site ignores anything earlier (a broken clock).
+    private static readonly DateTime EarliestGame = new(2014, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     /// <summary>
     /// The event of one finished game, or null when it is not one the site keeps (Brawl, Practice, Classic, Twist...),
     /// was left before its end, or lacks a required field. Arena games need their run: see <see cref="ForArena"/>.
     /// </summary>
     public static ProfileEvent? ForGame(GameRecord game, Func<string, string>? baseHero = null)
     {
-        if (game.IsAbandoned)
+        if (game.IsAbandoned || game.StartedAt.ToUniversalTime() < EarliestGame)
         {
             return null;
         }
@@ -244,7 +251,7 @@ public static partial class ProfileEvents
 
     private static ProfileEvent? ArenaMatchEvent(GameRecord game, string runId, int index, IEnumerable<GameRecord> before, bool underground)
     {
-        if (game.IsAbandoned || Result(game.Result) is not { } result || !Classes.Contains(game.PlayerClass)
+        if (game.IsAbandoned || game.StartedAt.ToUniversalTime() < EarliestGame || Result(game.Result) is not { } result || !Classes.Contains(game.PlayerClass)
             || !Classes.Contains(game.OpponentClass) || index >= 20)
         {
             return null;
@@ -273,7 +280,7 @@ public static partial class ProfileEvents
 
     private static ProfileEvent? ArenaRunEvent(ArenaRun run, string runId, bool underground)
     {
-        if (!Classes.Contains(run.PlayerClass))
+        if (!Classes.Contains(run.PlayerClass) || run.Ended.ToUniversalTime() < EarliestGame)
         {
             return null;
         }
@@ -480,15 +487,18 @@ public static partial class ProfileEvents
 
     private static string? DeckCode(string? code) => code is not null && DeckCodePattern().IsMatch(code) ? code : null;
 
-    /// <summary>Free text for the site: no control characters, trimmed, at most 80 characters, null when empty.</summary>
+    /// <summary>
+    /// Free text for the site: no control or bidi characters, trimmed, at most 80 characters; null when empty or when it
+    /// holds something shaped like a BattleTag (the site refuses it, and it may be a name).
+    /// </summary>
     private static string? Text(string? text)
     {
-        if (text is null)
+        if (text is null || BattleTagPattern().IsMatch(text))
         {
             return null;
         }
 
-        var clean = new string(text.Where(c => c >= 32 && c != 127).ToArray()).Trim();
+        var clean = new string(text.Where(c => c >= 32 && c != 127 && c is not (>= '‪' and <= '‮') and not (>= '⁦' and <= '⁩')).ToArray()).Trim();
         if (clean.Length > 80)
         {
             // Never cut a surrogate pair in half.

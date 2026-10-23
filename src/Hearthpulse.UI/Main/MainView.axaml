@@ -777,8 +777,16 @@
                                     </Button>
                                     <!-- Games to the profile on the site ("My statistics") -->
                                     <CheckBox Classes="switch" Content="Send games to my profile" IsChecked="{Binding UploadGames}" Margin="0,14,0,4" />
-                                    <TextBlock Classes="caption" TextWrapping="Wrap"
-                                               Text="For &#x201C;My statistics&#x201D; on hearthpulse.net, after each game: mode, result, place or rank, rating, heroes and classes, your deck, final board, combats and duration. Never your BattleTag, your opponent&#x2019;s name or anything hidden in the game." />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="For &#x201C;My statistics&#x201D; on hearthpulse.net. Nothing is sent until you turn this on." />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0" Text="{Binding UploadWhatText}" />
+                                    <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <Button Classes="bare" Command="{Binding OpenPrivacy}" Margin="0,0,14,0">
+                                            <TextBlock Text="Privacy policy" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
+                                        </Button>
+                                        <Button Classes="bare" Command="{Binding OpenTrackerData}">
+                                            <TextBlock Text="See, download or delete your data on the site" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
+                                        </Button>
+                                    </WrapPanel>
                                     <WrapPanel Orientation="Horizontal" Margin="0,8,0,0" IsVisible="{Binding UploadGames}">
                                         <Button Classes="ghost" Content="Send past games" Command="{Binding UploadPastGames}" Margin="0,0,12,0"
                                                 ToolTip.Tip="Sends the games already in your history that are not on your profile yet" />
@@ -1043,6 +1051,35 @@
                         </Border>
                     </StackPanel>
                 </ScrollViewer>
+
+                <!-- ===== Signed in, never asked: send games to the profile? (opt-in, docs/profile-upload.md) ===== -->
+                <Border Grid.Row="1" VerticalAlignment="Top" Margin="23,2,23,0" CornerRadius="16" Background="{StaticResource Surface3}" ZIndex="5"
+                        BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12"
+                        BoxShadow="0 4 24 0 #59000000" IsVisible="{Binding AskUpload}">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Panel Width="46" Height="46" VerticalAlignment="Top">
+                            <c:Scallop Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
+                            <TextBlock Text="&#xF0004;" Classes="icon" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                        </Panel>
+                        <StackPanel Grid.Column="1" Margin="14,0,20,0" VerticalAlignment="Center">
+                            <TextBlock Text="Send your games to your hearthpulse.net profile?" FontWeight="Bold" FontSize="14.5" TextWrapping="Wrap" />
+                            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,3,0,0" Foreground="{StaticResource Text}"
+                                       Text="They build &#x201C;My statistics&#x201D; on your account page. Nothing is sent until you turn this on; past games only when you ask in Settings." />
+                            <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" Text="{Binding UploadWhatText}" />
+                            <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <Button Classes="bare" Command="{Binding OpenPrivacy}" Margin="0,0,10,0">
+                                    <TextBlock Text="Privacy policy" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
+                                </Button>
+                                <TextBlock Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           Text="You can change this any time in Settings and delete what was sent on the site." />
+                            </WrapPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Classes="ghost" Content="Not now" Command="{Binding AnswerUpload}" CommandParameter="no" Margin="0,0,8,0" />
+                            <Button Classes="ghost primary" Content="Turn on" Command="{Binding AnswerUpload}" CommandParameter="yes" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
 
                 <!-- ===== Floating live bar (like a now-playing bar) ===== -->
                 <Border Grid.Row="1" VerticalAlignment="Bottom" Margin="23,0,23,17" CornerRadius="12" Background="{StaticResource Surface3}"

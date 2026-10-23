@@ -14,7 +14,11 @@ public sealed record DeviceCode(string Code, string UserCode, Uri VerificationUr
 /// <summary>An answer of the token endpoint.</summary>
 public sealed record AccountTokens(string AccessToken, string? RefreshToken, int ExpiresIn);
 
-/// <summary>One refused event of a batch: <c>INVALID_EVENT</c> (with the first bad <c>field</c>) or <c>EVENT_LIMIT_EXCEEDED</c>.</summary>
+/// <summary>
+/// One event the site named: in <c>rejected</c> (<c>INVALID_EVENT</c>, <c>EVENT_LIMIT_EXCEEDED</c>,
+/// <c>QUOTA_EXCEEDED</c>) or in <c>warnings</c> (<c>INVALID_STATISTICS</c>: stored, but left out of the statistics), with
+/// the first bad <c>field</c> when given.
+/// </summary>
 public sealed record RejectedEvent(string EventId, string Code, string? Field);
 
 /// <summary>
@@ -23,12 +27,14 @@ public sealed record RejectedEvent(string EventId, string Code, string? Field);
 /// </summary>
 public sealed record TrackerBatchAnswer(int Status, IReadOnlyList<string> Accepted, IReadOnlyList<RejectedEvent> Rejected, string? ErrorCode)
 {
+    /// <summary>Accepted events whose statistics the site could not use (<c>warnings</c>, only present when not empty).</summary>
+    public IReadOnlyList<RejectedEvent> Warnings { get; init; } = [];
+
     public bool Answered => Status is >= 200 and < 300 && ErrorCode is null;
 
     internal static TrackerBatchAnswer Parse(int status, string body)
     {
         List<string> accepted = [];
-        List<RejectedEvent> rejected = [];
         string? error = null;
         try
         {
@@ -43,14 +49,10 @@ public sealed record TrackerBatchAnswer(int Status, IReadOnlyList<string> Accept
                 && a.ValueKind == JsonValueKind.Array)
             {
                 accepted.AddRange(a.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString()!));
-                if (root.TryGetProperty("rejected", out var r) && r.ValueKind == JsonValueKind.Array)
+                return new TrackerBatchAnswer(status, accepted, Named(root, "rejected", "REJECTED"), null)
                 {
-                    rejected.AddRange(r.EnumerateArray()
-                        .Where(x => AccountClient.Text(x, "eventId") is { Length: > 0 })
-                        .Select(x => new RejectedEvent(AccountClient.Text(x, "eventId")!, AccountClient.Text(x, "code") ?? "REJECTED", AccountClient.Text(x, "field"))));
-                }
-
-                return new TrackerBatchAnswer(status, accepted, rejected, null);
+                    Warnings = Named(root, "warnings", "INVALID_STATISTICS"),
+                };
             }
         }
         catch (JsonException)
@@ -58,8 +60,16 @@ public sealed record TrackerBatchAnswer(int Status, IReadOnlyList<string> Accept
         }
 
         // A 2xx without the answer object (a captive portal's page, a proxy) is not an answer from the site.
-        return new TrackerBatchAnswer(status, accepted, rejected, error ?? (status is >= 200 and < 300 ? "BAD_RESPONSE" : null));
+        return new TrackerBatchAnswer(status, accepted, [], error ?? (status is >= 200 and < 300 ? "BAD_RESPONSE" : null));
     }
+
+    private static List<RejectedEvent> Named(JsonElement root, string list, string defaultCode) =>
+        root.TryGetProperty(list, out var items) && items.ValueKind == JsonValueKind.Array
+            ? items.EnumerateArray()
+                .Where(x => AccountClient.Text(x, "eventId") is { Length: > 0 })
+                .Select(x => new RejectedEvent(AccountClient.Text(x, "eventId")!, AccountClient.Text(x, "code") ?? defaultCode, AccountClient.Text(x, "field")))
+                .ToList()
+            : [];
 }
 
 /// <summary>

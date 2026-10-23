@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
+using Hearthpulse.Core;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Tracking;
@@ -35,8 +36,8 @@ public sealed class ProfileUploadTests : IDisposable
 
     private string QueuePath => Path.Combine(_dir, "profile-upload.json");
 
-    private ProfileUploader Uploader() => new(new AccountClient(new HttpClient(_site), "https://site.test/api/v1/"),
-        _ => Task.FromResult(_token), () => _user, () => _enabled, _history, new ProfileUploadQueue(QueuePath))
+    private ProfileUploader Uploader(Func<bool>? enabled = null) => new(new AccountClient(new HttpClient(_site), "https://site.test/api/v1/"),
+        _ => Task.FromResult(_token), () => _user, enabled ?? (() => _enabled), _history, new ProfileUploadQueue(QueuePath))
     {
         UtcNow = () => _now,
     };
@@ -112,6 +113,75 @@ public sealed class ProfileUploadTests : IDisposable
 
         Assert.Empty(_site.Requests);
         Assert.Equal(0, uploader.PendingCount);
+    }
+
+    [Fact]
+    public async Task Fresh_settings_send_nothing_until_the_player_turns_sending_on()
+    {
+        var settings = System.Text.Json.JsonSerializer.Deserialize<AppSettings>("{}")!;
+        Assert.Null(settings.UploadGamesToProfile);
+        Assert.Null(new AppSettings().UploadGamesToProfile);
+        var game = Saved(Ranked());
+        // The hosts' rule: only an explicit yes sends.
+        var uploader = Uploader(() => settings.UploadGamesToProfile == true);
+
+        uploader.OnGameFinished(Outcome(game));
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.Equal(0, await uploader.BackfillAsync());
+        settings.UploadGamesToProfile = false;
+        uploader.OnGameFinished(Outcome(game));
+        await uploader.PassAsync(CancellationToken.None);
+
+        Assert.Empty(_site.Requests);
+        Assert.Equal(0, uploader.PendingCount);
+        Assert.False(File.Exists(QueuePath) && new ProfileUploadQueue(QueuePath).PendingCount > 0);
+
+        settings.UploadGamesToProfile = true;
+        Assert.Equal(1, await uploader.BackfillAsync());
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.Single(_site.Requests);
+    }
+
+    [Fact]
+    public async Task Turning_sending_off_drops_what_was_waiting()
+    {
+        var game = Saved(Ranked());
+        var uploader = Uploader();
+        _site.Offline = true;
+        uploader.OnGameFinished(Outcome(game));
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.Equal(1, uploader.PendingCount);
+
+        _enabled = false;
+        _site.Offline = false;
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.Equal(0, new ProfileUploadQueue(QueuePath).PendingCount);
+
+        _enabled = true;
+        _now += TimeSpan.FromHours(1);
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.Empty(_site.Requests);
+    }
+
+    [Fact]
+    public async Task Statistics_warnings_are_logged_and_quota_refusals_settled()
+    {
+        var warned = Saved(Ranked());
+        var over = Saved(Ranked("Loss"));
+        var uploader = Uploader();
+        uploader.OnGameFinished(Outcome(warned));
+        uploader.OnGameFinished(Outcome(over));
+        _site.Warn[ProfileEvents.GameEventId(warned)] = "rankBefore.starLevel";
+        _site.Reject[ProfileEvents.GameEventId(over)] = ("QUOTA_EXCEEDED", null);
+
+        await uploader.PassAsync(CancellationToken.None);
+        await uploader.PassAsync(CancellationToken.None);
+
+        Assert.Single(_site.Requests);
+        Assert.Equal(0, uploader.PendingCount);
+        var log = TestDataFolder.ReadLog();
+        Assert.Contains($"profile upload: constructed_match {ProfileEvents.GameEventId(warned)} stored without statistics: INVALID_STATISTICS (rankBefore.starLevel)", log);
+        Assert.Contains($"profile upload: constructed_match {ProfileEvents.GameEventId(over)} rejected: QUOTA_EXCEEDED", log);
     }
 
     [Fact]
@@ -330,7 +400,10 @@ public sealed class ProfileUploadTests : IDisposable
     {
         public List<(string Authorization, string Body, List<JsonObject> Events, int Status)> Requests { get; } = [];
 
-        public Dictionary<string, (string Code, string Field)> Reject { get; } = [];
+        public Dictionary<string, (string Code, string? Field)> Reject { get; } = [];
+
+        /// <summary>Accepted events answered in <c>warnings</c> (INVALID_STATISTICS) with this field.</summary>
+        public Dictionary<string, string> Warn { get; } = [];
 
         public bool Offline { get; set; }
 
@@ -372,6 +445,14 @@ public sealed class ProfileUploadTests : IDisposable
                 400 => new JsonObject { ["error"] = new JsonObject { ["code"] = "INVALID_BATCH", ["message"] = "bad" } },
                 _ => new JsonObject { ["error"] = new JsonObject { ["code"] = "SERVER_ERROR", ["message"] = "down" } },
             };
+            if (status == 202 && ids.Where(Warn.ContainsKey).ToList() is { Count: > 0 } warned)
+            {
+                answer["warnings"] = new JsonArray([.. warned.Select(id => (JsonNode)new JsonObject
+                {
+                    ["eventId"] = id, ["code"] = "INVALID_STATISTICS", ["field"] = Warn[id],
+                })]);
+            }
+
             return new HttpResponseMessage((HttpStatusCode)status) { Content = new StringContent(answer.ToJsonString(), Encoding.UTF8, "application/json") };
         }
     }
