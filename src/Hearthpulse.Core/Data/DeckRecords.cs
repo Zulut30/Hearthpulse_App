@@ -35,7 +35,7 @@ public static class DeckRecords
         }
 
         return games
-            .Where(g => !g.IsBattlegrounds && g.Mode != "Mercenaries")
+            .Where(g => !g.IsBattlegrounds && g.Mode != "Mercenaries" && !g.IsAbandoned)
             .Where(g => g.DeckCode is { Length: > 0 } code
                 ? lists.Contains(CardList(code))
                 : deckName is { Length: > 0 } && g.DeckName == deckName && g.PlayerClass == playerClass)

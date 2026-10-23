@@ -552,7 +552,8 @@ public sealed partial class MainViewModel : Observable
     {
         var bg = g.IsBattlegrounds;
         var top = g.Mode == "Duos" ? 2 : 4;
-        var resultKey = bg ? (g.Placement is > 0 && g.Placement <= top ? "Win" : "Loss") : g.Result;
+        // An abandoned game has no placement or result: it is shown as such, in the muted colour.
+        var resultKey = g.IsAbandoned ? g.Result : bg ? (g.Placement is > 0 && g.Placement <= top ? "Win" : "Loss") : g.Result;
         var detail = bg
             ? $"Tier {g.TavernTier} · {g.Turns} turns"
             : string.Join(" · ", new[]
@@ -567,7 +568,7 @@ public sealed partial class MainViewModel : Observable
             Mode(g.Mode),
             g.HeroCardId,
             _cards.NameOf(g.HeroCardId),
-            bg ? Ordinal(g.Placement) : g.Result,
+            bg && !g.IsAbandoned ? Ordinal(g.Placement) : g.Result,
             resultKey,
             detail,
             g.RatingDelta is { } d ? (d >= 0 ? $"+{d}" : $"−{-d}") : string.Empty,

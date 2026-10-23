@@ -17,6 +17,12 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 {
     private static readonly TimeSpan PublishInterval = TimeSpan.FromMilliseconds(100);
 
+    /// <summary>
+    /// How long the client must be closed, with no new Power.log lines, before the game it left is saved as
+    /// <see cref="GameRecord.AbandonedResult"/>. Long enough for a client restart and reconnect to the same log.
+    /// </summary>
+    internal static readonly TimeSpan AbandonAfter = TimeSpan.FromMinutes(5);
+
     private readonly HistoryStore _history;
     private readonly HearthstoneMemory _memory;
     private readonly ConstructedTracker _constructed = new();
@@ -46,6 +52,10 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private bool _readingDeck;
 
     private bool _recorded;
+    private bool _recordedAbandoned;
+    private bool _endingLeftGame;
+    private DateTime _hearthstoneStoppedAt = DateTime.MinValue;
+    private DateTime _lastPowerLinesAt = DateTime.MinValue;
     private BattlegroundsRating? _rating;
     private BattlegroundsRating? _ratingAtGameStart;
     private string? _awaitingRatingKey;
@@ -90,6 +100,12 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         };
         _battlegrounds.HeroStatsProvider = LookupHeroStats;
     }
+
+    /// <summary>UTC clock of the tick loop; tests move it forward.</summary>
+    internal Func<DateTime> Clock { get; set; } = () => DateTime.UtcNow;
+
+    /// <summary>Whether the Hearthstone process runs; tests replace it.</summary>
+    internal Func<bool> IsHearthstoneRunning { get; set; } = HearthstoneInstall.IsRunning;
 
     public event Action<LiveSnapshot>? SnapshotChanged;
 
@@ -201,7 +217,17 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private void OnSessionStartedCore(string sessionDir, DateTime sessionStart, bool attachedMidSession)
     {
         _gameGeneration++;
-        _parser?.AbandonCurrentGame();
+        // A new client session: a game the old one never finished was left (client closed or crashed).
+        _endingLeftGame = true;
+        try
+        {
+            _parser?.AbandonCurrentGame();
+        }
+        finally
+        {
+            _endingLeftGame = false;
+        }
+
         _parser = new PowerParser(DateOnly.FromDateTime(sessionStart));
         _parser.AddListener(_constructed);
         _parser.AddListener(_constructed.Counters);
@@ -269,6 +295,11 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                     }
                 }
 
+                if (lines.Count > 0)
+                {
+                    _lastPowerLinesAt = Clock();
+                }
+
                 _parser?.Flush();
                 AfterPowerBatch();
                 break;
@@ -294,16 +325,19 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
     private void OnTickCore()
     {
-        var now = DateTime.UtcNow;
+        var now = Clock();
         if (now >= _nextProcessCheck)
         {
             _nextProcessCheck = now.AddSeconds(2);
-            var running = HearthstoneInstall.IsRunning();
+            var running = IsHearthstoneRunning();
             if (running != _hearthstoneRunning)
             {
                 _hearthstoneRunning = running;
+                _hearthstoneStoppedAt = running ? DateTime.MinValue : now;
                 _dirty = true;
             }
+
+            AbandonIfClientGone(now);
         }
 
         if (now >= _nextConfigCheck)
@@ -356,7 +390,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             var game = g is null
                 ? "none"
                 : $"{(g.GameType.Length > 0 ? g.GameType : "?")} turn {g.Turn}{(g.IsBattlegrounds ? $" (BG turn {g.BattlegroundsTurn})" : string.Empty)}, "
-                  + $"{(g.IsComplete ? "over" : "live")}, {g.Entities.Count} entities";
+                  + $"{(g.IsComplete ? "over" : _recordedAbandoned ? "abandoned" : "live")}, {g.Entities.Count} entities";
             Diag.Debug($"Tracker: scene {_scene}, Hearthstone {(_hearthstoneRunning ? "running" : "not running")}, game {game}, "
                        + $"{_publishCount} updates (slowest {_slowestPublishMs:N0} ms), memory: {_memory.Status}");
             _publishCount = 0;
@@ -376,6 +410,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         }
 
         _recorded = false;
+        _recordedAbandoned = false;
         _ranksRead = false;
         _racesRead = false;
         if (Advisor.CompMode == CompMode.Auto)
@@ -423,6 +458,28 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         }
     }
 
+    /// <summary>
+    /// The client has been closed for <see cref="AbandonAfter"/> without finishing the game: save it as abandoned instead
+    /// of keeping it "live" until the next client start (or forever, when the app closes first).
+    /// </summary>
+    private void AbandonIfClientGone(DateTime now)
+    {
+        if (_hearthstoneRunning || _recorded || _recordedAbandoned || _parser?.Game is not { IsComplete: false } game
+            || game.GameType.Length == 0)
+        {
+            return;
+        }
+
+        var quietSince = _hearthstoneStoppedAt > _lastPowerLinesAt ? _hearthstoneStoppedAt : _lastPowerLinesAt;
+        if (now - quietSince < AbandonAfter)
+        {
+            return;
+        }
+
+        Diag.Info($"Hearthstone closed during a game ({game.GameType}, turn {game.Turn}) and did not come back: saving it as abandoned.");
+        RecordIfFinished(game, force: true);
+    }
+
     private void RecordIfFinished(GameState game, bool force)
     {
         if (_recorded || (!force && !_battlegrounds.LocalFinished))
@@ -430,19 +487,37 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             return;
         }
 
-        _recorded = true;
+        // A game that never reached its end is kept as abandoned (no result) when the local player had none yet; if it
+        // ends after all (the client came back to the same log), the real result replaces that row.
+        var abandoned = !game.IsComplete || _endingLeftGame;
         var duos = game.IsDuos;
         int? before = _ratingAtGameStart is { } r ? (duos ? r.Duos : r.Solo) : null;
         var rank = _constructed.LocalRank?.Text;
         var races = _battlegrounds.MemoryRaces is { Count: > 0 } list ? string.Join(",", list) : null;
         var record = GameRecords.Build(game, _battlegrounds, _cards, _constructed.Deck, "live", before is > 0 ? before : null, null, rank, races,
-            _facts, _constructed.LocalRank);
+            _facts, _constructed.LocalRank, abandoned);
         if (record is null)
         {
+            if (abandoned) _recordedAbandoned = true;
+            else _recorded = true;
             return;
         }
 
-        Diag.Info($"Game finished: {record.Mode}, {record.Result}, place {record.Placement}, {record.Turns} turns{(_catchingUp ? " (replayed)" : string.Empty)}");
+        if (record.IsAbandoned)
+        {
+            if (_recordedAbandoned)
+            {
+                return;
+            }
+
+            _recordedAbandoned = true;
+        }
+        else
+        {
+            _recorded = true;
+        }
+
+        Diag.Info($"Game {(record.IsAbandoned ? "abandoned" : "finished")}: {record.Mode}, {record.Result}, place {record.Placement}, {record.Turns} turns{(_catchingUp ? " (replayed)" : string.Empty)}");
         try
         {
             _history.Add(record);
@@ -452,8 +527,10 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             Diag.Error("Saving game failed", ex);
         }
 
-        if (_catchingUp)
+        // An abandoned game has no outcome: it does not count in this session's results and is not announced.
+        if (_catchingUp || record.IsAbandoned)
         {
+            _dirty = true;
             return;
         }
 
