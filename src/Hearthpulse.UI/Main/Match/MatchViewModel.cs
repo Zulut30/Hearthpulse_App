@@ -192,8 +192,33 @@ public sealed class MatchViewModel : Observable
     /// <summary>The page being read: clears the previous game.</summary>
     public void BeginLoading()
     {
+        Clear();
         Loading = true;
+    }
+
+    /// <summary>
+    /// Lets go of the shown game (its frames and lists): only the open match is kept in memory, so closing the page or
+    /// opening another one frees the last.
+    /// </summary>
+    public void Clear()
+    {
+        _page = null;
+        Loading = false;
+        Header = null;
         Missing = string.Empty;
+        Step = null;
+        Actions = [];
+        Turns = [];
+        LocalDeck = [];
+        OpponentCards = [];
+        Rounds = [];
+        Lobby = [];
+        Analysis = null;
+        ArchetypeLine = string.Empty;
+        LocalDeckNote = string.Empty;
+        Raise(nameof(IsConstructed));
+        Raise(nameof(IsBattlegrounds));
+        RaiseTabs();
     }
 
     /// <summary>Shows a loaded game from its first step, from the player's side.</summary>

@@ -68,5 +68,6 @@ public sealed partial class MainViewModel
     {
         _matchLoad++;
         MatchOpen = false;
+        _matchPage?.Clear();
     }
 }
