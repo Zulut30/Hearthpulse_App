@@ -87,12 +87,13 @@ public sealed class AppSettings
     /// <summary>The tribe the player wants to build around (a race key such as "BEAST"); null for any.</summary>
     public string? CompFocus { get; set; }
 
-    // Filters of the Constructed meta stats (Firestone keys such as "standard", "legend", "past-7").
+    // Filters of the Constructed meta stats (Hearthpulse API keys such as "standard", "legend", "past_week"; keys of
+    // earlier versions, e.g. "past-7", map onto them in ConstructedMeta.Key).
     public string MetaFormat { get; set; } = "standard";
 
     public string MetaRank { get; set; } = "all";
 
-    public string MetaPeriod { get; set; } = "past-7";
+    public string MetaPeriod { get; set; } = "past_week";
 
     // One bool per option of the two choices above, for the settings page's segmented radio buttons. Setting false is
     // ignored: the radio group unchecks the old option after the new one is checked.

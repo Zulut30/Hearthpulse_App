@@ -48,8 +48,10 @@ Core folders:
   download + staged install.
 - `AppSettings.cs` (settings.json), `AppPaths.cs` (+ `Diag` log), `ThemePalette.cs`.
 - `Api/HearthpulseApi.cs` (client for `api.kolodahearthstone.com`, `HEARTHPULSE_API` env override; `{"data"}` and
-  bare answers, `{"detail"}` errors) and `Api/HearthpulseData.cs` (HSReplay-based fallback stats used by
-  `BattlegroundsMeta`/`ConstructedMeta.LoadAsync(..., fallback:)` when Firestone fails; `meta.Source` names the source).
+  bare answers, `{"detail"}` errors) and `Api/HearthpulseData.cs` (every Constructed number: HSGuru meta, lists and
+  per-archetype analysis, HSReplay archetypes/mulligan/matchups; plus the Battlegrounds fallback used by
+  `BattlegroundsMeta.LoadAsync(..., fallback:)` when Firestone fails). Answers are cached in `cache/api` (6 h, written
+  atomically; a 404 is cached as `{"data":null}`).
 - `Accounts/` (`AccountService`, `TokenStore` = DPAPI on Windows). Server contract: `docs/accounts-api.md`; until the
   server implements it, sign-in answers NOT_AVAILABLE. UI: Settings, "Hearthpulse account" in both apps.
 - `Tracking/Counters/` - in-game counters. `CounterTracker` (IPowerListener) records plays/summons/deaths/draws;

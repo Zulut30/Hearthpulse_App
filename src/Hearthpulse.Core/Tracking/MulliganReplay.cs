@@ -33,7 +33,7 @@ public static class MulliganReplay
 
             var (game, deck, tracker) = found.Value;
             var playerClass = cards.Get(game.LocalHero?.CardId)?.CardClass ?? string.Empty;
-            var guide = data is null ? null : await MulliganGuideSource.LoadGuideAsync(data, playerClass, deck.Cards, cancellationToken).ConfigureAwait(false);
+            var guide = data is null ? null : await MulliganGuideSource.LoadGuideAsync(data, game.FormatType == "FT_WILD" ? "wild" : "standard", playerClass, deck.Cards, cards, cancellationToken).ConfigureAwait(false);
             var view = tracker.BuildView(game, cards);
             return view with { Mulligan = Mulligan.Build(game, cards, deck, meta, playerClass, guide) };
         }

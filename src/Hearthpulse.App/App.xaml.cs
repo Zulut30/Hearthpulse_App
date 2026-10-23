@@ -59,6 +59,7 @@ public partial class App : Application
     private MatchupAggregate? _matchupStats;
     private string? _renderDir;
     private ConstructedMeta? _constructedMeta;
+    private CancellationTokenSource? _constructedMetaCancel;
     private int _constructedMetaRequest;
     private BattlegroundsMeta? _meta;
     private UpdateInfo? _stagedUpdate;
@@ -386,17 +387,33 @@ public partial class App : Application
 
     private async Task LoadConstructedMetaAsync()
     {
-        // Filters can change while a download runs; only the latest request may update the page.
+        // Filters can change while a download runs; only the latest request may update the page, and an older one stops.
         var request = ++_constructedMetaRequest;
+        _constructedMetaCancel?.Cancel();
+        var cancel = _constructedMetaCancel = new CancellationTokenSource();
+        var done = false;
+
+        // The tier list shows as soon as it is in; the mulligan numbers (many more requests) follow with the full answer.
+        var tierList = new Progress<ConstructedMeta>(m =>
+        {
+            if (!done && request == _constructedMetaRequest)
+            {
+                _mainViewModel.SetConstructedMeta(m);
+            }
+        });
         try
         {
-            var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, _cards.Locale);
+            var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, _cards.Locale, tierList, cancel.Token);
+            done = true;
             if (request == _constructedMetaRequest)
             {
                 _constructedMeta = meta ?? _constructedMeta;
                 _mainViewModel.SetConstructedMeta(meta);
                 _session.SetConstructedMeta(_constructedMeta);
             }
+        }
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+        {
         }
         catch (Exception ex)
         {

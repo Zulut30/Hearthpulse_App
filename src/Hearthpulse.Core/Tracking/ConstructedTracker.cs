@@ -100,7 +100,7 @@ public sealed class ConstructedTracker : IPowerListener
 
         var playerClass = cards.Get(playerHero)?.CardClass ?? string.Empty;
         // Asked on every update so the lookup starts as soon as the deck is known, before the mulligan begins.
-        var guide = Deck is not null && game.IsConstructedLike ? Guide?.For(playerClass, Deck, game.FormatType) : null;
+        var guide = Deck is not null && game.IsConstructedLike ? Guide?.For(playerClass, Deck, game.FormatType, cards) : null;
         return new ConstructedView(
             ToPlayerTurn(game.Turn),
             Deck?.Name,

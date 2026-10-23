@@ -240,6 +240,7 @@ public static class MulliganGuide
         var view = new MulliganView(context, baseRate, rows, data.Source)
         {
             ReplaceDelta = replace,
+            CardBaseline = baseline,
             OpponentClass = classShift is null ? null : opponentClass,
             ClassShift = classShift,
             GoingFirst = initiativeShift is null ? null : goingFirst,
@@ -362,7 +363,7 @@ public static class MulliganGuide
     }
 
     private static MulliganCall Call(MulliganCardStat card, IReadOnlyList<int> recommended) =>
-        card.Delta is null && card.Copy == 1 ? MulliganCall.NoData
+        card.Delta is null ? MulliganCall.NoData
         : recommended.Contains(card.EntityId) ? MulliganCall.Keep
         : MulliganCall.Mulligan;
 

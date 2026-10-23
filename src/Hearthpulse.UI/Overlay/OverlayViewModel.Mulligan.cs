@@ -41,6 +41,7 @@ public sealed partial class OverlayViewModel
     private MulliganView? _mulligan;
     private string? _mulliganHand;
     private string? _mulliganPrint;
+    private bool _mulliganTouched;
     private readonly HashSet<int> _mulliganKept = new();
     private RelayCommand? _toggleMulliganCard;
 
@@ -75,6 +76,8 @@ public sealed partial class OverlayViewModel
             _mulliganKept.Add(id);
         }
 
+        _mulliganTouched = true;
+
         RebuildMulligan();
     });
 
@@ -89,11 +92,17 @@ public sealed partial class OverlayViewModel
             return;
         }
 
-        // A new hand (or a new source for it) starts from the recommendation; the player's clicks last until then.
-        var hand = mulligan.Context + "|" + string.Join(",", mulligan.Cards.Select(c => c.EntityId + c.CardId));
+        // A new hand starts from the recommendation. The player's clicks last for the whole hand, also when the numbers
+        // arrive from another source mid-mulligan; untouched keeps follow the newest recommendation.
+        var hand = string.Join(",", mulligan.Cards.Select(c => $"{c.EntityId}:{c.CardId}"));
         if (hand != _mulliganHand)
         {
             _mulliganHand = hand;
+            _mulliganTouched = false;
+        }
+
+        if (!_mulliganTouched && !_mulliganKept.SetEquals(mulligan.Recommended))
+        {
             _mulliganKept.Clear();
             _mulliganKept.UnionWith(mulligan.Recommended);
         }
@@ -109,8 +118,9 @@ public sealed partial class OverlayViewModel
         }
 
         // Snapshots arrive every 100 ms while anything changes; rebuild the plates only when what they show changed.
-        var print = $"{view.Context}|{view.Source}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{string.Join(",", _mulliganKept.Order())}|"
-                    + string.Join(";", view.Cards.Select(c => $"{c.EntityId}{c.CardId}{c.Call}{c.Delta:0.0000}{c.KeepRate:0.0000}"));
+        var print = $"{view.Context}|{view.Source}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|"
+                    + $"{string.Join(",", _mulliganKept.Order())}|"
+                    + string.Join(";", view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.KeepRate:0.0000}"));
         if (print == _mulliganPrint)
         {
             return;
@@ -148,7 +158,7 @@ public sealed partial class OverlayViewModel
                 c.KeepRate is { } keep ? $"kept {keep.ToString("P0", culture)}" : null,
             }.OfType<string>());
             var tooltip = c.WinRate is { } rate
-                ? $"{c.Name}: win rate {rate.ToString("P1", culture)} with the card in the opening hand, against {(view.BaseWinRate - (view.ClassShift ?? 0)).ToString("P1", culture)} for an average hand ({c.Sample.ToString("N0", culture)} offers). "
+                ? $"{c.Name}: win rate {rate.ToString("P1", culture)} with the card in the opening hand, against {view.CardBaseline.ToString("P1", culture)} for an average hand ({c.Sample.ToString("N0", culture)} offers). "
                   + $"Kept by {c.KeepRate?.ToString("P0", culture)} of players; usually played on turn {c.ExpectedTurn.ToString("0.#", culture)}. Click to mark it kept or replaced."
                 : $"{c.Name}: not enough games for numbers. Click to mark it kept or replaced.";
             return new MulliganPlate(

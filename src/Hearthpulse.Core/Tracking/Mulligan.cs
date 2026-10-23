@@ -30,6 +30,9 @@ public sealed record MulliganView(string Context, double BaseWinRate, IReadOnlyL
     /// <summary>What replacing a card is worth on average (win rate delta of a card drawn from the rest of the deck).</summary>
     public double ReplaceDelta { get; init; }
 
+    /// <summary>The average hand's win rate the card deltas are measured against (before the class and coin adjustments).</summary>
+    public double CardBaseline { get; init; }
+
     /// <summary>The class <see cref="BaseWinRate"/> was adjusted for; null when it was not.</summary>
     public string? OpponentClass { get; init; }
 
@@ -85,14 +88,15 @@ public static class Mulligan
             .GroupBy(c => c.Id!, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.Sum(c => c.Copies), StringComparer.Ordinal);
         var opponentClass = cards.Get(game.OpponentHero?.CardId)?.CardClass;
-        bool? goingFirst = game.LocalPlayerEntity?.GetString(GameTag.FirstPlayer) is { Length: > 0 } first ? first == "1" : null;
+        var goingFirst = GoingFirst(game, cards);
 
-        if (guide is not null)
+        // A guide that cannot compute (no win rates in its rows) leaves the meta to speak.
+        if (guide is not null && MulliganGuide.Compute(guide, offered, deckIds, opponentClass, goingFirst, guide.Name) is { } view)
         {
-            return MulliganGuide.Compute(guide, offered, deckIds, opponentClass, goingFirst, guide.Name);
+            return view;
         }
 
-        if (!FormatMatches(game.FormatType, meta!.Format) || FromMeta(meta, cards, playerClass, deckIds) is not { } fallback)
+        if (meta is null || !FormatMatches(game.FormatType, meta.Format) || FromMeta(meta, cards, playerClass, deckIds) is not { } fallback)
         {
             return null;
         }
@@ -148,6 +152,22 @@ public static class Mulligan
 
     private static GuideCard Card(MetaMulliganCard m, CardDb cards) =>
         new(m.CardId, cards.Get(m.CardId)?.DbfId ?? 0, cards.Get(m.CardId)?.Cost ?? 0, m.Drawn, m.KeepRate, m.InHand, m.InHand > 0 ? m.InHandWinRate : null, null);
+
+    /// <summary>
+    /// True going first, false on the coin, null when the log does not say yet. Only the first player is tagged
+    /// FIRST_PLAYER=1; the second is known by the opponent's tag or by the coin already in hand during the mulligan.
+    /// </summary>
+    internal static bool? GoingFirst(GameState game, CardDb cards)
+    {
+        if (game.LocalPlayerEntity?.GetString(GameTag.FirstPlayer) == "1")
+        {
+            return true;
+        }
+
+        var coin = cards.Get("GAME_005")?.Name;
+        var hasCoin = game.Controlled(game.LocalPlayerId, "HAND").Any(e => e.CardId == "GAME_005" || (coin is not null && e.CardId.Length > 0 && cards.Get(e.CardId)?.Name == coin));
+        return game.OpponentPlayerEntity?.GetString(GameTag.FirstPlayer) == "1" || hasCoin ? false : null;
+    }
 
     private static bool FormatMatches(string formatType, string metaFormat) => formatType switch
     {

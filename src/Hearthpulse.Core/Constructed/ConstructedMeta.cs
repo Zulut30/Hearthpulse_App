@@ -142,15 +142,20 @@ public sealed class ConstructedMeta
         ?? options.FirstOrDefault(o => key is not null && OldKeys.TryGetValue(key, out var renamed) && o.Key == renamed)
         ?? options[0];
 
-    /// <summary>Loads the stats from the Hearthpulse API (<see cref="ApiConstructedMeta"/>); null when it has nothing.</summary>
+    /// <summary>
+    /// Loads the stats from the Hearthpulse API (<see cref="ApiConstructedMeta"/>): empty when the slice has no
+    /// archetypes, null when it could not be loaded.
+    /// </summary>
     /// <param name="locale">The card language; "ruRU" shows Russian archetype names.</param>
-    public static Task<ConstructedMeta?> LoadAsync(Api.HearthpulseData data, Cards.CardDb cards, string? format, string? rank, string? period, string? locale, CancellationToken cancellationToken = default) =>
-        ApiConstructedMeta.LoadAsync(data, cards, Key(Formats, format), Key(Ranks, rank ?? "all"), Key(Periods, period ?? "past_week"), locale, cancellationToken);
+    /// <param name="tierList">Gets the tier list early, before the mulligan numbers are in.</param>
+    public static Task<ConstructedMeta?> LoadAsync(Api.HearthpulseData data, Cards.CardDb cards, string? format, string? rank, string? period, string? locale,
+        IProgress<ConstructedMeta>? tierList = null, CancellationToken cancellationToken = default) =>
+        ApiConstructedMeta.LoadAsync(data, cards, Key(Formats, format), Key(Ranks, rank ?? "all"), Key(Periods, period ?? "past_week"), locale, tierList, cancellationToken);
 
     /// <summary>
     /// Loads Firestone's stats (Firestone rank and period keys); when they cannot be had, <paramref name="fallback"/>
     /// supplies the archetypes (win rate and popularity, without decklists or mulligan data). Not called by the app since
-    /// Constructed moved to the Hearthpulse API (<see cref="LoadAsync(Api.HearthpulseData, Cards.CardDb, string?, string?, string?, string?, CancellationToken)"/>).
+    /// Constructed moved to the Hearthpulse API (<see cref="LoadAsync"/>).
     /// </summary>
     public static async Task<ConstructedMeta?> LoadFirestoneAsync(HttpClient http, string? format, string? rank, string? period, CancellationToken cancellationToken = default, Api.HearthpulseData? fallback = null)
     {
