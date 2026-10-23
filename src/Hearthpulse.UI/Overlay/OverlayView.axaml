@@ -229,20 +229,6 @@
             </Border>
         </DataTemplate>
 
-        <DataTemplate x:Key="MulliganTemplate" x:DataType="o:MulliganTile">
-            <Border Classes="overlayCard" Width="176" Margin="10,0" Padding="10,7" ToolTip.Tip="{Binding Name}">
-                <StackPanel>
-                    <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
-                    <Grid Margin="0,3,0,0">
-                        <TextBlock Text="{Binding Keep}" FontSize="13" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding Delta}" HorizontalAlignment="Right" Classes="number" FontSize="15"
-                                   Classes.good="{Binding Good}" Classes.bad="{Binding Bad}" />
-                    </Grid>
-                    <TextBlock Text="{Binding WinRate}" FontSize="11" Foreground="{StaticResource Muted}" IsVisible="{Binding WinRate, Converter={StaticResource Truthy}}" />
-                </StackPanel>
-            </Border>
-        </DataTemplate>
-
         <DataTemplate x:Key="TierTemplate" x:DataType="o:TierButton">
             <Button Classes="bare tierChip" Classes.current="{Binding IsCurrent}" Classes.selected="{Binding IsSelected}" Click="OnTierClick"
                     Margin="0,0,3,0" Focusable="False" ToolTip.Tip="Click to see this tier's minions in your lobby. Filled = your tavern tier.">
@@ -903,21 +889,7 @@
 
                 <!-- ============ Constructed: mulligan stats (under the offered cards) ============ -->
                 <o:MovablePanel Id="mulligan" Title="Mulligan stats" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,300">
-                    <StackPanel>
-                        <ItemsControl ItemsSource="{Binding MulliganCards}" ItemTemplate="{StaticResource MulliganTemplate}" HorizontalAlignment="Center">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-                        <Border Classes="overlayCard" HorizontalAlignment="Center" Padding="12,5" Margin="0,8,0,0">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding MulliganTitle}" FontSize="12" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding MulliganNote}" FontSize="11" Foreground="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
+                    <o:MulliganPanel />
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: slim top bar + minion browser (top-left) ============ -->

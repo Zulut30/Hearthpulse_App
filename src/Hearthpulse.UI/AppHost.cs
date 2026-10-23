@@ -56,6 +56,7 @@ public sealed class AppHost : IDisposable
         History = new HistoryStore(AppPaths.Database);
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
+        Session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(Api)));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
         _ = Account.RestoreAsync();
@@ -275,7 +276,7 @@ public sealed class AppHost : IDisposable
         try
         {
             // This app has no Constructed meta page yet; the stats still feed the in-game mulligan panel.
-            var constructed = await ConstructedMeta.LoadAsync(Http, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, fallback: new HearthpulseData(Api));
+            var constructed = await ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, Cards.Locale);
             if (constructed is not null)
             {
                 Session.SetConstructedMeta(constructed);

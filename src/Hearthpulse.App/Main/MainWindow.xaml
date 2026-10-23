@@ -731,7 +731,7 @@
                         <StackPanel Margin="40,0,40,120">
                             <TextBlock Text="Constructed" Style="{StaticResource Display}" />
                             <StackPanel Style="{StaticResource PageSubtitle}">
-                                <TextBlock Text="Your decks and matchups, plus the current meta from Firestone community data." Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
+                                <TextBlock Text="Your decks and matchups, plus the current meta — HearthPulse · HSGuru / HSReplay данные." Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
                             </StackPanel>
 
                             <ItemsControl ItemsSource="{Binding ConstructedTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}" Margin="0,0,-14,16" />

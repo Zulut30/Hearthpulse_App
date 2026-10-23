@@ -165,5 +165,3 @@ public sealed record CounterChip(string Id, string Title, string Value, double P
 /// <summary>A card strip in a counter's tooltip: art, name, count, and for a part of the goal whether it is done.</summary>
 public sealed record CounterTipCard(string CardId, string Name, string Count, bool IsPart, bool Done);
 
-/// <summary>Community mulligan numbers under one card of the opening hand.</summary>
-public sealed record MulliganTile(string CardId, string Name, string Keep, string WinRate, string Delta, bool Good, bool Bad, bool HasStats);

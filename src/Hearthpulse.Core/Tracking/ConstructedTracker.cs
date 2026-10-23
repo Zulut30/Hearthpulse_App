@@ -19,6 +19,9 @@ public sealed class ConstructedTracker : IPowerListener
     /// <summary>Community stats for the mulligan panel (the format and rank the player picked on the Constructed page).</summary>
     public ConstructedMeta? Meta { get; set; }
 
+    /// <summary>The Hearthpulse API mulligan guide (preferred over <see cref="Meta"/> when it knows the deck).</summary>
+    public MulliganGuideSource? Guide { get; set; }
+
     /// <summary>What each player did this game, for the counters; registered as a Power.log listener by the session.</summary>
     public Counters.CounterTracker Counters { get; } = new();
 
@@ -96,6 +99,8 @@ public sealed class ConstructedTracker : IPowerListener
             .ToList();
 
         var playerClass = cards.Get(playerHero)?.CardClass ?? string.Empty;
+        // Asked on every update so the lookup starts as soon as the deck is known, before the mulligan begins.
+        var guide = Deck is not null && game.IsConstructedLike ? Guide?.For(playerClass, Deck, game.FormatType, cards) : null;
         return new ConstructedView(
             ToPlayerTurn(game.Turn),
             Deck?.Name,
@@ -116,7 +121,7 @@ public sealed class ConstructedTracker : IPowerListener
             LocalRank,
             OpponentRank)
         {
-            Mulligan = Mulligan.Build(game, cards, Deck, Meta, playerClass),
+            Mulligan = Mulligan.Build(game, cards, Deck, Meta, playerClass, guide),
             Counters = Tracking.Counters.Counters.Build(game, Counters, cards, Deck),
         };
     }

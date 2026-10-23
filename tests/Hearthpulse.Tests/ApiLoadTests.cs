@@ -1,0 +1,303 @@
+using System.Net;
+using System.Text;
+using Hearthpulse.Core.Api;
+using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Tracking;
+using Xunit;
+
+namespace Hearthpulse.Tests;
+
+/// <summary>
+/// The loading paths over a fake server that answers with the real fixtures (Fixtures/Mulligan): the Constructed meta
+/// (tier list first, HSReplay and HSGuru mulligan numbers, expansion period, empty slice, Wild), the mulligan guide
+/// source (background lookup, Wild through HSGuru), the disk cache (404s remembered) and the meta fallback's class pool.
+/// The cache goes to a scratch folder.
+/// </summary>
+public sealed class ApiLoadTests : IDisposable
+{
+    private readonly string _cache = Path.Combine(Path.GetTempPath(), "hp-apiload-" + Guid.NewGuid().ToString("N"));
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_cache))
+        {
+            Directory.Delete(_cache, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Standard_meta_shows_the_tier_list_first_then_mulligan_from_hsreplay_and_hsguru()
+    {
+        var server = FixtureServer.Standard();
+        var early = new List<ConstructedMeta>();
+
+        var meta = await ConstructedMeta.LoadAsync(Data(server), CardDb.Empty, "standard", "legend", "past_week", "enUS", new Collect(early));
+
+        var first = Assert.Single(early);
+        Assert.Equal(20, first.Archetypes.Count);
+        Assert.All(first.Archetypes, a => Assert.Empty(a.Mulligan));
+
+        Assert.NotNull(meta);
+        Assert.Equal(ApiConstructedMeta.Attribution, meta.Source);
+        Assert.Equal(first.Archetypes.Select(a => a.Id).Order(), meta.Archetypes.Select(a => a.Id).Order());
+
+        var quest = meta.Archetypes.Single(a => a.Key == "Quest Priest");
+        Assert.Equal(56, quest.MulliganArchetypeId);
+        Assert.NotEmpty(quest.Mulligan);
+        Assert.Equal(MulliganGuide.Baseline(HearthpulseData.ParseMulligan(FixtureServer.Json("56-mulligan.json")))!.Value, quest.MulliganBaseline!.Value, 6);
+
+        // HSReplay has no C'Thun archetype: matched to Void Demon Hunter by its list's cards.
+        Assert.Equal(867, meta.Archetypes.Single(a => a.Key == "C'Thun DH").MulliganArchetypeId);
+
+        // HSReplay has no Zoolock: HSGuru's own analysis gives the numbers, with the class results as baseline.
+        var zoolock = meta.Archetypes.Single(a => a.Key == "Zoolock");
+        Assert.Null(zoolock.MulliganArchetypeId);
+        Assert.NotEmpty(zoolock.Mulligan);
+        var analysis = HearthpulseData.ParseHsguruAnalysis(FixtureServer.Json("hsguru-analysis-standard-zoolock.json").GetProperty("data"));
+        Assert.Equal(analysis.WinRate!.Value, zoolock.MulliganBaseline!.Value, 6);
+        Assert.All(zoolock.Mulligan, m => Assert.True(m.InHand >= MulliganGuide.MinSample && m.Drawn >= MulliganGuide.MinSample));
+        Assert.Equal(zoolock.Mulligan.OrderByDescending(m => m.InHandWinRate).Select(m => m.CardId), zoolock.Mulligan.Select(m => m.CardId));
+
+        // Lists and core cards: only archetypes in the HSGuru catalog have them.
+        Assert.Equal(3, meta.Decks.Count(d => d.ArchetypeId == quest.Id));
+        Assert.DoesNotContain(meta.Decks, d => d.Archetype == "Shredslock");
+    }
+
+    [Fact]
+    public async Task Expansion_and_patch_periods_resolve_through_a_first_slice()
+    {
+        var server = FixtureServer.Standard();
+
+        var meta = await ConstructedMeta.LoadAsync(Data(server), CardDb.Empty, "standard", "legend", "expansion", "enUS");
+
+        Assert.NotNull(meta);
+        Assert.Contains(server.Requests, r => r.Contains("v1/hsguru/meta", StringComparison.Ordinal) && r.Contains("period=past_day", StringComparison.Ordinal));
+        Assert.Contains(server.Requests, r => r.Contains("v1/hsguru/meta", StringComparison.Ordinal) && r.Contains("period=black_empire", StringComparison.Ordinal));
+        Assert.Equal("expansion", meta.Period);
+    }
+
+    [Fact]
+    public async Task An_empty_slice_is_an_empty_meta_and_a_failure_is_null()
+    {
+        var server = FixtureServer.Standard();
+        server.Route("rank=top_100", """{"data": {"items": []}, "meta": {"fetched_at": "2026-10-23T10:00:01Z"}}""");
+
+        var empty = await ConstructedMeta.LoadAsync(Data(server), CardDb.Empty, "standard", "top_100", "past_week", "enUS");
+        var failed = await ConstructedMeta.LoadAsync(Data(new FixtureServer()), CardDb.Empty, "standard", "legend", "past_week", "enUS");
+
+        Assert.NotNull(empty);
+        Assert.Empty(empty.Archetypes);
+        Assert.Null(failed);
+    }
+
+    [Fact]
+    public async Task Wild_meta_takes_its_mulligan_from_hsguru_and_classes_from_names()
+    {
+        var server = FixtureServer.Wild();
+
+        var meta = await ConstructedMeta.LoadAsync(Data(server), CardDb.Empty, "wild", "all", "past_week", "enUS");
+
+        Assert.NotNull(meta);
+        Assert.DoesNotContain(server.Requests, r => r.StartsWith("api/db/", StringComparison.Ordinal));
+        var yogg = meta.Archetypes.Single(a => a.Key == "Yogg Shaman");
+        Assert.NotEmpty(yogg.Mulligan);
+        Assert.NotNull(yogg.MulliganBaseline);
+        Assert.Equal("ROGUE", meta.Archetypes.Single(a => a.Key == "Mech Rogue").Class);
+        Assert.Equal("MAGE", meta.Archetypes.Single(a => a.Key == "XL Freeze Mage").Class);
+        Assert.Empty(meta.Archetypes.Single(a => a.Key == "Mech Rogue").Mulligan);
+    }
+
+    [Fact]
+    public async Task The_guide_for_a_wild_deck_comes_from_hsguru()
+    {
+        var server = FixtureServer.Wild();
+        var list = Assert.Single(HearthpulseData.ParseHsguruArchetypes(FixtureServer.Json("hsguru-archetypes-wild.json")), a => a.Name == "Yogg Shaman").Decks[0];
+        var deck = DeckString.TryDecode(list.Code)!;
+        var source = new MulliganGuideSource(Data(server));
+        var changed = new TaskCompletionSource();
+        source.Changed += () => changed.TrySetResult();
+
+        Assert.Null(source.For("SHAMAN", deck, "FT_WILD", CardDb.Empty));
+        await changed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var guide = source.For("SHAMAN", deck, "FT_WILD", CardDb.Empty);
+
+        Assert.NotNull(guide);
+        Assert.Equal("Yogg Shaman", guide.Name);
+        Assert.Equal(ApiConstructedMeta.HsguruMulliganSource, guide.Source);
+        Assert.NotNull(guide.BaselineWinRate);
+        Assert.Equal(11, guide.Matchups.Count);
+        Assert.Null(source.For("SHAMAN", deck, "FT_CLASSIC", CardDb.Empty));
+    }
+
+    [Fact]
+    public async Task The_guide_source_starts_over_for_another_deck_and_ignores_a_late_answer()
+    {
+        var server = FixtureServer.Standard();
+        var priestList = HearthpulseData.ParseArchetypeDecks(FixtureServer.Json("56-decks.json"))[0].Cards;
+        var deck = new DeckDefinition("Quest", 1, string.Empty, "Standard", [], priestList);
+        var other = deck with { Cards = new Dictionary<int, int>(priestList) { [1] = 1 } };
+        var source = new MulliganGuideSource(Data(server));
+        var changed = 0;
+        source.Changed += () => Interlocked.Increment(ref changed);
+
+        Assert.Null(source.For("PRIEST", deck, "FT_STANDARD", CardDb.Empty));
+        Assert.Null(source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty));
+
+        // Only the second deck's lookup may land.
+        for (var i = 0; i < 100 && source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty) is null; i++)
+        {
+            await Task.Delay(50);
+        }
+
+        Assert.Equal("Quest Priest", source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty)?.Name);
+        Assert.Equal(1, Volatile.Read(ref changed));
+    }
+
+    [Fact]
+    public async Task A_missing_answer_is_remembered_and_odd_periods_never_reach_the_server()
+    {
+        var server = new FixtureServer();
+        var data = Data(server);
+
+        Assert.Null(await data.LoadHsguruAnalysisAsync("Nobody", "standard"));
+        Assert.Null(await data.LoadHsguruAnalysisAsync("Nobody", "standard"));
+        Assert.Null(await data.LoadHsguruMetaAsync("standard", "legend", "../escape"));
+
+        Assert.Single(server.Requests);
+        Assert.DoesNotContain(Directory.EnumerateFiles(_cache), f => f.EndsWith(".tmp", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Hsguru_rows_go_to_the_reprint_the_deck_holds()
+    {
+        var cards = CardDb.Parse("enUS", new MemoryStream(Encoding.UTF8.GetBytes("""
+            [
+              {"id": "CS1_130", "dbfId": 279, "name": "Holy Smite", "cost": 1},
+              {"id": "CORE_CS1_130", "dbfId": 69636, "name": "Holy Smite", "cost": 1},
+              {"id": "EX1_197", "dbfId": 1361, "name": "Shadow Word: Ruin", "cost": 4}
+            ]
+            """)));
+        var analysis = new HsguruAnalysis(
+            [new HsguruCardStat("CS1_130", 279, 200, 120, 0.05, 0.02), new HsguruCardStat("EX1_197", 1361, 100, 10, null, -0.03)],
+            [new GuideMatchup("MAGE", 300, 0.5), new GuideMatchup("ROGUE", 100, 0.6)]);
+
+        var rows = ApiConstructedMeta.GuideCardsOf(analysis, cards, [69636]);
+
+        Assert.Equal(0.525, analysis.WinRate!.Value, 6);
+        var smite = Assert.Single(rows, r => r.CardId.EndsWith("CS1_130", StringComparison.Ordinal));
+        Assert.Equal("CORE_CS1_130", smite.CardId);
+        Assert.Equal(0.6, smite.KeepRate, 6);
+        Assert.Equal(0.575, smite.OpeningHandWinRate!.Value, 6);
+        Assert.Equal(1, smite.Cost);
+        Assert.Null(rows.Single(r => r.CardId == "EX1_197").OpeningHandWinRate);
+    }
+
+    [Fact]
+    public void The_class_pool_counts_a_shared_hsreplay_archetype_once_and_uses_its_baseline()
+    {
+        MetaArchetype Archetype(int id, string name, int? hsreplay, double baseline) =>
+            new(id, name, name, "PRIEST", 1000, 500, 0.6, 0.1, 0, 0, 0, 0, [], [new MetaMulliganCard("A", 100, 0.5, 80, baseline + 0.02)])
+            {
+                MulliganBaseline = baseline,
+                MulliganArchetypeId = hsreplay,
+            };
+        var meta = new ConstructedMeta("standard", "all", "past_week", DateTime.UtcNow, 3000,
+            [Archetype(1, "One", 56, 0.5), Archetype(2, "Two", 56, 0.5), Archetype(3, "Three", null, 0.48),
+             Archetype(4, "Empty", null, 0.5) with { Mulligan = [] }], []);
+
+        var pooled = Mulligan.FromMeta(meta, CardDb.Empty, "PRIEST", null);
+
+        Assert.NotNull(pooled);
+        Assert.Equal(200, pooled.Cards.Single().Offered);
+        Assert.Null(pooled.BaselineWinRate);
+        Assert.Equal(meta.Source, pooled.Source);
+    }
+
+    [Fact]
+    public void Neutral_lists_do_not_make_a_class()
+    {
+        var neutral = new HsguruDeck("x", "Neutral", 10, 0.5, DateTime.MinValue);
+
+        Assert.Null(ApiConstructedMeta.ClassOf("Odd Thing", [neutral]));
+        Assert.Equal("ROGUE", ApiConstructedMeta.ClassOf("Mech Rogue", [neutral]));
+    }
+
+    [Fact]
+    public void A_second_copy_without_data_says_so()
+    {
+        var guide = new GuideArchetype(1, "Test", "MAGE", [new GuideCard("A", 1, 1, 1000, 0.5, 1000, 0.5, 2)], [], "test");
+        var hand = new[] { new OfferedCard(1, "B", "B", 3), new OfferedCard(2, "B", "B", 3), new OfferedCard(3, "A", "A", 1) };
+
+        var view = MulliganGuide.Compute(guide, hand, null, null, null, "Test")!;
+
+        Assert.Equal(new[] { MulliganCall.NoData, MulliganCall.NoData }, view.Cards.Take(2).Select(c => c.Call));
+        Assert.Equal(0.5, view.CardBaseline, 6);
+    }
+
+    private HearthpulseData Data(FixtureServer server) => new(new HearthpulseApi(new HttpClient(server), "https://api.test/"), _cache);
+
+    private sealed class Collect(List<ConstructedMeta> into) : IProgress<ConstructedMeta>
+    {
+        public void Report(ConstructedMeta value) => into.Add(value);
+    }
+
+    /// <summary>Answers by path (and query fragments) with fixture files; anything else is a 404.</summary>
+    private sealed class FixtureServer : HttpMessageHandler
+    {
+        private readonly List<(string Fragment, string Body)> _routes = [];
+
+        public List<string> Requests { get; } = [];
+
+        public static System.Text.Json.JsonElement Json(string name)
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Mulligan", name)));
+            return doc.RootElement.Clone();
+        }
+
+        public static FixtureServer Standard()
+        {
+            var server = new FixtureServer();
+            server.Route("v1/hsguru/meta?format=standard", Fixture("hsguru-meta-standard-legend-past_week.json"));
+            server.Route("v1/hsguru/archetypes?format=standard", "{\"data\": " + Fixture("hsguru-archetypes-standard.json") + "}");
+            server.Route("analysis?archetype=Zoolock&format=standard", Fixture("hsguru-analysis-standard-zoolock.json"));
+            server.Route("api/db/archetypes?", Fixture("archetypes.json"));
+            foreach (var id in new[] { 56, 396, 826, 852, 867, 880 })
+            {
+                server.Route($"api/db/archetypes/{id}/decks", Fixture($"{id}-decks.json"));
+                server.Route($"api/db/archetypes/{id}/mulligan", Fixture($"{id}-mulligan.json"));
+                server.Route($"api/db/archetypes/{id}/matchups", Fixture($"{id}-matchups.json"));
+            }
+
+            return server;
+        }
+
+        public static FixtureServer Wild()
+        {
+            var server = new FixtureServer();
+            server.Route("v1/hsguru/meta?format=wild", Fixture("hsguru-meta-wild-all-past_week.json"));
+            server.Route("v1/hsguru/archetypes?format=wild", "{\"data\": " + Fixture("hsguru-archetypes-wild.json") + "}");
+            server.Route("analysis?archetype=Yogg%20Shaman&format=wild", Fixture("hsguru-analysis-wild-yogg-shaman.json"));
+            return server;
+        }
+
+        /// <summary>Later routes win, so a test can override a fixture.</summary>
+        public void Route(string fragment, string body) => _routes.Insert(0, (fragment, body));
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var path = request.RequestUri!.PathAndQuery.TrimStart('/');
+            lock (Requests)
+            {
+                Requests.Add(path);
+            }
+
+            var route = _routes.FirstOrDefault(r => path.Contains(r.Fragment, StringComparison.Ordinal));
+            return Task.FromResult(route.Body is null
+                ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{\"detail\": \"Not Found\"}", Encoding.UTF8, "application/json") }
+                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(route.Body, Encoding.UTF8, "application/json") });
+        }
+
+        private static string Fixture(string name) => System.IO.File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Mulligan", name));
+    }
+}
