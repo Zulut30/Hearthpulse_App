@@ -23,6 +23,36 @@ internal static class TestDataFolder
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Delete();
     }
 
+    /// <summary>
+    /// hearthpulse.log (with its rotated part) as the tests left it so far. Read with every sharing allowed: a plain
+    /// File.ReadAllText locks out Diag writing from a test running in parallel, and Diag drops that line.
+    /// </summary>
+    public static string ReadLog()
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                var text = new System.Text.StringBuilder();
+                foreach (var path in new[] { System.IO.Path.ChangeExtension(AppPaths.LogFile, ".old.log"), AppPaths.LogFile })
+                {
+                    if (File.Exists(path))
+                    {
+                        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                        using var reader = new StreamReader(stream);
+                        text.Append(reader.ReadToEnd());
+                    }
+                }
+
+                return text.ToString();
+            }
+            catch (IOException) when (attempt < 20)
+            {
+                Thread.Sleep(25);
+            }
+        }
+    }
+
     private static void Delete()
     {
         try

@@ -62,7 +62,7 @@ public sealed class PowerBatchTests
         Assert.Equal("OverflowException ×2", errors.ByType);
         // The rest of the batch was still read.
         Assert.Equal(7, run.Session.Current.Battlegrounds!.Opponents.Count);
-        var log = File.ReadAllText(Hearthpulse.Core.AppPaths.LogFile);
+        var log = TestDataFolder.ReadLog();
         Assert.Contains("(first OverflowException): " + bad[..60], log);
         Assert.Contains("at Hearthpulse.Core.Power.PowerParser", log);
     }

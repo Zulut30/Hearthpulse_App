@@ -29,7 +29,7 @@ public sealed class CrashLogTests
             Assert.False(CrashLog.Record("UI error " + marker, Thrown("again")));
         }
 
-        var lines = File.ReadAllLines(AppPaths.LogFile).Where(l => l.Contains(marker, StringComparison.Ordinal)).ToList();
+        var lines = TestDataFolder.ReadLog().Split('\n').Where(l => l.Contains(marker, StringComparison.Ordinal)).ToList();
         // The first three with their stack, then the hundredth.
         Assert.Equal(4, lines.Count);
         Assert.Contains("seen 100 times", lines[^1]);
@@ -51,11 +51,11 @@ public sealed class CrashLogTests
         failing.Forget("Test task");
         await Assert.ThrowsAsync<InvalidOperationException>(() => failing);
         // The continuation runs synchronously with the task's completion; give the log write a moment.
-        for (var i = 0; i < 50 && !File.ReadAllText(AppPaths.LogFile).Contains(marker, StringComparison.Ordinal); i++)
+        for (var i = 0; i < 50 && !TestDataFolder.ReadLog().Contains(marker, StringComparison.Ordinal); i++)
         {
             await Task.Delay(20);
         }
 
-        Assert.Contains($"Test task failed: System.InvalidOperationException: {marker}", File.ReadAllText(AppPaths.LogFile));
+        Assert.Contains($"Test task failed: System.InvalidOperationException: {marker}", TestDataFolder.ReadLog());
     }
 }

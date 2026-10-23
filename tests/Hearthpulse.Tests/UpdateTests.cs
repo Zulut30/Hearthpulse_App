@@ -128,7 +128,7 @@ public sealed class UpdateTests
         Assert.Equal(UpdateCheckOutcome.Failed, check.Outcome);
         Assert.Null(check.Update);
         Assert.Contains(expected, check.Message);
-        Assert.Contains($"Update check: GitHub answered {expected}", File.ReadAllText(AppPaths.LogFile));
+        Assert.Contains($"Update check: GitHub answered {expected}", TestDataFolder.ReadLog());
     }
 
     [Fact]
