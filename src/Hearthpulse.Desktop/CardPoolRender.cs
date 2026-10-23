@@ -19,7 +19,9 @@ internal static class CardPoolRender
     {
         var catalog = await CardPoolCatalog.LoadAsync(host.Api, host.Http);
         var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(host.Api), host.Cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, host.Cards.Locale);
-        var engine = new CardPoolEngine(catalog.WithRaces(host.Cards), host.Cards, CardPoolEngine.MetaGames(meta, host.Cards));
+        var wiki = new WikiPoolSource(new HearthpulseData(host.Api));
+        await wiki.LoadAsync("BE_298");
+        var engine = new CardPoolEngine(catalog.WithRaces(host.Cards), host.Cards, CardPoolEngine.MetaGames(meta, host.Cards), wiki);
         if (engine.Build("CORE_GIL_836", new PoolContext("FT_STANDARD", "SHAMAN", "WARRIOR"), PoolTrigger.Choice) is not { } pool
             || engine.Build("JAIL_706", new PoolContext("FT_STANDARD", "ROGUE", "WARRIOR"), PoolTrigger.Request) is not { } browse)
         {
@@ -41,6 +43,14 @@ internal static class CardPoolRender
             {
                 Show(extra);
                 await save(Path.Combine(folder, name));
+                if (extra.Sections.Count > 1)
+                {
+                    // The browser with the wiki's second pool (Frost Rune) picked.
+                    host.Overlay.OpenCardPoolBrowser.Execute(null);
+                    host.Overlay.ToggleCardPoolSection.Execute(extra.Sections[1].Label);
+                    await SaveBrowserAsync(Path.Combine(folder, "overlay-card-pool-sections.png"));
+                    host.Overlay.CloseCardPoolBrowser.Execute(null);
+                }
             }
         }
 

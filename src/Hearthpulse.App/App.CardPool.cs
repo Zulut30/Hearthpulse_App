@@ -43,7 +43,9 @@ public partial class App
     private async Task RenderCardPoolAsync(string folder)
     {
         var catalog = await CardPoolCatalog.LoadAsync(_api, _http);
-        var engine = new CardPoolEngine(catalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructedMeta, _cards));
+        var wiki = new WikiPoolSource(new Core.Api.HearthpulseData(_api));
+        await wiki.LoadAsync("BE_298");
+        var engine = new CardPoolEngine(catalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructedMeta, _cards), wiki);
         if (engine.Build("CORE_GIL_836", new PoolContext("FT_STANDARD", "SHAMAN", "WARRIOR"), PoolTrigger.Choice) is not { } pool
             || engine.Build("JAIL_706", new PoolContext("FT_STANDARD", "ROGUE", "WARRIOR"), PoolTrigger.Request) is not { } browse)
         {
@@ -65,6 +67,14 @@ public partial class App
             {
                 Show(extra);
                 await _overlay.RenderToFileAsync(Path.Combine(folder, name), 1920, 1080, 0);
+                if (extra.Sections.Count > 1)
+                {
+                    // The browser with the wiki's second pool (Frost Rune) picked.
+                    _overlayViewModel.OpenCardPoolBrowser.Execute(null);
+                    _overlayViewModel.ToggleCardPoolSection.Execute(extra.Sections[1].Label);
+                    await RenderBrowserAsync(Path.Combine(folder, "overlay-card-pool-sections.png"));
+                    _overlayViewModel.CloseCardPoolBrowser.Execute(null);
+                }
             }
         }
 

@@ -34,6 +34,18 @@ Cached as a compact list in `%APPDATA%\Hearthpulse\cache\api\card-pool.json`, re
 used while the API is down. **Fallback**: HearthstoneJSON `cards.collectible.json` (enUS), Standard decided by
 `CardPoolTables.StandardSets`.
 
+**Pools first from Hearthstone Wiki** (2026-10-23): `GET /api/v1/constructed-cards/{card_id}/wiki` ->
+`data.generated_card_pools[] {pool, cards[{card_id}] | card_ids[], query_url}` (`WikiPools.Parse`, cache
+`cache/api/card-wiki-{id}.json`, 6 h). `WikiPoolSource` loads a card on demand in the background (the first hover, play
+or choice; the deck's generators are asked for when the deck is known) and the overlay rebuilds the pool when it
+arrives. Order in `CardPoolEngine.Build`: wiki pools -> the card text -> "Pool not computed". Wiki pools are Standard
+queries for one class (`query_url` `options_format`, `options_heroClasses`): not used in Wild or for another class (a
+stolen generator). Several pools (Scion of Insight: Blood 29, Frost 21, Unholy 33) become sections: chips on the
+compact panel, clickable in the browser (one section's cards); the stats count every card once. The page is read now
+and then, so a wiki list that the card text finds whole and more of is older (Hematurge: 23 of 29 on 2026-10-12, the
+newest set missing): the text pool is shown, with that note as the source. The panel names its source ("pool:
+Hearthstone Wiki" / "pool: card text").
+
 The panel's highlighted card is the pool card played in the most meta-deck games (`ConstructedMeta.Decks`, sum of
 `Games` over decks that run it). No per-card win rate is public on the API (`/v1/meta-intelligence/cards` needs a
 token), so there is no "strongest card" rule; without meta data no card is highlighted.
