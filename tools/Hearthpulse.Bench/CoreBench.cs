@@ -8,6 +8,7 @@ using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.Core.Tracking;
 using static Hearthpulse.Bench.Measure;
 
 namespace Hearthpulse.Bench;
@@ -84,6 +85,55 @@ internal static class CoreBench
             Console.WriteLine($"[replay r{round}] publish {publish.Count:N0}: {Spread(publish)}; alloc {Mb(publishAlloc)} ({publishAlloc / Math.Max(1, publish.Count) / 1024} KB/publish)");
             Console.WriteLine($"[replay r{round}] GCs gen0 {GC.CollectionCount(0) - gen0}, gen1 {GC.CollectionCount(1) - gen1}, gen2 {GC.CollectionCount(2) - gen2}");
         }
+    }
+
+    /// <summary>
+    /// Log time during which the card under the mouse would be read from the game: before (every Constructed game with a
+    /// supported pool context, every 200 ms) and now (<see cref="GameSession.HoverReadsWanted"/>, every 250 ms).
+    /// Memory is never read here.
+    /// </summary>
+    public static void Hover(Options options)
+    {
+        using var http = Http();
+        var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
+        var catalog = CardPoolCatalog.LoadAsync(new HearthpulseApi(http), http).GetAwaiter().GetResult();
+        TimeSpan inGame = default, before = default, now = default;
+        foreach (var (dir, path, start) in LogReplay.Logs(options.Logs))
+        {
+            var (session, setClock, db) = LogReplay.NewSession(cards);
+            session.SetCardPoolCatalog(catalog);
+            DateTime clock = default, last = default;
+            LogReplay.Run(session, t =>
+            {
+                setClock(t);
+                clock = t;
+            }, dir, path, start, onTick: tick =>
+            {
+                var step = last == default ? TimeSpan.Zero : clock - last;
+                last = clock;
+                if (session.Current.Constructed is not null && session.Game is { } game)
+                {
+                    inGame += step;
+                    if (CardPoolTracker.ContextOf(game, cards).IsSupported)
+                    {
+                        before += step;
+                    }
+
+                    if (session.HoverReadsWanted)
+                    {
+                        now += step;
+                    }
+                }
+
+                tick();
+            });
+            LogReplay.Delete(db);
+        }
+
+        var readsBefore = before.TotalMilliseconds / 200;
+        var readsNow = now.TotalMilliseconds / GameSession.HoverInterval.TotalMilliseconds;
+        Console.WriteLine($"[hover] Constructed game time {inGame.TotalMinutes:N1} min; card-under-mouse reads on before {before.TotalMinutes:N1} min, now {now.TotalMinutes:N1} min");
+        Console.WriteLine($"[hover] reads before {readsBefore:N0} ({readsBefore / Math.Max(1, inGame.TotalMinutes):N0}/min), now {readsNow:N0} ({readsNow / Math.Max(1, inGame.TotalMinutes):N0}/min): {100 - (100 * readsNow / Math.Max(1, readsBefore)):N0}% fewer");
     }
 
     public static void History(Options options)

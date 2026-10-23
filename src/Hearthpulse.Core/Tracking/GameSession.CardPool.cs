@@ -7,7 +7,8 @@ namespace Hearthpulse.Core.Tracking;
 /// <summary>The card pool panel: which generator's pool to show (see <see cref="CardPoolTracker"/>).</summary>
 public sealed partial class GameSession
 {
-    private static readonly TimeSpan HoverInterval = TimeSpan.FromMilliseconds(200);
+    /// <summary>How often the card under the mouse is read while it can matter; a hover usually lasts well over 300 ms.</summary>
+    internal static readonly TimeSpan HoverInterval = TimeSpan.FromMilliseconds(250);
 
     private static readonly TimeSpan HoverIdle = TimeSpan.FromSeconds(10);
 
@@ -20,6 +21,9 @@ public sealed partial class GameSession
     private volatile bool _cardPoolEnabled = true;
     private volatile bool _cardPoolHoverWanted;
     private Thread? _hoverThread;
+
+    /// <summary>Whether the card under the mouse is being read from the game now; internal for tests and the bench.</summary>
+    internal bool HoverReadsWanted => _cardPoolHoverWanted;
 
     /// <summary>The collectible card catalog pools are cut from; the host passes it after loading.</summary>
     public void SetCardPoolCatalog(CardPoolCatalog catalog)
@@ -78,10 +82,12 @@ public sealed partial class GameSession
     /// <summary>Adds the current pool to a Constructed view; called while publishing.</summary>
     private ConstructedView WithCardPool(ConstructedView view, GameState game)
     {
-        // Memory is read only when a pool can be shown: setting on, catalog loaded, a mode and format with a known pool.
+        // Memory is read only when a hover can show a pool: setting on, catalog loaded, a mode and format with a known
+        // pool, and a card with a pool in your hand.
         var engine = _cardPoolEnabled ? CardPoolEngineNow() : null;
         _cardPoolHoverWanted = engine is not null && HearthstoneMemory.IsSupported
-                               && CardPoolTracker.ContextOf(game, _cards).IsSupported;
+                               && CardPoolTracker.ContextOf(game, _cards).IsSupported
+                               && _cardPool.HandHasPool(game, _cards);
         if (_cardPoolHoverWanted)
         {
             EnsureHoverThread();

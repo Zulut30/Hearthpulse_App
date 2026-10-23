@@ -164,6 +164,23 @@ public partial class OverlayView : UserControl
         vm.HoverLeaderboard(LeaderboardSlotAt(x, y), top, left);
     }
 
+    /// <summary>
+    /// Whether the game should be asked which leaderboard hero is under <paramref name="pointer"/>: Battlegrounds with
+    /// opponent boards on, and the pointer in the left part of the window where Hearthstone draws the leaderboard
+    /// (generous: the hero is read from the game precisely because the tile boxes may not be lined up).
+    /// </summary>
+    public bool WantsLeaderboardHero(Point? pointer)
+    {
+        if (_viewModel is not { } vm || pointer is not { } p || !vm.ShowBattlegrounds || !Settings.ShowOpponentBoards || vm.LayoutEditing)
+        {
+            return false;
+        }
+
+        var units = Surface.Height;
+        var x = p.X / _scale;
+        return x >= 0 && x <= LeaderboardLeft() + Math.Max(Settings.LeaderboardWidth * units * 2, units * 0.2);
+    }
+
     /// <summary>Shows the popup for one leaderboard place (off-screen rendering).</summary>
     public void ShowLeaderboardSlot(int slot)
     {

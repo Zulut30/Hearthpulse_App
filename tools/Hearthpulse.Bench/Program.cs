@@ -15,6 +15,7 @@ internal static class Program
           cards     load the card database: time, allocations, live heap, LOH
           replay    replay kept Power logs through GameSession: parse and publish timings, allocations
           overlay   replay snapshots into the WPF OverlayViewModel: PropertyChanged per property, same-content share
+          hover     replay: game time during which the card under the mouse is read from the game, before and now
           history   history store and My Stats queries on 1 000 / 5 000 (/ --games) synthetic games
           startup   WPF start-up steps up to the first rendered main window
           ram       working set step by step (cards, meta, window, every page and tab), image cache bytes, page times
@@ -54,6 +55,9 @@ internal static class Program
                 break;
             case "history":
                 CoreBench.History(options);
+                break;
+            case "hover":
+                CoreBench.Hover(options);
                 break;
             case "startup":
                 WpfBench.Startup();

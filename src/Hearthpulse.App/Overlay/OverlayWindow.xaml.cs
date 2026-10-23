@@ -295,12 +295,20 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        PollHoveredHero();
-
         // Work in overlay units: the surface is Surface.Width x Surface.Height and scales with the client height.
         var x = (cursor.X - r.Left) / _dpi / _scale;
         var y = (cursor.Y - r.Top) / _dpi / _scale;
         var units = Surface.Height;
+
+        // The game is asked only while the mouse is near the leaderboard; elsewhere it answers nothing anyway.
+        if (NearLeaderboard(x))
+        {
+            PollHoveredHero();
+        }
+        else
+        {
+            _memoryHover = null;
+        }
         var left = LeaderboardLeft() + ((_settings.LeaderboardWidth + 0.012) * units);
         var top = Math.Clamp(y - 40, 8, Math.Max(8, units - 240));
 
@@ -314,7 +322,17 @@ public partial class OverlayWindow : Window
         ViewModel.HoverLeaderboard(slot, top, left);
     }
 
-    /// <summary>Starts a background read of the hovered leaderboard hero, at most ~10 times a second.</summary>
+    /// <summary>
+    /// Whether an overlay x is in the left part of the window where Hearthstone draws the leaderboard. Generous: the
+    /// hero is read from the game precisely because the tile boxes may not be lined up.
+    /// </summary>
+    private bool NearLeaderboard(double x)
+    {
+        var units = Surface.Height;
+        return x >= 0 && x <= LeaderboardLeft() + Math.Max(_settings.LeaderboardWidth * units * 2, units * 0.2);
+    }
+
+    /// <summary>Starts a background read of the hovered leaderboard hero, at most four times a second.</summary>
     private void PollHoveredHero()
     {
         var provider = HoveredHero;
@@ -324,7 +342,7 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        _nextHoverRead = now.AddMilliseconds(90);
+        _nextHoverRead = now.AddMilliseconds(250);
         Task.Run(() =>
         {
             try

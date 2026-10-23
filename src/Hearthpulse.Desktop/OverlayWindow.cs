@@ -132,12 +132,21 @@ internal sealed class OverlayWindow : Window
             _view.HidePreview();
         }
 
-        PollHoveredHero();
+        // The game is asked only in Battlegrounds, with opponent boards on and the pointer near the leaderboard.
+        if (_view.WantsLeaderboardHero(local))
+        {
+            PollHoveredHero();
+        }
+        else
+        {
+            _memoryHover = null;
+        }
+
         _view.UpdateLeaderboardHover(local, _memoryHover);
         _view.UpdateCardPoolPointer(local, _platform.MouseButtons());
     }
 
-    /// <summary>Reads the hovered leaderboard hero from the game (Windows memory reader) at most ~10 times a second.</summary>
+    /// <summary>Reads the hovered leaderboard hero from the game (Windows memory reader) at most four times a second.</summary>
     private void PollHoveredHero()
     {
         var memory = _host.Memory;
@@ -152,7 +161,7 @@ internal sealed class OverlayWindow : Window
             return;
         }
 
-        _nextHoverRead = now.AddMilliseconds(90);
+        _nextHoverRead = now.AddMilliseconds(250);
         Task.Run(() =>
         {
             try

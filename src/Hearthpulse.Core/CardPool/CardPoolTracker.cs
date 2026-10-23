@@ -161,6 +161,29 @@ public sealed class CardPoolTracker : IPowerListener
         }
     }
 
+    /// <summary>
+    /// Whether a card in your hand has a pool the overlay would show on hover. Only then is the card under the mouse worth
+    /// reading from the game (a Discover choice comes from the log).
+    /// </summary>
+    public bool HandHasPool(GameState game, CardDb cards)
+    {
+        if (Engine is not { } engine || game.IsBattlegrounds)
+        {
+            return false;
+        }
+
+        var context = ContextOf(game, cards);
+        foreach (var card in game.Controlled(game.LocalPlayerId, "HAND"))
+        {
+            if (card.CardId.Length > 0 && engine.Build(card.CardId, context, PoolTrigger.Hover) is not null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>The pool to show now, or null.</summary>
     /// <param name="now">Local time, compared with log timestamps for the "just played" pool.</param>
     public CardPoolView? BuildView(GameState game, CardDb cards, DateTime now)
