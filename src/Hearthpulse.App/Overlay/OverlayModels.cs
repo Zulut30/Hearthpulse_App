@@ -129,6 +129,22 @@ public sealed record CounterChip(string Id, string Title, string Value, double P
 
     public bool HasBar => HasProgress && Segments.Count == 0;
 
+    /// <summary>
+    /// Value equality that also compares the lists (a record compares them by reference). The overlay builds new chips
+    /// on every snapshot; equal content must not count as a change, or every counter chip is rebuilt ten times a second.
+    /// </summary>
+    public bool Equals(CounterChip? other) =>
+        ReferenceEquals(this, other)
+        || (other is not null
+            && Id == other.Id && Title == other.Title && Value == other.Value && Progress.Equals(other.Progress)
+            && HasProgress == other.HasProgress && IconCardId == other.IconCardId && Tooltip == other.Tooltip
+            && Expanded == other.Expanded && Description == other.Description
+            && MoreCounted == other.MoreCounted && MoreRelated == other.MoreRelated
+            && Details.SequenceEqual(other.Details) && Segments.SequenceEqual(other.Segments)
+            && Parts.SequenceEqual(other.Parts) && Counted.SequenceEqual(other.Counted) && Related.SequenceEqual(other.Related));
+
+    public override int GetHashCode() => HashCode.Combine(Id, Value, Progress, Expanded, Tooltip);
+
     public static CounterChip From(Hearthpulse.Core.Tracking.Counters.CounterView c, bool expanded)
     {
         var segments = c is { Goal: > 0 and <= MaxSegments, Progress: { } progress }
