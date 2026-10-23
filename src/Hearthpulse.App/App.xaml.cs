@@ -147,7 +147,9 @@ public partial class App : Application
         _ = _account.RestoreAsync();
         _overlayViewModel = new OverlayViewModel();
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
+        _session.SetCardPoolEnabled(_settings.ShowCardPool);
         _overlayViewModel.PinRequested += OnPinRequested;
+        _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
         _overlayViewModel.CounterModeRequested += (id, mode) =>
         {
             _mainViewModel.ApplyCounterMode(id, mode);
@@ -282,6 +284,7 @@ public partial class App : Application
 
             _session.Cards = _cards;
             _mainViewModel.SetCards(_cards);
+            _ = LoadCardPoolAsync();
 
             if (!_settings.HistoryImported || !_settings.HistoryStatsFilled)
             {
@@ -648,6 +651,8 @@ public partial class App : Application
         }
 
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
+        _session.SetCardPoolEnabled(_settings.ShowCardPool);
+        _ = LoadCardPoolAsync();
         _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
         Autostart.Apply(_settings.StartWithWindows);
     }

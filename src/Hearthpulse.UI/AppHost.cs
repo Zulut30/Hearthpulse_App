@@ -23,7 +23,7 @@ namespace Hearthpulse.UI;
 /// Everything the app does apart from its windows: settings, history, the live log pipeline, card data and community
 /// stats, and the two view models. Desktop and mobile shells host one of these.
 /// </summary>
-public sealed class AppHost : IDisposable
+public sealed partial class AppHost : IDisposable
 {
     private readonly DispatcherTimer _historyDebounce;
     private readonly DispatcherTimer _settingsDebounce;
@@ -62,7 +62,9 @@ public sealed class AppHost : IDisposable
         _ = Account.RestoreAsync();
         Overlay = new OverlayViewModel();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
+        Session.SetCardPoolEnabled(Settings.ShowCardPool);
         Overlay.PinRequested += OnPinRequested;
+        Overlay.CardPoolBrowserResized += OnSettingsChanged;
         Overlay.CounterModeRequested += (id, mode) =>
         {
             Main.ApplyCounterMode(id, mode);
@@ -167,6 +169,7 @@ public sealed class AppHost : IDisposable
 
             Session.Cards = Cards;
             Main.SetCards(Cards);
+            _ = LoadCardPoolAsync();
 
             if (!Settings.HistoryImported || !Settings.HistoryStatsFilled)
             {
@@ -323,6 +326,8 @@ public sealed class AppHost : IDisposable
         _settingsDebounce.Stop();
         _settingsDebounce.Start();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
+        Session.SetCardPoolEnabled(Settings.ShowCardPool);
+        _ = LoadCardPoolAsync();
         RefreshOverlay();
         ApplyAutostart?.Invoke(Settings.StartWithWindows);
     }

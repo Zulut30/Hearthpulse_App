@@ -1,0 +1,326 @@
+using System.Globalization;
+using Hearthpulse.UI.Infrastructure;
+using Hearthpulse.Core;
+using Hearthpulse.Core.CardPool;
+using Hearthpulse.Core.Tracking;
+
+namespace Hearthpulse.UI.Overlay;
+
+/// <summary>One histogram of the card pool panel (Cost, Attack or Health; the view picks the colour).</summary>
+public sealed record PoolHistogramModel(string Title, IReadOnlyList<PoolBarModel> Bars, string MedianText)
+{
+    public bool IsAttack => Title == "Attack";
+
+    public bool IsHealth => Title == "Health";
+}
+
+/// <param name="Height">Bar height in overlay units.</param>
+public sealed record PoolBarModel(string Label, int Count, double Height, bool IsMedian)
+{
+    public string ToolTip => $"{Label}: {Count}";
+}
+
+/// <summary>A mechanic filter chip of the pool browser.</summary>
+public sealed record PoolChipModel(string Key, string Label, bool Selected);
+
+/// <summary>One row of the pool browser's card grid (up to three cards).</summary>
+public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards);
+
+/// <summary>
+/// The card pool: a compact panel (pool of the generator being discovered from, hovered or just played) and the pool
+/// browser, a full-height side panel with every card, opened by right-click on the compact panel or by
+/// <see cref="GameSession.ShowCardPool"/>.
+/// </summary>
+public sealed partial class OverlayViewModel
+{
+    private const double BarMaxHeight = 34;
+
+    private bool _showCardPool;
+    private CardPoolView? _cardPool;
+    private string _cardPoolTitle = string.Empty;
+    private string _cardPoolSource = string.Empty;
+    private string _cardPoolDescription = string.Empty;
+    private IReadOnlyList<PoolHistogramModel> _cardPoolHistograms = [];
+    private IReadOnlyList<PoolMechanic> _cardPoolMechanics = [];
+    private PoolEntry? _cardPoolFeatured;
+    private string _cardPoolFeaturedNote = string.Empty;
+    private bool _cardPoolHeld;
+    private ConstructedView? _cardPoolView;
+    private AppSettings? _cardPoolSettings;
+
+    private bool _cardPoolBrowserOpen;
+    private bool _cardPoolFiltersOpen;
+    private string _cardPoolBrowserTitle = string.Empty;
+    private string _cardPoolBrowserNote = string.Empty;
+    private IReadOnlyList<PoolChipModel> _cardPoolFilterChips = [];
+    private IReadOnlyList<PoolCardRowModel> _cardPoolBrowserRows = [];
+    private double _cardPoolBrowserWidth = AppSettings.DefaultCardPoolBrowserWidth;
+    private readonly HashSet<string> _cardPoolSelected = new(StringComparer.Ordinal);
+    private string _cardPoolBrowserKey = string.Empty;
+    private string? _lastRequestedPool;
+    private int _cardPoolBrowserTurn;
+    private RelayCommand? _openCardPoolBrowser;
+    private RelayCommand? _closeCardPoolBrowser;
+    private RelayCommand? _toggleCardPoolFilters;
+    private RelayCommand? _toggleCardPoolMechanic;
+
+    /// <summary>The player resized the pool browser (its width is stored in the settings).</summary>
+    public event Action? CardPoolBrowserResized;
+
+    public bool ShowCardPool
+    {
+        get => _showCardPool;
+        private set
+        {
+            if (Set(ref _showCardPool, value))
+            {
+                Raise(nameof(ShowCardPoolPanel));
+            }
+        }
+    }
+
+    /// <summary>The compact panel: hidden while the browser (which repeats its header) is open, so they never overlap.</summary>
+    public bool ShowCardPoolPanel => ShowCardPool && !CardPoolBrowserOpen;
+
+    /// <summary>"Pool of 136 cards".</summary>
+    public string CardPoolTitle { get => _cardPoolTitle; private set => Set(ref _cardPoolTitle, value); }
+
+    /// <summary>The generator's name.</summary>
+    public string CardPoolSource { get => _cardPoolSource; private set => Set(ref _cardPoolSource, value); }
+
+    /// <summary>What the pool is: "Discover a Battlecry minion · Shaman + Neutral · Standard".</summary>
+    public string CardPoolDescription { get => _cardPoolDescription; private set => Set(ref _cardPoolDescription, value); }
+
+    public IReadOnlyList<PoolHistogramModel> CardPoolHistograms { get => _cardPoolHistograms; private set => Set(ref _cardPoolHistograms, value); }
+
+    public IReadOnlyList<PoolMechanic> CardPoolMechanics { get => _cardPoolMechanics; private set => Set(ref _cardPoolMechanics, value); }
+
+    /// <summary>The highlighted pool card (most played in meta decks), or null.</summary>
+    public PoolEntry? CardPoolFeatured { get => _cardPoolFeatured; private set => Set(ref _cardPoolFeatured, value); }
+
+    public string CardPoolFeaturedNote { get => _cardPoolFeaturedNote; private set => Set(ref _cardPoolFeaturedNote, value); }
+
+    /// <summary>The mouse is over a pool panel: keep showing the current pool while the player reads or clicks it.</summary>
+    public bool CardPoolHeld
+    {
+        get => _cardPoolHeld;
+        set
+        {
+            if (Set(ref _cardPoolHeld, value) && !value && _cardPoolSettings is not null)
+            {
+                // The mouse left: drop a pool that was only kept for reading.
+                UpdateCardPool(_cardPoolView, _cardPoolSettings);
+            }
+        }
+    }
+
+    /// <summary>The pool browser (full-height side panel) is open.</summary>
+    public bool CardPoolBrowserOpen
+    {
+        get => _cardPoolBrowserOpen;
+        private set
+        {
+            if (Set(ref _cardPoolBrowserOpen, value))
+            {
+                Raise(nameof(ShowCardPoolPanel));
+            }
+        }
+    }
+
+    /// <summary>"Thief's Tools Pool: 47 cards".</summary>
+    public string CardPoolBrowserTitle { get => _cardPoolBrowserTitle; private set => Set(ref _cardPoolBrowserTitle, value); }
+
+    /// <summary>"12 cards match" while filters are on; empty otherwise.</summary>
+    public string CardPoolBrowserNote { get => _cardPoolBrowserNote; private set => Set(ref _cardPoolBrowserNote, value); }
+
+    /// <summary>The FILTERS block is expanded.</summary>
+    public bool CardPoolFiltersOpen { get => _cardPoolFiltersOpen; private set => Set(ref _cardPoolFiltersOpen, value); }
+
+    /// <summary>At least one mechanic filter is on (the dot next to FILTERS).</summary>
+    public bool CardPoolFilterActive => _cardPoolSelected.Count > 0;
+
+    /// <summary>Mechanics found in this pool; selected ones must all be on a card (AND).</summary>
+    public IReadOnlyList<PoolChipModel> CardPoolFilterChips { get => _cardPoolFilterChips; private set => Set(ref _cardPoolFilterChips, value); }
+
+    /// <summary>The card grid, three per row, by cost then name.</summary>
+    public IReadOnlyList<PoolCardRowModel> CardPoolBrowserRows { get => _cardPoolBrowserRows; private set => Set(ref _cardPoolBrowserRows, value); }
+
+    /// <summary>Width of the pool browser in overlay units (the player drags its left edge).</summary>
+    public double CardPoolBrowserWidth
+    {
+        get => _cardPoolBrowserWidth;
+        set
+        {
+            if (!Set(ref _cardPoolBrowserWidth, Math.Clamp(value, 280, 640)))
+            {
+                return;
+            }
+
+            Raise(nameof(CardPoolCardHeight));
+            if (_cardPoolSettings is not null)
+            {
+                _cardPoolSettings.CardPoolBrowserWidth = _cardPoolBrowserWidth;
+            }
+        }
+    }
+
+    /// <summary>Height of a card in the grid: three card renders (215x303 without margins) side by side fill the width.</summary>
+    public double CardPoolCardHeight => Math.Floor((CardPoolBrowserWidth - 40) / 3 * 303 / 215);
+
+    /// <summary>Right-click on the compact panel: open the browser (or close it when open).</summary>
+    public RelayCommand OpenCardPoolBrowser => _openCardPoolBrowser ??= new RelayCommand(() =>
+    {
+        if (CardPoolBrowserOpen)
+        {
+            CloseCardPoolBrowserCore();
+        }
+        else if (_cardPool is not null)
+        {
+            OpenBrowser();
+            RebuildCardPoolBrowser();
+        }
+    });
+
+    /// <summary>The × button or Esc.</summary>
+    public RelayCommand CloseCardPoolBrowser => _closeCardPoolBrowser ??= new RelayCommand(CloseCardPoolBrowserCore);
+
+    public RelayCommand ToggleCardPoolFilters => _toggleCardPoolFilters ??= new RelayCommand(() => CardPoolFiltersOpen = !CardPoolFiltersOpen);
+
+    /// <summary>Turns a mechanic filter (tag) on or off.</summary>
+    public RelayCommand ToggleCardPoolMechanic => _toggleCardPoolMechanic ??= new RelayCommand(p =>
+    {
+        if (p is string tag && !_cardPoolSelected.Remove(tag))
+        {
+            _cardPoolSelected.Add(tag);
+        }
+
+        RebuildCardPoolBrowser();
+    });
+
+    private void OpenBrowser()
+    {
+        CardPoolBrowserOpen = true;
+        _cardPoolBrowserTurn = _cardPoolView?.Turn ?? 0;
+    }
+
+    /// <summary>Called when the drag on the browser's edge ends: saves the width.</summary>
+    public void CommitCardPoolBrowserWidth() => CardPoolBrowserResized?.Invoke();
+
+    private void CloseCardPoolBrowserCore()
+    {
+        CardPoolBrowserOpen = false;
+        // The browser disappears under the mouse: no "mouse left" event follows, so the hold ends here.
+        _cardPoolHeld = false;
+        if (_cardPoolSettings is not null)
+        {
+            UpdateCardPool(_cardPoolView, _cardPoolSettings);
+        }
+
+        RebuildCardPoolBrowser();
+    }
+
+    private void UpdateCardPool(ConstructedView? view, AppSettings settings)
+    {
+        _cardPoolView = view;
+        _cardPoolSettings = settings;
+        if (Math.Abs(_cardPoolBrowserWidth - settings.CardPoolBrowserWidth) > 0.5)
+        {
+            CardPoolBrowserWidth = settings.CardPoolBrowserWidth;
+        }
+
+        // The browser covers part of the board: it closes when the turn changes.
+        if (CardPoolBrowserOpen && view is not null && view.Turn != _cardPoolBrowserTurn)
+        {
+            CardPoolBrowserOpen = false;
+            _cardPoolHeld = false;
+        }
+
+        var pool = settings.ShowCardPool ? view?.CardPool : null;
+        if (pool is null && view is not null && settings.ShowCardPool && (CardPoolHeld || CardPoolBrowserOpen) && _cardPool is not null)
+        {
+            // The player is reading a pool panel: the pool that triggered it has gone, keep it until they leave or close.
+            return;
+        }
+
+        if (pool is null)
+        {
+            _cardPool = null;
+            _lastRequestedPool = null;
+            ShowCardPool = false;
+            CardPoolBrowserOpen = false;
+            RebuildCardPoolBrowser();
+            return;
+        }
+
+        if (_cardPool is null || _cardPool.SourceCardId != pool.SourceCardId || _cardPool.Count != pool.Count)
+        {
+            _cardPoolSelected.Clear();
+            CardPoolBrowserOpen = false;
+        }
+
+        // "Show the pool for this card" (deck or hand row) opens the browser right away.
+        var requested = pool.Trigger == PoolTrigger.Request ? pool.SourceCardId : null;
+        if (requested is not null && requested != _lastRequestedPool)
+        {
+            OpenBrowser();
+        }
+
+        _lastRequestedPool = requested;
+        if (ReferenceEquals(pool, _cardPool) && ShowCardPool)
+        {
+            // The engine hands back the same view while the pool stays up: nothing to rebuild.
+            RebuildCardPoolBrowser();
+            return;
+        }
+
+        _cardPool = pool;
+        CardPoolTitle = $"Pool of {CardCount(pool.Count)}";
+        CardPoolSource = pool.SourceName;
+        CardPoolDescription = $"{pool.Phrase} · {pool.Description}";
+        CardPoolHistograms = new[] { pool.Cost, pool.Attack, pool.Health }
+            .Where(h => h is { Count: > 0 })
+            .Select(h => new PoolHistogramModel(
+                h!.Title,
+                h.Bars.Select(b => new PoolBarModel(b.Label, b.Count, b.Count == 0 ? 1 : 3 + b.Height * (BarMaxHeight - 3), b.IsMedian)).ToList(),
+                h.MedianText))
+            .ToList();
+        CardPoolMechanics = pool.Mechanics;
+        CardPoolFeatured = pool.Featured;
+        CardPoolFeaturedNote = pool.FeaturedReason ?? string.Empty;
+        RebuildCardPoolBrowser();
+        ShowCardPool = true;
+    }
+
+    private void RebuildCardPoolBrowser()
+    {
+        var pool = CardPoolBrowserOpen ? _cardPool : null;
+        var key = pool is null ? string.Empty
+            : $"{pool.SourceCardId}|{pool.Description}|{pool.Count}|{string.Join(",", _cardPoolSelected.Order(StringComparer.Ordinal))}";
+        if (key == _cardPoolBrowserKey)
+        {
+            return;
+        }
+
+        // Only a new pool or other filters rebuild the grid, so its scroll position survives overlay updates.
+        _cardPoolBrowserKey = key;
+        Raise(nameof(CardPoolFilterActive));
+        if (pool is null)
+        {
+            CardPoolBrowserRows = [];
+            CardPoolFilterChips = [];
+            return;
+        }
+
+        _cardPoolSelected.IntersectWith(pool.Filters.Select(f => f.Tag));
+        CardPoolBrowserTitle = $"{pool.SourceName} Pool: {CardCount(pool.Count)}";
+        CardPoolFilterChips = pool.Filters.Select(f => new PoolChipModel(f.Tag, f.Label, _cardPoolSelected.Contains(f.Tag))).ToList();
+        var cards = pool.Cards
+            .Where(c => _cardPoolSelected.All(c.Mechanics.Contains))
+            .OrderBy(c => c.Cost).ThenBy(c => c.Name, StringComparer.CurrentCulture)
+            .ToList();
+        CardPoolBrowserNote = _cardPoolSelected.Count > 0 ? $"{CardCount(cards.Count)} match" : string.Empty;
+        CardPoolBrowserRows = cards.Chunk(3).Select(row => new PoolCardRowModel(row)).ToList();
+    }
+
+    private static string CardCount(int count) => $"{count.ToString("N0", CultureInfo.InvariantCulture)} card{(count == 1 ? string.Empty : "s")}";
+}

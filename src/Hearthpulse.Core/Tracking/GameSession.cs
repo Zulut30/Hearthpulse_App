@@ -208,6 +208,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_battlegrounds);
         _parser.AddListener(_battlegrounds.Counters);
         _parser.AddListener(_facts);
+        _parser.AddListener(_cardPool);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
         _dirty = true;
@@ -691,6 +692,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             else if (inGame && game!.IsConstructedLike && game.LocalPlayerId != 0)
             {
                 constructed = _constructed.BuildView(game, _cards);
+                constructed = WithCardPool(constructed, game);
             }
         }
         catch (Exception ex)
