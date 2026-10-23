@@ -24,6 +24,9 @@ public interface IPowerListener
     /// <summary>The local player picked from the open choice.</summary>
     void OnChoiceMade(GameState game) { }
 
+    /// <summary>One card the local player picked in the choice that just ended.</summary>
+    void OnChosen(GameState game, Entity chosen) { }
+
     void OnGameEnded(GameState game) { }
 }
 
@@ -45,6 +48,7 @@ public sealed partial class PowerParser
 
     private string? _choiceType;
     private bool _choiceIsLocal;
+    private bool _chosenIsLocal;
     private Entity? _choiceSource;
     private readonly List<Entity> _choiceOptions = new();
 
@@ -540,10 +544,28 @@ public sealed partial class PowerParser
 
     private void HandleChosen(string body)
     {
-        var header = ChosenHeaderRegex().Match(body);
-        if (Game is { } game && header.Success && game.LocalPlayer?.Name == header.Groups["player"].Value)
+        if (Game is not { } game)
         {
-            foreach (var listener in _listeners) listener.OnChoiceMade(game);
+            return;
+        }
+
+        var header = ChosenHeaderRegex().Match(body);
+        if (header.Success)
+        {
+            _chosenIsLocal = game.LocalPlayer?.Name == header.Groups["player"].Value;
+            if (_chosenIsLocal)
+            {
+                foreach (var listener in _listeners) listener.OnChoiceMade(game);
+            }
+
+            return;
+        }
+
+        // The picked cards follow the header, one Entities[n]= line each.
+        var picked = ChoiceEntityRegex().Match(body);
+        if (_chosenIsLocal && picked.Success && Resolve(picked.Groups["entity"].Value) is { } entity)
+        {
+            foreach (var listener in _listeners) listener.OnChosen(game, entity);
         }
     }
 

@@ -100,6 +100,12 @@ public sealed class AppSettings
     /// <summary>Which list of shared fields the answer was given for (see <see cref="Pool.PoolClient.ConsentVersion"/>).</summary>
     public int PoolConsentVersion { get; set; }
 
+    /// <summary>Key for shared game ids (see <see cref="Pool.PoolGame"/>). Never sent anywhere.</summary>
+    public string? PoolSecret { get; set; }
+
+    /// <summary>Earlier games were shared once, after the player agreed.</summary>
+    public bool PoolHistoryShared { get; set; }
+
     /// <summary>Overrides <see cref="Pool.PoolClient.DefaultEndpoint"/>, for testing a pool of your own.</summary>
     public string? PoolEndpoint { get; set; }
 

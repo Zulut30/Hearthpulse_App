@@ -53,6 +53,12 @@ public sealed class BattlegroundsTracker : IPowerListener
 
     /// <summary>Cards the player could see in the last tavern phase (tavern, hand, board, trinkets, hero power), for counters.</summary>
     private IReadOnlyList<string> _lastVisibleCards = Array.Empty<string>();
+
+    // Every pick the player was offered this game and the cards played from hand, for the stats pool.
+    private readonly List<BgChoice> _choices = new();
+    private readonly List<BgPlay> _plays = new();
+    private int _openChoice = -1;
+    private IReadOnlyList<Entity> _openOptions = Array.Empty<Entity>();
     private IReadOnlyList<Entity> _trinketOffer = Array.Empty<Entity>();
     private IReadOnlyList<Entity> _discoverOffer = Array.Empty<Entity>();
     private Entity? _discoverSource;
@@ -130,6 +136,10 @@ public sealed class BattlegroundsTracker : IPowerListener
         _combatActivityAt = 0;
         _boardCaptured = false;
         _lastOwnBoard = Array.Empty<BgMinion>();
+        _choices.Clear();
+        _plays.Clear();
+        _openChoice = -1;
+        _openOptions = Array.Empty<Entity>();
         _trinketOffer = Array.Empty<Entity>();
         _discoverOffer = Array.Empty<Entity>();
         _discoverSource = null;
@@ -142,6 +152,8 @@ public sealed class BattlegroundsTracker : IPowerListener
 
     public void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
     {
+        RememberChoice(game, choiceType, source, options);
+
         // Lesser/Greater Trinket offers arrive as a GENERAL choice of trinket cards.
         if (options.Count > 0 && options.All(IsTrinket))
         {
@@ -165,6 +177,36 @@ public sealed class BattlegroundsTracker : IPowerListener
         _discoverOffer = Array.Empty<Entity>();
         _trinketOffer = Array.Empty<Entity>();
         _discoverSource = null;
+    }
+
+    public void OnChosen(GameState game, Entity chosen)
+    {
+        if (_openChoice < 0 || _openChoice >= _choices.Count || !_openOptions.Any(o => o.Id == chosen.Id) || chosen.CardId.Length == 0)
+        {
+            return;
+        }
+
+        var choice = _choices[_openChoice];
+        _choices[_openChoice] = choice with { Picked = choice.Picked.Append(chosen.CardId).ToList() };
+    }
+
+    // Hero picks (MULLIGAN) are shared separately; everything else is kept with what caused it.
+    private void RememberChoice(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
+    {
+        _openChoice = -1;
+        _openOptions = Array.Empty<Entity>();
+        var offered = options.Select(o => o.CardId).Where(id => id.Length > 0).ToList();
+        if (!game.IsBattlegrounds || choiceType == "MULLIGAN" || offered.Count == 0 || _choices.Count >= 120)
+        {
+            return;
+        }
+
+        var kind = options.All(IsTrinket) ? "trinket"
+            : options.All(e => e.Zone == "SETASIDE") ? "discover"
+            : "choice";
+        _choices.Add(new BgChoice(game.BattlegroundsTurn, kind, string.IsNullOrEmpty(source?.CardId) ? null : source.CardId, offered, Array.Empty<string>()));
+        _openChoice = _choices.Count - 1;
+        _openOptions = options.ToArray();
     }
 
     public void OnEntityCreated(GameState game, Entity entity) => NoteShopCard(game, entity);
@@ -223,6 +265,11 @@ public sealed class BattlegroundsTracker : IPowerListener
 
             case GameTag.Zone when _inCombat && !_boardCaptured && entity.IsMinion && previous == "PLAY" && value != "PLAY":
                 RememberRemoval(game, entity);
+                break;
+
+            case GameTag.Zone when !_inCombat && previous == "HAND" && value == "PLAY" && entity.CardId.Length > 0 && entity.Controller == game.LocalPlayerId
+                                   && (entity.IsMinion || entity.CardType == "BATTLEGROUND_SPELL") && _plays.Count < 300:
+                _plays.Add(new BgPlay(game.BattlegroundsTurn, entity.CardId));
                 break;
 
             case GameTag.PlayState when entity.Id == game.LocalPlayer?.EntityId:
@@ -402,6 +449,8 @@ public sealed class BattlegroundsTracker : IPowerListener
             TavernUpgradeCost = LiveButtonCosts?.Upgrade,
             ButtonCosts = LiveButtonCosts,
             Counters = BattlegroundsCounters.Build(game, Counters, Cards, _lastVisibleCards),
+            Choices = _choices.ToList(),
+            Plays = _plays.ToList(),
         };
     }
 

@@ -81,6 +81,7 @@ public partial class App : Application
     private long _slowestUi;
     private int _watchTicks;
     private bool _capNotified;
+    private bool _sharingHistory;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -168,6 +169,7 @@ public partial class App : Application
         {
             _settingsDebounce.Stop();
             _settingsDebounce.Start();
+            _ = ShareHistoryAsync();
         };
         _mainViewModel.ConstructedMetaRequested += () =>
         {
@@ -192,7 +194,8 @@ public partial class App : Application
 
         _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _ = _mainViewModel.RefreshAsync());
         _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), _settings.Save);
-        _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(3) };
+        // The pool rebuilds its totals every 6 hours, so asking more often only spends its free requests.
+        _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(6) };
         _metaRefresh.Tick += (_, _) =>
         {
             _ = LoadMetaAsync();
@@ -315,6 +318,7 @@ public partial class App : Application
             await LoadMetaAsync();
             await LoadConstructedMetaAsync();
             _metaRefresh.Start();
+            _ = ShareHistoryAsync();
         }
         catch (Exception ex)
         {
@@ -554,13 +558,63 @@ public partial class App : Application
         }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
+    private IReadOnlyList<string> CardRaces(string cardId) => _cards.Get(cardId)?.Races ?? [];
+
+    /// <summary>
+    /// Once the player agrees to the full list, their Battlegrounds games from the last 30 days are shared once,
+    /// 20 per request. Ids are stable, so a game already sent live is not stored twice.
+    /// </summary>
+    private async Task ShareHistoryAsync()
+    {
+        if (_sharingHistory || _settings.PoolHistoryShared || !PoolClient.SharingAll(_settings) || _cards.Count == 0 || _renderDir is not null)
+        {
+            return;
+        }
+
+        _sharingHistory = true;
+        try
+        {
+            var secret = PoolClient.Secret(_settings);
+            var since = DateTime.Now.AddDays(-PoolClient.HistoryDays);
+            var games = await Task.Run(() => _history.Since(since)
+                .Where(g => g.IsBattlegrounds)
+                .Select(g => PoolGame.FromHistory(g, secret, _cards.BaseHeroId, CardRaces))
+                .OfType<PoolGame>()
+                .ToList());
+            foreach (var chunk in games.Chunk(PoolClient.MaxBatch))
+            {
+                if (!await PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), chunk))
+                {
+                    return;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(3));
+            }
+
+            _settings.PoolHistoryShared = true;
+            Diag.Info($"Shared {games.Count} earlier game(s) with the stats pool");
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Sharing earlier games failed", ex);
+        }
+        finally
+        {
+            _sharingHistory = false;
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+        }
+    }
+
     private void OnGameFinished(GameOutcome outcome)
     {
         // The event fires again once the new rating is read; share the game only the first time.
         if (outcome.RatingAfter is null && PoolClient.Sharing(_settings)
-            && PoolGame.From(outcome, _cards.BaseHeroId, id => _cards.Get(id)?.Races ?? [], PoolClient.SharingDetails(_settings)) is { } game)
+            && PoolGame.From(outcome, _cards.BaseHeroId, CardRaces, PoolClient.SharingDetails(_settings), PoolClient.Secret(_settings)) is { } game)
         {
-            _ = PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), game);
+            _ = PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), [PoolClient.Limit(game, _settings)]);
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
         }
 
         if (_settings.ShowGameToasts && _settings.OverlayEnabled)

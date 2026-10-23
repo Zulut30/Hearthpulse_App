@@ -100,7 +100,15 @@ public sealed class PoolTests
         [
             new CombatRecord(2, 5, "BG_HERO_OTHER", "Win", 0, 3, new Hearthpulse.Core.Battlegrounds.CombatOdds(0.6, 0.1, 0.3, 0)),
             new CombatRecord(3, 6, "BG_HERO_OTHER", "Tie", 0, 0),
-        ]);
+        ])
+    {
+        Choices =
+        [
+            new BgChoice(3, "discover", "TB_BaconShop_Triples_01", ["A", "B", "C"], ["B"]),
+            new BgChoice(9, "trinket", null, ["TRK_1", "TRK_2"], []),
+        ],
+        Plays = [new BgPlay(1, "BEAST_B"), new BgPlay(2, "SPELL")],
+    };
 
     private static IReadOnlyList<string> Races(string id) => id switch
     {
@@ -133,12 +141,74 @@ public sealed class PoolTests
     public void NeverSendsOtherPlayers()
     {
         var game = PoolGame.From(new GameOutcome("Battlegrounds", "Win", 1, 7000, null, "BG_HERO_1") { Details = Details() }, Base, Races, details: true)!;
-        var json = JsonSerializer.Serialize(PoolClient.Body(game), JsonSerializerOptions.Web);
+        var json = JsonSerializer.Serialize(PoolClient.Body([game]), JsonSerializerOptions.Web);
 
-        Assert.Contains("\"v\":2", json);
-        Assert.Contains("\"tierUps\":[[3,2],[6,3]]", json);
+        Assert.StartsWith("{\"v\":3,\"games\":[{", json);
+        Assert.Contains("\"tierups\":[[3,2],[6,3]]", json);
+        Assert.Contains("\"combats\":[[2,\"W\",0,3,0.6],[3,\"T\",0,0,null]]", json);
+        Assert.Contains("\"choices\":[[3,\"discover\",\"TB_BaconShop_Triples_01\",[\"A\",\"B\",\"C\"],[\"B\"]],[9,\"trinket\",null,[\"TRK_1\",\"TRK_2\"],[]]]", json);
+        Assert.Contains("\"plays\":[[1,\"BEAST_B\"],[2,\"SPELL\"]]", json);
         Assert.DoesNotContain("BG_HERO_OTHER", json);
-        Assert.Contains("\"v\":1", JsonSerializer.Serialize(PoolClient.Body(game with { Details = null }), JsonSerializerOptions.Web));
+        Assert.DoesNotContain("\"turns\"", JsonSerializer.Serialize(PoolClient.Body([game with { Details = null }]), JsonSerializerOptions.Web));
+    }
+
+    [Fact]
+    public void PicksAndPlaysNeedTheNewestConsent()
+    {
+        var game = PoolGame.From(new GameOutcome("Battlegrounds", "Win", 1, 7000, null, "BG_HERO_1") { Details = Details() }, Base, Races, details: true)!;
+        var older = new Hearthpulse.Core.AppSettings { PoolConsent = true, PoolConsentVersion = 2, PoolEndpoint = "https://pool.example" };
+        var newest = new Hearthpulse.Core.AppSettings { PoolConsent = true, PoolConsentVersion = PoolClient.ConsentVersion, PoolEndpoint = "https://pool.example" };
+
+        Assert.Empty(PoolClient.Limit(game, older).Details!.Choices);
+        Assert.Empty(PoolClient.Limit(game, older).Details!.Plays);
+        Assert.Equal(2, PoolClient.Limit(game, newest).Details!.Choices.Count);
+    }
+
+    [Fact]
+    public void TheSameGameKeepsItsIdButRevealsNothing()
+    {
+        var settings = new Hearthpulse.Core.AppSettings();
+        var secret = PoolClient.Secret(settings);
+        var outcome = new GameOutcome("Battlegrounds", "Win", 2, 7000, null, "BG_HERO_1") { Key = "20261023120000|Player#1234|GT_BATTLEGROUNDS" };
+
+        Assert.Equal(64, secret.Length);
+        Assert.Same(secret, PoolClient.Secret(settings));
+        var id = PoolGame.From(outcome, Base, secret: secret)!.GameId;
+        Assert.Equal(id, PoolGame.From(outcome, Base, secret: secret)!.GameId);
+        Assert.NotEqual(id, PoolGame.From(outcome, Base, secret: PoolClient.Secret(new Hearthpulse.Core.AppSettings()))!.GameId);
+        Assert.Matches("^[0-9a-f]{32}$", id);
+        Assert.DoesNotContain("1234", id);
+    }
+
+    [Fact]
+    public void EarlierGamesComeFromHistory()
+    {
+        var record = new Hearthpulse.Core.Data.GameRecord
+        {
+            Key = "20261020120000|Player#1234|GT_BATTLEGROUNDS",
+            StartedAt = new DateTime(2026, 10, 20, 12, 0, 0, DateTimeKind.Utc),
+            Mode = "Battlegrounds",
+            HeroCardId = "BG_HERO_1_SKIN",
+            Placement = 3,
+            RatingBefore = 6789,
+            Turns = 13,
+            TavernTier = 5,
+            Races = "BEAST,DEMON,MURLOC",
+            FinalBoard = "[{\"id\":\"BEAST_A\",\"atk\":20,\"hp\":10,\"gold\":true},{\"id\":\"BEAST_B\",\"atk\":3,\"hp\":4,\"gold\":false}]",
+        };
+
+        var game = PoolGame.FromHistory(record, "s3cret", Base, Races)!;
+
+        Assert.Equal("history", game.Source);
+        Assert.Equal((int)(record.StartedAt - DateTime.UnixEpoch).TotalDays, game.Day);
+        Assert.Equal("BG_HERO_1", game.Picked);
+        Assert.Equal(6500, game.Bracket);
+        Assert.Equal(2, game.Details!.Board.Count);
+        Assert.True(game.Details.Board[0].Golden);
+        Assert.Equal("MIXED", game.Details.Comp);
+        Assert.Equal(["BEAST", "DEMON", "MURLOC"], game.Details.Tribes);
+        Assert.Null(PoolGame.FromHistory(record with { Mode = "Ranked" }, "s3cret", Base));
+        Assert.Null(PoolGame.FromHistory(record with { TavernTier = 0 }, "s3cret", Base)!.Details);
     }
 
     [Fact]
@@ -164,8 +234,11 @@ public sealed class PoolTests
         var settings = new Hearthpulse.Core.AppSettings { PoolConsent = true, PoolConsentVersion = 1, PoolEndpoint = "https://pool.example" };
         Assert.True(PoolClient.Sharing(settings));
         Assert.False(PoolClient.SharingDetails(settings));
-        settings.PoolConsentVersion = PoolClient.ConsentVersion;
+        settings.PoolConsentVersion = 2;
         Assert.True(PoolClient.SharingDetails(settings));
+        Assert.False(PoolClient.SharingAll(settings));
+        settings.PoolConsentVersion = PoolClient.ConsentVersion;
+        Assert.True(PoolClient.SharingAll(settings));
         settings.PoolConsent = false;
         Assert.False(PoolClient.Sharing(settings));
     }

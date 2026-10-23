@@ -472,9 +472,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                 seen.TrinketOffers,
                 seen.Last.Trinkets,
                 seen.Last.TierHistory,
-                seen.Last.Combats)
+                seen.Last.Combats) { Choices = seen.Last.Choices, Plays = seen.Last.Plays }
             : null;
-        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered) { Details = details };
+        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered) { Details = details, Key = record.Key };
         GameFinished?.Invoke(_lastOutcome);
         _dirty = true;
     }

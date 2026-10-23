@@ -8,8 +8,12 @@ binding = "DB"
 database_name = "hearthpulse-pool"
 database_id = "REPLACE_WITH_THE_ID_FROM_wrangler_d1_create"
 
-# At most 30 submitted games per minute from one address. Cloudflare keeps the counter; nothing is stored here.
+# At most 30 submissions per minute from one address. Cloudflare keeps the counter; nothing is stored here.
 [[ratelimits]]
 name = "LIMITER"
 namespace_id = "1001"
 simple = { limit = 30, period = 60 }
+
+# Totals are rebuilt every 6 hours, and only when new games came in.
+[triggers]
+crons = ["23 */6 * * *"]
