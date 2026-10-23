@@ -37,8 +37,20 @@ public sealed class HistoryFilterViewModelTests : IDisposable
 
     public void Dispose()
     {
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        File.Delete(_db);
+        // A refresh ends with My Stats loading in the background, which may still hold the file for a moment.
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            try
+            {
+                File.Delete(_db);
+                return;
+            }
+            catch (IOException)
+            {
+                Thread.Sleep(50);
+            }
+        }
     }
 
     [Fact]
