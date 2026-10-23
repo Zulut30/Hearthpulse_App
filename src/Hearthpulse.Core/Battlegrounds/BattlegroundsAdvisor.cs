@@ -60,7 +60,9 @@ public sealed class BattlegroundsAdvisor
         var bracket = meta.BracketFor(rating);
         var lobbyKnown = view.Races.Count >= 4;
         var lobbyIds = view.Races.Select(r => RaceIds.GetValueOrDefault(r)).Where(id => id > 0).ToHashSet();
+        var hasCompCards = meta.Comps.Any(c => c.Cards.Count > 0);
         var viable = meta.Comps
+            .Where(c => !hasCompCards || c.Cards.Count > 0)
             .Where(c => !lobbyKnown || c.Tribes.All(view.Races.Contains))
             .Where(c => Playable(c, cards, view.IsDuos))
             .ToList();
@@ -106,7 +108,8 @@ public sealed class BattlegroundsAdvisor
             FreezeAdvice = FreezeTip(view, shop, target),
             Pairs = pairs,
             ShopPlan = plan,
-            MetaSource = $"{meta.Source} · {percentile} · {meta.Updated:dd MMM HH:mm}",
+            MetaSource = $"{meta.Source} · {percentile} · {meta.Updated:dd MMM HH:mm}"
+                + (meta.SharedGames > 0 ? $" · {meta.SharedGames:N0} shared games" : string.Empty),
         };
     }
 
@@ -318,7 +321,13 @@ public sealed class BattlegroundsAdvisor
         var perTribes = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var x in ranked)
         {
-            var key = string.Join('+', x.Comp.Tribes.Order(StringComparer.Ordinal));
+            var compTribes = x.Comp.Tribes;
+            if (compTribes.Count == 0 && BattlegroundsMeta.TribeForComp(x.Comp.Id) is { } singleTribe)
+            {
+                compTribes = [singleTribe];
+            }
+
+            var key = string.Join('+', compTribes.Order(StringComparer.Ordinal));
             perTribes.TryGetValue(key, out var count);
             if (count >= 2 && x.Weight == 0)
             {

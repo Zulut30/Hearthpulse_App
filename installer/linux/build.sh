@@ -7,7 +7,7 @@
 # Every package adds a menu entry, the icon and a desktop shortcut, and uninstalls cleanly.
 set -euo pipefail
 
-VERSION="${1:-0.7.8}"
+VERSION="${1:-0.11.4}"
 ARCH="${2:-x64}"
 case "$ARCH" in
   x64) DEB_ARCH=amd64; RPM_ARCH=x86_64; APPIMAGE_ARCH=x86_64 ;;
@@ -165,6 +165,17 @@ cp "$HERE/README.txt" "$PKG/README.txt"
 chmod +x "$PKG/install.sh" "$PKG/uninstall.sh"
 tar -C "$WORK" -czf "$DIST/$NAME.tar.gz" "$NAME"
 echo "wrote $DIST/$NAME.tar.gz"
+
+# ---- Portable .tar.gz: unpack anywhere and run ./Hearthpulse; data stays in ./data ---------------
+echo "== Building portable .tar.gz"
+PNAME="Hearthpulse-Portable-$VERSION-linux-$ARCH"
+PPKG="$WORK/$PNAME"
+rm -rf "$PPKG"
+cp -a "$WORK/app" "$PPKG"
+echo "Portable copy: settings and history are kept in the data folder next to this file." > "$PPKG/portable.txt"
+chmod +x "$PPKG/Hearthpulse"
+tar -C "$WORK" -czf "$DIST/$PNAME.tar.gz" "$PNAME"
+echo "wrote $DIST/$PNAME.tar.gz"
 
 # ---- AppImage (optional) ---------------------------------------------------------------------
 if command -v appimagetool >/dev/null; then

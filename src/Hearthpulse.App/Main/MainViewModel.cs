@@ -6,6 +6,7 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
 
@@ -94,6 +95,7 @@ public sealed partial class MainViewModel : Observable
             RebuildMeta();
         });
         InstallUpdate = new RelayCommand(() => UpdateRequested?.Invoke());
+        AnswerPool = new RelayCommand(p => PoolSharing = p as string == "yes");
     }
 
     public RelayCommand SetCardTier { get; }
@@ -154,6 +156,45 @@ public sealed partial class MainViewModel : Observable
     };
 
     public AppSettings Settings { get; }
+
+    // ---- stats pool -----------------------------------------------------------------------
+
+    private bool _poolAvailable;
+
+    /// <summary>The stats pool is set up; the first start banner and the Settings switch only show then.</summary>
+    public bool PoolAvailable
+    {
+        get => _poolAvailable;
+        set
+        {
+            if (Set(ref _poolAvailable, value))
+            {
+                Raise(nameof(AskPoolConsent));
+            }
+        }
+    }
+
+    /// <summary>The player has not said yet whether to share their Battlegrounds results.</summary>
+    public bool AskPoolConsent => _poolAvailable
+        && (Settings.PoolConsent is null || (Settings.PoolConsent == true && Settings.PoolConsentVersion < PoolClient.ConsentVersion));
+
+    public bool PoolSharing
+    {
+        get => Settings.PoolConsent == true;
+        set
+        {
+            Settings.PoolConsent = value;
+            Settings.PoolConsentVersion = PoolClient.ConsentVersion;
+            Raise();
+            Raise(nameof(AskPoolConsent));
+            PoolConsentChanged?.Invoke();
+        }
+    }
+
+    /// <summary>The banner's buttons: "yes" shares results, anything else declines.</summary>
+    public RelayCommand AnswerPool { get; }
+
+    public event Action? PoolConsentChanged;
 
     public RelayCommand SetBracket { get; }
 
@@ -240,16 +281,43 @@ public sealed partial class MainViewModel : Observable
     public IReadOnlyList<RatingPoint> RatingPoints { get => _ratingPoints; private set => Set(ref _ratingPoints, value); }
     public IReadOnlyList<PlacementBar> Placements { get => _placements; private set => Set(ref _placements, value); }
     public IReadOnlyList<HeroRow> MyHeroes { get => _myHeroes; private set => Set(ref _myHeroes, value); }
-    public IReadOnlyList<MetaHeroRow> HeroTiers { get => _heroTiers; private set => Set(ref _heroTiers, value); }
-    public IReadOnlyList<MetaCompRow> CompTiers { get => _compTiers; private set => Set(ref _compTiers, value); }
+    public IReadOnlyList<MetaHeroRow> HeroTiers
+    {
+        get => _heroTiers;
+        private set
+        {
+            if (Set(ref _heroTiers, value))
+            {
+                Raise(nameof(HasHeroTiers));
+            }
+        }
+    }
+
+    public bool HasHeroTiers => _heroTiers.Count > 0;
+    public IReadOnlyList<MetaCompRow> CompTiers { get => _compTiers; private set { if (Set(ref _compTiers, value)) Raise(nameof(HasCompTiers)); } }
+
+    public bool HasCompTiers => _compTiers.Count > 0;
+
+    private string _compTabLabel = "Comps";
+
+    /// <summary>The stats pool groups final boards by tribe; downloaded stats have comps.</summary>
+    public string CompTabLabel { get => _compTabLabel; private set { if (Set(ref _compTabLabel, value)) Raise(nameof(CompCaption)); } }
+
+    public string CompCaption => _compTabLabel == "Tribes"
+        ? "Final boards grouped by their main tribe (4 or more minions of it), ranked by how well those players finished."
+        : "Board archetypes ranked by how well players who played them finished. Core cards are what the comp needs; tribes must be in your lobby.";
 
     private IReadOnlyList<MetaTrinketRow> _trinketTiers = Array.Empty<MetaTrinketRow>();
     private IReadOnlyList<MetaCardRow> _cardTiers = Array.Empty<MetaCardRow>();
     private int _cardTier = 1;
 
-    public IReadOnlyList<MetaTrinketRow> TrinketTiers { get => _trinketTiers; private set => Set(ref _trinketTiers, value); }
+    public IReadOnlyList<MetaTrinketRow> TrinketTiers { get => _trinketTiers; private set { if (Set(ref _trinketTiers, value)) Raise(nameof(HasTrinketTiers)); } }
 
-    public IReadOnlyList<MetaCardRow> CardTiers { get => _cardTiers; private set => Set(ref _cardTiers, value); }
+    public bool HasTrinketTiers => _trinketTiers.Count > 0;
+
+    public IReadOnlyList<MetaCardRow> CardTiers { get => _cardTiers; private set { if (Set(ref _cardTiers, value)) Raise(nameof(HasCardTiers)); } }
+
+    public bool HasCardTiers => _cardTiers.Count > 0;
 
     /// <summary>Tavern tier shown in the card list (0 = tavern spells).</summary>
     public int CardTier { get => _cardTier; private set => Set(ref _cardTier, value); }
@@ -475,7 +543,7 @@ public sealed partial class MainViewModel : Observable
             heroes = meta.HeroesByBracket.GetValueOrDefault(100) ?? new Dictionary<string, MetaHero>();
         }
 
-        var ranked = heroes.Values.Where(h => h.DataPoints is 0 or >= 50).OrderBy(h => h.AveragePosition).ToList();
+        var ranked = heroes.Values.Where(h => h.DataPoints == 0 || h.DataPoints >= meta.MinHeroGames).OrderBy(h => h.AveragePosition).ToList();
         var best = ranked.Count > 0 ? ranked[0].AveragePosition : 3.5;
         var worst = ranked.Count > 0 ? ranked[^1].AveragePosition : 5.5;
         HeroTiers = ranked.Select((h, i) => new MetaHeroRow(
@@ -493,23 +561,49 @@ public sealed partial class MainViewModel : Observable
                 h.FirstRate > 0 ? h.FirstRate.ToString("P0", CultureInfo.CurrentCulture) : string.Empty))
             .ToList();
 
-        var comps = meta.Comps
-            .Select(c => (Comp: c, Placement: c.PlacementAtMmr.TryGetValue(Bracket, out var p) ? p : c.AveragePlacement))
-            .OrderBy(c => c.Placement)
-            .ToList();
-        var cBest = comps.Count > 0 ? comps[0].Placement : 3;
-        var cWorst = comps.Count > 0 ? comps[^1].Placement : 5;
-        CompTiers = comps.Select((c, i) => new MetaCompRow(
-                i + 1,
-                c.Comp.Name,
-                string.Join(" · ", c.Comp.Tribes.Select(t => Races.Display(t, _cards.Locale))),
-                string.IsNullOrEmpty(c.Comp.PowerLevel) ? "–" : c.Comp.PowerLevel,
-                c.Comp.Difficulty,
-                c.Placement.ToString("0.00", CultureInfo.CurrentCulture),
-                cWorst - cBest < 0.01 ? 1 : 1 - ((c.Placement - cBest) / (cWorst - cBest) * 0.85),
-                c.Comp.WhenToCommit ?? string.Empty,
-                string.Join(", ", c.Comp.Cards.Where(x => x.Status == "CORE").Select(x => _cards.NameOf(x.CardId)))))
-            .ToList();
+        // Tribe rows stand in for comps only when the meta has none (the stats pool alone).
+        var tribeRows = meta.Comps.Count == 0 && meta.Tribes.Count > 0;
+        if (tribeRows)
+        {
+            // Final boards grouped by main tribe, from the stats pool.
+            var tribes = meta.Tribes.OrderBy(t => t.AveragePlacement).ToList();
+            var cBest = tribes.Count > 0 ? tribes[0].AveragePlacement : 3;
+            var cWorst = tribes.Count > 0 ? tribes[^1].AveragePlacement : 5;
+            CompTiers = tribes.Select((t, i) => new MetaCompRow(
+                    i + 1,
+                    t.Tribe == "MIXED" ? "Mixed" : Races.Display(t.Tribe, _cards.Locale),
+                    string.Format(CultureInfo.CurrentCulture, "{0:N0} games", t.Games),
+                    BattlegroundsAdvisor.TierOf(t.AveragePlacement),
+                    string.Empty,
+                    t.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
+                    cWorst - cBest < 0.01 ? 1 : 1 - ((t.AveragePlacement - cBest) / (cWorst - cBest) * 0.85),
+                    string.Format(CultureInfo.CurrentCulture, "Top 4 {0:P0}, 1st place {1:P0}", t.Top4Rate, t.FirstRate),
+                    string.Empty))
+                .ToList();
+        }
+        else
+        {
+            // Downloaded stats have real comps instead of tribes.
+            var comps = meta.Comps
+                .Select(c => (Comp: c, Placement: c.PlacementAtMmr.TryGetValue(Bracket, out var p) ? p : c.AveragePlacement))
+                .OrderBy(c => c.Placement)
+                .ToList();
+            var cBest = comps.Count > 0 ? comps[0].Placement : 3;
+            var cWorst = comps.Count > 0 ? comps[^1].Placement : 5;
+            CompTiers = comps.Select((c, i) => new MetaCompRow(
+                    i + 1,
+                    c.Comp.Name,
+                    string.Join(" · ", c.Comp.Tribes.Select(t => Races.Display(t, _cards.Locale))),
+                    string.IsNullOrEmpty(c.Comp.PowerLevel) ? "–" : c.Comp.PowerLevel,
+                    c.Comp.Difficulty,
+                    c.Placement.ToString("0.00", CultureInfo.CurrentCulture),
+                    cWorst - cBest < 0.01 ? 1 : 1 - ((c.Placement - cBest) / (cWorst - cBest) * 0.85),
+                    c.Comp.WhenToCommit ?? string.Empty,
+                    string.Join(", ", c.Comp.Cards.Where(x => x.Status == "CORE").Select(x => _cards.NameOf(x.CardId)))))
+                .ToList();
+        }
+
+        CompTabLabel = tribeRows ? "Tribes" : "Comps";
 
         var trinkets = meta.Trinkets.Values
             .Select(t => (Trinket: t, Stats: meta.Trinket(t.CardId, Bracket)))
@@ -553,7 +647,8 @@ public sealed partial class MainViewModel : Observable
             .ToList();
 
         var bracketText = Bracket == 100 ? "all ranks" : $"top {Bracket}%";
-        MetaUpdated = $"{meta.Source} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}";
+        var sharedText = meta.SharedGames > 0 ? $" · {meta.SharedGames:N0} shared games" : string.Empty;
+        MetaUpdated = $"{meta.Source} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}{sharedText}";
     }
 
     private GameRow Row(GameRecord g)

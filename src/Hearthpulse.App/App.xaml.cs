@@ -12,6 +12,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -81,6 +82,7 @@ public partial class App : Application
     private long _slowestUi;
     private int _watchTicks;
     private bool _capNotified;
+    private bool _sharingHistory;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -192,6 +194,13 @@ public partial class App : Application
         };
 
         _mainViewModel.ThemeChanged += OnThemeChanged;
+        _mainViewModel.PoolAvailable = PoolClient.Available(_settings);
+        _mainViewModel.PoolConsentChanged += () =>
+        {
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+            _ = ShareHistoryAsync();
+        };
         _mainViewModel.ConstructedMetaRequested += () =>
         {
             _settingsDebounce.Stop();
@@ -215,7 +224,8 @@ public partial class App : Application
 
         _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _mainViewModel.RefreshAsync().Forget("History refresh"));
         _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), _settings.Save);
-        _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(3) };
+        // The pool rebuilds its totals every 6 hours, so asking more often only spends its free requests.
+        _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(6) };
         _metaRefresh.Tick += (_, _) =>
         {
             LoadMetaAsync().Forget("Battlegrounds meta load");
@@ -344,6 +354,7 @@ public partial class App : Application
             await LoadMetaAsync();
             await LoadConstructedMetaAsync();
             _metaRefresh.Start();
+            _ = ShareHistoryAsync();
         }
         catch (Exception ex)
         {
@@ -373,6 +384,13 @@ public partial class App : Application
                 {
                     var check = await UpdateService.CheckForUpdateAsync(_http);
                     var info = check.Update;
+                    if (info is not null && AppPaths.IsPortable)
+                    {
+                        // The setup would install a second copy; the portable one only says a new version is out.
+                        Notify("Hearthpulse update available", $"{info.Version} is out. Get the portable zip from the GitHub releases page.");
+                        return;
+                    }
+
                     if (info is { Sha256: not null } && await UpdateService.DownloadAsync(_http, info) is not null)
                     {
                         _stagedUpdate = info;
@@ -407,21 +425,39 @@ public partial class App : Application
         Quit();
     }
 
+    /// <summary>
+    /// Community stats: Firestone's with the Hearthpulse API as the fallback, and, when a stats pool is set up, the
+    /// games players chose to share laid over them (or the pool's own meta when nothing else loaded).
+    /// </summary>
     private async Task LoadMetaAsync()
     {
+        BattlegroundsMeta? meta = null;
         try
         {
-            var meta = await BattlegroundsMeta.LoadAsync(_http, fallback: new HearthpulseData(_api));
-            if (meta is not null)
-            {
-                _meta = meta;
-                _session.SetMeta(meta);
-                _mainViewModel.SetMeta(meta);
-            }
+            meta = await BattlegroundsMeta.LoadAsync(_http, fallback: new HearthpulseData(_api));
         }
         catch (Exception ex)
         {
             Diag.Error("Community stats unavailable", ex);
+        }
+
+        if (PoolClient.Available(_settings))
+        {
+            try
+            {
+                meta = await PoolClient.OverlayAsync(_http, PoolClient.Endpoint(_settings), meta);
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Stats pool unavailable", ex);
+            }
+        }
+
+        if (meta is not null)
+        {
+            _meta = meta;
+            _session.SetMeta(meta);
+            _mainViewModel.SetMeta(meta);
         }
     }
 
@@ -593,8 +629,65 @@ public partial class App : Application
         }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 
+    private IReadOnlyList<string> CardRaces(string cardId) => _cards.Get(cardId)?.Races ?? [];
+
+    /// <summary>
+    /// Once the player agrees to the full list, their Battlegrounds games from the last 30 days are shared once,
+    /// 20 per request. Ids are stable, so a game already sent live is not stored twice.
+    /// </summary>
+    private async Task ShareHistoryAsync()
+    {
+        if (_sharingHistory || _settings.PoolHistoryShared || !PoolClient.SharingAll(_settings) || _cards.Count == 0 || _renderDir is not null)
+        {
+            return;
+        }
+
+        _sharingHistory = true;
+        try
+        {
+            var secret = PoolClient.Secret(_settings);
+            var since = DateTime.Now.AddDays(-PoolClient.HistoryDays);
+            var games = await Task.Run(() => _history.Since(since)
+                .Where(g => g.IsBattlegrounds)
+                .Select(g => PoolGame.FromHistory(g, secret, _cards.BaseHeroId, CardRaces))
+                .OfType<PoolGame>()
+                .ToList());
+            foreach (var chunk in games.Chunk(PoolClient.MaxBatch))
+            {
+                if (!await PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), chunk))
+                {
+                    return;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(3));
+            }
+
+            _settings.PoolHistoryShared = true;
+            Diag.Info($"Shared {games.Count} earlier game(s) with the stats pool");
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Sharing earlier games failed", ex);
+        }
+        finally
+        {
+            _sharingHistory = false;
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+        }
+    }
+
     private void OnGameFinished(GameOutcome outcome)
     {
+        // The event fires again once the new rating is read; share the game only the first time.
+        if (outcome.RatingAfter is null && PoolClient.Sharing(_settings)
+            && PoolGame.From(outcome, _cards.BaseHeroId, CardRaces, PoolClient.SharingDetails(_settings), PoolClient.Secret(_settings)) is { } game)
+        {
+            _ = PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), [PoolClient.Limit(game, _settings)]);
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+        }
+
         if (_settings.ShowGameToasts && _settings.OverlayEnabled)
         {
             _overlayViewModel.ShowOutcome(outcome);

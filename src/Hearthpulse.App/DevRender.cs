@@ -6,6 +6,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Hearthstone;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Tracking.Counters;
@@ -72,6 +73,21 @@ public partial class App
 
             _main.ShowConstructedTab("Decks");
             await RenderMyStatsAsync(folder);
+
+            // The stats pool banner and switch, as a first start shows them (settings are not changed).
+            if (_settings.PoolConsent is null)
+            {
+                _mainViewModel.PoolAvailable = true;
+                foreach (var page in new[] { "Overview", "Settings" })
+                {
+                    _main.ShowPage(page);
+                    await Task.Delay(1500);
+                    _main.UpdateLayout();
+                    Save(_main, Path.Combine(folder, $"main-pool-{page.ToLowerInvariant()}.png"));
+                }
+
+                _mainViewModel.PoolAvailable = PoolClient.Available(_settings);
+            }
 
             var rating = _history.RatingHistory().LastOrDefault()?.Rating;
             var moments = new (string Name, Func<BattlegroundsView, bool> When, int Hover)[]

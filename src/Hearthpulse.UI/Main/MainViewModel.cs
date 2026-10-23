@@ -448,7 +448,7 @@ public sealed partial class MainViewModel : Observable
             heroes = meta.HeroesByBracket.GetValueOrDefault(100) ?? new Dictionary<string, MetaHero>();
         }
 
-        var ranked = heroes.Values.Where(h => h.DataPoints is 0 or >= 50).OrderBy(h => h.AveragePosition).ToList();
+        var ranked = heroes.Values.Where(h => h.DataPoints == 0 || h.DataPoints >= meta.MinHeroGames).OrderBy(h => h.AveragePosition).ToList();
         var best = ranked.Count > 0 ? ranked[0].AveragePosition : 3.5;
         var worst = ranked.Count > 0 ? ranked[^1].AveragePosition : 5.5;
         HeroTiers = ranked.Select((h, i) => new MetaHeroRow(
@@ -524,7 +524,8 @@ public sealed partial class MainViewModel : Observable
             .ToList();
 
         var bracketText = Bracket == 100 ? "all ranks" : $"top {Bracket}%";
-        MetaUpdated = $"{meta.Source} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}";
+        var sharedText = meta.SharedGames > 0 ? $" · {meta.SharedGames:N0} shared games" : string.Empty;
+        MetaUpdated = $"{meta.Source} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}{sharedText}";
     }
 
     private GameRow Row(GameRecord g)

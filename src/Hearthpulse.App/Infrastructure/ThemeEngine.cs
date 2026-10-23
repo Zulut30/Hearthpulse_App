@@ -28,9 +28,14 @@ public static partial class ThemeEngine
     [GeneratedRegex("clr-namespace:([\\w.]+)\"")]
     private static partial Regex LocalNamespace();
 
+    /// <summary>Animation timings in the theme's control templates (hover fades, switch slide, press shrink).</summary>
+    [GeneratedRegex("(Duration|BeginTime)=\"0:0:[0-9.]+\"")]
+    private static partial Regex Timing();
+
     public static void Apply(Application app, ThemeSpec theme)
     {
-        var dictionary = ThemePalette.IsDefault(theme) ? new ResourceDictionary { Source = BuiltIn } : Build(theme);
+        // With Windows' animation setting off, the theme is rebuilt with every control animation made instant.
+        var dictionary = ThemePalette.IsDefault(theme) && SystemParameters.ClientAreaAnimation ? new ResourceDictionary { Source = BuiltIn } : Build(theme);
         var merged = app.Resources.MergedDictionaries;
         merged.Clear();
         merged.Add(dictionary);
@@ -49,6 +54,11 @@ public static partial class ThemeEngine
         }
 
         var xaml = LocalNamespace().Replace(string.Join('\n', lines), "clr-namespace:$1;assembly=Hearthpulse\"");
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            xaml = Timing().Replace(xaml, "$1=\"0:0:0\"");
+        }
+
         return (ResourceDictionary)XamlReader.Parse(xaml);
     }
 

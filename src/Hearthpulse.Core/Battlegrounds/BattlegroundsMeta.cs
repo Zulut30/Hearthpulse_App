@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using Hearthpulse.Core.Pool;
 
 namespace Hearthpulse.Core.Battlegrounds;
 
@@ -53,13 +54,15 @@ public sealed record MetaComp(
     IReadOnlyDictionary<string, (int DataPoints, double Placement)> HeroPlacement);
 
 /// <summary>
-/// Community Battlegrounds statistics (hero placement per MMR bracket and tribe, comp archetypes) from the
-/// public data files published by Firestone (zerotoheroes.com). Cached on disk; a section that fails to parse
-/// is skipped rather than discarding the rest of the data.
+/// Community Battlegrounds statistics: heroes, cards, trinkets and tribes, built by the Hearthpulse stats pool
+/// from games players chose to share (see <see cref="PoolClient"/>).
 /// </summary>
 public sealed class BattlegroundsMeta
 {
     public const string Attribution = "Community stats: Firestone (zerotoheroes.com)";
+
+    /// <summary>Attribution of stats read from the stats pool (<see cref="Pool.PoolClient"/>).</summary>
+    public const string PoolAttribution = "Community stats: Hearthpulse players who share their games";
 
     private static readonly int[] Brackets = [100, 50, 25, 10, 1];
     private static readonly TimeSpan MaxAge = TimeSpan.FromHours(6);
@@ -71,6 +74,13 @@ public sealed class BattlegroundsMeta
         ["murloc"] = "MURLOC", ["demon"] = "DEMON", ["quilboar"] = "QUILBOAR", ["mech"] = "MECHANICAL",
         ["pirate"] = "PIRATE", ["elemental"] = "ELEMENTAL", ["undead"] = "UNDEAD", ["naga"] = "NAGA",
     };
+
+    /// <summary>
+    /// The tribe a comp id starts with ("beast_beetle" -> BEAST). Comp guides normally carry an explicit tribe
+    /// list, but some patches leave it empty; the id is then the only stable signal.
+    /// </summary>
+    internal static string? TribeForComp(string id) =>
+        PrefixTribes.GetValueOrDefault(id.Split('_')[0]);
 
     /// <summary>Built by <see cref="LoadAsync"/>; internal so tests can build small offline data sets.</summary>
     internal BattlegroundsMeta(
@@ -160,7 +170,23 @@ public sealed class BattlegroundsMeta
     public DateTime Updated { get; }
 
     /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/> unless a fallback was used).</summary>
-    public string Source { get; private init; } = Attribution;
+    public string Source { get; internal init; } = Attribution;
+
+    /// <summary>
+    /// Games a hero needs before the tier list shows it: the stats pool's own minimum for pool-only stats, 50 for the
+    /// much larger downloaded samples.
+    /// </summary>
+    public int MinHeroGames => Source == PoolAttribution ? Pool.PoolClient.MinGames : 50;
+
+    /// <summary>Main tribe of final boards, from the stats pool.</summary>
+    public IReadOnlyList<PoolTribe> Tribes { get; init; } = [];
+
+    /// <summary>Shared games behind this snapshot; 0 for the imported base alone.</summary>
+    public int SharedGames { get; init; }
+
+    /// <summary>Every shared hero row, including samples below <see cref="PoolClient.MinGames"/>, for merging.</summary>
+    internal IReadOnlyDictionary<string, MetaHero> SharedHeroRows { get; init; } =
+        new Dictionary<string, MetaHero>(StringComparer.Ordinal);
 
     /// <summary>Tightest MMR bracket (top X%) whose floor the rating reaches.</summary>
     public int BracketFor(int? rating)
@@ -748,8 +774,7 @@ public sealed class BattlegroundsMeta
             }
         }
 
-        var prefix = id.Split('_')[0];
-        if (tribes.Count == 0 && PrefixTribes.TryGetValue(prefix, out var prefixTribe))
+        if (tribes.Count == 0 && TribeForComp(id) is { } prefixTribe)
         {
             tribes.Add(prefixTribe);
         }
@@ -852,7 +877,7 @@ public sealed class BattlegroundsMeta
     private static double GetDouble(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
 
-    private static string Prettify(string archetype) =>
+    internal static string Prettify(string archetype) =>
         string.Join(' ', archetype.Split('_', StringSplitOptions.RemoveEmptyEntries)
             .Select(w => w == "apm" ? "APM" : char.ToUpperInvariant(w[0]) + w[1..]));
 

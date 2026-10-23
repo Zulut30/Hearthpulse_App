@@ -11,6 +11,7 @@ using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
 using Hearthpulse.UI.Infrastructure;
@@ -229,6 +230,14 @@ public sealed partial class AppHost : IDisposable
                 {
                     var check = await UpdateService.CheckForUpdateAsync(Http);
                     var info = check.Update;
+
+                    // The portable version never installs anything: it only says a new version is out.
+                    if (info is not null && AppPaths.IsPortable)
+                    {
+                        Notification?.Invoke("Hearthpulse update available", $"{info.Version} is out. Download the new portable version from GitHub.");
+                        return;
+                    }
+
                     if (info is { Sha256: not null } && await UpdateService.DownloadAsync(Http, info) is not null)
                     {
                         _stagedUpdate = info;
@@ -277,21 +286,39 @@ public sealed partial class AppHost : IDisposable
         }
     }
 
+    /// <summary>
+    /// Community stats: Firestone's with the Hearthpulse API as the fallback, and, when a stats pool is set up, the
+    /// games players chose to share laid over them (or the pool's own meta when nothing else loaded).
+    /// </summary>
     public async Task LoadMetaAsync()
     {
+        BattlegroundsMeta? meta = null;
         try
         {
-            var meta = await BattlegroundsMeta.LoadAsync(Http, fallback: new HearthpulseData(Api));
-            if (meta is not null)
-            {
-                Meta = meta;
-                Session.SetMeta(meta);
-                Main.SetMeta(meta);
-            }
+            meta = await BattlegroundsMeta.LoadAsync(Http, fallback: new HearthpulseData(Api));
         }
         catch (Exception ex)
         {
             Diag.Error("Community stats unavailable", ex);
+        }
+
+        if (PoolClient.Available(Settings))
+        {
+            try
+            {
+                meta = await PoolClient.OverlayAsync(Http, PoolClient.Endpoint(Settings), meta);
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Stats pool unavailable", ex);
+            }
+        }
+
+        if (meta is not null)
+        {
+            Meta = meta;
+            Session.SetMeta(meta);
+            Main.SetMeta(meta);
         }
 
         try

@@ -1,0 +1,19 @@
+# Hearthpulse stats pool: a Cloudflare Worker with a D1 database. Deploy steps are in README.md.
+name = "hearthpulse-pool"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hearthpulse-pool"
+database_id = "REPLACE_WITH_THE_ID_FROM_wrangler_d1_create"
+
+# At most 30 submissions per minute from one address. Cloudflare keeps the counter; nothing is stored here.
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
+# Totals are rebuilt every 6 hours, and only when new games came in.
+[triggers]
+crons = ["23 */6 * * *"]

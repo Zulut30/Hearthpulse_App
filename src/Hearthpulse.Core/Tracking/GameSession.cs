@@ -39,6 +39,13 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private readonly object _pipelineGate = new();
     private readonly MemoryPoller _memoryPoller;
     private int _gameGeneration;
+    private IReadOnlyList<string>? _offeredHeroes;
+    private int _offeredGeneration = -1;
+
+    // The latest Battlegrounds view of the current game, its last non-empty board and every trinket offered.
+    private BgSeen? _bgSeen;
+
+    private sealed record BgSeen(int Generation, BattlegroundsView Last, IReadOnlyList<BgMinion> Board, IReadOnlyList<string> TrinketOffers);
 
     private volatile CardDb _cards = CardDb.Empty;
     private PowerParser? _parser;
@@ -608,7 +615,21 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         if (record.Result == "Win") _sessionWins++;
         else if (record.Result == "Loss") _sessionLosses++;
 
-        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId);
+        var offered = _offeredGeneration == _gameGeneration ? _offeredHeroes : null;
+        var details = record.IsBattlegrounds && _bgSeen is { } seen && seen.Generation == _gameGeneration
+            ? new BgGameDetails(
+                record.Turns > 0 ? record.Turns : seen.Last.Turn,
+                record.TavernTier > 0 ? record.TavernTier : seen.Last.TechLevel,
+                seen.Last.Triples,
+                seen.Last.AnomalyCardId,
+                seen.Last.Races,
+                seen.Board,
+                seen.TrinketOffers,
+                seen.Last.Trinkets,
+                seen.Last.TierHistory,
+                seen.Last.Combats) { Choices = seen.Last.Choices, Plays = seen.Last.Plays }
+            : null;
+        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered) { Details = details, Key = record.Key };
         GameFinished?.Invoke(_lastOutcome);
         _dirty = true;
     }
@@ -818,6 +839,24 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             if (inGame && game!.IsBattlegrounds)
             {
                 battlegrounds = _battlegrounds.BuildView(game);
+                if (battlegrounds.IsHeroSelection && battlegrounds.HeroOptions.Count > 1)
+                {
+                    _offeredHeroes = battlegrounds.HeroOptions.Select(h => h.CardId).ToList();
+                    _offeredGeneration = _gameGeneration;
+                }
+                else if (!battlegrounds.IsHeroSelection)
+                {
+                    var seen = _bgSeen is { } s && s.Generation == _gameGeneration ? s : new BgSeen(_gameGeneration, battlegrounds, [], []);
+                    _bgSeen = seen with
+                    {
+                        Last = battlegrounds,
+                        Board = battlegrounds.Board.Count > 0 ? battlegrounds.Board : seen.Board,
+                        TrinketOffers = battlegrounds.TrinketOptions.Count > 1
+                            ? seen.TrinketOffers.Concat(battlegrounds.TrinketOptions.Select(t => t.CardId)).Distinct(StringComparer.Ordinal).ToList()
+                            : seen.TrinketOffers,
+                    };
+                }
+
                 var rating = _rating is null ? (int?)null : game.IsDuos ? _rating.Duos : _rating.Solo;
                 battlegrounds = Advisor.Enrich(battlegrounds, rating, _cards);
             }

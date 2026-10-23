@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Windows packages, buildable on Windows (Git Bash), Linux or macOS with the .NET 10 SDK and NSIS (makensis):
 #   dist/Hearthpulse-Setup-<version>-win-x64.exe        setup wizard for the Windows app
+#   dist/Hearthpulse-Portable-<version>-win-x64.zip     the Windows app as a zip: no setup, data kept next to it
 #   dist/Hearthpulse-Preview-<version>-win-x64.zip      portable build of the cross-platform app, to try on Windows
 set -euo pipefail
 
-VERSION="${1:-0.7.8}"
+VERSION="${1:-0.11.4}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DIST="$ROOT/dist"
 WORK="$DIST/work/windows"
@@ -40,6 +41,17 @@ SETUP="$DIST/Hearthpulse-Setup-$VERSION-win-x64.exe"
 makensis -V2 -DVERSION="$VERSION" -DSOURCE_DIR="$WORK/app" -DOUT_FILE="$SETUP" \
   -DUNINSTALL_LIST="$WORK/uninstall-files.nsh" "$ROOT/installer/windows/hearthpulse.nsi"
 echo "wrote $SETUP"
+
+echo "== Packing the portable Windows app"
+rm -rf "$WORK/portable"
+mkdir -p "$WORK/portable"
+cp -r "$WORK/app" "$WORK/portable/Hearthpulse"
+# portable.txt makes Hearthpulse keep its settings and history in a "data" folder next to Hearthpulse.exe.
+printf 'Portable Hearthpulse: settings and match history are kept in the "data" folder next to Hearthpulse.exe.\r\nIt tells you when a new version is out but does not update itself.\r\n' > "$WORK/portable/Hearthpulse/portable.txt"
+PORTABLE="$DIST/Hearthpulse-Portable-$VERSION-win-x64.zip"
+rm -f "$PORTABLE"
+(cd "$WORK/portable" && zip -qr -9 "$PORTABLE" Hearthpulse)
+echo "wrote $PORTABLE"
 
 echo "== Publishing the cross-platform app preview (win-x64)"
 dotnet publish "$ROOT/src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj" -c Release -r win-x64 --self-contained true \

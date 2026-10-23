@@ -182,6 +182,15 @@ public sealed record CombatRecord(int Turn, int OpponentPlayerId, string Opponen
 
 public sealed record TierStep(int Turn, int Tier);
 
+/// <summary>
+/// One pick the player was offered: Discover, triple reward, trinket, quest and so on. <see cref="Source"/> is the card
+/// that caused it, when the log names one; <see cref="Picked"/> is empty when the game ended before the pick.
+/// </summary>
+public sealed record BgChoice(int Turn, string Kind, string? Source, IReadOnlyList<string> Offered, IReadOnlyList<string> Picked);
+
+/// <summary>A minion or tavern spell the player played from hand.</summary>
+public sealed record BgPlay(int Turn, string CardId);
+
 /// <summary>What the advisor says to do with this turn's gold.</summary>
 public enum ShopAction
 {
@@ -270,6 +279,12 @@ public sealed record BattlegroundsView(
     /// <summary>Trinkets the player owns.</summary>
     public IReadOnlyList<string> Trinkets { get; init; } = Array.Empty<string>();
 
+    /// <summary>Every pick offered so far this game, oldest first.</summary>
+    public IReadOnlyList<BgChoice> Choices { get; init; } = Array.Empty<BgChoice>();
+
+    /// <summary>Cards played from hand so far this game, oldest first.</summary>
+    public IReadOnlyList<BgPlay> Plays { get; init; } = Array.Empty<BgPlay>();
+
     /// <summary>The season's Dark Gift discover button is available this turn.</summary>
     public bool DarkGiftReady { get; init; }
 
@@ -329,14 +344,39 @@ public sealed record SessionSummary(int? StartRating, int? CurrentRating, int Ga
     public int? Delta => StartRating is { } s && CurrentRating is { } c ? c - s : null;
 }
 
-public sealed record GameOutcome(string Mode, string Result, int Placement, int? RatingBefore, int? RatingAfter, string HeroCardId)
+/// <param name="OfferedHeroes">Battlegrounds heroes offered at the start of the game, when they were seen live.</param>
+public sealed record GameOutcome(string Mode, string Result, int Placement, int? RatingBefore, int? RatingAfter, string HeroCardId, IReadOnlyList<string>? OfferedHeroes = null)
 {
+    /// <summary>How the Battlegrounds game went for the local player, when it was watched live.</summary>
+    public BgGameDetails? Details { get; init; }
+
+    /// <summary>The history key of the game (see <see cref="GameRecords.KeyOf"/>).</summary>
+    public string? Key { get; init; }
+
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 }
 
 /// <summary>Power.log lines the parser could not read since the app started (diagnostics, Settings → About).</summary>
 /// <param name="ByType">Counts per exception type, e.g. "NullReferenceException ×3, FormatException ×1".</param>
 public sealed record ParseErrorSummary(int Total, string ByType);
+
+/// <summary>The local player's Battlegrounds game at its end: lobby, final board, trinkets, tier-ups and fights.</summary>
+public sealed record BgGameDetails(
+    int Turns,
+    int Tier,
+    int Triples,
+    string? Anomaly,
+    IReadOnlyList<string> Tribes,
+    IReadOnlyList<BgMinion> Board,
+    IReadOnlyList<string> TrinketsOffered,
+    IReadOnlyList<string> Trinkets,
+    IReadOnlyList<TierStep> TierUps,
+    IReadOnlyList<CombatRecord> Combats)
+{
+    public IReadOnlyList<BgChoice> Choices { get; init; } = [];
+
+    public IReadOnlyList<BgPlay> Plays { get; init; } = [];
+}
 
 public sealed record LiveSnapshot(
     string Scene,

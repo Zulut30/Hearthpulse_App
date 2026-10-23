@@ -257,6 +257,31 @@ public sealed class PickSettingsTests
         Assert.True(plain.IndexOf("murlocs") < plain.IndexOf("demons"), string.Join(", ", plain));
     }
 
+    [Fact]
+    public void Shows_more_than_two_comps_when_the_guides_have_no_tribes()
+    {
+        var cards = Advisor(CompMode.Auto).Cards;
+        var ids = new[] { "beast_one", "dragon_one", "mech_one", "murloc_one", "demon_one", "pirate_one", "elemental_one", "undead_one", "naga_one" };
+        var comps = ids.Select((id, i) => new MetaComp(
+                id, id, "A", "Easy", [], [new MetaCompCard("BEAST_CORE", "CORE")], null, null,
+                4.0 + (i * 0.01), new Dictionary<int, double>(), new Dictionary<string, (int, double)>()))
+            .ToList();
+        var meta = new BattlegroundsMeta(
+            new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = new Dictionary<string, MetaHero>() },
+            [],
+            comps,
+            new Dictionary<string, MetaTrinket>(),
+            new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(),
+            new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc));
+
+        var shown = new BattlegroundsAdvisor { Meta = meta }
+            .Enrich(View(["BEAST", "MURLOC", "DEMON"], 6), null, cards)
+            .Comps;
+
+        Assert.Equal(7, shown.Count);
+        Assert.Equal(7, shown.Select(c => c.Id).Distinct().Count());
+    }
+
     private static (BattlegroundsAdvisor Advisor, CardDb Cards) Advisor(CompMode mode)
     {
         const string json = """
