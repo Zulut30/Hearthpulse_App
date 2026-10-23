@@ -9,6 +9,15 @@ namespace Hearthpulse.Core.Data;
 /// </summary>
 public sealed record DeckFamilyRecord(long Id, string? Name, string? MainKey, IReadOnlyList<string> Members);
 
+/// <summary>
+/// The saved state of some deck versions before a family change, so it can be undone: the families they were in (with
+/// every member) and the "different decks" pairs among all of those versions.
+/// </summary>
+public sealed record DeckFamilySnapshot(
+    IReadOnlyList<string> Keys,
+    IReadOnlyList<(DeckFamilyRecord Family, string CreatedAt)> Families,
+    IReadOnlyList<(string, string)> Dismissed);
+
 /// <summary>Deck families: which deck versions the player counts as one deck.</summary>
 public sealed partial class HistoryStore
 {
@@ -295,6 +304,124 @@ public sealed partial class HistoryStore
         {
             using var connection = Open();
             InsertDismissed(connection, null, a, b);
+        }
+
+        DeckFamiliesChanged?.Invoke();
+    }
+
+    /// <summary>Records that every version of one deck and every version of another are different decks.</summary>
+    public void DismissDecks(IReadOnlyCollection<string> first, IReadOnlyCollection<string> second)
+    {
+        lock (_gate)
+        {
+            using var connection = Open();
+            using var tx = connection.BeginTransaction();
+            foreach (var a in first)
+            {
+                foreach (var b in second)
+                {
+                    InsertDismissed(connection, tx, a, b);
+                }
+            }
+
+            tx.Commit();
+        }
+
+        DeckFamiliesChanged?.Invoke();
+    }
+
+    /// <summary>The families of these deck versions and the dismissed pairs among them, before a merge (see <see cref="RestoreDeckFamilies"/>).</summary>
+    public DeckFamilySnapshot SnapshotDeckFamilies(IReadOnlyCollection<string> keys)
+    {
+        lock (_gate)
+        {
+            using var connection = Open();
+            var ids = keys.Select(k => FamilyOf(connection, null, k)).OfType<long>().Distinct().Order().ToList();
+            var families = new List<(DeckFamilyRecord, string)>();
+            foreach (var id in ids)
+            {
+                using var command = Command(connection, null, "SELECT name, main_key, created_at FROM deck_families WHERE id = $id;");
+                command.Parameters.AddWithValue("$id", id);
+                using var reader = command.ExecuteReader();
+                if (reader.Read())
+                {
+                    families.Add((new DeckFamilyRecord(id, reader.IsDBNull(0) ? null : reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1),
+                        Members(connection, null, id)), reader.GetString(2)));
+                }
+            }
+
+            var all = keys.Concat(families.SelectMany(f => f.Item1.Members)).ToHashSet(StringComparer.Ordinal);
+            var dismissed = new List<(string, string)>();
+            using (var command = Command(connection, null, "SELECT key_a, key_b FROM deck_family_dismissed;"))
+            {
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    if (all.Contains(reader.GetString(0)) && all.Contains(reader.GetString(1)))
+                    {
+                        dismissed.Add((reader.GetString(0), reader.GetString(1)));
+                    }
+                }
+            }
+
+            return new DeckFamilySnapshot(all.Order(StringComparer.Ordinal).ToList(), families, dismissed);
+        }
+    }
+
+    /// <summary>
+    /// Puts the snapshot's versions back as they were: the families they are in now are dropped, the saved ones come
+    /// back with their ids, names and main versions, and so do the dismissed pairs a merge cleared.
+    /// </summary>
+    public void RestoreDeckFamilies(DeckFamilySnapshot snapshot)
+    {
+        lock (_gate)
+        {
+            using var connection = Open();
+            using var tx = connection.BeginTransaction();
+            var now = snapshot.Keys.Select(k => FamilyOf(connection, tx, k)).OfType<long>()
+                .Concat(snapshot.Families.Select(f => f.Family.Id))
+                .Distinct()
+                .ToList();
+            foreach (var id in now)
+            {
+                using var drop = Command(connection, tx, "DELETE FROM deck_family_members WHERE family_id = $id; DELETE FROM deck_families WHERE id = $id;");
+                drop.Parameters.AddWithValue("$id", id);
+                drop.ExecuteNonQuery();
+            }
+
+            foreach (var key in snapshot.Keys)
+            {
+                using var loose = Command(connection, tx, "DELETE FROM deck_family_members WHERE deck_key = $key;");
+                loose.Parameters.AddWithValue("$key", key);
+                loose.ExecuteNonQuery();
+            }
+
+            foreach (var (family, createdAt) in snapshot.Families)
+            {
+                using (var insert = Command(connection, tx, "INSERT INTO deck_families (id, name, main_key, created_at) VALUES ($id, $name, $main, $at);"))
+                {
+                    insert.Parameters.AddWithValue("$id", family.Id);
+                    insert.Parameters.AddWithValue("$name", (object?)family.Name ?? DBNull.Value);
+                    insert.Parameters.AddWithValue("$main", (object?)family.MainKey ?? DBNull.Value);
+                    insert.Parameters.AddWithValue("$at", createdAt);
+                    insert.ExecuteNonQuery();
+                }
+
+                foreach (var key in family.Members)
+                {
+                    using var add = Command(connection, tx, "INSERT OR REPLACE INTO deck_family_members (deck_key, family_id) VALUES ($key, $family);");
+                    add.Parameters.AddWithValue("$key", key);
+                    add.Parameters.AddWithValue("$family", family.Id);
+                    add.ExecuteNonQuery();
+                }
+            }
+
+            foreach (var (a, b) in snapshot.Dismissed)
+            {
+                InsertDismissed(connection, tx, a, b);
+            }
+
+            tx.Commit();
         }
 
         DeckFamiliesChanged?.Invoke();

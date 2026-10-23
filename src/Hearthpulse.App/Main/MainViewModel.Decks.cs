@@ -11,6 +11,13 @@ namespace Hearthpulse.App.Main;
 /// <summary>Your decks as families (merged versions), merge suggestions and the deck page.</summary>
 public sealed partial class MainViewModel
 {
+    /// <summary>
+    /// The last merge, until another family change: the state to put back, the deck merged in (for the "Merged ..."
+    /// line), the deck page shown before it and the family it made.
+    /// </summary>
+    private sealed record MergeUndo(DeckFamilySnapshot Before, string MergedName, string? PageBefore, string Result);
+
+    private MergeUndo? _mergeUndo;
     private IReadOnlyList<DeckFamily> _deckFamilies = [];
     private IReadOnlyList<MergeSuggestion> _mergeSuggestions = [];
     private IReadOnlyList<DeckSuggestionRow> _deckSuggestions = [];
@@ -109,15 +116,49 @@ public sealed partial class MainViewModel
         // The deck the player is on (or the first of the pair) keeps its name and main version.
         var keep = _openDeckKey == second.Key ? second : first;
         var other = keep == first ? second : first;
-        var id = FamilyChange(() => _history.MergeDecks(
-            keep.Versions.Concat(other.Versions).Select(v => v.Key).ToList(),
-            null,
-            keep.Main.Key,
-            into: keep.Id));
-        if (id is { } family && DeckOpen)
+        var keys = keep.Versions.Concat(other.Versions).Select(v => v.Key).ToList();
+        DeckFamilySnapshot? before = null;
+        var pageBefore = _openDeckKey;
+        var id = FamilyChange(() =>
         {
-            _openDeckKey = DeckFamilies.FamilyPrefix + family.ToString(CultureInfo.InvariantCulture);
+            before = _history.SnapshotDeckFamilies(keys);
+            return _history.MergeDecks(keys, null, keep.Main.Key, into: keep.Id);
+        });
+        if (id is not { } family)
+        {
+            return;
         }
+
+        var result = DeckFamilies.FamilyPrefix + family.ToString(CultureInfo.InvariantCulture);
+        _mergeUndo = before is null ? null : new MergeUndo(before, other.Name, pageBefore, result);
+        if (DeckOpen)
+        {
+            _openDeckKey = result;
+        }
+    }
+
+    /// <summary>"Merged “name” into this deck" while the last merge made this family and can still be undone, else null.</summary>
+    internal string? MergeUndoText(string familyKey) =>
+        _mergeUndo is { } undo && undo.Result == familyKey ? DeckVersionsText.Merged(undo.MergedName) : null;
+
+    /// <summary>Puts the families back as they were before the last merge; the deck page goes back to the deck it showed.</summary>
+    internal void UndoMerge()
+    {
+        if (_mergeUndo is not { } undo)
+        {
+            return;
+        }
+
+        if (DeckOpen && _openDeckKey == undo.Result && undo.PageBefore is { } page)
+        {
+            _openDeckKey = page;
+        }
+
+        FamilyChange(() =>
+        {
+            _history.RestoreDeckFamilies(undo.Before);
+            return 0;
+        });
     }
 
     internal void DismissDecks(DeckSuggestionRow? pair)
@@ -126,9 +167,10 @@ public sealed partial class MainViewModel
         var second = _deckFamilies.FirstOrDefault(f => f.Key == pair?.SecondKey);
         if (first is not null && second is not null)
         {
+            // Every version of one against every version of the other, so a later split does not bring the pair back.
             FamilyChange(() =>
             {
-                _history.DismissDeckPair(first.Main.Key, second.Main.Key);
+                _history.DismissDecks(first.Versions.Select(v => v.Key).ToList(), second.Versions.Select(v => v.Key).ToList());
                 return 0;
             });
         }
@@ -192,9 +234,13 @@ public sealed partial class MainViewModel
         }
     }
 
-    /// <summary>Runs a family change on the history; the change event rebuilds the decks. Null when it failed.</summary>
+    /// <summary>
+    /// Runs a family change on the history; the change event rebuilds the decks. Null when it failed. Any change ends the
+    /// undo of the last merge (a merge sets a new one after this).
+    /// </summary>
     private long? FamilyChange(Func<long> change)
     {
+        _mergeUndo = null;
         try
         {
             return change();
@@ -252,8 +298,7 @@ public sealed partial class MainViewModel
                     s.First.Key,
                     s.Second.Key,
                     $"{s.First.Name} + {s.Second.Name}",
-                    $"{s.Overlap.ToString("P0", CultureInfo.CurrentCulture)} same cards"
-                    + (s.SameDeckId ? " · same deck slot" : string.Empty) + (s.SimilarNames ? " · alike names" : string.Empty)))
+                    DeckVersionsText.SuggestionDetail(s.Overlap, s.SameDeckId, s.SimilarNames)))
                 .ToList();
             Matchups = data.Matchups.Select(m => new MatchupRow(
                     OverlayViewModel.ClassName(m.OpponentClass),

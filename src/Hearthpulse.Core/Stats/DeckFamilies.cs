@@ -49,6 +49,11 @@ public sealed record DeckFamily(
 /// <param name="Overlap">Share of cards in common (copies counted), 0..1.</param>
 public sealed record MergeSuggestion(DeckFamily First, DeckFamily Second, double Overlap, bool SameDeckId, bool SimilarNames);
 
+/// <summary>Another deck of the same class and format the player can add to a family by hand.</summary>
+/// <param name="Overlap">Share of cards in common with the family (best pair of versions), 0..1; 0 without card lists.</param>
+/// <param name="Dismissed">The player said earlier it is another deck ("Not the same deck" or a split).</param>
+public sealed record MergeCandidate(DeckFamily Family, double Overlap, bool Dismissed);
+
 /// <summary>A card whose copies differ between two versions: positive = more in the newer one.</summary>
 public sealed record CardDelta(int DbfId, int Delta);
 
@@ -151,6 +156,33 @@ public static class DeckFamilies
         return (double)shared / Math.Max(sizeA, sizeB);
     }
 
+    /// <summary>Cards in common between two decks: the best pair of their versions.</summary>
+    public static double Overlap(DeckFamily a, DeckFamily b) =>
+        a.Versions.SelectMany(x => b.Versions.Select(y => Overlap(x, y))).DefaultIfEmpty(0).Max();
+
+    /// <summary>
+    /// The other decks of <paramref name="family"/>'s class and format that can be added to it, most alike first (then
+    /// the most recently played). <paramref name="search"/> keeps the decks whose name or a version's name holds it.
+    /// </summary>
+    public static IReadOnlyList<MergeCandidate> Candidates(DeckFamily family, IReadOnlyList<DeckFamily> families,
+        IReadOnlySet<(string, string)> dismissed, string? search = null)
+    {
+        var query = search?.Trim() ?? string.Empty;
+        return families
+            .Where(f => f.Key != family.Key
+                        && string.Equals(f.PlayerClass, family.PlayerClass, StringComparison.Ordinal)
+                        && string.Equals(f.Format, family.Format, StringComparison.Ordinal))
+            .Where(f => query.Length == 0
+                        || f.Name.Contains(query, StringComparison.CurrentCultureIgnoreCase)
+                        || f.Versions.Any(v => v.Name.Contains(query, StringComparison.CurrentCultureIgnoreCase)))
+            .Select(f => new MergeCandidate(f, Overlap(family, f),
+                family.Versions.Any(x => f.Versions.Any(y => dismissed.Contains(HistoryStore.DeckPair(x.Key, y.Key))))))
+            .OrderByDescending(c => c.Overlap)
+            .ThenByDescending(c => c.Family.LastPlayed)
+            .ThenBy(c => c.Family.Name, StringComparer.CurrentCulture)
+            .ToList();
+    }
+
     /// <summary>
     /// True for names that differ only in case, digits, punctuation or spacing ("Death Knight2", "Death Knight 3"), or
     /// when one holds the other ("Quest Priest", "Quest Priest v2").
@@ -201,7 +233,7 @@ public static class DeckFamilies
                     continue;
                 }
 
-                var overlap = a.Versions.SelectMany(x => b.Versions.Select(y => Overlap(x, y))).DefaultIfEmpty(0).Max();
+                var overlap = Overlap(a, b);
                 var sameId = a.Versions.Any(x => x.DeckId is > 0 && b.Versions.Any(y => y.DeckId == x.DeckId));
                 var similar = a.Versions.Any(x => b.Versions.Any(y => SimilarNames(x.Name, y.Name))) || SimilarNames(a.Name, b.Name);
                 if (overlap >= SuggestOverlap || (overlap >= SuggestOverlapWithHint && (sameId || similar)))
