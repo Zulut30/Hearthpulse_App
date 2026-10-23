@@ -43,33 +43,45 @@ and how to repeat the sync.
 | `66bf860` | `f441266` | Release 0.9.0 | Ported (version) |
 | `2e229b1` | `5ebd29b` | Share picks, plays and recent games; one-row pool | Ported (merged with counters) |
 | `c79ad52` | `078e9b7` | Release 0.10.0 | Ported (version) |
-| `4bd8902` | `a7967cd` | Serve the full Battlegrounds stats from our own pool | Adapted: pool only when set up |
-| `db17dbc` | `871fa88` | Blend shared games into the base Battlegrounds stats | Adapted (attribution) |
-| `2db0ae3` | `5ed72a4` | Rename the base stats importer | Ported (our doc comments kept) |
-| `59ad6fd` | `bff46fb` | Remove the base stats importer | Ported |
-| `23a550e` | `16b65f8` | Release 0.11.2 | Ported (version) |
-| `23ffc3f` | `788fd41` | Show the full comp list in game | Ported |
-| `84edebe` | `57a92d2` | Merge shared stats into every MMR bracket | Adapted (attribution) |
+| `4bd8902` | `df0638d` | Serve the full Battlegrounds stats from our own pool | Adapted: pool only when set up; base data and importer removed |
+| `db17dbc` | `e8a124f` | Blend shared games into the base Battlegrounds stats | Adapted (attribution) |
+| `2db0ae3` | `1825031` | Rename the base stats importer | Adapted: importer and data removed |
+| `59ad6fd` | `8874da7` | Remove the base stats importer | Adapted: importer and data removed |
+| `23a550e` | `e6a3271` | Release 0.11.2 | Ported (version) |
+| `23ffc3f` | `2ebbce3` | Show the full comp list in game | Ported |
+| `84edebe` | `8d6b850` | Merge shared stats into every MMR bracket | Adapted (attribution) |
 
 After the port, `main` (`2e8d9be`: device-flow sign-in, My Stats, deck and hand panels, Discover pool, counters
-panel, Mulligan V2, Constructed meta from the Hearthpulse API) was merged in (`e8c3089`) without textual
+panel, Mulligan V2, Constructed meta from the Hearthpulse API) was merged in (`983439a`) without textual
 conflicts. Constructed loading is main's (API only) in both hosts; Battlegrounds loading is the port's.
+
+## Third-party data removed from history
+
+Upstream `4bd8902` added `server/pool/import-firestone.mjs` and filled `server/pool/migrations/0004_meta.sql` with a
+1 MB export of Firestone's Battlegrounds stats; upstream itself later stopped using that data because there was no
+permission for it. Before this branch was pushed, its history was rewritten (`git filter-branch --index-filter`
+over `main..` the branch): in every commit the importer (`import-firestone.mjs`, later `import-base-stats.mjs`) is
+gone and `0004_meta.sql` only creates the empty `meta` table. The commit messages of `df0638d`, `1825031` and
+`8874da7` are upstream's and still mention the importer. No blob of the export or the importer is reachable from
+the branch (`git rev-list --objects`); the upstream remote still has them, so never push upstream refs here.
 
 ## Conflicts and how they were resolved
 
 - `AppPaths.Root` (`ce9314e`, `1e54a0a`): portable copies use their own data folder (`PortableRoot()`, next to the
   exe or beside `Hearthpulse.app`); only an installed copy runs our `MigrateLegacy` copy of the `Hearthlens` folder.
 - `App.xaml.cs` / `AppHost.cs` `LoadMetaAsync` (`861af2b`, `5ae88cc`, `4bd8902`, `db17dbc`, `2db0ae3`): upstream
-  replaced the Firestone download with the pool. Ours: pool first when one is set up, otherwise Firestone with the
-  Hearthpulse API fallback, as before. The Avalonia host keeps loading Constructed stats for the mulligan panel.
+  replaced the Firestone download with the pool. Ours (`74f0e26`): Firestone with the Hearthpulse API fallback is
+  always loaded; when a pool is set up, `PoolClient.OverlayAsync` blends the shared games into it by sample size
+  (comps, brackets and percentiles stay), and the pool's own meta is used only when nothing else loaded.
 - `BattlegroundsMeta.Attribution`: upstream renamed it to the pool. Ours keeps the Firestone text and adds
-  `PoolAttribution`; every meta built by `PoolClient` sets `Source = PoolAttribution`, and the "N shared games" note
+  `PoolAttribution`; a meta built by the pool alone has `Source = PoolAttribution`, a merged one keeps its base's source, and the "N shared games" note
   (`84edebe`) is appended to `meta.Source` in both view models and the advisor.
 - `MainWindow.xaml` Battlegrounds tabs (`861af2b`, `5ae88cc`): upstream hid Comps/Trinkets/Cards and the bracket
   picker. Ours keeps them (the data is still loaded) and takes upstream's "hide a tab with no rows" bindings.
-  Pool meta fills the Comps tab with tribe rows and relabels it "Tribes" (`CompTabLabel`, `CompCaption`); downloaded
-  stats keep their comp rows.
-- `MainViewModel` hero tier filter: `DataPoints is 0 or >= PoolClient.MinGames` (API fallback rows have no count).
+  A meta without comps (the pool alone) fills the Comps tab with tribe rows and relabels it "Tribes" (`CompTabLabel`,
+  `CompCaption`); otherwise the comp rows stay.
+- Hero tier filter in both view models: `BattlegroundsMeta.MinHeroGames` (20 for pool-only stats, 50 otherwise; API
+  fallback rows with no count are kept).
 - `BattlegroundsTracker` (`2e229b1`): our counters and upstream's picks/plays are both kept.
 - Pool tests (`5ae88cc`, `2e229b1`): consent tests set `PoolEndpoint`, since no pool is built in; a new test checks
   that consent alone shares nothing.
@@ -87,7 +99,9 @@ conflicts. Constructed loading is main's (API only) in both hosts; Battlegrounds
   Battlegrounds history sent only after agreeing to the full list.
 - Where to point it (decision for the owner):
   1. **Our own Cloudflare Worker** from `server/pool` (`wrangler d1 create`, migrations, deploy; README there).
-     Same anonymous data model as upstream, no code change in the app: set the default endpoint.
+     Same anonymous data model as upstream, no code change in the app: set the default endpoint. Its `/v1/meta`
+     stays empty (503) unless filled from a source we may redistribute; the app then blends the shared games into
+     its own downloaded meta.
   2. **HearthPulse site ingestion** `POST /api/v1/tracker/events/batch` (spec in the site repo,
      `docs/specs/tracker-ingestion.md`). It is account-bound (OAuth device flow, `tracker.write`, per-user rows,
      `battlegrounds_match` events, 1–50 per batch, idempotent `eventId`), unlike the anonymous pool. Mapping
@@ -116,8 +130,11 @@ animations (unchanged, see the design skill's known gaps).
 ## Tests
 
 - `ChoiceTrackingTests.Picks_and_plays_are_recorded_from_a_real_game` (upstream, `2e229b1`) reads the newest
-  Battlegrounds log under `D:\Hearthstone\Logs`. On the development machine it fails for upstream's own code too
-  (checked on a clean upstream checkout); without that folder (CI) it is a no-op. Same class as `RealLogTests`.
+  Battlegrounds log under `D:\Hearthstone\Logs`. It failed here because that game ended before any Discover,
+  triple reward or trinket. `6dd4516` adds a deterministic test on synthetic lines
+  (`A_discover_pick_and_a_play_are_recorded`) and makes the live check expect a pick only when a choice was offered.
+- `ParserTests.Rank_display` (culture) and `RealLogTests.Battlegrounds_view_tracks_lobby_boards_and_combats`
+  (machine-dependent) predate this branch and are fixed on `claude/quality-hardening-431c90` (`6c43c3c`), not here.
 
 ## Repeating the sync
 
