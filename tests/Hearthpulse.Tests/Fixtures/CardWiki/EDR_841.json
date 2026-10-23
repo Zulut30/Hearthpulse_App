@@ -1,0 +1,50 @@
+{
+ "data": {
+  "status": "ok",
+  "source": "hearthstone.wiki.gg",
+  "page": {
+   "title": "Dreadsoul Corrupter",
+   "url": "https://hearthstone.wiki.gg/wiki/Dreadsoul_Corrupter"
+  },
+  "related_cards": [
+   {
+    "cards": [
+     {
+      "caption": null,
+      "card_id": "EDR_840t1",
+      "image_alt": "EDR 840t1.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/EDR_840t1.png/235px-EDR_840t1.png?343a51",
+      "title": "Crow Dreadseed",
+      "url": "https://hearthstone.wiki.gg/wiki/Crow_Dreadseed"
+     },
+     {
+      "caption": null,
+      "card_id": "EDR_840t",
+      "image_alt": "EDR 840t.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/EDR_840t.png/235px-EDR_840t.png?70b27a",
+      "title": "Hound Dreadseed",
+      "url": "https://hearthstone.wiki.gg/wiki/Hound_Dreadseed"
+     },
+     {
+      "caption": null,
+      "card_id": "EDR_840t2",
+      "image_alt": "EDR 840t2.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/EDR_840t2.png/235px-EDR_840t2.png?a23d98",
+      "title": "Serpent Dreadseed",
+      "url": "https://hearthstone.wiki.gg/wiki/Serpent_Dreadseed"
+     }
+    ],
+    "heading": "Related cards"
+   }
+  ],
+  "related_card_ids": [
+   "EDR_840t1",
+   "EDR_840t",
+   "EDR_840t2"
+  ],
+  "generated_card_pools": [],
+  "generated_card_ids": [],
+  "fetched_at": "2026-10-08 09:37:47",
+  "changed_at": "2026-08-06 07:20:54"
+ }
+}

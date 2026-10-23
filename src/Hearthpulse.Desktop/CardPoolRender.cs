@@ -9,8 +9,9 @@ using Hearthpulse.UI.Infrastructure;
 namespace Hearthpulse.Desktop;
 
 /// <summary>
-/// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman), then the pool browser for
-/// Thief's Tools with its filters open, and with one filter on.
+/// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman), Scion of Insight's rune pool,
+/// the "Pool not computed" panel of Dreadsoul Corrupter, then the pool browser for Thief's Tools with its filters open,
+/// and with one filter on.
 /// </summary>
 internal static class CardPoolRender
 {
@@ -18,7 +19,9 @@ internal static class CardPoolRender
     {
         var catalog = await CardPoolCatalog.LoadAsync(host.Api, host.Http);
         var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(host.Api), host.Cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, host.Cards.Locale);
-        var engine = new CardPoolEngine(catalog.WithRaces(host.Cards), host.Cards, CardPoolEngine.MetaGames(meta, host.Cards));
+        var wiki = new WikiPoolSource(new HearthpulseData(host.Api));
+        await wiki.LoadAsync("BE_298");
+        var engine = new CardPoolEngine(catalog.WithRaces(host.Cards), host.Cards, CardPoolEngine.MetaGames(meta, host.Cards), wiki);
         if (engine.Build("CORE_GIL_836", new PoolContext("FT_STANDARD", "SHAMAN", "WARRIOR"), PoolTrigger.Choice) is not { } pool
             || engine.Build("JAIL_706", new PoolContext("FT_STANDARD", "ROGUE", "WARRIOR"), PoolTrigger.Request) is not { } browse)
         {
@@ -28,6 +31,28 @@ internal static class CardPoolRender
 
         Show(pool);
         await save(Path.Combine(folder, "overlay-card-pool.png"));
+
+        // Death Knight runes (from HearthstoneJSON) and a named group the catalog cannot answer.
+        foreach (var (cardId, ownClass, trigger, name) in new[]
+                 {
+                     ("BE_298", "DEATHKNIGHT", PoolTrigger.Choice, "overlay-card-pool-runes.png"),
+                     ("EDR_841", "DEMONHUNTER", PoolTrigger.Played, "overlay-card-pool-uncomputed.png"),
+                 })
+        {
+            if (engine.Build(cardId, new PoolContext("FT_STANDARD", ownClass, "WARRIOR"), trigger) is { } extra)
+            {
+                Show(extra);
+                await save(Path.Combine(folder, name));
+                if (extra.Sections.Count > 1)
+                {
+                    // The browser with the wiki's second pool (Frost Rune) picked.
+                    host.Overlay.OpenCardPoolBrowser.Execute(null);
+                    host.Overlay.ToggleCardPoolSection.Execute(extra.Sections[1].Label);
+                    await SaveBrowserAsync(Path.Combine(folder, "overlay-card-pool-sections.png"));
+                    host.Overlay.CloseCardPoolBrowser.Execute(null);
+                }
+            }
+        }
 
         // A requested pool opens the browser; card renders load after the first layout.
         Show(browse);

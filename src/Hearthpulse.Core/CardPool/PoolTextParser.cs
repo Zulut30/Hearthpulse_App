@@ -17,6 +17,12 @@ public enum PoolParseStatus
 
     /// <summary>It generates, but the description has words the parser does not know: no pool is shown.</summary>
     Unrecognized,
+
+    /// <summary>
+    /// It draws from a pool the catalog cannot answer (an entry of the exception table: a named group of tokens, a
+    /// pool that depends on the game state): the panel says "pool not computed" with the reason instead of nothing.
+    /// </summary>
+    Uncomputed,
 }
 
 /// <summary>A generator found in card text.</summary>
@@ -166,6 +172,7 @@ public static partial class PoolTextParser
         var types = new HashSet<string>(StringComparer.Ordinal);
         var races = new HashSet<string>(StringComparer.Ordinal);
         var schools = new HashSet<string>(StringComparer.Ordinal);
+        var runes = new HashSet<string>(StringComparer.Ordinal);
         var classes = new HashSet<string>(StringComparer.Ordinal);
         var costs = new HashSet<int>();
         var mechanics = new List<IReadOnlySet<string>>();
@@ -217,6 +224,17 @@ public static partial class PoolTextParser
             {
                 parity = p.Groups[1].Value.ToLowerInvariant();
                 parityStat = p.Groups[2].Value;
+                continue;
+            }
+
+            // Before the spell schools: "Frost Rune card" is a rune, "Frost spell" a school.
+            if (cursor.Take(RuneRegex()) is { } rune)
+            {
+                foreach (Capture symbol in rune.Groups["r"].Captures)
+                {
+                    runes.Add(symbol.Value.ToUpperInvariant());
+                }
+
                 continue;
             }
 
@@ -352,7 +370,10 @@ public static partial class PoolTextParser
             Types = types,
             Races = races,
             Schools = schools,
+            Runes = runes,
             Mechanics = mechanics,
+            // Only Death Knight cards have runes: a stolen Hematurge still offers them to another class.
+            Scope = runes.Count > 0 && scope == ClassScope.Default ? ClassScope.Any : scope,
             Rarity = rarity,
             Costs = costs,
             MinCost = minCost,
@@ -361,7 +382,6 @@ public static partial class PoolTextParser
             ParityStat = parityStat,
             MinAttack = minAttack,
             MultipleTypes = multipleTypes,
-            Scope = scope,
             Classes = classes,
             Past = past,
         };
@@ -466,7 +486,8 @@ public static partial class PoolTextParser
         public void Advance(int length) => Position += length;
     }
 
-    [GeneratedRegex(@"(?<!\byou |\byou've |\byou'd |\byou'll |\bto |Quest: |\bthey |\bcan )\bDiscover\b(?!ed|s)")]
+    // "Spend a Corpse to Discover a Blood Rune card" is a Discover; "Go on a Sidequest to Discover amazing loot" is not.
+    [GeneratedRegex(@"(?<!\byou |\byou've |\byou'd |\byou'll |\bSidequest to |Quest: |\bthey |\bcan )\bDiscover\b(?!ed|s)")]
     private static partial Regex DiscoverRegex();
 
     [GeneratedRegex(@"\brandom\b")]
@@ -503,6 +524,10 @@ public static partial class PoolTextParser
     // "Fire spell", "Shadow Spells", "Holy and Shadow spell".
     [GeneratedRegex(@"\G(?<s>Arcane|Fel|Fire|Frost|Holy|Nature|Shadow)(?:(?:,| and|,? or) (?<s>Arcane|Fel|Fire|Frost|Holy|Nature|Shadow))* (?=[Ss]pells?\b)")]
     private static partial Regex SchoolRegex();
+
+    // "Blood Rune card", "Unholy Rune card", "Blood, Frost or Unholy card" (only before "card": "Frost spell" is a school).
+    [GeneratedRegex(@"\G(?<r>Blood|Frost|Unholy)(?:(?:,| and|,? or) (?<r>Blood|Frost|Unholy))*(?: Rune)? (?=cards?\b)")]
+    private static partial Regex RuneRegex();
 
     [GeneratedRegex(@"\G(Beast|Demon|Dragon|Elemental|Mech|Murloc|Pirate|Naga|Undead|Totem|Draenei|Quilboar)s?\b")]
     private static partial Regex TribeRegex();

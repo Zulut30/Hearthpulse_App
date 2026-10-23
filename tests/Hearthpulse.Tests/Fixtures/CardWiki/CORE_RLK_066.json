@@ -1,0 +1,272 @@
+{
+ "data": {
+  "status": "ok",
+  "source": "hearthstone.wiki.gg",
+  "page": {
+   "title": "Hematurge (Core)",
+   "url": "https://hearthstone.wiki.gg/wiki/Hematurge_(Core)"
+  },
+  "related_cards": [
+   {
+    "cards": [
+     {
+      "caption": "Original",
+      "card_id": "RLK_066",
+      "image_alt": "RLK 066.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/RLK_066.png/235px-RLK_066.png?620c19",
+      "title": "Hematurge",
+      "url": "https://hearthstone.wiki.gg/wiki/Hematurge"
+     }
+    ],
+    "heading": "Other versions"
+   }
+  ],
+  "related_card_ids": [
+   "RLK_066"
+  ],
+  "generated_card_pools": [
+   {
+    "card_ids": [
+     "EDR_813",
+     "CORE_RLK_712",
+     "JAIL_441",
+     "EDR_812",
+     "EDR_814",
+     "JAIL_451",
+     "TIME_612",
+     "CORE_ETC_523",
+     "JAIL_446",
+     "CORE_CATA_007",
+     "RLK_024",
+     "JAIL_454",
+     "EDR_817",
+     "RLK_067",
+     "EDR_810",
+     "CORE_RLK_706",
+     "CORE_RLK_506",
+     "TIME_615",
+     "TLC_433",
+     "CORE_RLK_066",
+     "CATA_780",
+     "CATA_156",
+     "CATA_155"
+    ],
+    "cards": [
+     {
+      "caption": null,
+      "card_id": "EDR_813",
+      "image_alt": "EDR 813.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/EDR_813.png/235px-EDR_813.png?fd16bd",
+      "title": "Morbid Swarm",
+      "url": "https://hearthstone.wiki.gg/wiki/Morbid_Swarm"
+     },
+     {
+      "caption": null,
+      "card_id": "CORE_RLK_712",
+      "image_alt": "CORE RLK 712.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/CORE_RLK_712.png/235px-CORE_RLK_712.png?eb5acd",
+      "title": "Blood Tap (Core)",
+      "url": "https://hearthstone.wiki.gg/wiki/Blood_Tap_(Core)"
+     },
+     {
+      "caption": null,
+      "card_id": "JAIL_441",
+      "image_alt": "JAIL 441.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/JAIL_441.png/235px-JAIL_441.png?ad123d",
+      "title": "Drink Blood",
+      "url": "https://hearthstone.wiki.gg/wiki/Drink_Blood"
+     },
+     {
+      "caption": null,
+      "card_id": "EDR_812",
+      "image_alt": "EDR 812.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/EDR_812.png/235px-EDR_812.png?219157",
+      "title": "Grotesque Runeblade",
+      "url": "https://hearthstone.wiki.gg/wiki/Grotesque_Runeblade"
+     },
+     {
+      "caption": null,
+      "card_id": "EDR_814",
+      "image_alt": "EDR 814.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/EDR_814.png/235px-EDR_814.png?aa6b77",
+      "title": "Infested Breath",
+      "url": "https://hearthstone.wiki.gg/wiki/Infested_Breath"
+     },
+     {
+      "caption": null,
+      "card_id": "JAIL_451",
+      "image_alt": "JAIL 451.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/JAIL_451.png/235px-JAIL_451.png?adc745",
+      "title": "Blood Clone",
+      "url": "https://hearthstone.wiki.gg/wiki/Blood_Clone"
+     },
+     {
+      "caption": null,
+      "card_id": "TIME_612",
+      "image_alt": "TIME 612.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/TIME_612.png/235px-TIME_612.png?89037e",
+      "title": "Blood Draw",
+      "url": "https://hearthstone.wiki.gg/wiki/Blood_Draw"
+     },
+     {
+      "caption": null,
+      "card_id": "CORE_ETC_523",
+      "image_alt": "CORE ETC 523.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/CORE_ETC_523.png/235px-CORE_ETC_523.png?6cc02b",
+      "title": "Death Metal Knight (Core)",
+      "url": "https://hearthstone.wiki.gg/wiki/Death_Metal_Knight_(Core)"
+     },
+     {
+      "caption": null,
+      "card_id": "JAIL_446",
+      "image_alt": "JAIL 446.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/JAIL_446.png/235px-JAIL_446.png?7bb090",
+      "title": "Blood Doctor Thal'ena",
+      "url": "https://hearthstone.wiki.gg/wiki/Blood_Doctor_Thal%27ena"
+     },
+     {
+      "caption": null,
+      "card_id": "CORE_CATA_007",
+      "image_alt": "CORE CATA 007.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/CORE_CATA_007.png/235px-CORE_CATA_007.png?90ab89",
+      "title": "Consumption",
+      "url": "https://hearthstone.wiki.gg/wiki/Consumption"
+     },
+     {
+      "caption": null,
+      "card_id": "RLK_024",
+      "image_alt": "RLK 024.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/RLK_024.png/235px-RLK_024.png?312f17",
+      "title": "Death Strike",
+      "url": "https://hearthstone.wiki.gg/wiki/Death_Strike"
+     },
+     {
+      "caption": null,
+      "card_id": "JAIL_454",
+      "image_alt": "JAIL 454.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/JAIL_454.png/235px-JAIL_454.png?69b3ff",
+      "title": "Emergency Surgery",
+      "url": "https://hearthstone.wiki.gg/wiki/Emergency_Surgery"
+     },
+     {
+      "caption": null,
+      "card_id": "EDR_817",
+      "image_alt": "EDR 817.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/EDR_817.png/235px-EDR_817.png?bce653",
+      "title": "Sanguine Infestation",
+      "url": "https://hearthstone.wiki.gg/wiki/Sanguine_Infestation"
+     },
+     {
+      "caption": null,
+      "card_id": "RLK_067",
+      "image_alt": "RLK 067.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/RLK_067.png/235px-RLK_067.png?3c4f82",
+      "title": "Corrupted Ashbringer (Core)",
+      "url": "https://hearthstone.wiki.gg/wiki/Corrupted_Ashbringer_(Core)"
+     },
+     {
+      "caption": null,
+      "card_id": "EDR_810",
+      "image_alt": "EDR 810.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/EDR_810.png/235px-EDR_810.png?bc6d5b",
+      "title": "Hideous Husk",
+      "url": "https://hearthstone.wiki.gg/wiki/Hideous_Husk"
+     },
+     {
+      "caption": null,
+      "card_id": "CORE_RLK_706",
+      "image_alt": "CORE RLK 706.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/CORE_RLK_706.png/235px-CORE_RLK_706.png?8a30d8",
+      "title": "Alexandros Mograine (Core)",
+      "url": "https://hearthstone.wiki.gg/wiki/Alexandros_Mograine_(Core)"
+     },
+     {
+      "caption": null,
+      "card_id": "CORE_RLK_506",
+      "image_alt": "CORE RLK 506.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/CORE_RLK_506.png/235px-CORE_RLK_506.png?e6bfaa",
+      "title": "Boneguard Commander (Core)",
+      "url": "https://hearthstone.wiki.gg/wiki/Boneguard_Commander_(Core)"
+     },
+     {
+      "caption": null,
+      "card_id": "TIME_615",
+      "image_alt": "TIME 615.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/TIME_615.png/235px-TIME_615.png?7debd2",
+      "title": "Forgotten Millennium",
+      "url": "https://hearthstone.wiki.gg/wiki/Forgotten_Millennium"
+     },
+     {
+      "caption": null,
+      "card_id": "TLC_433",
+      "image_alt": "TLC 433.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/TLC_433.png/235px-TLC_433.png?570dde",
+      "title": "Reanimate the Terror",
+      "url": "https://hearthstone.wiki.gg/wiki/Reanimate_the_Terror"
+     },
+     {
+      "caption": null,
+      "card_id": "CORE_RLK_066",
+      "image_alt": "CORE RLK 066.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/CORE_RLK_066.png/235px-CORE_RLK_066.png?e4a1da",
+      "title": "Hematurge (Core)",
+      "url": "https://hearthstone.wiki.gg/wiki/Hematurge_(Core)"
+     },
+     {
+      "caption": null,
+      "card_id": "CATA_780",
+      "image_alt": "CATA 780.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/CATA_780.png/235px-CATA_780.png?4b2120",
+      "title": "Obsessive Technician",
+      "url": "https://hearthstone.wiki.gg/wiki/Obsessive_Technician"
+     },
+     {
+      "caption": null,
+      "card_id": "CATA_156",
+      "image_alt": "CATA 156.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/CATA_156.png/235px-CATA_156.png?5650aa",
+      "title": "Experimental Animation",
+      "url": "https://hearthstone.wiki.gg/wiki/Experimental_Animation"
+     },
+     {
+      "caption": null,
+      "card_id": "CATA_155",
+      "image_alt": "CATA 155.png",
+      "image_url": "https://hearthstone.wiki.gg/images/thumb/CATA_155.png/235px-CATA_155.png?c0c5b0",
+      "title": "Arisen Onyxia",
+      "url": "https://hearthstone.wiki.gg/wiki/Arisen_Onyxia"
+     }
+    ],
+    "pool": "Discovered Blood Rune cards",
+    "query_url": "https://hearthstone.wiki.gg/wiki/Special:RunQuery/WikiCardPool?pfRunQueryFormName=WikiCardPool&wpRunQuery=Run%2Bquery&WikiCardPool_form_only%5Bconfig_originalPage%5D=Hematurge%20%28Core%29&WikiCardPool_form_only%5Bconfig_cardDbfId%5D=111320&WikiCardPool_form_only%5Bid%5D=12&WikiCardPool_form_only%5Boptions%5D=1%2C2&WikiCardPool_form_only%5Boptions_format%5D=Standard&WikiCardPool_form_only%5Boptions_heroClasses%5D=Death%20Knight&WikiCardPool_form_only%5Boptions_limit%5D=500&WikiCardPool_form_only%5Boptions_offset%5D=0"
+   }
+  ],
+  "generated_card_ids": [
+   "EDR_813",
+   "CORE_RLK_712",
+   "JAIL_441",
+   "EDR_812",
+   "EDR_814",
+   "JAIL_451",
+   "TIME_612",
+   "CORE_ETC_523",
+   "JAIL_446",
+   "CORE_CATA_007",
+   "RLK_024",
+   "JAIL_454",
+   "EDR_817",
+   "RLK_067",
+   "EDR_810",
+   "CORE_RLK_706",
+   "CORE_RLK_506",
+   "TIME_615",
+   "TLC_433",
+   "CORE_RLK_066",
+   "CATA_780",
+   "CATA_156",
+   "CATA_155"
+  ],
+  "fetched_at": "2026-10-12 08:04:20",
+  "changed_at": "2026-08-25 08:21:48"
+ }
+}

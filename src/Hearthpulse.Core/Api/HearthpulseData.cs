@@ -83,6 +83,24 @@ public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory =
         return doc is null ? [] : Read(() => ParseMulligan(Data(doc)), "archetype mulligan", new List<GuideCard>());
     }
 
+    /// <summary>
+    /// A generator's Hearthstone Wiki pools (<c>wiki.generated_card_pools</c>); null when the API has no answer (offline,
+    /// unknown card, an id that is not a card id).
+    /// </summary>
+    public async Task<CardPool.CardWiki?> LoadCardWikiAsync(string cardId, CancellationToken cancellationToken = default)
+    {
+        if (!CardIdKey.IsMatch(cardId))
+        {
+            return null;
+        }
+
+        using var doc = await FetchAsync($"api/v1/constructed-cards/{cardId}/wiki", $"card-wiki-{cardId}.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? null : Read(() => CardPool.WikiPools.Parse(Data(doc)), "card wiki", (CardPool.CardWiki?)null);
+    }
+
+    /// <summary>Card ids that may go into a URL and a cache file name.</summary>
+    private static readonly System.Text.RegularExpressions.Regex CardIdKey = new("^[A-Za-z0-9_]{1,48}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     public async Task<IReadOnlyList<GuideMatchup>> LoadArchetypeMatchupsAsync(int archetypeId, CancellationToken cancellationToken = default)
     {
         using var doc = await FetchAsync($"api/db/archetypes/{archetypeId}/matchups?limit=500", $"archetype-{archetypeId}-matchups.json", cancellationToken).ConfigureAwait(false);
