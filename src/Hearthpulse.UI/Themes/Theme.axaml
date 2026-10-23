@@ -94,6 +94,8 @@
                 <GradientStop Color="#662E1F13" Offset="0.8" />
                 <GradientStop Color="#142E1F13" Offset="1" />
             </LinearGradientBrush>
+            <!-- Dark plate under small numbers drawn over card art (same as the WPF token) -->
+            <SolidColorBrush x:Key="OverlayBadgeShade" Color="#CC140D08" />
 
             <!-- Gold trim, framed edges and the selected / primary fills. -->
             <SolidColorBrush x:Key="GoldTrim" Color="#8A6533" />

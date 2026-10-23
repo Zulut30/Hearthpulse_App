@@ -137,6 +137,25 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _dirty = true;
     }
 
+    /// <summary>The Hearthpulse API mulligan guide; the host passes it once at start-up. A finished lookup refreshes the overlay.</summary>
+    public void SetMulliganGuide(MulliganGuideSource? guide)
+    {
+        if (_constructed.Guide is { } previous)
+        {
+            previous.Changed -= MarkDirty;
+        }
+
+        _constructed.Guide = guide;
+        if (guide is not null)
+        {
+            guide.Changed += MarkDirty;
+        }
+
+        _dirty = true;
+    }
+
+    private void MarkDirty() => _dirty = true;
+
     /// <summary>
     /// Applies the "Game plan comp" setting; call at start-up and whenever settings change. Manual: the stored
     /// <paramref name="chosenCompId"/> becomes the choice. Switching to Auto drops the manual choice so the advisor
@@ -189,6 +208,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_battlegrounds);
         _parser.AddListener(_battlegrounds.Counters);
         _parser.AddListener(_facts);
+        _parser.AddListener(_cardPool);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
         _dirty = true;
@@ -672,6 +692,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             else if (inGame && game!.IsConstructedLike && game.LocalPlayerId != 0)
             {
                 constructed = _constructed.BuildView(game, _cards);
+                constructed = WithCardPool(constructed, game);
             }
         }
         catch (Exception ex)

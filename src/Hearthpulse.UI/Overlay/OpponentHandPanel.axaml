@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             x:Class="Hearthpulse.UI.Overlay.OpponentHandPanel"
+             x:DataType="o:OverlayViewModel"
+             Width="{x:Static o:OverlayViewModel.HandPanelWidth}" Height="62">
+    <!-- Marks under the opponent's hand fan: the turn each card came in ("M" = opening hand), the Coin, and the portrait
+         of the card when it is known or of the card that created it. The view model places each mark under its card. -->
+    <UserControl.Resources>
+        <i:Truthy x:Key="Truthy" />
+    </UserControl.Resources>
+    <ItemsControl ItemsSource="{Binding HandMarks}">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <Grid />
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="o:HandMark">
+                <Border Width="{x:Static o:OverlayViewModel.HandMarkWidth}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="{Binding Offset}"
+                        Padding="0,3,0,4" CornerRadius="8" Background="{StaticResource OverlayPanel}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
+                        o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding Hint}" c:CardPreview.CardId="{Binding PreviewCardId}"
+                        c:CardPreview.Placement="Below">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding Label}" Classes="number" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center"
+                                   IsVisible="{Binding Label, Converter={StaticResource Truthy}}" />
+                        <Panel Width="26" Height="26" Margin="0,2,0,0" IsVisible="{Binding PortraitId, Converter={StaticResource Truthy}}">
+                            <Border Margin="2" CornerRadius="11" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding PortraitId}" />
+                            <Ellipse Stroke="{StaticResource Accent}" StrokeThickness="1.5" IsVisible="{Binding !Created}" />
+                            <Ellipse Stroke="{StaticResource Info}" StrokeThickness="1.5" IsVisible="{Binding Created}" />
+                            <!-- Created by this card: the portrait is the creator's, marked with the same glyph as created deck cards -->
+                            <Border Width="13" Height="13" CornerRadius="7" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,-3"
+                                    Background="{StaticResource OverlayBadgeShade}" IsVisible="{Binding Created}">
+                                <TextBlock Text="&#xF0674;" Classes="icon" FontSize="9" Foreground="{StaticResource Info}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Panel>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

@@ -745,33 +745,66 @@
                         <Border Classes="card" Margin="0,0,0,16">
                             <StackPanel>
                                 <c:Ornament Text="Hearthpulse account" Icon="&#xF0004;" Size="13" Margin="0,0,0,6" />
-                                <StackPanel IsVisible="{Binding AccountSignedIn}">
-                                    <TextBlock Text="{Binding AccountName}" FontWeight="Bold" FontSize="15" Margin="0,4,0,2" />
-                                    <TextBlock Text="{Binding AccountEmail}" Classes="caption" />
-                                    <TextBlock Text="{Binding AccountSince}" Classes="caption" FontSize="11" Margin="0,2,0,0"
-                                               IsVisible="{Binding AccountSince, Converter={StaticResource Truthy}}" />
-                                    <Button Classes="ghost" Content="Sign out" Command="{Binding SignOut}" HorizontalAlignment="Left" Margin="0,14,0,0" />
+                                <!-- Signed in -->
+                                <StackPanel IsVisible="{Binding AccountShowProfile}">
+                                    <TextBlock Text="Signed in with HeartPulse as" Classes="caption" Margin="0,4,0,2" />
+                                    <TextBlock Text="{Binding AccountName}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
+                                    <DockPanel Margin="0,6,0,0">
+                                        <TextBlock DockPanel.Dock="Left" Text="&#xF01A5;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" VerticalAlignment="Top" Margin="0,1,6,0"
+                                                   IsVisible="{Binding AccountHasSubscription}" />
+                                        <TextBlock Text="{Binding AccountSubscription}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                                   IsVisible="{Binding AccountHasSubscription}" />
+                                        <TextBlock Text="{Binding AccountSubscription}" Classes="caption" IsVisible="{Binding !AccountHasSubscription}" />
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding AccountSessionNote}" Classes="caption" Margin="0,6,0,0" IsVisible="{Binding !AccountSessionEndingSoon}" />
+                                    <TextBlock Text="{Binding AccountSessionNote}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               IsVisible="{Binding AccountSessionEndingSoon}" />
+                                    <Button Classes="bare" Command="{Binding OpenAccountProfile}" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Open profile on the site" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                                            <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                        <Button Classes="ghost primary" Content="Sign in again" Command="{Binding SignIn}" Margin="0,0,8,0" IsVisible="{Binding AccountSessionEndingSoon}" />
+                                        <Button Classes="ghost" Content="Sign out" Command="{Binding SignOut}" />
+                                    </WrapPanel>
                                 </StackPanel>
-                                <StackPanel IsVisible="{Binding !AccountSignedIn}">
-                                    <TextBlock Text="Sign in to keep your Hearthpulse profile. The tracker works the same without an account." Classes="caption"
+                                <!-- Signed out -->
+                                <StackPanel IsVisible="{Binding AccountSignedOut}">
+                                    <TextBlock Text="Use your hearthpulse.net account. The tracker works the same without one." Classes="caption"
                                                TextWrapping="Wrap" Margin="0,0,0,14" />
-                                    <TextBlock Text="Email" Classes="caption" Margin="0,0,0,4" />
-                                    <TextBox Text="{Binding AccountEmailInput}" MaxWidth="360" HorizontalAlignment="Left" Width="360" Margin="0,0,0,10" />
-                                    <StackPanel IsVisible="{Binding AccountRegister}">
-                                        <TextBlock Text="Name shown in Hearthpulse" Classes="caption" Margin="0,0,0,4" />
-                                        <TextBox Text="{Binding AccountNameInput}" HorizontalAlignment="Left" Width="360" Margin="0,0,0,10" />
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Button Classes="ghost primary" Content="Sign in with HeartPulse" Command="{Binding SignIn}" Margin="0,0,12,0" />
+                                        <TextBlock Text="Opens your browser" Classes="caption" VerticalAlignment="Center" />
+                                    </WrapPanel>
+                                </StackPanel>
+                                <!-- Signing in: getting a code, then waiting for the player to confirm it on the site -->
+                                <StackPanel IsVisible="{Binding AccountWaiting}">
+                                    <TextBlock Text="Getting a sign-in code&#x2026;" Classes="caption" Margin="0,4,0,14" IsVisible="{Binding !AccountHasCode}" />
+                                    <StackPanel IsVisible="{Binding AccountHasCode}">
+                                        <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                            <TextBlock Text="Open " />
+                                            <Button Classes="bare" Command="{Binding OpenSignInPage}">
+                                                <TextBlock Text="{Binding AccountCodeUri}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                                            </Button>
+                                            <TextBlock Text=" and enter the code" />
+                                        </WrapPanel>
+                                        <WrapPanel Orientation="Horizontal" Margin="0,10,0,10">
+                                            <Border Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="18,6">
+                                                <TextBlock Text="{Binding AccountUserCode}" FontFamily="{StaticResource DisplayFont}" FontWeight="ExtraBold" FontSize="28"
+                                                           Foreground="{StaticResource Accent}" />
+                                            </Border>
+                                            <Button Classes="ghost" Click="OnCopyAccountCode" VerticalAlignment="Center" Margin="12,0,0,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xF018F;" Classes="icon" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                    <TextBlock Text="Copy" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                        </WrapPanel>
+                                        <TextBlock Text="{Binding AccountWaitingHint}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,14" />
                                     </StackPanel>
-                                    <TextBlock Text="Password" Classes="caption" Margin="0,0,0,4" />
-                                    <TextBox Text="{Binding AccountPassword}" PasswordChar="•" HorizontalAlignment="Left" Width="360" Margin="0,0,0,14">
-                                        <TextBox.KeyBindings>
-                                            <KeyBinding Gesture="Enter" Command="{Binding SubmitAccount}" />
-                                        </TextBox.KeyBindings>
-                                    </TextBox>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Classes="ghost primary" Content="{Binding AccountSubmitText}" Command="{Binding SubmitAccount}" Margin="0,0,8,0"
-                                                IsEnabled="{Binding !AccountBusy}" />
-                                        <Button Classes="ghost" Content="{Binding AccountSwitchText}" Command="{Binding ToggleAccountMode}" />
-                                    </StackPanel>
+                                    <Button Classes="ghost" Content="Cancel" Command="{Binding CancelSignIn}" HorizontalAlignment="Left" />
                                 </StackPanel>
                                 <TextBlock Text="{Binding AccountMessage}" Classes="caption" TextWrapping="Wrap" Margin="0,10,0,0"
                                            IsVisible="{Binding AccountMessage, Converter={StaticResource Truthy}}" />
@@ -858,6 +891,8 @@
                                 <CheckBox Classes="switch" Content="Your deck" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
                                 <CheckBox Classes="switch" Content="Draw chance per card" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
                                 <CheckBox Classes="switch" Content="Opponent: played cards and how long cards stayed in hand" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14" />
+                                <CheckBox Classes="switch" Content="Show card pool: what a Discover or random card can give" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
+                                          ToolTip.Tip="During a Discover, right after you play such a card, and while you hover it in hand. Right-click the panel for the full list." />
                                 <CheckBox Classes="switch" Content="End of game summary" IsChecked="{Binding ShowGameToasts}" Margin="0,0,0,18" />
 
                                 <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">

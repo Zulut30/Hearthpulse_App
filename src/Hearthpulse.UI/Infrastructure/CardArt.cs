@@ -18,6 +18,9 @@ public enum ArtKind
 
     /// <summary>Full Battlegrounds card render.</summary>
     BattlegroundsCard,
+
+    /// <summary>Full Constructed card render (256 px wide) in the card-data locale, shown by the hover preview.</summary>
+    Card,
 }
 
 /// <summary>
@@ -58,11 +61,15 @@ public static class CardArt
     public static readonly AttachedProperty<string?> BattlegroundsCardProperty =
         AvaloniaProperty.RegisterAttached<Control, string?>("BattlegroundsCard", typeof(CardArt));
 
+    public static readonly AttachedProperty<string?> CardProperty =
+        AvaloniaProperty.RegisterAttached<Control, string?>("Card", typeof(CardArt));
+
     static CardArt()
     {
         TileProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Tile, e.NewValue as string));
         PortraitProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Portrait, e.NewValue as string));
         BattlegroundsCardProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.BattlegroundsCard, e.NewValue as string));
+        CardProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Card, e.NewValue as string));
     }
 
     public static string? GetTile(Control c) => c.GetValue(TileProperty);
@@ -71,6 +78,8 @@ public static class CardArt
     public static void SetPortrait(Control c, string? value) => c.SetValue(PortraitProperty, value);
     public static string? GetBattlegroundsCard(Control c) => c.GetValue(BattlegroundsCardProperty);
     public static void SetBattlegroundsCard(Control c, string? value) => c.SetValue(BattlegroundsCardProperty, value);
+    public static string? GetCard(Control c) => c.GetValue(CardProperty);
+    public static void SetCard(Control c, string? value) => c.SetValue(CardProperty, value);
 
     /// <summary>Number of image loads still in flight (the off-screen renderer waits for them).</summary>
     public static int InFlight => Pending.Count(p => !p.Value.IsCompleted);
@@ -106,6 +115,7 @@ public static class CardArt
     {
         ArtKind.Tile => TileProperty,
         ArtKind.Portrait => PortraitProperty,
+        ArtKind.Card => CardProperty,
         _ => BattlegroundsCardProperty,
     };
 
@@ -133,9 +143,13 @@ public static class CardArt
         {
             ArtKind.Tile => ($"https://art.hearthstonejson.com/v1/tiles/{cardId}.png", "png"),
             ArtKind.Portrait => ($"https://art.hearthstonejson.com/v1/256x/{cardId}.jpg", "jpg"),
+            ArtKind.Card => ($"https://art.hearthstonejson.com/v1/render/latest/{Locale}/256x/{cardId}.png", "png"),
             _ => ($"https://art.hearthstonejson.com/v1/bgs/latest/{Locale}/256x/{cardId}.png", "png"),
         };
-        var dir = Path.Combine(AppPaths.Images, kind.ToString().ToLowerInvariant());
+        // Renders carry the card text, so each locale keeps its own copies.
+        var dir = kind == ArtKind.Card
+            ? Path.Combine(AppPaths.Images, "card", Locale)
+            : Path.Combine(AppPaths.Images, kind.ToString().ToLowerInvariant());
         var file = Path.Combine(dir, $"{cardId}.{ext}");
         Bitmap? image = null;
         if (Unreadable.ContainsKey(Key(kind, cardId)))
@@ -150,7 +164,8 @@ public static class CardArt
                 await Downloads.WaitAsync().ConfigureAwait(false);
                 try
                 {
-                    if (!await TryDownloadAsync(http, url, file, dir).ConfigureAwait(false) && FallbackUrl?.Invoke(cardId) is { Length: > 0 } fallback)
+                    if (!await TryDownloadAsync(http, url, file, dir).ConfigureAwait(false) && kind != ArtKind.Card
+                        && FallbackUrl?.Invoke(cardId) is { Length: > 0 } fallback)
                     {
                         await TryDownloadAsync(http, fallback, file, dir).ConfigureAwait(false);
                     }
@@ -166,7 +181,7 @@ public static class CardArt
                 try
                 {
                     await using var stream = File.OpenRead(file);
-                    image = Bitmap.DecodeToWidth(stream, kind == ArtKind.Tile ? 256 : 200, BitmapInterpolationMode.HighQuality);
+                    image = Bitmap.DecodeToWidth(stream, kind is ArtKind.Tile or ArtKind.Card ? 256 : 200, BitmapInterpolationMode.HighQuality);
                 }
                 catch (Exception ex) when (ex is not (OutOfMemoryException or IOException))
                 {
@@ -235,13 +250,26 @@ public static class CardArt
     }
 
 
+    /// <summary>URLs that answered 404 this session (tokens without a render...): not asked again on every hover.</summary>
+    private static readonly ConcurrentDictionary<string, bool> Missing = new();
+
     private static async Task<bool> TryDownloadAsync(HttpClient http, string url, string file, string dir)
     {
+        if (Missing.ContainsKey(url))
+        {
+            return false;
+        }
+
         try
         {
             using var response = await http.GetAsync(url).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    Missing[url] = true;
+                }
+
                 return false;
             }
 

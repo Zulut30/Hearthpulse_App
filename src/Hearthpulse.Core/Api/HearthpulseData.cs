@@ -2,19 +2,26 @@ using System.Globalization;
 using System.Text.Json;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.Api;
 
 /// <summary>
-/// Community stats from the Hearthpulse API (HSReplay-based): Battlegrounds heroes and minions, ranked Constructed
-/// archetypes. The app's main source stays Firestone; these fill in when it cannot be reached. Answers are cached on
-/// disk, and a stale cache is used when the server is down. Never throws.
+/// Community stats from the Hearthpulse API: Battlegrounds heroes and minions (a fallback for Firestone), and every
+/// ranked Constructed number the app shows (HSGuru meta and decks, HSReplay archetypes, mulligan and matchups).
+/// Answers are cached on disk, and a stale cache is used when the server is down. Never throws.
 /// </summary>
-public sealed class HearthpulseData(HearthpulseApi api)
+/// <param name="cacheDirectory">Where answers are cached; the app's cache folder by default (tests pass a scratch one).</param>
+public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 {
     public const string Attribution = "Community stats: Hearthpulse API (HSReplay)";
 
     private static readonly TimeSpan MaxAge = TimeSpan.FromHours(6);
+
+    /// <summary>Values from answers that become part of a URL or cache file name must look like the API's own keys.</summary>
+    private static readonly System.Text.RegularExpressions.Regex SafeKey = new("^[a-z0-9_.]{1,64}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    private readonly string _cacheDirectory = cacheDirectory ?? Path.Combine(AppPaths.Cache, "api");
 
     /// <summary>Solo (or "duos") hero results, by hero card id. Sample sizes are not published: DataPoints is 0.</summary>
     public async Task<IReadOnlyDictionary<string, MetaHero>> LoadHeroesAsync(string mode = "solo", CancellationToken cancellationToken = default)
@@ -39,11 +46,70 @@ public sealed class HearthpulseData(HearthpulseApi api)
         return doc is null ? [] : Read(() => ParseArchetypes(Data(doc)), "archetypes", new List<MetaArchetype>());
     }
 
+    /// <summary>An archetype's HSReplay decklists (Standard Legend), for matching the player's deck to an archetype.</summary>
+    public async Task<IReadOnlyList<GuideDeck>> LoadArchetypeDecksAsync(int archetypeId, CancellationToken cancellationToken = default)
+    {
+        using var doc = await FetchAsync($"api/db/archetypes/{archetypeId}/decks?limit=200", $"archetype-{archetypeId}-decks.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? [] : Read(() => ParseArchetypeDecks(Data(doc)), "archetype decks", new List<GuideDeck>());
+    }
+
+    /// <summary>Every card's mulligan numbers for an archetype (Standard Legend), not only the rows HSReplay displays.</summary>
+    public async Task<IReadOnlyList<GuideCard>> LoadArchetypeMulliganAsync(int archetypeId, CancellationToken cancellationToken = default)
+    {
+        using var doc = await FetchAsync($"api/db/archetypes/{archetypeId}/mulligan?display_only=false&limit=250", $"archetype-{archetypeId}-mulligan.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? [] : Read(() => ParseMulligan(Data(doc)), "archetype mulligan", new List<GuideCard>());
+    }
+
+    public async Task<IReadOnlyList<GuideMatchup>> LoadArchetypeMatchupsAsync(int archetypeId, CancellationToken cancellationToken = default)
+    {
+        using var doc = await FetchAsync($"api/db/archetypes/{archetypeId}/matchups?limit=500", $"archetype-{archetypeId}-matchups.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? [] : Read(() => ParseMatchups(Data(doc)), "archetype matchups", new List<GuideMatchup>());
+    }
+
+    /// <summary>
+    /// HSGuru's meta for one format, rank and period (keys as the API takes them, e.g. "standard", "legend",
+    /// "past_week"), with the periods the API offers. Null when neither the server nor the cache has it.
+    /// </summary>
+    public async Task<HsguruMetaSlice?> LoadHsguruMetaAsync(string format, string rank, string period, CancellationToken cancellationToken = default)
+    {
+        // The period can come from an earlier answer ("current_period"): only key-like values reach the URL and the file name.
+        if (!SafeKey.IsMatch(format) || !SafeKey.IsMatch(rank) || !SafeKey.IsMatch(period))
+        {
+            return null;
+        }
+
+        using var doc = await FetchAsync($"v1/hsguru/meta?format={format}&rank={rank}&period={Uri.EscapeDataString(period)}&min_games=100", $"hsguru-meta-{format}-{rank}-{period}.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? null : Read<HsguruMetaSlice?>(() => ParseHsguruMeta(doc.RootElement), "HSGuru meta", null);
+    }
+
+    /// <summary>Every HSGuru archetype of a format (current expansion, all ranks) with its most played decklists.</summary>
+    public async Task<IReadOnlyList<HsguruArchetype>> LoadHsguruArchetypesAsync(string format, CancellationToken cancellationToken = default)
+    {
+        using var doc = await FetchAsync($"v1/hsguru/archetypes?format={format}&min_games=50&limit=500", $"hsguru-archetypes-{format}.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? [] : Read(() => ParseHsguruArchetypes(Data(doc)), "HSGuru archetypes", new List<HsguruArchetype>());
+    }
+
+    /// <summary>
+    /// HSGuru's per-card mulligan numbers and class matchups for one archetype (Legend, past week): the mulligan source
+    /// for Wild and for archetypes HSReplay does not have. Null when the API has no analysis for it.
+    /// </summary>
+    public async Task<HsguruAnalysis?> LoadHsguruAnalysisAsync(string archetype, string format, CancellationToken cancellationToken = default)
+    {
+        if (!SafeKey.IsMatch(format) || archetype.Length is 0 or > 120)
+        {
+            return null;
+        }
+
+        var file = $"hsguru-analysis-{format}-{ApiConstructedMeta.StableId(archetype):x8}.json";
+        using var doc = await FetchAsync($"v1/hsguru/archetypes/analysis?archetype={Uri.EscapeDataString(archetype)}&format={format}", file, cancellationToken).ConfigureAwait(false);
+        return doc is null ? null : Read<HsguruAnalysis?>(() => ParseHsguruAnalysis(Data(doc)), "HSGuru analysis", null);
+    }
+
     /// <summary>HSReplay publishes Legend and a few brackets; anything wider than Legend maps to its all-ranks view.</summary>
     internal static string RankRange(string rank) => rank switch
     {
-        "legend" or "top-2000-legend" or "top-500-legend" or "top-100-legend" => "LEGEND",
-        "diamond" => "DIAMOND_THROUGH_LEGEND",
+        "legend" or "top-2000-legend" or "top-500-legend" or "top-100-legend" or "top_5k" or "top_legend" or "top_500" or "top_100" => "LEGEND",
+        "diamond" or "diamond_4to1" or "diamond_to_legend" => "DIAMOND_THROUGH_LEGEND",
         _ => "ALL",
     };
 
@@ -125,40 +191,271 @@ public sealed class HearthpulseData(HearthpulseApi api)
         return result;
     }
 
+    /// <summary>The cached <c>{"data": {"items": [...]}, "meta": {"fetched_at", "current_period", "current_patch_period"}}</c>; rates as fractions.</summary>
+    internal static HsguruMetaSlice ParseHsguruMeta(JsonElement root)
+    {
+        var items = new List<HsguruMetaItem>();
+        if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object && data.TryGetProperty("items", out var list))
+        {
+            foreach (var item in Items(list))
+            {
+                if (Str(item, "archetype") is { Length: > 0 } name && Num(item, "winrate") is { } winRate && Num(item, "games") is { } games && games > 0)
+                {
+                    items.Add(new HsguruMetaItem(name, winRate / 100, (Num(item, "popularity") ?? 0) / 100, (int)games));
+                }
+            }
+        }
+
+        var meta = root.TryGetProperty("meta", out var m) && m.ValueKind == JsonValueKind.Object ? m : default;
+        var fetched = meta.ValueKind == JsonValueKind.Object && Str(meta, "fetched_at") is { } at
+                      && DateTime.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var time)
+            ? time
+            : DateTime.MinValue;
+        return new HsguruMetaSlice(
+            items,
+            fetched,
+            meta.ValueKind == JsonValueKind.Object ? Str(meta, "current_period") : null,
+            meta.ValueKind == JsonValueKind.Object ? Str(meta, "current_patch_period") : null);
+    }
+
+    /// <summary><c>[{"archetype", "games", "winrate", "decks": [{"class", "deck_code", "games", "win_rate", "updated_at"}]}]</c>.</summary>
+    internal static List<HsguruArchetype> ParseHsguruArchetypes(JsonElement list)
+    {
+        var result = new List<HsguruArchetype>();
+        foreach (var a in Items(list))
+        {
+            if (Str(a, "archetype") is not { Length: > 0 } name)
+            {
+                continue;
+            }
+
+            var decks = new List<HsguruDeck>();
+            if (a.TryGetProperty("decks", out var deckList))
+            {
+                foreach (var d in Items(deckList))
+                {
+                    if (Str(d, "deck_code") is { Length: > 0 } code)
+                    {
+                        var updated = Str(d, "updated_at") is { } at && DateTime.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var time)
+                            ? time
+                            : DateTime.MinValue;
+                        decks.Add(new HsguruDeck(code, Str(d, "class") ?? string.Empty, (int)(Num(d, "games") ?? 0), (Num(d, "win_rate") ?? 0) / 100, updated));
+                    }
+                }
+            }
+
+            result.Add(new HsguruArchetype(name, (int)(Num(a, "games") ?? 0), (Num(a, "winrate") ?? 0) / 100, decks));
+        }
+
+        return result;
+    }
+
+    /// <summary><c>{"decks": [{"total_games", "raw_deck_list": "[[dbf, copies], ...]"}]}</c>; sideboards are left out.</summary>
+    internal static List<GuideDeck> ParseArchetypeDecks(JsonElement root)
+    {
+        var result = new List<GuideDeck>();
+        if (!root.TryGetProperty("decks", out var list))
+        {
+            return result;
+        }
+
+        foreach (var deck in Items(list))
+        {
+            if (Str(deck, "raw_deck_list") is not { Length: > 0 } raw)
+            {
+                continue;
+            }
+
+            // One bad list (or pair) is skipped, not the archetype's whole answer.
+            JsonDocument cards;
+            try
+            {
+                cards = JsonDocument.Parse(raw);
+            }
+            catch (JsonException)
+            {
+                continue;
+            }
+
+            var counts = new Dictionary<int, int>();
+            using (cards)
+            {
+                foreach (var pair in Items(cards.RootElement, JsonValueKind.Array))
+                {
+                    if (pair.GetArrayLength() == 2 && pair[0].ValueKind == JsonValueKind.Number && pair[1].ValueKind == JsonValueKind.Number
+                        && pair[0].TryGetInt32(out var dbf) && pair[1].TryGetInt32(out var copies))
+                    {
+                        counts[dbf] = counts.GetValueOrDefault(dbf) + copies;
+                    }
+                }
+            }
+
+            if (counts.Count > 0)
+            {
+                result.Add(new GuideDeck((int)(Num(deck, "total_games") ?? 0), counts));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// <c>{"card_stats": [{card_id, dbf_id, mulligan_count, kept_count, kept_impact, ...}], "class_matchups": [{class_key,
+    /// winrate, games}]}</c>; impacts are win rate points against the archetype's own win rate, here fractions.
+    /// </summary>
+    internal static HsguruAnalysis ParseHsguruAnalysis(JsonElement root)
+    {
+        var cards = new List<HsguruCardStat>();
+        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("card_stats", out var list))
+        {
+            foreach (var c in Items(list))
+            {
+                if (Str(c, "card_id") is { Length: > 0 } id)
+                {
+                    cards.Add(new HsguruCardStat(id, (int)(Num(c, "dbf_id") ?? 0), (int)(Num(c, "mulligan_count") ?? 0), (int)(Num(c, "kept_count") ?? 0),
+                        Num(c, "kept_impact") / 100, Num(c, "mulligan_impact") / 100));
+                }
+            }
+        }
+
+        var matchups = new List<GuideMatchup>();
+        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("class_matchups", out var classes))
+        {
+            foreach (var m in Items(classes))
+            {
+                if (Str(m, "class_key") is { Length: > 0 } key && Num(m, "winrate") is { } winRate && Num(m, "games") is { } games && games > 0)
+                {
+                    matchups.Add(new GuideMatchup(key.ToUpperInvariant(), (int)games, winRate / 100));
+                }
+            }
+        }
+
+        return new HsguruAnalysis(cards, matchups);
+    }
+
+    /// <summary><c>{"mulligan": [...]}</c>; percentages become fractions. Rows without a card id are skipped.</summary>
+    internal static List<GuideCard> ParseMulligan(JsonElement root)
+    {
+        var result = new List<GuideCard>();
+        if (!root.TryGetProperty("mulligan", out var list))
+        {
+            return result;
+        }
+
+        foreach (var row in Items(list))
+        {
+            if (Str(row, "card_id") is not { Length: > 0 } id)
+            {
+                continue;
+            }
+
+            result.Add(new GuideCard(
+                id,
+                (int)(Num(row, "dbf_id") ?? 0),
+                (int)(Num(row, "cost") ?? 0),
+                (int)(Num(row, "times_presented_in_initial_cards") ?? 0),
+                (Num(row, "keep_percentage") ?? 0) / 100,
+                (int)(Num(row, "times_in_opening_hand") ?? 0),
+                Num(row, "opening_hand_winrate") / 100,
+                Num(row, "avg_turn_played_on")));
+        }
+
+        return result;
+    }
+
+    /// <summary><c>{"matchups": [{"opponent_class", "total_games", "win_rate"}]}</c>.</summary>
+    internal static List<GuideMatchup> ParseMatchups(JsonElement root)
+    {
+        var result = new List<GuideMatchup>();
+        if (!root.TryGetProperty("matchups", out var list))
+        {
+            return result;
+        }
+
+        foreach (var m in Items(list))
+        {
+            if (Str(m, "opponent_class") is { Length: > 0 } opponent && Num(m, "win_rate") is { } winRate && Num(m, "total_games") is { } games && games > 0)
+            {
+                result.Add(new GuideMatchup(opponent, (int)games, winRate / 100));
+            }
+        }
+
+        return result;
+    }
+
     private async Task<JsonDocument?> FetchAsync(string path, string cacheName, CancellationToken cancellationToken)
     {
-        var file = Path.Combine(AppPaths.Cache, "api", cacheName);
+        var file = Path.Combine(_cacheDirectory, cacheName);
         var info = new FileInfo(file);
         if (!info.Exists || DateTime.UtcNow - info.LastWriteTimeUtc > MaxAge)
         {
             var result = await api.GetAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
             if (result.Ok)
             {
-                try
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-                    // The whole answer is kept (not only "data"): some endpoints put their list next to it.
-                    await File.WriteAllTextAsync(file, JsonSerializer.Serialize(new { data = result.Data }), cancellationToken).ConfigureAwait(false);
-                }
-                catch (IOException ex)
-                {
-                    Diag.Error($"Hearthpulse API cache not written ({cacheName})", ex);
-                }
-
-                return JsonDocument.Parse(JsonSerializer.Serialize(new { data = result.Data }));
+                // "meta" (periods, fetch time) is kept next to "data" when the endpoint sends it.
+                var text = result.Meta.ValueKind == JsonValueKind.Undefined
+                    ? JsonSerializer.Serialize(new { data = result.Data })
+                    : JsonSerializer.Serialize(new { data = result.Data, meta = result.Meta });
+                // The whole answer is kept (not only "data"): some endpoints put their list next to it.
+                await WriteCacheAsync(file, text, cancellationToken).ConfigureAwait(false);
+                return JsonDocument.Parse(text);
             }
 
             Diag.Info($"Hearthpulse API {path}: {result.Error!.Code} {result.Error.Message}");
+            if (result.Error.Code == "NOT_AVAILABLE")
+            {
+                // The server has nothing for this (404): remember that for as long as an answer, instead of asking every load.
+                await WriteCacheAsync(file, "{\"data\":null}", cancellationToken).ConfigureAwait(false);
+                return null;
+            }
         }
 
         try
         {
-            return File.Exists(file) ? JsonDocument.Parse(await File.ReadAllBytesAsync(file, cancellationToken).ConfigureAwait(false)) : null;
+            if (!File.Exists(file))
+            {
+                return null;
+            }
+
+            var doc = JsonDocument.Parse(await File.ReadAllBytesAsync(file, cancellationToken).ConfigureAwait(false));
+            if (doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Null)
+            {
+                doc.Dispose();
+                return null;
+            }
+
+            return doc;
         }
         catch (Exception ex) when (ex is IOException or JsonException)
         {
             Diag.Error($"Hearthpulse API cache unreadable ({cacheName})", ex);
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Writes a cache file through a temporary file, so a reader (another load, the mulligan guide) never sees half of it
+    /// and a crash mid-write leaves the old answer.
+    /// </summary>
+    private static async Task WriteCacheAsync(string file, string text, CancellationToken cancellationToken)
+    {
+        var temp = file + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+            await File.WriteAllTextAsync(temp, text, cancellationToken).ConfigureAwait(false);
+            File.Move(temp, file, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error($"Hearthpulse API cache not written ({Path.GetFileName(file)})", ex);
+            try
+            {
+                File.Delete(temp);
+            }
+            catch (IOException)
+            {
+            }
         }
     }
 
@@ -178,8 +475,8 @@ public sealed class HearthpulseData(HearthpulseApi api)
         }
     }
 
-    private static IEnumerable<JsonElement> Items(JsonElement list) =>
-        list.ValueKind == JsonValueKind.Array ? list.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Object) : [];
+    private static IEnumerable<JsonElement> Items(JsonElement list, JsonValueKind kind = JsonValueKind.Object) =>
+        list.ValueKind == JsonValueKind.Array ? list.EnumerateArray().Where(e => e.ValueKind == kind) : [];
 
     private static string? Str(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;

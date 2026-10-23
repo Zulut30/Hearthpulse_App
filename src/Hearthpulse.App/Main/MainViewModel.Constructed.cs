@@ -256,7 +256,7 @@ public sealed partial class MainViewModel
                 c.CardId,
                 _cards.NameOf(c.CardId),
                 c.InHandWinRate.ToString("P0", CultureInfo.CurrentCulture),
-                c.InHandWinRate - archetype.WinRate,
+                c.InHandWinRate - (archetype.MulliganBaseline ?? archetype.WinRate),
                 $"kept {c.KeepRate.ToString("P0", CultureInfo.CurrentCulture)}",
                 c.InHand.ToString("N0", CultureInfo.CurrentCulture)))
             .ToList();

@@ -74,6 +74,7 @@ internal sealed class OverlayWindow : Window
             }
 
             _platform.SetClickThrough(true);
+            _view.UpdateCardPoolPointer(null, default);
             return;
         }
 
@@ -105,9 +106,14 @@ internal sealed class OverlayWindow : Window
         // In layout mode the whole overlay takes the mouse so panels can be dragged anywhere.
         var interactive = local is { } point && (vm.LayoutEditing || _view.IsInteractiveAt(point));
         _platform.SetClickThrough(!interactive);
+        if (!interactive)
+        {
+            _view.HidePreview();
+        }
 
         PollHoveredHero();
         _view.UpdateLeaderboardHover(local, _memoryHover);
+        _view.UpdateCardPoolPointer(local, _platform.MouseButtons());
     }
 
     /// <summary>Reads the hovered leaderboard hero from the game (Windows memory reader) at most ~10 times a second.</summary>

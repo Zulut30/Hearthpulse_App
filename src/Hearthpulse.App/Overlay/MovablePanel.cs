@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Hearthpulse.Core;
 
 namespace Hearthpulse.App.Overlay;
@@ -37,6 +38,9 @@ public sealed class MovablePanel : ContentControl
     // Saved top-left in surface units (null = XAML default). Kept apart from Margin so a panel that grows
     // past the screen edge is pulled back inside, then returns to its spot when it shrinks again.
     private Point? _saved;
+
+    // Height of the content measured without the parent's limit (see MeasureOverride), for KeepOnScreen.
+    private double _contentHeight;
 
     public MovablePanel()
     {
@@ -113,6 +117,28 @@ public sealed class MovablePanel : ContentControl
         KeepOnScreen();
     }
 
+    /// <summary>
+    /// A saved panel is measured without a height limit: the parent only offers the room down to the screen edge, so a
+    /// panel that grows past it was cut there and never looked too tall for <see cref="KeepOnScreen"/> to move it up.
+    /// </summary>
+    protected override Size MeasureOverride(Size constraint)
+    {
+        if (_saved is null)
+        {
+            return base.MeasureOverride(constraint);
+        }
+
+        var size = base.MeasureOverride(new Size(constraint.Width, double.PositiveInfinity));
+        if (Math.Abs(size.Height - _contentHeight) > 0.5)
+        {
+            _contentHeight = size.Height;
+            // The margin is not changed in the middle of a layout pass.
+            Dispatcher.BeginInvoke(KeepOnScreen, DispatcherPriority.Render);
+        }
+
+        return size;
+    }
+
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
         base.OnRenderSizeChanged(sizeInfo);
@@ -127,8 +153,13 @@ public sealed class MovablePanel : ContentControl
             return;
         }
 
-        var left = Math.Clamp(saved.X, 0, Math.Max(0, surface.ActualWidth - (ActualWidth * _scale.ScaleX)));
-        var top = Math.Clamp(saved.Y, 0, Math.Max(0, surface.ActualHeight - (ActualHeight * _scale.ScaleY)));
+        // Past an edge the surface grid hands the panel only the space left, so ActualWidth shrinks with it and the
+        // panel would never come back; content with a fixed size says how much room it really needs.
+        var content = Content as FrameworkElement;
+        var width = Math.Max(ActualWidth, content is { Width: > 0 } ? content.Width + content.Margin.Left + content.Margin.Right : 0);
+        var height = Math.Max(Math.Max(ActualHeight, _contentHeight), content is { Height: > 0 } ? content.Height + content.Margin.Top + content.Margin.Bottom : 0);
+        var left = Math.Clamp(saved.X, 0, Math.Max(0, surface.ActualWidth - (width * _scale.ScaleX)));
+        var top = Math.Clamp(saved.Y, 0, Math.Max(0, surface.ActualHeight - (height * _scale.ScaleY)));
         var margin = new Thickness(left, top, 0, 0);
         if (Margin != margin)
         {

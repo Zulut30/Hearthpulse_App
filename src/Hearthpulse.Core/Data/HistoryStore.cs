@@ -344,6 +344,42 @@ public sealed partial class HistoryStore
         Changed?.Invoke();
     }
 
+    /// <summary>
+    /// Gives games saved without a deck code the deck Decks.log named for them; a deck name already saved is kept.
+    /// Returns how many games changed.
+    /// </summary>
+    public int FillDecks(IReadOnlyCollection<DeckFill> fills)
+    {
+        var changed = 0;
+        lock (_gate)
+        {
+            using var connection = Open();
+            using var transaction = connection.BeginTransaction();
+            foreach (var fill in fills)
+            {
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = """
+                    UPDATE games SET deck_code = $code, deck_name = COALESCE(deck_name, $name)
+                    WHERE game_key = $key AND (deck_code IS NULL OR deck_code = '');
+                    """;
+                command.Parameters.AddWithValue("$code", fill.DeckCode);
+                command.Parameters.AddWithValue("$name", fill.DeckName);
+                command.Parameters.AddWithValue("$key", fill.GameKey);
+                changed += command.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+        }
+
+        if (changed > 0)
+        {
+            Changed?.Invoke();
+        }
+
+        return changed;
+    }
+
     /// <summary>Total number of recorded games (the dashboard's ALL TIME tile counts the whole history).</summary>
     public int GameCount()
     {

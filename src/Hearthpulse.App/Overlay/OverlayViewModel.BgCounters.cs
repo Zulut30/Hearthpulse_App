@@ -13,6 +13,7 @@ public sealed partial class OverlayViewModel
     private string? _expandedBgCounter;
     private string _bgCounterDetailTitle = string.Empty;
     private IReadOnlyList<string> _bgCounterDetails = [];
+    private CounterChip? _bgCounterOpen;
     private RelayCommand? _toggleBgCounter;
     private RelayCommand? _hideBgCounter;
     private BattlegroundsView? _bgCounterView;
@@ -27,6 +28,9 @@ public sealed partial class OverlayViewModel
 
     /// <summary>What the clicked chip counted (empty when no chip is open).</summary>
     public IReadOnlyList<string> BgCounterDetails { get => _bgCounterDetails; private set => Set(ref _bgCounterDetails, value); }
+
+    /// <summary>The chip opened by a click, for its cards under the row; null when none is open.</summary>
+    public CounterChip? BgCounterOpen { get => _bgCounterOpen; private set => Set(ref _bgCounterOpen, value); }
 
     /// <summary>Click a chip: show or hide its details under the row.</summary>
     public RelayCommand ToggleBgCounter => _toggleBgCounter ??= new RelayCommand(p =>
@@ -69,16 +73,8 @@ public sealed partial class OverlayViewModel
         }).ToList();
 
         var open = shown.FirstOrDefault(c => c.Id == _expandedBgCounter);
-        BgCounters = shown.Select(c => new CounterChip(
-            c.Id,
-            c.Title,
-            c.Value,
-            c.Progress ?? 0,
-            c.Progress is not null,
-            c.IconCardId,
-            c.Details.Count == 0 ? c.Description : c.Description + Environment.NewLine + string.Join(Environment.NewLine, c.Details),
-            c == open,
-            c.Details)).ToList();
+        BgCounters = shown.Select(c => CounterChip.From(c, c == open)).ToList();
+        BgCounterOpen = BgCounters.FirstOrDefault(c => c.Expanded);
         BgCounterDetailTitle = open?.Title ?? string.Empty;
         BgCounterDetails = open is null ? [] : [open.Description, .. open.Details];
         ShowBgCounters = BgCounters.Count > 0;

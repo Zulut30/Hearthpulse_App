@@ -23,7 +23,7 @@ namespace Hearthpulse.UI;
 /// Everything the app does apart from its windows: settings, history, the live log pipeline, card data and community
 /// stats, and the two view models. Desktop and mobile shells host one of these.
 /// </summary>
-public sealed class AppHost : IDisposable
+public sealed partial class AppHost : IDisposable
 {
     private readonly DispatcherTimer _historyDebounce;
     private readonly DispatcherTimer _settingsDebounce;
@@ -51,17 +51,20 @@ public sealed class AppHost : IDisposable
         Http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + Version);
         CardArt.Http = Http;
         Api = new HearthpulseApi(Http);
-        Account = new AccountService(Api);
+        Account = new AccountService(new AccountClient(Http));
 
         History = new HistoryStore(AppPaths.Database);
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
+        Session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(Api)));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
         _ = Account.RestoreAsync();
         Overlay = new OverlayViewModel();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
+        Session.SetCardPoolEnabled(Settings.ShowCardPool);
         Overlay.PinRequested += OnPinRequested;
+        Overlay.CardPoolBrowserResized += OnSettingsChanged;
         Overlay.CounterModeRequested += (id, mode) =>
         {
             Main.ApplyCounterMode(id, mode);
@@ -91,7 +94,7 @@ public sealed class AppHost : IDisposable
 
     public HttpClient Http { get; }
 
-    /// <summary>The Hearthpulse API (accounts and fallback community stats).</summary>
+    /// <summary>The Hearthpulse API (fallback community stats).</summary>
     public HearthpulseApi Api { get; }
 
     public AccountService Account { get; }
@@ -107,6 +110,9 @@ public sealed class AppHost : IDisposable
     public OverlayViewModel Overlay { get; }
 
     public string? InstallDirectory { get; private set; }
+
+    /// <summary>Constructed stats from the last successful <see cref="LoadMetaAsync"/>; null until then.</summary>
+    public ConstructedMeta? ConstructedMeta { get; private set; }
 
     public CardDb Cards { get; private set; } = CardDb.Empty;
 
@@ -163,10 +169,16 @@ public sealed class AppHost : IDisposable
 
             Session.Cards = Cards;
             Main.SetCards(Cards);
+            _ = LoadCardPoolAsync();
 
             if (!Settings.HistoryImported || !Settings.HistoryStatsFilled)
             {
                 await ImportLogsAsync(force: false);
+            }
+            else if (InstallDirectory is { } install)
+            {
+                // Games saved before Decks.log was read correctly (and imported ones) have no deck yet.
+                _ = Task.Run(() => LogBackfill.FillDecks(install, History, Cards));
             }
 
             if (!watchLogs)
@@ -275,9 +287,10 @@ public sealed class AppHost : IDisposable
         try
         {
             // This app has no Constructed meta page yet; the stats still feed the in-game mulligan panel.
-            var constructed = await ConstructedMeta.LoadAsync(Http, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, fallback: new HearthpulseData(Api));
+            var constructed = await ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, Cards.Locale);
             if (constructed is not null)
             {
+                ConstructedMeta = constructed;
                 Session.SetConstructedMeta(constructed);
             }
         }
@@ -313,6 +326,8 @@ public sealed class AppHost : IDisposable
         _settingsDebounce.Stop();
         _settingsDebounce.Start();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
+        Session.SetCardPoolEnabled(Settings.ShowCardPool);
+        _ = LoadCardPoolAsync();
         RefreshOverlay();
         ApplyAutostart?.Invoke(Settings.StartWithWindows);
     }
@@ -413,7 +428,7 @@ public sealed class AppHost : IDisposable
 
     private void RefreshDeckStats(ConstructedView? view)
     {
-        var key = view is null ? null : $"{view.DeckName}|{view.PlayerClass}|{view.OpponentClass}";
+        var key = view is null ? null : $"{view.DeckName}|{view.DeckId}|{view.DeckCode}|{view.PlayerClass}|{view.OpponentClass}";
         if (key == _deckStatsKey)
         {
             return;
@@ -429,8 +444,13 @@ public sealed class AppHost : IDisposable
 
         _ = Task.Run(() =>
         {
-            var deck = History.DeckStats().FirstOrDefault(d => d.DeckName == view.DeckName && d.PlayerClass == view.PlayerClass);
-            var matchup = History.MatchupStats(deck?.DeckCode).FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
+            var sameDeck = InstallDirectory is { } dir ? DecksLog.CodesOf(DecksLog.ReadAll(dir), view.DeckId) : [];
+            var games = DeckRecords.Matching(History.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass, sameDeck);
+            var deck = DeckRecords.Aggregate(games, view.DeckName, view.DeckCode, view.PlayerClass);
+            // The matchup line counts the same games as the record; without any, the class matchup over all decks.
+            var matchup = games.Count > 0
+                ? DeckRecords.Matchup(games, view.OpponentClass)
+                : History.MatchupStats().FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
             return (deck, matchup);
         }).ContinueWith(t =>
         {
