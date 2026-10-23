@@ -1,4 +1,3 @@
-using System.Globalization;
 using Avalonia.Threading;
 using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.Core.Accounts;
@@ -8,15 +7,13 @@ namespace Hearthpulse.UI.Main;
 public sealed partial class MainViewModel
 {
     private AccountService? _account;
+    private RelayCommand? _signIn;
+    private RelayCommand? _cancelSignIn;
     private RelayCommand? _signOut;
-    private RelayCommand? _toggleAccountMode;
-    private bool _accountRegister;
-    private bool _accountBusy;
+    private RelayCommand? _openAccountProfile;
+    private CancellationTokenSource? _signInCancel;
+    private bool _accountWaiting;
     private string _accountMessage = string.Empty;
-    private string _accountEmailInput = string.Empty;
-    private string _accountNameInput = string.Empty;
-    private string _accountPassword = string.Empty;
-    private RelayCommand? _submitAccount;
 
     /// <summary>Connects the Settings page to the account service; the host restores a saved session afterwards.</summary>
     public void AttachAccount(AccountService account)
@@ -28,57 +25,51 @@ public sealed partial class MainViewModel
 
     public bool AccountSignedIn => _account?.User is not null;
 
+    /// <summary>Neither signed in nor waiting for the browser: the card offers the sign-in button.</summary>
+    public bool AccountSignedOut => !AccountSignedIn && !AccountWaiting;
+
     public string AccountName => _account?.User?.DisplayName ?? string.Empty;
 
-    public string AccountEmail => _account?.User?.Email ?? string.Empty;
-
-    public string AccountSince => _account?.User?.CreatedAt is { } created
-        ? "Member since " + created.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture)
-        : string.Empty;
-
-    /// <summary>The form creates a new account instead of signing in to an existing one.</summary>
-    public bool AccountRegister
+    /// <summary>A browser sign-in is under way.</summary>
+    public bool AccountWaiting
     {
-        get => _accountRegister;
+        get => _accountWaiting;
         private set
         {
-            if (Set(ref _accountRegister, value))
+            if (Set(ref _accountWaiting, value))
             {
-                Raise(nameof(AccountSubmitText));
-                Raise(nameof(AccountSwitchText));
+                Raise(nameof(AccountSignedOut));
             }
         }
     }
 
-    public string AccountSubmitText => AccountRegister ? "Create account" : "Sign in";
-
-    public string AccountSwitchText => AccountRegister ? "I already have an account" : "Create a Hearthpulse account";
-
-    public bool AccountBusy { get => _accountBusy; private set => Set(ref _accountBusy, value); }
-
-    /// <summary>The last error (or confirmation) under the form.</summary>
+    /// <summary>The last error (or confirmation) under the card.</summary>
     public string AccountMessage { get => _accountMessage; private set => Set(ref _accountMessage, value); }
 
-    public string AccountEmailInput { get => _accountEmailInput; set => Set(ref _accountEmailInput, value); }
-
-    public string AccountNameInput { get => _accountNameInput; set => Set(ref _accountNameInput, value); }
-
-    public string AccountPassword { get => _accountPassword; set => Set(ref _accountPassword, value); }
-
-    public RelayCommand SubmitAccount => _submitAccount ??= new RelayCommand(async () =>
+    /// <summary>Opens the browser on hearthpulse.net and waits there for the player.</summary>
+    public RelayCommand SignIn => _signIn ??= new RelayCommand(async () =>
     {
-        await SubmitAccountAsync(AccountPassword);
-        if (AccountSignedIn)
+        if (_account is null || AccountWaiting)
         {
-            AccountPassword = string.Empty;
+            return;
+        }
+
+        AccountMessage = string.Empty;
+        AccountWaiting = true;
+        using var cancel = new CancellationTokenSource();
+        _signInCancel = cancel;
+        try
+        {
+            AccountMessage = (await _account.SignInAsync(cancel.Token))?.Message ?? string.Empty;
+        }
+        finally
+        {
+            _signInCancel = null;
+            AccountWaiting = false;
         }
     });
 
-    public RelayCommand ToggleAccountMode => _toggleAccountMode ??= new RelayCommand(() =>
-    {
-        AccountRegister = !AccountRegister;
-        AccountMessage = string.Empty;
-    });
+    public RelayCommand CancelSignIn => _cancelSignIn ??= new RelayCommand(() => _signInCancel?.Cancel());
 
     public RelayCommand SignOut => _signOut ??= new RelayCommand(async () =>
     {
@@ -89,52 +80,18 @@ public sealed partial class MainViewModel
         }
     });
 
-    /// <summary>Signs in or creates the account with the password typed in the form.</summary>
-    public async Task SubmitAccountAsync(string password)
+    public RelayCommand OpenAccountProfile => _openAccountProfile ??= new RelayCommand(() =>
     {
-        if (_account is null || AccountBusy)
+        if (_account?.OpenProfile() == false)
         {
-            return;
+            AccountMessage = "Couldn't open your browser.";
         }
-
-        var email = AccountEmailInput.Trim();
-        if (email.Length < 3 || !email.Contains('@', StringComparison.Ordinal))
-        {
-            AccountMessage = "Enter your email address.";
-            return;
-        }
-
-        if (password.Length == 0 || (AccountRegister && password.Length < 8))
-        {
-            AccountMessage = AccountRegister ? "Choose a password of at least 8 characters." : "Enter your password.";
-            return;
-        }
-
-        AccountBusy = true;
-        AccountMessage = string.Empty;
-        try
-        {
-            var name = AccountNameInput.Trim().Length > 0 ? AccountNameInput.Trim() : email.Split('@')[0];
-            var error = AccountRegister
-                ? await _account.SignUpAsync(email, password, name)
-                : await _account.SignInAsync(email, password);
-            AccountMessage = error?.Message ?? string.Empty;
-            if (error is null)
-            {
-                AccountNameInput = string.Empty;
-            }
-        }
-        finally
-        {
-            AccountBusy = false;
-        }
-    }
+    });
 
     private void RaiseAccount()
     {
         Raise(nameof(AccountSignedIn));
+        Raise(nameof(AccountSignedOut));
         Raise(nameof(AccountName));
-        Raise(nameof(AccountEmail));
-        Raise(nameof(AccountSince));
     }
 }

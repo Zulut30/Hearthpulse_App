@@ -1252,28 +1252,28 @@
                                     <c:Ornament Text="Hearthpulse account" Icon="&#xF0004;" Size="13" Margin="0,0,0,6" />
                                     <!-- Signed in -->
                                     <StackPanel Visibility="{Binding AccountSignedIn, Converter={StaticResource Vis}}">
-                                        <TextBlock Text="{Binding AccountName}" FontWeight="Bold" FontSize="15" Margin="0,4,0,2" />
-                                        <TextBlock Text="{Binding AccountEmail}" Style="{StaticResource Caption}" />
-                                        <TextBlock Text="{Binding AccountSince}" Style="{StaticResource Caption}" FontSize="11" Margin="0,2,0,0"
-                                                   Visibility="{Binding AccountSince, Converter={StaticResource Vis}}" />
+                                        <TextBlock Text="Signed in with HeartPulse as" Style="{StaticResource Caption}" Margin="0,4,0,2" />
+                                        <TextBlock Text="{Binding AccountName}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Margin="0,8,0,0">
+                                            <Hyperlink Command="{Binding OpenAccountProfile}" Foreground="{StaticResource Accent}"><Run Text="Open profile on the site" /></Hyperlink>
+                                            <Run Text="&#xF03CC;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource Accent}" />
+                                        </TextBlock>
                                         <Button Style="{StaticResource GhostButton}" Content="Sign out" Command="{Binding SignOut}" HorizontalAlignment="Left" Margin="0,14,0,0" />
                                     </StackPanel>
                                     <!-- Signed out -->
-                                    <StackPanel Visibility="{Binding AccountSignedIn, Converter={StaticResource Vis}, ConverterParameter=!}">
-                                        <TextBlock Text="Sign in to keep your Hearthpulse profile. The tracker works the same without an account." Style="{StaticResource Caption}"
+                                    <StackPanel Visibility="{Binding AccountSignedOut, Converter={StaticResource Vis}}">
+                                        <TextBlock Text="Use your hearthpulse.net account. The tracker works the same without one." Style="{StaticResource Caption}"
                                                    TextWrapping="Wrap" Margin="0,0,0,14" />
-                                        <TextBlock Text="Email" Style="{StaticResource Caption}" Margin="0,0,0,4" />
-                                        <TextBox Text="{Binding AccountEmailInput, UpdateSourceTrigger=PropertyChanged}" Width="360" Height="36" HorizontalAlignment="Left" Margin="0,0,0,10" />
-                                        <StackPanel Visibility="{Binding AccountRegister, Converter={StaticResource Vis}}">
-                                            <TextBlock Text="Name shown in Hearthpulse" Style="{StaticResource Caption}" Margin="0,0,0,4" />
-                                            <TextBox Text="{Binding AccountNameInput, UpdateSourceTrigger=PropertyChanged}" Width="360" Height="36" HorizontalAlignment="Left" Margin="0,0,0,10" />
-                                        </StackPanel>
-                                        <TextBlock Text="Password" Style="{StaticResource Caption}" Margin="0,0,0,4" />
-                                        <PasswordBox x:Name="AccountPassword" Width="360" Height="36" HorizontalAlignment="Left" Margin="0,0,0,14" KeyDown="OnAccountPasswordKey" />
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Style="{StaticResource PrimaryButton}" Content="{Binding AccountSubmitText}" Click="OnAccountSubmit" Padding="22,0" Margin="0,0,8,0" />
-                                            <Button Style="{StaticResource GhostButton}" Content="{Binding AccountSwitchText}" Command="{Binding ToggleAccountMode}" />
+                                            <Button Style="{StaticResource PrimaryButton}" Content="Sign in with HeartPulse" Command="{Binding SignIn}" />
+                                            <TextBlock Text="Opens your browser" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="12,0,0,0" />
                                         </StackPanel>
+                                    </StackPanel>
+                                    <!-- Waiting for the browser -->
+                                    <StackPanel Visibility="{Binding AccountWaiting, Converter={StaticResource Vis}}">
+                                        <TextBlock Text="Waiting for you to sign in in the browser&#x2026;" FontWeight="SemiBold" FontSize="14" Margin="0,4,0,2" />
+                                        <TextBlock Text="Finish on hearthpulse.net, then come back here." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,14" />
+                                        <Button Style="{StaticResource GhostButton}" Content="Cancel" Command="{Binding CancelSignIn}" HorizontalAlignment="Left" />
                                     </StackPanel>
                                     <TextBlock Text="{Binding AccountMessage}" Style="{StaticResource Caption}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,0"
                                                Visibility="{Binding AccountMessage, Converter={StaticResource Vis}}" />

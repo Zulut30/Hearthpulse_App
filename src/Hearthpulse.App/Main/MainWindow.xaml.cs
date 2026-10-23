@@ -242,23 +242,6 @@ public partial class MainWindow : Window
 
     private void OnReimport(object sender, RoutedEventArgs e) => ReimportRequested?.Invoke();
 
-    private async void OnAccountSubmit(object sender, RoutedEventArgs e)
-    {
-        await _viewModel.SubmitAccountAsync(AccountPassword.Password);
-        if (_viewModel.AccountSignedIn)
-        {
-            AccountPassword.Clear();
-        }
-    }
-
-    private void OnAccountPasswordKey(object sender, System.Windows.Input.KeyEventArgs e)
-    {
-        if (e.Key == System.Windows.Input.Key.Enter)
-        {
-            OnAccountSubmit(sender, e);
-        }
-    }
-
     private void OnArrangeOverlay(object sender, RoutedEventArgs e) => ArrangeOverlayRequested?.Invoke();
 
     private void OnOpenData(object sender, RoutedEventArgs e) =>

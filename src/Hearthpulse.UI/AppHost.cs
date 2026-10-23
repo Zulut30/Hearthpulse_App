@@ -51,7 +51,7 @@ public sealed class AppHost : IDisposable
         Http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + Version);
         CardArt.Http = Http;
         Api = new HearthpulseApi(Http);
-        Account = new AccountService(Api);
+        Account = new AccountService(new OidcClient(Http));
 
         History = new HistoryStore(AppPaths.Database);
         Memory = new HearthstoneMemory();
@@ -91,7 +91,7 @@ public sealed class AppHost : IDisposable
 
     public HttpClient Http { get; }
 
-    /// <summary>The Hearthpulse API (accounts and fallback community stats).</summary>
+    /// <summary>The Hearthpulse API (fallback community stats).</summary>
     public HearthpulseApi Api { get; }
 
     public AccountService Account { get; }

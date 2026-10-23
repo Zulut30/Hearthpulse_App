@@ -6,12 +6,12 @@ using System.Text.Json;
 namespace Hearthpulse.Core.Accounts;
 
 /// <summary>
-/// Keeps the account's refresh token and profile between starts. On Windows the file is encrypted with DPAPI for the
+/// Keeps the account's refresh token (rotated on every refresh, so rewritten each time) and profile between starts. On Windows the file is encrypted with DPAPI for the
 /// current Windows user, so a copied file is useless elsewhere; on macOS and Linux it is readable by the owner only.
 /// </summary>
 public sealed class TokenStore(string path)
 {
-    private sealed record Saved(string RefreshToken, string Id, string Email, string DisplayName, DateTime? CreatedAt);
+    private sealed record Saved(string RefreshToken, string Id, string DisplayName);
 
     public (string RefreshToken, AccountUser User)? Load()
     {
@@ -30,7 +30,7 @@ public sealed class TokenStore(string path)
 
             var saved = JsonSerializer.Deserialize<Saved>(bytes);
             return saved is { RefreshToken.Length: > 0 }
-                ? (saved.RefreshToken, new AccountUser(saved.Id, saved.Email, saved.DisplayName, saved.CreatedAt))
+                ? (saved.RefreshToken, new AccountUser(saved.Id, saved.DisplayName))
                 : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or CryptographicFailure)
@@ -44,7 +44,7 @@ public sealed class TokenStore(string path)
     {
         try
         {
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(new Saved(refreshToken, user.Id, user.Email, user.DisplayName, user.CreatedAt));
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(new Saved(refreshToken, user.Id, user.DisplayName));
             if (OperatingSystem.IsWindows())
             {
                 File.WriteAllBytes(path, Dpapi.Protect(bytes));
