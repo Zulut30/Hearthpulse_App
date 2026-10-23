@@ -74,35 +74,127 @@
             </Grid>
         </DataTemplate>
 
-        <!-- Tavern tier chip: current tier filled, click opens the minion browser -->
+        <!-- Counter tooltip strip: card art behind the name, count on the right; a part of a goal gets a done mark -->
+        <DataTemplate x:Key="CounterCardTemplate" x:DataType="o:CounterTipCard">
+            <Grid Classes="counterCard" Classes.pending="{Binding !Done}" Height="22" Margin="0,0,0,2">
+                <Border Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+                    <Panel>
+                        <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                        <Rectangle Fill="{StaticResource TileFade}" />
+                        <DockPanel Margin="7,0,7,0">
+                            <TextBlock DockPanel.Dock="Left" Classes="icon partMark" Classes.done="{Binding Done}" FontSize="12" Margin="0,0,6,0"
+                                       VerticalAlignment="Center" IsVisible="{Binding IsPart}" />
+                            <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" MinWidth="20" Height="16" Padding="4,0"
+                                    Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding Count, Converter={StaticResource Truthy}}">
+                                <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </Panel>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <!-- What a counter's tooltip and its opened row list: the goal's parts, what was counted, the cards that need it -->
+        <DataTemplate x:Key="CounterCardsTemplate" x:DataType="o:CounterChip">
+            <StackPanel>
+                <ItemsControl ItemsSource="{Binding Details}" Margin="0,0,0,2" IsVisible="{Binding Details, Converter={StaticResource Truthy}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel IsVisible="{Binding Parts, Converter={StaticResource Truthy}}">
+                    <TextBlock Text="Goal" Classes="counterSection" />
+                    <ItemsControl ItemsSource="{Binding Parts}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+                </StackPanel>
+                <StackPanel IsVisible="{Binding Counted, Converter={StaticResource Truthy}}">
+                    <TextBlock Text="Counted" Classes="counterSection" />
+                    <ItemsControl ItemsSource="{Binding Counted}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+                    <TextBlock Text="{Binding MoreCounted}" FontSize="11" Foreground="{StaticResource Muted}" IsVisible="{Binding MoreCounted, Converter={StaticResource Truthy}}" />
+                </StackPanel>
+                <StackPanel IsVisible="{Binding Related, Converter={StaticResource Truthy}}">
+                    <TextBlock Text="Needed for" Classes="counterSection" />
+                    <ItemsControl ItemsSource="{Binding Related}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+                    <TextBlock Text="{Binding MoreRelated}" FontSize="11" Foreground="{StaticResource Muted}" IsVisible="{Binding MoreRelated, Converter={StaticResource Truthy}}" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- The opened Battlegrounds chip: its cards only, under the details the row already shows -->
+        <DataTemplate x:Key="BgCounterCardsTemplate" x:DataType="o:CounterChip">
+            <StackPanel>
+                <StackPanel IsVisible="{Binding Counted, Converter={StaticResource Truthy}}">
+                    <TextBlock Text="Counted" Classes="counterSection" />
+                    <ItemsControl ItemsSource="{Binding Counted}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+                </StackPanel>
+                <StackPanel IsVisible="{Binding Related, Converter={StaticResource Truthy}}">
+                    <TextBlock Text="Needed for" Classes="counterSection" />
+                    <ItemsControl ItemsSource="{Binding Related}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Counter tooltip: title and value, what the counter is, then its cards -->
+        <DataTemplate x:Key="CounterTipTemplate" x:DataType="o:CounterChip">
+            <StackPanel Width="232" Margin="0,2,0,2">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" Classes="number" FontSize="14" Foreground="{StaticResource Accent}"
+                               Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Title}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </DockPanel>
+                <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,2" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterCardsTemplate}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Counter row: card art (the cross over it on hover hides the counter), title with its progress under it, value
+             right-aligned; hover shows the cards, a click opens them under the row -->
         <DataTemplate x:Key="CounterTemplate" x:DataType="o:CounterChip">
-            <Border Classes="counterChip" CornerRadius="6" Padding="4,3" Margin="0,1" ToolTip.Tip="{Binding Tooltip}" Cursor="Hand" Background="Transparent">
+            <Border Classes="counterChip" Classes.open="{Binding Expanded}" CornerRadius="5" Padding="3,1,4,1" Cursor="Hand" Background="Transparent"
+                    ToolTip.Placement="Right" ToolTip.HorizontalOffset="8" ToolTip.ShowDelay="250" ToolTip.ServiceEnabled="{Binding !Expanded}">
+                <ToolTip.Tip>
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterTipTemplate}" />
+                </ToolTip.Tip>
                 <StackPanel>
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                        <Button Grid.ColumnSpan="3" Background="Transparent" BorderThickness="0" Padding="0" Focusable="False" HorizontalContentAlignment="Stretch"
+                    <Panel Height="24">
+                        <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
                                 Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).ToggleCounter}" CommandParameter="{Binding Id}">
-                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding IconCardId}" />
-                                <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="12" Margin="8,0,6,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Grid.Column="2" Text="{Binding Value}" Classes="number" FontSize="15" VerticalAlignment="Center" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" MinWidth="28" SharedSizeGroup="CounterValue" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="20" Height="20" CornerRadius="10" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding IconCardId}" />
+                                <Ellipse Width="20" Height="20" Stroke="{StaticResource OverlayBorder}" StrokeThickness="1" />
+                                <StackPanel Grid.Column="1" Margin="7,0,8,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Title}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                    <ItemsControl ItemsSource="{Binding Segments}" Margin="0,3,-2,0" IsVisible="{Binding Segments, Converter={StaticResource Truthy}}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Rows="1" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="x:Boolean">
+                                                <Border Classes="counterSegment" Classes.lit="{Binding}" Height="3" CornerRadius="1.5" Margin="0,0,2,0" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <ProgressBar Classes="counterBar" Minimum="0" Maximum="1" Value="{Binding Progress}" Margin="0,3,0,0" IsVisible="{Binding HasBar}" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="{Binding Value}" Classes="number" FontSize="14" TextAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
-                        <Button Grid.Column="3" Classes="icon hideCounter" Content="&#xF0156;" FontSize="11" Width="20" Height="20" Margin="4,0,0,0" Focusable="False"
-                                ToolTip.Tip="Hide this counter (bring it back in Settings, Counters)"
+                        <Button Classes="icon hideCounter" Content="&#xF0156;" FontSize="11" Width="20" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Background="{StaticResource Surface3}" Focusable="False" ToolTip.Tip="Hide this counter (bring it back in Settings, Counters)"
                                 Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).HideCounter}" CommandParameter="{Binding Id}" />
-                    </Grid>
-                    <Border Height="3" CornerRadius="1.5" Background="{StaticResource Surface4}" Margin="32,3,0,0" HorizontalAlignment="Left" Width="150"
-                            IsVisible="{Binding HasProgress}">
-                        <Border HorizontalAlignment="Left" CornerRadius="1.5" Background="{StaticResource Accent}"
-                                Width="{Binding Progress, Converter={StaticResource Fraction}, ConverterParameter=150}" />
-                    </Border>
-                    <ItemsControl ItemsSource="{Binding Details}" Margin="32,4,0,2" IsVisible="{Binding Expanded}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="x:String">
-                                <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    </Panel>
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterCardsTemplate}" Margin="27,0,0,6" IsVisible="{Binding Expanded}" />
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -110,7 +202,10 @@
         <!-- Battlegrounds counter chip: art, title over value; a click opens its details under the row, the cross hides it -->
         <DataTemplate x:Key="BgCounterTemplate" x:DataType="o:CounterChip">
             <Border Classes="bgCounterChip" Classes.open="{Binding Expanded}" BorderThickness="1" CornerRadius="8" Padding="5,4,6,4" Margin="0,0,6,6"
-                    ToolTip.Tip="{Binding Tooltip}" Cursor="Hand">
+                    Cursor="Hand" ToolTip.ShowDelay="250">
+                <ToolTip.Tip>
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterTipTemplate}" />
+                </ToolTip.Tip>
                 <Grid ColumnDefinitions="Auto,Auto">
                     <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False"
                             Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).ToggleBgCounter}" CommandParameter="{Binding Id}">
@@ -595,8 +690,39 @@
         </Style>
 
         <!-- Movable panel host: frame, label and placeholder in layout mode -->
-        <Style Selector="Border.counterChip:pointerover">
+        <Style Selector="Border.counterChip:pointerover, Border.counterChip.open">
             <Setter Property="Background" Value="{StaticResource Hover}" />
+        </Style>
+        <Style Selector="Border.counterSegment">
+            <Setter Property="Background" Value="{StaticResource Surface4}" />
+        </Style>
+        <Style Selector="Border.counterSegment.lit">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="ProgressBar.counterBar">
+            <Setter Property="Height" Value="3" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="CornerRadius" Value="1.5" />
+            <Setter Property="Background" Value="{StaticResource Surface4}" />
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="TextBlock.counterSection">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="Margin" Value="0,6,0,4" />
+        </Style>
+        <Style Selector="TextBlock.partMark">
+            <Setter Property="Text" Value="&#xF0766;" />
+            <Setter Property="Foreground" Value="{StaticResource Faint}" />
+        </Style>
+        <Style Selector="TextBlock.partMark.done">
+            <Setter Property="Text" Value="&#xF05E0;" />
+            <Setter Property="Foreground" Value="{StaticResource Positive}" />
+        </Style>
+        <Style Selector="Grid.counterCard.pending">
+            <Setter Property="Opacity" Value="0.6" />
         </Style>
         <Style Selector="Button.hideCounter">
             <Setter Property="Opacity" Value="0" />
@@ -733,14 +859,17 @@
 
                 <!-- ============ Constructed: counters (bottom-left) ============ -->
                 <o:MovablePanel Id="counters" Title="Counters" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,170">
-                    <Border Classes="overlayCard" Width="240" o:OverlayHit.Interactive="True">
-                        <StackPanel Margin="8">
-                            <TextBlock Text="Opponent" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="4,0,0,2"
-                                       IsVisible="{Binding OpponentCounters, Converter={StaticResource Truthy}}" />
-                            <ItemsControl ItemsSource="{Binding OpponentCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
-                            <TextBlock Text="You" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="4,6,0,2"
-                                       IsVisible="{Binding MyCounters, Converter={StaticResource Truthy}}" />
-                            <ItemsControl ItemsSource="{Binding MyCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
+                    <Border x:Name="CountersCard" Classes="overlayCard" Width="214" o:OverlayHit.Interactive="True">
+                        <!-- One value column for every row, so the progress under each title ends at the same place -->
+                        <StackPanel Margin="9,8,9,7" Grid.IsSharedSizeScope="True">
+                            <StackPanel IsVisible="{Binding OpponentCounters, Converter={StaticResource Truthy}}">
+                                <c:Ornament Text="Opponent" Size="10.5" Margin="3,0,0,3" />
+                                <ItemsControl ItemsSource="{Binding OpponentCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
+                            </StackPanel>
+                            <StackPanel IsVisible="{Binding MyCounters, Converter={StaticResource Truthy}}">
+                                <c:Ornament Text="You" Size="10.5" Margin="3,6,0,3" />
+                                <ItemsControl ItemsSource="{Binding MyCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </o:MovablePanel>
@@ -765,6 +894,8 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                <ContentControl Content="{Binding BgCounterOpen}" ContentTemplate="{StaticResource BgCounterCardsTemplate}" Width="232" HorizontalAlignment="Left"
+                                                IsVisible="{Binding BgCounterOpen, Converter={StaticResource Truthy}}" />
                             </StackPanel>
                         </StackPanel>
                     </Border>

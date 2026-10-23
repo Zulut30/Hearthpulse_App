@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Hearthpulse.Core;
 
 namespace Hearthpulse.UI.Overlay;
@@ -50,6 +51,9 @@ public sealed class MovablePanel : ContentControl
     // Saved top-left in surface units (null = XAML default). Kept apart from Margin so a panel that grows past the
     // screen edge is pulled back inside, then returns to its spot when it shrinks again.
     private Point? _saved;
+
+    // Height of the content measured without the parent's limit (see MeasureOverride), for KeepOnScreen.
+    private double _contentHeight;
 
     static MovablePanel()
     {
@@ -145,6 +149,28 @@ public sealed class MovablePanel : ContentControl
         KeepOnScreen();
     }
 
+    /// <summary>
+    /// A saved panel is measured without a height limit: the parent only offers the room down to the screen edge, so a
+    /// panel that grows past it was cut there and never looked too tall for <see cref="KeepOnScreen"/> to move it up.
+    /// </summary>
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (_saved is null)
+        {
+            return base.MeasureOverride(availableSize);
+        }
+
+        var size = base.MeasureOverride(availableSize.WithHeight(double.PositiveInfinity));
+        if (Math.Abs(size.Height - _contentHeight) > 0.5)
+        {
+            _contentHeight = size.Height;
+            // The margin is not changed in the middle of a layout pass.
+            Dispatcher.UIThread.Post(KeepOnScreen, DispatcherPriority.Render);
+        }
+
+        return size;
+    }
+
     /// <summary>Pulls a saved panel back inside the screen when its content grows past an edge.</summary>
     private void KeepOnScreen()
     {
@@ -154,7 +180,7 @@ public sealed class MovablePanel : ContentControl
         }
 
         var left = Math.Clamp(saved.X, 0, Math.Max(0, surface.Bounds.Width - Bounds.Width));
-        var top = Math.Clamp(saved.Y, 0, Math.Max(0, surface.Bounds.Height - Bounds.Height));
+        var top = Math.Clamp(saved.Y, 0, Math.Max(0, surface.Bounds.Height - Math.Max(Bounds.Height, _contentHeight)));
         var margin = new Thickness(left, top, 0, 0);
         if (Margin != margin)
         {

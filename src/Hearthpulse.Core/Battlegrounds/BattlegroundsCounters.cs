@@ -110,19 +110,22 @@ public static class BattlegroundsCounters
             ["BG25_008", "BG25_009", "BG34_403", "BG30_MagicItem_301", "BG36_MagicItem_216"],
             c =>
             {
-                var died = c.Tracker.Died.Count(id => Normal(c.Cards, id) == "BG25_008");
+                var knights = c.Tracker.Died.Where(id => Normal(c.Cards, id) == "BG25_008").ToList();
+                var died = knights.Count;
                 return new($"+{4 * died}/+{2 * died}",
-                    Details: [$"{died} friendly Eternal Knight{(died == 1 ? "" : "s")} died.", $"Golden Eternal Knight: +{8 * died}/+{4 * died}."], Active: died > 0);
+                    Details: [$"{died} friendly Eternal Knight{(died == 1 ? "" : "s")} died.", $"Golden Eternal Knight: +{8 * died}/+{4 * died}."], Active: died > 0,
+                    Counted: knights);
             }),
 
         new("bg-automaton", "Ancestral Automaton", "Stats your next Ancestral Automaton has from the ones you've summoned this game.", true,
             ["BG_TTN_401", "BG30_MagicItem_303"],
             c =>
             {
-                var summoned = c.Tracker.Summoned.Count(id => Normal(c.Cards, id) == "BG_TTN_401");
+                var automatons = c.Tracker.Summoned.Where(id => Normal(c.Cards, id) == "BG_TTN_401").ToList();
+                var summoned = automatons.Count;
                 return new($"+{3 * summoned}/+{2 * summoned}",
                     Details: [$"{summoned} Ancestral Automaton{(summoned == 1 ? "" : "s")} summoned.", $"Golden: +{6 * summoned}/+{4 * summoned}."],
-                    Active: summoned > 0);
+                    Active: summoned > 0, Counted: automatons);
             }),
 
         new("bg-naga-spells", "Spells cast", "Spells you've cast this game (Naga that improve every 3 spells).", true,
@@ -132,7 +135,7 @@ public static class BattlegroundsCounters
             {
                 var spells = c.Tag("NUM_SPELLS_PLAYED_THIS_GAME");
                 var left = 3 - spells % 3;
-                return new(Num(spells), spells % 3 / 3.0, [$"Next \"every 3 spells\" improvement after {left} more spell{(left == 1 ? "" : "s")}."]);
+                return new(Num(spells), spells % 3 / 3.0, [$"Next \"every 3 spells\" improvement after {left} more spell{(left == 1 ? "" : "s")}."], Goal: 3);
             }),
 
         // The reroll button's COST dropping to 0 is confirmed in a real log. The count is not: GameTag enum
@@ -211,7 +214,14 @@ public static class BattlegroundsCounters
             var relevant = value.Active || (def.Confirmed && seenCard is not null);
             var icon = value.IconCardId ?? seenCard ?? def.Related.FirstOrDefault();
             result.Add(new CounterView(def.Id, value.Title ?? def.Title, value.Value, value.Progress, false, icon, def.Description,
-                value.Details ?? (value.Value == NoData ? ["No data from the game yet."] : []), relevant));
+                value.Details ?? (value.Value == NoData ? ["No data from the game yet."] : []), relevant)
+            {
+                // Copies are not counted in Battlegrounds: a related card is one the player can see now.
+                RelatedCards = def.Related.Where(seen.Contains).Select(id => new CounterCard(id, cards.NameOf(id), 0)).ToList(),
+                Counted = (value.Counted ?? []).GroupBy(id => Normal(cards, id), StringComparer.Ordinal)
+                    .Select(g => new CounterCard(g.Key, cards.NameOf(g.Key), g.Count())).ToList(),
+                Goal = value.Goal,
+            });
         }
 
         return result;
@@ -257,8 +267,9 @@ public static class BattlegroundsCounters
 
     /// <param name="Active">Shown in Auto mode without a related card: the data arrived (unconfirmed) or the count is under way.</param>
     /// <param name="Title">Overrides the counter's title (the lobby's Deity).</param>
+    /// <param name="Counted">Card ids of what was counted, one per count (golden copies count as the normal card).</param>
     private sealed record CounterValue(string Value, double? Progress = null, IReadOnlyList<string>? Details = null, bool Active = false,
-        string? Title = null, string? IconCardId = null);
+        string? Title = null, string? IconCardId = null, IReadOnlyList<string>? Counted = null, int? Goal = null);
 
     private sealed record CounterContext(GameState Game, Entity? Player, BattlegroundsCounterTracker Tracker, CardDb Cards, IReadOnlyList<Entity> Enchantments)
     {
