@@ -623,6 +623,7 @@ public partial class App : Application
 
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
+        _ = LoadCardPoolAsync();
         _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
         Autostart.Apply(_settings.StartWithWindows);
     }

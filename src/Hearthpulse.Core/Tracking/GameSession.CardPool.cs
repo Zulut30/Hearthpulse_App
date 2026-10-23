@@ -9,6 +9,8 @@ public sealed partial class GameSession
 {
     private static readonly TimeSpan HoverInterval = TimeSpan.FromMilliseconds(200);
 
+    private static readonly TimeSpan HoverIdle = TimeSpan.FromSeconds(10);
+
     private readonly CardPoolTracker _cardPool = new();
     private readonly object _cardPoolGate = new();
     private CardPoolCatalog _cardPoolCatalog = CardPoolCatalog.Empty;
@@ -52,18 +54,21 @@ public sealed partial class GameSession
     /// <summary>Adds the current pool to a Constructed view; called while publishing.</summary>
     private ConstructedView WithCardPool(ConstructedView view, GameState game)
     {
-        _cardPoolHoverWanted = _cardPoolEnabled && HearthstoneMemory.IsSupported;
+        // Memory is read only when a pool can be shown: setting on, catalog loaded, a mode with a known pool.
+        var engine = _cardPoolEnabled ? CardPoolEngineNow() : null;
+        _cardPoolHoverWanted = engine is not null && HearthstoneMemory.IsSupported
+                               && PoolContext.SupportedGameTypes.Contains(game.GameType);
         if (_cardPoolHoverWanted)
         {
             EnsureHoverThread();
         }
 
-        if (!_cardPoolEnabled)
+        if (engine is null)
         {
             return view;
         }
 
-        _cardPool.Engine = CardPoolEngineNow();
+        _cardPool.Engine = engine;
         try
         {
             return view with { CardPool = _cardPool.BuildView(game, _cards, DateTime.Now) };
@@ -98,26 +103,44 @@ public sealed partial class GameSession
     }
 
     // The card under the mouse is read from game memory on its own thread: the log thread must never wait on it.
+    // It runs only while a pool can be shown and ends on its own (after HoverIdle without a Constructed game); the next
+    // publish that wants it starts it again.
     private void EnsureHoverThread()
     {
-        if (_hoverThread is not null)
+        lock (_cardPoolGate)
         {
-            return;
-        }
+            if (_hoverThread is { IsAlive: true })
+            {
+                return;
+            }
 
-        _hoverThread = new Thread(HoverLoop) { IsBackground = true, Name = "Hearthpulse card hover" };
-        _hoverThread.Start();
+            _hoverThread = new Thread(HoverLoop) { IsBackground = true, Name = "Hearthpulse card hover" };
+            _hoverThread.Start();
+        }
     }
 
     private void HoverLoop()
     {
+        var idleSince = DateTime.UtcNow;
         while (true)
         {
+            var now = DateTime.UtcNow;
             try
             {
+                var active = _cardPoolHoverWanted && Current.Constructed is not null;
+                if (active)
+                {
+                    idleSince = now;
+                }
+                else if (now - idleSince > HoverIdle)
+                {
+                    break;
+                }
+
                 // Attaching is MemoryPoller's job; only read once it is done.
-                var hovered = _cardPoolHoverWanted && Current.Constructed is not null && _memory.IsAttached ? _memory.GetHoveredCardId() : null;
-                if (_cardPool.SetHovered(hovered, DateTime.UtcNow))
+                var hovered = active && _memory.IsAttached ? _memory.GetHoveredCardId() : null;
+                // The "just played" pool must also go away when the log is quiet.
+                if (_cardPool.SetHovered(hovered, now) | _cardPool.PlayedExpired(DateTime.Now))
                 {
                     _dirty = true;
                 }
@@ -129,6 +152,11 @@ public sealed partial class GameSession
             }
 
             Thread.Sleep(HoverInterval);
+        }
+
+        lock (_cardPoolGate)
+        {
+            _hoverThread = null;
         }
     }
 }

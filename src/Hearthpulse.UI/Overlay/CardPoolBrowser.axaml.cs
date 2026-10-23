@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -9,17 +9,17 @@ using Avalonia.Threading;
 namespace Hearthpulse.UI.Overlay;
 
 /// <summary>
-/// The pool browser: every card of the pool in a grid, mechanic filters, a draggable left edge. The overlay does not
-/// take keyboard focus from the game, so on Windows Esc is read from the keyboard state while the browser is open
-/// (elsewhere a key press reaches the view when it has focus). Mouse-wheel scrolling glides to its target.
+/// The pool browser: every card of the pool in a grid, mechanic filters, a draggable right edge. The overlay does not
+/// take keyboard focus from the game, so on Windows Esc is read from the keyboard state while the browser is open and
+/// Hearthstone or this app is in front (elsewhere a key press reaches the view when it has focus). Mouse-wheel
+/// scrolling glides to its target when the Windows animation setting is on.
 /// </summary>
 public partial class CardPoolBrowser : UserControl
 {
-    private const int EscapeKey = 0x1B;
-
     private readonly DispatcherTimer _escape = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private readonly DispatcherTimer _glide = new() { Interval = TimeSpan.FromMilliseconds(16) };
     private bool _escapeDown;
+    private OverlayViewModel? _watched;
     private double _scrollTarget;
 
     public CardPoolBrowser()
@@ -30,8 +30,20 @@ public partial class CardPoolBrowser : UserControl
         Scroller.AddHandler(PointerWheelChangedEvent, OnWheel, RoutingStrategies.Tunnel);
         if (OperatingSystem.IsWindows())
         {
-            AttachedToVisualTree += (_, _) => _escape.Start();
-            DetachedFromVisualTree += (_, _) => _escape.Stop();
+            // Esc is polled only while the browser is open.
+            DataContextChanged += (_, _) =>
+            {
+                if (_watched is not null)
+                {
+                    _watched.PropertyChanged -= OnViewModelChanged;
+                }
+
+                _watched = DataContext as OverlayViewModel;
+                if (_watched is not null)
+                {
+                    _watched.PropertyChanged += OnViewModelChanged;
+                }
+            };
         }
 
         KeyDown += (_, e) =>
@@ -46,16 +58,33 @@ public partial class CardPoolBrowser : UserControl
 
     private OverlayViewModel? ViewModel => DataContext as OverlayViewModel;
 
+    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(OverlayViewModel.CardPoolBrowserOpen) || _watched is null)
+        {
+            return;
+        }
+
+        if (_watched.CardPoolBrowserOpen)
+        {
+            _escapeDown = true; // a key held while the browser opens does not count
+            _escape.Start();
+        }
+        else
+        {
+            _escape.Stop();
+        }
+    }
+
     private void PollEscape()
     {
         if (ViewModel is not { CardPoolBrowserOpen: true } vm)
         {
-            _escapeDown = true; // a key held while the browser opens does not count
             return;
         }
 
-        var down = (GetAsyncKeyState(EscapeKey) & 0x8000) != 0;
-        if (down && !_escapeDown)
+        var down = PoolInput.IsDown(PoolInput.Escape);
+        if (down && !_escapeDown && PoolInput.GameOrAppInFront())
         {
             vm.CloseCardPoolBrowser.Execute(null);
         }
@@ -99,10 +128,10 @@ public partial class CardPoolBrowser : UserControl
 
     private void OnResize(object? sender, VectorEventArgs e)
     {
-        // The browser sits at the right edge: dragging its left edge left makes it wider.
+        // The browser sits at the left edge: dragging its right edge right makes it wider.
         if (ViewModel is { } vm)
         {
-            vm.CardPoolBrowserWidth -= e.Vector.X;
+            vm.CardPoolBrowserWidth += e.Vector.X;
         }
     }
 
@@ -110,6 +139,12 @@ public partial class CardPoolBrowser : UserControl
 
     private void OnWheel(object? sender, PointerWheelEventArgs e)
     {
+        // Same rule as the WPF app: animate only when the system's animation setting is on.
+        if (!PoolInput.AnimationsOn())
+        {
+            return;
+        }
+
         e.Handled = true;
         var max = Math.Max(0, Scroller.Extent.Height - Scroller.Viewport.Height);
         if (!_glide.IsEnabled)
@@ -133,7 +168,4 @@ public partial class CardPoolBrowser : UserControl
 
         Scroller.Offset = new Vector(Scroller.Offset.X, y + (_scrollTarget - y) * 0.22);
     }
-
-    [DllImport("user32.dll")]
-    private static extern short GetAsyncKeyState(int key);
 }

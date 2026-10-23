@@ -79,7 +79,10 @@ public static partial class PoolStats
         _ => card.HasMechanic(tag) || card.ReferencedTags.Contains(tag),
     };
 
-    /// <summary>"Draw a card", "draws 2 cards" - not "Casts When Drawn" or "when you draw this".</summary>
+    /// <summary>
+    /// The card draws: "Draw a card", "draw 2 minions", "Each player draws 2 cards". Not triggers on someone else's draw
+    /// ("Whenever you draw a card", "your opponent draws"), "Casts When Drawn" or "when you draw this".
+    /// </summary>
     public static bool DrawsCards(string text) => DrawRegex().IsMatch(text);
 
     /// <summary>Damage that can reach the enemy hero: "Deal 3 damage." (any target), to the enemy hero, to all enemies or characters, to random enemies, split among enemies.</summary>
@@ -88,7 +91,7 @@ public static partial class PoolStats
     /// <summary>"Restore N Health", "heal", "Fully heal".</summary>
     public static bool Heals(string text) => HealRegex().IsMatch(text);
 
-    [GeneratedRegex(@"\b[Dd]raws?\b(?! this\b)")]
+    [GeneratedRegex(@"(?<!\b(?:you|opponent|they|enemy) )\b[Dd]raws? (?:a|an|one|two|three|four|five|six|seven|\d+|that many|cards?|your|until)\b")]
     private static partial Regex DrawRegex();
 
     [GeneratedRegex(@"[Dd]eals? \d+ damage(?:\.|$| to (?:a character|any character|the enemy hero|your opponent|enemy hero|all enemies|all characters|both heroes|each hero|(?:a |an |\w+ )?(?:random )?enem(?:y|ies)(?! minion)))|damage (?:randomly )?split among (?:all )?enem(?:y|ies)(?! minion)|damage to (?:the enemy hero|your opponent)\b")]

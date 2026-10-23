@@ -28,7 +28,12 @@ STANDARD_SETS = [
 ]
 
 # Sets whose cards never show up in Constructed games.
-EXCLUDED_SETS = {"BATTLEGROUNDS", "LETTUCE", "TB", "CREDITS", "HERO_SKINS", "MISSIONS", "TUTORIAL", "PLACEHOLDER_202204"}
+EXCLUDED_SETS = {"BATTLEGROUNDS", "LETTUCE", "TB", "CREDITS", "HERO_SKINS", "MISSIONS", "TUTORIAL", "PLACEHOLDER_202204",
+                 "TAVERNS_OF_TIME"}
+
+# Solo adventure, Book of Heroes/Mercenaries and boss cards live in the expansion sets: they are told apart by id.
+# Their generators draw from the adventure's own pools, which the catalog does not have.
+ADVENTURE_ID = re.compile(r"^(?:Story_|DALA_|ULDA_|DRGA_|GILA_|LOOTA_|TRLA_|LOEA|KARA_|BRMA|BTA_|BOM_|BCON|ICCA|NAX\d|FB_|TU4|PVPDR)")
 
 TYPES = {"SPELL", "MINION", "HERO_POWER", "WEAPON", "LOCATION", "HERO"}
 
@@ -38,7 +43,6 @@ GENERATOR = re.compile(r"Discover|\brandom\b")
 #   ("skip", reason)      - generates, but not from a pool the catalog can answer;
 #   ("text", english)     - parse this text instead of the card's own;
 #   ("sub", regex, repl)  - parse the card's own text with regex replaced by repl;
-#   ("cards", [names])    - an explicit pool of collectible cards, by English name.
 # Keep reasons short: they go to hearthpulse.log when such a card is played.
 OVERRIDES = [
     (r"with Cost equal to|of that Cost|that costs that much|\{0\}-Cost|playable spell|a type you haven't played",
@@ -92,7 +96,8 @@ def main():
         cards = json.load(f)
 
     relevant = [c for c in cards
-                if c.get("set") not in EXCLUDED_SETS and c.get("type") in TYPES and c.get("text")]
+                if c.get("set") not in EXCLUDED_SETS and c.get("type") in TYPES and c.get("text")
+                and not ADVENTURE_ID.match(c["id"])]
 
     texts = {}
     for c in relevant:
@@ -102,11 +107,6 @@ def main():
         if GENERATOR.search(text):
             texts[c["id"]] = text
 
-    by_name = {}
-    for c in cards:
-        if c.get("collectible") and c.get("set") not in EXCLUDED_SETS:
-            by_name.setdefault(c.get("name"), []).append(c["id"])
-
     overrides = {}
     for pattern, action in OVERRIDES:
         rx = re.compile(pattern)
@@ -114,12 +114,7 @@ def main():
             if c["id"] in overrides or not rx.search(normalize(c.get("text"))):
                 continue
             kind, value = action[0], action[1]
-            if kind == "cards":
-                ids = sorted(i for name in value for i in by_name.get(name, []))
-                if not ids:
-                    raise SystemExit(f"override {pattern!r}: no collectible card named {value}")
-                overrides[c["id"]] = f"new(CardIds: [{', '.join(cs(i) for i in ids)}])"
-            elif kind == "text":
+            if kind == "text":
                 overrides[c["id"]] = f"new(Text: {cs(value)})"
             elif kind == "sub":
                 overrides[c["id"]] = f"new(Text: {cs(re.sub(value, action[2], normalize(c.get('text'))))})"

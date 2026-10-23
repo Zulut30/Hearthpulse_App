@@ -23,6 +23,10 @@ public static class CardRender
     private static readonly ConcurrentDictionary<string, Task<Bitmap?>> Pending = new();
     private static readonly ConcurrentDictionary<string, bool> Failed = new();
     private static readonly Queue<string> MemoryOrder = new();
+    private static readonly ConcurrentDictionary<string, bool> TrimmedFolders = new();
+
+    // About 200 MB of 256 px renders on disk.
+    private const int MaxDiskFiles = 2000;
     private static readonly SemaphoreSlim Downloads = new(4);
     private static readonly SemaphoreSlim Decodes = new(3);
 
@@ -98,9 +102,12 @@ public static class CardRender
 
     private static async Task<Bitmap?> LoadAsync(string cardId)
     {
+        // Never finish synchronously: the task must be in Pending before it removes itself (end of this method).
+        await Task.Yield();
         var key = Key(cardId);
         var locale = CardArt.Locale;
         var dir = Path.Combine(AppPaths.Images, "render-" + locale);
+        TrimDiskCache(dir);
         var file = Path.Combine(dir, cardId + ".png");
         Bitmap? image = null;
         try
@@ -112,7 +119,11 @@ public static class CardRender
                     await Downloads.WaitAsync().ConfigureAwait(false);
                     try
                     {
-                        await DownloadAsync(http, $"https://art.hearthstonejson.com/v1/render/latest/{locale}/256x/{cardId}.png", file, dir).ConfigureAwait(false);
+                        if (!await DownloadAsync(http, $"https://art.hearthstonejson.com/v1/render/latest/{locale}/256x/{cardId}.png", file, dir).ConfigureAwait(false))
+                        {
+                            // No render for this card (404, not a PNG): do not ask again this session.
+                            Failed[key] = true;
+                        }
                     }
                     finally
                     {
@@ -154,12 +165,13 @@ public static class CardRender
         return image;
     }
 
-    private static async Task DownloadAsync(HttpClient http, string url, string file, string dir)
+    /// <returns>False when the server has no PNG for the card.</returns>
+    private static async Task<bool> DownloadAsync(HttpClient http, string url, string file, string dir)
     {
         using var response = await http.GetAsync(url).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            return;
+            return false;
         }
 
         var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
@@ -167,12 +179,38 @@ public static class CardRender
         if (bytes.Length < 8 || bytes[0] != 0x89 || bytes[1] != 0x50 || bytes[2] != 0x4E || bytes[3] != 0x47)
         {
             Diag.Info($"Card render download was not a PNG ({url})");
-            return;
+            return false;
         }
 
         Directory.CreateDirectory(dir);
         await File.WriteAllBytesAsync(file + ".tmp", bytes).ConfigureAwait(false);
         File.Move(file + ".tmp", file, overwrite: true);
+        return true;
+    }
+
+    /// <summary>
+    /// Once per session and folder: keeps the newest <see cref="MaxDiskFiles"/> renders (a Wild pool alone can be
+    /// thousands of cards, ~100 KB each).
+    /// </summary>
+    private static void TrimDiskCache(string dir)
+    {
+        if (!TrimmedFolders.TryAdd(dir, true) || !Directory.Exists(dir))
+        {
+            return;
+        }
+
+        try
+        {
+            var files = new DirectoryInfo(dir).GetFiles("*.png");
+            foreach (var old in files.OrderByDescending(f => f.LastWriteTimeUtc).Skip(MaxDiskFiles))
+            {
+                old.Delete();
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Card render cache not trimmed", ex);
+        }
     }
 
     private static void TryDelete(string file)

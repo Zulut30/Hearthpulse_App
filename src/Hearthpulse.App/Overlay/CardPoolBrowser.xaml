@@ -25,7 +25,7 @@
         <DataTemplate x:Key="CardTemplate" DataType="{x:Type p:PoolEntry}">
             <Image i:CardRender.Card="{Binding CardId}" Stretch="Uniform" Margin="2,0" Cursor="Hand"
                    Height="{Binding DataContext.CardPoolCardHeight, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                   ToolTipService.InitialShowDelay="150" ToolTipService.Placement="Left" ToolTipService.HorizontalOffset="-8">
+                   ToolTipService.InitialShowDelay="150" ToolTipService.Placement="Right" ToolTipService.HorizontalOffset="8">
                 <Image.ToolTip>
                     <ToolTip Padding="0" Background="Transparent" BorderThickness="0">
                         <Image i:CardRender.Card="{Binding CardId}" Width="258" Height="364" Stretch="Uniform" />
@@ -130,8 +130,8 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <!-- Left edge: drag to change the width -->
-            <Thumb Grid.RowSpan="4" Width="6" HorizontalAlignment="Left" Cursor="SizeWE" Opacity="0" DragDelta="OnResize" DragCompleted="OnResized" />
+            <!-- Right edge (the browser sits at the left of the screen): drag to change the width -->
+            <Thumb Grid.RowSpan="4" Width="6" HorizontalAlignment="Right" Cursor="SizeWE" Opacity="0" DragDelta="OnResize" DragCompleted="OnResized" />
         </Grid>
     </Border>
 </UserControl>

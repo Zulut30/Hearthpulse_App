@@ -57,9 +57,9 @@ public sealed class CardPoolTracker : IPowerListener
     }
 
     /// <summary>
-    /// The card whose pool a choice comes from. The log names the entity that opened it, which can be a helper
-    /// (Treacherous Tormentor's choice comes from its "Dark Gift" enchantment): then the enclosing blocks are asked,
-    /// innermost first, for a card with a pool.
+    /// The card whose pool a choice comes from. The log names the entity that opened it, which can be a helper of the
+    /// played card (an enchantment, or a token such as EDR_102t of EDR_102): then the enclosing blocks are asked,
+    /// innermost first, for that card. A choice from an unrelated card (Dredge...) never borrows an outer block's pool.
     /// </summary>
     public string? GeneratorOf(GameState game, Entity? source)
     {
@@ -70,7 +70,8 @@ public sealed class CardPoolTracker : IPowerListener
 
         for (var i = game.OpenBlocks.Count - 1; i >= 0; i--)
         {
-            if (game.OpenBlocks[i].Source is { CardId.Length: > 0 } outer && Engine?.Parse(outer.CardId).Status == PoolParseStatus.Pool)
+            if (game.OpenBlocks[i].Source is { CardId.Length: > 0 } outer && IsHelperOf(source, outer)
+                && Engine?.Parse(outer.CardId).Status == PoolParseStatus.Pool)
             {
                 return outer.CardId;
             }
@@ -103,6 +104,28 @@ public sealed class CardPoolTracker : IPowerListener
     }
 
     public void OnGameEnded(GameState game) => OnGameStarted(game);
+
+    /// <summary>
+    /// True once when the "just played" pool has run out (<see cref="PlayedFor"/>), so the host can publish again even
+    /// when the log is quiet.
+    /// </summary>
+    public bool PlayedExpired(DateTime now)
+    {
+        lock (_gate)
+        {
+            if (_played is null || now - _playedAt <= PlayedFor)
+            {
+                return false;
+            }
+
+            _played = null;
+            return true;
+        }
+    }
+
+    private static bool IsHelperOf(Entity? source, Entity outer) =>
+        source is null || source.CardType == "ENCHANTMENT"
+        || source.CardId.Length > outer.CardId.Length && source.CardId.StartsWith(outer.CardId, StringComparison.Ordinal);
 
     /// <summary>Show the pool of <paramref name="cardId"/> until called again with null (deck/hand row hover).</summary>
     public void Request(string? cardId)
@@ -175,11 +198,14 @@ public sealed class CardPoolTracker : IPowerListener
         return played is not null ? engine.Build(played, context, PoolTrigger.Played) : null;
     }
 
-    /// <summary>Format and both classes of a game (classes from the heroes' cards).</summary>
+    /// <summary>Game type, format and both classes of a game (classes from the heroes' cards).</summary>
     public static PoolContext ContextOf(GameState game, CardDb cards) => new(
         game.FormatType,
         ClassOf(game.LocalHero, cards),
-        ClassOf(game.OpponentHero, cards));
+        ClassOf(game.OpponentHero, cards))
+    {
+        GameType = game.GameType,
+    };
 
     private static string? ClassOf(Entity? hero, CardDb cards) =>
         hero is null ? null

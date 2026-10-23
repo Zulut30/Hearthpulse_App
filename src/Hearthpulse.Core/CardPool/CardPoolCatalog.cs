@@ -230,8 +230,9 @@ public sealed class CardPoolCatalog
                     var bytes = await http.GetByteArrayAsync("https://api.hearthstonejson.com/v1/latest/enUS/cards.collectible.json", cancellationToken).ConfigureAwait(false);
                     await File.WriteAllBytesAsync(path, bytes, cancellationToken).ConfigureAwait(false);
                 }
-                catch (HttpRequestException ex)
+                catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
                 {
+                    // A timeout comes as a cancellation: the stale file (or nothing) is used, as when offline.
                     Diag.Info($"Card pool: HearthstoneJSON not reachable ({ex.Message})");
                 }
             }
@@ -262,7 +263,7 @@ public sealed class CardPoolCatalog
         {
             if (Str(c, "id") is not { Length: > 0 } id
                 || !(c.TryGetProperty("collectible", out var col) && col.ValueKind == JsonValueKind.True)
-                || Str(c, "set") is not { Length: > 0 } set || set is "HERO_SKINS" or "BATTLEGROUNDS" or "LETTUCE"
+                || Str(c, "set") is not { Length: > 0 } set || set is "HERO_SKINS" or "BATTLEGROUNDS" or "LETTUCE" or "VANILLA"
                 || Str(c, "type") is not { Length: > 0 } type || type == "HERO" && Int(c, "cost") is null)
             {
                 continue;

@@ -29,13 +29,25 @@ public enum PoolVerb
     Random,
 }
 
-/// <summary>Game facts a pool depends on: format and the two classes.</summary>
+/// <summary>Game facts a pool depends on: game type, format and the two classes.</summary>
 /// <param name="Format">The game's FormatType: FT_STANDARD or FT_WILD (others have no known pool).</param>
 public sealed record PoolContext(string Format, string? OwnClass, string? OpponentClass)
 {
+    /// <summary>
+    /// Game types whose generators draw from the collectible Standard/Wild cards. Arena, Tavern Brawl, Practice and
+    /// adventures (GT_VS_AI), Duels and the like have pools of their own, which the catalog does not know.
+    /// </summary>
+    public static readonly IReadOnlySet<string> SupportedGameTypes = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "GT_RANKED", "GT_CASUAL", "GT_VS_FRIEND",
+    };
+
+    /// <summary>The live game's GameType; null outside a game (a pool the UI asks for).</summary>
+    public string? GameType { get; init; }
+
     public bool IsStandard => Format == "FT_STANDARD";
 
-    public bool IsSupported => Format is "FT_STANDARD" or "FT_WILD";
+    public bool IsSupported => Format is "FT_STANDARD" or "FT_WILD" && (GameType is null || SupportedGameTypes.Contains(GameType));
 }
 
 /// <summary>
@@ -82,16 +94,8 @@ public sealed record PoolQuery
     /// <summary>"from the past": cards from Wild sets only (not in Standard).</summary>
     public bool Past { get; init; }
 
-    /// <summary>Explicit card ids from the exception table (Animal Companions...); the other fields are ignored.</summary>
-    public IReadOnlyList<string>? CardIds { get; init; }
-
     public bool Matches(PoolCard card, PoolContext context, PoolVerb verb, string? generatorClass)
     {
-        if (CardIds is not null)
-        {
-            return CardIds.Contains(card.Id);
-        }
-
         if (Past ? card.Standard : context.IsStandard && !card.Standard)
         {
             return false;

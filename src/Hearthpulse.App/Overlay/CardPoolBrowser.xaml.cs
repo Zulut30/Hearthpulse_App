@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -9,14 +8,12 @@ using System.Windows.Threading;
 namespace Hearthpulse.App.Overlay;
 
 /// <summary>
-/// The pool browser: every card of the pool in a grid, mechanic filters, a draggable left edge. The overlay never takes
-/// keyboard focus (it would steal it from the game), so Esc is read from the keyboard state while the browser is open.
-/// Mouse-wheel scrolling glides to its target when Windows animations are on.
+/// The pool browser: every card of the pool in a grid, mechanic filters, a draggable right edge. The overlay never takes
+/// keyboard focus (it would steal it from the game), so Esc is read from the keyboard state while the browser is open
+/// and Hearthstone or this app is in front. Mouse-wheel scrolling glides to its target when Windows animations are on.
 /// </summary>
 public partial class CardPoolBrowser : UserControl
 {
-    private const int EscapeKey = 0x1B;
-
     private readonly DispatcherTimer _escape = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private bool _escapeDown;
     private ScrollViewer? _scroller;
@@ -45,8 +42,8 @@ public partial class CardPoolBrowser : UserControl
 
     private void PollEscape()
     {
-        var down = (GetAsyncKeyState(EscapeKey) & 0x8000) != 0;
-        if (down && !_escapeDown && ViewModel is { CardPoolBrowserOpen: true } vm)
+        var down = PoolInput.IsDown(PoolInput.Escape);
+        if (down && !_escapeDown && ViewModel is { CardPoolBrowserOpen: true } vm && PoolInput.GameOrAppInFront())
         {
             vm.CloseCardPoolBrowser.Execute(null);
         }
@@ -87,10 +84,10 @@ public partial class CardPoolBrowser : UserControl
 
     private void OnResize(object sender, DragDeltaEventArgs e)
     {
-        // The browser sits at the right edge: dragging its left edge left makes it wider.
+        // The browser sits at the left edge: dragging its right edge right makes it wider.
         if (ViewModel is { } vm)
         {
-            vm.CardPoolBrowserWidth -= e.HorizontalChange;
+            vm.CardPoolBrowserWidth += e.HorizontalChange;
         }
     }
 
@@ -143,7 +140,4 @@ public partial class CardPoolBrowser : UserControl
         _gliding = false;
         CompositionTarget.Rendering -= Glide;
     }
-
-    [LibraryImport("user32.dll")]
-    private static partial short GetAsyncKeyState(int key);
 }

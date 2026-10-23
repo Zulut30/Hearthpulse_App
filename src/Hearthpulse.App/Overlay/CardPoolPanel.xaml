@@ -7,7 +7,6 @@
     <!-- The card pool panel (MovablePanel "card-pool"); DataContext is the OverlayViewModel. -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
-        <i:KeyBrush x:Key="KeyBrush" />
 
         <ItemsPanelTemplate x:Key="BarRow">
             <UniformGrid Rows="1" />
@@ -42,11 +41,11 @@
                 <TextBlock Text="median" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,-2,0,0" />
             </StackPanel>
             <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding Title}" Value="Attack">
+                <DataTrigger Binding="{Binding IsAttack}" Value="True">
                     <Setter TargetName="Title" Property="Foreground" Value="{StaticResource TierS}" />
                     <Setter TargetName="Bars" Property="Tag" Value="{StaticResource TierS}" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding Title}" Value="Health">
+                <DataTrigger Binding="{Binding IsHealth}" Value="True">
                     <Setter TargetName="Title" Property="Foreground" Value="{StaticResource Negative}" />
                     <Setter TargetName="Bars" Property="Tag" Value="{StaticResource Negative}" />
                 </DataTrigger>
@@ -65,8 +64,8 @@
 
     </UserControl.Resources>
 
-    <Border Style="{StaticResource OverlayCard}" Width="372" o:OverlayHit.Interactive="True" Background="{StaticResource OverlayPanelSolid}"
-            MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave" MouseRightButtonUp="OnRightClick">
+    <!-- Not interactive: clicks reach the board and the Discover options under it; hover and right-click are polled. -->
+    <Border x:Name="Card" Style="{StaticResource OverlayCard}" Width="372" Background="{StaticResource OverlayPanelSolid}">
         <StackPanel Margin="10,9,10,8">
             <TextBlock Text="{Binding CardPoolTitle}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
             <TextBlock Text="{Binding CardPoolDescription}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextAlignment="Center"

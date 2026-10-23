@@ -166,7 +166,11 @@ public sealed class CardPoolTests
     public void Text_rules_find_card_draw_face_damage_and_healing()
     {
         Assert.True(PoolStats.DrawsCards("Battlecry: Draw a card."));
-        Assert.True(PoolStats.DrawsCards("Your opponent draws 2 cards."));
+        Assert.True(PoolStats.DrawsCards("Each player draws 2 cards."));
+        Assert.True(PoolStats.DrawsCards("Draw 2 Undead."));
+        // Triggers on someone else's draw are not card draw.
+        Assert.False(PoolStats.DrawsCards("Your opponent draws 2 cards."));
+        Assert.False(PoolStats.DrawsCards("Whenever you draw a card, gain 1 Armor."));
         Assert.False(PoolStats.DrawsCards("Casts When Drawn. Summon a 1/1."));
         Assert.True(PoolStats.DealsFaceDamage("Deal 3 damage."));
         Assert.True(PoolStats.DealsFaceDamage("Deal 2 damage to all enemies."));
@@ -214,6 +218,8 @@ public sealed class CardPoolTests
         var requested = engine.Build("JAIL_706", Standard("ROGUE"), PoolTrigger.Request)!;
         Assert.Equal(PoolTrigger.Request, requested.Trigger);
         Assert.Same(first.Cards, requested.Cards);
+        // Cached per trigger too: the overlay gets the same object on every update.
+        Assert.Same(requested, engine.Build("JAIL_706", Standard("ROGUE"), PoolTrigger.Request));
         Assert.Equal(51, first.Count);
     }
 
@@ -300,5 +306,66 @@ public sealed class CardPoolTests
         Assert.Equal("CORE_KAR_069", requested.SourceCardId);
         tracker.Request(null);
         Assert.Null(tracker.BuildView(game, cards, logTime.AddMinutes(1)));
+
+        // Hover counts only for cards in your hand: the played Blazing Invocation is not.
+        tracker.SetHovered("CORE_GIL_836", DateTime.UtcNow);
+        Assert.Null(tracker.BuildView(game, cards, logTime.AddMinutes(1)));
+
+        // The "just played" pool runs out once, so the host publishes again even with a quiet log.
+        Assert.False(tracker.PlayedExpired(logTime.AddSeconds(1)));
+        Assert.True(tracker.PlayedExpired(logTime.AddMinutes(1)));
+        Assert.False(tracker.PlayedExpired(logTime.AddMinutes(2)));
+    }
+
+    [Theory]
+    [InlineData("GT_RANKED", true)]
+    [InlineData("GT_CASUAL", true)]
+    [InlineData("GT_VS_FRIEND", true)]
+    [InlineData(null, true)] // asked for outside a game
+    [InlineData("GT_ARENA", false)]
+    [InlineData("GT_TAVERNBRAWL", false)]
+    [InlineData("GT_VS_AI", false)] // practice and solo adventures
+    [InlineData("GT_BATTLEGROUNDS", false)]
+    public void Only_modes_with_the_collectible_pool_get_one(string? gameType, bool shown)
+    {
+        var context = Standard("ROGUE") with { GameType = gameType };
+
+        Assert.Equal(shown, context.IsSupported);
+        Assert.Equal(shown, Engine().Build("JAIL_706", context, PoolTrigger.Choice) is not null);
+    }
+
+    [Fact]
+    public void Card_text_is_normalized_to_plain_english()
+    {
+        Assert.Equal("Battlecry: Deal 3 damage. Draw 2 cards.",
+            PoolText.Normalize("[x]<b>Battlecry:</b>& Deal $3 damage.\nDraw 2 |4(card,cards)."));
+        Assert.Equal("Can't attack.", PoolText.Normalize("Can\u2019t\u00a0attack."));
+        Assert.Equal(string.Empty, PoolText.Normalize(null));
+    }
+
+    [Fact]
+    public void Api_pages_are_read_with_multi_class_cards_and_formats()
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse("""
+            [
+              {"card_id":"END_011","dbf":1,"name":{"en":"Acceleration Aura","ru":"Аура"},"text":{"en":"<b>Aura</b> text"},
+               "card_type":{"slug":"SPELL"},"class":null,"multi_class":[2,5],"formats":[{"slug":"standard"},{"slug":"wild"}],
+               "mana_cost":3,"attack":null,"health":null,"spell_school":"NATURE","mechanics":["AURA"],"referenced_tags":[],
+               "rarity":"RARE","card_set":"TIME_TRAVEL"},
+              {"card_id":"CS2_106","dbf":2,"name":{"en":"Fiery War Axe"},"text":{"en":""},"card_type":{"slug":"WEAPON"},
+               "class":"WARRIOR","multi_class":[],"formats":[{"slug":"wild"}],"mana_cost":3,"attack":3,"durability":2,
+               "minion_type":null,"rarity":"FREE","card_set":"LEGACY"}
+            ]
+            """);
+
+        var cards = CardPoolCatalog.ParseApiPage(doc.RootElement).ToList();
+
+        Assert.Equal(["DRUID", "PALADIN"], cards[0].Classes);
+        Assert.True(cards[0].Standard);
+        Assert.Equal("Аура", cards[0].NameRu);
+        Assert.Equal("Aura text", cards[0].Text);
+        Assert.Equal(["WARRIOR"], cards[1].Classes);
+        Assert.False(cards[1].Standard);
+        Assert.Equal(2, cards[1].Health); // durability for weapons
     }
 }

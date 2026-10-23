@@ -6,8 +6,8 @@ using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.UI.Overlay;
 
-/// <summary>One histogram of the card pool panel; <paramref name="BrushKey"/> is a theme brush (ManaGem, TierS...).</summary>
-public sealed record PoolHistogramModel(string Title, string BrushKey, IReadOnlyList<PoolBarModel> Bars, string MedianText)
+/// <summary>One histogram of the card pool panel (Cost, Attack or Health; the view picks the colour).</summary>
+public sealed record PoolHistogramModel(string Title, IReadOnlyList<PoolBarModel> Bars, string MedianText)
 {
     public bool IsAttack => Title == "Attack";
 
@@ -58,6 +58,7 @@ public sealed partial class OverlayViewModel
     private readonly HashSet<string> _cardPoolSelected = new(StringComparer.Ordinal);
     private string _cardPoolBrowserKey = string.Empty;
     private string? _lastRequestedPool;
+    private int _cardPoolBrowserTurn;
     private RelayCommand? _openCardPoolBrowser;
     private RelayCommand? _closeCardPoolBrowser;
     private RelayCommand? _toggleCardPoolFilters;
@@ -66,7 +67,20 @@ public sealed partial class OverlayViewModel
     /// <summary>The player resized the pool browser (its width is stored in the settings).</summary>
     public event Action? CardPoolBrowserResized;
 
-    public bool ShowCardPool { get => _showCardPool; private set => Set(ref _showCardPool, value); }
+    public bool ShowCardPool
+    {
+        get => _showCardPool;
+        private set
+        {
+            if (Set(ref _showCardPool, value))
+            {
+                Raise(nameof(ShowCardPoolPanel));
+            }
+        }
+    }
+
+    /// <summary>The compact panel: hidden while the browser (which repeats its header) is open, so they never overlap.</summary>
+    public bool ShowCardPoolPanel => ShowCardPool && !CardPoolBrowserOpen;
 
     /// <summary>"Pool of 136 cards".</summary>
     public string CardPoolTitle { get => _cardPoolTitle; private set => Set(ref _cardPoolTitle, value); }
@@ -101,7 +115,17 @@ public sealed partial class OverlayViewModel
     }
 
     /// <summary>The pool browser (full-height side panel) is open.</summary>
-    public bool CardPoolBrowserOpen { get => _cardPoolBrowserOpen; private set => Set(ref _cardPoolBrowserOpen, value); }
+    public bool CardPoolBrowserOpen
+    {
+        get => _cardPoolBrowserOpen;
+        private set
+        {
+            if (Set(ref _cardPoolBrowserOpen, value))
+            {
+                Raise(nameof(ShowCardPoolPanel));
+            }
+        }
+    }
 
     /// <summary>"Thief's Tools Pool: 47 cards".</summary>
     public string CardPoolBrowserTitle { get => _cardPoolBrowserTitle; private set => Set(ref _cardPoolBrowserTitle, value); }
@@ -152,7 +176,7 @@ public sealed partial class OverlayViewModel
         }
         else if (_cardPool is not null)
         {
-            CardPoolBrowserOpen = true;
+            OpenBrowser();
             RebuildCardPoolBrowser();
         }
     });
@@ -173,12 +197,20 @@ public sealed partial class OverlayViewModel
         RebuildCardPoolBrowser();
     });
 
+    private void OpenBrowser()
+    {
+        CardPoolBrowserOpen = true;
+        _cardPoolBrowserTurn = _cardPoolView?.Turn ?? 0;
+    }
+
     /// <summary>Called when the drag on the browser's edge ends: saves the width.</summary>
     public void CommitCardPoolBrowserWidth() => CardPoolBrowserResized?.Invoke();
 
     private void CloseCardPoolBrowserCore()
     {
         CardPoolBrowserOpen = false;
+        // The browser disappears under the mouse: no "mouse left" event follows, so the hold ends here.
+        _cardPoolHeld = false;
         if (_cardPoolSettings is not null)
         {
             UpdateCardPool(_cardPoolView, _cardPoolSettings);
@@ -194,6 +226,13 @@ public sealed partial class OverlayViewModel
         if (Math.Abs(_cardPoolBrowserWidth - settings.CardPoolBrowserWidth) > 0.5)
         {
             CardPoolBrowserWidth = settings.CardPoolBrowserWidth;
+        }
+
+        // The browser covers part of the board: it closes when the turn changes.
+        if (CardPoolBrowserOpen && view is not null && view.Turn != _cardPoolBrowserTurn)
+        {
+            CardPoolBrowserOpen = false;
+            _cardPoolHeld = false;
         }
 
         var pool = settings.ShowCardPool ? view?.CardPool : null;
@@ -223,21 +262,27 @@ public sealed partial class OverlayViewModel
         var requested = pool.Trigger == PoolTrigger.Request ? pool.SourceCardId : null;
         if (requested is not null && requested != _lastRequestedPool)
         {
-            CardPoolBrowserOpen = true;
+            OpenBrowser();
         }
 
         _lastRequestedPool = requested;
+        if (ReferenceEquals(pool, _cardPool) && ShowCardPool)
+        {
+            // The engine hands back the same view while the pool stays up: nothing to rebuild.
+            RebuildCardPoolBrowser();
+            return;
+        }
+
         _cardPool = pool;
         CardPoolTitle = $"Pool of {CardCount(pool.Count)}";
         CardPoolSource = pool.SourceName;
         CardPoolDescription = $"{pool.Phrase} · {pool.Description}";
-        CardPoolHistograms = new[] { (pool.Cost, "ManaGem"), (pool.Attack, "TierS"), (pool.Health, "Negative") }
-            .Where(h => h.Item1 is { Count: > 0 })
+        CardPoolHistograms = new[] { pool.Cost, pool.Attack, pool.Health }
+            .Where(h => h is { Count: > 0 })
             .Select(h => new PoolHistogramModel(
-                h.Item1!.Title,
-                h.Item2,
-                h.Item1.Bars.Select(b => new PoolBarModel(b.Label, b.Count, b.Count == 0 ? 1 : 3 + b.Height * (BarMaxHeight - 3), b.IsMedian)).ToList(),
-                h.Item1.MedianText))
+                h!.Title,
+                h.Bars.Select(b => new PoolBarModel(b.Label, b.Count, b.Count == 0 ? 1 : 3 + b.Height * (BarMaxHeight - 3), b.IsMedian)).ToList(),
+                h.MedianText))
             .ToList();
         CardPoolMechanics = pool.Mechanics;
         CardPoolFeatured = pool.Featured;

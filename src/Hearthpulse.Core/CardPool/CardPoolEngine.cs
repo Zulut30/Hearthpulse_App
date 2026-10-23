@@ -6,8 +6,7 @@ namespace Hearthpulse.Core.CardPool;
 /// <summary>An entry of the exception table (<see cref="CardPoolTables.Overrides"/>).</summary>
 /// <param name="Skip">Not shown, with the reason (a pool the catalog cannot answer: "Cost equal to your hand size").</param>
 /// <param name="Text">English text to parse instead of the card's own.</param>
-/// <param name="CardIds">An explicit pool (Animal Companions...).</param>
-public sealed record PoolOverride(string? Skip = null, string? Text = null, string[]? CardIds = null);
+public sealed record PoolOverride(string? Skip = null, string? Text = null);
 
 /// <summary>
 /// Pools for generator cards: reads the generator's text (exception table first), filters the catalog for the game's
@@ -20,7 +19,7 @@ public sealed class CardPoolEngine
 
     // Views are rebuilt on every overlay update while a pool is up; the same pool must come back as the same object
     // (cheap, and the UI keeps its list and scroll position).
-    private readonly ConcurrentDictionary<(string CardId, PoolContext Context), CardPoolView> _views = new();
+    private readonly ConcurrentDictionary<(string CardId, PoolContext Context, PoolTrigger Trigger), CardPoolView> _views = new();
     private readonly IReadOnlyDictionary<string, int> _metaGames;
     private readonly CardDb _cards;
 
@@ -42,13 +41,6 @@ public sealed class CardPoolEngine
             if (o.Skip is not null)
             {
                 return new PoolParse(PoolParseStatus.NotPool, Detail: o.Skip);
-            }
-
-            if (o.CardIds is not null)
-            {
-                var text = TextOf(id);
-                var verb = text.Contains("Discover", StringComparison.Ordinal) ? PoolVerb.Discover : PoolVerb.Random;
-                return new PoolParse(PoolParseStatus.Pool, new PoolGenerator(verb, 1, new PoolQuery { CardIds = o.CardIds }, text));
             }
 
             if (o.Text is not null)
@@ -80,15 +72,18 @@ public sealed class CardPoolEngine
             return null;
         }
 
-        if (_views.TryGetValue((cardId, context), out var known))
+        if (_views.TryGetValue((cardId, context, trigger), out var known))
         {
-            return known.Trigger == trigger ? known : known with { Trigger = trigger };
+            return known;
         }
 
-        var built = BuildCore(cardId, context, trigger);
+        // Another trigger of the same pool reuses its lists; the view itself is cached per trigger, so it stays the
+        // same object on every overlay update.
+        var same = _views.FirstOrDefault(v => v.Key.CardId == cardId && v.Key.Context == context).Value;
+        var built = same is not null ? same with { Trigger = trigger } : BuildCore(cardId, context, trigger);
         if (built is not null)
         {
-            _views[(cardId, context)] = built;
+            _views[(cardId, context, trigger)] = built;
         }
 
         return built;
@@ -181,7 +176,7 @@ public sealed class CardPoolEngine
     internal static string Describe(PoolGenerator generator, PoolContext context)
     {
         var q = generator.Query;
-        var classes = q.CardIds is not null ? null : q.Scope switch
+        var classes = q.Scope switch
         {
             ClassScope.Any => "any class",
             ClassScope.Named => string.Join(" / ", q.Classes.Select(Title)),

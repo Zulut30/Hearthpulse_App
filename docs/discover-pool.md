@@ -2,7 +2,9 @@
 
 For a card that Discovers or creates random cards, the overlay shows the pool the cards come from: size,
 Cost/Attack/Health histograms with medians, the share of each mechanic, a highlighted card and, on right-click, the pool
-browser with every card. Everything is built from game data and card text; no other tracker's code is used.
+browser with every card. Everything is built from game data and card text; no code of other trackers was used. The
+idea of a pool panel with a list of options is known from HDT's Outfinder; the layout here follows the spec this
+project was given.
 
 Code: `src/Hearthpulse.Core/CardPool/` (catalog, parser, engine, stats, tracker), `Tracking/GameSession.CardPool.cs`,
 panels `Overlay/CardPoolPanel.*` in both UIs. Generated table: `CardPoolTables.g.cs` from
@@ -53,7 +55,8 @@ token), so there is no "strongest card" rule; without meta data no card is highl
 
 `PoolTextParser` reads the normalised English text (`PoolText.Normalize`: no markup, `[x]`, `$`, `#`, `@`, `&`).
 Collectible generators bring their text with the catalog; non-collectible ones (hero powers, tokens, Dark Gifts)
-are in `CardPoolTables.GeneratorTexts`. Two anchors:
+are in `CardPoolTables.GeneratorTexts` (348 texts; solo adventure, Book of Heroes and boss cards are left out by id, and
+Taverns of Time by set, since their pools are the adventure's own). Two anchors:
 
 - **Discover**: `Discover [a|an|two|any|N] <descriptor>` - not after "you", "you've", "to", "Quest:" (those *count*
   Discovers), not "Discovered".
@@ -88,8 +91,10 @@ panel, and `hearthpulse.log` gets `Card pool: <name> (<id>) not understood: <res
 
 ### Class and format rules
 
-- **Format**: `GameState.FormatType` FT_STANDARD -> Standard cards, FT_WILD -> all cards. Classic, Twist, Arena and
-  others have no known pool: no panel.
+- **Game type** (`PoolContext.SupportedGameTypes`): Ranked, Casual and Friendly only. Arena, Tavern Brawl, Practice and
+  solo adventures (`GT_VS_AI`), Duels and other modes have pools of their own: no panel, and game memory is not read.
+- **Format**: `GameState.FormatType` FT_STANDARD -> Standard cards, FT_WILD -> all cards. Classic and Twist have no
+  known pool: no panel.
 - **Discover without a class**: your class + neutral cards (your class = local hero's card class; outside a game the
   generator's own class). Class cards are offered more often than neutrals in the game; the panel lists the pool
   unweighted.
@@ -126,7 +131,7 @@ Text rules (`PoolStats`, over the English text):
 
 | Tile | Rule |
 |---|---|
-| Card Draw | the word draw/draws (`\b[Dd]raws?\b`), not "draw this" (Casts When Drawn uses "drawn") |
+| Card Draw | "draw(s)" followed by a count or "cards" (Draw a card, draw 2 Undead, Each player draws 2 cards); not triggers on someone else's draw (after "you", "opponent", "they", "enemy": Whenever you draw a card, your opponent draws) and not Casts When Drawn |
 | Deal Face Damage | `Deal N damage.` (any target), or N damage to a character / the enemy hero / your opponent / all enemies / all characters / both heroes / (random) enemies (not "enemy minion"), or damage split among enemies |
 | Heal | restore(s) / heal(s) |
 
@@ -140,32 +145,45 @@ median is the usual median of the cards that have the stat (halves shown as 3.5)
 `CardPoolTracker` (an `IPowerListener`), in priority order:
 
 1. **Discover choice open** (`OnChoices`, GENERAL choice with a known source card) until the pick (`OnChoiceMade`).
-2. **Requested**: `GameSession.ShowCardPool(cardId)` / `ShowCardPool(null)` - for hover over deck and hand rows.
+2. **Requested**: `GameSession.ShowCardPool(cardId)` / `ShowCardPool(null)` opens the browser for a card. It is the hook
+   for hover over deck and hand rows, which another branch reworks; today only `--render-ui` calls it.
    `GameSession.BuildCardPool(cardId, context)` builds a view outside the live game.
 3. **Hover in hand**: the card under the mouse, read from game memory every 200 ms on its own thread, when it is in
    your hand (`GameState` HAND zone).
-4. **Just played**: a generator you played (`PLAY` block), for 6 s of log time.
+4. **Just played**: a generator you played (`PLAY` block), for 6 s of log time (the hover thread also ends it when the
+   log is quiet).
 
-Only in Constructed-like games (not Battlegrounds/Mercenaries) and with the overlay setting "Show card pool" on.
+Only in Ranked/Casual/Friendly games and with the overlay setting "Show card pool" on. The catalog is downloaded only
+while that setting is on. Game memory is read (every 200 ms, on its own thread) only while a pool can be shown: setting
+on, catalog loaded, a supported mode; the thread ends after 10 s without a Constructed game. Its read errors do not
+change the memory status shown in the app.
+
+The compact panel lets clicks through to the game (it appears on its own over the board and the Discover options):
+whether the mouse is over it and a right-click on it are read from the mouse state while it is shown (Windows; the
+Avalonia preview elsewhere takes the pointer as before).
 
 ## Pool browser ("all options")
 
-A full-height side panel (`CardPoolBrowser`, MovablePanel `card-pool-browser`, right edge, default 350 units wide;
-drag its left edge to resize, stored in `AppSettings.CardPoolBrowserWidth`). Opened by right-click on the compact
-panel and by `GameSession.ShowCardPool(cardId)`; closed by the × button or Esc (the overlay never takes keyboard focus,
-so Esc is read from the keyboard state while the browser is open; the game sees the key too).
+A full-height side panel (`CardPoolBrowser`, MovablePanel `card-pool-browser`, default 350 units wide; drag its right
+edge to resize, stored in `AppSettings.CardPoolBrowserWidth`). It starts at the **left** edge: on the right it would
+cover the End Turn button (it can be moved in layout mode). Opened by right-click on the compact panel and by
+`GameSession.ShowCardPool(cardId)`; closed by the × button, Esc, another right-click, and automatically when the turn
+changes or another generator's pool comes up. Esc: the overlay never takes keyboard focus, so it is read from the
+keyboard state while the browser is open and Hearthstone or Hearthpulse is the foreground window (the game sees the key
+too).
 
 - Header "<card> Pool: N cards", the pool description, the highlighted card.
 - FILTERS (collapsible, a gold dot when any is on): chips for every mechanic some but not all pool cards have
   (`CardPoolView.Filters`, same rules as the percentages, no 12-tile limit); selected chips combine with AND
   (`PoolEntry.Mechanics`).
 - Grid of full card renders, three per row, by cost then name; rows are virtualized, wheel scrolling glides to its
-  target (WPF only when Windows animations are on). Hover shows the card larger.
+  target only when the Windows animation setting is on (both UIs). Hover shows the card larger.
 - Card renders: HearthstoneJSON `v1/render/latest/{locale}/256x/{id}.png`, `Infrastructure/CardRender.cs` in both UIs
-  (disk cache `images/render-{locale}`, the transparent margin cropped to the 215x303 card). Kept apart from
-  `CardArt.cs` on purpose; it can be merged into a `CardArt` kind later.
-- The engine caches each built view per (card, format, classes), so a pool that stays up is the same object on every
-  overlay update and the grid keeps its scroll position.
+  (disk cache `images/render-{locale}`, newest 2000 files kept, trimmed once per session; a card without a render is
+  not asked for again in the session; the transparent margin cropped to the 215x303 card; 120 images in memory). Kept
+  apart from `CardArt.cs` on purpose; it can be merged into a `CardArt` kind later.
+- The engine caches each built view per (card, game context, trigger), so a pool that stays up is the same object on
+  every overlay update: the panels rebuild nothing and the grid keeps its scroll position.
 
 ### Card under the mouse (game memory)
 
@@ -186,7 +204,9 @@ it is read fresh each time. Not checked: outside a match (expected null), during
   pool sizes counted by a separate script from the raw API pages (one hand-written filter per card), parser cases
   (not a generator / not a pool / unrecognized / counts, costs, keyword lists, schools, class clauses), histograms,
   text rules, the view (filter mechanic left out, highlighted card) and the tracker on a synthetic Power.log (play ->
-  choice -> request). Regenerate the fixture after a rotation together with the expected sizes.
+  choice -> request -> hover outside the hand -> played expiry), the supported game types, `PoolText.Normalize` and
+  `ParseApiPage`. After a rotation: `tools/cardpool/pool_fixture.py fetch|fixture|check` rebuilds the fixture and
+  recounts the expected sizes with its own hand-written filters (the committed fixture is reproduced exactly).
 - **Real logs**: replaying 11 Constructed games (10 Standard, 1 Wild; Power.logs of 2026-10-21..23) met 12 generator
   plays/choices: 4 pools shown on play (Void Soul 5, Jade Guardians 44, Cryofrozen Champion 196, Drakeadon Mongrel
   144), 8 correctly without a pool (Cultist Map/Nightmare Fuel - from the deck or a copy; Grim Harvest, Time Machine -

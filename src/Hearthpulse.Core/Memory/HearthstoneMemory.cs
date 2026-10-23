@@ -364,7 +364,7 @@ public sealed class HearthstoneMemory : IDisposable
     /// is dragged this is the card under the cursor (a target), not the dragged one. Hidden cards (opponent's hand) have
     /// no id and give null.
     /// </summary>
-    public string? GetHoveredCardId() => Safe(rt =>
+    public string? GetHoveredCardId() => Safe(quiet: true, read: rt =>
     {
         var input = rt.FindClass("InputManager")?.GetStatic("s_instance") ?? default;
         var card = input.IsNull ? default : input["m_mousedOverCard"];
@@ -473,7 +473,8 @@ public sealed class HearthstoneMemory : IDisposable
         return default;
     }
 
-    private T? Safe<T>(Func<MonoRuntime, T?> read)
+    /// <param name="quiet">A failed read does not change <see cref="Status"/> (frequent reads from another thread would make it flicker).</param>
+    private T? Safe<T>(Func<MonoRuntime, T?> read, bool quiet = false)
     {
         if (!EnsureAttached())
         {
@@ -513,7 +514,11 @@ public sealed class HearthstoneMemory : IDisposable
         }
         catch (Exception ex)
         {
-            Status = "Read failed: " + ex.Message;
+            if (!quiet)
+            {
+                Status = "Read failed: " + ex.Message;
+            }
+
             return default;
         }
     }

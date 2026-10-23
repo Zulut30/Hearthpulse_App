@@ -17,7 +17,7 @@
         <DataTemplate x:Key="CardTemplate" x:DataType="p:PoolEntry">
             <Image i:CardRender.Card="{Binding CardId}" Stretch="Uniform" Margin="2,0" Cursor="Hand"
                    Height="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).CardPoolCardHeight, FallbackValue=150}"
-                   ToolTip.ShowDelay="150" ToolTip.Placement="Left" ToolTip.HorizontalOffset="-8">
+                   ToolTip.ShowDelay="150" ToolTip.Placement="Right" ToolTip.HorizontalOffset="8">
                 <ToolTip.Tip>
                     <Image i:CardRender.Card="{Binding CardId}" Width="258" Height="364" Stretch="Uniform" />
                 </ToolTip.Tip>
@@ -114,8 +114,8 @@
                 </ItemsControl>
             </ScrollViewer>
 
-            <!-- Left edge: drag to change the width -->
-            <Thumb Grid.RowSpan="4" Width="6" HorizontalAlignment="Left" Cursor="SizeWestEast" Opacity="0" DragDelta="OnResize" DragCompleted="OnResized" />
+            <!-- Right edge (the browser sits at the left of the screen): drag to change the width -->
+            <Thumb Grid.RowSpan="4" Width="6" HorizontalAlignment="Right" Cursor="SizeWestEast" Opacity="0" DragDelta="OnResize" DragCompleted="OnResized" />
         </Grid>
     </Border>
 </UserControl>

@@ -7,7 +7,6 @@
              x:DataType="o:OverlayViewModel">
     <!-- The card pool panel (MovablePanel "card-pool"); DataContext is the OverlayViewModel. -->
     <UserControl.Resources>
-        <i:KeyBrush x:Key="KeyBrush" />
 
         <DataTemplate x:Key="HistogramTemplate" x:DataType="o:PoolHistogramModel">
             <StackPanel Classes="histogram" Classes.attack="{Binding IsAttack}" Classes.health="{Binding IsHealth}" Margin="5,0">
@@ -79,7 +78,9 @@
         </Style>
     </UserControl.Styles>
 
-    <Border Classes="overlayCard" Width="372" o:OverlayHit.Interactive="True" Background="{StaticResource OverlayPanelSolid}"
+    <!-- On Windows not interactive: clicks reach the board and the Discover options under it; hover and right-click are
+         polled. Elsewhere (no polling) the code-behind makes it interactive. -->
+    <Border x:Name="Card" Classes="overlayCard" Width="372" Background="{StaticResource OverlayPanelSolid}"
             PointerEntered="OnPointerEntered" PointerExited="OnPointerExited" PointerReleased="OnPointerReleased">
         <StackPanel Margin="10,9,10,8">
             <TextBlock Text="{Binding CardPoolTitle}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />

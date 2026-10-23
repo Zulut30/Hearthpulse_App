@@ -316,6 +316,7 @@ public sealed partial class AppHost : IDisposable
         _settingsDebounce.Start();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
+        _ = LoadCardPoolAsync();
         RefreshOverlay();
         ApplyAutostart?.Invoke(Settings.StartWithWindows);
     }
