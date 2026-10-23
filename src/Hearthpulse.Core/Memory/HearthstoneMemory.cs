@@ -75,10 +75,18 @@ public sealed record RankInfo(string Format, int LeagueId, int StarLevel, int Le
         }
 
         var space = text.IndexOf(' ', StringComparison.Ordinal);
-        var league = space < 0 ? text : text[..space];
-        return league is "Bronze" or "Silver" or "Gold" or "Platinum" or "Diamond" or "Legend" or "Unranked"
-            ? Localization.Loc.T("Core.Rank." + league) + (space < 0 ? string.Empty : text[space..])
-            : text;
+        var key = (space < 0 ? text : text[..space]) switch
+        {
+            "Bronze" => "Core.Rank.Bronze",
+            "Silver" => "Core.Rank.Silver",
+            "Gold" => "Core.Rank.Gold",
+            "Platinum" => "Core.Rank.Platinum",
+            "Diamond" => "Core.Rank.Diamond",
+            "Legend" => "Core.Rank.Legend",
+            "Unranked" => "Core.Rank.Unranked",
+            _ => null,
+        };
+        return key is null ? text : Localization.Loc.T(key) + (space < 0 ? string.Empty : text[space..]);
     }
 
     /// <summary>The number of a saved "Legend N" text, whatever digit grouping it was written with.</summary>
