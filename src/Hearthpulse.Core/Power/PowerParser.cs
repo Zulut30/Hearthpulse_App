@@ -416,7 +416,8 @@ public sealed partial class PowerParser
             else if (previous == "HAND")
             {
                 entity.LeftHandTurn = game.Turn;
-                if (value == "DECK" && game.Turn == 0)
+                // TURN is 1 during the mulligan in real logs: the controller's MULLIGAN_STATE says it is the mulligan.
+                if (value == "DECK" && (game.Turn == 0 || game.MulliganStateOf(entity.Controller) is "INPUT" or "DEALING"))
                 {
                     entity.Mulliganed = true;
                 }

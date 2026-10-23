@@ -83,6 +83,23 @@ public sealed record GameRecord
     /// <summary>Deck id from Decks.log (Constructed decks and Arena runs: one Arena run has one deck id).</summary>
     public long? DeckId { get; init; }
 
+    // ---- Deck page fields (Constructed; null in rows saved before them) ----
+
+    /// <summary>Local mulligan as JSON (<see cref="GameCards.MulliganJson"/>): offered, replaced and received card ids.</summary>
+    public string? Mulligan { get; init; }
+
+    /// <summary>Deck cards the player drew, JSON <c>[{"id":..,"turn":..}]</c>; turn 0 is the opening hand after the mulligan.</summary>
+    public string? CardsDrawn { get; init; }
+
+    /// <summary>Deck cards the player played from hand, JSON <c>[{"id":..,"turn":..}]</c> (the player's own turn number).</summary>
+    public string? CardsPlayed { get; init; }
+
+    /// <summary>The opponent's starting-deck cards it played face up, JSON <c>[{"id":..,"turn":..}]</c>. Nothing hidden.</summary>
+    public string? OpponentCards { get; init; }
+
+    /// <summary>The opponent's archetype when its played cards placed it clearly (<c>ArchetypeGuess</c>), else null.</summary>
+    public string? OpponentArchetype { get; init; }
+
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 
     public TimeSpan Duration => EndedAt - StartedAt;
@@ -110,7 +127,7 @@ public sealed record MatchupAggregate(string OpponentClass, int Games, int Wins,
 public sealed record RatingPoint(DateTime At, int Rating);
 
 /// <summary>Local game history in SQLite.</summary>
-public sealed class HistoryStore
+public sealed partial class HistoryStore
 {
     private readonly string _connectionString;
     private readonly object _gate = new();
@@ -151,6 +168,7 @@ public sealed class HistoryStore
             CREATE INDEX IF NOT EXISTS ix_games_mode ON games(mode);
             """);
         AddMissingColumns(connection);
+        CreateFamilyTables(connection);
     }
 
     /// <summary>Columns added after the first schema, with their SQL type. Older databases get them on open.</summary>
@@ -163,6 +181,11 @@ public sealed class HistoryStore
         ("rank_legend", "INTEGER NULL"),
         ("went_first", "INTEGER NULL"),
         ("deck_id", "INTEGER NULL"),
+        ("mulligan", "TEXT NULL"),
+        ("cards_drawn", "TEXT NULL"),
+        ("cards_played", "TEXT NULL"),
+        ("opponent_cards", "TEXT NULL"),
+        ("opponent_archetype", "TEXT NULL"),
     ];
 
     private static void AddMissingColumns(SqliteConnection connection)
@@ -201,10 +224,12 @@ public sealed class HistoryStore
                 INSERT OR IGNORE INTO games (game_key, started_at, ended_at, mode, game_type, format, player_name, opponent_name,
                     hero, opponent_hero, player_class, opponent_class, result, placement, rating_before, rating_after, turns,
                     deck_name, deck_code, tavern_tier, final_board, races, rank, source,
-                    combat_results, offered_heroes, anomaly, rank_star_level, rank_legend, went_first, deck_id)
+                    combat_results, offered_heroes, anomaly, rank_star_level, rank_legend, went_first, deck_id,
+                    mulligan, cards_drawn, cards_played, opponent_cards, opponent_archetype)
                 VALUES ($key, $started, $ended, $mode, $type, $format, $player, $opponent, $hero, $ohero, $pclass, $oclass,
                     $result, $placement, $rb, $ra, $turns, $deck, $code, $tier, $board, $races, $rank, $source,
-                    $combats, $offered, $anomaly, $stars, $legend, $first, $deckid);
+                    $combats, $offered, $anomaly, $stars, $legend, $first, $deckid,
+                    $mulligan, $drawn, $played, $ocards, $oarch);
                 """;
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
             command.Parameters.AddWithValue("$offered", (object?)game.OfferedHeroes ?? DBNull.Value);
@@ -213,6 +238,7 @@ public sealed class HistoryStore
             command.Parameters.AddWithValue("$legend", (object?)game.RankLegend ?? DBNull.Value);
             command.Parameters.AddWithValue("$first", game.WentFirst is { } first ? first ? 1 : 0 : DBNull.Value);
             command.Parameters.AddWithValue("$deckid", (object?)game.DeckId ?? DBNull.Value);
+            BindCardColumns(command.Parameters, game);
             command.Parameters.AddWithValue("$key", game.Key);
             command.Parameters.AddWithValue("$started", game.StartedAt.ToString("O", CultureInfo.InvariantCulture));
             command.Parameters.AddWithValue("$ended", game.EndedAt.ToString("O", CultureInfo.InvariantCulture));
@@ -268,12 +294,19 @@ public sealed class HistoryStore
                     rank_star_level = COALESCE(rank_star_level, $stars),
                     rank_legend = COALESCE(rank_legend, $legend),
                     went_first = COALESCE(went_first, $first),
-                    deck_id = COALESCE(deck_id, $deckid)
+                    deck_id = COALESCE(deck_id, $deckid),
+                    mulligan = COALESCE(mulligan, $mulligan),
+                    cards_drawn = COALESCE(cards_drawn, $drawn),
+                    cards_played = COALESCE(cards_played, $played),
+                    opponent_cards = COALESCE(opponent_cards, $ocards),
+                    opponent_archetype = COALESCE(opponent_archetype, $oarch)
                 WHERE game_key = $key
                     AND ((combat_results IS NULL AND $combats IS NOT NULL) OR (offered_heroes IS NULL AND $offered IS NOT NULL)
                         OR (anomaly IS NULL AND $anomaly IS NOT NULL) OR (rank_star_level IS NULL AND $stars IS NOT NULL)
                         OR (rank_legend IS NULL AND $legend IS NOT NULL) OR (went_first IS NULL AND $first IS NOT NULL)
-                        OR (deck_id IS NULL AND $deckid IS NOT NULL));
+                        OR (deck_id IS NULL AND $deckid IS NOT NULL) OR (mulligan IS NULL AND $mulligan IS NOT NULL)
+                        OR (cards_drawn IS NULL AND $drawn IS NOT NULL) OR (cards_played IS NULL AND $played IS NOT NULL)
+                        OR (opponent_cards IS NULL AND $ocards IS NOT NULL) OR (opponent_archetype IS NULL AND $oarch IS NOT NULL));
                 """;
             command.Parameters.AddWithValue("$key", game.Key);
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
@@ -283,6 +316,7 @@ public sealed class HistoryStore
             command.Parameters.AddWithValue("$legend", (object?)game.RankLegend ?? DBNull.Value);
             command.Parameters.AddWithValue("$first", game.WentFirst is { } first ? first ? 1 : 0 : DBNull.Value);
             command.Parameters.AddWithValue("$deckid", (object?)game.DeckId ?? DBNull.Value);
+            BindCardColumns(command.Parameters, game);
             changed = command.ExecuteNonQuery();
         }
 
@@ -463,11 +497,25 @@ public sealed class HistoryStore
                     RankLegend = NullableInt(reader, "rank_legend"),
                     WentFirst = NullableInt(reader, "went_first") is { } first ? first != 0 : null,
                     DeckId = reader.IsDBNull(reader.GetOrdinal("deck_id")) ? null : reader.GetInt64(reader.GetOrdinal("deck_id")),
+                    Mulligan = NullableString(reader, "mulligan"),
+                    CardsDrawn = NullableString(reader, "cards_drawn"),
+                    CardsPlayed = NullableString(reader, "cards_played"),
+                    OpponentCards = NullableString(reader, "opponent_cards"),
+                    OpponentArchetype = NullableString(reader, "opponent_archetype"),
                 });
             }
 
             return list;
         }
+    }
+
+    private static void BindCardColumns(SqliteParameterCollection p, GameRecord game)
+    {
+        p.AddWithValue("$mulligan", (object?)game.Mulligan ?? DBNull.Value);
+        p.AddWithValue("$drawn", (object?)game.CardsDrawn ?? DBNull.Value);
+        p.AddWithValue("$played", (object?)game.CardsPlayed ?? DBNull.Value);
+        p.AddWithValue("$ocards", (object?)game.OpponentCards ?? DBNull.Value);
+        p.AddWithValue("$oarch", (object?)game.OpponentArchetype ?? DBNull.Value);
     }
 
     private static int? NullableInt(SqliteDataReader reader, string column)
