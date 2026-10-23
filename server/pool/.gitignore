@@ -2,5 +2,5 @@
 .wrangler/
 node_modules/
 
-# One-time Firestone download (see import-firestone.mjs)
+# One-time base stats download (see import-base-stats.mjs)
 .cache/

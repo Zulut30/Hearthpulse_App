@@ -81,7 +81,7 @@ public sealed class AppSettings
     /// <summary>Who sets the game-plan comp.</summary>
     public CompMode CompMode { get; set; } = CompMode.Manual;
 
-    /// <summary>Comp id (Firestone) the player chose in <see cref="CompMode.Manual"/>, kept across games; null when none.</summary>
+    /// <summary>Comp id the player chose in <see cref="CompMode.Manual"/>, kept across games; null when none.</summary>
     public string? ChosenCompId { get; set; }
 
     /// <summary>The tribe the player wants to build around (a race key such as "BEAST"); null for any.</summary>

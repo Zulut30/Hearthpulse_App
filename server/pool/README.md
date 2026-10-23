@@ -54,11 +54,11 @@ rows; the 92 MB source file is mostly raw final-board dumps the app never reads.
 To refresh it deliberately (this is the only step that downloads anything):
 
 ```
-node import-firestone.mjs
+node import-base-stats.mjs
 npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sql --yes
 ```
 
-The download is cached in `.cache/firestone`; delete that folder to fetch it again.
+The download is cached in `.cache/base-stats`; delete that folder to fetch it again.
 
 ## API
 

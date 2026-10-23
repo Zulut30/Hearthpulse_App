@@ -209,8 +209,8 @@ async function stats(request, env, ctx, url) {
 const round = (x) => (x === null || x === undefined ? null : Math.round(x * 1000) / 1000);
 
 /**
- * The Firestone base stats, imported once by migrations/0004_meta.sql and stored as numbered chunks (one D1 row
- * each). The app reads this instead of zerotoheroes.com; there is no Firestone call anywhere in the worker.
+ * The Battlegrounds base stats, imported once by migrations/0004_meta.sql and stored as numbered chunks (one D1 row
+ * each). The app reads this instead of the upstream stats host; the worker makes no third-party stats calls.
  */
 async function meta(request, env, ctx) {
   const cache = caches.default;
