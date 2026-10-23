@@ -19,7 +19,7 @@ namespace Hearthpulse.Desktop;
 /// <c>--render-ui &lt;folder&gt;</c>: renders the dashboard pages and the overlay to PNGs with a headless renderer,
 /// using the player's own history and their latest kept Battlegrounds log. Nothing is shown on screen.
 /// </summary>
-internal static class OffscreenRenderer
+internal static partial class OffscreenRenderer
 {
     public static int Run(string folder)
     {
@@ -77,6 +77,8 @@ internal static class OffscreenRenderer
             heading.BringIntoView(new Rect(0, 0, heading.Bounds.Width, 640));
             await Save(main, Path.Combine(folder, "main-settings-counters.png"));
         }
+
+        await RenderMyStatsAsync(main, view, host, folder);
 
         // Phone-sized dashboard: the compact layout used on narrow windows and mobile.
         main.Width = 420;

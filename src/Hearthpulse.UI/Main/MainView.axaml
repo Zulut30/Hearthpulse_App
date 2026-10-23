@@ -4,6 +4,7 @@
              xmlns:c="using:Hearthpulse.UI.Controls"
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              xmlns:core="using:Hearthpulse.Core"
+             xmlns:s="using:Hearthpulse.UI.Main.Stats"
              x:Class="Hearthpulse.UI.Main.MainView"
              x:DataType="m:MainViewModel"
              Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
@@ -115,6 +116,56 @@
         <Style Selector="m|MainView.compact Grid.choiceRow RadioButton.segment /template/ Border#Bd">
             <Setter Property="Padding" Value="9,5" />
         </Style>
+
+        <!-- My Stats (Main/Stats): filters drop under the title, side-by-side cards stack, the hero table loses its charts. -->
+        <Style Selector="TextBlock.statsValue">
+            <Setter Property="FontSize" Value="25" />
+        </Style>
+        <Style Selector="m|MainView.compact TextBlock.statsValue">
+            <Setter Property="FontSize" Value="19" />
+        </Style>
+        <Style Selector=":is(Control).statsRight">
+            <Setter Property="Grid.Column" Value="2" />
+        </Style>
+        <Style Selector=":is(Control).statsSide">
+            <Setter Property="Grid.Column" Value="1" />
+        </Style>
+        <Style Selector="m|MainView.compact :is(Control).statsSide">
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Margin" Value="0,16,0,0" />
+        </Style>
+        <Style Selector="UniformGrid.tiles3">
+            <Setter Property="Columns" Value="3" />
+        </Style>
+        <Style Selector=":is(Control).narrow">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="m|MainView.compact UniformGrid.tiles3">
+            <Setter Property="Columns" Value="2" />
+        </Style>
+        <Style Selector="m|MainView.compact :is(Control).narrow">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="m|MainView.compact Border.statsBar RadioButton.segment /template/ Border#Bd">
+            <Setter Property="Padding" Value="8,5" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.statsHead Border.statsFilter">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,10,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact :is(Control).statsLeft">
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+        </Style>
+        <Style Selector="m|MainView.compact :is(Control).statsRight">
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="0,16,0,0" />
+        </Style>
     </UserControl.Styles>
 
     <Grid Name="Frame" ColumnDefinitions="250,*">
@@ -138,6 +189,8 @@
                              ToolTip.Tip="Hero, comp, trinket and card tier lists, plus your Battlegrounds results" />
                 <RadioButton Name="NavConstructed" Classes="nav" Content="Constructed" Tag="&#xF063A;" GroupName="Nav"
                              ToolTip.Tip="Deck win rates and matchups" />
+                <RadioButton Name="NavArena" Classes="nav" Content="Arena" Tag="&#xF0538;" GroupName="Nav"
+                             ToolTip.Tip="Your Arena runs, classes and matchups" />
 
                 <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
                     <TextBlock Text="Library" Classes="label" />
@@ -278,14 +331,8 @@
                             </Border>
                         </Grid>
 
-                        <ItemsControl ItemsSource="{Binding BgTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}" Margin="0,0,-14,16" />
-
-                        <Border Classes="card" Margin="0,0,0,24">
-                            <DockPanel>
-                                <c:Ornament DockPanel.Dock="Top" Text="Rating" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
-                                <c:RatingChart Points="{Binding RatingPoints}" Height="220" />
-                            </DockPanel>
-                        </Border>
+                        <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
+                        <s:BattlegroundsStatsView Name="BgStats" />
 
                         <c:Ornament Text="Tier lists" Icon="&#xF11D0;" Size="15" Margin="0,0,0,14" />
                         <WrapPanel Margin="0,0,0,14">
@@ -539,7 +586,8 @@
                             <TextBlock Text="Deck win rates and matchups from your tracked games." Classes="caption" FontSize="14" Margin="10,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
 
-                        <ItemsControl ItemsSource="{Binding ConstructedTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}" Margin="0,0,-14,16" />
+                        <!-- My stats (Main/Stats): Standard/Wild results; your decks follow below -->
+                        <s:ConstructedStatsView Name="CtStats" />
 
                         <Grid Name="DeckColumns" ColumnDefinitions="3*,16,2*">
                             <Border Classes="card" VerticalAlignment="Top">
@@ -594,6 +642,22 @@
                                 </StackPanel>
                             </Border>
                         </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Arena ===== -->
+                <ScrollViewer Name="PageArena" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                    <StackPanel>
+                        <TextBlock Text="Arena" Classes="display" />
+                        <StackPanel Classes="pageSubtitle">
+                            <Panel Width="26" Height="26">
+                                <c:Scallop Fill="{StaticResource AccentContainer}" Lobes="9" Depth="0.12" />
+                                <TextBlock Text="&#xF0538;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                            </Panel>
+                            <TextBlock Text="Your Arena runs, the classes you draft and how they do." Classes="caption" FontSize="14" Margin="10,0,0,0"
+                                       VerticalAlignment="Center" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <s:ArenaStatsView Name="ArenaStats" />
                     </StackPanel>
                 </ScrollViewer>
 

@@ -132,6 +132,7 @@ public sealed partial class MainViewModel
 
         _constructedMeta = meta;
         RebuildConstructedMeta();
+        RebuildConstructedStats();
 
         // Your own decks show the archetype they belong to.
         var selected = SelectedDeck?.Key;

@@ -39,6 +39,11 @@ public static class LogBackfill
                     {
                         added++;
                     }
+                    else
+                    {
+                        // A game saved before the My Stats fields existed gets them from its log now.
+                        history.FillMissingFields(record);
+                    }
                 }
             }
         }
@@ -52,9 +57,11 @@ public static class LogBackfill
         var parser = new PowerParser(date);
         var constructed = new ConstructedTracker();
         var battlegrounds = new BattlegroundsTracker { Cards = cards };
-        var collector = new Collector(records, battlegrounds, cards);
+        var facts = new GameFactsTracker();
+        var collector = new Collector(records, battlegrounds, cards, facts);
         parser.AddListener(constructed);
         parser.AddListener(battlegrounds);
+        parser.AddListener(facts);
         parser.AddListener(collector);
 
         using var stream = new FileStream(powerLogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -74,11 +81,11 @@ public static class LogBackfill
         return records;
     }
 
-    private sealed class Collector(List<GameRecord> records, BattlegroundsTracker battlegrounds, CardDb cards) : IPowerListener
+    private sealed class Collector(List<GameRecord> records, BattlegroundsTracker battlegrounds, CardDb cards, GameFactsTracker facts) : IPowerListener
     {
         public void OnGameEnded(GameState game)
         {
-            if (GameRecords.Build(game, battlegrounds, cards, null, "backfill") is { } record)
+            if (GameRecords.Build(game, battlegrounds, cards, null, "backfill", facts: facts) is { } record)
             {
                 records.Add(record);
             }

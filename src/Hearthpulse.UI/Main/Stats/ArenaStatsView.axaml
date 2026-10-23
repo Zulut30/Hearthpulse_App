@@ -1,0 +1,94 @@
+<UserControl x:Class="Hearthpulse.UI.Main.Stats.ArenaStatsView"
+             x:DataType="m:MainViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- Arena "My stats": header numbers, runs, classes and opponent classes -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Grid Classes="statsHead" Margin="0,0,0,14" RowDefinitions="Auto,Auto">
+            <c:Ornament Text="My stats" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter statsBar" ToolTip.Tip="Time frame">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Classes="segment" Content="All time" GroupName="ArenaPeriod" IsChecked="True" Command="{Binding SetArenaPeriod}" CommandParameter="All" />
+                    <RadioButton Classes="segment" Content="7 days" GroupName="ArenaPeriod" Command="{Binding SetArenaPeriod}" CommandParameter="Week" />
+                    <RadioButton Classes="segment" Content="30 days" GroupName="ArenaPeriod" Command="{Binding SetArenaPeriod}" CommandParameter="Month" />
+                    <RadioButton Classes="segment" Content="Season" GroupName="ArenaPeriod" Command="{Binding SetArenaPeriod}" CommandParameter="Season"
+                                 ToolTip.Tip="Since the 1st of this month" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Border Classes="card" Margin="0,0,0,16">
+            <ItemsControl ItemsSource="{Binding ArenaStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel}" Margin="0,0,0,-14" />
+        </Border>
+
+        <Grid Margin="0,0,0,24" RowDefinitions="Auto,Auto">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Classes="card statsLeft" VerticalAlignment="Top">
+                <StackPanel>
+                    <c:Ornament Text="Runs" Icon="&#xF0538;" Size="13" Margin="0,0,0,10" />
+                    <ItemsControl ItemsSource="{Binding ArenaRuns}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:ArenaRunRow">
+                                <Border Classes="row" Padding="10,7" Margin="-10,0,-10,2">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="36" Height="36" Margin="0,0,12,0" CornerRadius="18" Background="{StaticResource Surface4}" ClipToBounds="True" VerticalAlignment="Center" HorizontalAlignment="Left" i:CardArt.Portrait="{Binding HeroCardId}" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ClassName}" FontWeight="SemiBold" />
+                                            <TextBlock Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis">
+                                                <Run Text="{Binding When, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Status, Mode=OneWay}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="Wins – losses; the bar fills at 12 wins">
+                                            <Border Classes="wide" Width="90" Height="7" CornerRadius="3" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
+                                                        Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=90}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding Record}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="16" MinWidth="44" TextAlignment="Right" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="Arena runs show up here once you play Arena. Runs are told apart by their deck, or by class and the loss limit."
+                               Classes="caption" TextWrapping="Wrap" IsVisible="{Binding ArenaRuns, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                </StackPanel>
+            </Border>
+            <StackPanel Classes="statsRight">
+                <Border Classes="card" Margin="0,0,0,16">
+                    <StackPanel>
+                        <c:Ornament Text="Classes" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
+                        <ItemsControl ItemsSource="{Binding ArenaClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                        <TextBlock Text="No runs yet." Classes="caption" IsVisible="{Binding ArenaClasses, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <c:Ornament Text="Opponent classes" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10" />
+                        <ItemsControl ItemsSource="{Binding ArenaOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                        <TextBlock Text="No matchups yet." Classes="caption" IsVisible="{Binding ArenaOpponents, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </StackPanel>
+</UserControl>

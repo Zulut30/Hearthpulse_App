@@ -43,7 +43,13 @@ Core folders:
 - `Constructed/ConstructedMeta.cs` - ranked Constructed stats (archetypes, decks, mulligan), loaded from the Hearthpulse
   API by `ApiConstructedMeta` (HSGuru meta/decks + HSReplay mulligan, names via `ArchetypeNames`; docs/constructed-meta-api.md).
   The Firestone loader (`LoadFirestoneAsync`) is kept but unused.
-- `Data/HistoryStore.cs` (SQLite `history.db`), `Data/LogBackfill.cs` (imports games from kept Power logs).
+- `Data/HistoryStore.cs` (SQLite `history.db`), `Data/LogBackfill.cs` (imports games from kept Power logs). Columns added
+  after the first schema go in `HistoryStore.AddedColumns` (ALTER TABLE on open, NULL in old rows): `combat_results`
+  (BG combats JSON), `offered_heroes`, `anomaly`, `rank_star_level`, `rank_legend`, `went_first`, `deck_id`.
+  `Tracking/GameFactsTracker.cs` keeps the BG hero offer for the row.
+- `Stats/` - My Stats aggregates, pure functions over `GameRecord`s: `StatsFilter` (period, format), `BattlegroundsStats`
+  (summary, rating timeline, per-hero stats vs `MetaHero` placement shares / combat win rate), `ConstructedStats`
+  (rank timeline, classes, matchups, length, archetypes), `ArenaStats` (runs by deck id, else class + loss limit).
 - `Updates/UpdateService.cs` - GitHub releases of `Zulut30/IceCrowV2` (`RepoOwner`/`RepoName` constants),
   download + staged install.
 - `AppSettings.cs` (settings.json), `AppPaths.cs` (+ `Diag` log), `ThemePalette.cs`.

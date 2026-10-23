@@ -6,6 +6,9 @@ namespace Hearthpulse.Core.Battlegrounds;
 
 public sealed record MetaTribeImpact(int Tribe, double Impact);
 
+/// <summary>Community results for a hero at one MMR bracket.</summary>
+/// <param name="PlacementShares">Share of games ending in place 1..8 (index 0 = 1st), when the source publishes them.</param>
+/// <param name="CombatWinRate">Share of combats won on each turn (Firestone's <c>combatWinrate</c>), when published.</param>
 public sealed record MetaHero(
     string HeroCardId,
     int DataPoints,
@@ -13,7 +16,9 @@ public sealed record MetaHero(
     double PickRate,
     IReadOnlyDictionary<int, double> TribeImpact,
     double Top4Rate = 0,
-    double FirstRate = 0);
+    double FirstRate = 0,
+    IReadOnlyList<double>? PlacementShares = null,
+    IReadOnlyDictionary<int, double>? CombatWinRate = null);
 
 public sealed record MetaTrinket(
     string CardId,
@@ -361,6 +366,8 @@ public sealed class BattlegroundsMeta
             }
 
             double top4 = 0, first = 0;
+            var shares = new double[8];
+            var hasShares = false;
             if (hero.TryGetProperty("placementDistribution", out var places) && places.ValueKind == JsonValueKind.Array)
             {
                 foreach (var place in places.EnumerateArray())
@@ -381,6 +388,26 @@ public sealed class BattlegroundsMeta
                     {
                         first = share;
                     }
+
+                    if (rank is >= 1 and <= 8)
+                    {
+                        shares[rank - 1] = share;
+                        hasShares = true;
+                    }
+                }
+            }
+
+            var combatWinRate = new Dictionary<int, double>();
+            if (hero.TryGetProperty("combatWinrate", out var combats) && combats.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var combat in combats.EnumerateArray())
+                {
+                    // Turns without data come as "winrate": null; they are left out rather than read as 0%.
+                    if (combat.ValueKind == JsonValueKind.Object && GetInt(combat, "turn") is var turn and > 0
+                        && combat.TryGetProperty("winrate", out var winrate) && winrate.ValueKind == JsonValueKind.Number)
+                    {
+                        combatWinRate[turn] = winrate.GetDouble() / 100;
+                    }
                 }
             }
 
@@ -393,7 +420,9 @@ public sealed class BattlegroundsMeta
                 offered > 0 ? picked / offered : 0,
                 impact,
                 Math.Min(1, top4),
-                first);
+                first,
+                hasShares ? shares : null,
+                combatWinRate.Count > 0 ? combatWinRate : null);
         }
 
         return result;

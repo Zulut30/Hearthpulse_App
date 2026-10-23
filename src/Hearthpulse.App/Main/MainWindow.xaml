@@ -4,6 +4,7 @@
         xmlns:m="clr-namespace:Hearthpulse.App.Main"
         xmlns:c="clr-namespace:Hearthpulse.App.Controls"
         xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+        xmlns:s="clr-namespace:Hearthpulse.App.Main.Stats"
         Title="Hearthpulse" Width="1260" Height="840" MinWidth="1040" MinHeight="660"
         Background="{StaticResource WindowFill}" Foreground="{StaticResource Text}"
         WindowStartupLocation="CenterScreen" UseLayoutRounding="True" Style="{StaticResource AppWindow}"
@@ -218,6 +219,8 @@
                                  ToolTip="Hero, comp, trinket and card tier lists, plus your Battlegrounds results" />
                     <RadioButton x:Name="NavConstructed" Style="{StaticResource NavItem}" Content="Constructed" Tag="&#xF063A;" GroupName="Nav" Checked="OnNavigate"
                                  ToolTip="Your decks, matchups and the meta tier list" />
+                    <RadioButton x:Name="NavArena" Style="{StaticResource NavItem}" Content="Arena" Tag="&#xF0538;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="Your Arena runs, classes and matchups" />
 
                     <Grid Style="{StaticResource NavGroup}">
                         <Grid.ColumnDefinitions>
@@ -396,14 +399,8 @@
                                 </Border>
                             </Grid>
 
-                            <ItemsControl ItemsSource="{Binding BgTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}" Margin="0,0,-14,16" />
-
-                            <Border Style="{StaticResource Card}" Margin="0,0,0,24">
-                                <DockPanel>
-                                    <c:Ornament DockPanel.Dock="Top" Text="Rating" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
-                                    <c:RatingChart Points="{Binding RatingPoints}" Height="220" />
-                                </DockPanel>
-                            </Border>
+                            <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
+                            <s:BattlegroundsStatsView x:Name="BgStats" />
 
                             <c:Ornament Text="Tier lists" Icon="&#xF11D0;" Size="15" Margin="0,0,0,14" />
                             <Grid Margin="0,0,0,14">
@@ -734,13 +731,11 @@
                                 <TextBlock Text="Your decks and matchups, plus the current meta — HearthPulse · HSGuru / HSReplay данные." Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
                             </StackPanel>
 
-                            <ItemsControl ItemsSource="{Binding ConstructedTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}" Margin="0,0,-14,16" />
-
                             <Grid Margin="0,0,0,14">
                                 <Border HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource SegmentBar}">
                                     <StackPanel Orientation="Horizontal">
-                                        <RadioButton x:Name="TabMyDecks" Style="{StaticResource Tab}" Content="Your decks" GroupName="CtTab" IsChecked="True" Checked="OnCtTab"
-                                                     ToolTip="Your decks, their record and matchups" />
+                                        <RadioButton x:Name="TabMyDecks" Style="{StaticResource Tab}" Content="My stats" GroupName="CtTab" IsChecked="True" Checked="OnCtTab"
+                                                     ToolTip="Your results per format, your decks and their matchups" />
                                         <RadioButton x:Name="TabMetaTiers" Style="{StaticResource Tab}" Content="Meta tier list" GroupName="CtTab" Checked="OnCtTab"
                                                      ToolTip="Ranked archetypes by win rate, with coin split and a mulligan guide" />
                                         <RadioButton x:Name="TabMetaDecks" Style="{StaticResource Tab}" Content="Top decks" GroupName="CtTab" Checked="OnCtTab"
@@ -807,6 +802,8 @@
                                 </Border>
                             </StackPanel>
 
+                            <!-- My stats (Main/Stats): Standard/Wild results; your decks follow below -->
+                            <s:ConstructedStatsView x:Name="CtStats" />
                             <Grid x:Name="MyDecksPanel">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="3*" />
@@ -1191,6 +1188,17 @@
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ===== Arena ===== -->
+                    <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="40,0,40,120">
+                            <TextBlock Text="Arena" Style="{StaticResource Display}" />
+                            <StackPanel Style="{StaticResource PageSubtitle}">
+                                <TextBlock Text="Your Arena runs, the classes you draft and how they do." Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <s:ArenaStatsView />
                         </StackPanel>
                     </ScrollViewer>
 
