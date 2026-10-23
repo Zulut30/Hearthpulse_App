@@ -27,10 +27,27 @@ public enum UpdateTarget
 /// <param name="Sha256">The file's SHA-256 as GitHub publishes it (lower-case hex), or null when the release has none.</param>
 public sealed record UpdateInfo(string Version, string AssetName, string DownloadUrl, string PageUrl, string? Sha256 = null);
 
+/// <summary>What an update check found.</summary>
+public enum UpdateCheckOutcome
+{
+    /// <summary>This copy is the newest published release.</summary>
+    UpToDate,
+
+    /// <summary>A newer release with a file for this platform is out (<see cref="UpdateCheck.Update"/>).</summary>
+    Available,
+
+    /// <summary>GitHub could not be asked or gave an answer other than a release (see the message).</summary>
+    Failed,
+}
+
+/// <summary>The result of one update check, with a sentence for the settings page.</summary>
+public sealed record UpdateCheck(UpdateCheckOutcome Outcome, UpdateInfo? Update, string Message);
+
 /// <summary>
 /// Looks for a newer Hearthpulse release on GitHub, downloads the file this copy needs and installs a downloaded
-/// Windows update once the app has closed, so a running .exe is never locked. Everything is best effort: no network,
-/// a missing file or an odd reply simply means "no update", never an error the player sees.
+/// Windows update once the app has closed, so a running .exe is never locked. Everything is best effort: no network
+/// or an odd reply never throws; it is written to the log and reported by <see cref="CheckForUpdateAsync"/> so the
+/// settings page can say why there is no update. A release file without a published SHA-256 is never installed.
 /// </summary>
 public static class UpdateService
 {
@@ -157,7 +174,14 @@ public static class UpdateService
     }
 
     /// <summary>Asks GitHub for the newest release; null when this copy is current or when anything goes wrong.</summary>
-    public static async Task<UpdateInfo?> CheckAsync(HttpClient http, CancellationToken cancellationToken = default)
+    public static async Task<UpdateInfo?> CheckAsync(HttpClient http, CancellationToken cancellationToken = default) =>
+        (await CheckForUpdateAsync(http, cancellationToken)).Update;
+
+    /// <summary>
+    /// Asks GitHub for the newest release. Never throws: a failed request or an answer other than 200 is written to the
+    /// log and comes back as <see cref="UpdateCheckOutcome.Failed"/>, not as "no update".
+    /// </summary>
+    public static async Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -173,24 +197,48 @@ public static class UpdateService
             using var response = await http.SendAsync(request, cts.Token);
             if (!response.IsSuccessStatusCode)
             {
-                return null;
+                var status = (int)response.StatusCode;
+                // 404: the repository has no published release yet (or is private); 403/429: GitHub's rate limit.
+                var reason = status switch
+                {
+                    404 => "no published release",
+                    429 => "rate limited",
+                    403 when response.Headers.TryGetValues("X-RateLimit-Remaining", out var left) && left.FirstOrDefault() == "0" => "rate limited",
+                    403 => "forbidden",
+                    _ => response.ReasonPhrase ?? "error",
+                };
+                Diag.Info($"Update check: GitHub answered {status} ({reason}) for {LatestApi}.");
+                return new UpdateCheck(UpdateCheckOutcome.Failed, null, $"Update check failed: GitHub answered {status} ({reason}).");
             }
 
-            var info = ParseLatest(await response.Content.ReadAsStringAsync(cts.Token), DetectTarget(), RuntimeArchitecture(), LinuxFlavor());
+            var json = await response.Content.ReadAsStringAsync(cts.Token);
+            var info = ParseLatest(json, DetectTarget(), RuntimeArchitecture(), LinuxFlavor());
+            if (info is null && LatestTag(json) is { } tag && IsNewer(tag))
+            {
+                // Released, but the file for this platform is not uploaded yet (or was not built): not "up to date".
+                Diag.Info($"Update check: {tag} has no {AssetName(tag, DetectTarget(), RuntimeArchitecture(), LinuxFlavor())} yet.");
+                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, $"Version {tag} is out, but there is no file for this platform yet.");
+            }
+
             if (info is null || !IsNewer(info.Version))
             {
-                return null;
+                return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, $"Hearthpulse {CurrentVersion} is up to date.");
             }
 
-            Diag.Info($"Update available: {info.Version} ({info.AssetName}).");
-            return info;
+            Diag.Info($"Update available: {info.Version} ({info.AssetName}){(info.Sha256 is null ? ", no SHA-256 published" : string.Empty)}.");
+            return new UpdateCheck(UpdateCheckOutcome.Available, info,
+                info.Sha256 is null ? UnverifiedMessage(info) : $"Version {info.Version} is available.");
         }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException or IOException or InvalidOperationException)
         {
             Diag.Info($"Update check skipped: {ex.Message}");
-            return null;
+            return new UpdateCheck(UpdateCheckOutcome.Failed, null, $"Update check failed: {ex.Message}");
         }
     }
+
+    /// <summary>Why a release without a published checksum is not installed, for the log and the settings page.</summary>
+    public static string UnverifiedMessage(UpdateInfo info) =>
+        $"Version {info.Version} is out, but GitHub lists no SHA-256 checksum for {info.AssetName}, so it is not installed automatically. Download it from the releases page.";
 
     /// <summary>Where a downloaded update waits until the app closes. Shared with the next run, so it is downloaded once.</summary>
     public static string StagedPath(UpdateInfo info) => Path.Combine(AppPaths.Root, "updates", info.AssetName);
@@ -198,6 +246,15 @@ public static class UpdateService
     /// <summary>Downloads the release file; returns the staged path, or null when it could not be fetched.</summary>
     public static async Task<string?> DownloadAsync(HttpClient http, UpdateInfo info, CancellationToken cancellationToken = default)
     {
+        // The setup runs silently, so a file that cannot be checked against the published one is never downloaded.
+        if (info.Sha256 is null)
+        {
+            Diag.Info(UnverifiedMessage(info));
+            // A copy an older build downloaded without a check would only take space (about 100 MB).
+            TryDelete(StagedPath(info));
+            return null;
+        }
+
         try
         {
             var staged = StagedPath(info);
@@ -249,12 +306,12 @@ public static class UpdateService
         }
     }
 
-    /// <summary>True when the file has the SHA-256 the release publishes (or the release publishes none).</summary>
+    /// <summary>True only when the file has the SHA-256 the release publishes; false when the release publishes none.</summary>
     private static async Task<bool> MatchesDigestAsync(string path, UpdateInfo info, CancellationToken cancellationToken)
     {
         if (info.Sha256 is null)
         {
-            return true;
+            return false;
         }
 
         await using var stream = File.OpenRead(path);
@@ -294,7 +351,7 @@ public static class UpdateService
         }
 
         var staged = StagedPath(info);
-        if (!File.Exists(staged))
+        if (!File.Exists(staged) || !StagedFileMatches(info))
         {
             return false;
         }
@@ -341,7 +398,7 @@ public static class UpdateService
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 WorkingDirectory = Path.GetTempPath(),
-            });
+            })?.Dispose();
             Diag.Info($"Update {info.Version} will install when Hearthpulse closes.");
             return true;
         }
@@ -411,19 +468,19 @@ public static class UpdateService
         {
             if (OperatingSystem.IsMacOS())
             {
-                Process.Start("open", path);
+                Process.Start("open", path)?.Dispose();
                 return true;
             }
 
             if (OperatingSystem.IsLinux())
             {
-                Process.Start("xdg-open", path);
+                Process.Start("xdg-open", path)?.Dispose();
                 return true;
             }
 
             if (OperatingSystem.IsWindows())
             {
-                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
                 return true;
             }
         }
@@ -491,6 +548,65 @@ public static class UpdateService
             {
                 return path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             }
+        }
+    }
+
+    /// <summary>
+    /// Checks the downloaded file again right before it is installed (hours can pass between download and close): a file
+    /// that no longer has the published SHA-256 is deleted and not run.
+    /// </summary>
+    public static bool StagedFileMatches(UpdateInfo info)
+    {
+        var staged = StagedPath(info);
+        try
+        {
+            if (info.Sha256 is not null && File.Exists(staged))
+            {
+                using var stream = File.OpenRead(staged);
+                if (Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(stream)) == info.Sha256)
+                {
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Update file could not be checked", ex);
+            return false;
+        }
+
+        Diag.Info($"Update {info.Version} no longer matches its checksum and was not installed.");
+        TryDelete(staged);
+        return false;
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error($"Could not delete {Path.GetFileName(path)}", ex);
+        }
+    }
+
+    /// <summary>The newest release's version from the reply, whatever files it has; null when there is none.</summary>
+    private static string? LatestTag(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            return root.ValueKind == JsonValueKind.Object && !GetBool(root, "draft") && !GetBool(root, "prerelease")
+                   && GetString(root, "tag_name").TrimStart('v', 'V') is { Length: > 0 } tag
+                ? tag
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 

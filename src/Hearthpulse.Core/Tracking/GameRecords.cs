@@ -27,7 +27,11 @@ public static class GameRecords
         string.Create(CultureInfo.InvariantCulture,
             $"{game.StartedAt:yyyyMMddHHmmss}|{game.LocalPlayer?.Name}|{game.GameType}");
 
-    /// <summary>Builds a history row for a finished game, or null if it is not worth keeping.</summary>
+    /// <summary>
+    /// Builds a history row for a finished game, or null if it is not worth keeping. With <paramref name="abandoned"/>,
+    /// a game the client left before a result (closed or crashed mid-game) is kept as <see cref="GameRecord.AbandonedResult"/>
+    /// with no placement; without it such a game gives null (backfill cannot tell a game still being played from a left one).
+    /// </summary>
     public static GameRecord? Build(
         GameState game,
         BattlegroundsTracker battlegrounds,
@@ -39,7 +43,8 @@ public static class GameRecords
         string? rank = null,
         string? races = null,
         GameFactsTracker? facts = null,
-        RankInfo? rankInfo = null)
+        RankInfo? rankInfo = null,
+        bool abandoned = false)
     {
         if (game.LocalPlayer is not { } local || game.GameType.Length == 0 || game.GameType == "GT_TUTORIAL")
         {
@@ -48,7 +53,8 @@ public static class GameRecords
 
         // Games the client left before a result (crash, closed mid-game) have no trustworthy outcome.
         var playState = game.LocalPlayerEntity?.GetString(GameTag.PlayState);
-        if (playState is not ("WON" or "LOST" or "TIED" or "CONCEDED"))
+        var left = playState is not ("WON" or "LOST" or "TIED" or "CONCEDED");
+        if (left && !abandoned)
         {
             return null;
         }
@@ -64,7 +70,8 @@ public static class GameRecords
                 return null;
             }
 
-            var placement = hero.GetInt(GameTag.PlayerLeaderboardPlace);
+            // Mid-game the leaderboard place is only the current standing, not a result.
+            var placement = left ? 0 : hero.GetInt(GameTag.PlayerLeaderboardPlace);
             var top = game.IsDuos ? 2 : 4;
             var board = battlegrounds.LastOwnBoard
                 .Select(m => new { id = m.CardId, atk = m.Attack, hp = m.Health, gold = m.Golden })
@@ -80,7 +87,7 @@ public static class GameRecords
                 PlayerName = local.Name,
                 HeroCardId = hero.CardId,
                 PlayerClass = "NEUTRAL",
-                Result = placement == 0 ? "Unknown" : placement <= top ? "Win" : "Loss",
+                Result = left ? GameRecord.AbandonedResult : placement == 0 ? "Unknown" : placement <= top ? "Win" : "Loss",
                 Placement = placement,
                 RatingBefore = ratingBefore,
                 RatingAfter = ratingAfter,
@@ -115,7 +122,7 @@ public static class GameRecords
             OpponentHeroCardId = opponentHero,
             PlayerClass = cards.Get(hero?.CardId)?.CardClass ?? string.Empty,
             OpponentClass = cards.Get(opponentHero)?.CardClass ?? string.Empty,
-            Result = playState switch
+            Result = left ? GameRecord.AbandonedResult : playState switch
             {
                 "WON" => "Win",
                 "LOST" or "CONCEDED" => "Loss",

@@ -56,7 +56,8 @@ internal sealed class X11OverlayPlatform : IOverlayPlatform
     public PixelRect? FindGameClientArea()
     {
         var now = DateTime.UtcNow;
-        if (_game == 0 || now >= _nextLookup)
+        // Every 1.5 s, also while no window is found (before, every overlay tick while Hearthstone was not running).
+        if (now >= _nextLookup)
         {
             _nextLookup = now.AddSeconds(1.5);
             _game = FindHearthstoneWindow();

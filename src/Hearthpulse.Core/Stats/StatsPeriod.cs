@@ -53,11 +53,11 @@ public static class StatsFilter
         _ => null,
     };
 
-    /// <summary>The games of the period, oldest first.</summary>
+    /// <summary>The games of the period, oldest first. Abandoned games (no known outcome) are left out.</summary>
     public static IReadOnlyList<GameRecord> Apply(IEnumerable<GameRecord> games, StatsPeriod period, DateTime now)
     {
         var start = Start(period, now);
-        return games.Where(g => start is null || g.StartedAt >= start).OrderBy(g => g.StartedAt).ToList();
+        return games.Where(g => !g.IsAbandoned && (start is null || g.StartedAt >= start)).OrderBy(g => g.StartedAt).ToList();
     }
 
     /// <summary>Ranked and Casual games of one format ("FT_STANDARD", "FT_WILD").</summary>

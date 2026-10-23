@@ -5,7 +5,9 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
+using Hearthpulse.Core.Updates;
 
 namespace Hearthpulse.UI.Main;
 
@@ -80,12 +82,12 @@ public sealed partial class MainViewModel : Observable
         SetBgMode = new RelayCommand(p =>
         {
             BgMode = p as string ?? "Battlegrounds";
-            _ = RefreshAsync();
+            RefreshAsync().Forget("History refresh");
         });
         SetHistoryFilter = new RelayCommand(p =>
         {
             HistoryFilter = p as string ?? "All";
-            _ = RefreshAsync();
+            RefreshAsync().Forget("History refresh");
         });
         SetCardTier = new RelayCommand(p =>
         {
@@ -125,7 +127,23 @@ public sealed partial class MainViewModel : Observable
     {
         UpdateText = $"Version {version} is downloaded — it installs when you close Hearthpulse.";
         UpdateReady = true;
+        UpdateStatus = UpdateText;
     }
+
+    private string _updateStatus = "Updates have not been checked yet.";
+
+    /// <summary>The last update check in a sentence for Settings → About (up to date, failed and why, unverified file).</summary>
+    public string UpdateStatus
+    {
+        get => _updateStatus;
+        private set => Set(ref _updateStatus, value);
+    }
+
+    /// <summary>Shows what the last update check found.</summary>
+    public void SetUpdateStatus(string status) => UpdateStatus = status;
+
+    /// <summary>The running version, for Settings → About.</summary>
+    public string VersionText => $"Hearthpulse {UpdateService.CurrentVersion}";
 
     /// <summary>"Good morning" / "Good afternoon" / "Good evening" for the page header.</summary>
     public string Greeting => DateTime.Now.Hour switch
@@ -177,6 +195,11 @@ public sealed partial class MainViewModel : Observable
     public int SessionDeltaValue { get => _sessionDeltaValue; private set => Set(ref _sessionDeltaValue, value); }
     public string SessionSummary { get => _sessionSummary; private set => Set(ref _sessionSummary, value); }
     public string SetupWarning { get => _setupWarning; private set => Set(ref _setupWarning, value); }
+
+    private string _parseErrorsText = string.Empty;
+
+    /// <summary>Settings → About: Power.log lines the parser skipped since start (empty when none).</summary>
+    public string ParseErrorsText { get => _parseErrorsText; private set => Set(ref _parseErrorsText, value); }
     public string Busy { get => _busy; set => Set(ref _busy, value); }
 
     // ---- history-derived ------------------------------------------------------------------
@@ -235,7 +258,7 @@ public sealed partial class MainViewModel : Observable
         {
             if (Set(ref _selectedDeck, value))
             {
-                _ = LoadMatchupsAsync(value?.DeckCode);
+                LoadMatchupsAsync(value?.DeckCode).Forget("Matchups load");
             }
         }
     }
@@ -243,7 +266,7 @@ public sealed partial class MainViewModel : Observable
     public void SetCards(CardDb cards)
     {
         _cards = cards;
-        _ = RefreshAsync();
+        RefreshAsync().Forget("History refresh");
         RebuildMeta();
     }
 
@@ -262,6 +285,9 @@ public sealed partial class MainViewModel : Observable
         InGame = s.InGame;
         SetupWarning = s.LogConfigMissing.Count > 0
             ? $"Hearthstone logging was just enabled ({string.Join(", ", s.LogConfigMissing)}). Restart Hearthstone once to start tracking."
+            : string.Empty;
+        ParseErrorsText = s.ParseErrors is { } errors
+            ? $"Log reading: {errors.Total:N0} Power.log line(s) could not be read ({errors.ByType}). The first of each kind is in hearthpulse.log."
             : string.Empty;
 
         if (s.Rating is { } r)
@@ -319,7 +345,7 @@ public sealed partial class MainViewModel : Observable
                 Session: bgGames);
         }).ConfigureAwait(true);
 
-        HistoryCount = data.Recent.Count;
+        HistoryCount = data.Recent.Count(g => !g.IsAbandoned);
         Recent = data.Recent.Take(8).Select(Row).ToList();
         HistoryRows = data.Filtered.Take(300).Select(Row).ToList();
         RatingPoints = data.Rating;
@@ -383,7 +409,7 @@ public sealed partial class MainViewModel : Observable
             SelectedDeck = Decks.FirstOrDefault();
         }
 
-        var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today).ToList();
+        var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();
         OverviewTiles =
         [
@@ -505,14 +531,15 @@ public sealed partial class MainViewModel : Observable
     {
         var bg = g.IsBattlegrounds;
         var top = g.Mode == "Duos" ? 2 : 4;
-        var resultKey = bg ? (g.Placement is > 0 && g.Placement <= top ? "Win" : "Loss") : g.Result;
+        // An abandoned game has no placement or result: it is shown as such, in the muted colour.
+        var resultKey = g.IsAbandoned ? g.Result : bg ? (g.Placement is > 0 && g.Placement <= top ? "Win" : "Loss") : g.Result;
         var detail = bg
             ? $"Tier {g.TavernTier} · {g.Turns} turns"
             : string.Join(" · ", new[]
             {
                 g.DeckName,
                 string.IsNullOrEmpty(g.OpponentClass) ? null : "vs " + OverlayViewModel.ClassName(g.OpponentClass),
-                g.Rank,
+                RankInfo.Localize(g.Rank),
                 $"{g.Turns} turns",
             }.Where(x => !string.IsNullOrEmpty(x)));
         return new GameRow(
@@ -520,7 +547,7 @@ public sealed partial class MainViewModel : Observable
             Mode(g.Mode),
             g.HeroCardId,
             _cards.NameOf(g.HeroCardId),
-            bg ? Ordinal(g.Placement) : g.Result,
+            bg && !g.IsAbandoned ? Ordinal(g.Placement) : g.Result,
             resultKey,
             detail,
             g.RatingDelta is { } d ? (d >= 0 ? $"+{d}" : $"−{-d}") : string.Empty,

@@ -43,7 +43,9 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
     public PixelRect? FindGameClientArea()
     {
         var now = DateTime.UtcNow;
-        if (now >= _nextLookup || !IsWindow(_game))
+        // A process snapshot costs about 10 ms: look again every 1.5 s, or at once when the window that was found closed
+        // (before, every overlay tick while Hearthstone was not running).
+        if (now >= _nextLookup || (_game != IntPtr.Zero && !IsWindow(_game)))
         {
             _nextLookup = now.AddSeconds(1.5);
             _game = FindHearthstoneWindow();
@@ -107,18 +109,31 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
 
     private static IntPtr FindHearthstoneWindow()
     {
-        foreach (var process in Process.GetProcessesByName("Hearthstone"))
+        Process[] processes;
+        try
         {
+            processes = Process.GetProcessesByName("Hearthstone");
+        }
+        catch (OutOfMemoryException)
+        {
+            // The process snapshot fails like this when the system is short of memory: try again on the next lookup.
+            return IntPtr.Zero;
+        }
+
+        var window = IntPtr.Zero;
+        foreach (var process in processes)
+        {
+            // Every Process holds a handle until disposed, also the ones after the window was found.
             using (process)
             {
-                if (process.MainWindowHandle != IntPtr.Zero)
+                if (window == IntPtr.Zero && process.MainWindowHandle != IntPtr.Zero)
                 {
-                    return process.MainWindowHandle;
+                    window = process.MainWindowHandle;
                 }
             }
         }
 
-        return IntPtr.Zero;
+        return window;
     }
 
     [StructLayout(LayoutKind.Sequential)]

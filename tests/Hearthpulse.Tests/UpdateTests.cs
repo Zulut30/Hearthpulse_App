@@ -6,9 +6,10 @@ using Xunit;
 namespace Hearthpulse.Tests;
 
 /// <summary>
-/// The update check must never bother the player with an error: GitHub answers with nulls, assets it cannot name,
-/// drafts and plain failures (no network, 403 without a user agent), and every one of those means "no update".
-/// The version compare and the install helper are pure, so they are checked here directly.
+/// The update check must never throw at the player: GitHub answers with nulls, assets it cannot name, drafts and plain
+/// failures (no network, 403 without a user agent). Failures are logged and reported as such, not as "no update", and a
+/// file without a published SHA-256 is never downloaded. The version compare and the install helper are pure, so they
+/// are checked here directly.
 /// </summary>
 public sealed class UpdateTests
 {
@@ -116,11 +117,120 @@ public sealed class UpdateTests
         Assert.Null(await UpdateService.CheckAsync(missing));
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound, "404 (no published release)")]
+    [InlineData(HttpStatusCode.Forbidden, "403 (forbidden)")]
+    [InlineData(HttpStatusCode.TooManyRequests, "429 (rate limited)")]
+    [InlineData(HttpStatusCode.InternalServerError, "500")]
+    public async Task A_failed_answer_is_logged_and_reported_not_taken_for_no_update(HttpStatusCode status, string expected)
+    {
+        using var http = new HttpClient(new Stub(status, string.Empty));
+        var check = await UpdateService.CheckForUpdateAsync(http);
+        Assert.Equal(UpdateCheckOutcome.Failed, check.Outcome);
+        Assert.Null(check.Update);
+        Assert.Contains(expected, check.Message);
+        Assert.Contains($"Update check: GitHub answered {expected}", TestDataFolder.ReadLog());
+    }
+
+    [Fact]
+    public async Task A_403_with_no_requests_left_is_the_rate_limit()
+    {
+        using var http = new HttpClient(new Stub(HttpStatusCode.Forbidden, string.Empty, ("X-RateLimit-Remaining", "0")));
+        Assert.Contains("403 (rate limited)", (await UpdateService.CheckForUpdateAsync(http)).Message);
+    }
+
+    [Fact]
+    public async Task A_newer_release_without_a_file_for_this_platform_is_not_called_up_to_date()
+    {
+        using var http = new HttpClient(new Stub(HttpStatusCode.OK, """{ "tag_name": "v99.0.0", "assets": [] }"""));
+        var check = await UpdateService.CheckForUpdateAsync(http);
+        Assert.Null(check.Update);
+        Assert.Equal("Version 99.0.0 is out, but there is no file for this platform yet.", check.Message);
+    }
+
+    [Fact]
+    public async Task A_file_changed_after_its_download_is_deleted_instead_of_installed()
+    {
+        var payload = System.Text.Encoding.UTF8.GetBytes("the published setup");
+        var sha = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(payload));
+        var info = new UpdateInfo("99.0.2", "hp-test-recheck.bin", "https://example.invalid/r.bin", "https://example.invalid/page", sha);
+        using (var http = new HttpClient(new Counting(payload)))
+        {
+            Assert.NotNull(await UpdateService.DownloadAsync(http, info));
+        }
+
+        Assert.True(UpdateService.StagedFileMatches(info));
+        File.WriteAllText(UpdateService.StagedPath(info), "changed on disk");
+        Assert.False(UpdateService.StagedFileMatches(info));
+        Assert.False(File.Exists(UpdateService.StagedPath(info)));
+    }
+
+    [Fact]
+    public async Task An_unverified_copy_left_by_an_older_build_is_removed()
+    {
+        var info = new UpdateInfo("99.0.3", "hp-test-unverified.bin", "https://example.invalid/u.bin", "https://example.invalid/page");
+        Directory.CreateDirectory(Path.GetDirectoryName(UpdateService.StagedPath(info))!);
+        File.WriteAllText(UpdateService.StagedPath(info), "downloaded without a check");
+        using var http = new HttpClient(new Counting([1]));
+        Assert.Null(await UpdateService.DownloadAsync(http, info));
+        Assert.False(File.Exists(UpdateService.StagedPath(info)));
+    }
+
+    [Fact]
+    public async Task The_newest_release_is_reported_up_to_date()
+    {
+        using var http = new HttpClient(new Stub(HttpStatusCode.OK, """{ "tag_name": "v0.0.1", "assets": [] }"""));
+        var check = await UpdateService.CheckForUpdateAsync(http);
+        Assert.Equal(UpdateCheckOutcome.UpToDate, check.Outcome);
+        Assert.Contains("up to date", check.Message);
+    }
+
+    [Fact]
+    public async Task A_release_without_a_checksum_is_offered_but_never_downloaded()
+    {
+        using var http = new HttpClient(new Stub(HttpStatusCode.OK, AllTargetsReply));
+        var check = await UpdateService.CheckForUpdateAsync(http);
+        Assert.Equal(UpdateCheckOutcome.Available, check.Outcome);
+        Assert.Null(check.Update!.Sha256);
+        Assert.Contains("no SHA-256 checksum", check.Message);
+
+        var download = new Counting(System.Text.Encoding.UTF8.GetBytes("setup"));
+        using var files = new HttpClient(download);
+        Assert.Null(await UpdateService.DownloadAsync(files, check.Update));
+        Assert.Equal(0, download.Requests);
+        Assert.False(File.Exists(UpdateService.StagedPath(check.Update)));
+    }
+
+    [Fact]
+    public async Task A_download_is_kept_only_when_it_matches_the_published_checksum()
+    {
+        var payload = System.Text.Encoding.UTF8.GetBytes("the published setup");
+        var sha = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(payload));
+        var good = new UpdateInfo("99.0.1", "hp-test-good.bin", "https://example.invalid/good.bin", "https://example.invalid/page", sha);
+        using (var http = new HttpClient(new Counting(payload)))
+        {
+            var staged = await UpdateService.DownloadAsync(http, good);
+            Assert.Equal(UpdateService.StagedPath(good), staged);
+            Assert.Equal(payload, File.ReadAllBytes(staged!));
+        }
+
+        var tampered = good with { AssetName = "hp-test-tampered.bin" };
+        using (var http = new HttpClient(new Counting(System.Text.Encoding.UTF8.GetBytes("something else"))))
+        {
+            Assert.Null(await UpdateService.DownloadAsync(http, tampered));
+            Assert.False(File.Exists(UpdateService.StagedPath(tampered)));
+            Assert.False(File.Exists(UpdateService.StagedPath(tampered) + ".part"));
+        }
+    }
+
     [Fact]
     public async Task No_network_is_not_an_error()
     {
         using var http = new HttpClient(new Offline());
         Assert.Null(await UpdateService.CheckAsync(http));
+        var check = await UpdateService.CheckForUpdateAsync(http);
+        Assert.Equal(UpdateCheckOutcome.Failed, check.Outcome);
+        Assert.Contains("The network is down.", check.Message);
     }
 
     [Fact]
@@ -163,13 +273,30 @@ public sealed class UpdateTests
         Assert.False(AppSettings.FromJson(off.ToJson()).AutoUpdate);
     }
 
-    private sealed class Stub(HttpStatusCode status, string body) : HttpMessageHandler
+    private sealed class Stub(HttpStatusCode status, string body, params (string Name, string Value)[] headers) : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(status)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var response = new HttpResponseMessage(status) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") };
+            foreach (var (name, value) in headers)
             {
-                Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
-            });
+                response.Headers.TryAddWithoutValidation(name, value);
+            }
+
+            return Task.FromResult(response);
+        }
+    }
+
+    /// <summary>Answers every request with the same file and counts the requests.</summary>
+    private sealed class Counting(byte[] body) : HttpMessageHandler
+    {
+        public int Requests { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(body) });
+        }
     }
 
     private sealed class Offline : HttpMessageHandler

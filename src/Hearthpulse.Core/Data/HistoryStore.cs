@@ -1,4 +1,5 @@
 using System.Globalization;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
 using Microsoft.Data.Sqlite;
 
@@ -32,7 +33,17 @@ public sealed record GameRecord
 
     public string OpponentClass { get; init; } = string.Empty;
 
+    /// <summary>
+    /// <c>Result</c> of a game the client left before it ended (closed or crashed mid-game): its outcome is not known, so
+    /// it is kept in History but left out of win rates, placements and the other stats.
+    /// </summary>
+    public const string AbandonedResult = "Abandoned";
+
+    /// <summary>Win / Loss / Tie / Unknown, or <see cref="AbandonedResult"/>.</summary>
     public string Result { get; init; } = "Unknown";
+
+    /// <summary>The client left the game before it ended (see <see cref="AbandonedResult"/>).</summary>
+    public bool IsAbandoned => Result == AbandonedResult;
 
     public int Placement { get; init; }
 
@@ -189,22 +200,50 @@ public sealed class HistoryStore
 
     public event Action? Changed;
 
-    /// <summary>Inserts a game unless one with the same key exists. Returns true when inserted.</summary>
+    /// <summary>
+    /// Inserts a game unless one with the same key exists. A saved <see cref="GameRecord.AbandonedResult"/> row is replaced
+    /// when the same game turns out to have ended after all (the client came back, a backfill found the end). Returns true
+    /// when inserted or replaced.
+    /// </summary>
     public bool Add(GameRecord game)
     {
         int inserted;
         lock (_gate)
         {
             using var connection = Open();
+            using var transaction = connection.BeginTransaction();
+            // A reconnect replays the game from a new CREATE_GAME: another start time, so another key. The part played
+            // before the client went away must not stay in History as a separate abandoned game.
+            if (game.IsAbandoned && CountSameGame(connection, game) > 0)
+            {
+                return false;
+            }
+
             using var command = connection.CreateCommand();
             command.CommandText = """
-                INSERT OR IGNORE INTO games (game_key, started_at, ended_at, mode, game_type, format, player_name, opponent_name,
+                INSERT INTO games (game_key, started_at, ended_at, mode, game_type, format, player_name, opponent_name,
                     hero, opponent_hero, player_class, opponent_class, result, placement, rating_before, rating_after, turns,
                     deck_name, deck_code, tavern_tier, final_board, races, rank, source,
                     combat_results, offered_heroes, anomaly, rank_star_level, rank_legend, went_first, deck_id)
                 VALUES ($key, $started, $ended, $mode, $type, $format, $player, $opponent, $hero, $ohero, $pclass, $oclass,
                     $result, $placement, $rb, $ra, $turns, $deck, $code, $tier, $board, $races, $rank, $source,
-                    $combats, $offered, $anomaly, $stars, $legend, $first, $deckid);
+                    $combats, $offered, $anomaly, $stars, $legend, $first, $deckid)
+                ON CONFLICT (game_key) DO UPDATE SET
+                    ended_at = excluded.ended_at, mode = excluded.mode, game_type = excluded.game_type, format = excluded.format,
+                    player_name = excluded.player_name, opponent_name = excluded.opponent_name, hero = excluded.hero,
+                    opponent_hero = excluded.opponent_hero, player_class = excluded.player_class,
+                    opponent_class = excluded.opponent_class, result = excluded.result, placement = excluded.placement,
+                    rating_before = COALESCE(games.rating_before, excluded.rating_before), rating_after = excluded.rating_after,
+                    turns = excluded.turns, deck_name = excluded.deck_name, deck_code = excluded.deck_code,
+                    tavern_tier = excluded.tavern_tier, final_board = excluded.final_board,
+                    races = COALESCE(excluded.races, games.races), rank = COALESCE(games.rank, excluded.rank),
+                    source = excluded.source, combat_results = excluded.combat_results,
+                    offered_heroes = COALESCE(excluded.offered_heroes, games.offered_heroes),
+                    anomaly = COALESCE(excluded.anomaly, games.anomaly),
+                    rank_star_level = COALESCE(games.rank_star_level, excluded.rank_star_level),
+                    rank_legend = COALESCE(games.rank_legend, excluded.rank_legend),
+                    went_first = COALESCE(excluded.went_first, games.went_first), deck_id = COALESCE(excluded.deck_id, games.deck_id)
+                WHERE games.result = 'Abandoned' AND excluded.result <> 'Abandoned';
                 """;
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
             command.Parameters.AddWithValue("$offered", (object?)game.OfferedHeroes ?? DBNull.Value);
@@ -238,6 +277,12 @@ public sealed class HistoryStore
             command.Parameters.AddWithValue("$rank", (object?)game.Rank ?? DBNull.Value);
             command.Parameters.AddWithValue("$source", game.Source);
             inserted = command.ExecuteNonQuery();
+            if (inserted > 0 && !game.IsAbandoned)
+            {
+                DeleteSameGame(connection, game);
+            }
+
+            transaction.Commit();
         }
 
         if (inserted > 0)
@@ -247,6 +292,60 @@ public sealed class HistoryStore
 
         return inserted > 0;
     }
+
+    /// <summary>The longest a game the client left can still be resumed by a reconnect.</summary>
+    private static readonly TimeSpan ReconnectWindow = TimeSpan.FromHours(1);
+
+    /// <summary>The longest game: an abandoned part started at most this long before the reconnected game.</summary>
+    private static readonly TimeSpan LongestGame = TimeSpan.FromHours(2);
+
+    /// <summary>
+    /// The same game seen twice: the part before the client went away (abandoned) and the reconnect that went on with it.
+    /// Matched on what both parts carry - player, game type, the player's and the opponent's hero, the opponent's name
+    /// when both know it - and on time: the reconnect starts after the abandoned part and within an hour of its end.
+    /// </summary>
+    private const string SameGame = """
+        player_name = $player AND game_type = $type AND hero = $hero AND opponent_hero = $ohero
+            AND (opponent_name = $opponent OR opponent_name = '' OR $opponent = '' OR opponent_name LIKE 'UNKNOWN%' OR $opponent LIKE 'UNKNOWN%')
+        """;
+
+    private static long CountSameGame(SqliteConnection connection, GameRecord abandoned)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = $"""
+            SELECT COUNT(*) FROM games WHERE result <> 'Abandoned' AND game_key <> $key AND {SameGame}
+                AND started_at >= $started AND started_at <= $latest;
+            """;
+        AddIdentity(command, abandoned);
+        command.Parameters.AddWithValue("$latest", Iso(abandoned.EndedAt + ReconnectWindow));
+        return (long)command.ExecuteScalar()!;
+    }
+
+    private static void DeleteSameGame(SqliteConnection connection, GameRecord finished)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = $"""
+            DELETE FROM games WHERE result = 'Abandoned' AND game_key <> $key AND {SameGame}
+                AND started_at <= $started AND started_at >= $earliest AND ended_at >= $endedAfter;
+            """;
+        AddIdentity(command, finished);
+        command.Parameters.AddWithValue("$earliest", Iso(finished.StartedAt - LongestGame));
+        command.Parameters.AddWithValue("$endedAfter", Iso(finished.StartedAt - ReconnectWindow));
+        command.ExecuteNonQuery();
+    }
+
+    private static void AddIdentity(SqliteCommand command, GameRecord game)
+    {
+        command.Parameters.AddWithValue("$key", game.Key);
+        command.Parameters.AddWithValue("$player", game.PlayerName);
+        command.Parameters.AddWithValue("$type", game.GameType);
+        command.Parameters.AddWithValue("$hero", game.HeroCardId);
+        command.Parameters.AddWithValue("$ohero", game.OpponentHeroCardId);
+        command.Parameters.AddWithValue("$opponent", game.OpponentName);
+        command.Parameters.AddWithValue("$started", Iso(game.StartedAt));
+    }
+
+    private static string Iso(DateTime at) => at.ToString("O", CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Fills the My Stats fields (<see cref="AddedColumns"/>) a saved game lacks from a re-read of the same game, e.g. a
@@ -346,14 +445,14 @@ public sealed class HistoryStore
         return changed;
     }
 
-    /// <summary>Total number of recorded games (the dashboard's ALL TIME tile counts the whole history).</summary>
+    /// <summary>Recorded games with an outcome (the dashboard's ALL TIME tile); abandoned games are not counted.</summary>
     public int GameCount()
     {
         lock (_gate)
         {
             using var connection = Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT COUNT(*) FROM games;";
+            command.CommandText = "SELECT COUNT(*) FROM games WHERE result <> 'Abandoned';";
             return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
         }
     }
@@ -399,7 +498,7 @@ public sealed class HistoryStore
     }
 
     public IReadOnlyList<ClassAggregate> ClassStats() =>
-        Query("SELECT * FROM games WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND player_class <> '';", null)
+        Query("SELECT * FROM games WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND player_class <> '' AND result <> 'Abandoned';", null)
             .GroupBy(g => (g.PlayerClass, g.Mode))
             .Select(g => new ClassAggregate(g.Key.PlayerClass, g.Key.Mode, g.Count(),
                 g.Count(x => x.Result == "Win"), g.Count(x => x.Result == "Loss")))
@@ -408,7 +507,7 @@ public sealed class HistoryStore
 
     /// <summary>Constructed results grouped per deck (deck code when known, otherwise name and class).</summary>
     public IReadOnlyList<DeckAggregate> DeckStats() =>
-        Query("SELECT * FROM games WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND deck_name IS NOT NULL;", null)
+        Query("SELECT * FROM games WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND deck_name IS NOT NULL AND result <> 'Abandoned';", null)
             .GroupBy(g => g.DeckCode ?? $"{g.DeckName}|{g.PlayerClass}")
             .Select(g =>
             {
@@ -421,7 +520,7 @@ public sealed class HistoryStore
 
     /// <summary>Win rate against each opponent class, optionally for one deck.</summary>
     public IReadOnlyList<MatchupAggregate> MatchupStats(string? deckCode = null) =>
-        Query("SELECT * FROM games WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND opponent_class <> ''"
+        Query("SELECT * FROM games WHERE mode NOT IN ('Battlegrounds','Duos','Mercenaries') AND opponent_class <> '' AND result <> 'Abandoned'"
               + (deckCode is null ? ";" : " AND deck_code = $code;"),
                 p =>
                 {
@@ -490,7 +589,7 @@ public sealed class HistoryStore
                     TavernTier = reader.GetInt32(reader.GetOrdinal("tavern_tier")),
                     FinalBoard = NullableString(reader, "final_board"),
                     Races = NullableString(reader, "races"),
-                    Rank = NullableString(reader, "rank"),
+                    Rank = RankInfo.Normalize(NullableString(reader, "rank")),
                     Source = reader.GetString(reader.GetOrdinal("source")),
                     CombatResults = NullableString(reader, "combat_results"),
                     OfferedHeroes = NullableString(reader, "offered_heroes"),

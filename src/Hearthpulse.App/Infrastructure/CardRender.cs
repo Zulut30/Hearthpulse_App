@@ -41,7 +41,10 @@ public static class CardRender
     /// <summary>Loads still running (the off-screen renderer waits for them).</summary>
     public static int InFlight => Pending.Count(p => !p.Value.IsCompleted);
 
-    private static async void Apply(DependencyObject target, string? cardId)
+    // Property callbacks cannot await; a failed load is logged instead of reaching the app's crash handler.
+    private static void Apply(DependencyObject target, string? cardId) => ApplyAsync(target, cardId).Forget("Card image");
+
+    private static async Task ApplyAsync(DependencyObject target, string? cardId)
     {
         if (target is not Image image)
         {

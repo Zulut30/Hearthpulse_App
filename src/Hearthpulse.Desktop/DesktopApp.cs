@@ -45,14 +45,36 @@ internal sealed class DesktopApp : HearthpulseApp
             return;
         }
 
+        // Every unexpected error is logged; the player sees a window (Open log / Continue) the first time a kind of error
+        // happens, instead of a silent stop or nothing at all.
         Dispatcher.UIThread.UnhandledException += (_, e) =>
         {
-            Diag.Error("UI error", e.Exception);
             e.Handled = true;
+            if (CrashLog.Record("UI error", e.Exception))
+            {
+                CrashWindow.ShowAsync(e.Exception, fatal: false).Forget("Error window");
+            }
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            var ex = e.ExceptionObject as Exception ?? new InvalidOperationException(e.ExceptionObject?.ToString());
+            CrashLog.Record(e.IsTerminating ? "Fatal error" : "Unhandled error", ex);
+            if (e.IsTerminating && !Dispatcher.UIThread.CheckAccess())
+            {
+                try
+                {
+                    // A background thread is dying and takes the process with it: say so before it goes.
+                    Dispatcher.UIThread.InvokeAsync(() => CrashWindow.ShowAsync(ex, fatal: true)).Wait(TimeSpan.FromSeconds(30));
+                }
+                catch (Exception dialogError)
+                {
+                    Diag.Error("Error window could not be shown", dialogError);
+                }
+            }
         };
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
-            Diag.Error("Background error", e.Exception);
+            CrashLog.Record("Background error", e.Exception);
             e.SetObserved();
         };
 
@@ -88,7 +110,7 @@ internal sealed class DesktopApp : HearthpulseApp
         SetupTray();
         ListenForActivation();
         desktop.Exit += (_, _) => Shutdown();
-        _ = _host.InitializeAsync();
+        _host.InitializeAsync().Forget("Start-up");
     }
 
     private void SetupTray()
@@ -182,7 +204,7 @@ internal sealed class DesktopApp : HearthpulseApp
     {
         _pipeCts = new CancellationTokenSource();
         var token = _pipeCts.Token;
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             while (!token.IsCancellationRequested)
             {
@@ -202,7 +224,7 @@ internal sealed class DesktopApp : HearthpulseApp
                     await Task.Delay(TimeSpan.FromSeconds(5), token).ConfigureAwait(false);
                 }
             }
-        }, token);
+        }, token).Forget("Activation pipe");
     }
 
     private static void AskRunningInstanceToShow()

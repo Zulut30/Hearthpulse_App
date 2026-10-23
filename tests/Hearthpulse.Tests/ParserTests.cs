@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
@@ -109,9 +110,43 @@ public sealed class ParserTests
     [InlineData(51, 1204, "Legend 1,204")]
     public void Rank_display(int starLevel, int legend, string expected)
     {
+        // The stored text is culture-independent; ru-RU used to save "Legend 1 204" with a no-break space.
         var rank = new RankInfo("Standard", 5, starLevel, legend, 140);
-        Assert.Equal(expected, rank.Display.Replace('.', ','));
+        Assert.Equal(expected, rank.Text);
     }
+
+    [Fact]
+    public void Rank_is_grouped_for_the_culture_only_when_shown()
+    {
+        var saved = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
+            var rank = new RankInfo("Standard", 5, 51, 1204, 140);
+            Assert.Equal("Legend 1,204", rank.Text);
+            var group = CultureInfo.CurrentCulture.NumberFormat.NumberGroupSeparator;
+            Assert.Equal($"Legend 1{group}204", rank.Display);
+            Assert.Equal($"Legend 1{group}204", RankInfo.Localize("Legend 1,204"));
+            Assert.Equal("Legend 1.204", RankInfo.Localize("Legend 1,204", new CultureInfo("de-DE")));
+            Assert.Equal("Gold 4", RankInfo.Localize("Gold 4"));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = saved;
+        }
+    }
+
+    [Theory]
+    [InlineData("Legend 1 204", "Legend 1,204")] // ru-RU, no-break space
+    [InlineData("Legend 1 204", "Legend 1,204")] // fr-FR, narrow no-break space
+    [InlineData("Legend 1.204", "Legend 1,204")] // de-DE
+    [InlineData("Legend 1,204", "Legend 1,204")]
+    [InlineData("Legend 87", "Legend 87")]
+    [InlineData("Legend", "Legend")]
+    [InlineData("Diamond 4", "Diamond 4")]
+    [InlineData(null, null)]
+    public void Saved_rank_text_is_normalized(string? saved, string? expected) =>
+        Assert.Equal(expected, RankInfo.Normalize(saved));
 
     private sealed class ZoneRecorder : IPowerListener
     {

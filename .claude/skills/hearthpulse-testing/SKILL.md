@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-testing
-description: Use when writing, fixing or running Hearthpulse tests (tests/Hearthpulse.Tests, xunit) - synthetic Power.log lines, JSON fixtures, fake HttpMessageHandler instead of the network, temp-folder data isolation, Linux CI (ubuntu-latest) with WindowsFact/UnixFact, the 2 known failures, and why a long --artifacts-path breaks SQLite. Use it before claiming "tests pass" and whenever a test fails only on one OS, culture or machine.
+description: Use when writing, fixing or running Hearthpulse tests (tests/Hearthpulse.Tests, xunit) - synthetic Power.log lines, JSON fixtures, fake HttpMessageHandler instead of the network, temp-folder data isolation, Linux CI (ubuntu-latest) with WindowsFact/UnixFact, the module initializer that isolates the data folder, and why a long --artifacts-path breaks SQLite. Use it before claiming "tests pass" and whenever a test fails only on one OS, culture or machine.
 ---
 
 # Hearthpulse tests
@@ -26,17 +26,14 @@ dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore --filt
 - The test output is localised on this machine (Russian `dotnet` messages): grep for `Не пройден` / `пройдено` as
   well as `Failed` / `Passed`.
 
-## Baseline and known failures (checked on `main` 2e8d9be, Oct 2026)
+## Baseline (checked on claude/quality-hardening-431c90 + main 433e8bf, Oct 2026)
 
-740 tests: 737 pass, 1 skipped (a `[UnixFact]` on Windows), **2 known failures**:
+780 tests: 779 pass, 1 skipped (a `[UnixFact]` on Windows), **no known failures** (Debug and Release). The two old
+ones are fixed: ranks are stored culture-independently (`RankInfo.Text`), and the Battlegrounds view test replays the
+fixture `Fixtures/BattlegroundsGame`; runs over `D:\Hearthstone\Logs` are `[RealLogsFact]` (skipped without the logs).
 
-| Test | Why | On CI |
-|---|---|---|
-| `ParserTests.Rank_display(51, 1204, "Legend 1,204")` | `N0` formatting under ru-RU uses a non-breaking space | passes (en-US runners) |
-| `RealLogTests.Battlegrounds_view_tracks_lobby_boards_and_combats` | replays real logs from `D:\Hearthstone\Logs`; result depends on what is kept there | no-op (no logs) |
-
-Anything else failing is yours. Report counts as "X passed, only the 2 known failures" and compare the total with
-the baseline - a smaller total after a merge means tests were lost.
+Anything failing is yours. Report counts as "X passed, none failed" and compare the total with the baseline - a
+smaller total after a merge means tests were lost.
 
 ## Style
 
@@ -92,7 +89,11 @@ delays are injected too (`AccountService.Delay`, a swappable clock) - never `Tas
 
 ### Data isolation
 
-- Tests run in parallel (no collections). Never touch `%APPDATA%\Hearthpulse` or set `HEARTHPULSE_DATA` in a test.
+- Tests run in parallel (no collections). `TestDataFolder` (a `[ModuleInitializer]`) points `HEARTHPULSE_DATA` at a temp
+  folder before anything reads `AppPaths` and deletes it at the end: never set it in a test. Read the shared log with
+  `TestDataFolder.ReadLog()` - a plain `File.ReadAllText` locks out `Diag` in a parallel test and that line is lost.
+- A `GameSession` in a test: set `Clock`, `IsHearthstoneRunning` and `ReadsMemory = false` (internal hooks), so time is
+  yours and a client running on the machine is not read.
 - Use a unique temp path and clean it in `Dispose`: `Path.Combine(Path.GetTempPath(), "hp-<area>-" + Guid.NewGuid().ToString("N"))`
   or `Directory.CreateTempSubdirectory("hl-platform-")`.
 - Pass paths into the class under test (`new TokenStore(path)`, `new HistoryStore(dbPath)`,
@@ -120,4 +121,4 @@ delays are injected too (`AccountService.Delay`, a swappable clock) - never `Tas
 3. Runs on Linux (no Windows APIs without `[WindowsFact]`), any culture, any time zone.
 4. Hard-coded counts updated where the suite pins them (e.g. the BG counter totals in
    `BattlegroundsCountersTests`, unique ids in `CountersTests.Counter_modes_default_to_auto`).
-5. Full run: total = baseline + your new tests, only the 2 known failures.
+5. Full run: total = baseline + your new tests, none failing.

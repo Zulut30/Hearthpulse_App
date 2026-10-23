@@ -70,7 +70,7 @@ How reviews fit into parallel work: [hearthpulse-parallel-work](../hearthpulse-p
 - New logic has tests in Core; rule behaviour has negative tests.
 - Will they pass on ubuntu-latest, under ru-RU, in another time zone, without `D:\Hearthstone\Logs`, without the
   network? Platform-only behaviour uses `[WindowsFact]` / `[UnixFact]`.
-- Totals: branch count = main count + new tests; only the 2 known failures.
+- Totals: branch count = main count + new tests; none failing.
 
 **8. Performance and threading**
 - Work per snapshot publish (up to 10/s) or per log line: rebuilding lists, scanning all entities, re-reading

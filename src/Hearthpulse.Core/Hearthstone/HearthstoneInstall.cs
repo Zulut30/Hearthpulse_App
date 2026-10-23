@@ -25,19 +25,30 @@ public static class HearthstoneInstall
         @"E:\Hearthstone",
     ];
 
+    private static volatile bool _lastRunning;
+
     public static bool IsRunning()
     {
-        foreach (var name in ProcessNames)
+        try
         {
-            var processes = Process.GetProcessesByName(name);
-            foreach (var p in processes) p.Dispose();
-            if (processes.Length > 0)
+            foreach (var name in ProcessNames)
             {
-                return true;
+                var processes = Process.GetProcessesByName(name);
+                foreach (var p in processes) p.Dispose();
+                if (processes.Length > 0)
+                {
+                    return _lastRunning = true;
+                }
             }
-        }
 
-        return false;
+            return _lastRunning = false;
+        }
+        catch (OutOfMemoryException)
+        {
+            // The process snapshot (NtQuerySystemInformation) fails like this when the system is short of memory; seen
+            // in a real log every few minutes. It says nothing about Hearthstone: keep the last answer.
+            return _lastRunning;
+        }
     }
 
     public static string? FindInstallDirectory(string? configured = null)

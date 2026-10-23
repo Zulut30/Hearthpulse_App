@@ -84,7 +84,10 @@ public static class CardArt
     /// <summary>Number of image loads still in flight (the off-screen renderer waits for them).</summary>
     public static int InFlight => Pending.Count(p => !p.Value.IsCompleted);
 
-    private static async void Apply(Control target, ArtKind kind, string? cardId)
+    // Property callbacks cannot await; a failed load is logged instead of reaching the app's crash handler.
+    private static void Apply(Control target, ArtKind kind, string? cardId) => ApplyAsync(target, kind, cardId).Forget("Card art");
+
+    private static async Task ApplyAsync(Control target, ArtKind kind, string? cardId)
     {
         if (string.IsNullOrEmpty(cardId))
         {

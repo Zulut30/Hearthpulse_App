@@ -1,7 +1,5 @@
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
-using Hearthpulse.Core.Power;
-using Hearthpulse.Core.Tracking;
 using Xunit.Abstractions;
 
 namespace Hearthpulse.Tests;
@@ -12,7 +10,7 @@ namespace Hearthpulse.Tests;
 /// </summary>
 public sealed class RealLogTests(ITestOutputHelper output)
 {
-    private static readonly string LogRoot = @"D:\Hearthstone\Logs";
+    internal const string LogRoot = @"D:\Hearthstone\Logs";
 
     private static CardDb Cards { get; } = LoadCards();
 
@@ -49,7 +47,7 @@ public sealed class RealLogTests(ITestOutputHelper output)
         }
     }
 
-    [Fact]
+    [RealLogsFact]
     public void Backfill_parses_every_kept_log_into_sane_records()
     {
         var total = 0;
@@ -75,61 +73,35 @@ public sealed class RealLogTests(ITestOutputHelper output)
         output.WriteLine($"{total} games");
     }
 
-    [Fact]
-    public void Battlegrounds_view_tracks_lobby_boards_and_combats()
+    [RealLogsFact]
+    public void Kept_battlegrounds_log_tracks_lobby_boards_and_combats()
     {
-        var log = PowerLogs().FirstOrDefault(l => File.ReadLines(l.Path).Take(20_000).Any(x => x.Contains("GameType=GT_BATTLEGROUNDS")));
+        // Machine-dependent smoke run over the newest kept Battlegrounds log; the deterministic check is
+        // BattlegroundsFixtureTests, which runs the same code on a fragment kept in the repository.
+        var log = PowerLogs().LastOrDefault(l => File.ReadLines(l.Path).Take(20_000).Any(x => x.Contains("GameType=GT_BATTLEGROUNDS")));
         if (log.Path is null)
         {
+            output.WriteLine("No Battlegrounds game in the kept logs.");
             return;
         }
 
-        var parser = new PowerParser(log.Date);
-        var tracker = new BattlegroundsTracker { Cards = Cards };
-        parser.AddListener(tracker);
-        BattlegroundsView? best = null;
-        BattlegroundsView? heroPick = null;
-        var lines = 0;
-        foreach (var line in File.ReadLines(log.Path))
+        var replay = BattlegroundsReplay.Run(File.ReadLines(log.Path), log.Date, Cards, every: 10);
+        Assert.NotNull(replay.HeroPick);
+        Assert.InRange(replay.HeroPick!.HeroOptions.Count, 2, 4);
+        Assert.NotNull(replay.Best);
+        replay.Print(output, Cards);
+        Assert.Equal(7, replay.Best!.Opponents.Count);
+    }
+}
+
+/// <summary>A fact that is skipped on machines without the Hearthstone client's kept logs.</summary>
+public sealed class RealLogsFactAttribute : FactAttribute
+{
+    public RealLogsFactAttribute()
+    {
+        if (!OperatingSystem.IsWindows() || !Directory.Exists(RealLogTests.LogRoot))
         {
-            parser.Feed(line);
-            if (++lines % 250 != 0 || parser.Game is not { IsBattlegrounds: true, LocalPlayerId: > 0 } game)
-            {
-                continue;
-            }
-
-            parser.Flush();
-            var view = tracker.BuildView(game);
-            if (view.IsHeroSelection && heroPick is null)
-            {
-                heroPick = view;
-            }
-
-            if (best is null || view.Opponents.Count(o => o.LastBoard.Count > 0) > best.Opponents.Count(o => o.LastBoard.Count > 0))
-            {
-                best = view;
-            }
+            Skip = $"No kept Hearthstone logs ({RealLogTests.LogRoot}) on this machine.";
         }
-
-        Assert.NotNull(heroPick);
-        output.WriteLine("Hero options: " + string.Join(", ", heroPick!.HeroOptions.Select(h => $"{h.Name} ({h.Armor} armor)")));
-        Assert.InRange(heroPick.HeroOptions.Count, 2, 4);
-
-        Assert.NotNull(best);
-        output.WriteLine($"Turn {best!.Turn} tier {best.TechLevel} hp {best.Health} place {best.Place} races [{string.Join(",", best.Races)}]");
-        foreach (var o in best.Opponents)
-        {
-            output.WriteLine($"  #{o.Place} {o.HeroName,-22} hp={o.Health} tier={o.TechLevel} next={o.IsNextOpponent} last={o.LastResult} board(T{o.LastBoardTurn})=[{string.Join(" | ", o.LastBoard.Select(m => $"{m.Name} {m.Attack}/{m.Health}{(m.Golden ? " G" : "")}"))}]");
-        }
-
-        foreach (var c in best.Combats.TakeLast(5))
-        {
-            output.WriteLine($"  combat T{c.Turn} vs {Cards.NameOf(c.OpponentHeroCardId)}: {c.Result} taken={c.DamageTaken} dealt={c.DamageDealt}");
-        }
-
-        Assert.Equal(7, best.Opponents.Count);
-        Assert.Contains(best.Opponents, o => o.LastBoard.Count > 0);
-        Assert.NotEmpty(best.Combats);
-        Assert.True(best.Races.Count >= 4, "tribes should be inferred from the shop");
     }
 }

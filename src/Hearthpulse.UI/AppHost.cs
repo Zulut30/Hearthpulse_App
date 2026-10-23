@@ -59,7 +59,7 @@ public sealed partial class AppHost : IDisposable
         Session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(Api)));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
-        _ = Account.RestoreAsync();
+        Account.RestoreAsync().Forget("Account restore");
         Overlay = new OverlayViewModel();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
@@ -73,10 +73,10 @@ public sealed partial class AppHost : IDisposable
         Main.CountersChanged += OnSettingsChanged;
         Main.UpdateRequested += OnInstallUpdateRequested;
 
-        _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _ = Main.RefreshAsync());
+        _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => Main.RefreshAsync().Forget("History refresh"));
         _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), Settings.Save);
         _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(3) };
-        _metaRefresh.Tick += (_, _) => _ = LoadMetaAsync();
+        _metaRefresh.Tick += (_, _) => LoadMetaAsync().Forget("Battlegrounds meta load");
 
         Session.SnapshotChanged += OnSnapshot;
         Session.GameFinished += outcome => Dispatcher.UIThread.Post(() => OnGameFinished(outcome));
@@ -169,7 +169,7 @@ public sealed partial class AppHost : IDisposable
 
             Session.Cards = Cards;
             Main.SetCards(Cards);
-            _ = LoadCardPoolAsync();
+            LoadCardPoolAsync().Forget("Card pool load");
 
             if (!Settings.HistoryImported || !Settings.HistoryStatsFilled)
             {
@@ -178,7 +178,7 @@ public sealed partial class AppHost : IDisposable
             else if (InstallDirectory is { } install)
             {
                 // Games saved before Decks.log was read correctly (and imported ones) have no deck yet.
-                _ = Task.Run(() => LogBackfill.FillDecks(install, History, Cards));
+                Task.Run(() => LogBackfill.FillDecks(install, History, Cards)).Forget("Deck backfill");
             }
 
             if (!watchLogs)
@@ -216,6 +216,7 @@ public sealed partial class AppHost : IDisposable
     {
         if (!Settings.AutoUpdate || OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
+            Main.SetUpdateStatus("Automatic updates are off.");
             return;
         }
 
@@ -226,14 +227,19 @@ public sealed partial class AppHost : IDisposable
             {
                 try
                 {
-                    var info = await UpdateService.CheckAsync(Http);
-                    if (info is not null && await UpdateService.DownloadAsync(Http, info) is not null)
+                    var check = await UpdateService.CheckForUpdateAsync(Http);
+                    var info = check.Update;
+                    if (info is { Sha256: not null } && await UpdateService.DownloadAsync(Http, info) is not null)
                     {
                         _stagedUpdate = info;
                         Dispatcher.UIThread.Post(() => Main.SetUpdateReady(info.Version));
                         Notification?.Invoke("Hearthpulse update ready", $"{info.Version} is downloaded — it installs when you close Hearthpulse.");
                         return;
                     }
+
+                    // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
+                    var status = info is { Sha256: not null } ? $"Version {info.Version} could not be downloaded; Hearthpulse tries again later." : check.Message;
+                    Dispatcher.UIThread.Post(() => Main.SetUpdateStatus(status));
                 }
                 catch (Exception ex)
                 {
@@ -256,7 +262,11 @@ public sealed partial class AppHost : IDisposable
 
         if (!OperatingSystem.IsWindows())
         {
-            UpdateService.OpenInstaller(UpdateService.StagedPath(_stagedUpdate));
+            if (UpdateService.StagedFileMatches(_stagedUpdate))
+            {
+                UpdateService.OpenInstaller(UpdateService.StagedPath(_stagedUpdate));
+            }
+
             return;
         }
 
@@ -327,7 +337,7 @@ public sealed partial class AppHost : IDisposable
         _settingsDebounce.Start();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
-        _ = LoadCardPoolAsync();
+        LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();
         ApplyAutostart?.Invoke(Settings.StartWithWindows);
     }
@@ -454,6 +464,11 @@ public sealed partial class AppHost : IDisposable
             return (deck, matchup);
         }).ContinueWith(t =>
         {
+            if (t.IsFaulted)
+            {
+                Diag.Error("Deck stats lookup failed", t.Exception);
+            }
+
             if (t.IsCompletedSuccessfully)
             {
                 Dispatcher.UIThread.Post(() =>

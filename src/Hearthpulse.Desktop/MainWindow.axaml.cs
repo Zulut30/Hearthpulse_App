@@ -1,3 +1,4 @@
+using Hearthpulse.Core;
 using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
 using Hearthpulse.UI;
@@ -19,7 +20,7 @@ public partial class MainWindow : Window
         _host = host;
         View.DataContext = host.Main;
         View.SettingsChanged += host.OnSettingsChanged;
-        View.ReimportRequested += () => _ = host.ImportLogsAsync(force: true);
+        View.ReimportRequested += () => host.ImportLogsAsync(force: true).Forget("Log import");
         View.ArrangeOverlayRequested += () => host.Overlay.LayoutEditing = !host.Overlay.LayoutEditing;
     }
 
