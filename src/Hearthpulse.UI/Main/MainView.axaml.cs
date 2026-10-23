@@ -8,6 +8,7 @@ using Avalonia.VisualTree;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Main;
@@ -32,8 +33,15 @@ public partial class MainView : UserControl
             tab.IsCheckedChanged += (_, _) => UpdateTabs();
         }
 
+        foreach (var tab in SettingsTabs)
+        {
+            tab.IsCheckedChanged += (_, _) => UpdateSettingsTab();
+        }
+
         SizeChanged += (_, e) => ApplyWidth(e.NewSize.Width);
     }
+
+    private RadioButton[] SettingsTabs => [SettingsTabGeneral, SettingsTabOverlay, SettingsTabTracker, SettingsTabAccount, SettingsTabData, SettingsTabAbout];
 
     /// <summary>Raised after any setting changes from the UI.</summary>
     public event Action? SettingsChanged;
@@ -93,6 +101,7 @@ public partial class MainView : UserControl
         _viewModel.PropertyChanged += OnViewModelChanged;
         _viewModel.HistoryRequested += ShowHistoryGame;
         SyncOverlaySwitch();
+        ShowSettingsTab(_viewModel.Settings.SettingsTab);
         foreach (var box in this.GetLogicalDescendantsOfType<CheckBox>())
         {
             box.IsCheckedChanged += (_, _) => OnSettingChanged(box);
@@ -130,8 +139,34 @@ public partial class MainView : UserControl
             case ["CompMode", var name] when Enum.TryParse<CompMode>(name, out var mode) && settings.CompMode != mode:
                 settings.CompMode = mode;
                 return true;
+            case ["Language", var language] when settings.Language != language:
+                settings.Language = language;
+                Loc.Instance.SetLanguage(language);
+                return true;
             default:
                 return false;
+        }
+    }
+
+    /// <summary>Shows a Settings tab by its tag ("General", "Overlay", "Tracker", "Account", "Data", "About"); unknown names show General.</summary>
+    public void ShowSettingsTab(string tab)
+    {
+        (SettingsTabs.FirstOrDefault(r => r.Tag as string == tab) ?? SettingsTabGeneral).IsChecked = true;
+        UpdateSettingsTab();
+    }
+
+    private void UpdateSettingsTab()
+    {
+        SettingsGeneral.IsVisible = SettingsTabGeneral.IsChecked == true;
+        SettingsOverlay.IsVisible = SettingsTabOverlay.IsChecked == true;
+        SettingsTracker.IsVisible = SettingsTabTracker.IsChecked == true;
+        SettingsAccount.IsVisible = SettingsTabAccount.IsChecked == true;
+        SettingsData.IsVisible = SettingsTabData.IsChecked == true;
+        SettingsAbout.IsVisible = SettingsTabAbout.IsChecked == true;
+        if (_viewModel is not null && SettingsTabs.FirstOrDefault(r => r.IsChecked == true)?.Tag is string tab && _viewModel.Settings.SettingsTab != tab)
+        {
+            _viewModel.Settings.SettingsTab = tab;
+            SettingsChanged?.Invoke();
         }
     }
 

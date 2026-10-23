@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Hearthpulse.App.Infrastructure;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.App.Main;
 
@@ -20,6 +21,7 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelChanged;
         viewModel.HistoryRequested += ShowHistoryGame;
+        ShowSettingsTab(viewModel.Settings.SettingsTab);
         SyncStatus();
         StateChanged += (_, _) =>
         {
@@ -55,6 +57,15 @@ public partial class MainWindow : Window
             _ => NavOverview,
         };
         nav.IsChecked = true;
+    }
+
+    /// <summary>Shows a Settings tab by its tag ("General", "Overlay", "Tracker", "Account", "Data", "About"); unknown names show General.</summary>
+    public void ShowSettingsTab(string tab)
+    {
+        var radio = new[] { SettingsTabOverlay, SettingsTabTracker, SettingsTabAccount, SettingsTabData, SettingsTabAbout }
+            .FirstOrDefault(r => (string)r.Tag == tab) ?? SettingsTabGeneral;
+        radio.IsChecked = true;
+        OnSettingsTab(radio, new RoutedEventArgs());
     }
 
     public void SyncOverlaySwitch() => OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
@@ -304,10 +315,28 @@ public partial class MainWindow : Window
         SettingsChanged?.Invoke();
     }
 
+    private void OnSettingsTab(object sender, RoutedEventArgs e)
+    {
+        // Checked fires while InitializeComponent is still building the page.
+        if (SettingsAbout is null || _viewModel is null || sender is not RadioButton { Tag: string tab })
+        {
+            return;
+        }
+
+        _viewModel.Settings.SettingsTab = tab;
+        SettingsGeneral.Visibility = SettingsTabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        SettingsOverlay.Visibility = SettingsTabOverlay.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        SettingsTracker.Visibility = SettingsTabTracker.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        SettingsAccount.Visibility = SettingsTabAccount.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        SettingsData.Visibility = SettingsTabData.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        SettingsAbout.Visibility = SettingsTabAbout.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void OnSettingChanged(object sender, RoutedEventArgs e)
     {
         if (IsLoaded)
         {
+            Loc.Instance.SetLanguage(_viewModel.Settings.Language);
             SyncOverlaySwitch();
             SettingsChanged?.Invoke();
         }

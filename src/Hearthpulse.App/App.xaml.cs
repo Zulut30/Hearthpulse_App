@@ -9,6 +9,7 @@ using Hearthpulse.App.Infrastructure;
 using Hearthpulse.App.Main;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
@@ -141,6 +142,7 @@ public partial class App : Application
         };
 
         _settings = AppSettings.Load();
+        Loc.Instance.SetLanguage(_settings.Language);
         ApplyTheme();
         Diag.Info($"Hearthpulse {UpdateService.CurrentVersion} (app {typeof(App).Assembly.GetName().Version?.ToString(3)}) starting on "
                   + $"{System.Runtime.InteropServices.RuntimeInformation.OSDescription}, {Environment.ProcessorCount} CPUs, "
@@ -294,7 +296,7 @@ public partial class App : Application
 
             _session.InstallDirectory = _installDir;
 
-            var locale = _settings.Locale == "auto" ? HearthstoneInstall.DetectLocale(_installDir) : _settings.Locale;
+            var locale = _settings.CardLocale();
             CardArt.Locale = locale;
 
             var logConfigChanged = await Task.Run(() =>

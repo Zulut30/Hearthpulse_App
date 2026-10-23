@@ -743,24 +743,259 @@
                     </Border>
                 </Grid>
 
-                <!-- ===== Settings ===== -->
+                <!-- ===== Settings: tabs General / Overlay / Tracker / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                 <ScrollViewer Name="PageSettings" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel MaxWidth="780" HorizontalAlignment="Left">
-                        <TextBlock Text="Settings" Classes="display" />
+                        <TextBlock Text="{i:Loc Settings.Title}" Classes="display" />
                         <StackPanel Classes="pageSubtitle">
                             <Panel Width="26" Height="26">
                                 <c:Scallop Fill="{StaticResource AccentContainer}" Lobes="9" Depth="0.12" />
                                 <TextBlock Text="&#xF08BB;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
                             </Panel>
-                            <TextBlock Text="Changes apply instantly." Classes="caption" FontSize="14" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{i:Loc Settings.Subtitle}" Classes="caption" FontSize="14" Margin="10,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
 
-                        <Border Classes="card" Margin="0,0,0,16">
+                        <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,20">
+                            <WrapPanel>
+                                <RadioButton Name="SettingsTabGeneral" Classes="segment" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" />
+                                <RadioButton Name="SettingsTabOverlay" Classes="segment" Content="{i:Loc Settings.Tab.Overlay}" GroupName="SettingsTab" Tag="Overlay" />
+                                <RadioButton Name="SettingsTabTracker" Classes="segment" Content="{i:Loc Settings.Tab.Tracker}" GroupName="SettingsTab" Tag="Tracker" />
+                                <RadioButton Name="SettingsTabAccount" Classes="segment" Content="{i:Loc Settings.Tab.Account}" GroupName="SettingsTab" Tag="Account" />
+                                <RadioButton Name="SettingsTabData" Classes="segment" Content="{i:Loc Settings.Tab.Data}" GroupName="SettingsTab" Tag="Data" />
+                                <RadioButton Name="SettingsTabAbout" Classes="segment" Content="{i:Loc Settings.Tab.About}" GroupName="SettingsTab" Tag="About" />
+                            </WrapPanel>
+                        </Border>
+
+                        <!-- ===== General: language, app ===== -->
+                        <StackPanel Name="SettingsGeneral">
+                            <Border Classes="card" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Settings.Language.Title}" Icon="&#xF05CA;" Size="13" Margin="0,0,0,14" />
+                                    <!-- Each radio's Tag is applied in MainView.axaml.cs (ApplyChoice) -->
+                                    <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" DataContext="{Binding Settings}" x:DataType="core:AppSettings">
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                            <TextBlock Text="{i:Loc Settings.Language.Label}" FontSize="13.5" />
+                                            <TextBlock Text="{i:Loc Settings.Language.Caption}" Classes="caption" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Border Classes="segmentBar choice">
+                                            <WrapPanel>
+                                                <RadioButton Classes="segment" Content="{i:Loc Settings.Language.System}" GroupName="Language"
+                                                             IsChecked="{Binding LanguageAuto, Mode=OneWay}" Tag="Language.auto" />
+                                                <RadioButton Classes="segment" Content="English" GroupName="Language"
+                                                             IsChecked="{Binding LanguageEnglish, Mode=OneWay}" Tag="Language.en" />
+                                                <RadioButton Classes="segment" Content="Русский" GroupName="Language"
+                                                             IsChecked="{Binding LanguageRussian, Mode=OneWay}" Tag="Language.ru" />
+                                            </WrapPanel>
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Text="{Binding LanguageRestartHint}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12,0,0"
+                                               IsVisible="{Binding LanguageRestartHint, Converter={StaticResource Truthy}}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="card">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Settings.App.Title}" Icon="&#xF0614;" Size="13" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.App.Tray}" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.App.AutoUpdate}" IsChecked="{Binding Settings.AutoUpdate}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Settings.App.AutoUpdateTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.App.StartWithSignIn}" IsChecked="{Binding Settings.StartWithWindows}" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.App.StartMinimized}" IsChecked="{Binding Settings.StartMinimized}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
+                        <StackPanel Name="SettingsOverlay" IsVisible="False">
+                            <Border Classes="card" Margin="0,0,0,16">
+                                <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
+                                    <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
+                                    <CheckBox Name="OverlaySetting" Classes="switch" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Settings.Overlay.EnabledTipWindows}" />
+                                    <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Classes="label" Margin="0,4,0,10" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.TopBar}" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Settings.Overlay.TopBarTip}" />
+                                    <!-- Pick suggestions: badges over heroes, trinkets, tavern minions and every Discover. The muted line explains the
+                                         selected option (same texts as the Windows app). Each radio's Tag is applied in MainView.axaml.cs. -->
+                                    <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14">
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                            <TextBlock Text="{i:Loc Settings.Overlay.PickHints}" FontSize="13.5" />
+                                            <Panel Margin="0,2,0,0">
+                                                <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="{i:Loc Settings.Overlay.PickHintsHighlightCaption}"
+                                                           IsVisible="{Binding #PickHintsHighlightOption.IsChecked}" />
+                                                <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="{i:Loc Settings.Overlay.PickHintsStatsOnlyCaption}"
+                                                           IsVisible="{Binding #PickHintsStatsOnlyOption.IsChecked}" />
+                                                <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="{i:Loc Settings.Overlay.PickHintsOffCaption}"
+                                                           IsVisible="{Binding #PickHintsOffOption.IsChecked}" />
+                                            </Panel>
+                                        </StackPanel>
+                                        <Border Classes="segmentBar choice">
+                                            <WrapPanel>
+                                                <RadioButton Name="PickHintsHighlightOption" Classes="segment" Content="{i:Loc Settings.Overlay.PickHintsHighlight}" GroupName="PickHints"
+                                                             IsChecked="{Binding PickHintsHighlight, Mode=OneWay}" Tag="PickHints.Highlight" />
+                                                <RadioButton Name="PickHintsStatsOnlyOption" Classes="segment" Content="{i:Loc Settings.Overlay.PickHintsStatsOnly}" GroupName="PickHints"
+                                                             IsChecked="{Binding PickHintsStatsOnly, Mode=OneWay}" Tag="PickHints.StatsOnly" />
+                                                <RadioButton Name="PickHintsOffOption" Classes="segment" Content="{i:Loc Settings.Overlay.PickHintsOff}" GroupName="PickHints"
+                                                             IsChecked="{Binding PickHintsOff, Mode=OneWay}" Tag="PickHints.Off" />
+                                            </WrapPanel>
+                                        </Border>
+                                    </Grid>
+                                    <!-- Game plan comp: who sets the comp the plan, tavern and Discover hints are built around. Pick suggestions Off
+                                         hides the game plan, so this choice has no effect then. -->
+                                    <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14"
+                                          IsEnabled="{Binding !#PickHintsOffOption.IsChecked}">
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                            <TextBlock Text="{i:Loc Settings.Overlay.CompMode}" FontSize="13.5" />
+                                            <Panel Margin="0,2,0,0">
+                                                <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="{i:Loc Settings.Overlay.CompModeManualCaption}"
+                                                           IsVisible="{Binding #CompModeManualOption.IsChecked}" />
+                                                <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="{i:Loc Settings.Overlay.CompModeAutoCaption}">
+                                                    <TextBlock.IsVisible>
+                                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                            <Binding Path="#CompModeAutoOption.IsChecked" />
+                                                            <Binding Path="!#PickHintsStatsOnlyOption.IsChecked" />
+                                                        </MultiBinding>
+                                                    </TextBlock.IsVisible>
+                                                </TextBlock>
+                                                <!-- Stats only never shows the comp Hearthpulse picks: only a lock puts one on screen -->
+                                                <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="{i:Loc Settings.Overlay.CompModeAutoHiddenCaption}">
+                                                    <TextBlock.IsVisible>
+                                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                            <Binding Path="#CompModeAutoOption.IsChecked" />
+                                                            <Binding Path="#PickHintsStatsOnlyOption.IsChecked" />
+                                                        </MultiBinding>
+                                                    </TextBlock.IsVisible>
+                                                </TextBlock>
+                                            </Panel>
+                                        </StackPanel>
+                                        <Border Classes="segmentBar choice">
+                                            <WrapPanel>
+                                                <RadioButton Name="CompModeManualOption" Classes="segment" Content="{i:Loc Settings.Overlay.CompModeManual}" GroupName="CompMode"
+                                                             IsChecked="{Binding CompModeManual, Mode=OneWay}" Tag="CompMode.Manual" />
+                                                <RadioButton Name="CompModeAutoOption" Classes="segment" Content="{i:Loc Settings.Overlay.CompModeAuto}" GroupName="CompMode"
+                                                             IsChecked="{Binding CompModeAuto, Mode=OneWay}" Tag="CompMode.Auto" />
+                                            </WrapPanel>
+                                        </Border>
+                                    </Grid>
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Boards}" IsChecked="{Binding ShowOpponentBoards}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Settings.Overlay.BoardsTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Lobby}" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Odds}" IsChecked="{Binding ShowCombatOdds}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Settings.Overlay.OddsTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,18" />
+
+                                    <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Size}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
+                                        <Slider Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" />
+                                        <TextBlock Grid.Column="2" Text="{Binding OverlayScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="160,*,56">
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Opacity}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
+                                        <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" />
+                                        <TextBlock Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="card">
+                                <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
+                                    <c:Ornament Text="{i:Loc Settings.Layout.Title}" Icon="&#xF01BE;" Size="13" Margin="0,0,0,8" />
+                                    <TextBlock Text="{i:Loc Settings.Layout.CaptionWindows}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,14" />
+                                    <Button Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24" />
+                                    <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,8" />
+                                    <TextBlock Text="{i:Loc Settings.Leaderboard.CaptionCrossPlatform}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Leaderboard.Guides}" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14" />
+                                    <Grid Margin="0,0,0,10" ColumnDefinitions="160,*">
+                                        <TextBlock Text="{i:Loc Settings.Leaderboard.Top}" VerticalAlignment="Center" />
+                                        <Slider Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,10" ColumnDefinitions="160,*">
+                                        <TextBlock Text="{i:Loc Settings.Leaderboard.SlotHeight}" VerticalAlignment="Center" />
+                                        <Slider Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="160,*">
+                                        <TextBlock Text="{i:Loc Settings.Leaderboard.Width}" VerticalAlignment="Center" />
+                                        <Slider Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- ===== Tracker: the Constructed deck tracker, counters and mulligan ===== -->
+                        <StackPanel Name="SettingsTracker" IsVisible="False">
+                            <Border Classes="card" Margin="0,0,0,16">
+                                <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
+                                    <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Deck}" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.CardPool}" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Summary}" IsChecked="{Binding ShowGameToasts}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="card">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Settings.Counters.Title}" Icon="&#xF012C;" Size="13" Margin="0,0,0,6" />
+                                    <TextBlock Text="{i:Loc Settings.Counters.Caption}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Show}" IsChecked="{Binding Settings.ShowCounters}" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Opponent}" IsChecked="{Binding Settings.ShowOpponentCounters}" Margin="0,0,0,14" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Mulligan}" IsChecked="{Binding Settings.ShowMulligan}" Margin="0,0,0,8"
+                                              ToolTip.Tip="{i:Loc Settings.Counters.MulliganTip}" />
+                                    <ItemsControl ItemsSource="{Binding CounterRows}" Margin="0,8,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="m:CounterSettingRow">
+                                                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" ToolTip.Tip="{Binding Description}">
+                                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    <Border Grid.Column="1" Classes="segmentBar">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Auto}" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
+                                                                         Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AutoKey}" />
+                                                            <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Always}" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
+                                                                         Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AlwaysKey}" />
+                                                            <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Off}" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
+                                                                         Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding OffKey}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Battlegrounds counters: same modes, ids start with "bg-" -->
+                                    <TextBlock x:Name="BgCountersHeading" Text="{i:Loc Settings.Counters.Battlegrounds}" Classes="h2" Margin="0,14,0,4" />
+                                    <TextBlock Text="{i:Loc Settings.Counters.BgCaption}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                    <ItemsControl ItemsSource="{Binding BgCounterRows}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="m:CounterSettingRow">
+                                                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" ToolTip.Tip="{Binding Description}">
+                                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    <Border Grid.Column="1" Classes="segmentBar">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Auto}" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
+                                                                         Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AutoKey}" />
+                                                            <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Always}" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
+                                                                         Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AlwaysKey}" />
+                                                            <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Off}" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
+                                                                         Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding OffKey}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- ===== Account: the hearthpulse.net sign-in ===== -->
+                        <Border Name="SettingsAccount" Classes="card" IsVisible="False">
                             <StackPanel>
-                                <c:Ornament Text="Hearthpulse account" Icon="&#xF0004;" Size="13" Margin="0,0,0,6" />
+                                <c:Ornament Text="{i:Loc Settings.Account.Title}" Icon="&#xF0004;" Size="13" Margin="0,0,0,6" />
                                 <!-- Signed in -->
                                 <StackPanel IsVisible="{Binding AccountShowProfile}">
-                                    <TextBlock Text="Signed in with HeartPulse as" Classes="caption" Margin="0,4,0,2" />
+                                    <TextBlock Text="{i:Loc Settings.Account.SignedInAs}" Classes="caption" Margin="0,4,0,2" />
                                     <TextBlock Text="{Binding AccountName}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
                                     <DockPanel Margin="0,6,0,0">
                                         <TextBlock DockPanel.Dock="Left" Text="&#xF01A5;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" VerticalAlignment="Top" Margin="0,1,6,0"
@@ -774,34 +1009,34 @@
                                                IsVisible="{Binding AccountSessionEndingSoon}" />
                                     <Button Classes="bare" Command="{Binding OpenAccountProfile}" HorizontalAlignment="Left" Margin="0,8,0,0">
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="Open profile on the site" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                                            <TextBlock Text="{i:Loc Settings.Account.OpenProfile}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
                                             <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </Button>
                                     <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                        <Button Classes="ghost primary" Content="Sign in again" Command="{Binding SignIn}" Margin="0,0,8,0" IsVisible="{Binding AccountSessionEndingSoon}" />
-                                        <Button Classes="ghost" Content="Sign out" Command="{Binding SignOut}" />
+                                        <Button Classes="ghost primary" Content="{i:Loc Settings.Account.SignInAgain}" Command="{Binding SignIn}" Margin="0,0,8,0" IsVisible="{Binding AccountSessionEndingSoon}" />
+                                        <Button Classes="ghost" Content="{i:Loc Settings.Account.SignOut}" Command="{Binding SignOut}" />
                                     </WrapPanel>
                                 </StackPanel>
                                 <!-- Signed out -->
                                 <StackPanel IsVisible="{Binding AccountSignedOut}">
-                                    <TextBlock Text="Use your hearthpulse.net account. The tracker works the same without one." Classes="caption"
+                                    <TextBlock Text="{i:Loc Settings.Account.SignedOutCaption}" Classes="caption"
                                                TextWrapping="Wrap" Margin="0,0,0,14" />
                                     <WrapPanel Orientation="Horizontal">
-                                        <Button Classes="ghost primary" Content="Sign in with HeartPulse" Command="{Binding SignIn}" Margin="0,0,12,0" />
-                                        <TextBlock Text="Opens your browser" Classes="caption" VerticalAlignment="Center" />
+                                        <Button Classes="ghost primary" Content="{i:Loc Settings.Account.SignIn}" Command="{Binding SignIn}" Margin="0,0,12,0" />
+                                        <TextBlock Text="{i:Loc Settings.Account.OpensBrowser}" Classes="caption" VerticalAlignment="Center" />
                                     </WrapPanel>
                                 </StackPanel>
                                 <!-- Signing in: getting a code, then waiting for the player to confirm it on the site -->
                                 <StackPanel IsVisible="{Binding AccountWaiting}">
-                                    <TextBlock Text="Getting a sign-in code&#x2026;" Classes="caption" Margin="0,4,0,14" IsVisible="{Binding !AccountHasCode}" />
+                                    <TextBlock Text="{i:Loc Settings.Account.GettingCode}" Classes="caption" Margin="0,4,0,14" IsVisible="{Binding !AccountHasCode}" />
                                     <StackPanel IsVisible="{Binding AccountHasCode}">
                                         <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                            <TextBlock Text="Open " />
+                                            <TextBlock Text="{i:Loc Settings.Account.Open}" Margin="0,0,4,0" />
                                             <Button Classes="bare" Command="{Binding OpenSignInPage}">
                                                 <TextBlock Text="{Binding AccountCodeUri}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
                                             </Button>
-                                            <TextBlock Text=" and enter the code" />
+                                            <TextBlock Text="{i:Loc Settings.Account.EnterCode}" Margin="4,0,0,0" />
                                         </WrapPanel>
                                         <WrapPanel Orientation="Horizontal" Margin="0,10,0,10">
                                             <Border Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="18,6">
@@ -811,222 +1046,48 @@
                                             <Button Classes="ghost" Click="OnCopyAccountCode" VerticalAlignment="Center" Margin="12,0,0,0">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="&#xF018F;" Classes="icon" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                                    <TextBlock Text="Copy" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{i:Loc Settings.Account.Copy}" VerticalAlignment="Center" />
                                                 </StackPanel>
                                             </Button>
                                         </WrapPanel>
                                         <TextBlock Text="{Binding AccountWaitingHint}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,14" />
                                     </StackPanel>
-                                    <Button Classes="ghost" Content="Cancel" Command="{Binding CancelSignIn}" HorizontalAlignment="Left" />
+                                    <Button Classes="ghost" Content="{i:Loc Settings.Account.Cancel}" Command="{Binding CancelSignIn}" HorizontalAlignment="Left" />
                                 </StackPanel>
                                 <TextBlock Text="{Binding AccountMessage}" Classes="caption" TextWrapping="Wrap" Margin="0,10,0,0"
                                            IsVisible="{Binding AccountMessage, Converter={StaticResource Truthy}}" />
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="card" Margin="0,0,0,16">
-                            <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
-                                <c:Ornament Text="In-game overlay" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
-                                <CheckBox Name="OverlaySetting" Classes="switch" Content="Show overlay in game" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
-                                          ToolTip.Tip="Master switch for everything drawn over Hearthstone. Shortcut on Windows: Ctrl+Shift+H." />
-                                <TextBlock Text="Battlegrounds" Classes="label" Margin="0,4,0,10" />
-                                <CheckBox Classes="switch" Content="Top bar: turn, tavern tiers, lobby tribes, rating" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
-                                          ToolTip.Tip="Click a tier number in game to see that tier's minions in your lobby." />
-                                <!-- Pick suggestions: badges over heroes, trinkets, tavern minions and every Discover. The muted line explains the
-                                     selected option (same texts as the Windows app). Each radio's Tag is applied in MainView.axaml.cs. -->
-                                <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14">
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Pick suggestions" FontSize="13.5" />
-                                        <Panel Margin="0,2,0,0">
-                                            <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="Badges mark the best hero, trinket, buy and Discover option."
-                                                       IsVisible="{Binding #PickHintsHighlightOption.IsChecked}" />
-                                            <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="The same stats on every option, with nothing marked as the best."
-                                                       IsVisible="{Binding #PickHintsStatsOnlyOption.IsChecked}" />
-                                            <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="No badges over the choices and no game plan panel."
-                                                       IsVisible="{Binding #PickHintsOffOption.IsChecked}" />
-                                        </Panel>
-                                    </StackPanel>
-                                    <Border Classes="segmentBar choice">
-                                        <WrapPanel>
-                                            <RadioButton Name="PickHintsHighlightOption" Classes="segment" Content="Mark the best" GroupName="PickHints"
-                                                         IsChecked="{Binding PickHintsHighlight, Mode=OneWay}" Tag="PickHints.Highlight" />
-                                            <RadioButton Name="PickHintsStatsOnlyOption" Classes="segment" Content="Stats only" GroupName="PickHints"
-                                                         IsChecked="{Binding PickHintsStatsOnly, Mode=OneWay}" Tag="PickHints.StatsOnly" />
-                                            <RadioButton Name="PickHintsOffOption" Classes="segment" Content="Off" GroupName="PickHints"
-                                                         IsChecked="{Binding PickHintsOff, Mode=OneWay}" Tag="PickHints.Off" />
-                                        </WrapPanel>
-                                    </Border>
-                                </Grid>
-                                <!-- Game plan comp: who sets the comp the plan, tavern and Discover hints are built around. Pick suggestions Off
-                                     hides the game plan, so this choice has no effect then. -->
-                                <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14"
-                                      IsEnabled="{Binding !#PickHintsOffOption.IsChecked}">
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Game plan comp" FontSize="13.5" />
-                                        <Panel Margin="0,2,0,0">
-                                            <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="You choose the comp in the game plan panel. It is kept for the next games."
-                                                       IsVisible="{Binding #CompModeManualOption.IsChecked}" />
-                                            <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="Hearthpulse picks a comp for each lobby. A lock overrides it for that game.">
-                                                <TextBlock.IsVisible>
-                                                    <MultiBinding Converter="{x:Static BoolConverters.And}">
-                                                        <Binding Path="#CompModeAutoOption.IsChecked" />
-                                                        <Binding Path="!#PickHintsStatsOnlyOption.IsChecked" />
-                                                    </MultiBinding>
-                                                </TextBlock.IsVisible>
-                                            </TextBlock>
-                                            <!-- Stats only never shows the comp Hearthpulse picks: only a lock puts one on screen -->
-                                            <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="Stats only keeps the automatic comp hidden. Lock one to plan around it.">
-                                                <TextBlock.IsVisible>
-                                                    <MultiBinding Converter="{x:Static BoolConverters.And}">
-                                                        <Binding Path="#CompModeAutoOption.IsChecked" />
-                                                        <Binding Path="#PickHintsStatsOnlyOption.IsChecked" />
-                                                    </MultiBinding>
-                                                </TextBlock.IsVisible>
-                                            </TextBlock>
-                                        </Panel>
-                                    </StackPanel>
-                                    <Border Classes="segmentBar choice">
-                                        <WrapPanel>
-                                            <RadioButton Name="CompModeManualOption" Classes="segment" Content="I choose" GroupName="CompMode"
-                                                         IsChecked="{Binding CompModeManual, Mode=OneWay}" Tag="CompMode.Manual" />
-                                            <RadioButton Name="CompModeAutoOption" Classes="segment" Content="Automatic" GroupName="CompMode"
-                                                         IsChecked="{Binding CompModeAuto, Mode=OneWay}" Tag="CompMode.Auto" />
-                                        </WrapPanel>
-                                    </Border>
-                                </Grid>
-                                <CheckBox Classes="switch" Content="Opponent boards when you hover the leaderboard" IsChecked="{Binding ShowOpponentBoards}" Margin="0,0,0,14"
-                                          ToolTip.Tip="The last board you saw for that player in combat." />
-                                <CheckBox Classes="switch" Content="Lobby list: health, tier and last fight" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Combat odds: simulated win, tie and loss" IsChecked="{Binding ShowCombatOdds}" Margin="0,0,0,14"
-                                          ToolTip.Tip="Thousands of simulated fights from both boards, shown while the fight plays." />
-                                <CheckBox Classes="switch" Content="Session tracker: rating and placements" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,14" />
-                                <TextBlock Text="Constructed" Classes="label" Margin="0,4,0,10" />
-                                <CheckBox Classes="switch" Content="Your deck" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Draw chance per card" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Opponent: played cards and how long cards stayed in hand" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Show card pool: what a Discover or random card can give" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
-                                          ToolTip.Tip="During a Discover, right after you play such a card, and while you hover it in hand. Right-click the panel for the full list." />
-                                <CheckBox Classes="switch" Content="End of game summary" IsChecked="{Binding ShowGameToasts}" Margin="0,0,0,18" />
+                        <!-- ===== Data: history, the data folder, where the numbers come from ===== -->
+                        <StackPanel Name="SettingsData" IsVisible="False">
+                            <Border Classes="card" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
+                                    <WrapPanel>
+                                        <Button Classes="ghost" Content="{i:Loc Settings.Data.Import}" Click="OnReimport" Margin="0,0,8,8"
+                                                ToolTip.Tip="{i:Loc Settings.Data.ImportTip}" />
+                                        <Button Classes="ghost" Content="{i:Loc Settings.Data.OpenFolder}" Click="OnOpenData" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Settings.Data.OpenFolderTip}" />
+                                    </WrapPanel>
+                                    <TextBlock Text="{Binding DataFolder}" Classes="caption" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
 
-                                <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
-                                    <TextBlock Text="Size" VerticalAlignment="Center" ToolTip.Tip="Scales every overlay panel" />
-                                    <Slider Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" />
-                                    <TextBlock Grid.Column="2" Text="{Binding OverlayScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
-                                </Grid>
-                                <Grid ColumnDefinitions="160,*,56">
-                                    <TextBlock Text="Opacity" VerticalAlignment="Center" ToolTip.Tip="How see-through the overlay panels are" />
-                                    <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" />
-                                    <TextBlock Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                            <Border Classes="card">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Settings.Sources.Title}" Icon="&#xF0128;" Size="13" Margin="0,0,0,10" />
+                                    <TextBlock Text="{Binding Attribution}" Classes="caption" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
 
-                        <Border Classes="card" Margin="0,0,0,16">
-                            <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
-                                <c:Ornament Text="Panel layout" Icon="&#xF01BE;" Size="13" Margin="0,0,0,8" />
-                                <TextBlock Text="Drag every overlay panel where you want it in game. Scroll over a panel to resize it, right-click to reset it. Shortcut on Windows: Ctrl+Shift+L."
-                                           Classes="caption" TextWrapping="Wrap" Margin="0,0,0,14" />
-                                <Button Classes="ghost primary" Content="Arrange overlay panels" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24" />
-                                <c:Ornament Text="Leaderboard hover" Icon="&#xF01A3;" Size="13" Margin="0,0,0,8" />
-                                <TextBlock Text="On Windows, hovered heroes are read from the game directly. These boxes are the fallback (and the only source on other systems): line them up with the leaderboard if a hover shows the wrong board."
-                                           Classes="caption" TextWrapping="Wrap" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Show calibration boxes in game" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14" />
-                                <Grid Margin="0,0,0,10" ColumnDefinitions="160,*">
-                                    <TextBlock Text="Top" VerticalAlignment="Center" />
-                                    <Slider Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" />
-                                </Grid>
-                                <Grid Margin="0,0,0,10" ColumnDefinitions="160,*">
-                                    <TextBlock Text="Slot height" VerticalAlignment="Center" />
-                                    <Slider Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" />
-                                </Grid>
-                                <Grid ColumnDefinitions="160,*">
-                                    <TextBlock Text="Width" VerticalAlignment="Center" />
-                                    <Slider Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <Border Classes="card" Margin="0,0,0,16">
+                        <!-- ===== About ===== -->
+                        <Border Name="SettingsAbout" Classes="card" IsVisible="False">
                             <StackPanel>
-                                <c:Ornament Text="Counters and mulligan" Icon="&#xF012C;" Size="13" Margin="0,0,0,6" />
-                                <TextBlock Text="Counters show numbers your cards care about (C'Thun abilities, Herald, Corpses, quests, spells cast...). Auto shows one when a card in your deck, or one your opponent revealed, cares about it. Click a counter in game to see what it counted; the cross hides it."
-                                           Classes="caption" TextWrapping="Wrap" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Show counters" IsChecked="{Binding Settings.ShowCounters}" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Include your opponent's counters" IsChecked="{Binding Settings.ShowOpponentCounters}" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Mulligan stats over your opening hand" IsChecked="{Binding Settings.ShowMulligan}" Margin="0,0,0,8"
-                                          ToolTip.Tip="Keep rate and win rate with the card in hand, for the archetype your deck matches" />
-                                <ItemsControl ItemsSource="{Binding CounterRows}" Margin="0,8,0,0">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="m:CounterSettingRow">
-                                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" ToolTip.Tip="{Binding Description}">
-                                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                <Border Grid.Column="1" Classes="segmentBar">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <RadioButton Classes="segment" Content="Auto" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
-                                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AutoKey}" />
-                                                        <RadioButton Classes="segment" Content="Always" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
-                                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AlwaysKey}" />
-                                                        <RadioButton Classes="segment" Content="Off" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
-                                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding OffKey}" />
-                                                    </StackPanel>
-                                                </Border>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-
-                                <!-- Battlegrounds counters: same modes, ids start with "bg-" -->
-                                <TextBlock x:Name="BgCountersHeading" Text="Battlegrounds" Classes="h2" Margin="0,14,0,4" />
-                                <TextBlock Text="Shown as a row of chips in Battlegrounds. Auto shows one when a card that cares about it is in the tavern, your hand, board, trinkets or hero power, or once the game reports its value. A counter the game has not reported yet shows a dash."
-                                           Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
-                                <ItemsControl ItemsSource="{Binding BgCounterRows}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="m:CounterSettingRow">
-                                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" ToolTip.Tip="{Binding Description}">
-                                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                <Border Grid.Column="1" Classes="segmentBar">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <RadioButton Classes="segment" Content="Auto" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
-                                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AutoKey}" />
-                                                        <RadioButton Classes="segment" Content="Always" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
-                                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AlwaysKey}" />
-                                                        <RadioButton Classes="segment" Content="Off" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
-                                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding OffKey}" />
-                                                    </StackPanel>
-                                                </Border>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </Border>
-
-                        <Border Classes="card" Margin="0,0,0,16">
-                            <StackPanel>
-                                <c:Ornament Text="App" Icon="&#xF0614;" Size="13" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Keep running in the tray when closed" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Install updates automatically" IsChecked="{Binding Settings.AutoUpdate}" Margin="0,0,0,14"
-                                      ToolTip.Tip="Hearthpulse checks GitHub for a newer version and installs it when you close the app" />
-                            <CheckBox Classes="switch" Content="Start when you sign in" IsChecked="{Binding Settings.StartWithWindows}" Margin="0,0,0,14" />
-                                <CheckBox Classes="switch" Content="Start minimized" IsChecked="{Binding Settings.StartMinimized}" Margin="0,0,0,18" />
-                                <WrapPanel>
-                                    <Button Classes="ghost" Content="Import past games from logs" Click="OnReimport" Margin="0,0,8,8"
-                                            ToolTip.Tip="Reads the Hearthstone logs still on disk and adds games that are missing from History" />
-                                    <Button Classes="ghost" Content="Open data folder" Click="OnOpenData" Margin="0,0,0,8" ToolTip.Tip="Settings, history database and logs" />
-                                </WrapPanel>
-                                <TextBlock Text="{Binding DataFolder}" Classes="caption" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
-
-                        <Border Classes="card">
-                            <StackPanel>
-                                <c:Ornament Text="About" Icon="&#xF02FD;" Size="13" Margin="0,0,0,10" />
-                                <TextBlock TextWrapping="Wrap" Classes="caption"
-                                           Text="Hearthpulse reads Hearthstone's own log files and, on Windows, a few read-only values from game memory (your rating, rank and the lobby's tribes). It never shows hidden information such as your opponent's hand or deck." />
-                                <TextBlock Text="{Binding Attribution}" Classes="caption" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
-                                <TextBlock Text="Fonts: Montserrat (SIL Open Font License) · Inter (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0)." Classes="caption"
-                                           FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
-                                <TextBlock Text="Not affiliated with Blizzard Entertainment." Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,4,0,0" />
+                                <c:Ornament Text="{i:Loc Settings.About.Title}" Icon="&#xF02FD;" Size="13" Margin="0,0,0,10" />
+                                <TextBlock TextWrapping="Wrap" Classes="caption" Text="{i:Loc Settings.About.TextCrossPlatform}" />
+                                <TextBlock Text="{i:Loc Settings.About.FontsCrossPlatform}" Classes="caption" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
+                                <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,4,0,0" />
                                 <TextBlock Text="{Binding VersionText}" Classes="caption" FontSize="11" Margin="0,10,0,0" />
                                 <TextBlock Text="{Binding UpdateStatus}" Classes="caption" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding ParseErrorsText}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{StaticResource Negative}"

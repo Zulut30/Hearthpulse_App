@@ -2,6 +2,7 @@ using System.Globalization;
 using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Overlay;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -79,6 +80,7 @@ public sealed partial class MainViewModel : Observable
     {
         _history = history;
         Settings = settings;
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
         SetBracket = new RelayCommand(p =>
         {
             Bracket = Convert.ToInt32(p, CultureInfo.InvariantCulture);
@@ -171,7 +173,7 @@ public sealed partial class MainViewModel : Observable
 
     public string DataFolder => AppPaths.Root;
 
-    public string Attribution => BattlegroundsMeta.Attribution + " (api.kolodahearthstone.com) · " + BattlegroundsMeta.PoolName + " when set up · Card data & art: HearthstoneJSON";
+    public string Attribution => Loc.T("Settings.Sources.Text");
 
     // ---- live status ----------------------------------------------------------------------
     private bool _hearthstoneRunning;
@@ -275,6 +277,7 @@ public sealed partial class MainViewModel : Observable
     public void SetCards(CardDb cards)
     {
         _cards = cards;
+        Raise(nameof(LanguageRestartHint));
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
     }

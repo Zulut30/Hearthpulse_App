@@ -1,6 +1,7 @@
 using System.Net;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
@@ -41,6 +42,7 @@ public sealed partial class AppHost : IDisposable
     public AppHost(AppSettings settings)
     {
         Settings = settings;
+        Loc.Instance.SetLanguage(settings.Language);
         Http = new HttpClient(new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
@@ -144,7 +146,7 @@ public sealed partial class AppHost : IDisposable
             }
 
             Session.InstallDirectory = InstallDirectory;
-            var locale = Settings.Locale == "auto" ? HearthstoneInstall.DetectLocale(InstallDirectory) : Settings.Locale;
+            var locale = Settings.CardLocale();
             CardArt.Locale = locale;
 
             var logConfigChanged = await Task.Run(() =>
