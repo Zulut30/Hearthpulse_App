@@ -21,7 +21,7 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
-        foreach (var nav in new[] { NavOverview, NavBattlegrounds, NavConstructed, NavHistory, NavSettings })
+        foreach (var nav in new[] { NavOverview, NavBattlegrounds, NavConstructed, NavArena, NavHistory, NavSettings })
         {
             nav.IsCheckedChanged += (_, _) => UpdatePages();
         }
@@ -109,12 +109,19 @@ public partial class MainView : UserControl
         {
             "Battlegrounds" => NavBattlegrounds,
             "Constructed" => NavConstructed,
+            "Arena" => NavArena,
             "History" => NavHistory,
             "Settings" => NavSettings,
             _ => NavOverview,
         };
         nav.IsChecked = true;
     }
+
+    /// <summary>Shows the hover card of one point of the Battlegrounds rating chart (-1 hides it), for the render check.</summary>
+    public void HoverBattlegroundsGame(int index) => BgStats.HoverGame(index);
+
+    /// <summary>Shows the hover card of one point of the rank chart (-1 hides it), for the render check.</summary>
+    public void HoverConstructedGame(int index) => CtStats.HoverGame(index);
 
     public void SyncOverlaySwitch()
     {
@@ -143,10 +150,10 @@ public partial class MainView : UserControl
         }
     }
 
-    /// <summary>Stat tiles sit in one row on wide screens and two columns on narrow ones.</summary>
+    /// <summary>Stat tiles sit in one row on wide screens and two columns on narrow ones (grids classed "fixed" keep theirs).</summary>
     private void UpdateTilePanels()
     {
-        foreach (var grid in this.GetVisualDescendants().OfType<UniformGrid>())
+        foreach (var grid in this.GetVisualDescendants().OfType<UniformGrid>().Where(g => !g.Classes.Contains("fixed")))
         {
             grid.Rows = Compact ? 0 : 1;
             grid.Columns = Compact ? 2 : 0;
@@ -179,6 +186,7 @@ public partial class MainView : UserControl
         PageOverview.IsVisible = NavOverview.IsChecked == true;
         PageBattlegrounds.IsVisible = NavBattlegrounds.IsChecked == true;
         PageConstructed.IsVisible = NavConstructed.IsChecked == true;
+        PageArena.IsVisible = NavArena.IsChecked == true;
         PageHistory.IsVisible = NavHistory.IsChecked == true;
         PageSettings.IsVisible = NavSettings.IsChecked == true;
         // Panels of a page that was hidden are created on its first layout.

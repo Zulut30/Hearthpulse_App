@@ -1,0 +1,165 @@
+<UserControl x:Class="Hearthpulse.UI.Main.Stats.BattlegroundsStatsView"
+             x:DataType="m:MainViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- Battlegrounds "My stats": header numbers, rating over time with a hover card, hero performance -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Grid Margin="0,0,0,14">
+            <c:Ornament Text="My stats" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <Border HorizontalAlignment="Right" Classes="segmentBar" ToolTip.Tip="Time frame">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Classes="segment" Content="All time" GroupName="BgPeriod" IsChecked="True" Command="{Binding SetBgPeriod}" CommandParameter="All" />
+                    <RadioButton Classes="segment" Content="7 days" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Week" />
+                    <RadioButton Classes="segment" Content="30 days" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Month" />
+                    <RadioButton Classes="segment" Content="This month" GroupName="BgPeriod" Command="{Binding SetBgPeriod}" CommandParameter="Season"
+                                 ToolTip.Tip="Since the 1st of this month (Battlegrounds season dates are not in the data)" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Highest MMR, average placement, games, time played, and where you finish -->
+        <Border Classes="card" Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ItemsControl ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel}" Margin="0,0,0,-14" />
+                <StackPanel Grid.Column="1" Margin="10,0,0,0" ToolTip.Tip="Share of your games per final place; the line is your average">
+                    <TextBlock Text="Placements" Classes="label" />
+                    <c:MiniBars Width="190" Height="62" Margin="0,10,0,0" Values="{Binding BgPlaceShares}" Marker="{Binding BgAveragePlace}" ShowLabels="True" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Classes="card" Margin="0,0,0,16">
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <c:Ornament Text="MMR over time" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
+                    <TextBlock Text="Hover a game to see it" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+                <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}"
+                                  EmptyText="Play a few rated Battlegrounds games to see your rating curve." />
+            </DockPanel>
+        </Border>
+
+        <Border Classes="card" Margin="0,0,0,24">
+            <StackPanel>
+                <c:Ornament Text="Hero performance" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" />
+                <Grid Margin="0,10,0,14">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                        <TextBlock Text="Min. games" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <Border Classes="segmentBar" Margin="0,0,16,0">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Classes="segment" Content="1" GroupName="BgMin" IsChecked="True" Command="{Binding SetBgMinGames}" CommandParameter="1" />
+                                <RadioButton Classes="segment" Content="3" GroupName="BgMin" Command="{Binding SetBgMinGames}" CommandParameter="3" />
+                                <RadioButton Classes="segment" Content="5" GroupName="BgMin" Command="{Binding SetBgMinGames}" CommandParameter="5" />
+                                <RadioButton Classes="segment" Content="10" GroupName="BgMin" Command="{Binding SetBgMinGames}" CommandParameter="10" />
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="Sort by" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <Border Classes="segmentBar">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Classes="segment" Content="Games" GroupName="BgSort" IsChecked="True" Command="{Binding SetBgSort}" CommandParameter="Games" />
+                                <RadioButton Classes="segment" Content="Avg. place" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="AveragePlacement" />
+                                <RadioButton Classes="segment" Content="Net MMR" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="NetRating" />
+                                <RadioButton Classes="segment" Content="Pick rate" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="PickRate" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="54" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="76" />
+                        <ColumnDefinition Width="146" />
+                        <ColumnDefinition Width="146" />
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="140" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="1" Text="Hero" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="Net MMR" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" ToolTip.Tip="Rating won or lost with this hero" />
+                    <StackPanel Grid.Column="3" Margin="16,0,0,0" ToolTip.Tip="Share of combats won on each turn: gold is you, the dashed line the community">
+                        <TextBlock Text="Combat winrate" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
+                        <TextBlock Classes="caption" FontSize="11">
+                            <Run Text="You" Foreground="{StaticResource Accent}" /><Run Text=" vs " /><Run Text="Global" />
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" Margin="16,0,0,0" ToolTip.Tip="Your final places 1 to 8 (bars) and the community's (ticks)">
+                        <TextBlock Text="Placement distribution" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
+                        <TextBlock Classes="caption" FontSize="11">
+                            <Run Text="You" Foreground="{StaticResource Accent}" /><Run Text=" vs " /><Run Text="Global" />
+                        </TextBlock>
+                    </StackPanel>
+                    <TextBlock Grid.Column="5" Text="Avg. placement" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="6" Text="Pick rate" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right"
+                               ToolTip.Tip="How often you picked the hero when it was offered" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding BgHeroPerf}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:BgHeroPerfRow">
+                            <Border Classes="row" Padding="10,7" Margin="-10,0,-10,2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="54" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="76" />
+                                        <ColumnDefinition Width="146" />
+                                        <ColumnDefinition Width="146" />
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="140" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource Surface4}" ClipToBounds="True" VerticalAlignment="Center" HorizontalAlignment="Left" i:CardArt.Portrait="{Binding CardId}" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Games}" Classes="caption" FontSize="11.5" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{Binding Net}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"
+                                               Foreground="{Binding NetValue, Converter={StaticResource SignBrush}}" />
+                                    <c:Sparkline Grid.Column="3" Height="32" Margin="16,0,0,0" Values="{Binding CombatYou}" Compare="{Binding CombatGlobal}" />
+                                    <c:MiniBars Grid.Column="4" Height="32" Margin="16,0,0,0" Values="{Binding PlacesYou}" Compare="{Binding PlacesGlobal}" />
+                                    <StackPanel Grid.Column="5" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Border Width="56" Height="6" CornerRadius="3" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
+                                                        Width="{Binding AverageFraction, Converter={StaticResource Fraction}, ConverterParameter=56}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding AveragePlace}" FontWeight="Bold" FontSize="14" />
+                                        </StackPanel>
+                                        <ContentControl Content="{Binding AverageVs}" ContentTemplate="{StaticResource VsGlobalTemplate}" HorizontalAlignment="Right" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Border Width="48" Height="6" CornerRadius="3" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
+                                                        Width="{Binding PickFraction, Converter={StaticResource Fraction}, ConverterParameter=48}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding PickRate}" FontWeight="Bold" FontSize="14" />
+                                        </StackPanel>
+                                        <ContentControl Content="{Binding PickVs}" ContentTemplate="{StaticResource VsGlobalTemplate}" HorizontalAlignment="Right" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="No hero has this many games in the time frame yet." Classes="caption" Margin="0,8"
+                           IsVisible="{Binding BgHeroPerf, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                <TextBlock Text="{Binding BgStatsNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="0,10,0,0"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

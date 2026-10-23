@@ -41,7 +41,13 @@ Core folders:
   `BattlegroundsAdvisor` (hero/trinket/shop/Discover/comp advice), `CombatSimulator` + `Simulation/`
   (`Fight`, `Side`, `Unit`, `Traits`) + `Effects/` (per-card combat effects).
 - `Constructed/ConstructedMeta.cs` - Firestone ranked Constructed stats (archetypes, decks, mulligan).
-- `Data/HistoryStore.cs` (SQLite `history.db`), `Data/LogBackfill.cs` (imports games from kept Power logs).
+- `Data/HistoryStore.cs` (SQLite `history.db`), `Data/LogBackfill.cs` (imports games from kept Power logs). Columns added
+  after the first schema go in `HistoryStore.AddedColumns` (ALTER TABLE on open, NULL in old rows): `combat_results`
+  (BG combats JSON), `offered_heroes`, `anomaly`, `rank_star_level`, `rank_legend`, `went_first`, `deck_id`.
+  `Tracking/GameFactsTracker.cs` keeps the BG hero offer for the row.
+- `Stats/` - My Stats aggregates, pure functions over `GameRecord`s: `StatsFilter` (period, format), `BattlegroundsStats`
+  (summary, rating timeline, per-hero stats vs `MetaHero` placement shares / combat win rate), `ConstructedStats`
+  (rank timeline, classes, matchups, length, archetypes), `ArenaStats` (runs by deck id, else class + loss limit).
 - `Updates/UpdateService.cs` - GitHub releases of `Zulut30/IceCrowV2` (`RepoOwner`/`RepoName` constants),
   download + staged install.
 - `AppSettings.cs` (settings.json), `AppPaths.cs` (+ `Diag` log), `ThemePalette.cs`.

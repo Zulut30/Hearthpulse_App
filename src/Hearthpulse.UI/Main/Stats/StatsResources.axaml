@@ -1,0 +1,137 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:m="using:Hearthpulse.UI.Main"
+                    xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- Shared by the My Stats views (Battlegrounds, Constructed, Arena). Colours are theme tokens only. -->
+    <i:Truthy x:Key="Truthy" />
+    <i:KeyBrush x:Key="KeyBrush" />
+    <i:SignBrush x:Key="SignBrush" />
+    <i:FractionWidth x:Key="Fraction" />
+
+    <ItemsPanelTemplate x:Key="StatsTilesPanel">
+        <UniformGrid Rows="1" />
+    </ItemsPanelTemplate>
+    <ItemsPanelTemplate x:Key="StatsTilesPanel3">
+        <UniformGrid Classes="fixed" Columns="3" />
+    </ItemsPanelTemplate>
+
+    <!-- A header number: label, big value, caption -->
+    <DataTemplate x:Key="StatsTile" x:DataType="m:StatTile">
+        <StackPanel Margin="0,0,18,14" ToolTip.Tip="{Binding Detail}">
+            <TextBlock Text="{Binding Label}" Classes="label" />
+            <TextBlock Text="{Binding Value}" Classes="stat" FontSize="25" Margin="0,6,0,2" TextTrimming="CharacterEllipsis"
+                       Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
+            <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- "vs Global": arrow and difference, green when it favours you -->
+    <DataTemplate x:Key="VsGlobalTemplate" x:DataType="m:VsGlobal">
+        <StackPanel Orientation="Horizontal" IsVisible="{Binding Shown}" ToolTip.Tip="Your number compared with the community's">
+            <TextBlock Text="{Binding Glyph}" Classes="icon" FontSize="15" Margin="0,0,1,0"
+                       Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
+            <TextBlock Text="{Binding Text}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                       Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
+            <TextBlock Text=" vs Global" FontSize="11.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- A group row: class / opponent / archetype / game length -->
+    <DataTemplate x:Key="StatGroupRowTemplate" x:DataType="m:StatGroupRow">
+        <Border Classes="row" Padding="10,7" Margin="-10,0,-10,2">
+            <Grid ColumnDefinitions="Auto,*,64,132">
+                <Border Width="30" Height="30" CornerRadius="15" Margin="0,0,10,0" Background="{StaticResource Surface4}" ClipToBounds="True"
+                        VerticalAlignment="Center" i:CardArt.Portrait="{Binding CardId}"
+                        IsVisible="{Binding CardId, Converter={StaticResource Truthy}}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Games}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding Record}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center"
+                           ToolTip.Tip="Wins – losses" />
+                <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Border Width="64" Height="7" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
+                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
+                                    Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />
+                        </Border>
+                        <TextBlock Text="{Binding WinRate}" Width="46" TextAlignment="Right" FontWeight="Bold" />
+                    </StackPanel>
+                    <ContentControl Content="{Binding Vs}" ContentTemplate="{StaticResource VsGlobalTemplate}" HorizontalAlignment="Right" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <!-- Hover card of the Battlegrounds rating chart -->
+    <DataTemplate x:Key="BgHoverCard" x:DataType="m:BgGamePoint">
+        <Border Width="316" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="10" Padding="14,12">
+            <StackPanel>
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Border Width="50" Height="50" CornerRadius="25" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1"
+                            ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
+                    <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                        <TextBlock Text="Played as" Classes="label" FontSize="11" />
+                        <TextBlock Text="{Binding HeroName}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding When}" Classes="caption" FontSize="11.5" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <TextBlock Text="Place" Classes="label" FontSize="11" HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding Place}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="22" HorizontalAlignment="Right"
+                                   Foreground="{Binding PlaceKey, Converter={StaticResource KeyBrush}}" />
+                    </StackPanel>
+                </Grid>
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <TextBlock Text="MMR" Classes="label" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding ChartLabel}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="17" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Delta}" FontWeight="Bold" FontSize="13" Margin="8,0,0,0" VerticalAlignment="Center"
+                               Foreground="{Binding DeltaValue, Converter={StaticResource SignBrush}}" />
+                </StackPanel>
+                <TextBlock Text="Final board" Classes="label" Margin="0,12,0,6" />
+                <ItemsControl ItemsSource="{Binding Board}" IsVisible="{Binding Board, Converter={StaticResource Truthy}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Classes="fixed" Columns="7" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:BoardMinionRow">
+                            <StackPanel Margin="1,0" ToolTip.Tip="{Binding Name}">
+                                <Panel Width="36" Height="36" HorizontalAlignment="Center">
+                                    <Border CornerRadius="18" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}" BorderThickness="1.5" />
+                                    <Border Margin="1.5" CornerRadius="17" ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
+                                    <Border CornerRadius="18" BorderBrush="{StaticResource Accent}" BorderThickness="2.5" IsVisible="{Binding Golden}" />
+                                </Panel>
+                                <TextBlock HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold" Margin="0,3,0,0">
+                                    <Run Text="{Binding Attack, Mode=OneWay}" /><Run Text="/" Foreground="{StaticResource Faint}" /><Run Text="{Binding Health, Mode=OneWay}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="No board was saved for this game." Classes="caption" FontSize="11.5"
+                           IsVisible="{Binding Board, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <!-- Hover card of the rank chart -->
+    <DataTemplate x:Key="CtHoverCard" x:DataType="m:CtGamePoint">
+        <Border Width="270" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="10" Padding="14,12">
+            <Grid ColumnDefinitions="Auto,*">
+                <Border Width="46" Height="46" CornerRadius="23" Background="{StaticResource Surface4}" VerticalAlignment="Top" BorderBrush="{StaticResource GoldTrim}"
+                        BorderThickness="1" ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
+                <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <TextBlock Text="{Binding Result}" FontWeight="Bold" Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
+                        <TextBlock Text=" · " Foreground="{StaticResource Faint}" />
+                        <TextBlock Text="{Binding ChartLabel}" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="11.5" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding When}" Classes="caption" FontSize="11.5" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </DataTemplate>
+</ResourceDictionary>

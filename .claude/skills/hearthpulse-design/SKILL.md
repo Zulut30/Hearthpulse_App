@@ -90,6 +90,9 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
 - `Wave` - gold rule: diamond + fading hairline (`Stroke` defaults to `GoldTrim`; Amplitude/Wavelength/Thickness are
   kept only for compatibility).
 - `RatingChart` - rating curve (`Points`), min/max guides, latest value tag.
+- `StatsLineChart` - line of `IChartValue` points with a hover card (`HoverTemplate`, `HoverIndex`); `Sparkline` (You vs
+  a dashed comparison), `MiniBars` (shares with comparison ticks, marker, 1..N labels). Used by the My Stats views in
+  `Main/Stats/` (`BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView` + `StatsResources`) of both UIs.
 - `RoundClip` (WPF only, attached `RoundClip.Radius`) - clips art to rounded corners; WPF `ClipToBounds` ignores
   CornerRadius.
 
