@@ -17,7 +17,51 @@ public sealed partial class HistoryStore
 
     // Tables of their own, created on open like the games table, so an older history file gets them unchanged otherwise.
     // A deck version belongs to at most one family; a version in no family is a deck of its own.
-    private static void CreateFamilyTables(SqliteConnection connection) => Execute(connection, """
+    private static void CreateFamilyTables(SqliteConnection connection)
+    {
+        CreateFamilyTablesSql(connection);
+        NormalizeFamilyKeys(connection);
+    }
+
+    /// <summary>
+    /// Early builds keyed versions by the raw deck code; keys are card lists now (<see cref="DeckRecords.DeckKey"/>).
+    /// A stored key that still decodes as a code is rewritten, so its family and dismissed pairs keep matching.
+    /// </summary>
+    private static void NormalizeFamilyKeys(SqliteConnection connection)
+    {
+        var codes = new List<string>();
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT deck_key FROM deck_family_members UNION SELECT key_a FROM deck_family_dismissed UNION SELECT key_b FROM deck_family_dismissed;";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var key = reader.GetString(0);
+                if (Cards.DeckString.TryDecode(key) is not null)
+                {
+                    codes.Add(key);
+                }
+            }
+        }
+
+        if (codes.Count == 0)
+        {
+            return;
+        }
+
+        using var tx = connection.BeginTransaction();
+        foreach (var code in codes)
+        {
+            CarryDeckKey(connection, tx, code, DeckRecords.CardListKey(code));
+            using var drop = Command(connection, tx, "DELETE FROM deck_family_members WHERE deck_key = $old; DELETE FROM deck_family_dismissed WHERE key_a = $old OR key_b = $old;");
+            drop.Parameters.AddWithValue("$old", code);
+            drop.ExecuteNonQuery();
+        }
+
+        tx.Commit();
+    }
+
+    private static void CreateFamilyTablesSql(SqliteConnection connection) => Execute(connection, """
         CREATE TABLE IF NOT EXISTS deck_families (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NULL,
@@ -98,10 +142,11 @@ public sealed partial class HistoryStore
     public static (string, string) DeckPair(string a, string b) => string.CompareOrdinal(a, b) <= 0 ? (a, b) : (b, a);
 
     /// <summary>
-    /// Puts the deck versions into one family: the oldest family any of them is in already, else a new one. Other
-    /// families they were in are folded into it. Returns the family id.
+    /// Puts the deck versions into one family: <paramref name="into"/> when one of them is in it (the deck the player is
+    /// on keeps its name), else the oldest family any of them is in, else a new one. Other families they were in are
+    /// folded into it. Returns the family id.
     /// </summary>
-    public long MergeDecks(IReadOnlyCollection<string> keys, string? name = null, string? mainKey = null)
+    public long MergeDecks(IReadOnlyCollection<string> keys, string? name = null, string? mainKey = null, long? into = null)
     {
         if (keys.Count == 0)
         {
@@ -122,7 +167,11 @@ public sealed partial class HistoryStore
                 }
             }
 
-            if (involved.Count > 0)
+            if (into is { } preferred && involved.Contains(preferred))
+            {
+                target = preferred;
+            }
+            else if (involved.Count > 0)
             {
                 target = involved.Min;
             }
@@ -249,6 +298,55 @@ public sealed partial class HistoryStore
         }
 
         DeckFamiliesChanged?.Invoke();
+    }
+
+    /// <summary>The "name|CLASS" deck key of a game saved with a deck name and no code, else null.</summary>
+    private static string? NameKeyOf(SqliteConnection connection, SqliteTransaction tx, string gameKey)
+    {
+        using var command = Command(connection, tx,
+            "SELECT deck_name, player_class FROM games WHERE game_key = $key AND (deck_code IS NULL OR deck_code = '') AND deck_name IS NOT NULL AND deck_name <> '';");
+        command.Parameters.AddWithValue("$key", gameKey);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? DeckRecords.NameKey(reader.GetString(0), reader.GetString(1)) : null;
+    }
+
+    /// <summary>
+    /// Gives a new deck key the family and dismissed pairs of an old one (a game of the old version got its code). The
+    /// old key keeps them too: other games of that version may still have no code.
+    /// </summary>
+    private static void CarryDeckKey(SqliteConnection connection, SqliteTransaction tx, string oldKey, string newKey)
+    {
+        if (oldKey == newKey)
+        {
+            return;
+        }
+
+        using (var member = Command(connection, tx, """
+                   INSERT OR IGNORE INTO deck_family_members (deck_key, family_id)
+                   SELECT $new, family_id FROM deck_family_members WHERE deck_key = $old;
+                   UPDATE deck_families SET main_key = $new WHERE main_key = $old;
+                   """))
+        {
+            member.Parameters.AddWithValue("$old", oldKey);
+            member.Parameters.AddWithValue("$new", newKey);
+            member.ExecuteNonQuery();
+        }
+
+        var others = new List<string>();
+        using (var pairs = Command(connection, tx, "SELECT key_a, key_b FROM deck_family_dismissed WHERE key_a = $old OR key_b = $old;"))
+        {
+            pairs.Parameters.AddWithValue("$old", oldKey);
+            using var reader = pairs.ExecuteReader();
+            while (reader.Read())
+            {
+                others.Add(reader.GetString(0) == oldKey ? reader.GetString(1) : reader.GetString(0));
+            }
+        }
+
+        foreach (var other in others)
+        {
+            InsertDismissed(connection, tx, newKey, other);
+        }
     }
 
     private void UpdateFamily(string sql, long id, string? value)

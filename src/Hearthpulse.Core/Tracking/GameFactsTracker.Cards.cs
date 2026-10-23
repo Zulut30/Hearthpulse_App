@@ -9,9 +9,11 @@ namespace Hearthpulse.Core.Tracking;
 /// </summary>
 /// <remarks>
 /// Each event notes the entity with its card as it was then: some cards transform later (CHANGE_ENTITY), and the deck
-/// page wants the card that came from the deck. Whose card it was is read when the game ends, because the local player
-/// is often not known yet while the opening hand is dealt. Only what the opponent showed is kept (no hidden
-/// information).
+/// page wants the card that came from the deck. A card played after it transformed in hand counts as the deck card it
+/// was drawn as. Whose card it was is read when the game ends, because the local player is often not known yet while
+/// the opening hand is dealt. Only what the opponent showed is kept (no hidden information).
+/// Turns are <see cref="GameState.PlayerTurnOf"/>: game turns 2N-1 and 2N are both the players' turn N, so a card drawn
+/// by an effect on the opponent's turn counts for the turn number that pair of turns has.
 /// </remarks>
 public sealed partial class GameFactsTracker
 {
@@ -23,7 +25,13 @@ public sealed partial class GameFactsTracker
     private readonly List<Noted> _draws = new();
     private readonly List<Noted> _plays = new();
 
-    /// <summary>An entity at the moment of an event: its card then, and whether it came from the starting deck.</summary>
+    // The deck card each drawn or offered entity was, by entity id, for plays after it transformed in hand.
+    private readonly Dictionary<int, string> _deckCardOf = new();
+
+    /// <summary>
+    /// An entity at the moment of an event: its card then, and whether it came from the controller's own starting deck
+    /// (created in the deck, not stolen, not generated; the coin is created in hand).
+    /// </summary>
     private readonly record struct Noted(int Id, int Controller, int Turn, string CardId, bool FromDeck, string CardType);
 
     /// <summary>The local mulligan, or null when the game had none (or the log did not show the choice).</summary>
@@ -60,8 +68,9 @@ public sealed partial class GameFactsTracker
         var opening = game.InOpeningHand(controller);
         if (previous == "DECK" && value == "HAND")
         {
-            var draw = Note(entity, opening ? 0 : PlayerTurn(game.Turn));
+            var draw = Note(entity, opening ? 0 : GameState.PlayerTurnOf(game.Turn));
             _draws.Add(draw);
+            RememberDeckCard(draw);
             if (game.MulliganStateOf(controller) == "DEALING")
             {
                 _mulliganReceived.Add(draw);
@@ -83,7 +92,12 @@ public sealed partial class GameFactsTracker
     {
         if (blockType == "PLAY" && source is not null && !game.IsBattlegrounds)
         {
-            _plays.Add(Note(source, PlayerTurn(game.Turn)));
+            // A card that transformed in hand (it may have a CREATOR now) is still the deck card it was drawn as, as
+            // long as its owner plays it.
+            var play = Note(source, GameState.PlayerTurnOf(game.Turn));
+            _plays.Add(_deckCardOf.TryGetValue(play.Id, out var drawnAs)
+                ? play with { CardId = drawnAs, FromDeck = source.Controller == source.InitialController }
+                : play);
         }
     }
 
@@ -95,7 +109,11 @@ public sealed partial class GameFactsTracker
             return;
         }
 
-        _mulliganOffered.AddRange(options.Where(e => !e.IsHero && e.GetInt(GameTag.Creator) == 0).Select(e => Note(e, 0)));
+        foreach (var offered in options.Where(e => !e.IsHero).Select(e => Note(e, 0)).Where(n => n.FromDeck))
+        {
+            _mulliganOffered.Add(offered);
+            RememberDeckCard(offered);
+        }
     }
 
     private void ResetCards()
@@ -105,10 +123,20 @@ public sealed partial class GameFactsTracker
         _mulliganReceived.Clear();
         _draws.Clear();
         _plays.Clear();
+        _deckCardOf.Clear();
+    }
+
+    private void RememberDeckCard(Noted noted)
+    {
+        if (noted.FromDeck && noted.CardId.Length > 0)
+        {
+            _deckCardOf.TryAdd(noted.Id, noted.CardId);
+        }
     }
 
     private static Noted Note(Entity entity, int turn) =>
-        new(entity.Id, entity.Controller, turn, entity.CardId, entity.IsOriginalDeckCard, entity.CardType);
+        new(entity.Id, entity.Controller, turn, entity.CardId,
+            entity.IsOriginalDeckCard && entity.InitialZone == "DECK" && entity.InitialController == entity.Controller, entity.CardType);
 
     /// <summary>The card noted, or for a card hidden then (an opponent card shown later) the entity's card now.</summary>
     private static string CardOf(GameState game, Noted noted) =>
@@ -117,7 +145,7 @@ public sealed partial class GameFactsTracker
     private static List<CardTurn> DeckCards(GameState game, List<Noted> noted, int player) =>
         player == 0
             ? []
-            // FromDeck leaves out the starting hero and anything created during the game.
+            // FromDeck leaves out the starting hero, the coin, stolen cards and anything created during the game.
             : noted.Where(n => n.Controller == player && n.FromDeck)
                 .Select(n => (n.Turn, CardId: CardOf(game, n), Type: n.CardType.Length > 0 ? n.CardType : game.Entities.GetValueOrDefault(n.Id)?.CardType ?? string.Empty))
                 .Where(n => n.CardId.Length > 0 && !NotPlayedCards.Contains(n.Type))
@@ -126,6 +154,4 @@ public sealed partial class GameFactsTracker
 
     private static List<string> CardIds(GameState game, IEnumerable<Noted> noted) =>
         noted.Select(n => CardOf(game, n)).Where(id => id.Length > 0).ToList();
-
-    private static int PlayerTurn(int turn) => turn <= 0 ? 0 : (turn + 1) / 2;
 }

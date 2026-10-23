@@ -75,15 +75,14 @@ public static class DeckDetails
     }
 
     /// <summary>
-    /// The opponent's archetype in a game: the one saved with it, else the one its saved cards clearly point to in
-    /// <paramref name="meta"/> (of the game's format). Null when it cannot be told.
+    /// The opponent's archetype in a game: with a meta of the game's format, the one its saved cards clearly point to
+    /// there (every game named by the same meta, so matchups do not mix sources or patches); without one, the archetype
+    /// saved with the game. Null when it cannot be told.
     /// </summary>
     public static string? OpponentArchetype(GameRecord game, ConstructedMeta? meta) =>
-        game.OpponentArchetype is { Length: > 0 } saved
-            ? saved
-            : ArchetypeGuess.FitsFormat(meta, game.Format)
-                ? ArchetypeGuess.FromSeenCards(meta, game.OpponentClass, GameCards.Turns(game.OpponentCards).Select(c => c.CardId))?.Name
-                : null;
+        ArchetypeGuess.FitsFormat(meta, game.Format) && game.OpponentCards is not null
+            ? ArchetypeGuess.FromSeenCards(meta, game.OpponentClass, GameCards.Turns(game.OpponentCards).Select(c => c.CardId))?.Name
+            : game.OpponentArchetype is { Length: > 0 } saved ? saved : null;
 
     /// <summary>Results per opponent class, most played first.</summary>
     public static IReadOnlyList<DeckMatchup> ByOpponentClass(IReadOnlyList<GameRecord> games) =>

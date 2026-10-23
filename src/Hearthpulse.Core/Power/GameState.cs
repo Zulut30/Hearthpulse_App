@@ -120,6 +120,9 @@ public sealed class GameState
 
     public PlayerSlot? PlayerByEntity(int entityId) => Players.Values.FirstOrDefault(p => p.EntityId == entityId);
 
+    /// <summary>A player's own turn number for a game TURN: game turns 2N-1 and 2N are turn N of each player (0 before the first).</summary>
+    public static int PlayerTurnOf(int turn) => turn <= 0 ? 0 : (turn + 1) / 2;
+
     /// <summary>The player's MULLIGAN_STATE: empty before the mulligan, then INPUT, DEALING, WAITING, DONE.</summary>
     public string MulliganStateOf(int playerId) =>
         Players.GetValueOrDefault(playerId) is { } p ? Entities.GetValueOrDefault(p.EntityId)?.GetString(GameTag.MulliganState) ?? string.Empty : string.Empty;

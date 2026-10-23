@@ -11,7 +11,7 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// The deck page: per-game card facts read from Power.log lines (grammar of the October 2026 logs: TURN is already 1
-/// during the mulligan, the opening hand is shown with SHOW_ENTITY, the coin is a CATA_COIN1 with a CREATOR), the
+/// during the mulligan, the opening hand is shown with SHOW_ENTITY, the coin is a CATA_COIN1 created in hand), the
 /// history columns and family tables, deck families and merge suggestions, and the per-card aggregates.
 /// </summary>
 public sealed class DeckPageTests
@@ -68,7 +68,7 @@ public sealed class DeckPageTests
     /// A ranked game as the second player (Death Knight vs Priest): CARD_A..D offered with the coin, CARD_B sent back
     /// and CARD_E dealt instead; CARD_F drawn on turn 1; CARD_A played on turn 1, CARD_F on turn 2. The opponent plays
     /// three Priest cards from its deck and one it was given (created mid-game, so not a deck card). CARD_C transforms
-    /// in hand later.
+    /// in hand and is played as CARD_G on turn 2; the opponent steals and plays CARD_D and plays a secret it never shows.
     /// </summary>
     private static string[] RankedGame() =>
     [
@@ -103,7 +103,6 @@ public sealed class DeckPageTests
         "DebugPrintPower() -     tag=CONTROLLER value=1",
         "DebugPrintPower() -     tag=CARDTYPE value=SPELL",
         "DebugPrintPower() -     tag=ZONE value=HAND",
-        "DebugPrintPower() -     tag=CREATOR value=1",
         "DebugPrintGame() - GameType=GT_RANKED",
         "DebugPrintGame() - FormatType=FT_STANDARD",
         "DebugPrintGame() - PlayerID=1, PlayerName=Me#1",
@@ -156,14 +155,21 @@ public sealed class DeckPageTests
         "DebugPrintPower() -     tag=CARDTYPE value=MINION",
         "DebugPrintPower() -     tag=CREATOR value=22",
         .. Play(50, "PRIEST_W", 2),
-        // Our turn 2: play CARD_F.
+        // The opponent takes CARD_D from our hand and plays it, and plays a secret it never reveals.
+        "DebugPrintPower() - TAG_CHANGE Entity=" + Ref(7, "CARD_D", 1) + " tag=CONTROLLER value=2 ",
+        .. Play(7, "CARD_D", 2),
+        "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=23 zone=HAND zonePos=1 cardId= player=2] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
+        "DebugPrintPower() -     TAG_CHANGE Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=23 zone=HAND zonePos=1 cardId= player=2] tag=ZONE value=SECRET ",
+        "DebugPrintPower() - BLOCK_END",
+        // Our turn 2: play the transformed CARD_C (now CARD_G), then CARD_F.
         "DebugPrintPower() - TAG_CHANGE Entity=1 tag=TURN value=4 ",
+        .. Play(6, "CARD_G", 1),
         .. Play(9, "CARD_F", 1),
         "DebugPrintPower() - TAG_CHANGE Entity=Me#1 tag=PLAYSTATE value=WON ",
         "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE ",
     ];
 
-    private static (GameRecord Record, GameState Game) ParseRanked(ConstructedMeta? meta = null)
+    private static (GameRecord Record, GameState Game) ParseRanked(ConstructedMeta? meta = null, IEnumerable<string>? lines = null)
     {
         var parser = new PowerParser(DateOnly.FromDateTime(At));
         var battlegrounds = new BattlegroundsTracker { Cards = Cards };
@@ -172,7 +178,7 @@ public sealed class DeckPageTests
         parser.AddListener(battlegrounds);
         parser.AddListener(facts);
         parser.AddListener(new OnEnd(game => record = GameRecords.Build(game, battlegrounds, Cards, null, "test", facts: facts, meta: meta)));
-        foreach (var body in RankedGame())
+        foreach (var body in lines ?? RankedGame())
         {
             parser.Feed("D 16:09:35.0000000 GameState." + body);
         }
@@ -205,13 +211,26 @@ public sealed class DeckPageTests
         Assert.Equal(
             [new CardTurn("CARD_A", 0), new CardTurn("CARD_C", 0), new CardTurn("CARD_D", 0), new CardTurn("CARD_E", 0), new CardTurn("CARD_F", 1)],
             GameCards.Turns(record.CardsDrawn));
-        Assert.Equal([new CardTurn("CARD_A", 1), new CardTurn("CARD_F", 2)], GameCards.Turns(record.CardsPlayed));
+        // The transformed card counts as the deck card it was drawn as; the stolen CARD_D is not ours to play.
+        Assert.Equal([new CardTurn("CARD_A", 1), new CardTurn("CARD_C", 2), new CardTurn("CARD_F", 2)], GameCards.Turns(record.CardsPlayed));
 
-        // Only the opponent's deck cards it played: the card it was given is left out.
+        // Only the opponent's own deck cards it played face up: not the card it was given, not our stolen card, not the
+        // secret it never revealed.
         Assert.Equal([new CardTurn("PRIEST_X", 1), new CardTurn("PRIEST_Y", 2), new CardTurn("PRIEST_Z", 2)], GameCards.Turns(record.OpponentCards));
         Assert.False(record.WentFirst);
         Assert.Equal("PRIEST", record.OpponentClass);
         Assert.Null(record.OpponentArchetype);
+    }
+
+    [Fact]
+    public void A_game_picked_up_without_its_mulligan_saves_no_card_data()
+    {
+        // As after a reconnect: the log has no mulligan choice, so the opening hand and early draws are unknown.
+        var (record, _) = ParseRanked(lines: RankedGame().Where(l => !l.StartsWith("DebugPrintEntityChoices", StringComparison.Ordinal)));
+        Assert.Null(record.Mulligan);
+        Assert.Null(record.CardsDrawn);
+        Assert.Null(record.CardsPlayed);
+        Assert.NotNull(record.OpponentCards);
     }
 
     private static MetaArchetype Archetype(int id, string name, string heroClass, params string[] core) =>
@@ -287,7 +306,8 @@ public sealed class DeckPageTests
         // A re-read of the same game (backfill) fills the card columns and keeps what was saved.
         var reread = ParseRanked().Record with { Key = "old", WentFirst = false };
         Assert.True(store.FillMissingFields(reread));
-        var filled = Assert.Single(store.Recent());
+        Assert.Null(Assert.Single(store.Recent()).Mulligan);
+        var filled = Assert.Single(store.WithCards(store.Recent()));
         Assert.True(filled.WentFirst);
         Assert.Equal(reread.Mulligan, filled.Mulligan);
         Assert.Equal(reread.CardsDrawn, filled.CardsDrawn);
@@ -353,7 +373,10 @@ public sealed class DeckPageTests
     // ---- families and suggestions -----------------------------------------------------------
 
     /// <summary>A Standard deck code of Death Knight cards (dbfId, copies) for the tests.</summary>
-    private static string Code(params (int Dbf, int Copies)[] cards)
+    private static string Code(params (int Dbf, int Copies)[] cards) => CodeFor(78065, cards);
+
+    /// <summary>A Standard deck code with a given hero (a hero skin has its own dbfId).</summary>
+    private static string CodeFor(int hero, params (int Dbf, int Copies)[] cards)
     {
         var bytes = new List<byte>();
         void Varint(int value)
@@ -371,7 +394,7 @@ public sealed class DeckPageTests
         Varint(1);
         Varint(2);
         Varint(1);
-        Varint(78065);
+        Varint(hero);
         foreach (var copies in new[] { 1, 2 })
         {
             var group = cards.Where(c => c.Copies == copies).ToList();
@@ -408,17 +431,19 @@ public sealed class DeckPageTests
     public void Two_versions_of_one_deck_are_suggested_and_their_stats_add_up_once_merged()
     {
         // "Рыцарь смерти2" and "Рыцарь смерти3": the player's two Death Knight lists, 28 of 30 cards in common.
-        var v2 = Code(Deck(1000));
-        var v3 = Code(Deck(1000, 1014));
+        var v2Code = Code(Deck(1000));
+        var v3Code = Code(Deck(1000, 1014));
+        var v2 = DeckRecords.CardListKey(v2Code);
+        var v3 = DeckRecords.CardListKey(v3Code);
         var other = Code(Deck(3000));
         var games = new List<GameRecord>
         {
-            Game("g1", "Рыцарь смерти2", v2, "Win", 0, 11),
-            Game("g2", "Рыцарь смерти2", v2, "Loss", 10, 11),
-            Game("g3", "Рыцарь смерти3", v3, "Win", 20, 12),
-            Game("g4", "Рыцарь смерти3", v3, "Win", 30, 12),
+            Game("g1", "Рыцарь смерти2", v2Code, "Win", 0, 11),
+            Game("g2", "Рыцарь смерти2", v2Code, "Loss", 10, 11),
+            Game("g3", "Рыцарь смерти3", v3Code, "Win", 20, 12),
+            Game("g4", "Рыцарь смерти3", v3Code, "Win", 30, 12),
             Game("g5", "Совсем другая", other, "Loss", 40, 13),
-            Game("g6", "Рыцарь смерти Wild", v3, "Win", 50, 12, format: "FT_WILD"),
+            Game("g6", "Рыцарь смерти Wild", v3Code, "Win", 50, 12, format: "FT_WILD"),
         };
         games[^1] = games[^1] with { DeckCode = Code(Deck(1000, 1013)) };
 
@@ -558,5 +583,113 @@ public sealed class DeckPageTests
         Assert.Equal(3, DeckDetails.Filter(games, "PRIEST", meta).Count);
         Assert.Equal("g2", Assert.Single(DeckDetails.Filter(games, "PRIEST|Quest Priest", meta)).Key);
         Assert.Equal(4, DeckDetails.Filter(games, null, meta).Count);
+    }
+
+    // ---- one deck, everywhere (review M1, M2) ----------------------------------------------
+
+    [Fact]
+    public void A_family_survives_its_games_getting_their_deck_code()
+    {
+        var path = TempDb();
+        var store = new HistoryStore(path);
+        var code = Code(Deck(1000));
+        var other = Code(Deck(1000, 1014));
+        // Games saved with the deck's name only, as before Decks.log was read; and a version with a code.
+        Assert.True(store.Add(Game("a1", "Рыцарь смерти2", null!, "Win", 0)));
+        Assert.True(store.Add(Game("a2", "Рыцарь смерти2", null!, "Loss", 10)));
+        Assert.True(store.Add(Game("b1", "Рыцарь смерти3", other, "Win", 20)));
+        var nameKey = DeckRecords.NameKey("Рыцарь смерти2", "DEATHKNIGHT");
+        var id = store.MergeDecks([nameKey, DeckRecords.CardListKey(other)], "Blood DK", nameKey);
+        store.DismissDeckPair(nameKey, "somebody-else");
+
+        // Decks.log gives one of the games its code: that game is now the card-list version.
+        Assert.Equal(1, store.FillDecks([new DeckFill("a1", "Рыцарь смерти2", code)]));
+
+        var families = DeckFamilies.Build(DeckFamilies.Versions(store.Recent()), store.DeckFamilies());
+        var family = Assert.Single(families);
+        Assert.Equal(id, family.Id);
+        Assert.Equal("Blood DK", family.Name);
+        Assert.Equal(3, family.Games.Count);
+        Assert.Contains(family.Versions, v => v.Key == DeckRecords.CardListKey(code));
+        Assert.Contains(HistoryStore.DeckPair(DeckRecords.CardListKey(code), "somebody-else"), store.DismissedDeckPairs());
+        Drop(path);
+    }
+
+    [Fact]
+    public void A_list_with_another_hero_skin_is_the_same_version()
+    {
+        var list = Deck(1000);
+        var games = new[]
+        {
+            Game("1", "DK", CodeFor(78065, list), "Win", 0),
+            Game("2", "DK", CodeFor(99999, list), "Loss", 10),
+        };
+        var version = Assert.Single(DeckFamilies.Versions(games));
+        Assert.Equal(new WinLoss(2, 1, 1), version.Record);
+        Assert.Empty(DeckFamilies.Suggest(DeckFamilies.Build([version], []), new HashSet<(string, string)>()));
+    }
+
+    [Fact]
+    public void The_in_game_deck_record_counts_the_merged_versions()
+    {
+        var v2 = Code(Deck(1000));
+        var v3 = Code(Deck(1000, 1014));
+        var games = new[]
+        {
+            Game("g1", "DK2", v2, "Win", 0),
+            Game("g2", "DK3", v3, "Loss", 10),
+            Game("g3", "Mage", Code(Deck(3000)), "Win", 20),
+        };
+        var matched = DeckRecords.Matching(games, "DK2", v2, "DEATHKNIGHT");
+        Assert.Single(matched);
+        var stored = new[] { new DeckFamilyRecord(1, null, null, [DeckRecords.CardListKey(v2), DeckRecords.CardListKey(v3)]) };
+        Assert.Equal(["g1", "g2"], DeckFamilies.WithFamily(games, matched, stored).Select(g => g.Key));
+        Assert.Same(matched, DeckFamilies.WithFamily(games, matched, []));
+    }
+
+    [Fact]
+    public void Merging_into_the_open_deck_keeps_its_name()
+    {
+        var path = TempDb();
+        var store = new HistoryStore(path);
+        var older = store.MergeDecks(["a", "b"], "Older");
+        var newer = store.MergeDecks(["c", "d"], "Mine");
+        Assert.Equal(newer, store.MergeDecks(["c", "d", "a", "b"], into: newer));
+        var family = Assert.Single(store.DeckFamilies());
+        Assert.Equal("Mine", family.Name);
+        Assert.DoesNotContain(store.DeckFamilies(), f => f.Id == older);
+        Drop(path);
+    }
+
+    [Fact]
+    public void A_current_meta_names_the_opponent_over_the_saved_archetype()
+    {
+        var meta = Meta(Archetype(1, "Quest Priest", "PRIEST", "PRIEST_X", "PRIEST_Y", "PRIEST_Z"));
+        var game = CardGame("g1", "Win", true, "PRIEST", null!, null!, null!) with
+        {
+            OpponentArchetype = "Old Name Priest",
+            OpponentCards = """[{"id":"PRIEST_X","turn":1},{"id":"PRIEST_Y","turn":2},{"id":"PRIEST_Z","turn":3}]""",
+        };
+        Assert.Equal("Quest Priest", DeckDetails.OpponentArchetype(game, meta));
+        Assert.Equal("Old Name Priest", DeckDetails.OpponentArchetype(game, null));
+    }
+
+    [Fact]
+    public void Families_saved_with_raw_deck_codes_are_rekeyed_on_open()
+    {
+        var path = TempDb();
+        var v2 = Code(Deck(1000));
+        var v3 = Code(Deck(1000, 1014));
+        var store = new HistoryStore(path);
+        var id = store.MergeDecks([v2, v3], "Blood DK", v2);
+        store.DismissDeckPair(v2, "x");
+
+        store = new HistoryStore(path);
+        var family = Assert.Single(store.DeckFamilies());
+        Assert.Equal(id, family.Id);
+        Assert.Equal(new[] { DeckRecords.CardListKey(v2), DeckRecords.CardListKey(v3) }.Order(StringComparer.Ordinal), family.Members.Order(StringComparer.Ordinal));
+        Assert.Equal(DeckRecords.CardListKey(v2), family.MainKey);
+        Assert.Equal([HistoryStore.DeckPair(DeckRecords.CardListKey(v2), "x")], store.DismissedDeckPairs());
+        Drop(path);
     }
 }

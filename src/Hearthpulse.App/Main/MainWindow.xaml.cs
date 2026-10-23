@@ -274,7 +274,7 @@ public partial class MainWindow : Window
 
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
-            if (_viewModel.HistoryRows.FirstOrDefault(r => r.Key == key) is { } row)
+            if (_viewModel.HistoryRowFor(key) is { } row)
             {
                 HistoryList.SelectedItem = row;
                 HistoryList.ScrollIntoView(row);

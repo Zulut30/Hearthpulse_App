@@ -277,10 +277,14 @@ public sealed class DeckDetailsViewModel : Observable
     private Action Build(DeckFamily family, IReadOnlyList<DeckFamily> families, IReadOnlyList<MergeSuggestion> suggestions, ConstructedMeta? meta,
         CardDb cards, string? matchup, bool byWinRate)
     {
-        var games = DeckDetails.Filter(family.Games, matchup, meta);
+        // The family's games again with their card columns (lists read the history without them).
+        var all = _owner.History.WithCards(family.Games);
+        var games = DeckDetails.Filter(all, matchup, meta);
         var summary = DeckDetails.Summary(games);
         var deckRate = summary.Record.WinRate;
-        var format = family.Format == "FT_WILD" ? "Wild" : family.Format == "FT_STANDARD" ? "Standard" : family.Format.Replace("FT_", string.Empty, StringComparison.Ordinal);
+        var format = ConstructedMeta.FormatKeyOf(family.Format) is { } key
+            ? ConstructedMeta.Label(ConstructedMeta.Formats, key)
+            : family.Format.Replace("FT_", string.Empty, StringComparison.Ordinal);
         var metaFits = ArchetypeGuess.FitsFormat(meta, family.Format) ? meta : null;
         var archetype = ConstructedStats.ArchetypeOf(family.Main.DeckCode, family.PlayerClass, metaFits, cards);
 
@@ -297,7 +301,7 @@ public sealed class DeckDetailsViewModel : Observable
         [
             new StatTile("Win rate", Percent(deckRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
             new StatTile("Games", summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture),
-                family.Games.Count != games.Count ? $"of {family.Games.Count:N0} with this deck" : "with this deck"),
+                all.Count != games.Count ? $"of {all.Count:N0} with this deck" : "with this deck"),
             new StatTile("Avg. game", summary.AverageDuration is { } avg ? $"{avg.TotalMinutes:0} min" : "—",
                 summary.AverageTurns is { } turns ? $"{turns:0.0} turns" : "—"),
             new StatTile("On the play", Percent(summary.OnPlay.WinRate), $"{summary.OnPlay.Wins}–{summary.OnPlay.Losses} going first"),
@@ -322,8 +326,8 @@ public sealed class DeckDetailsViewModel : Observable
         var lengths = ConstructedStats.ByLength(games);
 
         // Matchups count every game of the deck: they are the filter, not filtered.
-        var classes = DeckDetails.ByOpponentClass(family.Games);
-        var archetypes = DeckDetails.ByOpponentArchetype(family.Games, meta);
+        var classes = DeckDetails.ByOpponentClass(all);
+        var archetypes = DeckDetails.ByOpponentArchetype(all, meta);
         IEnumerable<DeckMatchup> Sorted(IEnumerable<DeckMatchup> list) => byWinRate
             ? list.OrderByDescending(m => m.Record.WinRate ?? -1).ThenByDescending(m => m.Record.Games)
             : list.OrderByDescending(m => m.Record.Games).ThenByDescending(m => m.Record.WinRate ?? -1);
@@ -413,7 +417,8 @@ public sealed class DeckDetailsViewModel : Observable
             })
             .ToList();
         var choices = families
-            .Where(f => f.Key != family.Key && f.PlayerClass == family.PlayerClass)
+            // Only lists of the same class and format: the family's format picks the meta it is compared with.
+            .Where(f => f.Key != family.Key && f.PlayerClass == family.PlayerClass && f.Format == family.Format)
             .Select(f => new DeckChoice(f.Key, $"{f.Name} · {f.Record.Wins}–{f.Record.Losses}"))
             .ToList();
 

@@ -183,6 +183,12 @@ public sealed class AppSettings
     /// </summary>
     public bool HistoryStatsFilled { get; set; }
 
+    /// <summary>
+    /// The kept logs were read again once to fill the deck page's card facts (mulligan, cards drawn and played, the
+    /// opponent's played cards) of games saved before the app recorded them.
+    /// </summary>
+    public bool HistoryCardsFilled { get; set; }
+
     /// <summary>Colour theme: a preset name, or "Custom" with the three values below.</summary>
     public string Theme { get; set; } = "Tavern";
 

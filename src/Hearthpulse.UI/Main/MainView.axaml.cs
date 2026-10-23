@@ -300,7 +300,7 @@ public partial class MainView : UserControl
 
         Dispatcher.UIThread.Post(() =>
         {
-            if (viewModel.HistoryRows.FirstOrDefault(r => r.Key == key) is { } row)
+            if (viewModel.HistoryRowFor(key) is { } row)
             {
                 HistoryList.SelectedItem = row;
                 HistoryList.ScrollIntoView(row);

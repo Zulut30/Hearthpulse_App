@@ -30,14 +30,14 @@ public static class DeckRecords
         {
             if (code is { Length: > 0 })
             {
-                lists.Add(CardList(code));
+                lists.Add(CardListKey(code));
             }
         }
 
         return games
             .Where(g => !g.IsBattlegrounds && g.Mode != "Mercenaries")
             .Where(g => g.DeckCode is { Length: > 0 } code
-                ? lists.Contains(CardList(code))
+                ? lists.Contains(CardListKey(code))
                 : deckName is { Length: > 0 } && g.DeckName == deckName && g.PlayerClass == playerClass)
             .ToList();
     }
@@ -97,8 +97,21 @@ public static class DeckRecords
     public static string? ClassOf(string code, CardDb cards) =>
         DeckString.TryDecode(code, string.Empty, 0) is { HeroDbfIds.Count: > 0 } deck ? cards.Get(deck.HeroDbfIds[0])?.CardClass : null;
 
-    /// <summary>Order-free card list of a code, so two codes of the same list compare equal; the code itself if it does not decode.</summary>
-    private static string CardList(string code) =>
+    /// <summary>
+    /// One deck list, the same way everywhere (deck page versions, My Stats deck list, overlay record): the card list of
+    /// the game's code (<see cref="CardListKey"/>), else "name|CLASS" for a game saved without a code.
+    /// </summary>
+    public static string DeckKey(GameRecord game) =>
+        game.DeckCode is { Length: > 0 } code ? CardListKey(code) : NameKey(game.DeckName, game.PlayerClass);
+
+    /// <summary>The key of a deck saved without a code: "name|CLASS".</summary>
+    public static string NameKey(string? deckName, string playerClass) => $"{deckName}|{playerClass}";
+
+    /// <summary>
+    /// Order-free card list of a code ("dbf x copies"), so two codes of the same list compare equal whatever the hero
+    /// skin, format byte or encoder; the code itself if it does not decode.
+    /// </summary>
+    public static string CardListKey(string code) =>
         DeckString.TryDecode(code, string.Empty, 0) is { } deck
             ? string.Join(',', deck.Cards.OrderBy(c => c.Key).Select(c => $"{c.Key}x{c.Value}"))
             : code;

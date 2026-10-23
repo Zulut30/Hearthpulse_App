@@ -52,7 +52,7 @@ public sealed record MetaCompRow(
     string KeyCards);
 
 /// <summary>A deck in "Your decks": a family of versions or a single one (<see cref="Key"/> is the family key).</summary>
-public sealed record DeckRow(string Key, string Name, string Class, int Games, string Record, string WinRate, double WinFraction, string LastPlayed, string? DeckCode, string Versions = "");
+public sealed record DeckRow(string Key, string Name, string Class, int Games, string Record, string WinRate, double WinFraction, string LastPlayed, string? DeckCode, string Meta = "", string Versions = "");
 
 public sealed record MatchupRow(string Class, int Games, string Record, string WinRate, double WinFraction);
 

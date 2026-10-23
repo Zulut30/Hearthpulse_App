@@ -635,6 +635,8 @@
                                                                 <TextBlock Classes="caption"><Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" /></TextBlock>
                                                                 <TextBlock Text="{Binding Versions}" Classes="caption" Foreground="{StaticResource Info}"
                                                                            IsVisible="{Binding Versions, Converter={StaticResource Truthy}}" ToolTip.Tip="Versions merged into this deck; their games count together" />
+                                                                <TextBlock Text="{Binding Meta}" Classes="caption" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
+                                                                           IsVisible="{Binding Meta, Converter={StaticResource Truthy}}" ToolTip.Tip="The meta archetype this deck matches, and its community win rate" />
                                                             </StackPanel>
                                                             <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Classes="caption"
                                                                        ToolTip.Tip="Wins – losses" />

@@ -44,5 +44,5 @@ public static class ArchetypeGuess
 
     /// <summary>True when the meta holds the game's format ("standard" for FT_STANDARD, "wild" for FT_WILD).</summary>
     public static bool FitsFormat(ConstructedMeta? meta, string? gameFormat) =>
-        meta is not null && (gameFormat, meta.Format) is ("FT_STANDARD", "standard") or ("FT_WILD", "wild");
+        meta is not null && ConstructedMeta.FormatKeyOf(gameFormat) is { } key && key == meta.Format;
 }

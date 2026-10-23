@@ -105,7 +105,11 @@ public static class GameRecords
 
         var opponentHero = game.OpponentHero?.CardId ?? string.Empty;
         var opponentClass = cards.Get(opponentHero)?.CardClass ?? string.Empty;
-        var opponentPlayed = facts?.OpponentPlayed(game) ?? [];
+        // Card facts only for deck games (what the deck page reads), and only when the mulligan was seen: a game the
+        // log picks up mid-way (a reconnect) has lost its opening hand and early draws.
+        var cardFacts = mode is "Ranked" or "Casual" or "Friendly" or "Practice" ? facts : null;
+        var mulligan = cardFacts?.Mulligan(game);
+        var opponentPlayed = cardFacts?.OpponentPlayed(game) ?? [];
         return new GameRecord
         {
             Key = KeyOf(game),
@@ -136,9 +140,9 @@ public static class GameRecords
             RankLegend = rankInfo is { LegendRank: > 0 } ? rankInfo.LegendRank : null,
             WentFirst = WentFirst(game),
             DeckId = deck is { DeckId: > 0 } && DeckFits(deck, cards.Get(hero?.CardId)?.CardClass, cards) ? deck.DeckId : null,
-            Mulligan = GameCards.MulliganJson(facts?.Mulligan(game)),
-            CardsDrawn = GameCards.TurnsJson(facts?.Drawn(game)),
-            CardsPlayed = GameCards.TurnsJson(facts?.Played(game)),
+            Mulligan = GameCards.MulliganJson(mulligan),
+            CardsDrawn = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Drawn(game)),
+            CardsPlayed = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Played(game)),
             OpponentCards = GameCards.TurnsJson(opponentPlayed),
             OpponentArchetype = ArchetypeGuess.FitsFormat(meta, game.FormatType)
                 ? ArchetypeGuess.FromSeenCards(meta, opponentClass, opponentPlayed.Select(c => c.CardId))?.Name

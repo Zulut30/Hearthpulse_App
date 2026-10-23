@@ -57,7 +57,7 @@ public sealed partial class MainViewModel
         }
 
         _openDeckKey = key;
-        DeckPage.Show(family, _deckFamilies, _mergeSuggestions, ConstructedMetaFor(family.Format == "FT_WILD" ? "FT_WILD" : "FT_STANDARD"), _cards);
+        DeckPage.Show(family, _deckFamilies, _mergeSuggestions, ConstructedMetaFor(family.Format), _cards);
         DeckOpen = true;
         return true;
     }
@@ -71,7 +71,31 @@ public sealed partial class MainViewModel
         _openDeckKey = null;
     }
 
+    /// <summary>The history, for the deck page's card columns (read on its build thread).</summary>
+    internal HistoryStore History => _history;
+
     internal void ShowHistoryGame(string key) => HistoryRequested?.Invoke(key);
+
+    /// <summary>
+    /// The History row of a game for the deck page's link. A game older than the rows the page lists is added on top,
+    /// so the link always lands on it.
+    /// </summary>
+    public GameRow? HistoryRowFor(string key)
+    {
+        if (HistoryRows.FirstOrDefault(r => r.Key == key) is { } shown)
+        {
+            return shown;
+        }
+
+        if (_history.Game(key) is not { } game)
+        {
+            return null;
+        }
+
+        var row = Row(game);
+        HistoryRows = [row, .. HistoryRows];
+        return row;
+    }
 
     internal void MergeDecks(DeckSuggestionRow? pair)
     {
@@ -88,7 +112,8 @@ public sealed partial class MainViewModel
         var id = FamilyChange(() => _history.MergeDecks(
             keep.Versions.Concat(other.Versions).Select(v => v.Key).ToList(),
             null,
-            keep.Main.Key));
+            keep.Main.Key,
+            into: keep.Id));
         if (id is { } family && DeckOpen)
         {
             _openDeckKey = DeckFamilies.FamilyPrefix + family.ToString(CultureInfo.InvariantCulture);

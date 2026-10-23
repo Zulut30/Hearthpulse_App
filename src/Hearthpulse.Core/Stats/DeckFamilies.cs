@@ -68,9 +68,8 @@ public static class DeckFamilies
         game.Mode is "Ranked" or "Casual" or "Friendly" or "Practice"
         && (!string.IsNullOrEmpty(game.DeckCode) || !string.IsNullOrEmpty(game.DeckName));
 
-    /// <summary>The deck code, or "name|CLASS" for games saved without one (same key as the My Stats deck list).</summary>
-    public static string VersionKey(GameRecord game) =>
-        game.DeckCode is { Length: > 0 } code ? code : $"{game.DeckName}|{game.PlayerClass}";
+    /// <summary>The version a game was played with: <see cref="DeckRecords.DeckKey"/> (card list, else "name|CLASS").</summary>
+    public static string VersionKey(GameRecord game) => DeckRecords.DeckKey(game);
 
     /// <summary>Every deck version of the games, most recently played first.</summary>
     public static IReadOnlyList<DeckVersion> Versions(IEnumerable<GameRecord> games) =>
@@ -215,6 +214,25 @@ public static class DeckFamilies
         return suggestions
             .OrderByDescending(s => s.SameDeckId)
             .ThenByDescending(s => s.Overlap)
+            .ToList();
+    }
+
+    /// <summary>
+    /// <paramref name="matched"/> (a deck's games, e.g. <see cref="DeckRecords.Matching"/>) plus every game of the saved
+    /// families its versions belong to, so the in-game deck record counts the same games as the deck page. Oldest first.
+    /// </summary>
+    public static IReadOnlyList<GameRecord> WithFamily(IEnumerable<GameRecord> all, IReadOnlyList<GameRecord> matched, IReadOnlyList<DeckFamilyRecord> stored)
+    {
+        var keys = matched.Select(VersionKey).ToHashSet(StringComparer.Ordinal);
+        var members = stored.Where(f => f.Members.Any(keys.Contains)).SelectMany(f => f.Members).ToHashSet(StringComparer.Ordinal);
+        if (members.Count == 0)
+        {
+            return matched;
+        }
+
+        var seen = matched.Select(g => g.Key).ToHashSet(StringComparer.Ordinal);
+        return matched.Concat(all.Where(g => IsDeckGame(g) && members.Contains(VersionKey(g)) && seen.Add(g.Key)))
+            .OrderBy(g => g.StartedAt)
             .ToList();
     }
 
