@@ -15,7 +15,7 @@ public static class AppPaths
     /// </summary>
     public static string Root { get; } = Ensure(Environment.GetEnvironmentVariable("HEARTHPULSE_DATA") is { Length: > 0 } custom
         ? custom
-        : IsPortable ? Path.Combine(AppContext.BaseDirectory, "data")
+        : IsPortable ? PortableRoot()
         : MigrateLegacy(Path.Combine(DefaultParent(), "Hearthlens"), Path.Combine(DefaultParent(), "Hearthpulse")));
 
     public static string Cache { get; } = Ensure(Path.Combine(Root, "cache"));
@@ -27,6 +27,20 @@ public static class AppPaths
     public static string Database => Path.Combine(Root, "history.db");
 
     public static string LogFile => Path.Combine(Root, "hearthpulse.log");
+
+    // Next to the app. A macOS app bundle is never written to (that would break its signature), so there the
+    // folder sits beside Hearthpulse.app instead.
+    private static string PortableRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        if (dir is { Name: "MacOS", Parent: { Name: "Contents", Parent: { } bundle } }
+            && bundle.Name.EndsWith(".app", StringComparison.OrdinalIgnoreCase) && bundle.Parent is { } outside)
+        {
+            return Path.Combine(outside.FullName, "Hearthpulse Data");
+        }
+
+        return Path.Combine(AppContext.BaseDirectory, "data");
+    }
 
     private static string DefaultParent()
     {

@@ -166,6 +166,17 @@ chmod +x "$PKG/install.sh" "$PKG/uninstall.sh"
 tar -C "$WORK" -czf "$DIST/$NAME.tar.gz" "$NAME"
 echo "wrote $DIST/$NAME.tar.gz"
 
+# ---- Portable .tar.gz: unpack anywhere and run ./Hearthpulse; data stays in ./data ---------------
+echo "== Building portable .tar.gz"
+PNAME="Hearthpulse-Portable-$VERSION-linux-$ARCH"
+PPKG="$WORK/$PNAME"
+rm -rf "$PPKG"
+cp -a "$WORK/app" "$PPKG"
+echo "Portable copy: settings and history are kept in the data folder next to this file." > "$PPKG/portable.txt"
+chmod +x "$PPKG/Hearthpulse"
+tar -C "$WORK" -czf "$DIST/$PNAME.tar.gz" "$PNAME"
+echo "wrote $DIST/$PNAME.tar.gz"
+
 # ---- AppImage (optional) ---------------------------------------------------------------------
 if command -v appimagetool >/dev/null; then
   echo "== Building AppImage"

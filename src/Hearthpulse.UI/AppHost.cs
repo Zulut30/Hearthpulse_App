@@ -215,6 +215,14 @@ public sealed class AppHost : IDisposable
                 try
                 {
                     var info = await UpdateService.CheckAsync(Http);
+
+                    // The portable version never installs anything: it only says a new version is out.
+                    if (info is not null && AppPaths.IsPortable)
+                    {
+                        Notification?.Invoke("Hearthpulse update available", $"{info.Version} is out. Download the new portable version from GitHub.");
+                        return;
+                    }
+
                     if (info is not null && await UpdateService.DownloadAsync(Http, info) is not null)
                     {
                         _stagedUpdate = info;
