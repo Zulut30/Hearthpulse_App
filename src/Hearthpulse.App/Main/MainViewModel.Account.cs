@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Windows;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core.Accounts;
@@ -9,9 +10,12 @@ public sealed partial class MainViewModel
     private AccountService? _account;
     private RelayCommand? _signIn;
     private RelayCommand? _cancelSignIn;
+    private RelayCommand? _copyAccountCode;
+    private RelayCommand? _openSignInPage;
     private RelayCommand? _signOut;
     private RelayCommand? _openAccountProfile;
     private CancellationTokenSource? _signInCancel;
+    private DeviceCode? _accountCode;
     private bool _accountWaiting;
     private string _accountMessage = string.Empty;
 
@@ -30,7 +34,12 @@ public sealed partial class MainViewModel
 
     public string AccountName => _account?.User?.DisplayName ?? string.Empty;
 
-    /// <summary>A browser sign-in is under way.</summary>
+    /// <summary>Paid access in one line ("Boosty subscription: Arena, Battlegrounds").</summary>
+    public string AccountSubscription => _account?.Entitlements.Summary ?? string.Empty;
+
+    public bool AccountHasSubscription => _account?.Entitlements.HasAccess == true;
+
+    /// <summary>A sign-in is under way (getting a code, or waiting for the player to confirm it).</summary>
     public bool AccountWaiting
     {
         get => _accountWaiting;
@@ -43,10 +52,18 @@ public sealed partial class MainViewModel
         }
     }
 
+    /// <summary>The code to type on the site has arrived.</summary>
+    public bool AccountHasCode => _accountCode is not null;
+
+    public string AccountUserCode => _accountCode?.UserCode ?? string.Empty;
+
+    /// <summary>Where to type the code: "hearthpulse.net/connect".</summary>
+    public string AccountCodeUri => _accountCode?.DisplayUri ?? string.Empty;
+
     /// <summary>The last error (or confirmation) under the card.</summary>
     public string AccountMessage { get => _accountMessage; private set => Set(ref _accountMessage, value); }
 
-    /// <summary>Opens the browser on hearthpulse.net and waits there for the player.</summary>
+    /// <summary>Gets a code from hearthpulse.net, opens the confirmation page and waits for the player.</summary>
     public RelayCommand SignIn => _signIn ??= new RelayCommand(async () =>
     {
         if (_account is null || AccountWaiting)
@@ -60,16 +77,40 @@ public sealed partial class MainViewModel
         _signInCancel = cancel;
         try
         {
-            AccountMessage = (await _account.SignInAsync(cancel.Token))?.Message ?? string.Empty;
+            var error = await _account.SignInAsync(code => Application.Current?.Dispatcher.BeginInvoke(() => ShowAccountCode(code)), cancel.Token);
+            AccountMessage = error?.Message ?? string.Empty;
         }
         finally
         {
             _signInCancel = null;
+            ShowAccountCode(null);
             AccountWaiting = false;
         }
     });
 
     public RelayCommand CancelSignIn => _cancelSignIn ??= new RelayCommand(() => _signInCancel?.Cancel());
+
+    public RelayCommand CopyAccountCode => _copyAccountCode ??= new RelayCommand(() =>
+    {
+        try
+        {
+            Clipboard.SetText(AccountUserCode);
+            AccountMessage = "Code copied.";
+        }
+        catch (ExternalException)
+        {
+            // Another program holds the clipboard; the code is on screen anyway.
+            AccountMessage = "Couldn't copy the code. Type it in by hand.";
+        }
+    });
+
+    public RelayCommand OpenSignInPage => _openSignInPage ??= new RelayCommand(() =>
+    {
+        if (_accountCode is not null && _account?.OpenSignInPage(_accountCode) == false)
+        {
+            AccountMessage = "Couldn't open your browser. Open " + AccountCodeUri + " yourself.";
+        }
+    });
 
     public RelayCommand SignOut => _signOut ??= new RelayCommand(async () =>
     {
@@ -88,10 +129,20 @@ public sealed partial class MainViewModel
         }
     });
 
+    private void ShowAccountCode(DeviceCode? code)
+    {
+        _accountCode = code;
+        Raise(nameof(AccountHasCode));
+        Raise(nameof(AccountUserCode));
+        Raise(nameof(AccountCodeUri));
+    }
+
     private void RaiseAccount()
     {
         Raise(nameof(AccountSignedIn));
         Raise(nameof(AccountSignedOut));
         Raise(nameof(AccountName));
+        Raise(nameof(AccountSubscription));
+        Raise(nameof(AccountHasSubscription));
     }
 }

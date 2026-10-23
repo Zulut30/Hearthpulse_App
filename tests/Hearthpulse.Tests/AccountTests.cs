@@ -1,6 +1,4 @@
-using System.Buffers.Text;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Hearthpulse.Core.Accounts;
@@ -9,15 +7,16 @@ using Xunit;
 namespace Hearthpulse.Tests;
 
 /// <summary>
-/// Signing in through hearthpulse.net (OIDC, PKCE, loopback redirect) without the network: a fake provider answers
-/// discovery, JWKS, token, userinfo and revocation, and a fake browser follows the authorization URL by calling the
-/// app's loopback listener itself.
+/// Signing in with a hearthpulse.net account through the OAuth device flow, without the network: a fake site answers
+/// device/code, token, revoke and /me, and the polling delay is recorded instead of waited.
 /// </summary>
 public sealed class AccountTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "hp-account-" + Guid.NewGuid().ToString("N"));
-    private readonly FakeProvider _provider = new();
+    private readonly FakeSite _site = new();
     private readonly TokenStore _store;
+    private readonly List<TimeSpan> _delays = [];
+    private readonly List<Uri> _opened = [];
 
     public AccountTests()
     {
@@ -27,124 +26,172 @@ public sealed class AccountTests : IDisposable
 
     public void Dispose() => Directory.Delete(_dir, recursive: true);
 
-    private OidcClient Oidc() => new(new HttpClient(_provider), FakeProvider.Issuer);
+    private AccountClient Client() => new(new HttpClient(_site), FakeSite.Base);
 
-    private AccountService Service(FakeBrowser? browser = null) =>
-        new(Oidc(), _store, (browser ?? new FakeBrowser(_provider)).Open) { SignInTimeout = TimeSpan.FromSeconds(20) };
+    private AccountService Service() => new(Client(), _store, url => { _opened.Add(url); return true; })
+    {
+        Delay = (wait, token) =>
+        {
+            _delays.Add(wait);
+            token.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        },
+    };
+
+    private static double[] Seconds(IEnumerable<TimeSpan> waits) => waits.Select(w => w.TotalSeconds).ToArray();
 
     [Fact]
-    public void Pkce_verifier_is_random_and_the_challenge_is_s256()
+    public async Task Device_flow_shows_the_code_waits_for_confirmation_and_reads_the_profile()
     {
-        var verifier = Pkce.NewVerifier();
+        _site.Polls.Enqueue("authorization_pending");
+        _site.Polls.Enqueue("authorization_pending");
+        var account = Service();
+        DeviceCode? shown = null;
 
-        Assert.Equal(43, verifier.Length);
-        Assert.Matches("^[A-Za-z0-9_-]+$", verifier);
-        Assert.NotEqual(verifier, Pkce.NewVerifier());
-        // RFC 7636 appendix B.
-        Assert.Equal("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", Pkce.Challenge("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"));
+        Assert.Null(await account.SignInAsync(code => shown = code));
+
+        Assert.Equal("ABCD-EFGH", shown!.UserCode);
+        Assert.Equal("site.test/connect", shown.DisplayUri);
+        Assert.Equal("https://site.test/connect/?user_code=ABCD-EFGH", Assert.Single(_opened).AbsoluteUri);
+        Assert.Equal(new[] { 5.0, 5, 5 }, Seconds(_delays));
+        Assert.Equal("Anna", account.User!.DisplayName);
+        Assert.Equal("u-42", account.User.Id);
+        Assert.True(account.Entitlements.Has(Entitlements.Battlegrounds));
+        Assert.Equal("https://site.test/profile/", account.ProfileUrl.AbsoluteUri);
+        Assert.Equal("acc-1", await account.GetAccessTokenAsync());
+        Assert.Equal("ref-1", _store.Load()!.Value.RefreshToken);
+
+        var begin = FakeSite.Form(_site.Bodies("oauth/device/code").Single());
+        Assert.Equal("manacost-tracker", begin["client_id"]);
+        Assert.Equal("profile.read subscription.read catalog.read images.read statistics.read tracker.write", begin["scope"]);
+        var poll = FakeSite.Form(_site.Bodies("oauth/token").Last());
+        Assert.Equal(("urn:ietf:params:oauth:grant-type:device_code", "mca_device_1", "manacost-tracker"),
+            (poll["grant_type"], poll["device_code"], poll["client_id"]));
     }
 
     [Fact]
-    public async Task Authorization_url_asks_for_code_with_pkce_state_and_nonce()
+    public async Task Slow_down_adds_five_seconds_to_the_interval()
     {
-        var endpoints = await Oidc().DiscoverAsync();
+        _site.Polls.Enqueue("slow_down");
+        _site.Polls.Enqueue("authorization_pending");
+        _site.Polls.Enqueue("slow_down");
 
-        var query = FakeProvider.Query(OidcClient.AuthorizationUrl(endpoints, "http://127.0.0.1:5000/callback", "chal", "st", "no").Query);
+        Assert.Null(await Service().SignInAsync(_ => { }));
 
-        Assert.Equal("https://id.test/identity/auth", endpoints.Authorization.AbsoluteUri);
-        Assert.Equal("code", query["response_type"]);
-        Assert.Equal("hearthpulse-desktop", query["client_id"]);
-        Assert.Equal("http://127.0.0.1:5000/callback", query["redirect_uri"]);
-        Assert.Equal("openid profile offline_access", query["scope"]);
-        Assert.Equal("S256", query["code_challenge_method"]);
-        Assert.Equal(("chal", "st", "no"), (query["code_challenge"], query["state"], query["nonce"]));
+        Assert.Equal(new[] { 5.0, 10, 10, 15 }, Seconds(_delays));
+    }
+
+    [Fact]
+    public async Task A_short_outage_while_waiting_is_ridden_out()
+    {
+        _site.Polls.Enqueue("offline");
+        _site.Polls.Enqueue("authorization_pending");
+
+        var account = Service();
+
+        Assert.Null(await account.SignInAsync(_ => { }));
+        Assert.True(account.SignedIn);
     }
 
     [Theory]
-    [InlineData("code=abc&state=s1", null)]
-    [InlineData("code=abc&state=other", "STATE_MISMATCH")]
-    [InlineData("error=access_denied&state=other", "STATE_MISMATCH")]
-    [InlineData("code=abc", "STATE_MISMATCH")]
-    [InlineData("error=access_denied&error_description=End-User+aborted&state=s1", "ACCESS_DENIED")]
-    [InlineData("code=abc&state=s1&iss=https%3A%2F%2Fevil.test%2Fidentity", "ISSUER_MISMATCH")]
-    [InlineData("code=abc&state=s1&iss=https%3A%2F%2Fid.test%2Fidentity", null)]
-    [InlineData("state=s1", "BAD_RESPONSE")]
-    public void Callback_checks_state_first_then_the_answer(string query, string? error)
+    [InlineData("access_denied", "ACCESS_DENIED")]
+    [InlineData("expired_token", "EXPIRED_TOKEN")]
+    [InlineData("invalid_grant", "INVALID_GRANT")]
+    public async Task A_declined_or_expired_code_explains_why(string answer, string code)
     {
-        if (error is null)
-        {
-            Assert.Equal("abc", BrowserSignIn.ParseCallback(query, "s1", FakeProvider.Issuer));
-            return;
-        }
+        _site.Polls.Enqueue("authorization_pending");
+        _site.Polls.Enqueue(answer);
+        var account = Service();
 
-        var ex = Assert.Throws<AccountException>(() => BrowserSignIn.ParseCallback(query, "s1", FakeProvider.Issuer));
-        Assert.Equal(error, ex.Code);
+        var error = await account.SignInAsync(_ => { });
+
+        Assert.Equal(code, error!.Code);
+        Assert.False(string.IsNullOrWhiteSpace(error.Message));
+        Assert.False(account.SignedIn);
+        Assert.Null(_store.Load());
+        Assert.Empty(_site.Bodies("me"));
     }
 
     [Fact]
-    public async Task Browser_sign_in_exchanges_the_code_and_keeps_the_session()
+    public async Task Cancel_stops_waiting()
     {
-        var browser = new FakeBrowser(_provider);
-        var account = Service(browser);
+        using var cancel = new CancellationTokenSource();
+        _site.Polls.Enqueue("authorization_pending");
 
-        Assert.Null(await account.SignInAsync());
+        var error = await Service().SignInAsync(_ => cancel.Cancel(), cancel.Token);
 
-        Assert.Equal(new AccountUser("user-42", "Anna"), account.User);
-        Assert.Contains("Вход выполнен", await browser.Page!);
-        var exchange = FakeProvider.Query(_provider.Bodies("/identity/token").Single());
-        Assert.Equal("authorization_code", exchange["grant_type"]);
-        Assert.Equal(browser.RedirectUri, exchange["redirect_uri"]);
-        Assert.Equal(browser.Challenge, Pkce.Challenge(exchange["code_verifier"]));
-        Assert.Equal("hearthpulse-desktop", exchange["client_id"]);
-        Assert.Matches("^http://127\\.0\\.0\\.1:[0-9]+/callback$", browser.RedirectUri);
-        Assert.Equal("acc-1", await account.GetAccessTokenAsync());
-        Assert.Equal("ref-1", _store.Load()!.Value.RefreshToken);
-        Assert.Equal("Anna", _store.Load()!.Value.User.DisplayName);
+        Assert.Equal("CANCELLED", error!.Code);
+        Assert.Empty(_site.Bodies("oauth/token"));
+    }
+
+    [Fact]
+    public async Task An_unknown_client_says_sign_in_is_not_available()
+    {
+        _site.BeginStatus = 400;
+
+        var error = await Service().SignInAsync(_ => { });
+
+        Assert.Equal("INVALID_REQUEST", error!.Code);
+        Assert.Contains("isn't available", error.Message, StringComparison.Ordinal);
+        Assert.Empty(_opened);
+    }
+
+    [Fact]
+    public async Task A_plain_http_code_page_is_refused()
+    {
+        _site.VerificationUri = "http://site.test/connect/";
+
+        var error = await Service().SignInAsync(_ => { });
+
+        Assert.Equal("BAD_RESPONSE", error!.Code);
+        Assert.Empty(_opened);
     }
 
     [Fact]
     public async Task Refresh_tokens_rotate_and_the_new_one_is_saved()
     {
-        _provider.ExpiresIn = 1;
+        _site.ExpiresIn = 1;
         var account = Service();
-        await account.SignInAsync();
+        await account.SignInAsync(_ => { });
 
         Assert.Equal("acc-2", await account.GetAccessTokenAsync());
         Assert.Equal("ref-2", _store.Load()!.Value.RefreshToken);
         Assert.Equal("acc-3", await account.GetAccessTokenAsync());
 
-        var refreshes = _provider.Bodies("/identity/token").Skip(1).Select(b => FakeProvider.Query(b)["refresh_token"]).ToList();
+        var refreshes = _site.Bodies("oauth/token").Select(FakeSite.Form).Where(f => f["grant_type"] == "refresh_token").Select(f => f["refresh_token"]);
         Assert.Equal(new[] { "ref-1", "ref-2" }, refreshes);
         Assert.Equal("ref-3", _store.Load()!.Value.RefreshToken);
     }
 
     [Fact]
-    public async Task Restore_refreshes_the_saved_session_and_picks_up_a_new_name()
+    public async Task Restore_refreshes_the_session_and_picks_up_a_new_name_and_subscription()
     {
-        _provider.Issue("ref-saved");
-        _store.Save("ref-saved", new AccountUser("user-42", "Old name"));
-        _provider.Name = "Anna";
+        _site.Issue("ref-saved");
+        _store.Save("ref-saved", new AccountUser("u-42", "Old name", Entitlements.None));
 
         var account = Service();
         await account.RestoreAsync();
 
-        Assert.True(account.SignedIn);
         Assert.Equal("Anna", account.User!.DisplayName);
+        Assert.True(account.Entitlements.HasAccess);
         Assert.Equal("ref-1", _store.Load()!.Value.RefreshToken);
+        Assert.True(_store.Load()!.Value.User.Entitlements.Has(Entitlements.Arena));
     }
 
     [Fact]
-    public async Task Restore_keeps_an_offline_session_but_forgets_a_rejected_one()
+    public async Task Restore_keeps_an_offline_session_with_its_subscription_but_forgets_a_rejected_one()
     {
-        _store.Save("ref-gone", new AccountUser("user-42", "Anna"));
+        var paid = new Entitlements(true, ["boosty"], [Entitlements.Arena], false, new DateTime(2026, 10, 20, 0, 0, 0, DateTimeKind.Utc));
+        _store.Save("ref-gone", new AccountUser("u-42", "Anna", paid));
 
-        _provider.Offline = true;
+        _site.Offline = true;
         var offline = Service();
         await offline.RestoreAsync();
         Assert.True(offline.SignedIn);
-        Assert.NotNull(_store.Load());
+        Assert.True(offline.Entitlements.Has(Entitlements.Arena));
+        Assert.Equal(paid.CheckedAt, offline.Entitlements.CheckedAt);
 
-        _provider.Offline = false;
+        _site.Offline = false;
         var rejected = Service();
         await rejected.RestoreAsync();
         Assert.False(rejected.SignedIn);
@@ -155,23 +202,23 @@ public sealed class AccountTests : IDisposable
     public async Task Sign_out_revokes_the_refresh_token_and_forgets_the_session()
     {
         var account = Service();
-        await account.SignInAsync();
+        await account.SignInAsync(_ => { });
 
         await account.SignOutAsync();
 
         Assert.False(account.SignedIn);
+        Assert.Same(Entitlements.None, account.Entitlements);
         Assert.Null(_store.Load());
         Assert.Null(await account.GetAccessTokenAsync());
-        var revoke = FakeProvider.Query(_provider.Bodies("/identity/token/revocation").Single());
-        Assert.Equal(("ref-1", "refresh_token", "hearthpulse-desktop"), (revoke["token"], revoke["token_type_hint"], revoke["client_id"]));
+        Assert.Equal("ref-1", FakeSite.Form(_site.Bodies("oauth/revoke").Single())["token"]);
     }
 
     [Fact]
     public async Task Sign_out_offline_still_forgets_the_session()
     {
         var account = Service();
-        await account.SignInAsync();
-        _provider.Offline = true;
+        await account.SignInAsync(_ => { });
+        _site.Offline = true;
 
         await account.SignOutAsync();
 
@@ -180,158 +227,85 @@ public sealed class AccountTests : IDisposable
     }
 
     [Fact]
-    public async Task Declining_in_the_browser_explains_why()
+    public void Me_parses_the_profile_and_paid_access()
     {
-        var browser = new FakeBrowser(_provider) { Answer = state => $"error=access_denied&state={state}" };
-        var account = Service(browser);
+        using var doc = JsonDocument.Parse("""
+            {"user": {"id": "u-7", "publicProfileId": "p", "profileUrl": "https://hearthpulse.net/profile/", "email": "a@b.c",
+                      "name": " Zulut ", "avatarInitials": "ZU"},
+             "subscription": {"hasAccess": true, "source": "boosty,patreon", "checkedAt": "2026-10-23T10:00:00.000Z", "stale": false,
+                              "entitlements": {"arena": true, "battlegrounds": true, "standard": false, "contests": false,
+                                               "guidesArchive": true, "arenaArticles": false, "battlegroundsArticles": false}}}
+            """);
 
-        var error = await account.SignInAsync();
+        var (user, profile) = AccountClient.ParseMe(doc.RootElement);
 
-        Assert.Equal("ACCESS_DENIED", error!.Code);
-        Assert.False(string.IsNullOrWhiteSpace(error.Message));
-        Assert.False(account.SignedIn);
-        Assert.Contains("Войти не получилось", await browser.Page!);
-        Assert.Empty(_provider.Bodies("/identity/token"));
+        Assert.Equal(("u-7", "Zulut"), (user.Id, user.DisplayName));
+        Assert.Equal("https://hearthpulse.net/profile/", profile!.AbsoluteUri);
+        var access = user.Entitlements;
+        Assert.True(access.Boosty && access.Patreon && !access.Stale);
+        Assert.True(access.Has(Entitlements.Arena) && access.Has(Entitlements.GuidesArchive));
+        Assert.False(access.Has(Entitlements.Standard));
+        Assert.Equal(new DateTime(2026, 10, 23, 10, 0, 0, DateTimeKind.Utc), access.CheckedAt);
+        Assert.Equal("Boosty + Patreon subscription: Arena, Battlegrounds, Guides archive", access.Summary);
+    }
+
+    [Theory]
+    [InlineData("""{"hasAccess": false, "source": "none", "checkedAt": null, "stale": true, "entitlements": {"arena": false}}""")]
+    [InlineData("""{"hasAccess": true, "source": "boosty", "entitlements": {}}""")]
+    [InlineData("""{"hasAccess": "yes", "entitlements": {"arena": "true"}}""")]
+    [InlineData("null")]
+    public void Missing_or_unconfirmed_subscription_means_no_paid_access(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+
+        var access = Entitlements.Parse(doc.RootElement);
+
+        Assert.False(access.HasAccess);
+        Assert.False(access.Has(Entitlements.Arena));
+        Assert.Equal("No paid subscription", access.Summary);
     }
 
     [Fact]
-    public async Task A_redirect_for_another_attempt_is_refused()
+    public void Every_section_reads_as_all_sections()
     {
-        var browser = new FakeBrowser(_provider) { Answer = _ => "code=code-1&state=forged" };
+        using var doc = JsonDocument.Parse("""
+            {"hasAccess": true, "source": "telegram", "stale": false, "entitlements": {"arena": true, "battlegrounds": true, "standard": true,
+             "contests": true, "guidesArchive": true, "arenaArticles": true, "battlegroundsArticles": true}}
+            """);
 
-        var error = await Service(browser).SignInAsync();
-
-        Assert.Equal("STATE_MISMATCH", error!.Code);
-        Assert.Empty(_provider.Bodies("/identity/token"));
+        Assert.Equal("Telegram subscription: all sections", Entitlements.Parse(doc.RootElement).Summary);
     }
 
-    [Fact]
-    public async Task Waiting_ends_on_cancel_and_on_timeout()
+    [Theory]
+    [InlineData(400, """{"error":"slow_down"}""", "SLOW_DOWN")]
+    [InlineData(400, """{"error":"authorization_pending"}""", "AUTHORIZATION_PENDING")]
+    [InlineData(401, """{"error":{"code":"INVALID_ACCESS_TOKEN","message":"Access token is invalid or expired"}}""", "INVALID_ACCESS_TOKEN")]
+    [InlineData(403, """{"error":{"code":"INSUFFICIENT_SCOPE","message":"x"}}""", "INSUFFICIENT_SCOPE")]
+    [InlineData(429, """{"error":"temporarily_unavailable"}""", "TEMPORARILY_UNAVAILABLE")]
+    [InlineData(404, "", "NOT_AVAILABLE")]
+    [InlineData(502, "<html>bad gateway</html>", "SERVER_ERROR")]
+    public void Errors_parse_from_both_envelopes(int status, string body, string code) =>
+        Assert.Equal(code, Assert.Throws<AccountException>(() => AccountClient.Parse(status, body)).Code);
+
+    /// <summary>The site's application API in miniature, answering by path under <see cref="Base"/>.</summary>
+    private sealed class FakeSite : HttpMessageHandler
     {
-        var silent = new FakeBrowser(_provider) { Answer = null };
-        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
-        Assert.Equal("CANCELLED", (await Service(silent).SignInAsync(cancel.Token))!.Code);
-
-        var impatient = new AccountService(Oidc(), _store, silent.Open) { SignInTimeout = TimeSpan.FromMilliseconds(200) };
-        Assert.Equal("TIMEOUT", (await impatient.SignInAsync())!.Code);
-    }
-
-    [Fact]
-    public async Task An_unregistered_client_says_sign_in_is_not_open_yet()
-    {
-        var browser = new FakeBrowser(_provider) { Answer = state => $"error=unauthorized_client&state={state}" };
-
-        var error = await Service(browser).SignInAsync();
-
-        Assert.Equal("UNAUTHORIZED_CLIENT", error!.Code);
-        Assert.Contains("isn't open", error.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Id_tokens_are_checked_for_signature_issuer_audience_expiry_and_nonce()
-    {
-        var oidc = Oidc();
-        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        object Claims(string iss = FakeProvider.Issuer, object? aud = null, long? exp = null, string nonce = "n1") =>
-            new { iss, aud = aud ?? "hearthpulse-desktop", sub = "user-42", exp = exp ?? now + 300, iat = now, nonce };
-
-        Assert.Equal("user-42", (await oidc.ValidateIdTokenAsync(_provider.Sign(Claims()), "n1")).Subject);
-        using var stranger = RSA.Create(2048);
-        await AssertBad(FakeProvider.Sign(Claims(), stranger, "k1"));
-        await AssertBad(_provider.Sign(Claims(iss: "https://evil.test/identity")));
-        await AssertBad(_provider.Sign(Claims(aud: "someone-else")));
-        await AssertBad(_provider.Sign(Claims(aud: new[] { "hearthpulse-desktop", "other" })));
-        await AssertBad(_provider.Sign(Claims(exp: now - 600)));
-        await AssertBad(_provider.Sign(Claims(nonce: "n2")));
-        await AssertBad(Unsigned(Claims()));
-        await AssertBad("not-a-jwt");
-
-        async Task AssertBad(string token) =>
-            Assert.Equal("BAD_TOKEN", (await Assert.ThrowsAsync<AccountException>(() => oidc.ValidateIdTokenAsync(token, "n1"))).Code);
-
-        static string Unsigned(object claims) =>
-            FakeProvider.Encode(new { alg = "none" }) + "." + FakeProvider.Encode(claims) + ".";
-    }
-
-    [Fact]
-    public async Task Discovery_is_cached_and_must_name_the_issuer()
-    {
-        var oidc = Oidc();
-        await oidc.DiscoverAsync();
-        await oidc.DiscoverAsync();
-        Assert.Single(_provider.Bodies("/identity/.well-known/openid-configuration"));
-
-        var lookalike = new OidcClient(new HttpClient(_provider), "https://id.test/identity2");
-        Assert.Equal("NOT_AVAILABLE", (await Assert.ThrowsAsync<AccountException>(() => lookalike.DiscoverAsync())).Code);
-        _provider.DiscoveryIssuer = "https://evil.test/identity";
-        var mismatched = new OidcClient(new HttpClient(_provider), FakeProvider.Issuer);
-        Assert.Equal("BAD_RESPONSE", (await Assert.ThrowsAsync<AccountException>(() => mismatched.DiscoverAsync())).Code);
-    }
-
-    [Fact]
-    public void Profile_link_points_at_the_site()
-    {
-        Assert.Equal("https://hearthpulse.net/profile", new OidcClient(new HttpClient(), OidcClient.DefaultIssuer).ProfileUrl.AbsoluteUri);
-    }
-
-    /// <summary>Follows the authorization URL like a browser where the player at once agrees (or as told by <see cref="Answer"/>).</summary>
-    private sealed class FakeBrowser(FakeProvider provider)
-    {
-        /// <summary>The redirect query for a given state; null = the player never comes back.</summary>
-        public Func<string, string>? Answer { get; init; } = state => $"code={provider.NextCode}&state={state}&iss={Uri.EscapeDataString(FakeProvider.Issuer)}";
-
-        public string RedirectUri { get; private set; } = string.Empty;
-
-        public string Challenge { get; private set; } = string.Empty;
-
-        public Task<string>? Page { get; private set; }
-
-        public bool Open(Uri url)
-        {
-            var query = FakeProvider.Query(url.Query);
-            RedirectUri = query["redirect_uri"];
-            Challenge = query["code_challenge"];
-            provider.Authorize(query);
-            if (Answer is not null)
-            {
-                var target = RedirectUri + "?" + Answer(query["state"]);
-                Page = Task.Run(async () =>
-                {
-                    using var http = new HttpClient(new SocketsHttpHandler { UseProxy = false });
-                    // A stray request first: the listener must answer 404 and keep waiting for /callback.
-                    using (await http.GetAsync(RedirectUri.Replace("/callback", "/favicon.ico", StringComparison.Ordinal)))
-                    {
-                    }
-
-                    return await http.GetStringAsync(target);
-                });
-            }
-
-            return true;
-        }
-    }
-
-    /// <summary>The HeartPulse provider in miniature, answering by request path.</summary>
-    private sealed class FakeProvider : HttpMessageHandler
-    {
-        public const string Issuer = "https://id.test/identity";
-        private readonly RSA _key = RSA.Create(2048);
+        public const string Base = "https://site.test/api/v1/";
         private readonly List<(string Path, string Body)> _requests = [];
         private readonly HashSet<string> _refreshTokens = [];
         private readonly HashSet<string> _accessTokens = [];
-        private string? _nonce;
-        private string? _challenge;
         private int _issued;
+
+        /// <summary>Answers to the next device-code polls; once empty the player has confirmed. "offline" drops the request.</summary>
+        public Queue<string> Polls { get; } = new();
 
         public bool Offline { get; set; }
 
-        public int ExpiresIn { get; set; } = 300;
+        public int BeginStatus { get; set; } = 200;
 
-        public string Name { get; set; } = "Anna";
+        public string VerificationUri { get; set; } = "https://site.test/connect/";
 
-        public string DiscoveryIssuer { get; set; } = Issuer;
-
-        public string NextCode => "code-1";
+        public int ExpiresIn { get; set; } = 900;
 
         public IEnumerable<string> Bodies(string path)
         {
@@ -341,24 +315,14 @@ public sealed class AccountTests : IDisposable
             }
         }
 
-        public void Authorize(Dictionary<string, string> query) => (_nonce, _challenge) = (query["nonce"], query["code_challenge"]);
-
-        /// <summary>Makes <paramref name="refreshToken"/> one the provider accepts (a session from an earlier start).</summary>
+        /// <summary>Makes <paramref name="refreshToken"/> one the site accepts (a session from an earlier start).</summary>
         public void Issue(string refreshToken) => _refreshTokens.Add(refreshToken);
 
-        public string Sign(object claims) => Sign(claims, _key, "k1");
+        public static Dictionary<string, string> Form(string body) =>
+            body.Split('&', StringSplitOptions.RemoveEmptyEntries).Select(p => p.Split('=', 2))
+                .ToDictionary(p => Decode(p[0]), p => p.Length > 1 ? Decode(p[1]) : string.Empty);
 
-        public static string Sign(object claims, RSA key, string kid)
-        {
-            var signed = Encode(new { alg = "RS256", kid, typ = "JWT" }) + "." + Encode(claims);
-            return signed + "." + Base64Url.EncodeToString(key.SignData(Encoding.ASCII.GetBytes(signed), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1));
-        }
-
-        public static string Encode(object value) => Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(value));
-
-        public static Dictionary<string, string> Query(string query) =>
-            query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries).Select(p => p.Split('=', 2))
-                .ToDictionary(p => Uri.UnescapeDataString(p[0].Replace('+', ' ')), p => p.Length > 1 ? Uri.UnescapeDataString(p[1].Replace('+', ' ')) : string.Empty);
+        private static string Decode(string value) => Uri.UnescapeDataString(value.Replace('+', ' '));
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -367,69 +331,74 @@ public sealed class AccountTests : IDisposable
                 throw new HttpRequestException("offline");
             }
 
-            var path = request.RequestUri!.AbsolutePath;
+            var path = request.RequestUri!.AbsolutePath["/api/v1/".Length..];
             var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
             lock (_requests)
             {
                 _requests.Add((path, body));
             }
 
-            var form = Query(body);
-            var p = _key.ExportParameters(false);
+            var form = Form(body);
             return path switch
             {
-                "/identity/.well-known/openid-configuration" => Json(200, new
+                "oauth/device/code" when BeginStatus != 200 => Json(BeginStatus, new { error = "invalid_request" }),
+                "oauth/device/code" => Json(200, new
                 {
-                    issuer = DiscoveryIssuer,
-                    authorization_endpoint = Issuer + "/auth",
-                    token_endpoint = Issuer + "/token",
-                    jwks_uri = Issuer + "/jwks",
-                    userinfo_endpoint = Issuer + "/me",
-                    revocation_endpoint = Issuer + "/token/revocation",
+                    device_code = "mca_device_1",
+                    user_code = "ABCD-EFGH",
+                    verification_uri = VerificationUri,
+                    verification_uri_complete = VerificationUri + "?user_code=ABCD-EFGH",
+                    expires_in = 600,
+                    interval = 5,
                 }),
-                "/identity/jwks" => Json(200, new
+                "oauth/token" => Token(form),
+                "oauth/revoke" => Revoke(form),
+                "me" when request.Headers.Authorization?.Parameter is { } bearer && _accessTokens.Contains(bearer) => Json(200, new
                 {
-                    keys = new[] { new { kty = "RSA", kid = "k1", use = "sig", alg = "RS256", n = Base64Url.EncodeToString(p.Modulus), e = Base64Url.EncodeToString(p.Exponent) } },
+                    user = new { id = "u-42", publicProfileId = "", profileUrl = "https://site.test/profile/", email = "a@b.c", name = "Anna", avatarInitials = "AN" },
+                    subscription = new
+                    {
+                        hasAccess = true, source = "boosty", checkedAt = "2026-10-23T10:00:00.000Z", stale = false,
+                        entitlements = new { arena = true, battlegrounds = true, standard = false, contests = false, guidesArchive = false, arenaArticles = false, battlegroundsArticles = false },
+                    },
                 }),
-                "/identity/token" => Token(form),
-                "/identity/me" when request.Headers.Authorization?.Parameter is { } bearer && _accessTokens.Contains(bearer) =>
-                    Json(200, new { sub = "user-42", name = Name }),
-                "/identity/me" => Json(401, new { error = "invalid_token" }),
-                "/identity/token/revocation" => Revoke(form),
+                "me" => Json(401, new { error = new { code = "INVALID_ACCESS_TOKEN", message = "Access token is invalid or expired" } }),
                 _ => new HttpResponseMessage(HttpStatusCode.NotFound),
             };
         }
 
         private HttpResponseMessage Token(Dictionary<string, string> form)
         {
-            string? nonce = null;
+            if (form.GetValueOrDefault("client_id") != AccountClient.ClientId)
+            {
+                return Json(400, new { error = "invalid_grant" });
+            }
+
             switch (form.GetValueOrDefault("grant_type"))
             {
-                case "authorization_code" when form.GetValueOrDefault("code") == NextCode
-                    && form.TryGetValue("code_verifier", out var verifier) && Pkce.Challenge(verifier) == _challenge:
-                    nonce = _nonce;
+                case AccountClient.DeviceGrant when form.GetValueOrDefault("device_code") == "mca_device_1":
+                    if (Polls.TryDequeue(out var answer))
+                    {
+                        return answer == "offline" ? throw new HttpRequestException("offline") : Json(400, new { error = answer });
+                    }
+
                     break;
-                case "refresh_token" when form.TryGetValue("refresh_token", out var refresh) && _refreshTokens.Remove(refresh):
+                case "refresh_token" when _refreshTokens.Remove(form.GetValueOrDefault("refresh_token") ?? string.Empty):
                     break;
                 default:
-                    return Json(400, new { error = "invalid_grant", error_description = "grant request is invalid" });
+                    return Json(400, new { error = "invalid_grant" });
             }
 
             var n = ++_issued;
             _refreshTokens.Add($"ref-{n}");
             _accessTokens.Add($"acc-{n}");
-            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var idToken = Sign(new Dictionary<string, object?>
-            {
-                ["iss"] = Issuer, ["aud"] = "hearthpulse-desktop", ["sub"] = "user-42", ["iat"] = now, ["exp"] = now + 300, ["nonce"] = nonce,
-            }.Where(c => c.Value is not null).ToDictionary());
-            return Json(200, new { access_token = $"acc-{n}", token_type = "Bearer", expires_in = ExpiresIn, refresh_token = $"ref-{n}", id_token = idToken, scope = OidcClient.Scope });
+            return Json(200, new { access_token = $"acc-{n}", refresh_token = $"ref-{n}", token_type = "Bearer", expires_in = ExpiresIn, scope = AccountClient.Scope });
         }
 
         private HttpResponseMessage Revoke(Dictionary<string, string> form)
         {
             _refreshTokens.Remove(form.GetValueOrDefault("token") ?? string.Empty);
-            return new HttpResponseMessage(HttpStatusCode.OK);
+            return Json(200, new { });
         }
 
         private static HttpResponseMessage Json(int status, object value) =>

@@ -1,109 +1,115 @@
-# Hearthpulse accounts — sign-in through hearthpulse.net (OpenID Connect)
+# Hearthpulse accounts — sign-in with a hearthpulse.net account (OAuth device flow)
 
-A Hearthpulse account is the player's account on the HeartPulse site. The apps never ask for a password: they open
-the system browser on the site's OpenID Connect provider and receive the result on a loopback redirect
-(RFC 8252, "OAuth 2.0 for Native Apps"). Code: `src/Hearthpulse.Core/Accounts/`.
+A Hearthpulse account is the player's account on the HeartPulse site. The apps never ask for a password: they use the
+site's application API with the OAuth 2.0 Device Authorization Grant (RFC 8628). The app shows a short code, the
+player confirms it on hearthpulse.net/connect in the browser, the app polls until the site answers.
+Code: `src/Hearthpulse.Core/Accounts/`.
 
 | File | Role |
 |---|---|
-| `OidcClient.cs` | Discovery (cached 12 h), authorization URL, token exchange/refresh, userinfo, revocation, id_token check |
-| `BrowserSignIn.cs` | One browser sign-in: loopback listener, browser, `state` check, code exchange, profile; `SystemBrowser` |
-| `LoopbackListener.cs` | `TcpListener` on `127.0.0.1:{free port}`, answers one `GET /callback` |
-| `CallbackPage.cs` | The self-contained page the browser shows afterwards ("Можно вернуться в приложение") |
-| `Pkce.cs` | Code verifier, S256 challenge, `state`/`nonce` |
-| `AccountService.cs` | Session for the UI: sign in, restore at start, access tokens, sign out |
-| `TokenStore.cs` | Refresh token + profile on disk (DPAPI on Windows, owner-only file elsewhere) |
+| `AccountClient.cs` | HTTP: device code, token polling and refresh, revoke, `/me`; error envelopes |
+| `AccountService.cs` | Session for the UI: sign in (poll loop), restore at start, access tokens, sign out |
+| `Entitlements.cs` | Paid access from `/me` (`subscription`): providers, sections, `Has(section)`, `Summary` |
+| `TokenStore.cs` | Refresh token, profile and last known paid access on disk (DPAPI on Windows, owner-only file elsewhere) |
+| `SystemBrowser.cs` | Opens a URL in the default browser (`UseShellExecute` / `open` / `xdg-open`) |
 
-## Provider contract
+Site code (reference): `server/modules/applicationAuth/` (`routes.ts`, `model.ts`, `contracts.ts`, `scopes.ts`),
+`server/app/registerApplicationAuth.ts`, `server/app/applicationAuthProfile.ts`; spec `docs/specs/tracker-ingestion.md`.
+
+## Contract
 
 | | |
 |---|---|
-| Issuer | `https://hearthpulse.net/identity` (`HEARTHPULSE_ISSUER` overrides it for a test site) |
-| Discovery | `{issuer}/.well-known/openid-configuration`; `issuer` in the document must equal the issuer exactly |
-| Client | `client_id=hearthpulse-desktop`, public native client, no secret (`token_endpoint_auth_method=none`) |
-| Grant | authorization code + PKCE `S256`; `refresh_token` |
-| Redirect | `http://127.0.0.1:{port}/callback`, port chosen per sign-in (RFC 8252 7.3: the provider must ignore the port) |
-| Scopes | `openid profile offline_access`, sent with `prompt=consent` (OIDC Core 11) |
-| Profile | `sub` (account id) and `name` (display name) |
-| id_token | signed `RS256` or `ES256`, keys from `jwks_uri` |
+| Base | `https://hearthpulse.net/api/v1/` (`HEARTHPULSE_SITE_API` overrides it for a test site) |
+| Client | `client_id=manacost-tracker`, public, no secret |
+| Scopes | `profile.read subscription.read catalog.read images.read statistics.read tracker.write` |
+| Bodies | `application/x-www-form-urlencoded`; answers JSON, `Cache-Control: private, no-store` |
+| Lifetimes | device code 10 min, poll interval 5 s, access token 15 min, refresh token 30 days from the first sign-in |
 
-Endpoints used from discovery: `authorization_endpoint`, `token_endpoint`, `jwks_uri`, `userinfo_endpoint`,
-`revocation_endpoint` (optional: without it sign-out is local only). Endpoints must be `https` (plain `http` only
-for an issuer on this machine).
+| Method | Path | Body | Success |
+|---|---|---|---|
+| POST | `oauth/device/code` | `client_id`, `scope` | `device_code`, `user_code` (`ABCD-EFGH`), `verification_uri` (`https://hearthpulse.net/connect/`), `verification_uri_complete` (`…/connect/?user_code=ABCD-EFGH`), `expires_in`, `interval` |
+| POST | `oauth/token` | `grant_type=urn:ietf:params:oauth:grant-type:device_code`, `device_code`, `client_id` | `access_token`, `refresh_token`, `token_type=Bearer`, `expires_in`, `scope` |
+| POST | `oauth/token` | `grant_type=refresh_token`, `refresh_token`, `client_id` | same; the refresh token is rotated |
+| POST | `oauth/revoke` | `token` (the refresh token) | `{}`; ends the whole token family |
+| GET | `me` | `Authorization: Bearer <access_token>` (needs `profile.read subscription.read`) | `{"user": {...}, "subscription": {...}}` |
+
+Errors: the OAuth endpoints answer `400 {"error": "<code>"}` (`authorization_pending`, `slow_down`, `access_denied`,
+`expired_token`, `invalid_grant`, `invalid_request`, `unsupported_grant_type`), rate limits `429` and outages `503`
+answer `{"error": "temporarily_unavailable"}`. `/me` answers `{"error": {"code", "message"}}`: `401
+INVALID_ACCESS_TOKEN`, `403 INSUFFICIENT_SCOPE`. Rate limits per IP over 15 minutes: device/code 20, token 240,
+revoke 60.
+
+`/me`:
+
+```json
+{"user": {"id": "…", "publicProfileId": "…", "profileUrl": "https://hearthpulse.net/profile/", "email": "…",
+          "name": "…", "avatarInitials": "ZU"},
+ "subscription": {"hasAccess": true, "source": "boosty,patreon", "checkedAt": "2026-10-23T10:00:00.000Z",
+                  "stale": false,
+                  "entitlements": {"arena": true, "battlegrounds": true, "standard": false, "contests": false,
+                                   "guidesArchive": true, "arenaArticles": false, "battlegroundsArticles": false}}}
+```
+
+The app keeps `id`, `name` and `profileUrl` (email is not stored). `source` lists the providers that grant access
+(`boosty`, `patreon`, `telegram`; `none` without access).
 
 ## Sign-in
 
-1. Discovery (from cache when fresh).
-2. Fresh `code_verifier` (32 random bytes, base64url), `code_challenge = base64url(SHA-256(verifier))`, random
-   `state` and `nonce`.
-3. Listen on `127.0.0.1`, port 0 (the OS picks a free one). Only the loopback interface, so nothing else on the
-   network can answer the redirect.
-4. Open the system browser (`UseShellExecute` on Windows, `open` on macOS, `xdg-open` on Linux) at
-
-   ```
-   {authorization_endpoint}?response_type=code&client_id=hearthpulse-desktop
-     &redirect_uri=http%3A%2F%2F127.0.0.1%3A{port}%2Fcallback&scope=openid%20profile%20offline_access
-     &state=…&nonce=…&code_challenge=…&code_challenge_method=S256&prompt=consent
-   ```
-
-5. The player signs in on the site (if not already) and confirms. The provider redirects to
-   `http://127.0.0.1:{port}/callback?code=…&state=…[&iss=…]` or `?error=access_denied&state=…`.
-   Requests to other paths get 404 and the wait goes on. The wait ends after 5 minutes or when the player presses
-   "Cancel" in the app.
-6. Checks, in this order: `state` equals ours (otherwise the redirect is ignored whatever it says); `iss`, if present
-   (RFC 9207), equals the issuer; then `error`; then `code`.
-7. `POST {token_endpoint}` (form): `grant_type=authorization_code&code&redirect_uri&code_verifier&client_id`.
-8. id_token: signature by the JWKS key named by `kid` (the JWKS is reloaded once for an unknown key, to follow key
-   rotation; `none` and HMAC are refused), `iss`, `aud` contains `hearthpulse-desktop` (`azp` too when there are
-   several audiences), `exp`/`iat` with 2 minutes of clock skew, `nonce` equals ours.
-9. `GET {userinfo_endpoint}` with the access token for `name` (in the code flow the provider keeps profile claims out
-   of the id_token); its `sub` must equal the id_token's.
-10. Only now the browser tab is answered: "Вход выполнен — можно вернуться в приложение" or "Войти не получилось".
-    The refresh token and profile are saved.
+1. `POST oauth/device/code`. `verification_uri` must be https (plain http only on this machine).
+2. The card shows the code large with a "Copy" button and "Open hearthpulse.net/connect and enter the code"; the app
+   opens `verification_uri_complete` (or `verification_uri`) in the browser itself. If the browser does not open, the
+   player follows the address on the card.
+3. Poll `POST oauth/token` every `interval` seconds:
+   - `authorization_pending` — keep waiting;
+   - `slow_down` — add 5 s to the interval (RFC 8628 3.5; the site adds the same on its side);
+   - offline, `5xx`, `temporarily_unavailable` — keep waiting with 5 s more, until the code expires;
+   - `access_denied`, `expired_token`, `invalid_grant` — stop and explain;
+   - the code's `expires_in` passed locally — stop as expired;
+   - "Cancel" in the app — stop (the code then expires on the site by itself).
+4. Tokens → `GET me` → profile and paid access → the refresh token, profile and access are saved.
 
 ## Session
 
-- Access tokens stay in memory and are renewed 30 s before `expires_in` runs out.
-- `POST {token_endpoint}`: `grant_type=refresh_token&refresh_token&client_id`. Refresh tokens rotate: the new one in
-  the answer replaces the stored one immediately. Token requests are serialised, because presenting a rotated-out
-  refresh token makes the provider revoke the whole grant.
-- At start the saved session is refreshed and the profile re-read (a renamed profile shows up). Offline, a server
-  error, rate limiting or an unexpected answer keep the saved session; an OAuth rejection (`invalid_grant`...)
+- Access tokens stay in memory and are renewed a minute before `expires_in` runs out.
+- Refresh tokens rotate: the new one replaces the stored one immediately. Token requests are serialised, because
+  presenting a rotated-out refresh token makes the site revoke the whole token family.
+- At start the saved session is refreshed and `/me` re-read (new name, changed subscription). Offline, a server error,
+  rate limiting or an unexpected answer keep the saved session with its last known paid access; `invalid_grant`
   forgets it.
-- Sign-out forgets the session locally first, then `POST {revocation_endpoint}`
-  `token={refresh_token}&token_type_hint=refresh_token&client_id` (best effort). With `revokeGrantPolicy` the
-  provider ends the whole grant.
+- Sign-out forgets the session locally first, then `POST oauth/revoke` with the refresh token (best effort).
+
+## Paid access (`Entitlements`)
+
+`AccountService.Entitlements` (`Entitlements.None` when signed out) is what paywalls in the app read:
+`Has(Entitlements.Arena | Battlegrounds | Standard | Contests | GuidesArchive | ArenaArticles |
+BattlegroundsArticles)`, `HasAccess`, `Boosty`, `Patreon`, `Stale`, `CheckedAt`. A missing or malformed
+`subscription`, `hasAccess` without any `true` section, or a non-boolean value counts as no access (fail closed).
+After an offline start the last known access is shown with its `CheckedAt`; a paywall that must be strict can
+require `!Stale` and a recent `CheckedAt`.
 
 ## Errors shown to the player
 
 | Code | When | Message (account card) |
 |---|---|---|
 | `CANCELLED` | "Cancel" pressed | Sign-in cancelled. |
-| `TIMEOUT` | no redirect within 5 minutes | Sign-in timed out… |
-| `ACCESS_DENIED` | player pressed "Отмена" on the site | Sign-in was declined in the browser. |
-| `STATE_MISMATCH`, `ISSUER_MISMATCH` | redirect for another attempt / provider | The browser answered for a different sign-in attempt… |
-| `INVALID_CLIENT`, `UNAUTHORIZED_CLIENT`, `INVALID_SCOPE`, `INVALID_REQUEST`, `NOT_AVAILABLE` (404) | client not registered on the site yet | Signing in from the app isn't open on hearthpulse.net yet… |
-| `INVALID_GRANT` | refresh token revoked/expired | Your session has ended. Sign in again. |
-| `OFFLINE`, `SERVER_ERROR`, `RATE_LIMITED` | network / site trouble | connection / try later / wait a minute |
-| `BAD_RESPONSE`, `BAD_TOKEN` | malformed answer, bad id_token | hearthpulse.net sent an answer the app can't trust… |
-| `BROWSER_FAILED` | no browser could be started | Couldn't open your browser… |
-
-## What the provider has to allow for this client
-
-The site registers `hearthpulse-desktop` as a native public client: `application_type=native`,
-`token_endpoint_auth_method=none`, `redirect_uris=["http://127.0.0.1/callback"]` (any port, RFC 8252 7.3),
-`grant_types=["authorization_code","refresh_token"]`, `response_types=["code"]`, and lets it be granted
-`offline_access`. The consent page's form must be allowed to post to and redirect to `http://127.0.0.1:*`
-(`form-action` in its CSP).
+| `ACCESS_DENIED` | player declined on the site, or the account is blocked | Sign-in was declined on hearthpulse.net. |
+| `EXPIRED_TOKEN` | code not confirmed within 10 minutes | The code expired before it was confirmed… |
+| `INVALID_REQUEST`, `INVALID_CLIENT`, `UNSUPPORTED_GRANT_TYPE`, `NOT_AVAILABLE` (404) | client or scope not accepted | Signing in from the app isn't available on hearthpulse.net right now… |
+| `INVALID_GRANT`, `INVALID_ACCESS_TOKEN` | session revoked or expired | The sign-in has ended. Sign in again. |
+| `INSUFFICIENT_SCOPE` | token without profile/subscription scopes | hearthpulse.net didn't grant the access the app needs… |
+| `OFFLINE`, `SERVER_ERROR`, `TEMPORARILY_UNAVAILABLE`, `RATE_LIMITED` | network / site trouble | connection / busy / wait a few minutes |
+| `BAD_RESPONSE` | malformed answer, non-https code page | hearthpulse.net sent an answer the app doesn't understand… |
 
 ## Checking by hand
 
-1. Run the app with a scratch data folder (`HEARTHPULSE_DATA`), optionally `HEARTHPULSE_ISSUER` for a test site.
-2. Settings → "Hearthpulse account" → "Sign in with HeartPulse". The browser opens the site; the card says
-   "Waiting for you to sign in in the browser…".
-3. Sign in on the site and confirm. The tab says "Вход выполнен"; the card shows the profile name.
-4. Restart the app: the card shows the same name without a browser (the log `hearthpulse.log` has no
-   "saved session rejected").
-5. "Open profile on the site" opens `https://hearthpulse.net/profile`.
-6. "Sign out": the card returns to the button; on the site the app's grant is gone.
-7. Also try "Cancel" while waiting, "Отмена" on the consent page (→ "declined") and waiting more than 5 minutes.
+1. Run the app with a scratch data folder (`HEARTHPULSE_DATA`); `HEARTHPULSE_SITE_API` for a test site.
+2. Settings → "Hearthpulse account" → "Sign in with HeartPulse". The card shows the code and
+   hearthpulse.net/connect; the browser opens the page with the code filled in.
+3. "Copy" puts the code on the clipboard ("Code copied.").
+4. Sign in on the site if needed and approve "Manacost Tracker". Within ~5 s the card shows the name and the
+   subscription line ("Boosty subscription: …" or "No paid subscription").
+5. Restart the app: the card shows the same without the browser (`hearthpulse.log` has no "saved session rejected").
+6. "Open profile on the site" opens the account page.
+7. "Sign out": the card returns to the button; a refresh with the old token fails on the site.
+8. Also try "Cancel" while waiting, declining on the site (→ "declined") and waiting more than 10 minutes (→ expired).

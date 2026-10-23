@@ -140,7 +140,7 @@ public partial class App : Application
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
-        _account = new AccountService(new OidcClient(_http));
+        _account = new AccountService(new AccountClient(_http));
         _mainViewModel.AttachAccount(_account);
         _ = _account.RestoreAsync();
         _overlayViewModel = new OverlayViewModel();

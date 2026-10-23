@@ -6,12 +6,15 @@ using System.Text.Json;
 namespace Hearthpulse.Core.Accounts;
 
 /// <summary>
-/// Keeps the account's refresh token (rotated on every refresh, so rewritten each time) and profile between starts. On Windows the file is encrypted with DPAPI for the
-/// current Windows user, so a copied file is useless elsewhere; on macOS and Linux it is readable by the owner only.
+/// Keeps the account's refresh token (rotated on every refresh, so rewritten each time), profile and last known paid
+/// access between starts. On Windows the file is encrypted with DPAPI for the current Windows user, so a copied file is
+/// useless elsewhere; on macOS and Linux it is readable by the owner only.
 /// </summary>
 public sealed class TokenStore(string path)
 {
-    private sealed record Saved(string RefreshToken, string Id, string DisplayName);
+    // The last known paid access is kept too, so a start without network shows it as it was.
+    private sealed record Saved(string RefreshToken, string Id, string DisplayName, bool HasAccess = false, string[]? Sources = null,
+        string[]? Sections = null, bool Stale = true, DateTime? CheckedAt = null);
 
     public (string RefreshToken, AccountUser User)? Load()
     {
@@ -30,7 +33,8 @@ public sealed class TokenStore(string path)
 
             var saved = JsonSerializer.Deserialize<Saved>(bytes);
             return saved is { RefreshToken.Length: > 0 }
-                ? (saved.RefreshToken, new AccountUser(saved.Id, saved.DisplayName))
+                ? (saved.RefreshToken, new AccountUser(saved.Id, saved.DisplayName,
+                    new Entitlements(saved.HasAccess, saved.Sources ?? [], saved.Sections ?? [], saved.Stale, saved.CheckedAt)))
                 : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or CryptographicFailure)
@@ -44,7 +48,8 @@ public sealed class TokenStore(string path)
     {
         try
         {
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(new Saved(refreshToken, user.Id, user.DisplayName));
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(new Saved(refreshToken, user.Id, user.DisplayName, user.Entitlements.HasAccess, [.. user.Entitlements.Sources],
+                [.. user.Entitlements.Sections], user.Entitlements.Stale, user.Entitlements.CheckedAt));
             if (OperatingSystem.IsWindows())
             {
                 File.WriteAllBytes(path, Dpapi.Protect(bytes));
