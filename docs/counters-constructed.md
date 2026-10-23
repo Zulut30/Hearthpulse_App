@@ -73,6 +73,8 @@ Notes:
 
 - "Your" counts are kept for both players; what the opponent did is seen once their cards are revealed (plays always
   are). Counters that need hidden information (Discovers) are shown for you only.
+- Fye, the Setting Sun (WW_825) counts Dragons *summoned*; it moved from the `dragons` (played) counter to
+  `dragons-summoned`.
 - "This turn" tags reset when the turn changes; `NUM_CARDS_PLAYED_THIS_TURN` of the player whose turn ended is reset
   one turn later, so it is read only on the player's own turn.
 

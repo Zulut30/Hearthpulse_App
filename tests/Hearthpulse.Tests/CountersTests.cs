@@ -21,7 +21,11 @@ public sealed class CountersTests
           {"id":"CORE_CS2_004","dbfId":120002,"name":"Power Word: Shield","type":"SPELL","cardClass":"PRIEST","cost":1},
           {"id":"BE_012","dbfId":120003,"name":"Dark Deacon","type":"MINION","cardClass":"PRIEST","cost":3},
           {"id":"CATA_480","dbfId":120004,"name":"Some Quest","type":"SPELL","cardClass":"PRIEST","cost":1},
-          {"id":"BE_014","dbfId":120005,"name":"Spawn of C'Thun","type":"MINION","cardClass":"NEUTRAL","cost":4}
+          {"id":"BE_014","dbfId":120005,"name":"Spawn of C'Thun","type":"MINION","cardClass":"NEUTRAL","cost":4},
+          {"id":"CS2_087","dbfId":120006,"name":"Blessing of Might","type":"SPELL","cardClass":"PALADIN","cost":1},
+          {"id":"CORE_EX1_284","dbfId":120007,"name":"Azure Drake","type":"MINION","cardClass":"NEUTRAL","cost":5,"races":["DRAGON"]},
+          {"id":"TLC_515","dbfId":120008,"name":"Cultist Map","type":"SPELL","cardClass":"ROGUE","cost":1,"mechanics":["DISCOVER"]},
+          {"id":"BE_204","dbfId":120009,"name":"Gargantuan Slitherer","type":"MINION","cardClass":"NEUTRAL","cost":6}
         ]
         """u8.ToArray()));
 
@@ -84,6 +88,257 @@ public sealed class CountersTests
     ];
 
     private static ConstructedView View((GameState Game, ConstructedTracker Tracker) state) => state.Tracker.BuildView(state.Game, Cards);
+
+    private static string[] Die(int id, string cardId, int controller) =>
+        [$"DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id={id} zone=PLAY zonePos=1 cardId={cardId} player={controller}] tag=ZONE value=GRAVEYARD "];
+
+    /// <summary>A card created in hand and played from it (any type), with optional extra tags on the card.</summary>
+    private static string[] Cast(int id, string cardId, int controller, string type, params string[] tags) =>
+        [.. Card(id, cardId, "HAND", controller, type, tags), .. PlayFromHand(id, cardId, controller)];
+
+    private static string Value(ConstructedView view, string id, bool opponent = false) => view.Counters.Single(c => c.Id == id && c.Opponent == opponent).Value;
+
+    [Fact]
+    public void Per_turn_counters_read_the_player_tags()
+    {
+        var view = View(Play(
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CURRENT_PLAYER value=1 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=NUM_CARDS_DRAWN_THIS_TURN value=2 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=NUM_CARDS_PLAYED_THIS_TURN value=3 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=NUM_FRIENDLY_MINIONS_THAT_DIED_THIS_TURN value=1 ",
+            // The opponent's count from their last turn is not reset yet: it does not count on your turn.
+            "DebugPrintPower() - TAG_CHANGE Entity=Rival#1234 tag=NUM_CARDS_PLAYED_THIS_TURN value=4 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=Rival#1234 tag=NUM_FRIENDLY_MINIONS_THAT_DIED_THIS_TURN value=2 "));
+
+        Assert.Equal("2", Value(view, "cards-drawn-turn"));
+        Assert.Equal("3", Value(view, "cards-played-turn"));
+        Assert.Equal("0", Value(view, "cards-played-turn", opponent: true));
+        var died = view.Counters.Single(c => c.Id == "minions-died-turn" && !c.Opponent);
+        Assert.Equal("3", died.Value);
+        Assert.Equal(["Yours: 1"], died.Details);
+    }
+
+    [Fact]
+    public void Buff_counters_read_the_player_tags()
+    {
+        var view = View(Play(
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=SILVER_HAND_RECRUIT_HP_BUFF value=1 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=SILVER_HAND_RECRUIT_ATK_BUFF value=2 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CTHUN_ATTACK_BUFF value=4 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CTHUN_HEALTH_BUFF value=5 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=Rival#1234 tag=INVOKE_COUNTER value=3 "));
+
+        var recruits = view.Counters.Single(c => c.Id == "silver-hand" && !c.Opponent);
+        Assert.Equal("+2/+1", recruits.Value);
+        Assert.True(recruits.Relevant);
+        Assert.Equal("10/11", Value(view, "cthun-old"));
+        Assert.Equal("6/6", Value(view, "cthun-old", opponent: true));
+        Assert.Equal("3", Value(view, "galakrond", opponent: true));
+    }
+
+    [Fact]
+    public void Played_cards_are_counted_by_cost_class_and_target()
+    {
+        var view = View(Play([
+            .. Card(40, "CORE_EX1_284", "PLAY", 1, "MINION"),
+            .. Cast(41, "CS2_087", 1, "SPELL", "tag=TAG_LAST_KNOWN_COST_IN_HAND value=2", "tag=CARD_TARGET value=40"),
+            .. Cast(42, "CORE_CS2_004", 1, "SPELL", "tag=TAG_LAST_KNOWN_COST_IN_HAND value=6", "tag=CARD_TARGET value=20"),
+            .. Cast(43, "CORE_CS2_004", 1, "SPELL", "tag=TAG_LAST_KNOWN_COST_IN_HAND value=5"),
+            .. Card(44, "BE_012", "PLAY", 2, "MINION"),
+            .. Cast(45, "CS2_087", 1, "SPELL", "tag=TAG_LAST_KNOWN_COST_IN_HAND value=2", "tag=CARD_TARGET value=44"),
+        ]));
+
+        Assert.Equal("2", Value(view, "cards-2-mana"));
+        Assert.Equal("2", Value(view, "expensive-spells"));
+        Assert.Equal("2", Value(view, "paladin-cards"));
+        Assert.Equal("2", Value(view, "spells-on-friendly"));
+        Assert.Equal("3", Value(view, "spells-on-characters"));
+    }
+
+    [Fact]
+    public void Improving_cards_count_earlier_copies()
+    {
+        var view = View(Play([
+            .. Cast(50, "YOG_514", 1, "MINION"),
+            .. Cast(51, "YOG_514", 1, "MINION"),
+            .. Cast(52, "JAIL_732", 1, "SPELL"),
+            .. Cast(53, "BOT_283", 1, "MINION"),
+            .. Cast(54, "TIME_005t1", 2, "MINION"),
+            .. Cast(55, "TIME_005t1", 2, "MINION"),
+            .. Cast(56, "TIME_005t4", 2, "MINION"),
+            .. Card(57, "TTN_401", "PLAY", 1, "MINION"),
+            .. Card(58, "CORE_EX1_284", "DECK", 1, "MINION"),
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=58 zone=DECK zonePos=0 cardId=CORE_EX1_284 player=1] tag=ZONE value=PLAY ",
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=57 zone=SETASIDE zonePos=0 cardId=TTN_401 player=1] tag=ZONE value=SETASIDE ",
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=57 zone=SETASIDE zonePos=0 cardId=TTN_401 player=1] tag=ZONE value=PLAY ",
+        ]));
+
+        Assert.Equal("3-Cost Spell", Value(view, "chaotic-tendril"));
+        Assert.Equal("2-Cost Demon", Value(view, "void-soul"));
+        Assert.Equal("+2/+2", Value(view, "pogo-hopper"));
+        var rafaam = view.Counters.Single(c => c.Id == "timethief-rafaam" && c.Opponent);
+        Assert.Equal("2/9", rafaam.Value);
+        Assert.Equal(["3 Rafaams played."], rafaam.Details);
+        Assert.True(rafaam.Relevant);
+        Assert.Equal("+1/+1", Value(view, "astral-automaton"));
+        Assert.Equal("1", Value(view, "dragons-summoned"));
+    }
+
+    [Fact]
+    public void Friendly_deaths_count_toward_card_goals()
+    {
+        var view = View(Play([
+            .. Card(60, "JAIL_974", "PLAY", 1, "MINION"),
+            .. Card(61, "JAIL_974", "PLAY", 1, "MINION"),
+            .. Card(62, "SW_075", "PLAY", 1, "MINION"),
+            .. Card(63, "EDR_465", "PLAY", 2, "MINION"),
+            .. Die(60, "JAIL_974", 1),
+            .. Die(61, "JAIL_974", 1),
+            .. Die(62, "SW_075", 1),
+            .. Die(63, "EDR_465", 2),
+        ]));
+
+        var archmage = view.Counters.Single(c => c.Id == "captured-archmage" && !c.Opponent);
+        Assert.Equal("2/4", archmage.Value);
+        Assert.Equal(0.5, archmage.Progress);
+        Assert.Equal("1/10", Value(view, "elwynn-boar"));
+        Assert.Equal("1", Value(view, "ysondre", opponent: true));
+    }
+
+    [Fact]
+    public void Card_tables_add_up_plays_and_deathrattles()
+    {
+        var view = View(Play([
+            // Interstellar Wayfarer: Battlecry and Deathrattle reduce Librams by 1 each; Aldor Truthseeker by 2.
+            .. Cast(70, "GDB_721", 1, "MINION"),
+            .. Die(70, "GDB_721", 1),
+            .. Cast(71, "BT_026", 1, "MINION"),
+            .. Cast(72, "DRG_218", 2, "MINION"),
+            .. Cast(73, "DRG_303", 2, "MINION"),
+            .. Cast(74, "MEND_501", 1, "MINION"),
+            .. Cast(75, "MEND_503", 1, "MINION"),
+            .. Cast(76, "TSC_955", 2, "MINION"),
+            .. Cast(77, "MEND_307", 1, "SPELL"),
+            .. Cast(78, "GDB_434", 1, "MINION"),
+            .. Cast(79, "WW_001", 2, "MINION"),
+            .. Cast(80, "BE_283", 1, "MINION"),
+        ]));
+
+        Assert.Equal("-4", Value(view, "libram"));
+        Assert.Equal("3", Value(view, "galakrond", opponent: true));
+        Assert.Equal("-1", Value(view, "leyline-cost"));
+        Assert.Equal("+1", Value(view, "leyline-trigger"));
+        Assert.Equal("+0", Value(view, "leyline-effect"));
+        Assert.Equal("Next: 2", Value(view, "abyssal-curse", opponent: true));
+        Assert.Equal("+2 Cost", Value(view, "animal-companion"));
+        Assert.Equal("3 damage", Value(view, "asteroid"));
+        Assert.Equal("1", Value(view, "excavate", opponent: true));
+        Assert.Equal("3", Value(view, "blood-runes"));
+    }
+
+    [Fact]
+    public void Protoss_counters_follow_the_starcraft_cards()
+    {
+        var view = View(Play([
+            .. Card(81, "BE_012", "PLAY", 2, "MINION"),
+            // Photon Cannon that kills a minion discounts Protoss minions; one that doesn't, doesn't.
+            .. Card(82, "SC_753", "HAND", 1, "SPELL"),
+            "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=X id=82 zone=HAND zonePos=1 cardId=SC_753 player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
+            "DebugPrintPower() -     TAG_CHANGE Entity=[entityName=X id=82 zone=HAND zonePos=1 cardId=SC_753 player=1] tag=ZONE value=PLAY ",
+            .. Die(81, "BE_012", 2),
+            "DebugPrintPower() - BLOCK_END",
+            .. Cast(83, "SC_753", 1, "SPELL"),
+            .. Cast(84, "SC_755", 1, "SPELL"),
+            .. Card(85, "SC_764", "PLAY", 1, "MINION"),
+            .. Die(85, "SC_764", 1),
+            .. Cast(86, "SC_754", 1, "HERO"),
+        ]));
+
+        Assert.Equal("-4", Value(view, "protoss-discount"));
+        Assert.Equal("3", Value(view, "colossus"));
+    }
+
+    [Fact]
+    public void Hero_attacks_and_damage_on_own_turn_are_counted()
+    {
+        var view = View(Play(
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CURRENT_PLAYER value=1 ",
+            "DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=[entityName=Anduin id=20 zone=PLAY zonePos=0 cardId=HERO_09 player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
+            "DebugPrintPower() -     TAG_CHANGE Entity=[entityName=Anduin id=20 zone=PLAY zonePos=0 cardId=HERO_09 player=1] tag=DAMAGE value=3 ",
+            "DebugPrintPower() - BLOCK_END",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CURRENT_PLAYER value=0 ",
+            // Damage on the opponent's turn does not count.
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=Anduin id=20 zone=PLAY zonePos=0 cardId=HERO_09 player=1] tag=DAMAGE value=5 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CURRENT_PLAYER value=1 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=Anduin id=20 zone=PLAY zonePos=0 cardId=HERO_09 player=1] tag=DAMAGE value=4 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=Anduin id=20 zone=PLAY zonePos=0 cardId=HERO_09 player=1] tag=DAMAGE value=6 "));
+
+        Assert.Equal("1", Value(view, "hero-attacks"));
+        Assert.Equal("5", Value(view, "self-damage"));
+        Assert.Equal("1", Value(view, "friendly-attacks"));
+    }
+
+    [Fact]
+    public void Discovers_count_your_picks_from_discover_cards()
+    {
+        string[] Choice(int id, int source, string sourceCard) =>
+        [
+            $"DebugPrintEntityChoices() - id={id} Player=velox#21276 TaskList=272 ChoiceType=GENERAL CountMin=1 CountMax=1",
+            $"DebugPrintEntityChoices() -   Source=[entityName=X id={source} zone=PLAY zonePos=0 cardId={sourceCard} player=1]",
+            "DebugPrintEntityChoices() -   Entities[0]=[entityName=Y id=99 zone=HAND zonePos=1 cardId=CORE_CS2_004 player=1]",
+            $"DebugPrintEntitiesChosen() - id={id} Player=velox#21276 EntitiesCount=1",
+        ];
+
+        var view = View(Play([
+            .. Card(90, "TLC_515", "PLAY", 1, "SPELL"),
+            .. Card(91, "BE_204", "PLAY", 1, "MINION"),
+            .. Card(92, "BE_014", "PLAY", 1, "MINION", "tag=DISCOVER value=1"),
+            .. Choice(3, 90, "TLC_515"),
+            .. Choice(4, 91, "BE_204"),
+            .. Choice(5, 92, "BE_014"),
+        ]));
+
+        var discovers = view.Counters.Single(c => c.Id == "discovers");
+        Assert.False(discovers.Opponent);
+        Assert.Equal("2", discovers.Value);
+        Assert.Equal(["This turn: 2"], discovers.Details);
+    }
+
+    [Fact]
+    public void Countdowns_triggers_and_repeatable_quests_follow_the_turns()
+    {
+        string[] bodies =
+        [
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=FIRST_PLAYER value=1 ",
+            .. Cast(100, "TOY_529", 1, "SPELL"),
+            .. Cast(101, "EDR_464", 1, "MINION"),
+            .. Cast(102, "CORE_CS2_004", 1, "SPELL"),
+            .. Card(103, "VAC_321", "PLAY", 1, "MINION"),
+            "DebugPrintPower() - BLOCK_START BlockType=TRIGGER Entity=[entityName=X id=103 zone=PLAY zonePos=1 cardId=VAC_321 player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 TriggerKeyword=TRIGGER_VISUAL",
+            "DebugPrintPower() - BLOCK_END",
+            .. Card(104, "TLC_426", "SECRET", 1, "SPELL", "tag=QUEST_PROGRESS_TOTAL value=6"),
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=Q id=104 zone=SECRET zonePos=0 cardId=TLC_426 player=1] tag=QUEST_PROGRESS value=5 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=Q id=104 zone=SECRET zonePos=0 cardId=TLC_426 player=1] tag=QUEST_PROGRESS value=6 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=Q id=104 zone=SECRET zonePos=0 cardId=TLC_426 player=1] tag=QUEST_PROGRESS value=0 ",
+            // Two turns later (one of yours): one turn of the Wheel has passed.
+            "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=5 ",
+        ];
+        var view = View(Play(bodies));
+
+        var wheel = view.Counters.Single(c => c.Id == "wheel-of-death" && !c.Opponent);
+        Assert.Equal("4 turns", wheel.Value);
+        Assert.True(wheel.Relevant);
+        Assert.Equal("Not played", Value(view, "aviana"));
+        Assert.Equal("2 left", Value(view, "tyrande"));
+        Assert.Equal("2 damage", Value(view, "incindius"));
+        Assert.Equal("+1/+1", Value(view, "golakka"));
+        var ceaseless = view.Counters.Single(c => c.Id == "ceaseless-expanse" && !c.Opponent);
+        Assert.Equal("Cost 97", ceaseless.Value);
+
+        // Five of your turns after the Wheel was cast.
+        var later = View(Play([.. bodies, "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=13 "]));
+        Assert.Equal("Destroyed", Value(later, "wheel-of-death"));
+    }
 
     [Fact]
     public void Cthun_abilities_count_toward_four()
