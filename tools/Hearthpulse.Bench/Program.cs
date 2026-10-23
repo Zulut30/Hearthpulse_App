@@ -42,6 +42,14 @@ internal static class Program
             return 2;
         }
 
+        // cleanup deletes files and the history store may upgrade its schema: never on the folder the app uses.
+        var real = Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hearthpulse"));
+        if (string.Equals(Path.GetFullPath(data).TrimEnd(Path.DirectorySeparatorChar), real, StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine($"HEARTHPULSE_DATA is the app's own data folder ({real}); point it at a copy.");
+            return 2;
+        }
+
         var options = Options.Parse(args.Skip(1).ToArray());
         Console.WriteLine($"data={data} logs={options.Logs}");
         switch (args[0])
