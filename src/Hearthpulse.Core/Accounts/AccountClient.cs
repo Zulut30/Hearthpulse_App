@@ -40,10 +40,15 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
 
     public const string DeviceGrant = "urn:ietf:params:oauth:grant-type:device_code";
 
-    /// <summary>The API: <paramref name="baseUrl"/>, else the HEARTHPULSE_SITE_API variable (for a test site), else hearthpulse.net.</summary>
-    public Uri BaseUri { get; } = new((baseUrl is { Length: > 0 } ? baseUrl
-        : Environment.GetEnvironmentVariable("HEARTHPULSE_SITE_API") is { Length: > 0 } env ? env
-        : DefaultBaseUrl).TrimEnd('/') + "/");
+    /// <summary>
+    /// The API: <paramref name="baseUrl"/>, else the HEARTHPULSE_SITE_API variable (for a test site), else
+    /// hearthpulse.net. Tokens travel to it, so it must be https (plain http only on this machine); anything else is
+    /// logged and replaced by hearthpulse.net.
+    /// </summary>
+    public Uri BaseUri { get; } = BaseFrom(baseUrl is { Length: > 0 } ? baseUrl : Environment.GetEnvironmentVariable("HEARTHPULSE_SITE_API"));
+
+    /// <summary>The origin that issues this client's tokens ("https://hearthpulse.net"); a saved session belongs to it.</summary>
+    public string Site => BaseUri.GetLeftPart(UriPartial.Authority);
 
     /// <summary>The account page on the site, for when <c>/me</c> has not named one.</summary>
     public Uri DefaultProfileUrl => new(BaseUri.GetLeftPart(UriPartial.Authority) + "/profile/");
@@ -57,6 +62,12 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
             || Https(Text(root, "verification_uri")) is not { } verification)
         {
             throw new AccountException("BAD_RESPONSE", "device authorization without code or https verification_uri");
+        }
+
+        // The app opens this page itself; it must be the same site the tokens come from.
+        if (!string.Equals(verification.Host, BaseUri.Host, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AccountException("BAD_RESPONSE", "verification_uri on another host");
         }
 
         return new DeviceCode(code, userCode, verification, Https(Text(root, "verification_uri_complete")),
@@ -175,6 +186,22 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
             >= 500 => "SERVER_ERROR",
             _ => "BAD_RESPONSE",
         }, detail ?? $"HTTP {status.ToString(CultureInfo.InvariantCulture)}");
+    }
+
+    private static Uri BaseFrom(string? value)
+    {
+        if (value is not { Length: > 0 })
+        {
+            return new Uri(DefaultBaseUrl);
+        }
+
+        if (Https(value.TrimEnd('/') + "/") is { } uri)
+        {
+            return uri;
+        }
+
+        Diag.Info("account: HEARTHPULSE_SITE_API is not an https URL, using hearthpulse.net");
+        return new Uri(DefaultBaseUrl);
     }
 
     internal static string? Text(JsonElement element, string name) =>

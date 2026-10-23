@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using Hearthpulse.App.Infrastructure;
@@ -17,6 +16,7 @@ public sealed partial class MainViewModel
     private RelayCommand? _openAccountProfile;
     private CancellationTokenSource? _signInCancel;
     private DeviceCode? _accountCode;
+    private bool _accountBrowserOpened;
     private bool _accountWaiting;
     private string _accountMessage = string.Empty;
 
@@ -36,15 +36,8 @@ public sealed partial class MainViewModel
     /// <summary>The profile part of the card; hidden while a new sign-in runs.</summary>
     public bool AccountShowProfile => AccountSignedIn && !AccountWaiting;
 
-    /// <summary>
-    /// "Signed in until 22 Nov 2026"; close to the end, a nudge to sign in again. The site's sign-in lasts 30 days from
-    /// approval and refreshing does not extend it. English month names, like the rest of the UI.
-    /// </summary>
-    public string AccountSessionNote => _account?.SessionExpires is not { } end
-        ? string.Empty
-        : _account.SessionEndingSoon
-            ? "Sign-in ends on " + end.ToLocalTime().ToString("d MMM", CultureInfo.InvariantCulture) + ". Sign in again to stay connected."
-            : "Signed in until " + end.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture);
+    /// <summary>"Signed in until 22 Nov 2026"; close to the end, a nudge to sign in again (see <see cref="AccountService.SessionNote"/>).</summary>
+    public string AccountSessionNote => _account?.SessionNote ?? string.Empty;
 
     public bool AccountSessionEndingSoon => _account?.SessionEndingSoon == true;
 
@@ -77,6 +70,11 @@ public sealed partial class MainViewModel
     /// <summary>Where to type the code: "hearthpulse.net/connect".</summary>
     public string AccountCodeUri => _accountCode?.DisplayUri ?? string.Empty;
 
+    /// <summary>Under the code: whether the browser has the page open or the player has to open it.</summary>
+    public string AccountWaitingHint => _accountBrowserOpened
+        ? "Waiting for confirmation… The page has opened in your browser."
+        : "Waiting for confirmation… Open the address above in your browser.";
+
     /// <summary>The last error (or confirmation) under the card.</summary>
     public string AccountMessage { get => _accountMessage; private set => Set(ref _accountMessage, value); }
 
@@ -94,13 +92,13 @@ public sealed partial class MainViewModel
         _signInCancel = cancel;
         try
         {
-            var error = await _account.SignInAsync(code => Application.Current?.Dispatcher.BeginInvoke(() => ShowAccountCode(code)), cancel.Token);
+            var error = await _account.SignInAsync((code, opened) => Application.Current?.Dispatcher.BeginInvoke(() => ShowAccountCode(code, opened)), cancel.Token);
             AccountMessage = error?.Message ?? string.Empty;
         }
         finally
         {
             _signInCancel = null;
-            ShowAccountCode(null);
+            ShowAccountCode(null, opened: false);
             AccountWaiting = false;
         }
     });
@@ -146,12 +144,14 @@ public sealed partial class MainViewModel
         }
     });
 
-    private void ShowAccountCode(DeviceCode? code)
+    private void ShowAccountCode(DeviceCode? code, bool opened)
     {
         _accountCode = code;
+        _accountBrowserOpened = opened;
         Raise(nameof(AccountHasCode));
         Raise(nameof(AccountUserCode));
         Raise(nameof(AccountCodeUri));
+        Raise(nameof(AccountWaitingHint));
     }
 
     private void RaiseAccount()

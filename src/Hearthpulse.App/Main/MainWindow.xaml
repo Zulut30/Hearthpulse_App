@@ -1254,14 +1254,14 @@
                                     <StackPanel Visibility="{Binding AccountShowProfile, Converter={StaticResource Vis}}">
                                         <TextBlock Text="Signed in with HeartPulse as" Style="{StaticResource Caption}" Margin="0,4,0,2" />
                                         <TextBlock Text="{Binding AccountName}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
-                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                            <TextBlock Text="&#xF01A5;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,6,0"
+                                        <DockPanel Margin="0,6,0,0">
+                                            <TextBlock DockPanel.Dock="Left" Text="&#xF01A5;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent}" VerticalAlignment="Top" Margin="0,1,6,0"
                                                        Visibility="{Binding AccountHasSubscription, Converter={StaticResource Vis}}" />
                                             <TextBlock Text="{Binding AccountSubscription}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap"
                                                        Visibility="{Binding AccountHasSubscription, Converter={StaticResource Vis}}" />
                                             <TextBlock Text="{Binding AccountSubscription}" Style="{StaticResource Caption}"
                                                        Visibility="{Binding AccountHasSubscription, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                                        </StackPanel>
+                                        </DockPanel>
                                         <TextBlock Text="{Binding AccountSessionNote}" Style="{StaticResource Caption}" Margin="0,6,0,0"
                                                    Visibility="{Binding AccountSessionEndingSoon, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                         <TextBlock Text="{Binding AccountSessionNote}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0"
@@ -1270,11 +1270,11 @@
                                             <Hyperlink Command="{Binding OpenAccountProfile}" Foreground="{StaticResource Accent}"><Run Text="Open profile on the site" /></Hyperlink>
                                             <Run Text="&#xF03CC;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource Accent}" />
                                         </TextBlock>
-                                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                        <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
                                             <Button Style="{StaticResource PrimaryButton}" Content="Sign in again" Command="{Binding SignIn}" Margin="0,0,8,0"
                                                     Visibility="{Binding AccountSessionEndingSoon, Converter={StaticResource Vis}}" />
                                             <Button Style="{StaticResource GhostButton}" Content="Sign out" Command="{Binding SignOut}" />
-                                        </StackPanel>
+                                        </WrapPanel>
                                     </StackPanel>
                                     <!-- Signed out -->
                                     <StackPanel Visibility="{Binding AccountSignedOut, Converter={StaticResource Vis}}">
@@ -1307,7 +1307,7 @@
                                                     </StackPanel>
                                                 </Button>
                                             </StackPanel>
-                                            <TextBlock Text="Waiting for confirmation&#x2026; The page has opened in your browser." Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,14" />
+                                            <TextBlock Text="{Binding AccountWaitingHint}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,14" />
                                         </StackPanel>
                                         <Button Style="{StaticResource GhostButton}" Content="Cancel" Command="{Binding CancelSignIn}" HorizontalAlignment="Left" />
                                     </StackPanel>

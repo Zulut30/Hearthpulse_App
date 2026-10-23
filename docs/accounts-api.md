@@ -20,7 +20,7 @@ Site code (reference): `server/modules/applicationAuth/` (`routes.ts`, `model.ts
 
 | | |
 |---|---|
-| Base | `https://hearthpulse.net/api/v1/` (`HEARTHPULSE_SITE_API` overrides it for a test site) |
+| Base | `https://hearthpulse.net/api/v1/` (`HEARTHPULSE_SITE_API` overrides it for a test site; it must be https, plain http only on this machine, otherwise the default is used) |
 | Client | `client_id=manacost-tracker`, public, no secret |
 | Scopes | `profile.read subscription.read catalog.read images.read statistics.read tracker.write` |
 | Bodies | `application/x-www-form-urlencoded`; answers JSON, `Cache-Control: private, no-store` |
@@ -57,32 +57,46 @@ does not read, store, log or show it. `source` lists the providers that grant ac
 
 ## Sign-in
 
-1. `POST oauth/device/code`. `verification_uri` must be https (plain http only on this machine).
+1. `POST oauth/device/code`. `verification_uri` must be https (plain http only on this machine) and on the same host
+   as the base URL.
 2. The card shows the code large with a "Copy" button and "Open hearthpulse.net/connect and enter the code"; the app
    opens `verification_uri_complete` (or `verification_uri`) in the browser itself. If the browser does not open, the
-   player follows the address on the card.
+   player follows the address on the card ("Open the address above in your browser").
 3. Poll `POST oauth/token` every `interval` seconds:
    - `authorization_pending` — keep waiting;
    - `slow_down` — add 5 s to the interval (RFC 8628 3.5; the site adds the same on its side);
-   - offline, `5xx`, `temporarily_unavailable` — keep waiting with 5 s more, until the code expires;
+   - offline, `5xx`, `temporarily_unavailable` — keep waiting with a backoff on top of the interval (+5 s per failure,
+     at most 30 s), reset by the next normal answer; only `slow_down` grows the interval for good;
    - `access_denied`, `expired_token`, `invalid_grant` — stop and explain;
    - the code's `expires_in` passed locally — stop as expired;
-   - "Cancel" in the app — stop (the code then expires on the site by itself).
-4. Tokens → `GET me` → profile and paid access → the refresh token, profile and access are saved.
+   - "Cancel" in the app — stop between polls (the code then expires on the site by itself). A poll already sent is
+     not cancelled: the one the site answers with tokens consumes the code, so its tokens are taken even after Cancel.
+4. Tokens → saved at once (with a placeholder profile) → `GET me` → profile and paid access saved. `/me` is not
+   cancelled either. If it fails, the new refresh token is revoked and the previous session, if any, stays as it was.
 
 ## Session
 
 - Access tokens stay in memory and are renewed a minute before `expires_in` runs out.
 - Refresh tokens rotate and the site has no grace window: presenting a rotated-out token, or two refreshes at once,
-  revokes the whole token family. So token requests run one at a time under a lock, and the new pair is written to
-  disk (temp file + rename, DPAPI) before the access token is used for anything, `/me` included.
+  revokes the whole token family. So token requests run one at a time under a lock, a refresh is never cancelled by
+  its caller (only the caller's wait is; the refresh finishes and stores its answer), and the new pair is written to
+  disk (temp file + rename, DPAPI) before the access token is used for anything, `/me` included. A failed write is
+  logged; the session then lasts until the app closes.
+- What the client cannot cover: the site rotated the token but its answer was lost (connection dropped, 40 s client
+  timeout, process killed). The next refresh presents the old token and the site ends the sign-in. Only a short
+  grace window on the site (accept the predecessor while the successor is unused) would cover it.
 - The sign-in lasts 30 days from the token exchange; rotation does not extend it. The app records the end
   (`AccountService.SessionExpires`, saved with the session). The card says "Signed in until <date>"; from two days
   before the end it says "Sign-in ends on <date>. Sign in again to stay connected." with a "Sign in again" button. A
-  new sign-in replaces the session and revokes the old refresh token.
+  new sign-in replaces the session and revokes the old refresh token. While the app runs the line is re-checked every
+  hour; after the end it reads "Sign-in ended on <date>. Sign in again."
 - At start the saved session is refreshed and `/me` re-read (new name, changed subscription). Offline, a server error,
-  rate limiting or an unexpected answer keep the saved session with its last known paid access; `invalid_grant`
-  forgets it.
+  rate limiting or an unexpected answer keep the saved session with its last known paid access. A refresh the site
+  rejects (`invalid_grant`), at start or later, forgets the session. If the refresh works but `/me` is rejected
+  (`INVALID_ACCESS_TOKEN`, `INSUFFICIENT_SCOPE`, another account), the new refresh token is revoked and the session
+  forgotten.
+- `account.dat` carries a format number and the site's origin. A file from an older draft or for another site (the
+  variable was switched) is deleted unread, so its token never goes to a service that did not issue it.
 - Sign-out forgets the session locally first, then `POST oauth/revoke` with the refresh token (best effort).
 
 ## Paid access (`Entitlements`)
@@ -91,8 +105,8 @@ does not read, store, log or show it. `source` lists the providers that grant ac
 `Has(Entitlements.Arena | Battlegrounds | Standard | Contests | GuidesArchive | ArenaArticles |
 BattlegroundsArticles)`, `HasAccess`, `Boosty`, `Patreon`, `Stale`, `CheckedAt`. A missing or malformed
 `subscription`, `hasAccess` without any `true` section, or a non-boolean value counts as no access (fail closed).
-After an offline start the last known access is shown with its `CheckedAt`; a paywall that must be strict can
-require `!Stale` and a recent `CheckedAt`.
+After a start the last known access is loaded with `Stale = true` and its `CheckedAt` until `/me` answers (offline it
+stays so); a paywall that must be strict can require `!Stale` and a recent `CheckedAt`.
 
 ## Errors shown to the player
 

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System.Globalization;
 
 namespace Hearthpulse.Core.Accounts;
 
@@ -15,19 +15,35 @@ public sealed record AccountError(string Code, string Message);
 /// sees a password. The session survives restarts: the refresh token is stored encrypted (<see cref="TokenStore"/>)
 /// and replaced by the rotated one after every refresh. The access token lives in memory only.
 /// </summary>
+/// <remarks>
+/// The site rotates refresh tokens with no grace window: presenting an already rotated one revokes the whole sign-in.
+/// So once the site has been asked for tokens, the answer is stored whatever happens to the caller: token requests are
+/// never cancelled by the caller (only the caller's wait is), and a new pair is on disk before anything else uses it.
+/// What the client cannot cover is an answer lost on the wire after the site rotated; that needs a grace window on the
+/// site.
+/// </remarks>
 public sealed class AccountService(AccountClient client, TokenStore? store = null, Func<Uri, bool>? openBrowser = null)
 {
+    /// <summary>A sign-in lasts 30 days from the token exchange; refreshing does not extend it.</summary>
+    public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
+
     // Access tokens live 15 minutes; renew a minute early so a call never goes out with a dying one.
     private static readonly TimeSpan RefreshMargin = TimeSpan.FromMinutes(1);
-
-    /// <summary>A sign-in lasts 30 days from the site's approval; refreshing does not extend it.</summary>
-    public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
 
     // From this close to the end the card asks to sign in again.
     private static readonly TimeSpan EndingSoonWindow = TimeSpan.FromDays(2);
 
-    // RFC 8628 3.5: every slow_down adds five seconds to the polling interval.
+    // How often the card's "signed in until" line is re-checked while the app runs (it lives in the tray for days).
+    private static readonly TimeSpan PhaseCheck = TimeSpan.FromHours(1);
+
+    // RFC 8628 3.5: every slow_down adds five seconds to the polling interval, for good.
     private static readonly TimeSpan SlowDownStep = TimeSpan.FromSeconds(5);
+
+    // An outage while waiting backs off on top of the interval, at most this much, and resets once the site answers.
+    private static readonly TimeSpan MaxOutageBackoff = TimeSpan.FromSeconds(30);
+
+    // Shown until /me names the account; only seen after the app was closed between the token exchange and /me.
+    private static readonly AccountUser PendingProfile = new(string.Empty, "HeartPulse player", Entitlements.None);
 
     // Failures that say nothing about the session itself: keep it and try again later.
     private static readonly HashSet<string> Transient =
@@ -38,14 +54,18 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
     private readonly TokenStore _store = store ?? new TokenStore(Path.Combine(AppPaths.Root, "account.dat"));
 
-    // One token request at a time: the site rotates refresh tokens and treats reuse of an old one as theft
-    // (it revokes the whole token family).
+    // One token request at a time (the site treats a second use of a refresh token as theft).
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string? _accessToken;
     private DateTime _accessExpires;
     private string? _refreshToken;
+    private Timer? _phaseTimer;
+    private int _phase;
 
-    /// <summary>Raised (on any thread) when the player signs in or out, or a stored session turns out to be gone.</summary>
+    /// <summary>
+    /// Raised (on any thread) when the player signs in or out, a stored session turns out to be gone, or the sign-in
+    /// gets close to its end.
+    /// </summary>
     public event Action? Changed;
 
     public AccountUser? User { get; private set; }
@@ -58,14 +78,29 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// <summary>The player's account page on the site (as <c>/me</c> names it).</summary>
     public Uri ProfileUrl { get; private set; } = client.DefaultProfileUrl;
 
-    /// <summary>When the sign-in ends for good (UTC); null for a session saved before this was recorded.</summary>
+    /// <summary>When the sign-in ends for good (UTC); null when not signed in or not recorded.</summary>
     public DateTime? SessionExpires { get; private set; }
 
-    /// <summary>The sign-in ends within two days: time to sign in again.</summary>
-    public bool SessionEndingSoon => SessionExpires is { } end && end - DateTime.UtcNow < EndingSoonWindow;
+    /// <summary>The sign-in ends within two days, or has ended: time to sign in again.</summary>
+    public bool SessionEndingSoon => SessionExpires is { } end && end - UtcNow() < EndingSoonWindow;
+
+    /// <summary>
+    /// The card's line about the sign-in's end: "Signed in until 22 Nov 2026", then a nudge to sign in again. English
+    /// month names, like the rest of the UI.
+    /// </summary>
+    public string SessionNote => SessionExpires is not { } end
+        ? string.Empty
+        : UtcNow() >= end
+            ? $"Sign-in ended on {Day(end, "d MMM")}. Sign in again."
+            : SessionEndingSoon
+                ? $"Sign-in ends on {Day(end, "d MMM")}. Sign in again to stay connected."
+                : $"Signed in until {Day(end, "d MMM yyyy")}";
 
     /// <summary>Waits between polls; tests replace it to run the flow without real time.</summary>
     public Func<TimeSpan, CancellationToken, Task> Delay { get; init; } = Task.Delay;
+
+    /// <summary>The clock for the sign-in's end and the code's expiry; tests replace it.</summary>
+    public Func<DateTime> UtcNow { get; init; } = () => DateTime.UtcNow;
 
     /// <summary>Opens the profile page in the browser.</summary>
     public bool OpenProfile() => (openBrowser ?? SystemBrowser.Open)(ProfileUrl);
@@ -79,7 +114,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// </summary>
     public async Task RestoreAsync(CancellationToken cancellationToken = default)
     {
-        var saved = _store.Load();
+        var saved = _store.Load(client.Site);
         if (saved is null)
         {
             return;
@@ -88,52 +123,36 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         _refreshToken = saved.Value.RefreshToken;
         User = saved.Value.User;
         SessionExpires = saved.Value.ExpiresAt;
+        WatchSessionEnd();
         Changed?.Invoke();
-        var error = await RefreshAsync(withProfile: true, cancellationToken).ConfigureAwait(false);
-        if (error is not null && !Transient.Contains(error.Code))
-        {
-            Diag.Info($"account: saved session rejected ({error.Code})");
-            await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
-                Forget();
-            }
-            finally
-            {
-                _gate.Release();
-            }
-        }
+        await RefreshAsync(withProfile: true, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Signs in: asks the site for a code, hands it to <paramref name="showCode"/>, opens the confirmation page in the
-    /// browser and polls until the player confirms, declines or the code expires. Cancelling
-    /// <paramref name="cancellationToken"/> abandons the attempt. Signing in again while signed in (the 30 days are
-    /// running out) replaces the session and revokes the old one.
+    /// Signs in: asks the site for a code, opens the confirmation page in the browser, hands the code to
+    /// <paramref name="showCode"/> (with whether the browser opened) and polls until the player confirms, declines or
+    /// the code expires. Cancelling <paramref name="cancellationToken"/> stops the waiting; once the site has issued
+    /// tokens the sign-in completes. Signing in again while signed in replaces the session and revokes the old one.
     /// </summary>
-    public async Task<AccountError?> SignInAsync(Action<DeviceCode> showCode, CancellationToken cancellationToken = default)
+    public async Task<AccountError?> SignInAsync(Action<DeviceCode, bool> showCode, CancellationToken cancellationToken = default)
     {
         try
         {
             var device = await client.BeginAsync(cancellationToken).ConfigureAwait(false);
-            showCode(device);
-            if (!OpenSignInPage(device))
+            var opened = OpenSignInPage(device);
+            if (!opened)
             {
                 // Not fatal: the card shows the address and the code to type in.
                 Diag.Info("account: browser did not open for the sign-in page");
             }
 
+            showCode(device, opened);
             var tokens = await PollUntilConfirmedAsync(device, cancellationToken).ConfigureAwait(false);
-            // The site starts the 30 days when it issues the tokens; a minute off keeps the shown date on the safe side.
-            var expires = DateTime.UtcNow + SessionLifetime - TimeSpan.FromMinutes(1);
-            var (user, profileUrl) = await client.GetMeAsync(tokens.AccessToken, cancellationToken).ConfigureAwait(false);
             string? previous;
             await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
-                previous = _refreshToken;
-                _refreshToken = null;
-                Accept(tokens, user, profileUrl, expires);
+                previous = await AdoptAsync(tokens).ConfigureAwait(false);
             }
             finally
             {
@@ -142,7 +161,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
             if (previous is not null)
             {
-                await TryRevokeAsync(previous, CancellationToken.None).ConfigureAwait(false);
+                await TryRevokeAsync(previous).ConfigureAwait(false);
             }
 
             return null;
@@ -175,11 +194,14 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
         if (refresh is not null)
         {
-            await TryRevokeAsync(refresh, cancellationToken).ConfigureAwait(false);
+            await TryRevokeAsync(refresh).ConfigureAwait(false);
         }
     }
 
-    /// <summary>A valid access token for an authenticated call, renewed when needed; null when signed out or offline.</summary>
+    /// <summary>
+    /// A valid access token for an authenticated call, renewed when needed; null when signed out, offline, or when the
+    /// site has ended the sign-in (the session is then forgotten). Cancelling stops the wait, not a refresh under way.
+    /// </summary>
     public async Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken = default)
     {
         if (_accessToken is not null && DateTime.UtcNow < _accessExpires - RefreshMargin)
@@ -190,40 +212,107 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         return _refreshToken is null || await RefreshAsync(withProfile: false, cancellationToken).ConfigureAwait(false) is not null ? null : _accessToken;
     }
 
+    /// <summary>Re-checks how close the sign-in is to its end and raises <see cref="Changed"/> when that moved on.</summary>
+    internal void CheckSessionPhase()
+    {
+        var phase = Phase();
+        if (Interlocked.Exchange(ref _phase, phase) != phase)
+        {
+            Changed?.Invoke();
+        }
+    }
+
     private async Task<AccountTokens> PollUntilConfirmedAsync(DeviceCode device, CancellationToken cancellationToken)
     {
         var interval = TimeSpan.FromSeconds(device.Interval);
-        var started = Stopwatch.GetTimestamp();
+        var outage = TimeSpan.Zero;
+        var deadline = UtcNow().AddSeconds(device.ExpiresIn);
         while (true)
         {
-            await Delay(interval, cancellationToken).ConfigureAwait(false);
-            if (Stopwatch.GetElapsedTime(started) > TimeSpan.FromSeconds(device.ExpiresIn))
+            await Delay(interval + outage, cancellationToken).ConfigureAwait(false);
+            if (UtcNow() > deadline)
             {
                 throw new AccountException("EXPIRED_TOKEN", "the code ran out while waiting");
             }
 
             try
             {
-                return await client.PollAsync(device, cancellationToken).ConfigureAwait(false);
+                // Not cancelled: the poll that the site answers with tokens consumes the code, so its answer must
+                // arrive even if the player pressed Cancel meanwhile.
+                return await client.PollAsync(device, CancellationToken.None).ConfigureAwait(false);
             }
             catch (AccountException ex) when (ex.Code == "AUTHORIZATION_PENDING")
             {
+                outage = TimeSpan.Zero;
             }
             catch (AccountException ex) when (ex.Code == "SLOW_DOWN")
             {
                 interval += SlowDownStep;
+                outage = TimeSpan.Zero;
             }
             catch (AccountException ex) when (PollThrough.Contains(ex.Code))
             {
                 Diag.Info($"account: poll failed ({ex.Code}), still waiting");
-                interval += SlowDownStep;
+                outage = outage + SlowDownStep > MaxOutageBackoff ? MaxOutageBackoff : outage + SlowDownStep;
             }
         }
+    }
+
+    /// <summary>
+    /// Makes the polled tokens the session. The pair is on disk before <c>/me</c> runs; without a profile the pair is
+    /// handed back to the site and the previous session (if any) stays. Returns the replaced refresh token. Call under
+    /// the gate.
+    /// </summary>
+    private async Task<string?> AdoptAsync(AccountTokens tokens)
+    {
+        // The site starts the 30 days when it issues the tokens; a minute off keeps the shown date on the safe side.
+        var expires = UtcNow() + SessionLifetime - TimeSpan.FromMinutes(1);
+        var (previous, previousUser, previousExpires) = (_refreshToken, User, SessionExpires);
+        if (tokens.RefreshToken is { } fresh)
+        {
+            _store.Save(fresh, PendingProfile, expires, client.Site);
+        }
+
+        AccountUser user;
+        Uri? profileUrl;
+        try
+        {
+            (user, profileUrl) = await client.GetMeAsync(tokens.AccessToken, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (AccountException)
+        {
+            if (tokens.RefreshToken is { } unused)
+            {
+                await TryRevokeAsync(unused).ConfigureAwait(false);
+            }
+
+            if (previous is not null && previousUser is not null)
+            {
+                _store.Save(previous, previousUser, previousExpires, client.Site);
+            }
+            else
+            {
+                _store.Delete();
+            }
+
+            throw;
+        }
+
+        _refreshToken = null;
+        Accept(tokens, user, profileUrl, expires);
+        return previous;
     }
 
     private async Task<AccountError?> RefreshAsync(bool withProfile, CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        // Started under the gate and never cancelled: once the site has rotated the token its answer must be stored,
+        // even if this caller stops waiting. The task releases the gate itself.
+        return await RefreshHeldAsync(withProfile).WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<AccountError?> RefreshHeldAsync(bool withProfile)
+    {
         try
         {
             if (_refreshToken is null || User is null)
@@ -231,13 +320,25 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
                 return Describe("SIGNED_OUT");
             }
 
-            // Another caller may have refreshed while this one waited.
+            // Another caller may have renewed the token while this one waited for the gate.
             if (!withProfile && _accessToken is not null && DateTime.UtcNow < _accessExpires - RefreshMargin)
             {
                 return null;
             }
 
-            var tokens = await client.RefreshAsync(_refreshToken, cancellationToken).ConfigureAwait(false);
+            AccountTokens tokens;
+            try
+            {
+                tokens = await client.RefreshAsync(_refreshToken, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (AccountException ex) when (!Transient.Contains(ex.Code))
+            {
+                // Revoked, expired or rotated away: the site will not take this session back.
+                Diag.Info($"account: saved session rejected ({ex.Code})");
+                Forget();
+                return Describe(ex.Code);
+            }
+
             // The old refresh token is dead from here on: store the new pair before anything else uses the access token.
             Accept(tokens, User, profileUrl: null);
             if (!withProfile)
@@ -247,8 +348,8 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
             try
             {
-                var (user, profileUrl) = await client.GetMeAsync(tokens.AccessToken, cancellationToken).ConfigureAwait(false);
-                if (user.Id != User.Id)
+                var (user, profileUrl) = await client.GetMeAsync(tokens.AccessToken, CancellationToken.None).ConfigureAwait(false);
+                if (User.Id.Length > 0 && user.Id != User.Id)
                 {
                     throw new AccountException("WRONG_ACCOUNT", "refreshed session belongs to another account");
                 }
@@ -258,6 +359,19 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             catch (AccountException ex) when (Transient.Contains(ex.Code))
             {
                 Diag.Info($"account: profile not refreshed ({ex.Code})");
+            }
+            catch (AccountException ex)
+            {
+                // The new pair refreshes but is not good for the profile: give it back instead of leaving it alive.
+                Diag.Info($"account: session dropped after /me ({ex.Code})");
+                var refresh = _refreshToken;
+                Forget();
+                if (refresh is not null)
+                {
+                    await TryRevokeAsync(refresh).ConfigureAwait(false);
+                }
+
+                return Describe(ex.Code);
             }
 
             return null;
@@ -272,11 +386,11 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         }
     }
 
-    private async Task TryRevokeAsync(string refreshToken, CancellationToken cancellationToken)
+    private async Task TryRevokeAsync(string refreshToken)
     {
         try
         {
-            await client.RevokeAsync(refreshToken, cancellationToken).ConfigureAwait(false);
+            await client.RevokeAsync(refreshToken, CancellationToken.None).ConfigureAwait(false);
         }
         catch (AccountException ex)
         {
@@ -293,11 +407,13 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         User = user;
         ProfileUrl = profileUrl ?? ProfileUrl;
         SessionExpires = sessionExpires ?? SessionExpires;
-        if (_refreshToken is not null)
+        if (_refreshToken is not null && !_store.Save(_refreshToken, user, SessionExpires, client.Site))
         {
-            _store.Save(_refreshToken, user, SessionExpires);
+            // The session works until the app closes; the next start will have to sign in again.
+            Diag.Error("account: rotated refresh token kept in memory only");
         }
 
+        WatchSessionEnd();
         Changed?.Invoke();
     }
 
@@ -307,6 +423,8 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         _accessToken = null;
         _refreshToken = null;
         SessionExpires = null;
+        _phaseTimer?.Dispose();
+        _phaseTimer = null;
         var had = User is not null;
         User = null;
         _store.Delete();
@@ -315,6 +433,17 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             Changed?.Invoke();
         }
     }
+
+    private void WatchSessionEnd()
+    {
+        _phase = Phase();
+        _phaseTimer ??= new Timer(_ => CheckSessionPhase(), null, PhaseCheck, PhaseCheck);
+    }
+
+    // 0 = fine, 1 = ending within two days, 2 = ended.
+    private int Phase() => SessionExpires is not { } end ? 0 : UtcNow() >= end ? 2 : SessionEndingSoon ? 1 : 0;
+
+    private static string Day(DateTime utc, string format) => utc.ToLocalTime().ToString(format, CultureInfo.InvariantCulture);
 
     /// <summary>Turns an error code into a message for the account card.</summary>
     internal static AccountError Describe(string code) => new(code, code switch
@@ -327,7 +456,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         "RATE_LIMITED" => "Too many attempts. Wait a few minutes and try again.",
         "NOT_AVAILABLE" or "INVALID_REQUEST" or "INVALID_CLIENT" or "UNAUTHORIZED_CLIENT" or "UNSUPPORTED_GRANT_TYPE"
             => "Signing in from the app isn't available on hearthpulse.net right now. Everything else works without an account.",
-        "INVALID_GRANT" or "INVALID_ACCESS_TOKEN" => "The sign-in has ended. Sign in again.",
+        "INVALID_GRANT" or "INVALID_ACCESS_TOKEN" or "WRONG_ACCOUNT" => "The sign-in has ended. Sign in again.",
         "INSUFFICIENT_SCOPE" => "hearthpulse.net didn't grant the access the app needs. Sign in again.",
         "BAD_RESPONSE" => "hearthpulse.net sent an answer the app doesn't understand. Try again later.",
         "SIGNED_OUT" => "You are signed out.",
