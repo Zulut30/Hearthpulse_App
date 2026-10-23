@@ -104,14 +104,5 @@ public sealed partial class OverlayViewModel
         ShowCounters = MyCounters.Count + OpponentCounters.Count > 0;
     }
 
-    private CounterChip Chip(CounterView c) => new(
-        c.Id,
-        c.Title,
-        c.Value,
-        c.Progress ?? 0,
-        c.Progress is not null,
-        c.IconCardId,
-        c.Details.Count == 0 ? c.Description : c.Description + Environment.NewLine + string.Join(Environment.NewLine, c.Details),
-        c.Id == _expandedCounter && c.Details.Count > 0,
-        c.Details);
+    private CounterChip Chip(CounterView c) => CounterChip.From(c, c.Id == _expandedCounter);
 }
