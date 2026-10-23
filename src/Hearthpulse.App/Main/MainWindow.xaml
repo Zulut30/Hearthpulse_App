@@ -1650,6 +1650,8 @@
                                     <TextBlock Text="Not affiliated with Blizzard Entertainment." Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,4,0,0" />
                                     <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
                                     <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource Caption}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding ParseErrorsText}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{StaticResource Negative}"
+                                               Visibility="{Binding ParseErrorsText, Converter={StaticResource Vis}}" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>

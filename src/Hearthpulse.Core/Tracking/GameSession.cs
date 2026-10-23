@@ -23,6 +23,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     /// </summary>
     internal static readonly TimeSpan AbandonAfter = TimeSpan.FromMinutes(5);
 
+    /// <summary>How long Power.log must be quiet before a block left open at the end of a batch is completed.</summary>
+    private static readonly TimeSpan QuietFlush = TimeSpan.FromMilliseconds(150);
+
     private readonly HistoryStore _history;
     private readonly HearthstoneMemory _memory;
     private readonly ConstructedTracker _constructed = new();
@@ -43,6 +46,12 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
     private DeckDefinition? _queuedDeck;
     private DeckDefinition? _gameDeck;
+
+    /// <summary>The game being tracked; internal for tests.</summary>
+    internal GameState? Game => _parser?.Game;
+
+    /// <summary>A multi-line block of the last batch is still open; internal for tests.</summary>
+    internal bool ParserHasPending => _parser?.HasPending == true;
 
     /// <summary>The deck Decks.log announced for the next game; internal for tests.</summary>
     internal DeckDefinition? QueuedDeck => _queuedDeck;
@@ -73,6 +82,12 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private bool _hearthstoneRunning;
     private DateTime _nextProcessCheck;
     private DateTime _nextParseErrorNote;
+
+    // Power.log lines the parser could not read, per exception type. The first of each type is logged with its stack;
+    // later ones at most once a minute. The total shows in Settings -> About.
+    private readonly Dictionary<string, int> _parseErrors = new(StringComparer.Ordinal);
+    private int _parseErrorTotal;
+    private int _parseErrorsSinceNote;
 
     // Diagnostics.
     private int _lastLoggedTurn = -1;
@@ -287,11 +302,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                                                    or InvalidOperationException or IndexOutOfRangeException
                                                    or KeyNotFoundException or NullReferenceException)
                     {
-                        if (DateTime.UtcNow >= _nextParseErrorNote)
-                        {
-                            _nextParseErrorNote = DateTime.UtcNow.AddMinutes(1);
-                            Diag.Error($"Skipped a Power.log line the parser could not read: {line[..Math.Min(line.Length, 200)]}", ex);
-                        }
+                        NoteParseError(line, ex);
                     }
                 }
 
@@ -300,7 +311,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                     _lastPowerLinesAt = Clock();
                 }
 
-                _parser?.Flush();
+                // Hearthstone writes the log in chunks, so a batch can end inside a FULL_ENTITY's "tag=" lines or a
+                // choice's options. Flushing here dropped the rest of them (thousands of tag values per session in
+                // small batches). The block is completed by its next line, or by OnTick once the log is quiet.
                 AfterPowerBatch();
                 break;
             case "LoadingScreen.log":
@@ -315,6 +328,37 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _dirty = true;
     }
 
+    /// <summary>
+    /// Counts a Power.log line the parser could not read. The first exception of each type is logged with its stack, so
+    /// a new client format shows where it broke; later ones are summed up at most once a minute.
+    /// </summary>
+    private void NoteParseError(string line, Exception ex)
+    {
+        var type = ex.GetType().Name;
+        _parseErrors[type] = _parseErrors.GetValueOrDefault(type) + 1;
+        _parseErrorTotal++;
+        _parseErrorsSinceNote++;
+        _dirty = true;
+        var text = line[..Math.Min(line.Length, 200)];
+        if (_parseErrors[type] == 1)
+        {
+            Diag.Error($"Skipped a Power.log line the parser could not read (first {type}): {text}", ex);
+        }
+        else if (DateTime.UtcNow >= _nextParseErrorNote)
+        {
+            Diag.Info($"Skipped {_parseErrorsSinceNote} more Power.log line(s) the parser could not read ({ParseErrorText()}); last {type}: {text}");
+            _parseErrorsSinceNote = 0;
+        }
+        else
+        {
+            return;
+        }
+
+        _nextParseErrorNote = DateTime.UtcNow.AddMinutes(1);
+    }
+
+    private string ParseErrorText() => string.Join(", ", _parseErrors.OrderByDescending(e => e.Value).Select(e => $"{e.Key} ×{e.Value}"));
+
     public void OnTick()
     {
         lock (_pipelineGate)
@@ -326,6 +370,13 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private void OnTickCore()
     {
         var now = Clock();
+        if (_parser is { HasPending: true } parser && now - _lastPowerLinesAt >= QuietFlush)
+        {
+            parser.Flush();
+            AfterPowerBatch();
+            _dirty = true;
+        }
+
         if (now >= _nextProcessCheck)
         {
             _nextProcessCheck = now.AddSeconds(2);
@@ -797,7 +848,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _rating,
             session,
             _lastOutcome,
-            _logConfigMissing);
+            _logConfigMissing,
+            _parseErrorTotal == 0 ? null : new ParseErrorSummary(_parseErrorTotal, ParseErrorText()));
 
         SnapshotChanged?.Invoke(Current);
     }

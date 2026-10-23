@@ -194,6 +194,11 @@ public sealed partial class MainViewModel : Observable
     public int SessionDeltaValue { get => _sessionDeltaValue; private set => Set(ref _sessionDeltaValue, value); }
     public string SessionSummary { get => _sessionSummary; private set => Set(ref _sessionSummary, value); }
     public string SetupWarning { get => _setupWarning; private set => Set(ref _setupWarning, value); }
+
+    private string _parseErrorsText = string.Empty;
+
+    /// <summary>Settings → About: Power.log lines the parser skipped since start (empty when none).</summary>
+    public string ParseErrorsText { get => _parseErrorsText; private set => Set(ref _parseErrorsText, value); }
     public string Busy { get => _busy; set => Set(ref _busy, value); }
 
     // ---- history-derived ------------------------------------------------------------------
@@ -290,6 +295,9 @@ public sealed partial class MainViewModel : Observable
         InGame = s.InGame;
         SetupWarning = s.LogConfigMissing.Count > 0
             ? $"Hearthstone logging was just enabled ({string.Join(", ", s.LogConfigMissing)}). Restart Hearthstone once to start tracking."
+            : string.Empty;
+        ParseErrorsText = s.ParseErrors is { } errors
+            ? $"Log reading: {errors.Total:N0} Power.log line(s) could not be read ({errors.ByType}). The first of each kind is in hearthpulse.log."
             : string.Empty;
 
         if (s.Rating is { } r)

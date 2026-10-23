@@ -334,6 +334,10 @@ public sealed record GameOutcome(string Mode, string Result, int Placement, int?
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 }
 
+/// <summary>Power.log lines the parser could not read since the app started (diagnostics, Settings → About).</summary>
+/// <param name="ByType">Counts per exception type, e.g. "NullReferenceException ×3, FormatException ×1".</param>
+public sealed record ParseErrorSummary(int Total, string ByType);
+
 public sealed record LiveSnapshot(
     string Scene,
     bool HearthstoneRunning,
@@ -346,7 +350,8 @@ public sealed record LiveSnapshot(
     BattlegroundsRating? Rating,
     SessionSummary Session,
     GameOutcome? LastOutcome,
-    IReadOnlyList<string> LogConfigMissing)
+    IReadOnlyList<string> LogConfigMissing,
+    ParseErrorSummary? ParseErrors = null)
 {
     public static LiveSnapshot Empty { get; } = new(
         "UNKNOWN", false, false, "Idle", null, false, null, null, null,

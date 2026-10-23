@@ -102,6 +102,12 @@ public sealed partial class PowerParser
         }
     }
 
+    /// <summary>
+    /// True while a multi-line construct (an entity's "tag=" lines, a choice's options) may still continue on the next
+    /// line. <see cref="Flush"/> completes it; a flush before its last line drops the lines that follow.
+    /// </summary>
+    public bool HasPending => _tagTarget is not null || _choiceType is not null;
+
     /// <summary>Completes pending multi-line constructs (call after a batch of lines).</summary>
     public void Flush()
     {
