@@ -56,14 +56,17 @@ Approval page shows the client name "Manacost Tracker"; `/connect?user_code=` pr
 `https://hsbg.cards/api/v1/cards?limit={0}&offset={1}&pool=current`, 100 per page, <= 20 pages, cache
 `cache/bgcards.hsbg.json` 12 h (`BgCardDb`).
 
-## blizzcore archetype names
+## Hearthpulse archetype dictionary (blizzcore)
 
 `GET https://api.blizzcore.ru/archetypes?limit=1000` -> `{"count", "success", "items": [{"id", "name_en", "name_ru",
 "created_at", "updated_at"}]}`, sorted by `name_en`. Checked Oct 2026: without `limit` it answers 200 items (`count` is
 the size of the answer, not the total - 253 existed); `offset`, `skip`, `page`, `per_page` are ignored, so ask for one
 big page (`ArchetypeTranslations.Limit`; an answer that long is logged as possibly cut). Some `name_en` use
 typographic apostrophes (`Mecha’thun Druid`) and a few are Russian - matching ignores case, spacing and apostrophe
-style. `ArchetypeTranslations` (12 h cache in `cache/api/blizzcore-archetypes.json`, stale copy offline, never throws);
+style. Our own service (deckview on the owner's server), so no third-party attribution; the installer notice names it as
+a Hearthpulse service. `ArchetypeTranslations` (12 h cache in `cache/api/blizzcore-archetypes.json`, stale copy
+offline, 5 s timeout, 1 MB answer limit, failed fetches back off 1, 2, 4, 6 h via `blizzcore-archetypes.failed`, never
+throws; `name_ru` cut to 40 characters, markup/control characters/no letters dropped);
 labels fall back to the built-in `ArchetypeNames.RussianLabel`, then the English name. Tests:
 `ArchetypeTranslationsTests` (fake handler).
 

@@ -703,7 +703,7 @@ public sealed partial class MainViewModel : Observable
 
         return local.Date == DateTime.Today.AddDays(-1)
             ? Loc.F("Main.When.Yesterday", local.ToString("HH:mm", CultureInfo.CurrentCulture))
-            : local.ToString("dd MMM HH:mm", CultureInfo.CurrentCulture);
+            : local.ToString("dd MMM HH:mm", Loc.DateCulture);
     }
 
     /// <summary>A game type ("GT_RANKED") or a history mode ("Ranked", see <c>GameRecords.ModeOf</c>) as the player reads it.</summary>

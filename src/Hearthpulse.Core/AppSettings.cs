@@ -31,8 +31,7 @@ public sealed class AppSettings
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
 
     /// <summary>
-    /// Card data language (HearthstoneJSON locale such as "ruRU"). "auto" follows the interface language
-    /// (<see cref="Language"/>): Russian cards with the Russian interface, English otherwise.
+    /// Card data language (HearthstoneJSON locale such as "ruRU"); "auto" decides by <see cref="CardLocale"/>.
     /// </summary>
     public string Locale { get; set; } = "auto";
 
@@ -42,9 +41,25 @@ public sealed class AppSettings
     /// <summary>The Settings page tab shown last ("General", "Overlay", "Tracker", "Account", "Data", "About").</summary>
     public string SettingsTab { get; set; } = "General";
 
-    /// <summary>The card locale to load: <see cref="Locale"/> when set, else the one that goes with the interface language.</summary>
+    /// <summary>
+    /// Text locale of the installed Hearthstone client ("ruRU", "deDE"...; <c>HearthstoneInstall.DetectLocale</c>), set by
+    /// the hosts once they found the install; null until then.
+    /// </summary>
+    [JsonIgnore]
+    public string? ClientLocale { get; set; }
+
+    /// <summary>
+    /// The card locale to load: <see cref="Locale"/> when set by hand; else the chosen interface language's ("ru" ->
+    /// ruRU, "en" -> enUS); with the language on "auto", the installed client's language, as before the interface had
+    /// languages (a German client keeps German cards), or the interface language while the client is unknown.
+    /// </summary>
     public string CardLocale() =>
-        Locale is { Length: > 0 } locale && locale != "auto" ? locale : Localization.Loc.CardLocaleOf(Localization.Loc.Resolve(Language));
+        Locale is { Length: > 0 } locale && locale != "auto" ? locale
+        : Language is Localization.Loc.English or Localization.Loc.Russian ? Localization.Loc.CardLocaleOf(Language)
+        : ClientLocale ?? Localization.Loc.CardLocaleOf(InterfaceLanguage());
+
+    /// <summary>The interface language to show: <see cref="Language"/>, with "auto" resolved by the client and the system.</summary>
+    public string InterfaceLanguage() => Localization.Loc.Resolve(Language, clientLocale: ClientLocale);
 
     public string? HearthstonePath { get; set; }
 

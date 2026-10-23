@@ -58,7 +58,7 @@ public sealed class LocalizationTests
     public void Every_key_used_in_the_code_exists()
     {
         var root = RepoRoot();
-        var used = new Regex(@"\{i:Loc\s+([A-Za-z0-9_.]+)\}|Loc\.(?:T|F|P)\(\s*""([A-Za-z0-9_.]+)""", RegexOptions.CultureInvariant);
+        var used = new Regex(@"\{i:Loc\s+([A-Za-z0-9_.-]+)\s*\}|Loc\.(?:T|F|P|Or)\(\s*""([A-Za-z0-9_.-]+)""", RegexOptions.CultureInvariant);
         var missing = new List<string>();
         foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.*", SearchOption.AllDirectories)
                      .Where(f => f.EndsWith(".xaml", StringComparison.Ordinal) || f.EndsWith(".axaml", StringComparison.Ordinal) || f.EndsWith(".cs", StringComparison.Ordinal))
@@ -67,7 +67,8 @@ public sealed class LocalizationTests
             foreach (Match match in used.Matches(File.ReadAllText(file)))
             {
                 var key = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
-                if (!Loc.Has(key))
+                // "Main.Theme." + name: a prefix completed at run time (those keys have their own tests or fall back).
+                if (!key.EndsWith('.') && !Loc.Has(key))
                 {
                     missing.Add($"{Path.GetRelativePath(root, file)}: {key}");
                 }
@@ -75,6 +76,47 @@ public sealed class LocalizationTests
         }
 
         Assert.Empty(missing);
+    }
+
+    [Fact]
+    public void Keys_are_unique_across_files_and_no_text_is_empty()
+    {
+        var root = RepoRoot();
+        foreach (var language in Loc.Languages)
+        {
+            var seen = new Dictionary<string, string>(StringComparer.Ordinal);
+            var problems = new List<string>();
+            foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "src", "Hearthpulse.Core", "Localization", "Strings", language), "*.json"))
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(file), new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip, AllowTrailingCommas = true });
+                foreach (var property in doc.RootElement.EnumerateObject())
+                {
+                    if (!seen.TryAdd(property.Name, Path.GetFileName(file)))
+                    {
+                        problems.Add($"{language}: {property.Name} in {seen[property.Name]} and {Path.GetFileName(file)}");
+                    }
+
+                    if (string.IsNullOrWhiteSpace(property.Value.GetString()))
+                    {
+                        problems.Add($"{language}: {property.Name} is empty");
+                    }
+                }
+            }
+
+            Assert.Empty(problems);
+        }
+    }
+
+    [Fact]
+    public void Every_counter_has_its_title_and_description_in_both_languages()
+    {
+        var ids = Hearthpulse.Core.Tracking.Counters.Counters.All.Concat(Hearthpulse.Core.Battlegrounds.BattlegroundsCounters.All).Select(c => c.Id).ToList();
+        Assert.NotEmpty(ids);
+        foreach (var language in Loc.Languages)
+        {
+            var table = Loc.Table(language);
+            Assert.DoesNotContain(ids.SelectMany(id => new[] { $"Core.Counter.{id}.Title", $"Core.Counter.{id}.Description" }), k => !table.ContainsKey(k));
+        }
     }
 
     [Fact]
@@ -98,11 +140,28 @@ public sealed class LocalizationTests
         Assert.Equal(expected, Loc.Resolve(setting, CultureInfo.GetCultureInfo(system)));
 
     [Theory]
-    [InlineData("auto", "ru", "ruRU")]
-    [InlineData("auto", "en", "enUS")]
-    [InlineData("deDE", "ru", "deDE")]
-    public void Card_locale_follows_the_interface_language_unless_set(string locale, string language, string expected) =>
-        Assert.Equal(expected, new AppSettings { Locale = locale, Language = language }.CardLocale());
+    // A language picked by hand brings its cards, unless the card locale was set by hand too.
+    [InlineData("auto", "ru", "deDE", "ruRU")]
+    [InlineData("auto", "en", "ruRU", "enUS")]
+    [InlineData("deDE", "ru", "ruRU", "deDE")]
+    // Language on auto: the installed client's cards, as before the interface had languages.
+    [InlineData("auto", "auto", "ruRU", "ruRU")]
+    [InlineData("auto", "auto", "deDE", "deDE")]
+    [InlineData("auto", "auto", "enUS", "enUS")]
+    public void Card_locale_follows_the_client_unless_a_language_or_locale_is_chosen(string locale, string language, string client, string expected) =>
+        Assert.Equal(expected, new AppSettings { Locale = locale, Language = language, ClientLocale = client }.CardLocale());
+
+    [Theory]
+    [InlineData("ruRU", "en-US", "ru")]
+    [InlineData("enUS", "ru-RU", "ru")]
+    [InlineData("deDE", "en-US", "en")]
+    [InlineData(null, "en-US", "en")]
+    public void Auto_language_is_Russian_for_a_Russian_client_or_system(string? client, string system, string expected) =>
+        Assert.Equal(expected, Loc.Resolve("auto", CultureInfo.GetCultureInfo(system), client));
+
+    [Fact]
+    public void An_explicit_language_wins_over_the_client() =>
+        Assert.Equal("en", new AppSettings { Language = "en", ClientLocale = "ruRU" }.InterfaceLanguage());
 
     [Theory]
     [InlineData(1, 0)]

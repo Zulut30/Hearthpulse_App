@@ -1,15 +1,26 @@
 # Interface languages (English, Russian)
 
 Hearthpulse shows its interface in English or Russian. The player picks the language in Settings → General
-(`AppSettings.Language`: `"auto"`, `"en"` or `"ru"`); `"auto"` follows the operating system's interface language and
-falls back to English for anything but Russian. The language switches **live**: every text in XAML and every text a
-view model builds updates without a restart. Card names are the exception: card data
+(`AppSettings.Language`: `"auto"`, `"en"` or `"ru"`). The language switches **live**: every text in XAML and every
+text a view model builds updates without a restart. Card names are the exception: card data
 (`cache/cards.<locale>.json`, HearthstoneJSON) is loaded once at start, so they switch after a restart, and Settings
-says so under the language choice while the loaded cards are in the other language.
+says so under the language choice while the loaded cards are in another language.
 
-Card data follows the interface language: `AppSettings.CardLocale()` is `ruRU` for Russian and `enUS` otherwise,
-unless `AppSettings.Locale` names a locale explicitly (no UI for that; an expert override in `settings.json`).
-Russian archetype names come from `api.blizzcore.ru` (see `hearthpulse-data-sources`) and follow the same choice.
+How "auto" and the card language are decided (`AppSettings.InterfaceLanguage()`, `AppSettings.CardLocale()`; the hosts
+set `AppSettings.ClientLocale` from `HearthstoneInstall.DetectLocale` once they found the game):
+
+| `Locale` (cards, settings.json only) | `Language` | Interface | Card data |
+|---|---|---|---|
+| a locale, e.g. `"deDE"` | any | as below | that locale |
+| `"auto"` | `"ru"` / `"en"` (picked in Settings) | that language | `ruRU` / `enUS` |
+| `"auto"` | `"auto"` (default) | Russian when the installed client is ruRU or the system is Russian, else English | the installed client's locale, as before the interface had languages (a German client keeps German cards); the interface language's while no client is found |
+
+So an existing install keeps its cards after the update, and picking a language by hand brings that language's cards
+(after a restart). `LocalizationTests` covers the table. Russian archetype names come from Hearthpulse's archetype
+dictionary `api.blizzcore.ru` (see `hearthpulse-data-sources`) and are used whenever the interface is Russian.
+
+Dates written out by the interface use the interface language's month names (`Loc.DateCulture`, also inside
+`Loc.F`/`Loc.P`); numbers keep the system's format like the rest of the UI.
 
 ## Where strings live
 
@@ -43,8 +54,9 @@ places with different meanings two keys.
 <Setter Property="Text" Value="{i:Loc Settings.Overlay.PickHintsOffCaption}" />                       <!-- WPF style trigger -->
 ```
 
-It is a one-way binding (WPF: to `Loc.Instance`'s indexer; Avalonia: an observable), so it updates when the language
-changes. Text written as element content (`<TextBlock>Some text</TextBlock>`) must move into `Text="{i:Loc ...}"`.
+It is a one-way binding to `Loc.Instance`'s indexer in both UIs, so it updates when the language changes (`Loc` raises
+`Item[]` for WPF and `Item` for Avalonia). Both frameworks hold that subscription weakly, so controls from templates
+are not kept alive by the static `Loc.Instance`; `LocBindingTests` checks the Avalonia side on a headless platform. Text written as element content (`<TextBlock>Some text</TextBlock>`) must move into `Text="{i:Loc ...}"`.
 A `StringFormat` with words in it (`StringFormat='{}{0} games'`) cannot take a key: build that text in the view
 model with `Loc.P`/`Loc.F`.
 

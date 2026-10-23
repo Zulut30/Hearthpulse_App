@@ -25,7 +25,8 @@ has `diamond`, `diamond_4to1` and `top_legend`, left out so the filter row fits.
 `past_week`, `past_30_days`, plus `patch` and `expansion`. The API names the current patch and expansion in every
 answer (`patch_36.6.3`, `black_empire`), so a `past_day` slice is read first to resolve them. Keys saved by earlier
 versions map onto the new ones, for example `past-7` → `past_week` and `top-2000-legend` → `top_5k`
-(`ConstructedMeta.Key`). The page caption and the status line say "HearthPulse · HSGuru / HSReplay данные".
+(`ConstructedMeta.Key`). The page caption and the status line name the source "Hearthpulse data" (`HearthpulseData.Attribution`), in both
+interface languages; the player never reads HSReplay or HSGuru.
 
 ## 2. HSGuru ↔ HSReplay archetypes
 

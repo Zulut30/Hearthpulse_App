@@ -323,6 +323,9 @@ public partial class MainWindow : Window
             return;
         }
 
+        // A tab is not a setting: stop Checked here so the page's OnSettingChanged does not re-apply every setting. The
+        // tab is saved with the next change or on exit.
+        e.Handled = true;
         _viewModel.Settings.SettingsTab = tab;
         SettingsGeneral.Visibility = SettingsTabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsOverlay.Visibility = SettingsTabOverlay.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -336,7 +339,7 @@ public partial class MainWindow : Window
     {
         if (IsLoaded)
         {
-            Loc.Instance.SetLanguage(_viewModel.Settings.Language);
+            Loc.Instance.SetLanguage(_viewModel.Settings.InterfaceLanguage());
             SyncOverlaySwitch();
             SettingsChanged?.Invoke();
         }

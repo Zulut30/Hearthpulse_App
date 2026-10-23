@@ -115,16 +115,114 @@ public sealed class ArchetypeTranslationsTests : IDisposable
         Assert.False(File.Exists(Path.Combine(_cache, "blizzcore-archetypes.json")));
     }
 
+    [Fact]
+    public async Task A_fresh_but_broken_cache_is_fetched_again()
+    {
+        Directory.CreateDirectory(_cache);
+        await File.WriteAllTextAsync(Path.Combine(_cache, "blizzcore-archetypes.json"), "{\"items\": [");
+        var server = new FakeServer(HttpStatusCode.OK, Answer);
+        using var http = new HttpClient(server);
+
+        var names = await ArchetypeTranslations.LoadAsync(http, _cache);
+
+        Assert.Single(server.Requests);
+        Assert.Equal(3, names.Count);
+    }
+
+    [Fact]
+    public async Task After_a_failure_the_next_starts_wait_before_asking_again()
+    {
+        var offline = new FakeServer(null, string.Empty);
+        using var http = new HttpClient(offline);
+
+        await ArchetypeTranslations.LoadAsync(http, _cache);
+        await ArchetypeTranslations.LoadAsync(http, _cache);
+        Assert.Single(offline.Requests);
+
+        // An hour after the first failure the wait is over; the second failure doubles it.
+        var marker = Path.Combine(_cache, "blizzcore-archetypes.failed");
+        File.SetLastWriteTimeUtc(marker, DateTime.UtcNow - TimeSpan.FromMinutes(61));
+        await ArchetypeTranslations.LoadAsync(http, _cache);
+        Assert.Equal(2, offline.Requests.Count);
+        File.SetLastWriteTimeUtc(marker, DateTime.UtcNow - TimeSpan.FromMinutes(61));
+        await ArchetypeTranslations.LoadAsync(http, _cache);
+        Assert.Equal(2, offline.Requests.Count);
+
+        // A success clears the count.
+        File.SetLastWriteTimeUtc(marker, DateTime.UtcNow - TimeSpan.FromHours(3));
+        using var online = new HttpClient(new FakeServer(HttpStatusCode.OK, Answer));
+        Assert.Equal(3, (await ArchetypeTranslations.LoadAsync(online, _cache)).Count);
+        Assert.False(File.Exists(marker));
+    }
+
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(2, 2)]
+    [InlineData(3, 4)]
+    [InlineData(4, 6)]
+    [InlineData(20, 6)]
+    public void Retries_back_off_from_one_to_six_hours(int failures, int hours) =>
+        Assert.Equal(TimeSpan.FromHours(hours), ArchetypeTranslations.RetryAfter(failures));
+
+    [Fact]
+    public async Task A_host_that_never_answers_is_given_up_quickly()
+    {
+        var old = ArchetypeTranslations.FetchTimeout;
+        ArchetypeTranslations.FetchTimeout = TimeSpan.FromMilliseconds(200);
+        try
+        {
+            using var http = new HttpClient(new FakeServer(HttpStatusCode.OK, Answer) { Delay = TimeSpan.FromSeconds(30) });
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+
+            var names = await ArchetypeTranslations.LoadAsync(http, _cache);
+
+            Assert.Equal(0, names.Count);
+            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), watch.Elapsed.ToString());
+        }
+        finally
+        {
+            ArchetypeTranslations.FetchTimeout = old;
+        }
+    }
+
+    [Fact]
+    public void Odd_names_are_dropped_and_long_ones_cut()
+    {
+        var names = ArchetypeTranslations.Parse("""
+            {"items": [
+              {"name_en": "Long Rogue", "name_ru": "Очень длинное название архетипа, которое не помещается в строку"},
+              {"name_en": "Html Mage", "name_ru": "<b>Маг</b>"},
+              {"name_en": "Digits Hunter", "name_ru": "12345"},
+              {"name_en": "Spaced Druid", "name_ru": "  Друид   на   драконах "}
+            ]}
+            """);
+
+        var cut = names.Russian("Long Rogue")!;
+        Assert.Equal(ArchetypeTranslations.MaxNameLength, cut.Length);
+        Assert.EndsWith("…", cut, StringComparison.Ordinal);
+        Assert.Null(names.Russian("Html Mage"));
+        Assert.Null(names.Russian("Digits Hunter"));
+        Assert.Equal("Друид на драконах", names.Russian("Spaced Druid"));
+    }
+
     /// <summary>Answers every request with one status and body; a null status throws like a machine without network.</summary>
     private sealed class FakeServer(HttpStatusCode? status, string body) : HttpMessageHandler
     {
         public List<string> Requests { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        /// <summary>How long the answer takes (it honours cancellation, like a real connection).</summary>
+        public TimeSpan Delay { get; init; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Requests.Add(request.RequestUri!.ToString());
+            if (Delay > TimeSpan.Zero)
+            {
+                await Task.Delay(Delay, cancellationToken);
+            }
+
             return status is { } code
-                ? Task.FromResult(new HttpResponseMessage(code) { Content = new StringContent(body, Encoding.UTF8, "application/json") })
+                ? new HttpResponseMessage(code) { Content = new StringContent(body, Encoding.UTF8, "application/json") }
                 : throw new HttpRequestException("No route to host");
         }
     }

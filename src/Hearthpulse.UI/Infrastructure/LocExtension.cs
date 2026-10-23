@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Data;
 using Hearthpulse.Core.Localization;
 
@@ -8,6 +7,11 @@ namespace Hearthpulse.UI.Infrastructure;
 /// <c>{i:Loc Settings.Title}</c>: the string <paramref name="key"/> in the interface language, updated live when the
 /// language changes. Keys: docs/localization.md.
 /// </summary>
+/// <remarks>
+/// A one-way binding to <see cref="Loc.Instance"/>'s indexer, as in WPF: Avalonia listens to its <c>Item[]</c>
+/// notifications through a weak subscription, so controls built from templates (overlay rows, deck page rows) are not
+/// kept alive by the static <see cref="Loc.Instance"/> after they leave the tree.
+/// </remarks>
 public sealed class LocExtension(string key)
 {
     public LocExtension()
@@ -18,22 +22,6 @@ public sealed class LocExtension(string key)
     /// <summary>The string's key, e.g. "Settings.Title".</summary>
     public string Key { get; set; } = key;
 
-    public BindingBase ProvideValue(IServiceProvider serviceProvider) => new LocText(Key).ToBinding();
-
-    /// <summary>The string's current text, then the new text after each language change.</summary>
-    private sealed class LocText(string key) : IObservable<string>
-    {
-        public IDisposable Subscribe(IObserver<string> observer)
-        {
-            void Push() => observer.OnNext(Loc.T(key));
-            Loc.Instance.LanguageChanged += Push;
-            Push();
-            return new Unsubscribe(() => Loc.Instance.LanguageChanged -= Push);
-        }
-    }
-
-    private sealed class Unsubscribe(Action action) : IDisposable
-    {
-        public void Dispose() => action();
-    }
+    public BindingBase ProvideValue(IServiceProvider serviceProvider) =>
+        new ReflectionBinding($"[{Key}]") { Source = Loc.Instance, Mode = BindingMode.OneWay };
 }

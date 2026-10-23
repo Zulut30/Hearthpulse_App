@@ -141,7 +141,7 @@ public partial class MainView : UserControl
                 return true;
             case ["Language", var language] when settings.Language != language:
                 settings.Language = language;
-                Loc.Instance.SetLanguage(language);
+                Loc.Instance.SetLanguage(settings.InterfaceLanguage());
                 return true;
             default:
                 return false;

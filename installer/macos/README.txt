@@ -23,5 +23,6 @@ afterwards. The overlay floats over the game, including in full screen.
 Your rating and the lobby tribes are read from game memory on Windows only; on Mac
 those values stay empty.
 
-Community stats: Hearthpulse data (api.kolodahearthstone.com). Card data and art: HearthstoneJSON.
+Community stats: Hearthpulse data (api.kolodahearthstone.com). Russian archetype names: the Hearthpulse archetype
+dictionary (api.blizzcore.ru). Card data and art: HearthstoneJSON.
 Not affiliated with Blizzard Entertainment.

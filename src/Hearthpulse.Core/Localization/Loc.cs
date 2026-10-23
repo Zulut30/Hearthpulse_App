@@ -9,7 +9,7 @@ namespace Hearthpulse.Core.Localization;
 /// The interface language and its strings. Strings live in embedded JSON files, one set per language
 /// (<c>Localization/Strings/en/*.json</c>, <c>ru/*.json</c>): a flat map of key to text. English is complete; another
 /// language falls back to English for a key it lacks. Both UIs bind to <see cref="Instance"/>'s indexer
-/// (<c>{l:Loc Key}</c>), which updates every bound text when the language changes. See <c>docs/localization.md</c>.
+/// (<c>{i:Loc Settings.Title}</c>), which updates every bound text when the language changes. See <c>docs/localization.md</c>.
 /// </summary>
 public sealed class Loc : INotifyPropertyChanged
 {
@@ -44,10 +44,18 @@ public sealed class Loc : INotifyPropertyChanged
     /// <summary>Whether the interface is in Russian.</summary>
     public static bool IsRussian => Instance.Language == Russian;
 
+    /// <summary>
+    /// Culture for dates the interface writes out ("23 окт." in Russian, "23 Oct" in English, whatever the system
+    /// language): month names follow the interface language. Numbers keep the system's format, like the rest of the UI.
+    /// </summary>
+    public static CultureInfo DateCulture => Instance.Language == Russian
+        ? CultureInfo.GetCultureInfo("ru-RU")
+        : CultureInfo.CurrentCulture.TwoLetterISOLanguageName == English ? CultureInfo.CurrentCulture : CultureInfo.GetCultureInfo("en-US");
+
     /// <summary>The HearthstoneJSON card locale that goes with the current language ("ruRU" or "enUS").</summary>
     public static string CardLocale => CardLocaleOf(Instance.Language);
 
-    /// <summary>The text of <paramref name="key"/> in the current language (what <c>{l:Loc Key}</c> binds to).</summary>
+    /// <summary>The text of <paramref name="key"/> in the current language (what <c>{i:Loc Settings.Title}</c> binds to).</summary>
     public string this[string key] => Lookup(key);
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -67,7 +75,7 @@ public sealed class Loc : INotifyPropertyChanged
         var format = Instance.Lookup(key);
         try
         {
-            return string.Format(CultureInfo.CurrentCulture, format, args);
+            return string.Format(Formatter.Instance, format, args);
         }
         catch (FormatException)
         {
@@ -89,7 +97,7 @@ public sealed class Loc : INotifyPropertyChanged
         more.CopyTo(args, 1);
         try
         {
-            return string.Format(CultureInfo.CurrentCulture, form, args);
+            return string.Format(Formatter.Instance, form, args);
         }
         catch (FormatException)
         {
@@ -113,14 +121,19 @@ public sealed class Loc : INotifyPropertyChanged
         Tables.TryGetValue(language, out var table) ? table : new Dictionary<string, string>();
 
     /// <summary>
-    /// The language a settings value stands for: "en" or "ru" as is, anything else ("auto") the operating system's
-    /// interface language when the app has it, else English.
+    /// The language a settings value stands for: "en" or "ru" as is; anything else ("auto") Russian when the installed
+    /// Hearthstone client (<paramref name="clientLocale"/>, e.g. "ruRU") or the operating system is Russian, else English.
     /// </summary>
-    public static string Resolve(string? setting, CultureInfo? system = null)
+    public static string Resolve(string? setting, CultureInfo? system = null, string? clientLocale = null)
     {
         if (setting is { } value && Languages.Contains(value, StringComparer.OrdinalIgnoreCase))
         {
             return value.ToLowerInvariant();
+        }
+
+        if (clientLocale is not null && clientLocale.StartsWith(Russian, StringComparison.OrdinalIgnoreCase))
+        {
+            return Russian;
         }
 
         var culture = system ?? CultureInfo.CurrentUICulture;
@@ -140,7 +153,9 @@ public sealed class Loc : INotifyPropertyChanged
         }
 
         Language = resolved;
+        // Every indexer binding re-reads: WPF listens for "Item[]", Avalonia for "Item".
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item"));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Language)));
         LanguageChanged?.Invoke();
     }
@@ -234,5 +249,20 @@ public sealed class Loc : INotifyPropertyChanged
         {
             Diag.Error($"Localization file {name} unreadable", ex);
         }
+    }
+
+    /// <summary>Format provider of <see cref="F"/> and <see cref="P"/>: dates in <see cref="DateCulture"/>, the rest in the current culture.</summary>
+    private sealed class Formatter : IFormatProvider, ICustomFormatter
+    {
+        public static readonly Formatter Instance = new();
+
+        public object? GetFormat(Type? formatType) => formatType == typeof(ICustomFormatter) ? this : CultureInfo.CurrentCulture.GetFormat(formatType);
+
+        public string Format(string? format, object? arg, IFormatProvider? formatProvider) => arg switch
+        {
+            DateTime or DateTimeOffset => ((IFormattable)arg).ToString(format, DateCulture),
+            IFormattable formattable => formattable.ToString(format, CultureInfo.CurrentCulture),
+            _ => arg?.ToString() ?? string.Empty,
+        };
     }
 }

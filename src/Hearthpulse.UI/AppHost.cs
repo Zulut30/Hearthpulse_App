@@ -39,13 +39,13 @@ public sealed partial class AppHost : IDisposable
     private MatchupAggregate? _matchupStats;
     private UpdateInfo? _stagedUpdate;
     private Func<string>? _busy;
-    private bool _archetypeNamesLoaded;
+    private Task? _archetypeNames;
     private Func<string>? _updateStatus;
 
     public AppHost(AppSettings settings)
     {
         Settings = settings;
-        Loc.Instance.SetLanguage(settings.Language);
+        Loc.Instance.SetLanguage(settings.InterfaceLanguage());
         Http = new HttpClient(new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
@@ -151,6 +151,9 @@ public sealed partial class AppHost : IDisposable
             }
 
             Session.InstallDirectory = InstallDirectory;
+            // "auto" language and cards follow the installed client (a Russian client shows Russian cards and interface).
+            Settings.ClientLocale = HearthstoneInstall.DetectLocale(InstallDirectory);
+            Loc.Instance.SetLanguage(Settings.InterfaceLanguage());
             var locale = Settings.CardLocale();
             CardArt.Locale = locale;
 
@@ -299,6 +302,27 @@ public sealed partial class AppHost : IDisposable
     }
 
     /// <summary>
+    /// Russian archetype names, once per run and only while the interface is Russian (the only language that uses them),
+    /// fetched beside the meta, never before it: when they arrive the meta is loaded again (from its cache) so its labels
+    /// use them. An empty answer lets the next meta load ask again (the loader itself backs off after failures).
+    /// </summary>
+    private async Task LoadArchetypeNamesAsync()
+    {
+        var names = await ArchetypeTranslations.LoadAsync(Http);
+        if (names.Count == 0)
+        {
+            _archetypeNames = null;
+            return;
+        }
+
+        ArchetypeTranslations.Current = names;
+        if (Loc.IsRussian)
+        {
+            await LoadMetaAsync();
+        }
+    }
+
+    /// <summary>
     /// Community stats: heroes and minions from the Hearthpulse API, and, when a stats pool is set up, the pool's meta
     /// laid over them for what the API lacks (or the pool's own meta when the API did not load). docs/bg-meta-sources.md.
     /// </summary>
@@ -336,11 +360,10 @@ public sealed partial class AppHost : IDisposable
         try
         {
             // This app has no Constructed meta page yet; the stats still feed the in-game mulligan panel.
-            if (Loc.IsRussian && !_archetypeNamesLoaded)
+            if (Loc.IsRussian && _archetypeNames is null)
             {
-                // Russian archetype names, once per run and only while the interface is Russian (the only language that uses them).
-                _archetypeNamesLoaded = true;
-                ArchetypeTranslations.Current = await ArchetypeTranslations.LoadAsync(Http);
+                _archetypeNames = LoadArchetypeNamesAsync();
+                _archetypeNames.Forget("Archetype names load");
             }
 
             var constructed = await ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale);

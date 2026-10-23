@@ -35,7 +35,7 @@ public partial class App : Application
     private Mutex? _mutex;
     private AppSettings _settings = new();
     private HttpClient _http = null!;
-    private bool _archetypeNamesLoaded;
+    private Task? _archetypeNames;
     private HearthpulseApi _api = null!;
     private AccountService _account = null!;
     private HistoryStore _history = null!;
@@ -103,7 +103,7 @@ public partial class App : Application
         if (!firstInstance && _renderDir is null)
         {
             // Settings are not loaded yet; read the language only, so the message is in the player's language.
-            Loc.Instance.SetLanguage(AppSettings.Load().Language);
+            Loc.Instance.SetLanguage(AppSettings.Load().InterfaceLanguage());
             MessageBox.Show(Loc.T("Host.AlreadyRunning"), "Hearthpulse", MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
@@ -147,7 +147,7 @@ public partial class App : Application
         };
 
         _settings = AppSettings.Load();
-        Loc.Instance.SetLanguage(_settings.Language);
+        Loc.Instance.SetLanguage(_settings.InterfaceLanguage());
         ApplyTheme();
         Diag.Info($"Hearthpulse {UpdateService.CurrentVersion} (app {typeof(App).Assembly.GetName().Version?.ToString(3)}) starting on "
                   + $"{System.Runtime.InteropServices.RuntimeInformation.OSDescription}, {Environment.ProcessorCount} CPUs, "
@@ -303,6 +303,9 @@ public partial class App : Application
 
             _session.InstallDirectory = _installDir;
 
+            // "auto" language and cards follow the installed client (a Russian client shows Russian cards and interface).
+            _settings.ClientLocale = HearthstoneInstall.DetectLocale(_installDir);
+            Loc.Instance.SetLanguage(_settings.InterfaceLanguage());
             var locale = _settings.CardLocale();
             CardArt.Locale = locale;
 
@@ -476,12 +479,32 @@ public partial class App : Application
     }
 
     /// <summary>Russian archetype names, once per run and only while the interface is Russian (the only language that uses them).</summary>
+    private void LoadArchetypeNames()
+    {
+        if (Loc.IsRussian && _archetypeNames is null)
+        {
+            _archetypeNames = LoadArchetypeNamesAsync();
+            _archetypeNames.Forget("Archetype names load");
+        }
+    }
+
+    /// <summary>
+    /// Fetched beside the meta, never before it: when the names arrive the meta is loaded again (from its cache) so its
+    /// labels use them. An empty answer lets the next meta load ask again (the loader itself backs off after failures).
+    /// </summary>
     private async Task LoadArchetypeNamesAsync()
     {
-        if (Loc.IsRussian && !_archetypeNamesLoaded)
+        var names = await ArchetypeTranslations.LoadAsync(_http);
+        if (names.Count == 0)
         {
-            _archetypeNamesLoaded = true;
-            ArchetypeTranslations.Current = await ArchetypeTranslations.LoadAsync(_http);
+            _archetypeNames = null;
+            return;
+        }
+
+        ArchetypeTranslations.Current = names;
+        if (Loc.IsRussian)
+        {
+            await LoadConstructedMetaAsync();
         }
     }
 
@@ -503,7 +526,7 @@ public partial class App : Application
         });
         try
         {
-            await LoadArchetypeNamesAsync();
+            LoadArchetypeNames();
             var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, Loc.CardLocale, tierList, cancel.Token);
             done = true;
             if (request == _constructedMetaRequest)
