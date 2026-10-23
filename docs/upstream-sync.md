@@ -51,6 +51,10 @@ and how to repeat the sync.
 | `23ffc3f` | `788fd41` | Show the full comp list in game | Ported |
 | `84edebe` | `57a92d2` | Merge shared stats into every MMR bracket | Adapted (attribution) |
 
+After the port, `main` (`2e8d9be`: device-flow sign-in, My Stats, deck and hand panels, Discover pool, counters
+panel, Mulligan V2, Constructed meta from the Hearthpulse API) was merged in (`e8c3089`) without textual
+conflicts. Constructed loading is main's (API only) in both hosts; Battlegrounds loading is the port's.
+
 ## Conflicts and how they were resolved
 
 - `AppPaths.Root` (`ce9314e`, `1e54a0a`): portable copies use their own data folder (`PortableRoot()`, next to the
