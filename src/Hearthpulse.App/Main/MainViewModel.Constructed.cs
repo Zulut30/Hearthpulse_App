@@ -4,6 +4,7 @@ using System.Windows;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.App.Main;
 
@@ -23,6 +24,7 @@ public sealed record MetaArchetypeRow(
 
 public sealed record MetaDeckRow(string Name, string Class, string HeroId, string WinRate, double Edge, string Games, string Dust, string Code);
 
+/// <summary>One card of the mulligan guide; <see cref="Seen"/> is its tooltip ("Seen in 1,234 opening hands").</summary>
 public sealed record MulliganRow(string CardId, string Name, string WinRate, double Edge, string KeepRate, string Seen);
 
 public sealed partial class MainViewModel
@@ -37,9 +39,9 @@ public sealed partial class MainViewModel
     private string _metaClass = string.Empty;
     private bool _sortByPopularity;
     private RelayCommand? _setMetaSort;
-    private string _constructedMetaStatus = "Meta stats loading…";
+    private Func<string> _constructedMetaStatus = () => Loc.T("Main.Meta.Loading");
     private string _archetypeSummary = string.Empty;
-    private string _copyNote = string.Empty;
+    private Func<string> _copyNote = () => string.Empty;
     private RelayCommand? _setMetaFormat;
     private RelayCommand? _setMetaRank;
     private RelayCommand? _setMetaPeriod;
@@ -67,11 +69,15 @@ public sealed partial class MainViewModel
 
     public IReadOnlyList<MulliganRow> Mulligan { get => _mulligan; private set => Set(ref _mulligan, value); }
 
-    public string ConstructedMetaStatus { get => _constructedMetaStatus; private set => Set(ref _constructedMetaStatus, value); }
+    /// <summary>Where the meta numbers come from, or why there are none; kept as a text maker so it follows a language change.</summary>
+    public string ConstructedMetaStatus => _constructedMetaStatus();
 
     public string ArchetypeSummary { get => _archetypeSummary; private set => Set(ref _archetypeSummary, value); }
 
-    public string CopyNote { get => _copyNote; private set => Set(ref _copyNote, value); }
+    public string CopyNote => _copyNote();
+
+    /// <summary>The selected archetype's name over its detail, or a nudge to pick one.</summary>
+    public string SelectedArchetypeTitle => _selectedArchetype?.Name ?? Loc.T("Main.Meta.PickArchetype");
 
     public MetaArchetypeRow? SelectedArchetype
     {
@@ -80,6 +86,7 @@ public sealed partial class MainViewModel
         {
             if (Set(ref _selectedArchetype, value))
             {
+                Raise(nameof(SelectedArchetypeTitle));
                 RebuildArchetypeDetail();
             }
         }
@@ -114,11 +121,11 @@ public sealed partial class MainViewModel
         try
         {
             Clipboard.SetText(deck.Code);
-            CopyNote = $"{deck.Name} copied. In Hearthstone, make a new deck and it offers to paste it.";
+            ShowCopyNote(() => Loc.F("Main.Meta.Copied", deck.Name));
         }
         catch (COMException)
         {
-            CopyNote = "The clipboard is busy. Try again.";
+            ShowCopyNote(() => Loc.T("Main.Meta.ClipboardBusy"));
         }
     });
 
@@ -126,7 +133,7 @@ public sealed partial class MainViewModel
     {
         if (meta is null)
         {
-            ConstructedMetaStatus = "Meta stats are unavailable right now. Hearthpulse tries again later.";
+            ShowMetaStatus(() => Loc.T("Main.Meta.Unavailable"));
             return;
         }
 
@@ -138,13 +145,25 @@ public sealed partial class MainViewModel
         RebuildDecks();
     }
 
+    private void ShowMetaStatus(Func<string> text)
+    {
+        _constructedMetaStatus = text;
+        Raise(nameof(ConstructedMetaStatus));
+    }
+
+    private void ShowCopyNote(Func<string> text)
+    {
+        _copyNote = text;
+        Raise(nameof(CopyNote));
+    }
+
     private void ChangeMetaFilter(Action apply)
     {
         apply();
         Raise(nameof(MetaFormats));
         Raise(nameof(MetaRanks));
         Raise(nameof(MetaPeriods));
-        ConstructedMetaStatus = "Loading…";
+        ShowMetaStatus(() => Loc.T("Main.Meta.LoadingShort"));
         ConstructedMetaRequested?.Invoke();
     }
 
@@ -164,7 +183,7 @@ public sealed partial class MainViewModel
 
         var ids = deck.Cards.Keys.Select(dbf => _cards.Get(dbf)?.Id).OfType<string>().ToList();
         return meta.Match(heroClass, ids) is { } archetype
-            ? $"{archetype.Name} · {archetype.WinRate.ToString("P0", CultureInfo.CurrentCulture)} in the meta"
+            ? Loc.F("Main.Meta.DeckInMeta", archetype.Name, archetype.WinRate.ToString("P0", CultureInfo.CurrentCulture))
             : string.Empty;
     }
 
@@ -184,7 +203,7 @@ public sealed partial class MainViewModel
             return;
         }
 
-        MetaClasses = new[] { new MetaChoice(string.Empty, "All classes", _metaClass.Length == 0) }
+        MetaClasses = new[] { new MetaChoice(string.Empty, Loc.T("Main.Meta.AllClasses"), _metaClass.Length == 0) }
             .Concat(meta.Archetypes
                 .Select(a => a.Class)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -199,7 +218,7 @@ public sealed partial class MainViewModel
                 a.Id,
                 a.Name,
                 ClassHero(a.Class),
-                $"{ConstructedMeta.ClassName(a.Class)} · {a.Games.ToString("N0", CultureInfo.CurrentCulture)} games",
+                Loc.P("Main.Meta.ArchetypeDetail", a.Games, ConstructedMeta.ClassName(a.Class)),
                 TierOf(a.WinRate),
                 a.WinRate.ToString("P1", CultureInfo.CurrentCulture),
                 a.WinRate - 0.5,
@@ -221,10 +240,11 @@ public sealed partial class MainViewModel
         SelectedArchetype = MetaArchetypes.FirstOrDefault(r => r.Id == _selectedArchetype?.Id) ?? MetaArchetypes.FirstOrDefault();
         RebuildArchetypeDetail();
 
-        var updated = meta.Updated == DateTime.MinValue ? string.Empty : $" · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}";
-        ConstructedMetaStatus = meta.Archetypes.Count == 0
-            ? "No meta stats for this format and rank yet."
-            : $"{meta.Source} · {ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank)} · {ConstructedMeta.Label(ConstructedMeta.Periods, meta.Period)} · {meta.Games:N0} games{updated}";
+        var updated = meta.Updated == DateTime.MinValue ? string.Empty : Loc.F("Main.Meta.Updated", meta.Updated.ToLocalTime());
+        var status = meta.Archetypes.Count == 0
+            ? Loc.T("Main.Meta.NoStats")
+            : Loc.P("Main.Meta.Status", meta.Games, meta.Source, ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank), ConstructedMeta.Label(ConstructedMeta.Periods, meta.Period), updated);
+        ShowMetaStatus(() => status);
     }
 
     private void RebuildArchetypeDetail()
@@ -238,8 +258,8 @@ public sealed partial class MainViewModel
             return;
         }
 
-        ArchetypeSummary = $"{ConstructedMeta.ClassName(archetype.Class)} · {archetype.WinRate.ToString("P1", CultureInfo.CurrentCulture)} win rate over {archetype.Games:N0} games · "
-            + $"{archetype.Share.ToString("P1", CultureInfo.CurrentCulture)} of the meta";
+        ArchetypeSummary = Loc.P("Main.Meta.Summary", archetype.Games, ConstructedMeta.ClassName(archetype.Class),
+            archetype.WinRate.ToString("P1", CultureInfo.CurrentCulture), archetype.Share.ToString("P1", CultureInfo.CurrentCulture));
 
         ArchetypeDecks = _constructedMeta!.Decks
             .Where(d => d.ArchetypeId == archetype.Id)
@@ -257,8 +277,8 @@ public sealed partial class MainViewModel
                 _cards.NameOf(c.CardId),
                 c.InHandWinRate.ToString("P0", CultureInfo.CurrentCulture),
                 c.InHandWinRate - (archetype.MulliganBaseline ?? archetype.WinRate),
-                $"kept {c.KeepRate.ToString("P0", CultureInfo.CurrentCulture)}",
-                c.InHand.ToString("N0", CultureInfo.CurrentCulture)))
+                Loc.F("Main.Meta.Kept", c.KeepRate.ToString("P0", CultureInfo.CurrentCulture)),
+                Loc.P("Main.Meta.SeenIn", c.InHand)))
             .ToList();
     }
 

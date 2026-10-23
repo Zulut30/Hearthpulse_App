@@ -20,6 +20,17 @@ public sealed partial class MainViewModel
     {
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
+        if (_meta is null || _cards.Count == 0)
+        {
+            MetaUpdated = Loc.T("Main.Bg.CommunityLoading");
+        }
+
+        // The live bar, session line and setup warning come from the last snapshot.
+        if (_lastSnapshot is { } snapshot)
+        {
+            Apply(snapshot);
+        }
+
         Raise(string.Empty);
     }
 }

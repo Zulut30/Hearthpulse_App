@@ -101,7 +101,7 @@
                         <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
                     </Border>
                     <TextBlock Grid.Column="5" Text="{Binding Rating}" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold"
-                               Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip="Rating change" />
+                               Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Game.RatingChange}" />
                 </Grid>
             </Border>
         </DataTemplate>
@@ -196,9 +196,9 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top">
                     <StackPanel Orientation="Horizontal" Margin="18,14,0,0">
-                        <Button Style="{StaticResource CloseCaptionButton}" Content="&#xF0156;" Click="OnClose" ToolTip="Close (keeps running in the tray if enabled)" />
-                        <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xF05AF;" Click="OnMaximize" ToolTip="Maximize" />
-                        <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="Minimize" />
+                        <Button Style="{StaticResource CloseCaptionButton}" Content="&#xF0156;" Click="OnClose" ToolTip="{i:Loc Main.Window.Close}" />
+                        <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xF05AF;" Click="OnMaximize" ToolTip="{i:Loc Main.Window.Maximize}" />
+                        <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
                         <Image Source="/Assets/hearthpulse.png" Width="42" Height="42" RenderOptions.BitmapScalingMode="HighQuality" />
@@ -206,37 +206,37 @@
                                    Margin="12,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
 
-                    <RadioButton x:Name="NavOverview" Style="{StaticResource NavItem}" Content="Home" Tag="&#xF02DC;" GroupName="Nav" IsChecked="True" Checked="OnNavigate"
-                                 ToolTip="Your session, rating and recent games" />
+                    <RadioButton x:Name="NavOverview" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Home}" Tag="&#xF02DC;" GroupName="Nav" IsChecked="True" Checked="OnNavigate"
+                                 ToolTip="{i:Loc Main.Nav.HomeTip}" />
 
                     <Grid Style="{StaticResource NavGroup}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Modes" Style="{StaticResource Label}" />
+                        <TextBlock Text="{i:Loc Main.Nav.Modes}" Style="{StaticResource Label}" />
                     </Grid>
-                    <RadioButton x:Name="NavBattlegrounds" Style="{StaticResource NavItem}" Content="Battlegrounds" Tag="&#xF0787;" GroupName="Nav" Checked="OnNavigate"
-                                 ToolTip="Hero, comp, trinket and card tier lists, plus your Battlegrounds results" />
-                    <RadioButton x:Name="NavConstructed" Style="{StaticResource NavItem}" Content="Constructed" Tag="&#xF063A;" GroupName="Nav" Checked="OnNavigate"
-                                 ToolTip="Your decks, matchups and the meta tier list" />
-                    <RadioButton x:Name="NavArena" Style="{StaticResource NavItem}" Content="Arena" Tag="&#xF0538;" GroupName="Nav" Checked="OnNavigate"
-                                 ToolTip="Your Arena runs, classes and matchups" />
+                    <RadioButton x:Name="NavBattlegrounds" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="&#xF0787;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="{i:Loc Main.Nav.BattlegroundsTip}" />
+                    <RadioButton x:Name="NavConstructed" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Constructed}" Tag="&#xF063A;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="{i:Loc Main.Nav.ConstructedTip}" />
+                    <RadioButton x:Name="NavArena" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Arena}" Tag="&#xF0538;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="{i:Loc Main.Nav.ArenaTip}" />
 
                     <Grid Style="{StaticResource NavGroup}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Library" Style="{StaticResource Label}" />
+                        <TextBlock Text="{i:Loc Main.Nav.Library}" Style="{StaticResource Label}" />
                     </Grid>
-                    <RadioButton x:Name="NavHistory" Style="{StaticResource NavItem}" Content="History" Tag="&#xF02DA;" GroupName="Nav" Checked="OnNavigate"
-                                 ToolTip="Every game Hearthpulse recorded" />
+                    <RadioButton x:Name="NavHistory" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.History}" Tag="&#xF02DA;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="{i:Loc Main.Nav.HistoryTip}" />
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
-                    <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="Settings" Tag="&#xF08BB;" GroupName="Nav" Checked="OnNavigate"
-                                 ToolTip="Overlay panels, layout and app options" />
+                    <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Settings}" Tag="&#xF08BB;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="{i:Loc Main.Nav.SettingsTip}" />
                     <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}" Margin="28,8,0,0" />
                 </StackPanel>
                 <Border />
@@ -282,14 +282,14 @@
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border Background="{StaticResource Accent}" CornerRadius="10" Padding="12,5">
-                                        <TextBlock Text="Update ready — restart" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnAccent}" />
+                                        <TextBlock Text="{i:Loc Main.Update.Ready}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnAccent}" />
                                     </Border>
                                 </ControlTemplate>
                             </Button.Template>
                         </Button>
                         <Border Style="{StaticResource Pill}" Background="{StaticResource Surface3}" Padding="12,5"
                                 WindowChrome.IsHitTestVisibleInChrome="True"
-                                ToolTip="Gold: Hearthstone is running. Green: connected. Hearthpulse only reads your rating and the lobby tribes.">
+                                ToolTip="{i:Loc Main.Status.Tip}">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" />
                                 <TextBlock Text="{Binding MemoryStatus}" FontSize="12" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="220" />
@@ -300,10 +300,10 @@
                     <!-- ===== Home ===== -->
                     <ScrollViewer x:Name="PageOverview" Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="Home" Style="{StaticResource Display}" />
+                            <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource Display}" />
                             <StackPanel Style="{StaticResource PageSubtitle}">
                                 <TextBlock Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center">
-                                    <Run Text="{Binding Greeting, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text=". Your session at a glance." />
+                                    <Run Text="{Binding Greeting, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text="{i:Loc Main.Home.Glance}" />
                                 </TextBlock>
                             </StackPanel>
 
@@ -326,13 +326,13 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource Card}">
                                     <DockPanel>
-                                        <c:Ornament DockPanel.Dock="Top" Text="Battlegrounds rating" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                                        <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
                                         <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
                                     </DockPanel>
                                 </Border>
                                 <Border Grid.Column="2" Style="{StaticResource Card}">
                                     <DockPanel>
-                                        <c:Ornament DockPanel.Dock="Top" Text="Placements" Icon="&#xF0D25;" Size="13" Margin="0,0,0,12" />
+                                        <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.Placements}" Icon="&#xF0D25;" Size="13" Margin="0,0,0,12" />
                                         <ItemsControl ItemsSource="{Binding Placements}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type m:PlacementBar}">
@@ -369,11 +369,11 @@
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,10">
-                                        <c:Ornament Text="Recent games" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
-                                        <Button Content="View all" Style="{StaticResource GhostButton}" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
+                                        <c:Ornament Text="{i:Loc Main.Home.RecentGames}" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
+                                        <Button Content="{i:Loc Main.Home.ViewAll}" Style="{StaticResource GhostButton}" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
                                     </Grid>
                                     <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource GameRowTemplate}" />
-                                    <TextBlock Text="No games yet. Finished games appear here automatically." Style="{StaticResource Caption}" Margin="0,8"
+                                    <TextBlock Text="{i:Loc Main.Home.NoGames}" Style="{StaticResource Caption}" Margin="0,8"
                                                Visibility="{Binding Recent, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                 </StackPanel>
                             </Border>
@@ -385,17 +385,17 @@
                         <StackPanel Margin="40,0,40,120">
                             <Grid>
                                 <StackPanel>
-                                    <TextBlock Text="Battlegrounds" Style="{StaticResource Display}" />
+                                    <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Style="{StaticResource Display}" />
                                     <StackPanel Style="{StaticResource PageSubtitle}">
-                                        <TextBlock Text="Your results and what is strong right now, from community data (HSReplay via the Hearthpulse API)." Style="{StaticResource Caption}" FontSize="14"
+                                        <TextBlock Text="{i:Loc Main.Bg.Subtitle}" Style="{StaticResource Caption}" FontSize="14"
                                                    VerticalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
                                 <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}"
-                                        ToolTip="Show your results for solo or Duos">
+                                        ToolTip="{i:Loc Main.Bg.ModeTip}">
                                     <StackPanel Orientation="Horizontal">
-                                        <RadioButton Style="{StaticResource Segment}" Content="Solo" GroupName="BgMode" IsChecked="True" Command="{Binding SetBgMode}" CommandParameter="Battlegrounds" />
-                                        <RadioButton Style="{StaticResource Segment}" Content="Duos" GroupName="BgMode" Command="{Binding SetBgMode}" CommandParameter="Duos" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Bg.Solo}" GroupName="BgMode" IsChecked="True" Command="{Binding SetBgMode}" CommandParameter="Battlegrounds" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Mode.Duos}" GroupName="BgMode" Command="{Binding SetBgMode}" CommandParameter="Duos" />
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -403,26 +403,26 @@
                             <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
                             <s:BattlegroundsStatsView x:Name="BgStats" />
 
-                            <c:Ornament Text="Tier lists" Icon="&#xF11D0;" Size="15" Margin="0,0,0,14" />
+                            <c:Ornament Text="{i:Loc Main.Bg.TierLists}" Icon="&#xF11D0;" Size="15" Margin="0,0,0,14" />
                             <Grid Margin="0,0,0,14">
                                 <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}">
                                     <StackPanel Orientation="Horizontal">
-                                        <RadioButton x:Name="TabHeroes" Style="{StaticResource Tab}" Content="Heroes" GroupName="BgTab" IsChecked="True" Checked="OnBgTab"
-                                                     ToolTip="Heroes ranked by average final placement" />
+                                        <RadioButton x:Name="TabHeroes" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.Heroes}" GroupName="BgTab" IsChecked="True" Checked="OnBgTab"
+                                                     ToolTip="{i:Loc Main.Bg.HeroesTip}" />
                                         <RadioButton x:Name="TabComps" Style="{StaticResource Tab}" Content="{Binding CompTabLabel}" GroupName="BgTab" Checked="OnBgTab"
-                                                     ToolTip="Board archetypes (or, from the stats pool, main tribes) ranked by average final placement" />
-                                        <RadioButton x:Name="TabTrinkets" Style="{StaticResource Tab}" Content="Trinkets" GroupName="BgTab" Checked="OnBgTab"
-                                                     ToolTip="Trinkets ranked by the average placement of players who picked them" />
-                                        <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="Cards" GroupName="BgTab" Checked="OnBgTab"
-                                                     ToolTip="Minions and tavern spells, ranked inside each tier" />
-                                        <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="My heroes" GroupName="BgTab" Checked="OnBgTab"
-                                                     ToolTip="Your own results per hero" />
+                                                     ToolTip="{i:Loc Main.Bg.CompsTip}" />
+                                        <RadioButton x:Name="TabTrinkets" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.Trinkets}" GroupName="BgTab" Checked="OnBgTab"
+                                                     ToolTip="{i:Loc Main.Bg.TrinketsTip}" />
+                                        <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.Cards}" GroupName="BgTab" Checked="OnBgTab"
+                                                     ToolTip="{i:Loc Main.Bg.CardsTip}" />
+                                        <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.MyHeroes}" GroupName="BgTab" Checked="OnBgTab"
+                                                     ToolTip="{i:Loc Main.Bg.MyHeroesTip}" />
                                     </StackPanel>
                                 </Border>
                                 <!-- The brackets the loaded stats have (the API: top 50/20/5/1%); hidden when there is no choice -->
                                 <Grid HorizontalAlignment="Right" Visibility="{Binding HasBracketChoice, Converter={StaticResource Vis}}">
                                     <Border x:Name="BracketPicker" Style="{StaticResource SegmentBar}"
-                                            ToolTip="Use stats from players at this rating. Smaller groups are more precise for high ratings but have fewer games.">
+                                            ToolTip="{i:Loc Main.Bg.BracketTip}">
                                         <ItemsControl ItemsSource="{Binding BracketOptions}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
@@ -457,14 +457,14 @@
                                             <ColumnDefinition Width="100" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="#" Style="{StaticResource TableHead}" />
-                                        <TextBlock Grid.Column="2" Text="Hero" Style="{StaticResource TableHead}" />
-                                        <TextBlock Grid.Column="3" Text="Tier" Style="{StaticResource TableHead}" ToolTip="S is the best, D the worst. Based on average placement." />
-                                        <TextBlock Grid.Column="4" Text="Avg placement" Style="{StaticResource TableHead}" ToolTip="Average final position (1 = first place). Lower is better." />
-                                        <TextBlock Grid.Column="5" Text="Top 4" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Share of games finished in the top 4" />
-                                        <TextBlock Grid.Column="6" Text="1st" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Share of games won" />
-                                        <TextBlock Grid.Column="7" Text="Pick rate" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="How often players pick this hero when offered" />
-                                        <TextBlock Grid.Column="8" Text="Games" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Games behind these numbers" />
-                                        <TextBlock Grid.Column="9" Text="You" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Your games with this hero · your average placement" />
+                                        <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Hero}" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.Tier}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Table.TierTip}" />
+                                        <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.AvgPlacement}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Table.AvgPlacementTip}" />
+                                        <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.Top4}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.Top4Tip}" />
+                                        <TextBlock Grid.Column="6" Text="{i:Loc Main.Table.First}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.FirstTip}" />
+                                        <TextBlock Grid.Column="7" Text="{i:Loc Main.Table.PickRate}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.PickRateTip}" />
+                                        <TextBlock Grid.Column="8" Text="{i:Loc Main.Table.Games}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.GamesTip}" />
+                                        <TextBlock Grid.Column="9" Text="{i:Loc Main.Table.You}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.YouTip}" />
                                     </Grid>
                                     <ItemsControl ItemsSource="{Binding HeroTiers}" VirtualizingPanel.IsVirtualizing="True">
                                         <ItemsControl.ItemTemplate>
@@ -534,17 +534,17 @@
                                                                 <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding Tribes, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" FontSize="12" />
                                                             </TextBlock>
                                                             <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="{Binding KeyCards, Converter={StaticResource Vis}}">
-                                                                <Run Text="Core: " Foreground="{StaticResource Faint}" /><Run Text="{Binding KeyCards, Mode=OneWay}" />
+                                                                <Run Text="{i:Loc Main.Bg.Core}" Foreground="{StaticResource Faint}" /><Run Text="{Binding KeyCards, Mode=OneWay}" />
                                                             </TextBlock>
                                                             <TextBlock Text="{Binding Commit}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Text}" Opacity="0.85"
                                                                        Visibility="{Binding Commit, Converter={StaticResource Vis}}" />
                                                         </StackPanel>
                                                         <Border Grid.Column="2" Style="{StaticResource TierBadge}" VerticalAlignment="Top" Background="{Binding Power, Converter={StaticResource KeyBrush}}"
-                                                                ToolTip="Tier (S best)">
+                                                                ToolTip="{i:Loc Main.Bg.TierBestTip}">
                                                             <TextBlock Text="{Binding Power}" FontWeight="Bold" FontSize="13" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                         </Border>
-                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,4,0,0" ToolTip="Average final placement (lower is better)">
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,4,0,0" ToolTip="{i:Loc Main.Bg.AvgPlacementTip}">
                                                             <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
                                                             <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
                                                                 <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
@@ -575,11 +575,11 @@
                                             <ColumnDefinition Width="90" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="#" Style="{StaticResource TableHead}" />
-                                        <TextBlock Grid.Column="1" Text="Trinket" Style="{StaticResource TableHead}" />
-                                        <TextBlock Grid.Column="2" Text="Tier" Style="{StaticResource TableHead}" ToolTip="S is the best, D the worst" />
-                                        <TextBlock Grid.Column="3" Text="Avg placement" Style="{StaticResource TableHead}" ToolTip="Average final position of players who picked it. Lower is better." />
-                                        <TextBlock Grid.Column="4" Text="Pick rate" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="How often players pick it when offered" />
-                                        <TextBlock Grid.Column="5" Text="Games" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Trinket}" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Tier}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Table.TierTipShort}" />
+                                        <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.AvgPlacement}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Table.TrinketPlacementTip}" />
+                                        <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.PickRate}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.TrinketPickTip}" />
+                                        <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.Games}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
                                     </Grid>
                                     <ItemsControl ItemsSource="{Binding TrinketTiers}" VirtualizingPanel.IsVirtualizing="True">
                                         <ItemsControl.ItemTemplate>
@@ -624,9 +624,9 @@
                             <Border x:Name="CardStatsCard" Style="{StaticResource Card}" Visibility="Collapsed">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,12">
-                                        <TextBlock Text="Average final placement of players who played each card. Only compare cards of the same tier: late, high-tier cards always look better."
+                                        <TextBlock Text="{i:Loc Main.Bg.CardsCaption}"
                                                    Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,330,0" VerticalAlignment="Center" />
-                                        <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="Tavern tier to show">
+                                        <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Bg.CardTierTip}">
                                             <StackPanel Orientation="Horizontal">
                                                 <RadioButton Style="{StaticResource Segment}" Content="1" GroupName="CardTier" IsChecked="True" Command="{Binding SetCardTier}" CommandParameter="1" />
                                                 <RadioButton Style="{StaticResource Segment}" Content="2" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="2" />
@@ -635,7 +635,7 @@
                                                 <RadioButton Style="{StaticResource Segment}" Content="5" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="5" />
                                                 <RadioButton Style="{StaticResource Segment}" Content="6" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="6" />
                                                 <RadioButton Style="{StaticResource Segment}" Content="7" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="7" />
-                                                <RadioButton Style="{StaticResource Segment}" Content="Spells" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="0" />
+                                                <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Bg.Spells}" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="0" />
                                             </StackPanel>
                                         </Border>
                                     </Grid>
@@ -659,7 +659,7 @@
                                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
                                                             <TextBlock Text="{Binding Kind}" Style="{StaticResource Caption}" FontSize="11.5" />
                                                         </StackPanel>
-                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" ToolTip="Average final placement (lower is better)">
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{i:Loc Main.Bg.AvgPlacementTip}">
                                                             <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
                                                             <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
                                                                 <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
@@ -667,7 +667,7 @@
                                                             </Border>
                                                         </StackPanel>
                                                         <TextBlock Grid.Column="4" Text="{Binding Games}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                   ToolTip="Times played in the sample" />
+                                                                   ToolTip="{i:Loc Main.Bg.TimesPlayedTip}" />
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
@@ -692,12 +692,12 @@
                                             <ColumnDefinition Width="80" />
                                             <ColumnDefinition Width="90" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="1" Text="Hero" Style="{StaticResource TableHead}" />
-                                        <TextBlock Grid.Column="2" Text="Games" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
-                                        <TextBlock Grid.Column="3" Text="Avg place" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Your average final position" />
-                                        <TextBlock Grid.Column="4" Text="Top 4" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Share of games you finished in the top 4" />
-                                        <TextBlock Grid.Column="5" Text="Wins" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="First places" />
-                                        <TextBlock Grid.Column="6" Text="Net MMR" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Rating won or lost with this hero" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Hero}" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Games}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.AvgPlace}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.AvgPlaceTip}" />
+                                        <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Top4}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.Top4MineTip}" />
+                                        <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.Wins}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.WinsTip}" />
+                                        <TextBlock Grid.Column="6" Text="{i:Loc Main.Table.NetMmr}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.NetMmrTip}" />
                                     </Grid>
                                     <ItemsControl ItemsSource="{Binding MyHeroes}">
                                         <ItemsControl.ItemTemplate>
@@ -728,7 +728,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="Play some Battlegrounds and your per-hero results show up here." Style="{StaticResource Caption}" Margin="0,8"
+                                    <TextBlock Text="{i:Loc Main.Bg.MyHeroesEmpty}" Style="{StaticResource Caption}" Margin="0,8"
                                                Visibility="{Binding MyHeroes, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                 </StackPanel>
                             </Border>
@@ -738,24 +738,24 @@
                     <!-- ===== Constructed ===== -->
                     <ScrollViewer x:Name="PageConstructed" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="Constructed" Style="{StaticResource Display}" />
+                            <TextBlock Text="{i:Loc Main.Nav.Constructed}" Style="{StaticResource Display}" />
                             <StackPanel Style="{StaticResource PageSubtitle}">
-                                <TextBlock Text="Your decks and matchups, plus the current meta — HearthPulse · HSGuru / HSReplay данные." Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Main.Ct.Subtitle}" Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
                             </StackPanel>
 
                             <Grid Margin="0,0,0,14">
                                 <Border HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource SegmentBar}">
                                     <StackPanel Orientation="Horizontal">
-                                        <RadioButton x:Name="TabMyDecks" Style="{StaticResource Tab}" Content="My stats" GroupName="CtTab" IsChecked="True" Checked="OnCtTab"
-                                                     ToolTip="Your results per format, your decks and their matchups" />
-                                        <RadioButton x:Name="TabMetaTiers" Style="{StaticResource Tab}" Content="Meta tier list" GroupName="CtTab" Checked="OnCtTab"
-                                                     ToolTip="Ranked archetypes by win rate, with coin split and a mulligan guide" />
-                                        <RadioButton x:Name="TabMetaDecks" Style="{StaticResource Tab}" Content="Top decks" GroupName="CtTab" Checked="OnCtTab"
-                                                     ToolTip="The best decklists with enough games. Copy one and import it in Hearthstone." />
+                                        <RadioButton x:Name="TabMyDecks" Style="{StaticResource Tab}" Content="{i:Loc Main.Ct.MyStats}" GroupName="CtTab" IsChecked="True" Checked="OnCtTab"
+                                                     ToolTip="{i:Loc Main.Ct.MyStatsTip}" />
+                                        <RadioButton x:Name="TabMetaTiers" Style="{StaticResource Tab}" Content="{i:Loc Main.Ct.MetaTiers}" GroupName="CtTab" Checked="OnCtTab"
+                                                     ToolTip="{i:Loc Main.Ct.MetaTiersTip}" />
+                                        <RadioButton x:Name="TabMetaDecks" Style="{StaticResource Tab}" Content="{i:Loc Main.Ct.TopDecks}" GroupName="CtTab" Checked="OnCtTab"
+                                                     ToolTip="{i:Loc Main.Ct.TopDecksTip}" />
                                     </StackPanel>
                                 </Border>
                                 <Border x:Name="MetaFormatPicker" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource SegmentBar}" Visibility="Collapsed"
-                                        ToolTip="Game format">
+                                        ToolTip="{i:Loc Main.Ct.FormatTip}">
                                     <ItemsControl ItemsSource="{Binding MetaFormats}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
@@ -772,7 +772,7 @@
 
                             <StackPanel x:Name="MetaFilters" Margin="0,0,0,14" Visibility="Collapsed">
                                 <Grid Margin="0,0,0,10">
-                                    <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="Only count games from players at this rank">
+                                    <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.RankTip}">
                                         <ItemsControl ItemsSource="{Binding MetaRanks}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
@@ -785,7 +785,7 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                     </Border>
-                                    <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="How far back the games go">
+                                    <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.PeriodTip}">
                                         <ItemsControl ItemsSource="{Binding MetaPeriods}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
@@ -799,7 +799,7 @@
                                     </ItemsControl>
                                     </Border>
                                 </Grid>
-                                <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="Show one class">
+                                <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.ClassTip}">
                                     <ItemsControl ItemsSource="{Binding MetaClasses}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
@@ -824,8 +824,8 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                                     <StackPanel>
-                                        <c:Ornament Text="Decks" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
-                                        <TextBlock Text="Click a deck for its page: matchups, mulligan, cards and versions." Style="{StaticResource Caption}" Margin="0,0,0,8"
+                                        <c:Ornament Text="{i:Loc Main.Ct.Decks}" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
+                                        <TextBlock Text="{i:Loc Main.Ct.DecksHint}" Style="{StaticResource Caption}" Margin="0,0,0,8"
                                                    Visibility="{Binding Decks, Converter={StaticResource Vis}}" />
                                         <!-- Decks that look like versions of one -->
                                         <ItemsControl ItemsSource="{Binding DeckSuggestions}" Margin="0,0,0,6">
@@ -840,14 +840,14 @@
                                                             </Grid.ColumnDefinitions>
                                                             <TextBlock Text="&#xF062C;" Style="{StaticResource Icon}" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,10,0" />
                                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                                <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis"><Run Text="Same deck? " Foreground="{StaticResource Muted}" /><Run Text="{Binding Title, Mode=OneWay}" /></TextBlock>
+                                                                <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis"><Run Text="{i:Loc Main.Ct.SameDeck}" Foreground="{StaticResource Muted}" /><Run Text="{Binding Title, Mode=OneWay}" /></TextBlock>
                                                                 <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                                                             </StackPanel>
                                                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                                                <Button Style="{StaticResource PrimaryButton}" Content="Merge" Padding="12,5" FontSize="12" Margin="8,0,6,0"
+                                                                <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Main.Ct.Merge}" Padding="12,5" FontSize="12" Margin="8,0,6,0"
                                                                         Command="{Binding DataContext.MergeSuggested, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
-                                                                        ToolTip="Count both as versions of one deck" />
-                                                                <Button Style="{StaticResource GhostButton}" Content="Not the same" Padding="10,5" FontSize="12"
+                                                                        ToolTip="{i:Loc Main.Ct.MergeTip}" />
+                                                                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.Ct.NotSame}" Padding="10,5" FontSize="12"
                                                                         Command="{Binding DataContext.DismissSuggested, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
                                                             </StackPanel>
                                                         </Grid>
@@ -873,13 +873,13 @@
                                                                     <Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" />
                                                                 </TextBlock>
                                                                 <TextBlock Text="{Binding Versions}" Style="{StaticResource Caption}" Foreground="{StaticResource Info}"
-                                                                           Visibility="{Binding Versions, Converter={StaticResource Vis}}" ToolTip="Versions merged into this deck; their games count together" />
+                                                                           Visibility="{Binding Versions, Converter={StaticResource Vis}}" ToolTip="{i:Loc Main.Ct.VersionsTip}" />
                                                                 <TextBlock Text="{Binding Meta}" Style="{StaticResource Caption}" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
-                                                                           Visibility="{Binding Meta, Converter={StaticResource Vis}}" ToolTip="The meta archetype this deck matches, and its community win rate" />
+                                                                           Visibility="{Binding Meta, Converter={StaticResource Vis}}" ToolTip="{i:Loc Main.Ct.MetaTip}" />
                                                             </StackPanel>
                                                             <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource Caption}"
-                                                                       ToolTip="Wins – losses" />
-                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Win rate">
+                                                                       ToolTip="{i:Loc Main.Ct.RecordTip}" />
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="{i:Loc Main.Table.WinRate}">
                                                                 <Border Width="80" Height="8" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
                                                                     <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
                                                                             Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=80}" />
@@ -892,14 +892,14 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        <TextBlock Text="Decks appear once you finish a game with them." Style="{StaticResource Caption}" Margin="0,8"
+                                        <TextBlock Text="{i:Loc Main.Ct.DecksEmpty}" Style="{StaticResource Caption}" Margin="0,8"
                                                    Visibility="{Binding Decks, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                     </StackPanel>
                                 </Border>
                                 <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                                     <StackPanel>
-                                        <c:Ornament Text="Matchups" Icon="&#xF04E5;" Size="13" />
-                                        <TextBlock Text="All decks · open a deck for its own" Style="{StaticResource Caption}" Margin="0,8,0,10" TextTrimming="CharacterEllipsis" />
+                                        <c:Ornament Text="{i:Loc Main.Ct.Matchups}" Icon="&#xF04E5;" Size="13" />
+                                        <TextBlock Text="{i:Loc Main.Ct.MatchupsHint}" Style="{StaticResource Caption}" Margin="0,8,0,10" TextTrimming="CharacterEllipsis" />
                                         <ItemsControl ItemsSource="{Binding Matchups}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type m:MatchupRow}">
@@ -918,7 +918,7 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        <TextBlock Text="No matchups yet." Style="{StaticResource Caption}" Visibility="{Binding Matchups, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <TextBlock Text="{i:Loc Main.Ct.MatchupsEmpty}" Style="{StaticResource Caption}" Visibility="{Binding Matchups, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -931,11 +931,11 @@
                                 </Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                                     <StackPanel>
-                                        <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" Margin="0,0,0,14" ToolTip="Order of the list">
+                                        <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" Margin="0,0,0,14" ToolTip="{i:Loc Main.Meta.SortTip}">
                                             <StackPanel Orientation="Horizontal">
-                                                <RadioButton Style="{StaticResource Segment}" Content="Best win rate" GroupName="MetaSort" IsChecked="True"
+                                                <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Meta.BestWinRate}" GroupName="MetaSort" IsChecked="True"
                                                              Command="{Binding SetMetaSort}" CommandParameter="WinRate" />
-                                                <RadioButton Style="{StaticResource Segment}" Content="Most played" GroupName="MetaSort"
+                                                <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Meta.MostPlayed}" GroupName="MetaSort"
                                                              Command="{Binding SetMetaSort}" CommandParameter="Popularity" />
                                             </StackPanel>
                                         </Border>
@@ -948,11 +948,11 @@
                                                 <ColumnDefinition Width="46" />
                                                 <ColumnDefinition Width="46" />
                                                         </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Tier" Style="{StaticResource TableHead}" ToolTip="S from 56% win rate, A from 53%, B from 50%, C from 47%" />
-                                            <TextBlock Grid.Column="2" Text="Archetype" Style="{StaticResource TableHead}" />
-                                            <TextBlock Grid.Column="3" Text="Win rate" Style="{StaticResource TableHead}" />
-                                            <TextBlock Grid.Column="4" Text="1st" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Win rate when going first" />
-                                            <TextBlock Grid.Column="5" Text="Coin" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="Win rate on the coin" />
+                                            <TextBlock Text="{i:Loc Main.Table.Tier}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Meta.TierTip}" />
+                                            <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Archetype}" Style="{StaticResource TableHead}" />
+                                            <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.WinRate}" Style="{StaticResource TableHead}" />
+                                            <TextBlock Grid.Column="4" Text="{i:Loc Main.Meta.First}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Meta.FirstTip}" />
+                                            <TextBlock Grid.Column="5" Text="{i:Loc Main.Meta.Coin}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Meta.CoinTip}" />
                                         </Grid>
                                         <ListBox ItemsSource="{Binding MetaArchetypes}" SelectedItem="{Binding SelectedArchetype}" Background="Transparent" BorderThickness="0">
                                             <ListBox.Template>
@@ -1043,20 +1043,20 @@
 
                                 <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                                     <StackPanel>
-                                        <TextBlock Text="{Binding SelectedArchetype.Name, FallbackValue='Pick an archetype'}" FontSize="20" FontWeight="SemiBold"
+                                        <TextBlock Text="{Binding SelectedArchetypeTitle}" FontSize="20" FontWeight="SemiBold"
                                                    FontFamily="{StaticResource DisplayFont}" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{Binding ArchetypeSummary}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
                                         <StackPanel Orientation="Horizontal" Margin="0,10,0,16" Visibility="{Binding SelectedArchetype, Converter={StaticResource Vis}}">
-                                            <Border Style="{StaticResource SegmentBar}" Padding="12,6" Margin="0,0,8,0" ToolTip="Win rate when going first">
-                                                <TextBlock><Run Text="Going first " Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.First, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
+                                            <Border Style="{StaticResource SegmentBar}" Padding="12,6" Margin="0,0,8,0" ToolTip="{i:Loc Main.Meta.FirstTip}">
+                                                <TextBlock><Run Text="{i:Loc Main.Meta.GoingFirst}" Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.First, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
                                             </Border>
-                                            <Border Style="{StaticResource SegmentBar}" Padding="12,6" ToolTip="Win rate on the coin">
-                                                <TextBlock><Run Text="On the coin " Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.Coin, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
+                                            <Border Style="{StaticResource SegmentBar}" Padding="12,6" ToolTip="{i:Loc Main.Meta.CoinTip}">
+                                                <TextBlock><Run Text="{i:Loc Main.Meta.OnCoin}" Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.Coin, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
                                             </Border>
                                         </StackPanel>
 
-                                        <c:Ornament Text="Mulligan guide" Icon="&#xF012C;" Size="13" Margin="0,0,0,4" />
-                                        <TextBlock Text="Win rate when the card stays in your opening hand. Green beats the deck's average." Style="{StaticResource Caption}"
+                                        <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,0,0,4" />
+                                        <TextBlock Text="{i:Loc Main.Meta.MulliganCaption}" Style="{StaticResource Caption}"
                                                    TextWrapping="Wrap" Margin="0,0,0,8" />
                                         <ItemsControl ItemsSource="{Binding Mulligan}">
                                             <ItemsControl.ItemTemplate>
@@ -1073,11 +1073,11 @@
                                                                     i:CardArt.Portrait="{Binding CardId}" />
                                                             <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                             <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                       ToolTip="How often players keep it when it is offered" />
+                                                                       ToolTip="{i:Loc Main.Meta.KeepRateTip}" />
                                                             <TextBlock Grid.Column="3" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
                                                                        Foreground="{Binding Edge, Converter={StaticResource SignBrush}}">
                                                                 <TextBlock.ToolTip>
-                                                                    <TextBlock><Run Text="Seen in " /><Run Text="{Binding Seen, Mode=OneWay}" /><Run Text=" opening hands" /></TextBlock>
+                                                                    <TextBlock Text="{Binding Seen}" />
                                                                 </TextBlock.ToolTip>
                                                             </TextBlock>
                                                         </Grid>
@@ -1085,10 +1085,10 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        <TextBlock Text="Not enough games for a mulligan guide." Style="{StaticResource Caption}" Margin="0,4"
+                                        <TextBlock Text="{i:Loc Main.Meta.MulliganEmpty}" Style="{StaticResource Caption}" Margin="0,4"
                                                    Visibility="{Binding Mulligan, Converter={StaticResource Vis}, ConverterParameter=!}" />
 
-                                        <c:Ornament Text="Best lists" Icon="&#xF0639;" Size="13" Margin="0,18,0,8" />
+                                        <c:Ornament Text="{i:Loc Main.Meta.BestLists}" Icon="&#xF0639;" Size="13" Margin="0,18,0,8" />
                                         <ItemsControl ItemsSource="{Binding ArchetypeDecks}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type m:MetaDeckRow}">
@@ -1109,20 +1109,20 @@
                                                                 <TextBlock Text="{Binding Class}" Style="{StaticResource Caption}" />
                                                             </StackPanel>
                                                             <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip="Win rate" />
+                                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Table.WinRate}" />
                                                             <TextBlock Grid.Column="3" Text="{Binding Games}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                       ToolTip="Games played with this exact list" />
+                                                                       ToolTip="{i:Loc Main.Meta.ExactListTip}" />
                                                             <TextBlock Grid.Column="4" Text="{Binding Dust}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                       ToolTip="Dust to craft the whole deck (Core cards are free)" />
-                                                            <Button Grid.Column="5" Style="{StaticResource GhostButton}" Content="Copy" Padding="12,4" FontSize="12" Margin="12,0,0,0"
+                                                                       ToolTip="{i:Loc Main.Meta.DustTip}" />
+                                                            <Button Grid.Column="5" Style="{StaticResource GhostButton}" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" FontSize="12" Margin="12,0,0,0"
                                                                     Command="{Binding DataContext.CopyDeck, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
-                                                                    ToolTip="Copy the deck code. In Hearthstone, start a new deck to import it." />
+                                                                    ToolTip="{i:Loc Main.Meta.CopyTip}" />
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
-                                        <TextBlock Text="No list with enough games yet." Style="{StaticResource Caption}" Margin="0,4"
+                                        <TextBlock Text="{i:Loc Main.Meta.ListsEmpty}" Style="{StaticResource Caption}" Margin="0,4"
                                                    Visibility="{Binding ArchetypeDecks, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                         <TextBlock Text="{Binding CopyNote}" Style="{StaticResource Caption}" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                                                    Visibility="{Binding CopyNote, Converter={StaticResource Vis}}" />
@@ -1142,10 +1142,10 @@
                                             <ColumnDefinition Width="64" />
                                             <ColumnDefinition Width="76" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="1" Text="Deck" Style="{StaticResource TableHead}" />
-                                        <TextBlock Grid.Column="2" Text="Win rate" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
-                                        <TextBlock Grid.Column="3" Text="Games" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
-                                        <TextBlock Grid.Column="4" Text="Dust" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Deck}" Style="{StaticResource TableHead}" />
+                                        <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.WinRate}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.Games}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Dust}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
                                     </Grid>
                                     <ItemsControl ItemsSource="{Binding MetaDecks}">
                                         <ItemsControl.ItemTemplate>
@@ -1167,20 +1167,20 @@
                                                                 <TextBlock Text="{Binding Class}" Style="{StaticResource Caption}" />
                                                             </StackPanel>
                                                             <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip="Win rate" />
+                                                                       Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Table.WinRate}" />
                                                             <TextBlock Grid.Column="3" Text="{Binding Games}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                       ToolTip="Games played with this exact list" />
+                                                                       ToolTip="{i:Loc Main.Meta.ExactListTip}" />
                                                             <TextBlock Grid.Column="4" Text="{Binding Dust}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                       ToolTip="Dust to craft the whole deck (Core cards are free)" />
-                                                            <Button Grid.Column="5" Style="{StaticResource GhostButton}" Content="Copy" Padding="12,4" FontSize="12" Margin="12,0,0,0"
+                                                                       ToolTip="{i:Loc Main.Meta.DustTip}" />
+                                                            <Button Grid.Column="5" Style="{StaticResource GhostButton}" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" FontSize="12" Margin="12,0,0,0"
                                                                     Command="{Binding DataContext.CopyDeck, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
-                                                                    ToolTip="Copy the deck code. In Hearthstone, start a new deck to import it." />
+                                                                    ToolTip="{i:Loc Main.Meta.CopyTip}" />
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="No decklist with enough games in this slice yet." Style="{StaticResource Caption}" Margin="0,8"
+                                    <TextBlock Text="{i:Loc Main.Meta.DecksEmpty}" Style="{StaticResource Caption}" Margin="0,8"
                                                Visibility="{Binding MetaDecks, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                     <TextBlock Text="{Binding CopyNote}" Style="{StaticResource Caption}" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                                                Visibility="{Binding CopyNote, Converter={StaticResource Vis}}" />
@@ -1199,9 +1199,9 @@
                     <!-- ===== Arena ===== -->
                     <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="Arena" Style="{StaticResource Display}" />
+                            <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource Display}" />
                             <StackPanel Style="{StaticResource PageSubtitle}">
-                                <TextBlock Text="Your Arena runs, the classes you draft and how they do." Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Main.Arena.Subtitle}" Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
                             </StackPanel>
                             <s:ArenaStatsView />
                         </StackPanel>
@@ -1215,20 +1215,20 @@
                         </Grid.RowDefinitions>
                         <Grid>
                             <StackPanel>
-                                <TextBlock Text="History" Style="{StaticResource Display}" />
+                                <TextBlock Text="{i:Loc Main.Nav.History}" Style="{StaticResource Display}" />
                                 <StackPanel Style="{StaticResource PageSubtitle}">
                                     <TextBlock Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center">
-                                        <Run Text="{Binding HistoryCount, Mode=OneWay}" /><Run Text=" recent games · stored only on this PC" />
+                                        <Run Text="{Binding HistorySubtitle, Mode=OneWay}" />
                                     </TextBlock>
                                 </StackPanel>
                             </StackPanel>
-                            <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}" ToolTip="Filter by game mode">
+                            <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.History.FilterTip}">
                                 <StackPanel Orientation="Horizontal">
-                                    <RadioButton x:Name="HistoryAll" Style="{StaticResource Segment}" Content="All" GroupName="Hist" IsChecked="True" Command="{Binding SetHistoryFilter}" CommandParameter="All" />
-                                    <RadioButton Style="{StaticResource Segment}" Content="Battlegrounds" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Battlegrounds" />
-                                    <RadioButton Style="{StaticResource Segment}" Content="Duos" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Duos" />
-                                    <RadioButton Style="{StaticResource Segment}" Content="Ranked" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Ranked" />
-                                    <RadioButton Style="{StaticResource Segment}" Content="Other" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Other" />
+                                    <RadioButton x:Name="HistoryAll" Style="{StaticResource Segment}" Content="{i:Loc Main.History.All}" GroupName="Hist" IsChecked="True" Command="{Binding SetHistoryFilter}" CommandParameter="All" />
+                                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Mode.Battlegrounds}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Battlegrounds" />
+                                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Mode.Duos}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Duos" />
+                                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.Mode.Ranked}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Ranked" />
+                                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.History.Other}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Other" />
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -1751,15 +1751,15 @@
                                 <TextBlock Text="&#xF0849;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
                             </Grid>
                             <StackPanel Grid.Column="1" Margin="14,0,20,0" VerticalAlignment="Center">
-                                <TextBlock Text="Share your Battlegrounds games?" FontWeight="Bold" FontSize="14.5" />
+                                <TextBlock Text="{i:Loc Main.Pool.Title}" FontWeight="Bold" FontSize="14.5" />
                                 <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,3,0,0" Foreground="{StaticResource Text}"
-                                           Text="After each game Hearthpulse sends the heroes you were offered and the one you picked, your placement, solo or duos, your rating rounded to 500, the lobby's tribes and anomaly, your final board, your trinkets, the turns you leveled up, each fight's result, damage and predicted odds, every pick you make (Discover, triple rewards, trinkets) and the cards you play. Your Battlegrounds games from the last 30 days are sent once too." />
+                                           Text="{i:Loc Main.Pool.What}" />
                                 <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                           Text="Never your name, BattleTag, account or anything about other players. Everyone's games build the hero, card, trinket and tribe lists. You can change this any time in Settings." />
+                                           Text="{i:Loc Main.Pool.Never}" />
                             </StackPanel>
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Style="{StaticResource GhostButton}" Content="No thanks" Command="{Binding AnswerPool}" CommandParameter="no" Margin="0,0,8,0" />
-                                <Button Style="{StaticResource PrimaryButton}" Content="Share results" Command="{Binding AnswerPool}" CommandParameter="yes" />
+                                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Main.Pool.No}" Command="{Binding AnswerPool}" CommandParameter="no" Margin="0,0,8,0" />
+                                <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Main.Pool.Yes}" Command="{Binding AnswerPool}" CommandParameter="yes" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -1785,16 +1785,16 @@
                                 <TextBlock Text="{Binding LiveTitle}" FontWeight="Bold" FontSize="14.5" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{Binding LiveDetail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,20,0" ToolTip="This session since Hearthpulse started">
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,20,0" ToolTip="{i:Loc Main.Live.SessionTip}">
                                 <TextBlock Text="{Binding SessionSummary}" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
                                 <TextBlock Text="{Binding SessionDelta}" FontWeight="Bold" HorizontalAlignment="Right"
                                            Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}" />
                             </StackPanel>
                             <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button Style="{StaticResource IconButton}" Content="&#xF01BE;" Width="38" Height="38" Background="{StaticResource Surface4}" Margin="0,0,14,0"
-                                        Click="OnArrangeOverlay" ToolTip="Arrange overlay panels (Ctrl+Shift+L)" />
-                                <CheckBox x:Name="OverlaySwitch" Style="{StaticResource Switch}" Content="Overlay" IsChecked="{Binding Settings.OverlayEnabled, Mode=OneTime}"
-                                          Click="OnOverlaySwitch" ToolTip="Show or hide the in-game overlay (Ctrl+Shift+H)" />
+                                        Click="OnArrangeOverlay" ToolTip="{i:Loc Main.Live.ArrangeTip}" />
+                                <CheckBox x:Name="OverlaySwitch" Style="{StaticResource Switch}" Content="{i:Loc Main.Live.Overlay}" IsChecked="{Binding Settings.OverlayEnabled, Mode=OneTime}"
+                                          Click="OnOverlaySwitch" ToolTip="{i:Loc Main.Live.OverlayTip}" />
                             </StackPanel>
                         </Grid>
                     </Border>
