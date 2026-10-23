@@ -125,8 +125,15 @@ public sealed class MovablePanel : ContentControl
         _defaultMargin = Margin;
     }
 
+    /// <summary>
+    /// The XAML margin is a spot on the game's own screen (the mulligan strip under the offered cards), in units of a
+    /// 1080-high screen: it must not grow or shrink with the player's overlay scale, only the panel's content does.
+    /// </summary>
+    public bool GameAnchored { get; set; }
+
     /// <summary>Places the panel from settings for the current surface size.</summary>
-    public void Apply(PanelPlacement? placement, Size surface)
+    /// <param name="overlayScale">The player's overlay scale, which a <see cref="GameAnchored"/> default margin undoes.</param>
+    public void Apply(PanelPlacement? placement, Size surface, double overlayScale = 1)
     {
         CaptureDefaults();
         if (placement is null)
@@ -134,7 +141,9 @@ public sealed class MovablePanel : ContentControl
             _saved = null;
             HorizontalAlignment = _defaultHorizontal;
             VerticalAlignment = _defaultVertical;
-            Margin = _defaultMargin;
+            Margin = GameAnchored && overlayScale > 0
+                ? new Thickness(_defaultMargin.Left / overlayScale, _defaultMargin.Top / overlayScale, _defaultMargin.Right / overlayScale, _defaultMargin.Bottom / overlayScale)
+                : _defaultMargin;
             _scale = 1;
             ApplyScale();
             return;

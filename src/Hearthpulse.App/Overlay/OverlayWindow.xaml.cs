@@ -393,7 +393,7 @@ public partial class OverlayWindow : Window
     {
         foreach (var panel in _panels)
         {
-            panel.Apply(_settings.Panels.GetValueOrDefault(panel.Id), _layoutSize);
+            panel.Apply(_settings.Panels.GetValueOrDefault(panel.Id), _layoutSize, Math.Clamp(_settings.OverlayScale, 0.6, 1.6));
         }
     }
 
@@ -408,7 +408,7 @@ public partial class OverlayWindow : Window
             _settings.Panels[panel.Id] = placement;
         }
 
-        panel.Apply(placement, _layoutSize);
+        panel.Apply(placement, _layoutSize, Math.Clamp(_settings.OverlayScale, 0.6, 1.6));
         LayoutChanged?.Invoke();
     }
 

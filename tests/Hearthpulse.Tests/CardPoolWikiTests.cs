@@ -140,12 +140,17 @@ public sealed class CardPoolWikiTests
         return (new CardPoolEngine(Catalog.Value, CardDb.Empty, wiki: wiki), wiki);
     }
 
-    /// <summary>A fresh API cache folder holding the fixture answer for the card, as HearthpulseData writes it.</summary>
-    private static string CacheWith(string cardId)
+    /// <summary>
+    /// An API cache folder holding the fixture answer for the card, as HearthpulseData writes it, written <paramref name="age"/>
+    /// ago. A copy keeps the fixture's own write time (the checkout's), which would make the answer stale after 6 hours.
+    /// </summary>
+    private static string CacheWith(string cardId, TimeSpan age = default)
     {
         var folder = Path.Combine(TestDataFolder.Path, "wiki-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
-        File.Copy(FixturePath(cardId), Path.Combine(folder, $"card-wiki-{cardId}.json"));
+        var file = Path.Combine(folder, $"card-wiki-{cardId}.json");
+        File.Copy(FixturePath(cardId), file);
+        File.SetLastWriteTimeUtc(file, DateTime.UtcNow - age);
         return folder;
     }
 
@@ -153,6 +158,30 @@ public sealed class CardPoolWikiTests
 
     private static JsonElement Fixture(string cardId) =>
         JsonDocument.Parse(File.ReadAllText(FixturePath(cardId))).RootElement.GetProperty("data");
+
+    [Fact]
+    public async Task A_stale_answer_is_asked_for_again_and_read_from_the_cache_when_the_server_fails()
+    {
+        var server = new Failing();
+        var wiki = new WikiPoolSource(new HearthpulseData(new HearthpulseApi(new HttpClient(server)), CacheWith("BE_298", TimeSpan.FromDays(2))));
+
+        var answer = await wiki.LoadAsync("BE_298");
+
+        Assert.Equal(1, server.Requests);
+        Assert.Equal([29, 21, 33], answer.Pools.Select(p => p.CardIds.Count));
+    }
+
+    /// <summary>The API answering 503: HearthpulseData falls back to its stale cache.</summary>
+    private sealed class Failing : HttpMessageHandler
+    {
+        public int Requests { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable) { Content = new StringContent("{\"detail\":\"maintenance\"}") });
+        }
+    }
 
     private sealed class NoNetwork : HttpMessageHandler
     {

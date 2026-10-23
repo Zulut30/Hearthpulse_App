@@ -131,6 +131,20 @@ public partial class App
                     var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan };
                     _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
                     await _overlay.RenderToFileAsync(Path.Combine(folder, name), 1920, 1080, 0);
+                    if (offered == 4)
+                    {
+                        // The strip stays under the cards at any overlay scale; only its badges grow or shrink.
+                        var scale = _settings.OverlayScale;
+                        foreach (var (s, suffix) in new[] { (0.6, "60"), (1.6, "160") })
+                        {
+                            _settings.OverlayScale = s;
+                            _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                            await _overlay.RenderToFileAsync(Path.Combine(folder, $"overlay-mulligan-4-scale{suffix}.png"), 1920, 1080, 0);
+                        }
+
+                        _settings.OverlayScale = scale;
+                        _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+                    }
                 }
             }
             await RenderConstructedOverlayAsync(folder);

@@ -32,12 +32,14 @@ public sealed record MulliganPlate(
 
 /// <summary>
 /// The mulligan strip (MulliganPanel.xaml): a slim badge under each offered card, lined up with the cards of the
-/// mulligan screen, and one summary line. It is up for the whole mulligan (INPUT to DONE), with or without numbers.
+/// mulligan screen, and one summary line. It is up while the local MULLIGAN_STATE is INPUT or DEALING (gone at WAITING), with or without numbers.
 /// </summary>
 public sealed partial class OverlayViewModel
 {
-    /// <summary>Width of the row of offered cards on the mulligan screen, in overlay units (1080 high): 3 cards 340 apart, 4 cards 255.</summary>
-    public const double MulliganRowWidth = 1020;
+    /// <summary>Width of the row of offered cards on the mulligan screen, in units of a 1080-high screen: 3 cards 340 apart, 4 cards 255.</summary>
+    public const double MulliganRowGameWidth = 1020;
+
+    private double _mulliganRowWidth = MulliganRowGameWidth;
 
     private bool _showMulligan;
     private IReadOnlyList<MulliganPlate> _mulliganCards = [];
@@ -56,6 +58,12 @@ public sealed partial class OverlayViewModel
     private RelayCommand? _toggleMulliganCard;
 
     public bool ShowMulligan { get => _showMulligan; private set => Set(ref _showMulligan, value); }
+
+    /// <summary>
+    /// The strip's row in overlay units: the game's card row, whatever the player's overlay scale (which only sizes the
+    /// badges), so each badge stays under its card.
+    /// </summary>
+    public double MulliganRowWidth { get => _mulliganRowWidth; private set => Set(ref _mulliganRowWidth, value); }
 
     public IReadOnlyList<MulliganPlate> MulliganCards { get => _mulliganCards; private set => Set(ref _mulliganCards, value); }
 
@@ -91,6 +99,7 @@ public sealed partial class OverlayViewModel
     private void UpdateMulligan(MulliganView? mulligan, AppSettings settings)
     {
         ShowMulligan = settings.ShowMulligan && mulligan is not null;
+        MulliganRowWidth = MulliganRowGameWidth / Math.Clamp(settings.OverlayScale, 0.6, 1.6);
         // The tracker logs why the strip has or lacks numbers; only the setting is known here.
         var offBySetting = mulligan is not null && !settings.ShowMulligan;
         if (offBySetting && !_mulliganOffNoted)
@@ -116,10 +125,12 @@ public sealed partial class OverlayViewModel
             _mulliganTouched = false;
         }
 
-        if (!_mulliganTouched && !_mulliganKept.SetEquals(mulligan.Recommended))
+        // Without numbers there is no advice: every card starts kept, so no badge looks like "replace it".
+        var recommended = mulligan.NoStats is null ? mulligan.Recommended : mulligan.Cards.Select(c => c.EntityId).ToList();
+        if (!_mulliganTouched && !_mulliganKept.SetEquals(recommended))
         {
             _mulliganKept.Clear();
-            _mulliganKept.UnionWith(mulligan.Recommended);
+            _mulliganKept.UnionWith(recommended);
         }
 
         RebuildMulligan();

@@ -151,6 +151,21 @@ internal static partial class OffscreenRenderer
                 host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null, null);
                 overlayView.Fit(1920, 1080);
                 await Save(overlay, Path.Combine(folder, name));
+                if (offered == 4)
+                {
+                    // The strip stays under the cards at any overlay scale; only its badges grow or shrink.
+                    var scale = settings.OverlayScale;
+                    foreach (var (s, suffix) in new[] { (0.6, "60"), (1.6, "160") })
+                    {
+                        settings.OverlayScale = s;
+                        host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null, null);
+                        overlayView.Fit(1920, 1080);
+                        await Save(overlay, Path.Combine(folder, $"overlay-mulligan-4-scale{suffix}.png"));
+                    }
+
+                    settings.OverlayScale = scale;
+                    overlayView.Fit(1920, 1080);
+                }
             }
             else
             {

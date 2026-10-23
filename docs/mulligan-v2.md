@@ -92,9 +92,12 @@ Since 2026-10-23 a slim strip in the HSReplay style instead of large plates: a b
 Replace by colour and icon, the win rate delta as one number, small marks for a synergy, a 2nd copy, a late card; click
 = keep or replace) and one summary line ("Expected impact of your keeps: +2.1%", source in small type). Keep %, win
 rate, sample, curve and synergy notes are in the tooltips. The strip is a 1020-unit row centred on the screen (3 card
-slots 340 apart, 4 slots 255 apart) with its top at 700 of 1080, just under the card row of the mulligan screen;
-MovablePanel `mulligan` can move and scale it in layout mode. It shows from the local INPUT to DONE, also without
-numbers (`MulliganView.NoStats`: guide still loading, deck unknown, no archetype).
+slots 340 apart, 4 slots 255 apart) with its top at 700 of 1080, just under the card row of the mulligan screen. These
+are units of the game's 1080-high screen, not of the overlay: the player's overlay scale only sizes the badges
+(`MovablePanel.GameAnchored`, `OverlayViewModel.MulliganRowWidth`). MovablePanel `mulligan-strip` (a new id, so an
+old placement of the plates does not apply) can move and scale it in layout mode. It shows while the local
+MULLIGAN_STATE is INPUT or DEALING and goes at WAITING, also without numbers (`MulliganView.NoStats`: guide still
+loading, deck unknown, no archetype); without numbers every card starts kept, so no badge reads as "replace".
 
 | Feature | Status | How |
 |---|---|---|

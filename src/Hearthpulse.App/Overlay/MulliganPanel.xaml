@@ -70,7 +70,7 @@
     </UserControl.Resources>
 
     <!-- One slot per offered card across the width of the mulligan card row, so each badge sits under its card -->
-    <StackPanel Width="{x:Static o:OverlayViewModel.MulliganRowWidth}">
+    <StackPanel Width="{Binding MulliganRowWidth}">
         <ItemsControl ItemsSource="{Binding MulliganCards}" ItemTemplate="{StaticResource BadgeTemplate}" Focusable="False">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>

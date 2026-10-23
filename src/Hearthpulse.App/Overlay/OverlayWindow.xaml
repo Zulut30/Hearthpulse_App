@@ -976,7 +976,7 @@
             </o:MovablePanel>
 
             <!-- ============ Constructed: mulligan strip, a badge under each offered card (card row centred, card bottoms at ~690 of 1080) ============ -->
-            <o:MovablePanel Id="mulligan" Title="Mulligan strip" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="12,700,0,0">
+            <o:MovablePanel Id="mulligan-strip" Title="Mulligan strip" GameAnchored="True" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="12,700,0,0">
                 <o:MulliganPanel />
             </o:MovablePanel>
 
