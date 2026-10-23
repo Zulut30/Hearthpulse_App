@@ -38,13 +38,13 @@ public sealed partial class MainViewModel
 
     /// <summary>
     /// "Signed in until 22 Nov 2026"; close to the end, a nudge to sign in again. The site's sign-in lasts 30 days from
-    /// approval and refreshing does not extend it.
+    /// approval and refreshing does not extend it. English month names, like the rest of the UI.
     /// </summary>
     public string AccountSessionNote => _account?.SessionExpires is not { } end
         ? string.Empty
         : _account.SessionEndingSoon
-            ? "Sign-in ends on " + end.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture) + ". Sign in again to stay connected."
-            : "Signed in until " + end.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture);
+            ? "Sign-in ends on " + end.ToLocalTime().ToString("d MMM", CultureInfo.InvariantCulture) + ". Sign in again to stay connected."
+            : "Signed in until " + end.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture);
 
     public bool AccountSessionEndingSoon => _account?.SessionEndingSoon == true;
 
