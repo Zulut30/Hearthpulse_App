@@ -142,15 +142,19 @@ internal static partial class OffscreenRenderer
         await RenderCountersAsync(folder, host, settings, overlay, overlayView);
         // The mulligan guide over the newest kept Standard game's opening hand (the meta's archetypes as the app's fallback).
         var constructedMeta = await Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(host.Api), host.Cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, host.Cards.Locale);
-        if (host.InstallDirectory is { } install && await MulliganReplay.LatestAsync(install, host.Cards, new HearthpulseData(host.Api), constructedMeta) is { } mulligan)
+        // 3 cards going first, 4 on the coin.
+        foreach (var (offered, name) in new[] { (3, "overlay-mulligan.png"), (4, "overlay-mulligan-4.png") })
         {
-            host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null, null);
-            overlayView.Fit(1920, 1080);
-            await Save(overlay, Path.Combine(folder, "overlay-mulligan.png"));
-        }
-        else
-        {
-            Console.WriteLine("overlay-mulligan: no kept Standard log with a known deck reaches a mulligan, skipped");
+            if (host.InstallDirectory is { } install && await MulliganReplay.LatestAsync(install, host.Cards, new HearthpulseData(host.Api), constructedMeta, offered) is { } mulligan)
+            {
+                host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null, null);
+                overlayView.Fit(1920, 1080);
+                await Save(overlay, Path.Combine(folder, name));
+            }
+            else
+            {
+                Console.WriteLine($"{Path.GetFileNameWithoutExtension(name)}: no kept Standard log with a known deck reaches a {offered}-card mulligan, skipped");
+            }
         }
         await RenderConstructedAsync(host, settings, overlayView, overlay, folder);
         await CardPoolRender.RenderAsync(host, settings, folder, path =>

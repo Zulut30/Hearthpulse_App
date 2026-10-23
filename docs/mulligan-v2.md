@@ -88,6 +88,13 @@ Observations on the real data (Quest Priest, archetype 56, 250 rows):
 Code: `src/Hearthpulse.Core/Tracking/MulliganGuide.cs` (maths), `MulliganGuideSource.cs` (background loading; disk cache
 through `HearthpulseData`, 6 h), `Mulligan.cs` (entry point, Firestone fallback), `MulliganReplay.cs` (render checks).
 UI: `Overlay/MulliganPanel.xaml` (WPF) / `MulliganPanel.axaml` (Avalonia), view model `OverlayViewModel.Mulligan.cs`.
+Since 2026-10-23 a slim strip in the HSReplay style instead of large plates: a badge under each offered card (Keep /
+Replace by colour and icon, the win rate delta as one number, small marks for a synergy, a 2nd copy, a late card; click
+= keep or replace) and one summary line ("Expected impact of your keeps: +2.1%", source in small type). Keep %, win
+rate, sample, curve and synergy notes are in the tooltips. The strip is a 1020-unit row centred on the screen (3 card
+slots 340 apart, 4 slots 255 apart) with its top at 700 of 1080, just under the card row of the mulligan screen;
+MovablePanel `mulligan` can move and scale it in layout mode. It shows from the local INPUT to DONE, also without
+numbers (`MulliganView.NoStats`: guide still loading, deck unknown, no archetype).
 
 | Feature | Status | How |
 |---|---|---|
@@ -119,7 +126,8 @@ matchups are counted twice. That is why the overlay presents it as an estimate.
   - Two Demon Hunter decks matched Void Demon Hunter.
   - The newest game, a Death Knight homebrew, matched nothing: at best 40% of an Egg DK list, presence 36%. It
     fell back to Firestone, as designed.
-- Renders: `--render-ui` writes `overlay-mulligan.png` in both apps.
+- Renders: `--render-ui` writes `overlay-mulligan.png` (3 offered cards) and `overlay-mulligan-4.png` (on the coin)
+  in both apps, from the newest kept logs.
 
 ## 4. Proposed server endpoints
 

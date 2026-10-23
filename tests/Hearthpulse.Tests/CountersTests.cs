@@ -500,11 +500,17 @@ public sealed class CountersTests
         ];
         var deck = new DeckDefinition("Mine", 1, "code", "Standard", [813], new Dictionary<int, int> { [120003] = 2, [120005] = 2 });
 
+        // From the first INPUT the strip lists the offered cards, also before any numbers arrive.
         var nothing = Play(hand);
         nothing.Tracker.Deck = deck;
-        Assert.Null(View(nothing).Mulligan);
-        Assert.Equal("mulligan panel hidden: no API guide for this deck (yet) and the community stats are not loaded",
-            Hearthpulse.Core.Tracking.Mulligan.Explain(nothing.Game, null, deck, hasGuide: false, meta: null));
+        var bare = View(nothing).Mulligan!;
+        Assert.Equal("No mulligan stats for this deck yet", bare.NoStats);
+        Assert.Equal(["CORE_CS2_004", "BE_012", "BE_014"], bare.Cards.Select(c => c.CardId));
+        Assert.All(bare.Cards, c => Assert.Equal(MulliganCall.NoData, c.Call));
+        Assert.Equal("mulligan strip without numbers: no API guide for this deck (yet) and the community stats are not loaded",
+            Hearthpulse.Core.Tracking.Mulligan.Explain(nothing.Game, bare, deck, hasGuide: false, meta: null));
+        nothing.Tracker.Deck = null;
+        Assert.Equal("No mulligan stats: Decks.log named no deck for this game", View(nothing).Mulligan!.NoStats);
 
         var archetype = new MetaArchetype(1, "cthun-priest", "C'Thun Priest", "PRIEST", 1000, 550, 0.55, 0.1, 0, 0, 0, 0,
             ["BE_012", "BE_014"],
@@ -513,14 +519,14 @@ public sealed class CountersTests
         shown.Tracker.Deck = deck;
         shown.Tracker.Meta = new ConstructedMeta("standard", "all", "past-7", DateTime.UtcNow, 1000, [archetype], []);
         var view = View(shown).Mulligan;
-        Assert.Equal("mulligan panel shown: C'Thun Priest, keep stats for 1/3 cards (" + view!.Source + ")",
+        Assert.Equal("mulligan strip shown: C'Thun Priest, keep stats for 1/3 cards (" + view!.Source + ")",
             Hearthpulse.Core.Tracking.Mulligan.Explain(shown.Game, view, deck, hasGuide: false, shown.Tracker.Meta));
-        Assert.Contains("Mulligan panel shown: C'Thun Priest, keep stats for 1/3 cards", TestDataFolder.ReadLog());
+        Assert.Contains("Mulligan strip shown: C'Thun Priest, keep stats for 1/3 cards", TestDataFolder.ReadLog());
 
         var wild = new ConstructedMeta("wild", "all", "past-7", DateTime.UtcNow, 1000, [archetype], []);
-        Assert.Equal("mulligan panel hidden: no API guide for this deck and the community stats are for wild, the game is FT_STANDARD",
+        Assert.Equal("mulligan strip without numbers: no API guide for this deck and the community stats are for wild, the game is FT_STANDARD",
             Hearthpulse.Core.Tracking.Mulligan.Explain(shown.Game, null, deck, hasGuide: false, wild));
-        Assert.Equal("mulligan panel hidden: no keep stats for 2/2 cards (Priest, test)",
+        Assert.Equal("mulligan strip without numbers: no keep stats for 2/2 cards (Priest, test)",
             Hearthpulse.Core.Tracking.Mulligan.Explain(shown.Game, view with { Context = "Priest", Source = "test", Cards = view.Cards.Where(c => c.KeepRate is null).ToList() }, deck, hasGuide: false, wild));
     }
 

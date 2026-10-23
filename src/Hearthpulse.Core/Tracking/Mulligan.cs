@@ -48,6 +48,12 @@ public sealed record MulliganView(string Context, double BaseWinRate, IReadOnlyL
     public bool HasPairData { get; init; }
 
     public IReadOnlyList<MulliganSynergy> Synergies { get; init; } = [];
+
+    /// <summary>
+    /// Why there are no numbers ("No mulligan stats for this deck yet"); null when the guide or the meta answered. The
+    /// overlay shows the offered cards anyway from the start of the mulligan, with this line instead of the impact.
+    /// </summary>
+    public string? NoStats { get; init; }
 }
 
 /// <summary>
@@ -63,9 +69,13 @@ public static class Mulligan
     public static bool InProgress(GameState game) =>
         game.LocalPlayerEntity?.GetString(GameTag.MulliganState) is "INPUT" or "DEALING";
 
+    /// <summary>
+    /// The panel while the local player's mulligan is on (INPUT, DEALING), null otherwise. Without numbers for the deck
+    /// (the guide still loading, an unknown deck or archetype) it still lists the offered cards, with <see cref="MulliganView.NoStats"/>.
+    /// </summary>
     public static MulliganView? Build(GameState game, CardDb cards, DeckDefinition? deck, ConstructedMeta? meta, string playerClass, GuideArchetype? guide = null)
     {
-        if ((guide is null && meta is null) || !InProgress(game))
+        if (!InProgress(game))
         {
             return null;
         }
@@ -96,44 +106,57 @@ public static class Mulligan
             return view;
         }
 
-        if (meta is null || !FormatMatches(game.FormatType, meta.Format) || FromMeta(meta, cards, playerClass, deckIds) is not { } fallback)
+        if (meta is not null && FormatMatches(game.FormatType, meta.Format) && FromMeta(meta, cards, playerClass, deckIds) is { } fallback
+            && MulliganGuide.Compute(fallback, offered, deckIds, opponentClass, goingFirst, fallback.Name) is { } fromMeta)
         {
-            return null;
+            return fromMeta;
         }
 
-        return MulliganGuide.Compute(fallback, offered, deckIds, opponentClass, goingFirst, fallback.Name);
+        var reason = deck is null ? "No mulligan stats: Decks.log named no deck for this game"
+            : guide is null && meta is null ? "No mulligan stats for this deck yet"
+            : "No mulligan stats for this deck";
+        return new MulliganView(string.Empty, 0, offered.Select(o => new MulliganCardStat(o.EntityId, o.CardId, o.Name, null, null, null, 0)
+        {
+            Cost = o.Cost,
+            ExpectedTurn = o.Cost,
+            Call = MulliganCall.NoData,
+        }).ToList(), string.Empty)
+        {
+            NoStats = reason,
+            GoingFirst = goingFirst,
+        };
     }
 
     /// <summary>
-    /// One line for hearthpulse.log while the mulligan is on: whether the panel has something to show, and why not
-    /// ("mulligan panel hidden: no keep stats for 3/3 cards"). The overlay shows the panel when a card has a keep rate.
+    /// One line for hearthpulse.log while the mulligan is on: whether the strip has numbers to show, and why not
+    /// ("mulligan strip without numbers: no keep stats for 3/3 cards"). The overlay shows the strip all through the mulligan.
     /// </summary>
     public static string Explain(GameState game, MulliganView? view, DeckDefinition? deck, bool hasGuide, ConstructedMeta? meta)
     {
         var hand = game.Controlled(game.LocalPlayerId, "HAND").Count(e => e.CardId.Length > 0);
-        if (view is not null)
+        if (view is { NoStats: null })
         {
             var withStats = view.Cards.Count(c => c.KeepRate is not null);
             return withStats > 0
-                ? $"mulligan panel shown: {view.Context}, keep stats for {withStats}/{view.Cards.Count} cards ({view.Source})"
-                : $"mulligan panel hidden: no keep stats for {view.Cards.Count}/{view.Cards.Count} cards ({view.Context}, {view.Source})";
+                ? $"mulligan strip shown: {view.Context}, keep stats for {withStats}/{view.Cards.Count} cards ({view.Source})"
+                : $"mulligan strip without numbers: no keep stats for {view.Cards.Count}/{view.Cards.Count} cards ({view.Context}, {view.Source})";
         }
 
         if (hand == 0)
         {
-            return "mulligan panel hidden: the opening hand is not in the log yet";
+            return "mulligan strip without numbers: the opening hand is not in the log yet";
         }
 
         if (!hasGuide && meta is null)
         {
             return deck is null
-                ? "mulligan panel hidden: Decks.log named no deck for this game and the community stats are not loaded"
-                : "mulligan panel hidden: no API guide for this deck (yet) and the community stats are not loaded";
+                ? "mulligan strip without numbers: Decks.log named no deck for this game and the community stats are not loaded"
+                : "mulligan strip without numbers: no API guide for this deck (yet) and the community stats are not loaded";
         }
 
         return meta is not null && !FormatMatches(game.FormatType, meta.Format)
-            ? $"mulligan panel hidden: no API guide for this deck and the community stats are for {meta.Format}, the game is {game.FormatType}"
-            : "mulligan panel hidden: neither the API guide nor the community stats have numbers for this deck's class";
+            ? $"mulligan strip without numbers: no API guide for this deck and the community stats are for {meta.Format}, the game is {game.FormatType}"
+            : "mulligan strip without numbers: neither the API guide nor the community stats have numbers for this deck's class";
     }
 
     /// <summary>
