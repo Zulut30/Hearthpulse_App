@@ -20,6 +20,10 @@ public sealed partial class MainViewModel
     {
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
+        // My Stats keeps the texts it built; a refresh only rebuilds them when the history changed.
+        RebuildBattlegroundsStats();
+        RebuildConstructedStats();
+        RebuildArenaStats();
         if (_meta is null || _cards.Count == 0)
         {
             MetaUpdated = Loc.T("Main.Bg.CommunityLoading");
