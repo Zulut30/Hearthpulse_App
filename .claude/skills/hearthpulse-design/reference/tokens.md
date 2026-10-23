@@ -41,7 +41,8 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 | OverlayPanel | #F0201510 | overlay panel fill |
 | OverlayPanelSolid | WPF: gradient #FA2C1F14→#FA1C130C; Avalonia: solid #FA201510 | opaque overlay panel |
 | OverlayBorder | #40E9B949 | overlay panel edge |
-| OverlayBadgeShade, OverlayPlaceholder | #CC140D08, #E6201510 | WPF only |
+| OverlayBadgeShade | #CC140D08 | shade behind overlay badges (both files) |
+| OverlayPlaceholder | #E6201510 | layout-mode placeholder (WPF only) |
 | Row | #2E1F13 | list row plate |
 | TileFade | gradient from Row | card-tile art fade |
 | Ink | = BgColor | Avalonia only |

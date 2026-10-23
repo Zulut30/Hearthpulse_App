@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-design
-description: Use when changing Hearthpulse UI visuals - XAML/AXAML pages, overlay panels, colours, fonts, icons, styles, theme presets, custom controls - or adding a page/panel to the WPF app or Avalonia preview. Covers tokens, theme recolouring, parity checklist and --render-ui checks.
+description: Use when changing how Hearthpulse looks - colours and design tokens, theme presets (Tavern/Frost/Fel/Arcane/Ember/Tide/Shadow), fonts, MDI icons, styles and classes, custom controls (Scallop, Ornament, Wave, charts, CardPreview), page layout rules, motion, or any XAML/AXAML styling in the WPF app or Avalonia preview. Also the reference for "no hex in views" and the list of accepted WPF/Avalonia gaps. For the step-by-step recipes use hearthpulse-overlay-panel, hearthpulse-main-page and hearthpulse-visual-check.
 ---
 
 # Hearthpulse visual design
@@ -12,7 +12,12 @@ Look: Hearthstone menus - dark wood and leather surfaces, parchment text, gold t
 | WPF (what the Windows installer ships) | `src/Hearthpulse.App` | `Themes/Theme.xaml` | `Main/MainWindow.xaml` | `Overlay/OverlayWindow.xaml` |
 | Avalonia "preview" (cross-platform) | `src/Hearthpulse.UI` (+ host `src/Hearthpulse.Desktop`) | `Themes/Theme.axaml` | `Main/MainView.axaml` | `Overlay/OverlayView.axaml` |
 
-Full token/style tables with hex values: [reference/tokens.md](reference/tokens.md).
+Full token/style tables with hex values: [reference/tokens.md](reference/tokens.md). Recipes:
+[hearthpulse-overlay-panel](../hearthpulse-overlay-panel/SKILL.md), [hearthpulse-main-page](../hearthpulse-main-page/SKILL.md);
+PNG checks: [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md).
+
+UI text is English and hardcoded in XAML (no resx), sentence case. Card, hero and deck names follow the card locale
+(Russian on the owner's machine), so layouts must survive long Cyrillic names.
 
 ## Rule 1: never hardcode colours in views - use tokens
 
@@ -95,6 +100,9 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
   `Main/Stats/` (`BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView` + `StatsResources`) of both UIs.
 - `RoundClip` (WPF only, attached `RoundClip.Radius`) - clips art to rounded corners; WPF `ClipToBounds` ignores
   CornerRadius.
+- `CardPreview` - attached `CardPreview.CardId` / `Caption` / `Placement` shows a full card render on hover through
+  the window's `CardPreviewHost` (one preview per window, swapped in place). Inside the overlay the element also
+  needs `OverlayHit.Interactive`.
 
 ## Page layout
 
@@ -117,38 +125,24 @@ WPF only animates when Windows' animation setting is on: `MainWindow.xaml.cs` ch
 220 ms fade, CubicEase). Hover layers fade in 0.12 s / out 0.22 s. Any new animation must take the same guard. The
 Avalonia UI currently has no animations.
 
-## Checklist: adding a page, panel or setting
+## Adding a page, panel or setting
 
-1. Logic and data in `src/Hearthpulse.Core`; both view models (`Hearthpulse.App/Main/MainViewModel*.cs`,
-   `Hearthpulse.UI/Main/MainViewModel.cs`) expose it. Settings go in `AppSettings`.
-2. WPF: add markup to `MainWindow.xaml` (or `OverlayWindow.xaml`) using styles above; new nav pages need a `NavItem`
-   RadioButton with an MDI glyph in `Tag` and handling in `MainWindow.xaml.cs` (`ShowPage`).
-3. Avalonia: mirror it in `MainView.axaml` / `OverlayView.axaml` with the matching classes; check compact mode.
-4. No hex literals outside the theme files; new tokens added to both theme files.
-5. Any animation guarded by `SystemParameters.ClientAreaAnimation` (WPF).
-6. If the page should be in render checks, add it to the page list in `DevRender.cs` / `OffscreenRenderer.cs`.
-7. Render both UIs (below) and compare the PNGs; for WPF also render at least one non-default theme.
+Follow the recipes, they carry the parity and render steps:
+[hearthpulse-main-page](../hearthpulse-main-page/SKILL.md) (sidebar pages, tabs, settings cards),
+[hearthpulse-overlay-panel](../hearthpulse-overlay-panel/SKILL.md) (overlay panels). Design-side rules for both:
+no hex literals outside the theme files, new tokens in both theme files, animations behind
+`SystemParameters.ClientAreaAnimation`, and a look at both UIs plus one non-default WPF theme with
+[hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md) (`--render-ui` on a copy of the data folder,
+`HEARTHPULSE_THEME=<preset>`).
 
-## Visual verification: `--render-ui <dir>`
+## Known UI gaps (checked on main 2e8d9be, Oct 2026)
 
-Both apps render pages off-screen to PNG from the player's own history and latest kept Battlegrounds log, then exit.
-
-- WPF (`App.xaml.cs` reads `--render-ui`, `DevRender.cs` renders; Windows only, single-instance check skipped):
-  `dotnet run --project src/Hearthpulse.App -- --render-ui <dir>`. Writes `main-overview|battlegrounds|constructed|
-  history|settings.png`, `main-constructed-tiers.png`, `main-constructed-top.png`, `overlay-pick|trinket|discover|
-  game.png` (each only if a kept log reaches that moment) and `overlay-layout.png`.
-  Theme preview without touching settings: set `HEARTHPULSE_THEME=<preset name>` (only honoured while rendering).
-- Avalonia (`Program.cs` -> `OffscreenRenderer.Run`, headless Skia):
-  `dotnet run --project src/Hearthpulse.Desktop -- --render-ui <dir>`. Writes the five `main-*.png` at 1260x840,
-  `main-compact.png` at 420x860, and the same overlay moments.
-- Then view the PNGs (Read tool) and check: spacing, truncation, contrast, token colours, parity between the two UIs.
-- Rendering uses the real data folder (`AppPaths`); set `HEARTHPULSE_DATA` to a scratch copy to avoid touching it.
-
-## Known UI gaps (as of this skill's writing)
-
-- Avalonia lacks WPF features: Constructed meta tabs (`TabMyDecks`/`TabMetaTiers`/`TabMetaDecks` exist only in
-  `MainWindow.xaml`), the theme picker (`Themes`, `SelectTheme`, custom hue sliders), and the overlay tribe focus
-  (`CompFocus`, wired only in `Hearthpulse.App`).
+- WPF only: Constructed meta tabs (`TabMyDecks`/`TabMetaTiers`/`TabMetaDecks`, `MainViewModel.Constructed.cs`), the
+  theme picker (`MainViewModel.Theme.cs`: `Themes`, `SelectTheme`, custom hue sliders), page reveal and nav pill
+  animation, the faded hero banner, and the overlay tribe focus (`CompFocus`, `FocusChoices` in the WPF
+  `OverlayViewModel`).
+- Avalonia only: compact layout below 900 px, separate Hearthstone/memory status dots, an extra overlay switch in
+  Settings. Avalonia has no theme engine (static Tavern).
 - `RatingChart` empty state draws one unwrapped line ("Play a few rated Battlegrounds games...") centred at
   `(w - width)/2`; in narrow hosts it overflows on both sides (both UIs).
 - Compact live bar (Avalonia, `MainView.axaml` "Floating live bar"): title/detail are squeezed by the arrange button and

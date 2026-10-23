@@ -2,8 +2,10 @@
 
 Base URL `https://api.kolodahearthstone.com`. Checked with curl on 2026-10-23: `GET /openapi.json` (title
 "Hearthstone Data API", 0.1.0) and `GET /api` (name "HS Battlegrounds RU API", version 1.16.0, with an endpoint index
-and totals). All endpoints below returned 200 **without** credentials. The app's client (in progress) is
-`src/Hearthpulse.Core/Api/HearthpulseApi.cs` (`DefaultBaseUrl`, `HEARTHPULSE_API` env override for a test server).
+and totals). All endpoints below returned 200 **without** credentials. The app's client is
+`src/Hearthpulse.Core/Api/HearthpulseApi.cs` (`DefaultBaseUrl`, `HEARTHPULSE_API` env override for a test server) with
+typed, cached calls in `HearthpulseData.cs`; which endpoints the app actually calls is listed in the
+`hearthpulse-data-sources` skill (`reference/endpoints.md`).
 
 Two API families live on the host and they differ in envelope and paging:
 
