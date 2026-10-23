@@ -26,8 +26,10 @@ Facts from those logs that the counters rely on:
   (e.g. `Bacon_Free_Refresh_Player_Ench`, `Bacon_TagTransferPlayerE`). None of the counter enchantments below appeared yet.
 - The client prints tags it has no name for as numbers (e.g. `tag=4741`, `tag=4901`). The counters never guess which number
   is which tag; a tag that only ever shows as a number keeps its counter unconfirmed.
-- The reroll button `TB_BaconShop_8p_Reroll_Button` (local player, zone PLAY) changes `COST` (`1 -> 0 -> 1` on turn 2 of
-  the 2026 game).
+- The reroll button `TB_BaconShop_8p_Reroll_Button` (local player, zone PLAY) changes `COST`. At the start of a turn it
+  briefly reads 0 and is set back within the same trigger (`0 -> 1` in 2026, `0 -> 2` in 2022); after Refreshing Anomaly
+  (`BGS_116`, 2022 log) it stays 0 until the free Refreshes are used. The overlay reads settled state, so only the
+  lasting 0 shows.
 - The lobby's Deity: `BACON_GLOBAL_OLD_GOD_DBID` on the game entity (130610 = `BGFYM_000` C'Thun in the 2026 game).
 
 ## When a counter shows
@@ -77,6 +79,15 @@ None of the 17 names is skipped outright, but two parts are left out:
 - The extra +4/+2 per friendly Undead death from Greater Eternal Portrait (`BG36_MagicItem_216pe`, "Counts the number of
   Eternal Knights that died") is not added to `bg-eternal-knight`: how the enchantment stores it is unknown.
 - "Gold in 2 turns" (`BG31_825e2`) is not part of `bg-gold-next-turn`.
+
+## Replay of the real logs (Oct 2026)
+
+Counters at the start of each combat, replayed by a scratch console over both BG logs (values other than `—`/0):
+
+- 2026 game (3 turns): nothing to show (no related cards; one friendly minion died, one summoned).
+- 2022 game (16 turns, Naga lobby): `bg-naga-spells` 1, 1, 3, 4, 6, 9, 13, 15, 17, 20, 23 from turn 6 on (the player
+  tag's last value is 23); `bg-free-refresh` = Free at turn 13, after Refreshing Anomaly was played. No unconfirmed tag
+  or enchantment appeared, as expected.
 
 ## Checking on a live game
 
