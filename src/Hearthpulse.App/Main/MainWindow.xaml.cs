@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Hearthpulse.App.Infrastructure;
+using Hearthpulse.Core;
 
 namespace Hearthpulse.App.Main;
 
@@ -257,37 +258,23 @@ public partial class MainWindow : Window
     private void OnViewHistory(object sender, RoutedEventArgs e) => NavHistory.IsChecked = true;
 
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
-    private void ShowHistoryGame(string key)
+    private void ShowHistoryGame(string key) => ShowHistoryGameAsync(key).Forget("Show a game in History");
+
+    private async Task ShowHistoryGameAsync(string key)
     {
         NavHistory.IsChecked = true;
-        var refilter = _viewModel.HistoryFilter != "All";
-        if (refilter)
+        if (_viewModel.HistoryFilter != "All")
         {
             HistoryAll.IsChecked = true;
-            _viewModel.SetHistoryFilter.Execute("All");
+            // Ends once the "All" rows are there: at once from the games in memory, else after a reload.
+            await _viewModel.ShowAllGamesAsync();
         }
 
-        SelectHistoryRow(key, waitForRows: refilter);
+        SelectHistoryRow(key);
     }
 
-    private void SelectHistoryRow(string key, bool waitForRows)
+    private void SelectHistoryRow(string key)
     {
-        if (waitForRows)
-        {
-            // The "All" rows arrive after a reload: select the game once they are there.
-            PropertyChangedEventHandler? handler = null;
-            handler = (_, e) =>
-            {
-                if (e.PropertyName == nameof(MainViewModel.HistoryRows))
-                {
-                    _viewModel.PropertyChanged -= handler;
-                    SelectHistoryRow(key, waitForRows: false);
-                }
-            };
-            _viewModel.PropertyChanged += handler;
-            return;
-        }
-
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
             if (_viewModel.HistoryRowFor(key) is { } row)

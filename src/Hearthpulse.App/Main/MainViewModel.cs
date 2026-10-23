@@ -420,6 +420,22 @@ public sealed partial class MainViewModel : Observable
         }
     }
 
+    /// <summary>
+    /// Switches History to every game (to show one from a deck page). The task ends once the rows are there: at once when
+    /// the last refresh's games are in memory, else when the reload started for them is in.
+    /// </summary>
+    public Task ShowAllGamesAsync()
+    {
+        HistoryFilter = "All";
+        if (_recentGames is null)
+        {
+            return RefreshAsync();
+        }
+
+        ApplyHistoryFilter();
+        return Task.CompletedTask;
+    }
+
     /// <summary>History rows for the current filter, cut from the games the last refresh read (no new queries).</summary>
     private void ApplyHistoryFilter()
     {

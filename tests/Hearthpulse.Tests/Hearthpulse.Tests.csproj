@@ -15,6 +15,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hearthpulse.Core\Hearthpulse.Core.csproj" />
+    <!-- The Avalonia view models are plain .NET (no window needed) and build on every OS, so they can be tested. -->
+    <ProjectReference Include="..\..\src\Hearthpulse.UI\Hearthpulse.UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

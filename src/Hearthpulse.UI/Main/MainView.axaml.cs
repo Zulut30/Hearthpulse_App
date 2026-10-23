@@ -286,47 +286,28 @@ public partial class MainView : UserControl
     private void OnViewHistory(object? sender, RoutedEventArgs e) => NavHistory.IsChecked = true;
 
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
-    private void ShowHistoryGame(string key)
-    {
-        if (_viewModel is null)
-        {
-            return;
-        }
+    private void ShowHistoryGame(string key) => ShowHistoryGameAsync(key).Forget("Show a game in History");
 
-        NavHistory.IsChecked = true;
-        var refilter = _viewModel.HistoryFilter != "All";
-        if (refilter)
-        {
-            HistoryAll.IsChecked = true;
-            _viewModel.SetHistoryFilter.Execute("All");
-        }
-
-        SelectHistoryRow(key, waitForRows: refilter);
-    }
-
-    private void SelectHistoryRow(string key, bool waitForRows)
+    private async Task ShowHistoryGameAsync(string key)
     {
         if (_viewModel is not { } viewModel)
         {
             return;
         }
 
-        if (waitForRows)
+        NavHistory.IsChecked = true;
+        if (viewModel.HistoryFilter != "All")
         {
-            // The "All" rows arrive after a reload: select the game once they are there.
-            PropertyChangedEventHandler? handler = null;
-            handler = (_, e) =>
-            {
-                if (e.PropertyName == nameof(MainViewModel.HistoryRows))
-                {
-                    viewModel.PropertyChanged -= handler;
-                    SelectHistoryRow(key, waitForRows: false);
-                }
-            };
-            viewModel.PropertyChanged += handler;
-            return;
+            HistoryAll.IsChecked = true;
+            // Ends once the "All" rows are there: at once from the games in memory, else after a reload.
+            await viewModel.ShowAllGamesAsync();
         }
 
+        SelectHistoryRow(viewModel, key);
+    }
+
+    private void SelectHistoryRow(MainViewModel viewModel, string key)
+    {
         Dispatcher.UIThread.Post(() =>
         {
             if (viewModel.HistoryRowFor(key) is { } row)
