@@ -658,7 +658,7 @@ public sealed class DeckDetailsViewModel : Observable
         Loc.P("Deck.Game.Turns", g.Turns),
         g.Duration > TimeSpan.Zero ? Loc.F("Deck.Minutes", g.Duration.TotalMinutes) : null,
         g.WentFirst switch { true => Loc.T("Deck.Game.WentFirst"), false => Loc.T("Deck.Game.OnCoin"), _ => null },
-        g.Rank,
+        Core.Memory.RankInfo.Localize(g.Rank),
     }.Where(s => !string.IsNullOrEmpty(s)));
 
     /// <summary>A history result ("Win", "Loss"...) as History shows it; the colour keeps the stored value.</summary>
