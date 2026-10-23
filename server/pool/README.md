@@ -4,10 +4,11 @@ A small Cloudflare Worker that collects the Battlegrounds games players choose t
 heroes, final boards, trinkets, tribes, tavern tier timing, combat odds, picks (Discover, triple rewards, trinkets)
 and the cards played. It is built to stay inside Cloudflare's free plan.
 
-It also holds the **base Battlegrounds statistics** (heroes, cards, trinkets and comp guides), imported once into D1.
-The app reads them from `/v1/meta`, so it never contacts a third-party stats API at runtime.
+It can also serve **base Battlegrounds statistics** (heroes, cards, trinkets and comp guides) from D1 at `/v1/meta`.
+Hearthpulse ships that table empty: upstream filled it once from a third-party stats service, and that data is not
+part of this repository. Fill it only from a source you are allowed to redistribute.
 
-What a shared game contains: a random game id, the day it was played, solo or duos, the rating rounded down to 500,
+What a shared game contains: a game id (an HMAC of the game made with a key that never leaves the player's PC), the day it was played, solo or duos, the rating rounded down to 500,
 the heroes offered and picked, the placement, and (if the player agreed to it) the game details listed in the app.
 No player name, BattleTag, account or IP address is stored, and nothing about other players.
 
@@ -47,9 +48,10 @@ To move an existing pool to a new version, run the new file in `migrations/` wit
 
 ## Base stats
 
-`migrations/0004_meta.sql` holds the compact base data: heroes per MMR bracket, cards per bracket with their
-turn results, trinkets per MMR, comps with their MMR and hero placement, and the comp guides. It is 1.05 MB in 22
-rows and is already applied to the live database. A fresh database only needs:
+`migrations/0004_meta.sql` creates the `meta` table, empty. The body is one compact JSON document (heroes per MMR
+bracket, cards per bracket with their turn results, trinkets per MMR, comps with their MMR and hero placement, comp
+guides) split into numbered rows small enough for a D1 statement. Until rows are added, `/v1/meta` answers 503 and
+the app keeps its own base stats, with the shared games blended in. Create the table with:
 
 ```
 npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sql --yes
@@ -67,7 +69,6 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
 - `GET /v1/stats?mode=solo` returns everything: `games`, `detailedGames`, `heroes`, `cards`, `trinkets`, `comps`,
   `tierUps`, `combatOdds`, `choices` and `plays`, over the last 30 days.
 - `GET /v1/heroes?mode=solo` returns only the hero totals (used by Hearthpulse 0.8).
-- `GET /v1/meta` returns the imported base stats (see above), cached at the edge for 30 minutes. The app reads this
-  for the tier lists, card tips, trinket tips and comp suggestions.
+- `GET /v1/meta` returns the base stats (see above) when the table has rows, cached at the edge for 30 minutes.
 
 For a local test, run `npx wrangler dev --test-scheduled` and open `/__scheduled` to run the cron job.
