@@ -1,4 +1,5 @@
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.Battlegrounds;
@@ -109,7 +110,7 @@ public sealed class BattlegroundsAdvisor
             Pairs = pairs,
             ShopPlan = plan,
             MetaSource = $"{meta.Source} · {percentile} · {meta.Updated:dd MMM HH:mm}"
-                + (meta.SharedGames > 0 ? $" · {meta.SharedGames:N0} shared games" : string.Empty),
+                + (meta.SharedGames > 0 ? " · " + Loc.P("Core.Bg.SharedGames", meta.SharedGames) : string.Empty),
         };
     }
 
@@ -192,15 +193,15 @@ public sealed class BattlegroundsAdvisor
 
         var first = keep[0];
         var why = first.Reason.Contains("Triple", StringComparison.Ordinal)
-            ? "completes a triple"
+            ? Loc.T("Core.Bg.CompletesTriple")
             : first.Reason.Contains("Core", StringComparison.Ordinal)
-                ? target is null ? "is a core card" : $"is core for {target.Name}"
+                ? target is null ? Loc.T("Core.Bg.Freeze.Core") : Loc.F("Core.Bg.Freeze.CoreFor", target.Name)
                 : first.Reason.Contains("Pair", StringComparison.Ordinal)
-                    ? "gives you a pair"
-                    : "is too strong to reroll away";
-        var names = string.Join(" and ", keep.Select(p => p.Name));
+                    ? Loc.T("Core.Bg.Freeze.Pair")
+                    : Loc.T("Core.Bg.Freeze.Strong");
+        var names = string.Join(Loc.T("Core.Bg.And"), keep.Select(p => p.Name));
         var missing = Math.Max(first.Cost, MinionCost) - view.Gold;
-        return $"Freeze: keep {names} — {why}; {missing} more gold next turn";
+        return Loc.F("Core.Bg.Freeze", names, why, missing);
     }
 
     private static bool IsWorthFreezing(ShopPick pick) =>
@@ -239,8 +240,8 @@ public sealed class BattlegroundsAdvisor
 
         var best = shop.FirstOrDefault(p => p.Best);
         return best is { Score: >= 60 }
-            ? $"Dark Gift: buy {best.Name} first, then discover with the rest"
-            : $"Dark Gift: spend {cost} gold — a gifted minion beats this shop";
+            ? Loc.F("Core.Bg.DarkGift.BuyFirst", best.Name)
+            : Loc.F("Core.Bg.DarkGift.Spend", cost);
     }
 
     private static double HeroCompPlacement(MetaComp comp, string baseHeroId, int bracket)
@@ -374,7 +375,7 @@ public sealed class BattlegroundsAdvisor
                     .Where(card => card.Name.Length > 0 && card.Tier > 0 && card.Tier <= Math.Max(view.TechLevel, 1) + 1)
                     .OrderBy(card => card.Tier)
                     .Take(3)
-                    .Select(card => $"{card.Name} (T{card.Tier})")
+                    .Select(card => Loc.F("Core.Bg.CardTier", card.Name, card.Tier))
                     .ToList(),
             })
             .ToList();
@@ -385,26 +386,26 @@ public sealed class BattlegroundsAdvisor
         if (pinned)
         {
             return mode == CompMode.Manual
-                ? "Your choice: tavern and Discover hints count its cards"
-                : "Locked by you: the advisor will not switch away from it";
+                ? Loc.T("Core.Bg.Why.Choice")
+                : Loc.T("Core.Bg.Why.Locked");
         }
 
         var core = comp.Cards.Count(card => card.Status == "CORE");
         var addons = comp.Cards.Count(card => card.Status != "CORE" && owned.ContainsKey(card.CardId));
         if (ownedCore > 0)
         {
-            return $"You already have {ownedCore} of {core} core cards" + (addons > 0 ? $" and {addons} support card{(addons == 1 ? string.Empty : "s")}" : string.Empty);
+            return Loc.F("Core.Bg.Why.Have", ownedCore, core) + (addons > 0 ? Loc.P("Core.Bg.Why.AndSupport", addons) : string.Empty);
         }
 
         if (addons > 0)
         {
-            return $"You have {addons} of its support cards";
+            return Loc.F("Core.Bg.Why.HaveSupport", addons);
         }
 
-        var hero = comp.HeroPlacement.TryGetValue(baseHero, out var h) && h.DataPoints >= 40 ? " with your hero" : string.Empty;
+        var hero = comp.HeroPlacement.TryGetValue(baseHero, out var h) && h.DataPoints >= 40 ? Loc.T("Core.Bg.Why.WithHero") : string.Empty;
         return lobbyKnown
-            ? $"Best average placement{hero} with this lobby's tribes"
-            : $"Best average placement{hero} (lobby tribes not known yet)";
+            ? Loc.F("Core.Bg.Why.BestLobby", hero)
+            : Loc.F("Core.Bg.Why.BestUnknownLobby", hero);
     }
 
     /// <summary>A card on offer: a tavern minion, a tavern spell, or one option of a Discover-style choice.</summary>
@@ -666,8 +667,8 @@ public sealed class BattlegroundsAdvisor
             sold = true;
             steps.Add(new ShopStep(
                 ShopAction.Sell,
-                $"Sell {worst.Value.Name}",
-                $"Board full · +{SellRefund} gold, {gold} left",
+                Loc.F("Core.Bg.Step.Sell", worst.Value.Name),
+                Loc.F("Core.Bg.Step.SellDetail", SellRefund, gold),
                 -SellRefund,
                 gold,
                 worst.Value.CardId,
@@ -700,8 +701,8 @@ public sealed class BattlegroundsAdvisor
             gold -= price;
             steps.Add(new ShopStep(
                 ShopAction.Buy,
-                $"Buy {best.Name}",
-                $"{BuyDetail(best, target)} · {price} gold, {gold} left",
+                Loc.F("Core.Bg.Step.Buy", best.Name),
+                Loc.F("Core.Bg.Step.BuyDetail", BuyDetail(best, target), price, gold),
                 price,
                 gold,
                 best.CardId,
@@ -717,11 +718,11 @@ public sealed class BattlegroundsAdvisor
             }
 
             gold -= cost;
-            var spend = cost == 0 ? "free" : $"{cost} gold";
+            var spend = cost == 0 ? Loc.T("Core.Bg.Free") : Loc.F("Core.Bg.Gold", cost);
             steps.Add(new ShopStep(
                 ShopAction.Level,
-                $"Level to tier {view.TechLevel + 1}",
-                $"{LevelReason(view, target, missingNextCore, behind, underTiered, weakShop)} · {spend}, {gold} left",
+                Loc.F("Core.Bg.Step.Level", view.TechLevel + 1),
+                Loc.F("Core.Bg.Step.LevelDetail", LevelReason(view, target, missingNextCore, behind, underTiered, weakShop), spend, gold),
                 cost,
                 gold));
         }
@@ -735,11 +736,11 @@ public sealed class BattlegroundsAdvisor
             }
 
             gold -= cost;
-            var lookFor = target is null ? "a better board" : $"{target.Name} cards";
+            var lookFor = target is null ? Loc.T("Core.Bg.LookForBetterBoard") : Loc.F("Core.Bg.LookForComp", target.Name);
             steps.Add(new ShopStep(
                 ShopAction.Roll,
-                "Roll the tavern",
-                $"No strong buy · look for {lookFor} · {cost} gold, {gold} left",
+                Loc.T("Core.Bg.Step.Roll"),
+                Loc.F("Core.Bg.Step.RollDetail", lookFor, cost, gold),
                 cost,
                 gold));
         }
@@ -790,7 +791,7 @@ public sealed class BattlegroundsAdvisor
 
         steps.Add(new ShopStep(
             ShopAction.Save,
-            "Hold this turn",
+            Loc.T("Core.Bg.Step.Hold"),
             HoldDetail(view, gold, levelCost, boardFull),
             0,
             gold));
@@ -802,17 +803,17 @@ public sealed class BattlegroundsAdvisor
     {
         if (levelCost is { } cost && gold < cost)
         {
-            return $"Save your {gold} gold — tier {view.TechLevel + 1} costs {cost}";
+            return Loc.F("Core.Bg.Hold.Save", gold, view.TechLevel + 1, cost);
         }
 
         if (boardFull)
         {
-            return "Board is full and every minion is worth keeping — hold or roll";
+            return Loc.T("Core.Bg.Hold.BoardFull");
         }
 
         return SafeToLevel(view)
-            ? "No card is worth its gold this turn"
-            : $"Too risky to level on {view.Health + view.Armor} health — keep the gold for next turn";
+            ? Loc.T("Core.Bg.Hold.NothingWorthIt")
+            : Loc.F("Core.Bg.Hold.TooRisky", view.Health + view.Armor);
     }
 
     /// <summary>
@@ -828,14 +829,14 @@ public sealed class BattlegroundsAdvisor
 
     private static string BuyDetail(ShopPick pick, CompAdvice? target) =>
         pick.IsSpell
-            ? "is the best tavern spell"
+            ? Loc.T("Core.Bg.Buy.BestSpell")
             : pick.Reason.Contains("Triple", StringComparison.Ordinal)
-            ? "completes a triple"
+            ? Loc.T("Core.Bg.CompletesTriple")
             : pick.Reason.Contains("Core", StringComparison.Ordinal)
-                ? $"is a core card{ForComp(target)}"
+                ? Loc.F("Core.Bg.Buy.Core", ForComp(target))
                 : pick.Reason.Contains("Pair", StringComparison.Ordinal)
-                    ? "adds a pair"
-                    : "is the best card in the tavern";
+                    ? Loc.T("Core.Bg.Buy.Pair")
+                    : Loc.T("Core.Bg.Buy.BestCard");
 
     private static string LevelReason(
         BattlegroundsView view, CompAdvice? target,
@@ -845,31 +846,31 @@ public sealed class BattlegroundsAdvisor
         var reasons = new List<string>();
         if (missingNextCore && target is not null)
         {
-            reasons.Add($"unlocks {target.Name} core at T{next}");
+            reasons.Add(Loc.F("Core.Bg.Level.Unlocks", target.Name, next));
         }
         else if (target is not null)
         {
-            reasons.Add($"moves toward {target.Name}");
+            reasons.Add(Loc.F("Core.Bg.Level.Toward", target.Name));
         }
 
         if (behind)
         {
-            reasons.Add($"behind the curve (T{view.TechLevel} on turn {view.Turn})");
+            reasons.Add(Loc.F("Core.Bg.Level.Behind", view.TechLevel, view.Turn));
         }
 
         if (underTiered)
         {
-            reasons.Add("board is under-tiered");
+            reasons.Add(Loc.T("Core.Bg.Level.UnderTiered"));
         }
 
         if (weakShop)
         {
-            reasons.Add("shop has no strong buy");
+            reasons.Add(Loc.T("Core.Bg.Level.WeakShop"));
         }
 
         if (reasons.Count == 0)
         {
-            reasons.Add("best use of this turn's gold");
+            reasons.Add(Loc.T("Core.Bg.Level.BestUse"));
         }
 
         return string.Join(" · ", reasons);
@@ -890,7 +891,7 @@ public sealed class BattlegroundsAdvisor
             : string.Join(" → ", steps.Select(s => s.Title));
         var reason = steps.Count == 1
             ? primary.Detail
-            : $"{steps.Count} steps · {total} gold net · {steps[^1].GoldLeft} left";
+            : Loc.F("Core.Bg.PlanSummary", steps.Count, total, steps[^1].GoldLeft);
         return new ShopPlan(
             primary.Action,
             title,
@@ -956,7 +957,7 @@ public sealed class BattlegroundsAdvisor
         return (chosen.CardId, name, worstIndex);
     }
 
-    private static string ForComp(CompAdvice? target) => target is null ? string.Empty : $" for {target.Name}";
+    private static string ForComp(CompAdvice? target) => target is null ? string.Empty : Loc.F("Core.Bg.ForComp", target.Name);
 
     /// <summary>Live button cost first, then cards.json's base cost for the next tier; null at max tier.</summary>
     private static int? LevelCost(BattlegroundsView view, CardDb cards)
