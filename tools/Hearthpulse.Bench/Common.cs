@@ -37,7 +37,7 @@ internal static class Measure
         var info = GC.GetGCMemoryInfo(GCKind.Any);
         using var process = Process.GetCurrentProcess();
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"[ram] {label,-40} WS {process.WorkingSet64 / 1048576,4} MB  private {process.PrivateMemorySize64 / 1048576,4} MB  managed {live / 1048576,4} MB  LOH {info.GenerationInfo[3].SizeAfterBytes / 1048576,3} MB  GC committed {info.TotalCommittedBytes / 1048576,4} MB"));
+            $"[ram] {label,-40} WS {process.WorkingSet64 / 1048576,4} MB  private {process.PrivateMemorySize64 / 1048576,4} MB  managed {live / 1048576,4} MB  LOH {info.GenerationInfo[3].SizeAfterBytes / 1048576,3} MB (free {info.GenerationInfo[3].FragmentationAfterBytes / 1048576,3})  GC committed {info.TotalCommittedBytes / 1048576,4} MB"));
     }
 
     public static HttpClient Http()
