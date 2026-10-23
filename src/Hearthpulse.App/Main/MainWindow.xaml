@@ -1292,6 +1292,17 @@
                                             <Hyperlink Command="{Binding OpenAccountProfile}" Foreground="{StaticResource Accent}"><Run Text="Open profile on the site" /></Hyperlink>
                                             <Run Text="&#xF03CC;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource Accent}" />
                                         </TextBlock>
+                                        <!-- Games to the profile on the site ("My statistics") -->
+                                        <CheckBox Style="{StaticResource Switch}" Content="Send games to my profile" IsChecked="{Binding UploadGames}" Margin="0,14,0,4" />
+                                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap"
+                                                   Text="For &#x201C;My statistics&#x201D; on hearthpulse.net, after each game: mode, result, place or rank, rating, heroes and classes, your deck, final board, combats and duration. Never your BattleTag, your opponent&#x2019;s name or anything hidden in the game." />
+                                        <WrapPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding UploadGames, Converter={StaticResource Vis}}">
+                                            <Button Style="{StaticResource GhostButton}" Content="Send past games" Command="{Binding UploadPastGames}" Margin="0,0,12,0"
+                                                    ToolTip="Sends the games already in your history that are not on your profile yet" />
+                                            <TextBlock Text="{Binding UploadStatus}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                        </WrapPanel>
+                                        <TextBlock Text="{Binding UploadMessage}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                                   Visibility="{Binding UploadMessage, Converter={StaticResource Vis}}" />
                                         <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
                                             <Button Style="{StaticResource PrimaryButton}" Content="Sign in again" Command="{Binding SignIn}" Margin="0,0,8,0"
                                                     Visibility="{Binding AccountSessionEndingSoon, Converter={StaticResource Vis}}" />

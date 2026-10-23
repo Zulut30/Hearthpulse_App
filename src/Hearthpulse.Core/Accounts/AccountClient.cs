@@ -14,6 +14,54 @@ public sealed record DeviceCode(string Code, string UserCode, Uri VerificationUr
 /// <summary>An answer of the token endpoint.</summary>
 public sealed record AccountTokens(string AccessToken, string? RefreshToken, int ExpiresIn);
 
+/// <summary>One refused event of a batch: <c>INVALID_EVENT</c> (with the first bad <c>field</c>) or <c>EVENT_LIMIT_EXCEEDED</c>.</summary>
+public sealed record RejectedEvent(string EventId, string Code, string? Field);
+
+/// <summary>
+/// The site's answer to <c>tracker/events/batch</c>. <see cref="Answered"/> is a 2xx with the <c>{accepted, rejected}</c>
+/// object; otherwise <see cref="Status"/> and the API error <see cref="ErrorCode"/> say what went wrong.
+/// </summary>
+public sealed record TrackerBatchAnswer(int Status, IReadOnlyList<string> Accepted, IReadOnlyList<RejectedEvent> Rejected, string? ErrorCode)
+{
+    public bool Answered => Status is >= 200 and < 300 && ErrorCode is null;
+
+    internal static TrackerBatchAnswer Parse(int status, string body)
+    {
+        List<string> accepted = [];
+        List<RejectedEvent> rejected = [];
+        string? error = null;
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("error", out var e))
+            {
+                error = (e.ValueKind == JsonValueKind.String ? e.GetString() : AccountClient.Text(e, "code"))?.ToUpperInvariant();
+            }
+
+            if (status is >= 200 and < 300 && root.ValueKind == JsonValueKind.Object && root.TryGetProperty("accepted", out var a)
+                && a.ValueKind == JsonValueKind.Array)
+            {
+                accepted.AddRange(a.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString()!));
+                if (root.TryGetProperty("rejected", out var r) && r.ValueKind == JsonValueKind.Array)
+                {
+                    rejected.AddRange(r.EnumerateArray()
+                        .Where(x => AccountClient.Text(x, "eventId") is { Length: > 0 })
+                        .Select(x => new RejectedEvent(AccountClient.Text(x, "eventId")!, AccountClient.Text(x, "code") ?? "REJECTED", AccountClient.Text(x, "field"))));
+                }
+
+                return new TrackerBatchAnswer(status, accepted, rejected, null);
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        // A 2xx without the answer object (a captive portal's page, a proxy) is not an answer from the site.
+        return new TrackerBatchAnswer(status, accepted, rejected, error ?? (status is >= 200 and < 300 ? "BAD_RESPONSE" : null));
+    }
+}
+
 /// <summary>
 /// A failure inside the accounts code: an OAuth error upper-cased (<c>AUTHORIZATION_PENDING</c>, <c>SLOW_DOWN</c>,
 /// <c>ACCESS_DENIED</c>, <c>EXPIRED_TOKEN</c>, <c>INVALID_GRANT</c>...), an API error code
@@ -98,6 +146,34 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         using var doc = await SendAsync(request, cancellationToken).ConfigureAwait(false);
         return ParseMe(doc.RootElement);
+    }
+
+    /// <summary>
+    /// <c>POST tracker/events/batch</c> with a JSON body of 1-50 events (docs/profile-upload.md). Any HTTP answer is
+    /// returned with its status, so the caller can tell a refused batch from a passing outage; only a failed transport
+    /// throws (<c>OFFLINE</c>).
+    /// </summary>
+    public async Task<TrackerBatchAnswer> PostEventsAsync(string accessToken, string json, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(BaseUri, "tracker/events/batch"))
+        {
+            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        int status;
+        string body;
+        try
+        {
+            using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            status = (int)response.StatusCode;
+            body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            throw new AccountException("OFFLINE", ex.Message);
+        }
+
+        return TrackerBatchAnswer.Parse(status, body);
     }
 
     internal static (AccountUser User, Uri? ProfileUrl) ParseMe(JsonElement root)

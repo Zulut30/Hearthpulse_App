@@ -1,0 +1,82 @@
+{
+  "events": [
+    {
+      "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4b",
+      "type": "battlegrounds_match",
+      "schemaVersion": 2,
+      "occurredAt": "2026-10-22T15:04:11Z",
+      "payload": {
+        "durationSeconds": 1260,
+        "turns": 13,
+        "heroCardId": "BG20_HERO_242",
+        "placement": 2,
+        "duos": false,
+        "ratingBefore": 6412,
+        "ratingAfter": 6451,
+        "races": ["BEAST", "DEMON", "MECHANICAL", "NAGA", "UNDEAD"],
+        "tavernTier": 6,
+        "finalBoard": {
+          "minions": [
+            { "cardId": "BG25_008", "attack": 48, "health": 51, "golden": true }
+          ]
+        },
+        "combats": [
+          { "turn": 1, "result": "tie", "damageDealt": 0, "damageTaken": 0 },
+          { "turn": 2, "result": "win", "damageDealt": 3, "damageTaken": 0 }
+        ],
+        "heroOptions": ["BG20_HERO_242", "BG22_HERO_000"]
+      }
+    },
+    {
+      "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4c",
+      "type": "constructed_match",
+      "schemaVersion": 2,
+      "occurredAt": "2026-10-22T19:10:00Z",
+      "payload": {
+        "format": "standard",
+        "ranked": true,
+        "result": "win",
+        "durationSeconds": 540,
+        "turns": 9,
+        "playerClass": "DEATHKNIGHT",
+        "opponentClass": "MAGE",
+        "deckCode": "AAECAfHhBAA=",
+        "deckName": "Blood DK",
+        "archetype": "Blood Death Knight",
+        "wentFirst": false,
+        "rankBefore": { "starLevel": 46, "stars": 2 },
+        "rankAfter": { "starLevel": 46, "stars": 3 },
+        "playerMulligan": { "initial": ["CARD_1"], "kept": ["CARD_1"] }
+      }
+    },
+    {
+      "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4d",
+      "type": "arena_match",
+      "schemaVersion": 2,
+      "occurredAt": "2026-10-22T20:00:00Z",
+      "payload": {
+        "result": "loss",
+        "durationSeconds": 720,
+        "runId": "arena-0199b2d2-0001",
+        "playerClass": "PALADIN",
+        "opponentClass": "ROGUE",
+        "gameNumber": 5,
+        "winsBefore": 3,
+        "lossesBefore": 1
+      }
+    },
+    {
+      "eventId": "0199b2d2-7cc7-7d75-bcea-7d28b628ef4e",
+      "type": "arena_run",
+      "schemaVersion": 2,
+      "occurredAt": "2026-10-22T21:30:00Z",
+      "payload": {
+        "runId": "arena-0199b2d2-0001",
+        "playerClass": "PALADIN",
+        "wins": 6,
+        "losses": 3,
+        "complete": true
+      }
+    }
+  ]
+}

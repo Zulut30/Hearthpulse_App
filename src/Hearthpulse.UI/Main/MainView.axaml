@@ -778,6 +778,17 @@
                                             <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </Button>
+                                    <!-- Games to the profile on the site ("My statistics") -->
+                                    <CheckBox Classes="switch" Content="Send games to my profile" IsChecked="{Binding UploadGames}" Margin="0,14,0,4" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap"
+                                               Text="For &#x201C;My statistics&#x201D; on hearthpulse.net, after each game: mode, result, place or rank, rating, heroes and classes, your deck, final board, combats and duration. Never your BattleTag, your opponent&#x2019;s name or anything hidden in the game." />
+                                    <WrapPanel Orientation="Horizontal" Margin="0,8,0,0" IsVisible="{Binding UploadGames}">
+                                        <Button Classes="ghost" Content="Send past games" Command="{Binding UploadPastGames}" Margin="0,0,12,0"
+                                                ToolTip.Tip="Sends the games already in your history that are not on your profile yet" />
+                                        <TextBlock Text="{Binding UploadStatus}" Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                    </WrapPanel>
+                                    <TextBlock Text="{Binding UploadMessage}" Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               IsVisible="{Binding UploadMessage, Converter={StaticResource Truthy}}" />
                                     <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
                                         <Button Classes="ghost primary" Content="Sign in again" Command="{Binding SignIn}" Margin="0,0,8,0" IsVisible="{Binding AccountSessionEndingSoon}" />
                                         <Button Classes="ghost" Content="Sign out" Command="{Binding SignOut}" />
