@@ -20,6 +20,20 @@ public sealed partial class MainViewModel
     {
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
+        if (_meta is null || _cards.Count == 0)
+        {
+            MetaUpdated = Loc.T("Main.Bg.CommunityLoading");
+        }
+
+        RebuildConstructedMeta();
+
+        // The live bar, session line and setup warning come from the last snapshot; the theme preview caches its name.
+        if (_lastSnapshot is { } snapshot)
+        {
+            Apply(snapshot);
+        }
+
+        _customPreview = null;
         Raise(string.Empty);
     }
 }
