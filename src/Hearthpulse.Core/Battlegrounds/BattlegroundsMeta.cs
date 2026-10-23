@@ -172,6 +172,12 @@ public sealed class BattlegroundsMeta
     /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/> unless a fallback was used).</summary>
     public string Source { get; internal init; } = Attribution;
 
+    /// <summary>
+    /// Games a hero needs before the tier list shows it: the stats pool's own minimum for pool-only stats, 50 for the
+    /// much larger downloaded samples.
+    /// </summary>
+    public int MinHeroGames => Source == PoolAttribution ? Pool.PoolClient.MinGames : 50;
+
     /// <summary>Main tribe of final boards, from the stats pool.</summary>
     public IReadOnlyList<PoolTribe> Tribes { get; init; } = [];
 

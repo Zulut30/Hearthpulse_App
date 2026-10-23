@@ -374,8 +374,8 @@ public static class PoolClient
     }
 
     /// <summary>
-    /// The full Battlegrounds meta: the base stats imported once into the pool (/v1/meta) blended with the games
-    /// players chose to share (/v1/stats). The app never contacts a third-party stats service.
+    /// The full Battlegrounds meta from the pool alone: its base stats (/v1/meta, when the server has any) blended
+    /// with the games players chose to share (/v1/stats).
     /// </summary>
     public static async Task<BattlegroundsMeta?> LoadMetaAsync(HttpClient http, string endpoint, CancellationToken cancellationToken = default)
     {
@@ -386,6 +386,22 @@ public static class PoolClient
         var baseMeta = await baseTask.ConfigureAwait(false);
         var pool = await poolTask.ConfigureAwait(false);
         return baseMeta is null ? pool : pool is null ? baseMeta : Merge(baseMeta, pool);
+    }
+
+    /// <summary>
+    /// Lays the shared games over <paramref name="downloaded"/>, the meta the app already has: its comps, brackets
+    /// and percentiles stay, and the pool's hero, card and trinket numbers are blended in by sample size. Without a
+    /// downloaded meta, the pool's own meta (<see cref="LoadMetaAsync"/>) is used.
+    /// </summary>
+    public static async Task<BattlegroundsMeta?> OverlayAsync(HttpClient http, string endpoint, BattlegroundsMeta? downloaded, CancellationToken cancellationToken = default)
+    {
+        if (downloaded is null)
+        {
+            return await LoadMetaAsync(http, endpoint, cancellationToken).ConfigureAwait(false);
+        }
+
+        var pool = await LoadStatsAsync(http, endpoint, cancellationToken).ConfigureAwait(false);
+        return pool is null ? downloaded : Merge(downloaded, pool);
     }
 
     private static async Task<BattlegroundsMeta?> LoadBaseMetaAsync(HttpClient http, string endpoint, CancellationToken cancellationToken)
@@ -427,7 +443,7 @@ public static class PoolClient
         {
             Tribes = pool.Tribes,
             SharedGames = pool.SharedGames,
-            Source = BattlegroundsMeta.PoolAttribution,
+            Source = baseMeta.Source,
         };
     }
 

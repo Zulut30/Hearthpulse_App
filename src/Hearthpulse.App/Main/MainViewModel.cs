@@ -517,7 +517,7 @@ public sealed partial class MainViewModel : Observable
             heroes = meta.HeroesByBracket.GetValueOrDefault(100) ?? new Dictionary<string, MetaHero>();
         }
 
-        var ranked = heroes.Values.Where(h => h.DataPoints is 0 or >= PoolClient.MinGames).OrderBy(h => h.AveragePosition).ToList();
+        var ranked = heroes.Values.Where(h => h.DataPoints == 0 || h.DataPoints >= meta.MinHeroGames).OrderBy(h => h.AveragePosition).ToList();
         var best = ranked.Count > 0 ? ranked[0].AveragePosition : 3.5;
         var worst = ranked.Count > 0 ? ranked[^1].AveragePosition : 5.5;
         HeroTiers = ranked.Select((h, i) => new MetaHeroRow(
@@ -535,7 +535,9 @@ public sealed partial class MainViewModel : Observable
                 h.FirstRate > 0 ? h.FirstRate.ToString("P0", CultureInfo.CurrentCulture) : string.Empty))
             .ToList();
 
-        if (meta.Tribes.Count > 0)
+        // Tribe rows stand in for comps only when the meta has none (the stats pool alone).
+        var tribeRows = meta.Comps.Count == 0 && meta.Tribes.Count > 0;
+        if (tribeRows)
         {
             // Final boards grouped by main tribe, from the stats pool.
             var tribes = meta.Tribes.OrderBy(t => t.AveragePlacement).ToList();
@@ -575,7 +577,7 @@ public sealed partial class MainViewModel : Observable
                 .ToList();
         }
 
-        CompTabLabel = meta.Tribes.Count > 0 ? "Tribes" : "Comps";
+        CompTabLabel = tribeRows ? "Tribes" : "Comps";
 
         var trinkets = meta.Trinkets.Values
             .Select(t => (Trinket: t, Stats: meta.Trinket(t.CardId, Bracket)))

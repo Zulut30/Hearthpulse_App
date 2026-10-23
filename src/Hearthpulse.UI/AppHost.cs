@@ -277,37 +277,38 @@ public sealed partial class AppHost : IDisposable
     }
 
     /// <summary>
-    /// Community stats: the full meta from the stats pool when one is set up (/v1/meta blended with
-    /// the shared games), otherwise Firestone's with the Hearthpulse API as the fallback.
+    /// Community stats: Firestone's with the Hearthpulse API as the fallback, and, when a stats pool is set up, the
+    /// games players chose to share laid over them (or the pool's own meta when nothing else loaded).
     /// </summary>
     public async Task LoadMetaAsync()
     {
-        var loaded = false;
-        if (PoolClient.Available(Settings))
-        {
-            var pooled = await PoolClient.LoadMetaAsync(Http, PoolClient.Endpoint(Settings));
-            if (pooled is not null)
-            {
-                Meta = pooled;
-                Session.SetMeta(pooled);
-                Main.SetMeta(pooled);
-                loaded = true;
-            }
-        }
-
+        BattlegroundsMeta? meta = null;
         try
         {
-            var meta = loaded ? null : await BattlegroundsMeta.LoadAsync(Http, fallback: new HearthpulseData(Api));
-            if (meta is not null)
-            {
-                Meta = meta;
-                Session.SetMeta(meta);
-                Main.SetMeta(meta);
-            }
+            meta = await BattlegroundsMeta.LoadAsync(Http, fallback: new HearthpulseData(Api));
         }
         catch (Exception ex)
         {
             Diag.Error("Community stats unavailable", ex);
+        }
+
+        if (PoolClient.Available(Settings))
+        {
+            try
+            {
+                meta = await PoolClient.OverlayAsync(Http, PoolClient.Endpoint(Settings), meta);
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Stats pool unavailable", ex);
+            }
+        }
+
+        if (meta is not null)
+        {
+            Meta = meta;
+            Session.SetMeta(meta);
+            Main.SetMeta(meta);
         }
 
         try

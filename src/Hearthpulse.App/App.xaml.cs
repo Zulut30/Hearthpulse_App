@@ -394,36 +394,38 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Community stats: the stats pool when one is set up and has data (games players chose to share), otherwise
-    /// Firestone's with the Hearthpulse API as the fallback.
+    /// Community stats: Firestone's with the Hearthpulse API as the fallback, and, when a stats pool is set up, the
+    /// games players chose to share laid over them (or the pool's own meta when nothing else loaded).
     /// </summary>
     private async Task LoadMetaAsync()
     {
-        if (PoolClient.Available(_settings))
-        {
-            var pooled = await PoolClient.LoadMetaAsync(_http, PoolClient.Endpoint(_settings));
-            if (pooled is not null)
-            {
-                _meta = pooled;
-                _session.SetMeta(pooled);
-                _mainViewModel.SetMeta(pooled);
-                return;
-            }
-        }
-
+        BattlegroundsMeta? meta = null;
         try
         {
-            var meta = await BattlegroundsMeta.LoadAsync(_http, fallback: new HearthpulseData(_api));
-            if (meta is not null)
-            {
-                _meta = meta;
-                _session.SetMeta(meta);
-                _mainViewModel.SetMeta(meta);
-            }
+            meta = await BattlegroundsMeta.LoadAsync(_http, fallback: new HearthpulseData(_api));
         }
         catch (Exception ex)
         {
             Diag.Error("Community stats unavailable", ex);
+        }
+
+        if (PoolClient.Available(_settings))
+        {
+            try
+            {
+                meta = await PoolClient.OverlayAsync(_http, PoolClient.Endpoint(_settings), meta);
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Stats pool unavailable", ex);
+            }
+        }
+
+        if (meta is not null)
+        {
+            _meta = meta;
+            _session.SetMeta(meta);
+            _mainViewModel.SetMeta(meta);
         }
     }
 

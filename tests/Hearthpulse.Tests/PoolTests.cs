@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 using Xunit;
@@ -338,6 +339,40 @@ public sealed class PoolTests
     {
         using var doc = JsonDocument.Parse("""{ "cards": { "100": [] }, "comps": [] }""");
         Assert.Null(PoolClient.ParseMeta(doc.RootElement));
+    }
+
+    [Fact]
+    public void SharedGamesLayOverTheDownloadedMetaWithoutReplacingIt()
+    {
+        var comp = new MetaComp("beast_beetle", "Beetles", "S", "Easy", ["BEAST"], [], null, null, 3.8,
+            new Dictionary<int, double>(), new Dictionary<string, (int, double)>());
+        var downloaded = new BattlegroundsMeta(
+            new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>
+            {
+                [100] = new Dictionary<string, MetaHero> { ["BG_HERO_1"] = new("BG_HERO_1", 1000, 4.0, 0.5, new Dictionary<int, double>()) },
+                [10] = new Dictionary<string, MetaHero> { ["BG_HERO_1"] = new("BG_HERO_1", 100, 3.5, 0.5, new Dictionary<int, double>()) },
+            },
+            [(100, 0), (10, 7300)],
+            [comp],
+            new Dictionary<string, MetaTrinket>(),
+            new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(),
+            new DateTime(2026, 10, 23, 9, 0, 0, DateTimeKind.Utc));
+        using var poolDoc = JsonDocument.Parse("""
+            { "games": 100, "updated": "2026-10-23T12:00:00Z",
+              "heroes": [ { "hero": "BG_HERO_1", "games": 100, "avgPlacement": 3.0, "top": 0.6, "first": 0.2, "offered": 200, "picked": 100 } ],
+              "tribes": [ { "tribe": "BEAST", "games": 40, "avgPlacement": 4.0, "top4": 0.5, "first": 0.1 } ] }
+            """);
+
+        var merged = PoolClient.Merge(downloaded, PoolClient.Parse(poolDoc.RootElement)!);
+
+        // Comps, brackets, percentiles and the attribution stay those of the downloaded stats.
+        Assert.Equal(BattlegroundsMeta.Attribution, merged.Source);
+        Assert.Equal(50, merged.MinHeroGames);
+        Assert.Same(comp, Assert.Single(merged.Comps));
+        Assert.Equal(downloaded.Percentiles, merged.Percentiles);
+        Assert.Equal(1100, merged.Hero("BG_HERO_1", 100)!.DataPoints);
+        Assert.Equal(200, merged.Hero("BG_HERO_1", 10)!.DataPoints);
+        Assert.Equal(100, merged.SharedGames);
     }
 
     [Fact]
