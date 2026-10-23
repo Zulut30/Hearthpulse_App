@@ -14,7 +14,7 @@
 
         <DataTemplate x:Key="HistogramTemplate" DataType="{x:Type o:PoolHistogramModel}">
             <StackPanel Margin="5,0">
-                <TextBlock x:Name="Title" Text="{Binding Title}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{StaticResource ManaGem}" />
+                <TextBlock x:Name="Title" Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{StaticResource ManaGem}" />
                 <!-- Tag carries the histogram's colour down to its bars. -->
                 <ItemsControl x:Name="Bars" ItemsSource="{Binding Bars}" ItemsPanel="{StaticResource BarRow}" Height="36" Margin="0,4,0,0" Tag="{StaticResource ManaGem}" Focusable="False">
                     <ItemsControl.ItemTemplate>
@@ -38,7 +38,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <TextBlock Text="{Binding MedianText}" FontFamily="{StaticResource DisplayFont}" FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0" />
-                <TextBlock Text="median" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,-2,0,0" />
+                <TextBlock Text="{i:Loc Pool.Median}" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,-2,0,0" />
             </StackPanel>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsAttack}" Value="True">
@@ -118,7 +118,7 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
 
-            <TextBlock Text="Right-click to see all options" FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0"
+            <TextBlock Text="{i:Loc Pool.RightClickHint}" FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0"
                        Visibility="{Binding CardPoolHasCards, Converter={StaticResource Vis}}" />
         </StackPanel>
     </Border>
