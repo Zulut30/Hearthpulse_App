@@ -105,6 +105,10 @@ internal sealed class OverlayWindow : Window
         // In layout mode the whole overlay takes the mouse so panels can be dragged anywhere.
         var interactive = local is { } point && (vm.LayoutEditing || _view.IsInteractiveAt(point));
         _platform.SetClickThrough(!interactive);
+        if (!interactive)
+        {
+            _view.HidePreview();
+        }
 
         PollHoveredHero();
         _view.UpdateLeaderboardHover(local, _memoryHover);

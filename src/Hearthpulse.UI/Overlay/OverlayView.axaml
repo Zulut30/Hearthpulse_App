@@ -16,7 +16,8 @@
 
         <!-- Deck row: cost, rarity bar, name over card art, draw chance, count -->
         <DataTemplate x:Key="DeckTileTemplate" x:DataType="o:DeckTile">
-            <Grid Classes="tileRow" Classes.empty="{Binding Empty}" Height="24" Margin="0,0,0,2" ColumnDefinitions="26,*">
+            <Grid Classes="tileRow" Classes.empty="{Binding Empty}" Height="24" Margin="0,0,0,2" ColumnDefinitions="26,*" Background="Transparent"
+                  c:CardPreview.CardId="{Binding CardId}">
                 <Border Classes="cost" HorizontalAlignment="Left">
                     <TextBlock Text="{Binding Cost}" FontSize="12.5" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
@@ -682,7 +683,7 @@
                                 <TextBlock Text="{Binding DeckName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{Binding DeckRecord}" FontSize="11" Foreground="{StaticResource Muted}" />
                             </StackPanel>
-                            <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" />
+                            <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" o:OverlayHit.Interactive="True" />
                             <Border BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
                                 <StackPanel>
                                     <TextBlock Text="{Binding DeckCounts}" FontSize="11" Foreground="{StaticResource Muted}" />
@@ -1157,6 +1158,9 @@
                         </StackPanel>
                     </Border>
                 </o:MovablePanel>
+
+                <!-- ============ Card preview on hover (top layer, never takes the pointer) ============ -->
+                <c:CardPreviewHost Name="PreviewHost" />
             </Grid>
         </LayoutTransformControl>
     </Panel>

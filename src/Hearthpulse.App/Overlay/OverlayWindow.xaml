@@ -43,7 +43,7 @@
 
         <!-- Deck row: cost, rarity bar, name over card art, draw chance, count -->
         <DataTemplate x:Key="DeckTileTemplate" DataType="{x:Type o:DeckTile}">
-            <Grid x:Name="RowRoot" Height="24" Margin="0,0,0,2">
+            <Grid x:Name="RowRoot" Height="24" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="26" />
                     <ColumnDefinition Width="*" />
@@ -759,7 +759,7 @@
                             <TextBlock Text="{Binding DeckName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                             <TextBlock Text="{Binding DeckRecord}" FontSize="11" Foreground="{StaticResource Muted}" />
                         </StackPanel>
-                        <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" />
+                        <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" o:OverlayHit.Interactive="True" />
                         <Border BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
                             <StackPanel>
                                 <TextBlock Text="{Binding DeckCounts}" FontSize="11" Foreground="{StaticResource Muted}" />
@@ -1352,6 +1352,9 @@
                     </StackPanel>
                 </Border>
             </o:MovablePanel>
+
+            <!-- ============ Card preview on hover (top layer, never takes the mouse) ============ -->
+            <c:CardPreviewHost x:Name="PreviewHost" />
         </Grid>
     </Grid>
 </Window>
