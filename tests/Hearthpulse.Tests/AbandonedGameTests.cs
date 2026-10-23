@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Stats;
@@ -30,6 +31,7 @@ public sealed class AbandonedGameTests : IDisposable
         {
             Clock = () => _now,
             IsHearthstoneRunning = () => _running,
+            ReadsMemory = false,
         };
         _session.OnSessionStarted("Hearthstone_2026_10_23_02_01_43", new DateTime(2026, 10, 23, 2, 1, 43), attachedMidSession: false);
     }
@@ -109,6 +111,63 @@ public sealed class AbandonedGameTests : IDisposable
         Feed(BattlegroundsFixtureTests.Lines());
         _session.OnSessionStarted("Hearthstone_2026_10_23_02_20_00", new DateTime(2026, 10, 23, 2, 20, 0), attachedMidSession: false);
         Assert.True(Assert.Single(_history.Recent()).IsAbandoned);
+    }
+
+    /// <summary>The fixture game again from a new CREATE_GAME ten minutes later, as a reconnect replays it, played to its end.</summary>
+    private static IEnumerable<string> Reconnected()
+    {
+        foreach (var line in BattlegroundsFixtureTests.Lines())
+        {
+            var time = TimeSpan.ParseExact(line.AsSpan(2, 16), @"hh\:mm\:ss\.fffffff", CultureInfo.InvariantCulture);
+            yield return string.Concat(line.AsSpan(0, 2), (time + TimeSpan.FromMinutes(10)).ToString(@"hh\:mm\:ss\.fffffff", CultureInfo.InvariantCulture), line.AsSpan(18));
+        }
+
+        yield return "D 02:20:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=Player#1000 tag=PLAYSTATE value=LOST ";
+        yield return "D 02:20:00.0000000 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE ";
+    }
+
+    [Fact]
+    public void A_reconnect_from_a_restarted_client_leaves_one_row_with_the_result()
+    {
+        Feed(BattlegroundsFixtureTests.Lines());
+        _session.OnSessionStarted("Hearthstone_2026_10_23_02_14_00", new DateTime(2026, 10, 23, 2, 14, 0), attachedMidSession: false);
+        Assert.True(Assert.Single(_history.Recent()).IsAbandoned);
+
+        Feed(Reconnected());
+        var game = Assert.Single(_history.Recent());
+        Assert.False(game.IsAbandoned);
+        Assert.Equal("BG22_HERO_305", game.HeroCardId);
+        Assert.InRange(game.Placement, 1, 8);
+    }
+
+    [Fact]
+    public void A_reconnect_in_the_same_log_leaves_one_row_with_the_result()
+    {
+        // The client wrote a second CREATE_GAME for the same game into the same Power.log.
+        Feed(BattlegroundsFixtureTests.Lines());
+        Feed(Reconnected());
+        Assert.False(Assert.Single(_history.Recent()).IsAbandoned);
+    }
+
+    [Fact]
+    public void Only_the_same_game_is_folded_into_its_reconnect()
+    {
+        var at = new DateTime(2026, 10, 23, 20, 0, 0);
+        GameRecord Game(string key, DateTime start, string result, string hero = "HERO_08", string opponent = "You#2") => new()
+        {
+            Key = key, StartedAt = start, EndedAt = start.AddMinutes(4), Mode = "Ranked", GameType = "GT_RANKED", PlayerName = "Me#1",
+            OpponentName = opponent, HeroCardId = hero, OpponentHeroCardId = "HERO_02", Result = result,
+        };
+
+        _history.Add(Game("left", at, GameRecord.AbandonedResult));
+        _history.Add(Game("other hero", at, GameRecord.AbandonedResult, hero: "HERO_01"));
+        _history.Add(Game("other opponent", at, GameRecord.AbandonedResult, opponent: "Them#3"));
+        _history.Add(Game("long ago", at.AddHours(-3), GameRecord.AbandonedResult));
+        Assert.True(_history.Add(Game("reconnect", at.AddMinutes(9), "Win")));
+        Assert.Equal(["long ago", "other hero", "other opponent", "reconnect"], _history.Recent().Select(g => g.Key).Order());
+
+        // The abandoned part saved after its reconnect (a log read late) is not added either.
+        Assert.False(_history.Add(Game("left again", at, GameRecord.AbandonedResult)));
     }
 
     [Fact]

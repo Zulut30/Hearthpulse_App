@@ -211,6 +211,14 @@ public sealed class HistoryStore
         lock (_gate)
         {
             using var connection = Open();
+            using var transaction = connection.BeginTransaction();
+            // A reconnect replays the game from a new CREATE_GAME: another start time, so another key. The part played
+            // before the client went away must not stay in History as a separate abandoned game.
+            if (game.IsAbandoned && CountSameGame(connection, game) > 0)
+            {
+                return false;
+            }
+
             using var command = connection.CreateCommand();
             command.CommandText = """
                 INSERT INTO games (game_key, started_at, ended_at, mode, game_type, format, player_name, opponent_name,
@@ -269,6 +277,12 @@ public sealed class HistoryStore
             command.Parameters.AddWithValue("$rank", (object?)game.Rank ?? DBNull.Value);
             command.Parameters.AddWithValue("$source", game.Source);
             inserted = command.ExecuteNonQuery();
+            if (inserted > 0 && !game.IsAbandoned)
+            {
+                DeleteSameGame(connection, game);
+            }
+
+            transaction.Commit();
         }
 
         if (inserted > 0)
@@ -278,6 +292,60 @@ public sealed class HistoryStore
 
         return inserted > 0;
     }
+
+    /// <summary>The longest a game the client left can still be resumed by a reconnect.</summary>
+    private static readonly TimeSpan ReconnectWindow = TimeSpan.FromHours(1);
+
+    /// <summary>The longest game: an abandoned part started at most this long before the reconnected game.</summary>
+    private static readonly TimeSpan LongestGame = TimeSpan.FromHours(2);
+
+    /// <summary>
+    /// The same game seen twice: the part before the client went away (abandoned) and the reconnect that went on with it.
+    /// Matched on what both parts carry - player, game type, the player's and the opponent's hero, the opponent's name
+    /// when both know it - and on time: the reconnect starts after the abandoned part and within an hour of its end.
+    /// </summary>
+    private const string SameGame = """
+        player_name = $player AND game_type = $type AND hero = $hero AND opponent_hero = $ohero
+            AND (opponent_name = $opponent OR opponent_name = '' OR $opponent = '' OR opponent_name LIKE 'UNKNOWN%' OR $opponent LIKE 'UNKNOWN%')
+        """;
+
+    private static long CountSameGame(SqliteConnection connection, GameRecord abandoned)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = $"""
+            SELECT COUNT(*) FROM games WHERE result <> 'Abandoned' AND game_key <> $key AND {SameGame}
+                AND started_at >= $started AND started_at <= $latest;
+            """;
+        AddIdentity(command, abandoned);
+        command.Parameters.AddWithValue("$latest", Iso(abandoned.EndedAt + ReconnectWindow));
+        return (long)command.ExecuteScalar()!;
+    }
+
+    private static void DeleteSameGame(SqliteConnection connection, GameRecord finished)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = $"""
+            DELETE FROM games WHERE result = 'Abandoned' AND game_key <> $key AND {SameGame}
+                AND started_at <= $started AND started_at >= $earliest AND ended_at >= $endedAfter;
+            """;
+        AddIdentity(command, finished);
+        command.Parameters.AddWithValue("$earliest", Iso(finished.StartedAt - LongestGame));
+        command.Parameters.AddWithValue("$endedAfter", Iso(finished.StartedAt - ReconnectWindow));
+        command.ExecuteNonQuery();
+    }
+
+    private static void AddIdentity(SqliteCommand command, GameRecord game)
+    {
+        command.Parameters.AddWithValue("$key", game.Key);
+        command.Parameters.AddWithValue("$player", game.PlayerName);
+        command.Parameters.AddWithValue("$type", game.GameType);
+        command.Parameters.AddWithValue("$hero", game.HeroCardId);
+        command.Parameters.AddWithValue("$ohero", game.OpponentHeroCardId);
+        command.Parameters.AddWithValue("$opponent", game.OpponentName);
+        command.Parameters.AddWithValue("$started", Iso(game.StartedAt));
+    }
+
+    private static string Iso(DateTime at) => at.ToString("O", CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Fills the My Stats fields (<see cref="AddedColumns"/>) a saved game lacks from a re-read of the same game, e.g. a
@@ -377,14 +445,14 @@ public sealed class HistoryStore
         return changed;
     }
 
-    /// <summary>Total number of recorded games (the dashboard's ALL TIME tile counts the whole history).</summary>
+    /// <summary>Recorded games with an outcome (the dashboard's ALL TIME tile); abandoned games are not counted.</summary>
     public int GameCount()
     {
         lock (_gate)
         {
             using var connection = Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT COUNT(*) FROM games;";
+            command.CommandText = "SELECT COUNT(*) FROM games WHERE result <> 'Abandoned';";
             return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
         }
     }
