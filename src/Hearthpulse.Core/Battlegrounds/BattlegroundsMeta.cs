@@ -154,6 +154,9 @@ public sealed class BattlegroundsMeta
 
     public DateTime Updated { get; }
 
+    /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/> unless a fallback was used).</summary>
+    public string Source { get; private init; } = Attribution;
+
     /// <summary>Tightest MMR bracket (top X%) whose floor the rating reaches.</summary>
     public int BracketFor(int? rating)
     {
@@ -184,7 +187,11 @@ public sealed class BattlegroundsMeta
         return HeroesByBracket.TryGetValue(100, out var all) ? all.GetValueOrDefault(baseHeroId) : null;
     }
 
-    public static async Task<BattlegroundsMeta?> LoadAsync(HttpClient http, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Loads Firestone's data; when its hero stats cannot be had, <paramref name="fallback"/> (the Hearthpulse API)
+    /// supplies heroes and minions instead (no comps, trinkets or MMR brackets).
+    /// </summary>
+    public static async Task<BattlegroundsMeta?> LoadAsync(HttpClient http, CancellationToken cancellationToken = default, Api.HearthpulseData? fallback = null)
     {
         try
         {
@@ -231,7 +238,7 @@ public sealed class BattlegroundsMeta
 
             if (!heroes.ContainsKey(100))
             {
-                return null;
+                return fallback is null ? null : await LoadFallbackAsync(fallback, cancellationToken).ConfigureAwait(false);
             }
 
             var comps = new List<MetaComp>();
@@ -280,6 +287,28 @@ public sealed class BattlegroundsMeta
             Diag.Error("Battlegrounds meta unreadable", ex);
             return null;
         }
+    }
+
+    private static async Task<BattlegroundsMeta?> LoadFallbackAsync(Api.HearthpulseData fallback, CancellationToken cancellationToken)
+    {
+        var heroes = await fallback.LoadHeroesAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (heroes.Count == 0)
+        {
+            return null;
+        }
+
+        var minions = await fallback.LoadMinionsAsync(cancellationToken).ConfigureAwait(false);
+        Diag.Info($"Battlegrounds meta from the Hearthpulse API ({heroes.Count} heroes, {minions.Count} minions)");
+        return new BattlegroundsMeta(
+            new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = heroes },
+            [],
+            [],
+            new Dictionary<string, MetaTrinket>(StringComparer.Ordinal),
+            minions.Count > 0 ? new Dictionary<int, IReadOnlyDictionary<string, MetaCard>> { [100] = minions } : new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(),
+            DateTime.UtcNow)
+        {
+            Source = Api.HearthpulseData.Attribution,
+        };
     }
 
     /// <summary>Parses one section; a malformed section is logged and skipped instead of losing the whole meta.</summary>

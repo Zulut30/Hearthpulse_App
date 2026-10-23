@@ -62,7 +62,7 @@ public sealed record MetaTrinketRow(int Rank, string CardId, string Name, string
 /// <summary>One minion or tavern spell in the community card list (compare cards of the same tier).</summary>
 public sealed record MetaCardRow(int Rank, string CardId, string Name, string Kind, string Tier, string Placement, string Games, double BarFraction);
 
-public sealed class MainViewModel : Observable
+public sealed partial class MainViewModel : Observable
 {
     private readonly HistoryStore _history;
     private CardDb _cards = CardDb.Empty;
@@ -148,7 +148,7 @@ public sealed class MainViewModel : Observable
 
     public string DataFolder => AppPaths.Root;
 
-    public string Attribution => BattlegroundsMeta.Attribution + " · Card data & art: HearthstoneJSON";
+    public string Attribution => BattlegroundsMeta.Attribution + " · Hearthpulse API (api.kolodahearthstone.com) · Card data & art: HearthstoneJSON";
 
     // ---- live status ----------------------------------------------------------------------
     private bool _hearthstoneRunning;
@@ -419,7 +419,7 @@ public sealed class MainViewModel : Observable
             heroes = meta.HeroesByBracket.GetValueOrDefault(100) ?? new Dictionary<string, MetaHero>();
         }
 
-        var ranked = heroes.Values.Where(h => h.DataPoints >= 50).OrderBy(h => h.AveragePosition).ToList();
+        var ranked = heroes.Values.Where(h => h.DataPoints is 0 or >= 50).OrderBy(h => h.AveragePosition).ToList();
         var best = ranked.Count > 0 ? ranked[0].AveragePosition : 3.5;
         var worst = ranked.Count > 0 ? ranked[^1].AveragePosition : 5.5;
         HeroTiers = ranked.Select((h, i) => new MetaHeroRow(
@@ -430,7 +430,7 @@ public sealed class MainViewModel : Observable
                 h.AveragePosition.ToString("0.00", CultureInfo.CurrentCulture),
                 h.AveragePosition,
                 h.PickRate.ToString("P0", CultureInfo.CurrentCulture),
-                h.DataPoints.ToString("N0", CultureInfo.CurrentCulture),
+                h.DataPoints > 0 ? h.DataPoints.ToString("N0", CultureInfo.CurrentCulture) : "—",
                 personal.TryGetValue(h.HeroCardId, out var p) ? $"{p.Games} · {p.AveragePlace}" : string.Empty,
                 worst - best < 0.01 ? 1 : 1 - ((h.AveragePosition - best) / (worst - best) * 0.85)))
             .ToList();
@@ -495,7 +495,7 @@ public sealed class MainViewModel : Observable
             .ToList();
 
         var bracketText = Bracket == 100 ? "all ranks" : $"top {Bracket}%";
-        MetaUpdated = $"{BattlegroundsMeta.Attribution} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}";
+        MetaUpdated = $"{meta.Source} · {bracketText} · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}";
     }
 
     private GameRow Row(GameRecord g)

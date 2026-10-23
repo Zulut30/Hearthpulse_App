@@ -9,6 +9,8 @@ using Hearthpulse.App.Infrastructure;
 using Hearthpulse.App.Main;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Accounts;
+using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Cards;
@@ -31,6 +33,8 @@ public partial class App : Application
     private Mutex? _mutex;
     private AppSettings _settings = new();
     private HttpClient _http = null!;
+    private HearthpulseApi _api = null!;
+    private AccountService _account = null!;
     private HistoryStore _history = null!;
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
@@ -128,6 +132,7 @@ public partial class App : Application
         };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + (typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1"));
         CardArt.Http = _http;
+        _api = new HearthpulseApi(_http);
 
         _history = new HistoryStore(AppPaths.Database);
         _memory = new HearthstoneMemory();
@@ -135,9 +140,18 @@ public partial class App : Application
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
+        _account = new AccountService(_api);
+        _mainViewModel.AttachAccount(_account);
+        _ = _account.RestoreAsync();
         _overlayViewModel = new OverlayViewModel();
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
         _overlayViewModel.PinRequested += OnPinRequested;
+        _overlayViewModel.CounterModeRequested += (id, mode) =>
+        {
+            _mainViewModel.ApplyCounterMode(id, mode);
+            OnSettingsChanged();
+        };
+        _mainViewModel.CountersChanged += OnSettingsChanged;
         _session.SetCompFocus(_settings.CompFocus);
         _overlayViewModel.FocusRequested += tribe =>
         {
@@ -355,7 +369,7 @@ public partial class App : Application
     {
         try
         {
-            var meta = await BattlegroundsMeta.LoadAsync(_http);
+            var meta = await BattlegroundsMeta.LoadAsync(_http, fallback: new HearthpulseData(_api));
             if (meta is not null)
             {
                 _meta = meta;
@@ -375,11 +389,12 @@ public partial class App : Application
         var request = ++_constructedMetaRequest;
         try
         {
-            var meta = await ConstructedMeta.LoadAsync(_http, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod);
+            var meta = await ConstructedMeta.LoadAsync(_http, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, fallback: new HearthpulseData(_api));
             if (request == _constructedMetaRequest)
             {
                 _constructedMeta = meta ?? _constructedMeta;
                 _mainViewModel.SetConstructedMeta(meta);
+                _session.SetConstructedMeta(_constructedMeta);
             }
         }
         catch (Exception ex)

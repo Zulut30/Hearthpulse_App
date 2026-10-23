@@ -106,7 +106,7 @@ public sealed class BattlegroundsAdvisor
             FreezeAdvice = FreezeTip(view, shop, target),
             Pairs = pairs,
             ShopPlan = plan,
-            MetaSource = $"{BattlegroundsMeta.Attribution} · {percentile} · {meta.Updated:dd MMM HH:mm}",
+            MetaSource = $"{meta.Source} · {percentile} · {meta.Updated:dd MMM HH:mm}",
         };
     }
 

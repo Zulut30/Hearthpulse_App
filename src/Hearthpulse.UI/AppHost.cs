@@ -1,8 +1,11 @@
 using System.Net;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Accounts;
+using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Logs;
@@ -47,14 +50,24 @@ public sealed class AppHost : IDisposable
         };
         Http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + Version);
         CardArt.Http = Http;
+        Api = new HearthpulseApi(Http);
+        Account = new AccountService(Api);
 
         History = new HistoryStore(AppPaths.Database);
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
         Main = new MainViewModel(History, Settings);
+        Main.AttachAccount(Account);
+        _ = Account.RestoreAsync();
         Overlay = new OverlayViewModel();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
         Overlay.PinRequested += OnPinRequested;
+        Overlay.CounterModeRequested += (id, mode) =>
+        {
+            Main.ApplyCounterMode(id, mode);
+            OnSettingsChanged();
+        };
+        Main.CountersChanged += OnSettingsChanged;
         Main.UpdateRequested += OnInstallUpdateRequested;
 
         _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _ = Main.RefreshAsync());
@@ -77,6 +90,11 @@ public sealed class AppHost : IDisposable
     public AppSettings Settings { get; }
 
     public HttpClient Http { get; }
+
+    /// <summary>The Hearthpulse API (accounts and fallback community stats).</summary>
+    public HearthpulseApi Api { get; }
+
+    public AccountService Account { get; }
 
     public HistoryStore History { get; }
 
@@ -241,7 +259,7 @@ public sealed class AppHost : IDisposable
     {
         try
         {
-            var meta = await BattlegroundsMeta.LoadAsync(Http);
+            var meta = await BattlegroundsMeta.LoadAsync(Http, fallback: new HearthpulseData(Api));
             if (meta is not null)
             {
                 Meta = meta;
@@ -252,6 +270,20 @@ public sealed class AppHost : IDisposable
         catch (Exception ex)
         {
             Diag.Error("Community stats unavailable", ex);
+        }
+
+        try
+        {
+            // This app has no Constructed meta page yet; the stats still feed the in-game mulligan panel.
+            var constructed = await ConstructedMeta.LoadAsync(Http, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, fallback: new HearthpulseData(Api));
+            if (constructed is not null)
+            {
+                Session.SetConstructedMeta(constructed);
+            }
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Constructed stats unavailable", ex);
         }
     }
 

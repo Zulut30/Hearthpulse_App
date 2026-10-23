@@ -11,7 +11,7 @@ namespace Hearthpulse.App.Overlay;
 /// Flattens live snapshots into display rows. Lists are only replaced when their content
 /// changes, so item containers (and their images) survive the ~10 Hz snapshot stream.
 /// </summary>
-public sealed class OverlayViewModel : Observable
+public sealed partial class OverlayViewModel : Observable
 {
     private readonly Dictionary<string, string> _fingerprints = new();
     private BattlegroundsView? _bg;
@@ -359,6 +359,8 @@ public sealed class OverlayViewModel : Observable
         {
             UpdateConstructed(constructed, deck, matchup);
         }
+
+        UpdateLive(constructed, settings);
 
         var bg = enabled ? snapshot.Battlegrounds : null;
         _bg = bg;

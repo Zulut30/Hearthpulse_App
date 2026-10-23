@@ -53,6 +53,17 @@ public sealed class AppSettings
 
     public bool ShowDrawChance { get; set; } = true;
 
+    /// <summary>Keep rate and win rate over your opening hand while you mulligan.</summary>
+    public bool ShowMulligan { get; set; } = true;
+
+    /// <summary>The counters panel (C'Thun abilities, Herald, Corpses, quests...).</summary>
+    public bool ShowCounters { get; set; } = true;
+
+    public bool ShowOpponentCounters { get; set; } = true;
+
+    /// <summary>Per counter id: "Auto" (when a card that cares is in play), "Always" or "Off". Missing means Auto.</summary>
+    public Dictionary<string, string> CounterModes { get; set; } = new(StringComparer.Ordinal);
+
     public bool ShowBattlegroundsBar { get; set; } = true;
 
     public bool ShowOpponentBoards { get; set; } = true;

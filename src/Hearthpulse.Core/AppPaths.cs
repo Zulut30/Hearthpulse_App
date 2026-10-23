@@ -5,7 +5,7 @@ public static class AppPaths
     /// <summary>
     /// Data folder: %APPDATA%\Hearthpulse on Windows, ~/Library/Application Support/Hearthpulse on macOS,
     /// ~/.local/share/Hearthpulse on Linux, the app's private files on Android. HEARTHPULSE_DATA overrides it.
-    /// The folder of the app's former name (Hearthlens) is moved here on first start, so history and settings carry over.
+    /// The folder of the app's former name (Hearthlens) is copied here on first start, so history and settings carry over.
     /// </summary>
     public static string Root { get; } = Ensure(Environment.GetEnvironmentVariable("HEARTHPULSE_DATA") is { Length: > 0 } custom
         ? custom
@@ -33,29 +33,54 @@ public static class AppPaths
         return local.Length > 0 ? local : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share");
     }
 
+    /// <summary>
+    /// Copies (never moves) the former app's settings, history and card cache, so an old copy that is still installed
+    /// keeps working on its own data. Its logs and downloaded updates are left behind.
+    /// </summary>
     private static string MigrateLegacy(string legacy, string path)
     {
+        if (Directory.Exists(path) || !Directory.Exists(legacy))
+        {
+            return path;
+        }
+
+        var temp = path + ".migrating";
         try
         {
-            if (!Directory.Exists(path) && Directory.Exists(legacy))
+            if (Directory.Exists(temp))
             {
-                Directory.Move(legacy, path);
-                var oldLog = Path.Combine(path, "hearthlens.log");
-                if (File.Exists(oldLog))
-                {
-                    File.Move(oldLog, Path.Combine(path, "hearthpulse.log"));
-                }
+                Directory.Delete(temp, recursive: true);
             }
+
+            CopyTree(new DirectoryInfo(legacy), temp, top: true);
+            Directory.Move(temp, path);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // In use or on another volume: start with a fresh folder, the old one stays untouched.
-        }
-        catch (UnauthorizedAccessException)
-        {
+            // A history file locked by the old app, for example: start fresh, the old folder stays untouched.
         }
 
         return path;
+    }
+
+    private static void CopyTree(DirectoryInfo from, string to, bool top)
+    {
+        Directory.CreateDirectory(to);
+        foreach (var file in from.EnumerateFiles())
+        {
+            if (!top || !file.Name.EndsWith(".log", StringComparison.OrdinalIgnoreCase))
+            {
+                file.CopyTo(Path.Combine(to, file.Name));
+            }
+        }
+
+        foreach (var dir in from.EnumerateDirectories())
+        {
+            if (!top || !dir.Name.Equals("updates", StringComparison.OrdinalIgnoreCase))
+            {
+                CopyTree(dir, Path.Combine(to, dir.Name), top: false);
+            }
+        }
     }
 
     private static string Ensure(string path)

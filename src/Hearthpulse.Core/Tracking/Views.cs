@@ -36,7 +36,14 @@ public sealed record ConstructedView(
     int OpponentHandCount,
     int OpponentSecrets,
     RankInfo? LocalRank,
-    RankInfo? OpponentRank);
+    RankInfo? OpponentRank)
+{
+    /// <summary>Community mulligan numbers while you choose your opening hand; null otherwise.</summary>
+    public MulliganView? Mulligan { get; init; }
+
+    /// <summary>Every counter for both players; the overlay shows them by each counter's mode.</summary>
+    public IReadOnlyList<Counters.CounterView> Counters { get; init; } = [];
+}
 
 public sealed record BgMinion(
     string CardId,

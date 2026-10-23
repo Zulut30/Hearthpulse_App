@@ -75,6 +75,52 @@
         </DataTemplate>
 
         <!-- Tavern tier chip: current tier filled, click opens the minion browser -->
+        <DataTemplate x:Key="CounterTemplate" x:DataType="o:CounterChip">
+            <Border Classes="counterChip" CornerRadius="6" Padding="4,3" Margin="0,1" ToolTip.Tip="{Binding Tooltip}" Cursor="Hand" Background="Transparent">
+                <StackPanel>
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                        <Button Grid.ColumnSpan="3" Background="Transparent" BorderThickness="0" Padding="0" Focusable="False" HorizontalContentAlignment="Stretch"
+                                Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).ToggleCounter}" CommandParameter="{Binding Id}">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding IconCardId}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Title}" FontSize="12" Margin="8,0,6,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="2" Text="{Binding Value}" Classes="number" FontSize="15" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+                        <Button Grid.Column="3" Classes="icon hideCounter" Content="&#xF0156;" FontSize="11" Width="20" Height="20" Margin="4,0,0,0" Focusable="False"
+                                ToolTip.Tip="Hide this counter (bring it back in Settings, Counters)"
+                                Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).HideCounter}" CommandParameter="{Binding Id}" />
+                    </Grid>
+                    <Border Height="3" CornerRadius="1.5" Background="{StaticResource Surface4}" Margin="32,3,0,0" HorizontalAlignment="Left" Width="150"
+                            IsVisible="{Binding HasProgress}">
+                        <Border HorizontalAlignment="Left" CornerRadius="1.5" Background="{StaticResource Accent}"
+                                Width="{Binding Progress, Converter={StaticResource Fraction}, ConverterParameter=150}" />
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding Details}" Margin="32,4,0,2" IsVisible="{Binding Expanded}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="MulliganTemplate" x:DataType="o:MulliganTile">
+            <Border Classes="overlayCard" Width="176" Margin="10,0" Padding="10,7" ToolTip.Tip="{Binding Name}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                    <Grid Margin="0,3,0,0">
+                        <TextBlock Text="{Binding Keep}" FontSize="13" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Delta}" HorizontalAlignment="Right" Classes="number" FontSize="15"
+                                   Classes.good="{Binding Good}" Classes.bad="{Binding Bad}" />
+                    </Grid>
+                    <TextBlock Text="{Binding WinRate}" FontSize="11" Foreground="{StaticResource Muted}" IsVisible="{Binding WinRate, Converter={StaticResource Truthy}}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
         <DataTemplate x:Key="TierTemplate" x:DataType="o:TierButton">
             <Button Classes="bare tierChip" Classes.current="{Binding IsCurrent}" Classes.selected="{Binding IsSelected}" Click="OnTierClick"
                     Margin="0,0,3,0" Focusable="False" ToolTip.Tip="Click to see this tier's minions in your lobby. Filled = your tavern tier.">
@@ -522,6 +568,21 @@
         </Style>
 
         <!-- Movable panel host: frame, label and placeholder in layout mode -->
+        <Style Selector="Border.counterChip:pointerover">
+            <Setter Property="Background" Value="{StaticResource Hover}" />
+        </Style>
+        <Style Selector="Button.hideCounter">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+        <Style Selector="Border.counterChip:pointerover Button.hideCounter">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        <Style Selector="TextBlock.good">
+            <Setter Property="Foreground" Value="{StaticResource Positive}" />
+        </Style>
+        <Style Selector="TextBlock.bad">
+            <Setter Property="Foreground" Value="{StaticResource Negative}" />
+        </Style>
         <Style Selector="o|MovablePanel" x:DataType="o:OverlayViewModel">
             <Setter Property="IsEditing" Value="{Binding LayoutEditing}" />
             <Setter Property="Template">
@@ -628,6 +689,39 @@
                             <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource HandTemplate}" />
                         </StackPanel>
                     </Border>
+                </o:MovablePanel>
+
+                <!-- ============ Constructed: counters (bottom-left) ============ -->
+                <o:MovablePanel Id="counters" Title="Counters" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,170">
+                    <Border Classes="overlayCard" Width="240" o:OverlayHit.Interactive="True">
+                        <StackPanel Margin="8">
+                            <TextBlock Text="Opponent" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="4,0,0,2"
+                                       IsVisible="{Binding OpponentCounters, Converter={StaticResource Truthy}}" />
+                            <ItemsControl ItemsSource="{Binding OpponentCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
+                            <TextBlock Text="You" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="4,6,0,2"
+                                       IsVisible="{Binding MyCounters, Converter={StaticResource Truthy}}" />
+                            <ItemsControl ItemsSource="{Binding MyCounters}" ItemTemplate="{StaticResource CounterTemplate}" />
+                        </StackPanel>
+                    </Border>
+                </o:MovablePanel>
+
+                <!-- ============ Constructed: mulligan stats (under the offered cards) ============ -->
+                <o:MovablePanel Id="mulligan" Title="Mulligan stats" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,300">
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding MulliganCards}" ItemTemplate="{StaticResource MulliganTemplate}" HorizontalAlignment="Center">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <Border Classes="overlayCard" HorizontalAlignment="Center" Padding="12,5" Margin="0,8,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding MulliganTitle}" FontSize="12" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding MulliganNote}" FontSize="11" Foreground="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: slim top bar + minion browser (top-left) ============ -->

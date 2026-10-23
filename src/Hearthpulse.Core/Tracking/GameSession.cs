@@ -36,6 +36,10 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
     private DeckDefinition? _queuedDeck;
     private DeckDefinition? _gameDeck;
+
+    /// <summary>The deck Decks.log announced for the next game; internal for tests.</summary>
+    internal DeckDefinition? QueuedDeck => _queuedDeck;
+
     private string? _pendingDeckName;
     private long _pendingDeckId;
     private bool _readingDeck;
@@ -125,6 +129,13 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _dirty = true;
     }
 
+    /// <summary>Community Constructed stats for the mulligan panel; the host passes them after loading.</summary>
+    public void SetConstructedMeta(Constructed.ConstructedMeta? meta)
+    {
+        _constructed.Meta = meta;
+        _dirty = true;
+    }
+
     /// <summary>
     /// Applies the "Game plan comp" setting; call at start-up and whenever settings change. Manual: the stored
     /// <paramref name="chosenCompId"/> becomes the choice. Switching to Auto drops the manual choice so the advisor
@@ -173,6 +184,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser?.AbandonCurrentGame();
         _parser = new PowerParser(DateOnly.FromDateTime(sessionStart));
         _parser.AddListener(_constructed);
+        _parser.AddListener(_constructed.Counters);
         _parser.AddListener(_battlegrounds);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
@@ -601,13 +613,11 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
     private void HandleDecks(string line)
     {
-        var separator = line.IndexOf(" - ", StringComparison.Ordinal);
-        if (separator < 0)
+        if (DecksContent(line) is not { } content)
         {
             return;
         }
 
-        var content = line[(separator + 3)..].Trim();
         if (content.EndsWith("With Deck:", StringComparison.Ordinal))
         {
             _readingDeck = true;
@@ -692,4 +702,18 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
     [GeneratedRegex(@"LoadingScreen\.OnSceneLoaded\(\) - prevMode=\w+ currMode=(?<mode>\w+)")]
     private static partial Regex SceneRegex();
+
+    /// <summary>
+    /// The text of a Decks.log line. Current clients write "I 12:21:51.2461640 Finding Game With Deck:" (level, time,
+    /// text); older ones put a method name and " - " before the text. Deck names may contain " - " themselves, so only
+    /// a method-like prefix is cut.
+    /// </summary>
+    internal static string? DecksContent(string line)
+    {
+        var match = DecksPrefixRegex().Match(line);
+        return match.Success ? line[match.Length..].Trim() : null;
+    }
+
+    [GeneratedRegex(@"^[A-Z] \d{1,2}:\d{2}:\d{2}(?:\.\d+)? (?:[\w.]+\(\) - )?")]
+    private static partial Regex DecksPrefixRegex();
 }

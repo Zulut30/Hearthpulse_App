@@ -225,7 +225,7 @@ public sealed partial class MainViewModel
         var updated = meta.Updated == DateTime.MinValue ? string.Empty : $" · updated {meta.Updated.ToLocalTime():dd MMM HH:mm}";
         ConstructedMetaStatus = meta.Archetypes.Count == 0
             ? "No meta stats for this format and rank yet."
-            : $"{ConstructedMeta.Attribution} · {ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank)} · {ConstructedMeta.Label(ConstructedMeta.Periods, meta.Period)} · {meta.Games:N0} games{updated}";
+            : $"{meta.Source} · {ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank)} · {ConstructedMeta.Label(ConstructedMeta.Periods, meta.Period)} · {meta.Games:N0} games{updated}";
     }
 
     private void RebuildArchetypeDetail()

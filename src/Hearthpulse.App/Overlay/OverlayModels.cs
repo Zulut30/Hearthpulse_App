@@ -98,3 +98,9 @@ public sealed record LobbyRow(
     bool You);
 
 public sealed record PlaceChip(int Place, bool Top);
+
+/// <summary>One counter chip in the overlay: value, optional progress toward a goal, and its tooltip text.</summary>
+public sealed record CounterChip(string Id, string Title, string Value, double Progress, bool HasProgress, string? IconCardId, string Tooltip, bool Expanded, IReadOnlyList<string> Details);
+
+/// <summary>Community mulligan numbers under one card of the opening hand.</summary>
+public sealed record MulliganTile(string CardId, string Name, string Keep, string WinRate, string Delta, bool Good, bool Bad, bool HasStats);

@@ -1,4 +1,5 @@
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
 
@@ -14,6 +15,12 @@ public sealed class ConstructedTracker : IPowerListener
     private readonly HashSet<int> _opponentPlayedIds = new();
 
     public DeckDefinition? Deck { get; set; }
+
+    /// <summary>Community stats for the mulligan panel (the format and rank the player picked on the Constructed page).</summary>
+    public ConstructedMeta? Meta { get; set; }
+
+    /// <summary>What each player did this game, for the counters; registered as a Power.log listener by the session.</summary>
+    public Counters.CounterTracker Counters { get; } = new();
 
     public RankInfo? LocalRank { get; set; }
 
@@ -88,6 +95,7 @@ public sealed class ConstructedTracker : IPowerListener
             })
             .ToList();
 
+        var playerClass = cards.Get(playerHero)?.CardClass ?? string.Empty;
         return new ConstructedView(
             ToPlayerTurn(game.Turn),
             Deck?.Name,
@@ -106,7 +114,11 @@ public sealed class ConstructedTracker : IPowerListener
             hand.Count,
             game.Controlled(opponent, "SECRET").Count(e => e.Has(GameTag.Secret)),
             LocalRank,
-            OpponentRank);
+            OpponentRank)
+        {
+            Mulligan = Mulligan.Build(game, cards, Deck, Meta, playerClass),
+            Counters = Tracking.Counters.Counters.Build(game, Counters, cards, Deck),
+        };
     }
 
     private List<DeckCardRow> BuildDeckRows(GameState game, CardDb cards, int local, int deckCount)

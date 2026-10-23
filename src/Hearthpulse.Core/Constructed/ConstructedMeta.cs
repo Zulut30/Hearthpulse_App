@@ -84,6 +84,9 @@ public sealed class ConstructedMeta
     /// <summary>Games behind the archetype numbers.</summary>
     public int Games { get; }
 
+    /// <summary>Where these stats came from, for the attribution line (<see cref="Attribution"/> unless a fallback was used).</summary>
+    public string Source { get; private init; } = Attribution;
+
     /// <summary>Most played first.</summary>
     public IReadOnlyList<MetaArchetype> Archetypes { get; }
 
@@ -96,7 +99,11 @@ public sealed class ConstructedMeta
     public static string Label(IReadOnlyList<MetaOption> options, string? key) =>
         options.FirstOrDefault(o => string.Equals(o.Key, key, StringComparison.Ordinal))?.Label ?? options[0].Label;
 
-    public static async Task<ConstructedMeta?> LoadAsync(HttpClient http, string? format, string? rank, string? period, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Loads Firestone's stats; when they cannot be had, <paramref name="fallback"/> (the Hearthpulse API) supplies the
+    /// archetypes (win rate and popularity, without decklists or mulligan data).
+    /// </summary>
+    public static async Task<ConstructedMeta?> LoadAsync(HttpClient http, string? format, string? rank, string? period, CancellationToken cancellationToken = default, Api.HearthpulseData? fallback = null)
     {
         // Only known keys reach the URL and the cache file name.
         format = Key(Formats, format);
@@ -110,7 +117,26 @@ public sealed class ConstructedMeta
         await Task.WhenAll(archetypeTask, deckTask).ConfigureAwait(false);
         if (archetypeTask.Result is null && deckTask.Result is null)
         {
-            return null;
+            if (fallback is null)
+            {
+                return null;
+            }
+
+            // The API publishes few rank ranges (Standard Legend at least); the closest one it has is shown under its own label.
+            var list = await fallback.LoadArchetypesAsync(format, rank, cancellationToken).ConfigureAwait(false);
+            if (list.Count == 0 && rank != "legend")
+            {
+                rank = "legend";
+                list = await fallback.LoadArchetypesAsync(format, rank, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (list.Count == 0)
+            {
+                return null;
+            }
+
+            var ordered = list.OrderByDescending(a => a.Games).ToList();
+            return new ConstructedMeta(format, rank, period, DateTime.UtcNow, ordered.Sum(a => a.Games), ordered, []) { Source = Api.HearthpulseData.Attribution };
         }
 
         using var archetypes = await ReadAsync(archetypeTask.Result, cancellationToken).ConfigureAwait(false);
