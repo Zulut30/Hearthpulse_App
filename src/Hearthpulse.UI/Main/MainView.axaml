@@ -822,6 +822,30 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <!-- Battlegrounds counters: same modes, ids start with "bg-" -->
+                                <TextBlock x:Name="BgCountersHeading" Text="Battlegrounds" Classes="h2" Margin="0,14,0,4" />
+                                <TextBlock Text="Shown as a row of chips in Battlegrounds. Auto shows one when a card that cares about it is in the tavern, your hand, board, trinkets or hero power, or once the game reports its value. A counter the game has not reported yet shows a dash."
+                                           Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                <ItemsControl ItemsSource="{Binding BgCounterRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="m:CounterSettingRow">
+                                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" ToolTip.Tip="{Binding Description}">
+                                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                <Border Grid.Column="1" Classes="segmentBar">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <RadioButton Classes="segment" Content="Auto" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
+                                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AutoKey}" />
+                                                        <RadioButton Classes="segment" Content="Always" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
+                                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AlwaysKey}" />
+                                                        <RadioButton Classes="segment" Content="Off" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
+                                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding OffKey}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </Border>
 

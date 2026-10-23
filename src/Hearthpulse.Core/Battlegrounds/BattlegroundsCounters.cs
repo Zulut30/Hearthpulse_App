@@ -209,7 +209,7 @@ public static class BattlegroundsCounters
             var value = def.Compute(context);
             var seenCard = def.Related.FirstOrDefault(seen.Contains);
             var relevant = value.Active || (def.Confirmed && seenCard is not null);
-            var icon = value.IconCardId ?? seenCard ?? (relevant ? def.Related.FirstOrDefault() : null);
+            var icon = value.IconCardId ?? seenCard ?? def.Related.FirstOrDefault();
             result.Add(new CounterView(def.Id, value.Title ?? def.Title, value.Value, value.Progress, false, icon, def.Description,
                 value.Details ?? (value.Value == NoData ? ["No data from the game yet."] : []), relevant));
         }

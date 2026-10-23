@@ -48,6 +48,17 @@ public partial class App
                 Save(_main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
             }
 
+            // The Battlegrounds counters list sits far down the settings page.
+            _main.ShowPage("Settings");
+            if (_main.FindName("BgCountersHeading") is FrameworkElement heading)
+            {
+                await Task.Delay(500);
+                heading.BringIntoView(new Rect(0, 0, heading.ActualWidth, 640));
+                await Task.Delay(500);
+                _main.UpdateLayout();
+                Save(_main, Path.Combine(folder, "main-settings-counters.png"));
+            }
+
             _main.ShowPage("Constructed");
             foreach (var tab in new[] { "Tiers", "Top" })
             {
@@ -66,6 +77,7 @@ public partial class App
                 ("overlay-trinket", v => v is { IsHeroSelection: false, TrinketOptions.Count: > 1 }, 0),
                 ("overlay-discover", v => v is { IsHeroSelection: false, DiscoverOptions.Count: > 1 }, 0),
                 ("overlay-game", v => v is { InCombat: false, Turn: >= 6, Shop.Count: >= 3 } && v.Opponents.Count(o => o.LastBoard.Count > 0) >= 3, 3),
+                ("overlay-bg-counters", v => v is { IsHeroSelection: false, HeroCardId: not null, InCombat: false, Turn: >= 2, Counters.Count: > 0 }, 0),
             };
             foreach (var (name, when, hover) in moments)
             {
@@ -130,6 +142,7 @@ public partial class App
         var parser = new PowerParser(DateOnly.FromDateTime(File.GetLastWriteTime(log)));
         var tracker = new BattlegroundsTracker { Cards = _cards };
         parser.AddListener(tracker);
+        parser.AddListener(tracker.Counters);
         var lines = 0;
         foreach (var line in ReadShared(log))
         {

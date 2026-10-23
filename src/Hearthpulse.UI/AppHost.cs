@@ -354,6 +354,7 @@ public sealed class AppHost : IDisposable
         var parser = new PowerParser(DateOnly.FromDateTime(File.GetLastWriteTime(log)));
         var tracker = new BattlegroundsTracker { Cards = Cards };
         parser.AddListener(tracker);
+        parser.AddListener(tracker.Counters);
         var lines = 0;
         foreach (var line in ReadShared(log))
         {

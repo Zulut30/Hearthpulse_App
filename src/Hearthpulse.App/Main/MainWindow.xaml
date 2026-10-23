@@ -1540,6 +1540,37 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+
+                                    <!-- Battlegrounds counters: same modes, ids start with "bg-" -->
+                                    <TextBlock x:Name="BgCountersHeading" Text="Battlegrounds" Style="{StaticResource H2}" Margin="0,14,0,4" />
+                                    <TextBlock Text="Shown as a row of chips in Battlegrounds. Auto shows one when a card that cares about it is in the tavern, your hand, board, trinkets or hero power, or once the game reports its value. A counter the game has not reported yet shows a dash."
+                                               Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                    <ItemsControl ItemsSource="{Binding BgCounterRows}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type m:CounterSettingRow}">
+                                                <Grid Margin="0,0,0,8" ToolTip="{Binding Description}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    <Border Grid.Column="1" Style="{StaticResource SegmentBar}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <RadioButton Style="{StaticResource Segment}" Content="Auto" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
+                                                                         Command="{Binding DataContext.SetCounterMode, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                         CommandParameter="{Binding Id, StringFormat={}{0}|Auto}" />
+                                                            <RadioButton Style="{StaticResource Segment}" Content="Always" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
+                                                                         Command="{Binding DataContext.SetCounterMode, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                         CommandParameter="{Binding Id, StringFormat={}{0}|Always}" />
+                                                            <RadioButton Style="{StaticResource Segment}" Content="Off" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
+                                                                         Command="{Binding DataContext.SetCounterMode, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                         CommandParameter="{Binding Id, StringFormat={}{0}|Off}" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </StackPanel>
                             </Border>
 
