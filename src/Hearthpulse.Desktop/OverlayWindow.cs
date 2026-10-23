@@ -74,6 +74,7 @@ internal sealed class OverlayWindow : Window
             }
 
             _platform.SetClickThrough(true);
+            _view.UpdateCardPoolPointer(null, default);
             return;
         }
 
@@ -108,6 +109,7 @@ internal sealed class OverlayWindow : Window
 
         PollHoveredHero();
         _view.UpdateLeaderboardHover(local, _memoryHover);
+        _view.UpdateCardPoolPointer(local, _platform.MouseButtons());
     }
 
     /// <summary>Reads the hovered leaderboard hero from the game (Windows memory reader) at most ~10 times a second.</summary>

@@ -850,7 +850,7 @@
             </o:MovablePanel>
 
             <!-- ============ Constructed: card pool of a Discover / random generator ============ -->
-            <o:MovablePanel Id="card-pool" Title="Card pool" Shown="{Binding ShowCardPoolPanel}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="262,0,0,60">
+            <o:MovablePanel Id="card-pool" Title="Card pool" Shown="{Binding ShowCardPoolPanel}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,64,0,0">
                 <o:CardPoolPanel />
             </o:MovablePanel>
 

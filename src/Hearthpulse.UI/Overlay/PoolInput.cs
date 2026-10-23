@@ -4,22 +4,17 @@ using System.Runtime.InteropServices;
 namespace Hearthpulse.UI.Overlay;
 
 /// <summary>
-/// Mouse and keyboard state for the card pool panels, read without taking input from the game: the compact panel lets
-/// clicks through to the board, and the overlay never has keyboard focus. Windows only (callers check).
+/// Keyboard state and settings for the card pool browser, read without taking input from the game (the overlay never has
+/// keyboard focus). Windows only (callers check); the pointer and mouse buttons come from the overlay platform layer.
 /// </summary>
 internal static class PoolInput
 {
-    public const int RightButton = 0x02;
-
     public const int Escape = 0x1B;
 
     private static IntPtr _checkedWindow;
     private static bool _checkedIsGame;
 
     public static bool IsDown(int key) => (GetAsyncKeyState(key) & 0x8000) != 0;
-
-    /// <summary>The cursor in screen pixels.</summary>
-    public static (int X, int Y)? Cursor() => GetCursorPos(out var p) ? (p.X, p.Y) : null;
 
     /// <summary>Hearthstone or this app is the foreground window, so a key press is meant for them.</summary>
     public static bool GameOrAppInFront()
@@ -47,23 +42,12 @@ internal static class PoolInput
         return _checkedIsGame;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Point
-    {
-        public int X;
-        public int Y;
-    }
-
     /// <summary>Windows animation setting ("Animate controls and elements inside windows"); false elsewhere.</summary>
     public static bool AnimationsOn() =>
         OperatingSystem.IsWindows() && SystemParametersInfo(0x1042 /* SPI_GETCLIENTAREAANIMATION */, 0, out var on, 0) && on;
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int key);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetCursorPos(out Point point);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();

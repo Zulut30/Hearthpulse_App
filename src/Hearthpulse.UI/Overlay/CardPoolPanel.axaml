@@ -78,10 +78,8 @@
         </Style>
     </UserControl.Styles>
 
-    <!-- On Windows not interactive: clicks reach the board and the Discover options under it; hover and right-click are
-         polled. Elsewhere (no polling) the code-behind makes it interactive. -->
-    <Border x:Name="Card" Classes="overlayCard" Width="372" Background="{StaticResource OverlayPanelSolid}"
-            PointerEntered="OnPointerEntered" PointerExited="OnPointerExited" PointerReleased="OnPointerReleased">
+    <!-- Not interactive: clicks reach the board and the Discover options under it; the host passes pointer and buttons. -->
+    <Border x:Name="Card" Classes="overlayCard" Width="324" Background="{StaticResource OverlayPanelSolid}">
         <StackPanel Margin="10,9,10,8">
             <TextBlock Text="{Binding CardPoolTitle}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
             <TextBlock Text="{Binding CardPoolDescription}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextAlignment="Center"

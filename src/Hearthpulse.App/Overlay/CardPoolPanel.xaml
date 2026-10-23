@@ -65,7 +65,7 @@
     </UserControl.Resources>
 
     <!-- Not interactive: clicks reach the board and the Discover options under it; hover and right-click are polled. -->
-    <Border x:Name="Card" Style="{StaticResource OverlayCard}" Width="372" Background="{StaticResource OverlayPanelSolid}">
+    <Border x:Name="Card" Style="{StaticResource OverlayCard}" Width="324" Background="{StaticResource OverlayPanelSolid}">
         <StackPanel Margin="10,9,10,8">
             <TextBlock Text="{Binding CardPoolTitle}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
             <TextBlock Text="{Binding CardPoolDescription}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextAlignment="Center"

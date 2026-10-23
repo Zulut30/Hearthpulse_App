@@ -35,6 +35,9 @@ public sealed partial class OverlayViewModel
 {
     private const double BarMaxHeight = 34;
 
+    /// <summary>How long the pointer must rest on the compact panel before it holds the pool.</summary>
+    private static readonly TimeSpan CardPoolHoldDelay = TimeSpan.FromMilliseconds(350);
+
     private bool _showCardPool;
     private CardPoolView? _cardPool;
     private string _cardPoolTitle = string.Empty;
@@ -45,6 +48,10 @@ public sealed partial class OverlayViewModel
     private PoolEntry? _cardPoolFeatured;
     private string _cardPoolFeaturedNote = string.Empty;
     private bool _cardPoolHeld;
+    private bool _cardPoolPointerOver;
+    private bool _cardPoolHeldByPointer;
+    private bool _cardPoolRightDown = true;
+    private DateTime _cardPoolPointerSince;
     private ConstructedView? _cardPoolView;
     private AppSettings? _cardPoolSettings;
 
@@ -201,6 +208,37 @@ public sealed partial class OverlayViewModel
     {
         CardPoolBrowserOpen = true;
         _cardPoolBrowserTurn = _cardPoolView?.Turn ?? 0;
+    }
+
+    /// <summary>
+    /// The pointer and mouse buttons over the compact panel, which lets clicks through to the game (the host reads them
+    /// globally). It holds the pool only after the pointer rests on the panel, so crossing the board does not keep a
+    /// stale pool up; a right-click on it opens or closes the browser, except while the left button is down (the game
+    /// uses that right-click to cancel targeting; it still gets it).
+    /// </summary>
+    public void UpdateCardPoolPointer(bool over, bool leftDown, bool rightDown)
+    {
+        var now = DateTime.UtcNow;
+        over &= ShowCardPoolPanel;
+        if (over && !_cardPoolPointerOver)
+        {
+            _cardPoolPointerSince = now;
+        }
+
+        _cardPoolPointerOver = over;
+        var hold = over && now - _cardPoolPointerSince >= CardPoolHoldDelay;
+        if (hold != _cardPoolHeldByPointer)
+        {
+            _cardPoolHeldByPointer = hold;
+            CardPoolHeld = hold;
+        }
+
+        if (rightDown && !_cardPoolRightDown && over && !leftDown)
+        {
+            OpenCardPoolBrowser.Execute(null);
+        }
+
+        _cardPoolRightDown = rightDown;
     }
 
     /// <summary>Called when the drag on the browser's edge ends: saves the width.</summary>

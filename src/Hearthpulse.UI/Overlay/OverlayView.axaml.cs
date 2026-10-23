@@ -124,6 +124,12 @@ public partial class OverlayView : UserControl
     /// Updates the opponent-board popup from the pointer position (view coordinates, null when outside) and the hero the
     /// game reports under the mouse (null when unknown: then the leaderboard calibration decides).
     /// </summary>
+    /// <summary>
+    /// The card pool panel lets clicks through on every desktop: the host passes the pointer (view coordinates, null
+    /// when outside) and the mouse buttons it reads globally, for hover and right-click on the panel.
+    /// </summary>
+    public void UpdateCardPoolPointer(Point? pointer, (bool Left, bool Right) buttons) => CardPool.UpdatePointer(this, pointer, buttons);
+
     public void UpdateLeaderboardHover(Point? pointer, string? hoveredHero)
     {
         if (_viewModel is not { } vm)

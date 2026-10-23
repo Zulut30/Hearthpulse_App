@@ -158,9 +158,14 @@ while that setting is on. Game memory is read (every 200 ms, on its own thread) 
 on, catalog loaded, a supported mode; the thread ends after 10 s without a Constructed game. Its read errors do not
 change the memory status shown in the app.
 
-The compact panel lets clicks through to the game (it appears on its own over the board and the Discover options):
-whether the mouse is over it and a right-click on it are read from the mouse state while it is shown (Windows; the
-Avalonia preview elsewhere takes the pointer as before).
+The compact panel lets clicks through to the game on every desktop (it appears on its own over the board): the pointer
+and the mouse buttons are read globally - WPF while the panel is shown; Avalonia through the overlay platform layer
+(`IOverlayPlatform.PointerPosition`/`MouseButtons`: `GetAsyncKeyState` on Windows, `CGEventSourceButtonState` on macOS,
+`XQueryPointer` on X11), the same way the other click-through panels get the pointer. Only the pool browser takes the
+mouse. `OverlayViewModel.UpdateCardPoolPointer` holds the pool only after the pointer has rested on the panel for
+350 ms (crossing the board does not keep a stale pool up). A right-click on the panel opens or closes the browser,
+except while the left button is down (targeting); the game receives that right-click too. The panel starts at the top
+left (324 units wide, next to the opponent panel), clear of the Discover options.
 
 ## Pool browser ("all options")
 
