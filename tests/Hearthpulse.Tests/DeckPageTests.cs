@@ -14,7 +14,7 @@ namespace Hearthpulse.Tests;
 /// during the mulligan, the opening hand is shown with SHOW_ENTITY, the coin is a CATA_COIN1 created in hand), the
 /// history columns and family tables, deck families and merge suggestions, and the per-card aggregates.
 /// </summary>
-public sealed class DeckPageTests
+public sealed partial class DeckPageTests
 {
     private static readonly CardDb Cards = CardDb.Parse("enUS", new MemoryStream("""
         [

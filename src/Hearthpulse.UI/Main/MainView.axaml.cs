@@ -158,6 +158,12 @@ public partial class MainView : UserControl
     /// <summary>Shows the hover card of one point of the deck page's win-rate chart (-1 hides it), for the render check.</summary>
     public void HoverDeckGame(int index) => DeckDetails.HoverGame(index);
 
+    /// <summary>The deck page's Versions card (UI render check).</summary>
+    public Control DeckVersionsCard => DeckDetails.Versions;
+
+    /// <summary>Opens the ⋯ menu of the deck page's last version row (UI render check).</summary>
+    public MenuFlyout? OpenDeckVersionMenu() => DeckDetails.OpenLastVersionMenu();
+
     public void SyncOverlaySwitch()
     {
         if (_viewModel is not null)
