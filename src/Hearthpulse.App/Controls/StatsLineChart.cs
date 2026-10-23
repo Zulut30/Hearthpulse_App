@@ -42,6 +42,8 @@ public sealed class StatsLineChart : FrameworkElement
     private const double Top = 16;
     private const double Bottom = 14;
 
+    private (IReadOnlyList<IChartValue>? Points, double Width, double Height, Point[] At, double Left, int Lowest, int Highest) _layout = (null, 0, 0, [], 10, 0, 0);
+
     private readonly ContentPresenter _card = new() { IsHitTestVisible = false };
 
     public StatsLineChart()
@@ -157,13 +159,13 @@ public sealed class StatsLineChart : FrameworkElement
         }
 
         var at = Layout(points, w, h);
-        var left = Left(points, dpi);
+        var left = _layout.Left;
         var grid = new Pen(Brush("Border"), 1) { DashStyle = new DashStyle([3, 4], 0) };
-        var lowest = points.MinBy(p => p.ChartValue)!;
-        var highest = points.MaxBy(p => p.ChartValue)!;
-        foreach (var guide in highest.ChartValue == lowest.ChartValue ? new[] { highest } : new[] { highest, lowest })
+        var (lowest, highest) = (_layout.Lowest, _layout.Highest);
+        foreach (var index in points[highest].ChartValue == points[lowest].ChartValue ? new[] { highest } : new[] { highest, lowest })
         {
-            var y = Math.Round(Y(guide.ChartValue, points, h)) + 0.5;
+            var guide = points[index];
+            var y = Math.Round(at[index].Y) + 0.5;
             dc.DrawLine(grid, new Point(left, y), new Point(w - Right, y));
             var label = Text(guide.ChartLabel, 11, muted, dpi);
             dc.DrawText(label, new Point(left - label.Width - 8, y - (label.Height / 2)));
@@ -235,40 +237,43 @@ public sealed class StatsLineChart : FrameworkElement
         InvalidateMeasure();
     }
 
+    /// <summary>
+    /// Where each point sits, plus the plot's left edge and the lowest/highest point. Mouse moves, arrange and render
+    /// all need it, so it is worked out once per set of points and size.
+    /// </summary>
     private Point[] Layout(IReadOnlyList<IChartValue> points, double w, double h)
     {
-        var left = Left(points, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        if (ReferenceEquals(_layout.Points, points) && _layout.Width == w && _layout.Height == h)
+        {
+            return _layout.At;
+        }
+
+        int lowest = 0, highest = 0;
+        for (var i = 1; i < points.Count; i++)
+        {
+            if (points[i].ChartValue < points[lowest].ChartValue) lowest = i;
+            if (points[i].ChartValue > points[highest].ChartValue) highest = i;
+        }
+
+        // Room for the widest axis label (the guides are at the lowest and highest point).
+        var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        var left = points.Count == 0
+            ? 10
+            : Math.Ceiling(new[] { lowest, highest }.Max(i => Text(points[i].ChartLabel, 11, Brushes.Transparent, dpi).Width)) + 16;
+        var min = points.Count == 0 ? 0 : points[lowest].ChartValue;
+        var max = points.Count == 0 ? 0 : points[highest].ChartValue;
+        var pad = Math.Max((max - min) * 0.12, Math.Max(1, Math.Abs(max) * 0.004));
+        var lo = min - pad;
+        var hi = max + pad;
         var at = new Point[points.Count];
         for (var i = 0; i < at.Length; i++)
         {
             var x = points.Count == 1 ? (left + w - Right) / 2 : left + ((w - left - Right) * i / (points.Count - 1));
-            at[i] = new Point(x, Y(points[i].ChartValue, points, h));
+            at[i] = new Point(x, Top + ((h - Top - Bottom) * (1 - ((points[i].ChartValue - lo) / (hi - lo)))));
         }
 
+        _layout = (points, w, h, at, left, lowest, highest);
         return at;
-    }
-
-    private static double Y(double value, IReadOnlyList<IChartValue> points, double h)
-    {
-        var min = points.Min(p => p.ChartValue);
-        var max = points.Max(p => p.ChartValue);
-        var pad = Math.Max((max - min) * 0.12, Math.Max(1, Math.Abs(max) * 0.004));
-        var lo = min - pad;
-        var hi = max + pad;
-        return Top + ((h - Top - Bottom) * (1 - ((value - lo) / (hi - lo))));
-    }
-
-    /// <summary>Left edge of the plot: room for the widest axis label.</summary>
-    private double Left(IReadOnlyList<IChartValue> points, double dpi)
-    {
-        if (points.Count == 0)
-        {
-            return 10;
-        }
-
-        var widest = new[] { points.MinBy(p => p.ChartValue)!, points.MaxBy(p => p.ChartValue)! }
-            .Max(p => Text(p.ChartLabel, 11, Brushes.Transparent, dpi).Width);
-        return Math.Ceiling(widest) + 16;
     }
 
     private Brush Brush(string key) => TryFindResource(key) as Brush ?? Brushes.Gray;

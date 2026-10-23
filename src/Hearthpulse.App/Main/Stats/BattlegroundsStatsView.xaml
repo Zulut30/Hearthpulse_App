@@ -52,7 +52,7 @@
             <StackPanel>
                 <c:Ornament Text="Hero performance" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" />
                 <Grid Margin="0,10,0,14">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
                         <TextBlock Text="Min. games" Style="{StaticResource Label}" VerticalAlignment="Center" Margin="0,0,8,0" />
                         <Border Style="{StaticResource SegmentBar}" Margin="0,0,16,0">
                             <StackPanel Orientation="Horizontal">
@@ -71,18 +71,18 @@
                                 <RadioButton Style="{StaticResource Segment}" Content="Pick rate" GroupName="BgSort" Command="{Binding SetBgSort}" CommandParameter="PickRate" />
                             </StackPanel>
                         </Border>
-                    </StackPanel>
+                    </WrapPanel>
                 </Grid>
 
                 <Grid Margin="0,0,0,6">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="54" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="76" />
-                        <ColumnDefinition Width="146" />
-                        <ColumnDefinition Width="146" />
-                        <ColumnDefinition Width="150" />
-                        <ColumnDefinition Width="140" />
+                        <ColumnDefinition Width="*" MinWidth="100" />
+                        <ColumnDefinition Width="70" />
+                        <ColumnDefinition Width="*" MinWidth="72" MaxWidth="160" />
+                        <ColumnDefinition Width="*" MinWidth="72" MaxWidth="160" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="110" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="1" Text="Hero" Style="{StaticResource StatsHead}" />
                     <TextBlock Grid.Column="2" Text="Net MMR" Style="{StaticResource StatsHead}" HorizontalAlignment="Right" ToolTip="Rating won or lost with this hero" />
@@ -109,12 +109,12 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="54" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="76" />
-                                        <ColumnDefinition Width="146" />
-                                        <ColumnDefinition Width="146" />
-                                        <ColumnDefinition Width="150" />
-                                        <ColumnDefinition Width="140" />
+                                        <ColumnDefinition Width="*" MinWidth="100" />
+                                        <ColumnDefinition Width="70" />
+                                        <ColumnDefinition Width="*" MinWidth="72" MaxWidth="160" />
+                                        <ColumnDefinition Width="*" MinWidth="72" MaxWidth="160" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="110" />
                                     </Grid.ColumnDefinitions>
                                     <Border Width="42" Height="42" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding CardId}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">

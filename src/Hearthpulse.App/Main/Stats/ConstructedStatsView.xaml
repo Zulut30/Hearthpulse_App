@@ -86,6 +86,7 @@
                 <StackPanel>
                     <c:Ornament Text="Game length" Icon="&#xF02DA;" Size="13" Margin="0,0,0,10" />
                     <ItemsControl ItemsSource="{Binding CtLengths}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                    <TextBlock Text="No games in this time frame yet." Style="{StaticResource Caption}" Visibility="{Binding CtLengths, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
         </Grid>

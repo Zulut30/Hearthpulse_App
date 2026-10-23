@@ -40,5 +40,17 @@ internal static partial class OffscreenRenderer
             await Save(main, Path.Combine(folder, "main-constructed-hover.png"));
             view.HoverConstructedGame(-1);
         }
+
+        // Phone-sized pages: filters under the titles, stacked cards, the hero table without its charts.
+        main.Width = 420;
+        foreach (var (page, height) in new[] { ("Battlegrounds", 2600), ("Constructed", 3000), ("Arena", 2200) })
+        {
+            main.Height = height;
+            view.ShowPage(page);
+            await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}-compact.png"));
+        }
+
+        main.Width = 1260;
+        main.Height = 840;
     }
 }

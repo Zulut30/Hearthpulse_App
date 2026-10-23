@@ -116,6 +116,56 @@
         <Style Selector="m|MainView.compact Grid.choiceRow RadioButton.segment /template/ Border#Bd">
             <Setter Property="Padding" Value="9,5" />
         </Style>
+
+        <!-- My Stats (Main/Stats): filters drop under the title, side-by-side cards stack, the hero table loses its charts. -->
+        <Style Selector="TextBlock.statsValue">
+            <Setter Property="FontSize" Value="25" />
+        </Style>
+        <Style Selector="m|MainView.compact TextBlock.statsValue">
+            <Setter Property="FontSize" Value="19" />
+        </Style>
+        <Style Selector=":is(Control).statsRight">
+            <Setter Property="Grid.Column" Value="2" />
+        </Style>
+        <Style Selector=":is(Control).statsSide">
+            <Setter Property="Grid.Column" Value="1" />
+        </Style>
+        <Style Selector="m|MainView.compact :is(Control).statsSide">
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Margin" Value="0,16,0,0" />
+        </Style>
+        <Style Selector="UniformGrid.tiles3">
+            <Setter Property="Columns" Value="3" />
+        </Style>
+        <Style Selector=":is(Control).narrow">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="m|MainView.compact UniformGrid.tiles3">
+            <Setter Property="Columns" Value="2" />
+        </Style>
+        <Style Selector="m|MainView.compact :is(Control).narrow">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="m|MainView.compact Border.statsBar RadioButton.segment /template/ Border#Bd">
+            <Setter Property="Padding" Value="8,5" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.statsHead Border.statsFilter">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,10,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact :is(Control).statsLeft">
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+        </Style>
+        <Style Selector="m|MainView.compact :is(Control).statsRight">
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="0,16,0,0" />
+        </Style>
     </UserControl.Styles>
 
     <Grid Name="Frame" ColumnDefinitions="250,*">
@@ -607,7 +657,7 @@
                             <TextBlock Text="Your Arena runs, the classes you draft and how they do." Classes="caption" FontSize="14" Margin="10,0,0,0"
                                        VerticalAlignment="Center" TextWrapping="Wrap" />
                         </StackPanel>
-                        <s:ArenaStatsView />
+                        <s:ArenaStatsView Name="ArenaStats" />
                     </StackPanel>
                 </ScrollViewer>
 

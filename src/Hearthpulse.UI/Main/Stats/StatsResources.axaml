@@ -12,14 +12,14 @@
         <UniformGrid Rows="1" />
     </ItemsPanelTemplate>
     <ItemsPanelTemplate x:Key="StatsTilesPanel3">
-        <UniformGrid Classes="fixed" Columns="3" />
+        <UniformGrid Classes="fixed tiles3" />
     </ItemsPanelTemplate>
 
     <!-- A header number: label, big value, caption -->
     <DataTemplate x:Key="StatsTile" x:DataType="m:StatTile">
         <StackPanel Margin="0,0,18,14" ToolTip.Tip="{Binding Detail}">
             <TextBlock Text="{Binding Label}" Classes="label" />
-            <TextBlock Text="{Binding Value}" Classes="stat" FontSize="25" Margin="0,6,0,2" TextTrimming="CharacterEllipsis"
+            <TextBlock Text="{Binding Value}" Classes="stat statsValue" Margin="0,6,0,2" TextTrimming="CharacterEllipsis"
                        Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
             <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" />
         </StackPanel>
@@ -39,7 +39,7 @@
     <!-- A group row: class / opponent / archetype / game length -->
     <DataTemplate x:Key="StatGroupRowTemplate" x:DataType="m:StatGroupRow">
         <Border Classes="row" Padding="10,7" Margin="-10,0,-10,2">
-            <Grid ColumnDefinitions="Auto,*,64,132">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                 <Border Width="30" Height="30" CornerRadius="15" Margin="0,0,10,0" Background="{StaticResource Surface4}" ClipToBounds="True"
                         VerticalAlignment="Center" i:CardArt.Portrait="{Binding CardId}"
                         IsVisible="{Binding CardId, Converter={StaticResource Truthy}}" />
@@ -47,9 +47,9 @@
                     <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding Games}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
-                <TextBlock Grid.Column="2" Text="{Binding Record}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center"
+                <TextBlock Grid.Column="2" Text="{Binding Record}" Classes="caption wide" Width="64" TextAlignment="Right" VerticalAlignment="Center"
                            ToolTip.Tip="Wins – losses" />
-                <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <StackPanel Grid.Column="3" Width="132" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Border Width="64" Height="7" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
                             <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
