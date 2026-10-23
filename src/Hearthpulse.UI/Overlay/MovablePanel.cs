@@ -179,8 +179,13 @@ public sealed class MovablePanel : ContentControl
             return;
         }
 
-        var left = Math.Clamp(saved.X, 0, Math.Max(0, surface.Bounds.Width - Bounds.Width));
-        var top = Math.Clamp(saved.Y, 0, Math.Max(0, surface.Bounds.Height - Math.Max(Bounds.Height, _contentHeight)));
+        // Past an edge the surface grid hands the panel only the space left, so Bounds shrink with it and the panel
+        // would never come back; content with a fixed size says how much room it really needs.
+        var content = Content as Control;
+        var width = Math.Max(Bounds.Width, content is { Width: > 0 } ? (content.Width + content.Margin.Left + content.Margin.Right) * _scale : 0);
+        var height = Math.Max(Math.Max(Bounds.Height, _contentHeight), content is { Height: > 0 } ? (content.Height + content.Margin.Top + content.Margin.Bottom) * _scale : 0);
+        var left = Math.Clamp(saved.X, 0, Math.Max(0, surface.Bounds.Width - width));
+        var top = Math.Clamp(saved.Y, 0, Math.Max(0, surface.Bounds.Height - height));
         var margin = new Thickness(left, top, 0, 0);
         if (Margin != margin)
         {

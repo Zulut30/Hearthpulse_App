@@ -14,32 +14,34 @@
         <i:FractionWidth x:Key="Fraction" />
         <i:LeftMargin x:Key="LeftMargin" />
 
-        <!-- Deck row: cost, rarity bar, name over card art, draw chance, count -->
+        <!-- Deck row: cost, name over card art with the copy count, then the draw chance in its own column so it never
+             runs into the name -->
         <DataTemplate x:Key="DeckTileTemplate" x:DataType="o:DeckTile">
-            <Grid Classes="tileRow" Classes.empty="{Binding Empty}" Height="24" Margin="0,0,0,2" ColumnDefinitions="26,*">
+            <Grid Classes="tileRow" Classes.empty="{Binding Empty}" Height="24" Margin="0,0,0,2" ColumnDefinitions="26,*,Auto" Background="Transparent"
+                  c:CardPreview.CardId="{Binding CardId}">
                 <Border Classes="cost" HorizontalAlignment="Left">
                     <TextBlock Text="{Binding Cost}" FontSize="12.5" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
                     <Panel>
-                        <Image i:CardArt.Tile="{Binding CardId}" Width="132" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                        <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                         <Rectangle Fill="{StaticResource TileFade}" />
                         <Border Width="2" HorizontalAlignment="Left" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                        <DockPanel Margin="9,0,6,0">
-                            <Border DockPanel.Dock="Right" Background="#CC140D08" CornerRadius="4" MinWidth="20" Height="18" Padding="5,0"
-                                    VerticalAlignment="Center" IsVisible="{Binding ShowCount}">
+                        <DockPanel Margin="9,0,3,0">
+                            <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" MinWidth="20" Height="18" Padding="5,0"
+                                    Margin="4,0,0,0" VerticalAlignment="Center" IsVisible="{Binding ShowCount}">
                                 <TextBlock Text="{Binding Count}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
-                            <TextBlock DockPanel.Dock="Right" Text="{Binding Chance}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,0,6,0"
-                                       VerticalAlignment="Center"
-                                       IsVisible="{Binding $parent[ItemsControl].((o:OverlayViewModel)DataContext).ShowChance, FallbackValue=True}" />
                             <TextBlock DockPanel.Dock="Left" Text="&#xF0674;" Classes="icon" FontSize="10" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
-                                       IsVisible="{Binding Created}" />
+                                       VerticalAlignment="Center" IsVisible="{Binding Created}" />
                             <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </DockPanel>
                     </Panel>
                 </Border>
+                <TextBlock Grid.Column="2" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding $parent[ItemsControl].((o:OverlayViewModel)DataContext).ShowChance, FallbackValue=True}" />
             </Grid>
         </DataTemplate>
 
@@ -788,13 +790,14 @@
 
                 <!-- ============ Constructed: your deck (right) ============ -->
                 <o:MovablePanel Id="deck" Title="Your deck" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,64,12,0">
-                    <Border Classes="overlayCard" Width="230">
+                    <Border Classes="overlayCard" Width="252">
                         <StackPanel>
                             <StackPanel Margin="12,10,12,8">
                                 <TextBlock Text="{Binding DeckName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding DeckRecord}" FontSize="11" Foreground="{StaticResource Muted}" />
+                                <TextBlock Text="{Binding DeckRecord}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"
+                                           Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
                             </StackPanel>
-                            <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" />
+                            <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" o:OverlayHit.Interactive="True" />
                             <Border BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
                                 <StackPanel>
                                     <TextBlock Text="{Binding DeckCounts}" FontSize="11" Foreground="{StaticResource Muted}" />
@@ -841,6 +844,12 @@
                             <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource HandTemplate}" />
                         </StackPanel>
                     </Border>
+                </o:MovablePanel>
+
+                <!-- ============ Constructed: marks under the opponent's hand fan (top centre; move and scale it onto the cards) ============ -->
+                <o:MovablePanel Id="opponent-hand" Title="Opponent's hand" MinWidth="{x:Static o:OverlayViewModel.HandPanelWidth}" Shown="{Binding ShowHandMarks}"
+                                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,92,0,0">
+                    <o:OpponentHandPanel />
                 </o:MovablePanel>
 
                 <!-- ============ Constructed: counters (bottom-left) ============ -->
@@ -1260,6 +1269,9 @@
                         </StackPanel>
                     </Border>
                 </o:MovablePanel>
+
+                <!-- ============ Card preview on hover (top layer, never takes the pointer) ============ -->
+                <c:CardPreviewHost Name="PreviewHost" />
             </Grid>
         </LayoutTransformControl>
     </Panel>

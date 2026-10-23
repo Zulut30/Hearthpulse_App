@@ -22,6 +22,9 @@ public enum ArtKind
 
     /// <summary>Full-size card art (512x512), used as a faded page banner.</summary>
     Splash,
+
+    /// <summary>Full Constructed card render (256 px wide) in the card-data locale, shown by the hover preview.</summary>
+    Card,
 }
 
 /// <summary>
@@ -66,6 +69,7 @@ public static class CardArt
     public static readonly DependencyProperty PortraitProperty = Register("Portrait", ArtKind.Portrait);
     public static readonly DependencyProperty BattlegroundsCardProperty = Register("BattlegroundsCard", ArtKind.BattlegroundsCard);
     public static readonly DependencyProperty SplashProperty = Register("Splash", ArtKind.Splash);
+    public static readonly DependencyProperty CardProperty = Register("Card", ArtKind.Card);
 
     public static string? GetTile(DependencyObject d) => (string?)d.GetValue(TileProperty);
     public static void SetTile(DependencyObject d, string? value) => d.SetValue(TileProperty, value);
@@ -75,6 +79,8 @@ public static class CardArt
     public static void SetBattlegroundsCard(DependencyObject d, string? value) => d.SetValue(BattlegroundsCardProperty, value);
     public static string? GetSplash(DependencyObject d) => (string?)d.GetValue(SplashProperty);
     public static void SetSplash(DependencyObject d, string? value) => d.SetValue(SplashProperty, value);
+    public static string? GetCard(DependencyObject d) => (string?)d.GetValue(CardProperty);
+    public static void SetCard(DependencyObject d, string? value) => d.SetValue(CardProperty, value);
 
     private static DependencyProperty Register(string name, ArtKind kind) =>
         DependencyProperty.RegisterAttached(name, typeof(string), typeof(CardArt),
@@ -109,6 +115,7 @@ public static class CardArt
         ArtKind.Tile => TileProperty,
         ArtKind.Portrait => PortraitProperty,
         ArtKind.Splash => SplashProperty,
+        ArtKind.Card => CardProperty,
         _ => BattlegroundsCardProperty,
     };
 
@@ -180,9 +187,13 @@ public static class CardArt
             ArtKind.Tile => ($"https://art.hearthstonejson.com/v1/tiles/{cardId}.png", "png"),
             ArtKind.Portrait => ($"https://art.hearthstonejson.com/v1/256x/{cardId}.jpg", "jpg"),
             ArtKind.Splash => ($"https://art.hearthstonejson.com/v1/512x/{cardId}.jpg", "jpg"),
+            ArtKind.Card => ($"https://art.hearthstonejson.com/v1/render/latest/{Locale}/256x/{cardId}.png", "png"),
             _ => ($"https://art.hearthstonejson.com/v1/bgs/latest/{Locale}/256x/{cardId}.png", "png"),
         };
-        var dir = Path.Combine(AppPaths.Images, kind.ToString().ToLowerInvariant());
+        // Renders carry the card text, so each locale keeps its own copies.
+        var dir = kind == ArtKind.Card
+            ? Path.Combine(AppPaths.Images, "card", Locale)
+            : Path.Combine(AppPaths.Images, kind.ToString().ToLowerInvariant());
         var file = Path.Combine(dir, $"{cardId}.{ext}");
         ImageSource? image = null;
         if (Unreadable.ContainsKey(Key(kind, cardId)))
@@ -197,7 +208,8 @@ public static class CardArt
                 await Downloads.WaitAsync().ConfigureAwait(false);
                 try
                 {
-                    if (!await TryDownloadAsync(http, url, file, dir).ConfigureAwait(false) && FallbackUrl?.Invoke(cardId) is { Length: > 0 } fallback)
+                    if (!await TryDownloadAsync(http, url, file, dir).ConfigureAwait(false) && kind != ArtKind.Card
+                        && FallbackUrl?.Invoke(cardId) is { Length: > 0 } fallback)
                     {
                         await TryDownloadAsync(http, fallback, file, dir).ConfigureAwait(false);
                     }
@@ -254,13 +266,26 @@ public static class CardArt
         }
     }
 
+    /// <summary>URLs that answered 404 this session (tokens without a render...): not asked again on every hover.</summary>
+    private static readonly ConcurrentDictionary<string, bool> Missing = new();
+
     private static async Task<bool> TryDownloadAsync(HttpClient http, string url, string file, string dir)
     {
+        if (Missing.ContainsKey(url))
+        {
+            return false;
+        }
+
         try
         {
             using var response = await http.GetAsync(url).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    Missing[url] = true;
+                }
+
                 return false;
             }
 
@@ -316,7 +341,7 @@ public static class CardArt
         bitmap.BeginInit();
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
         bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
-        bitmap.DecodePixelWidth = kind switch { ArtKind.Tile => 256, ArtKind.Splash => 512, _ => 200 };
+        bitmap.DecodePixelWidth = kind switch { ArtKind.Tile or ArtKind.Card => 256, ArtKind.Splash => 512, _ => 200 };
         bitmap.UriSource = new Uri(file);
         bitmap.EndInit();
         bitmap.Freeze();

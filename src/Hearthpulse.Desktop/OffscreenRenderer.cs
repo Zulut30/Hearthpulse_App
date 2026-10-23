@@ -151,6 +151,7 @@ internal static partial class OffscreenRenderer
         {
             Console.WriteLine("overlay-mulligan: no kept Standard log with a known deck reaches a mulligan, skipped");
         }
+        await RenderConstructedAsync(host, settings, overlayView, overlay, folder);
 
         host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
         host.Overlay.LayoutEditing = true;

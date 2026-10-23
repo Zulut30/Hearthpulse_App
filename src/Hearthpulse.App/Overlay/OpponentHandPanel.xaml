@@ -1,0 +1,48 @@
+<UserControl x:Class="Hearthpulse.App.Overlay.OpponentHandPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             Width="{x:Static o:OverlayViewModel.HandPanelWidth}" Height="62">
+    <!-- Marks under the opponent's hand fan: the turn each card came in ("M" = opening hand), the Coin, and the portrait
+         of the card when it is known or of the card that created it. The view model places each mark under its card. -->
+    <UserControl.Resources>
+        <i:VisibleWhen x:Key="Vis" />
+    </UserControl.Resources>
+    <ItemsControl ItemsSource="{Binding HandMarks}">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <Grid />
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type o:HandMark}">
+                <Border Width="{x:Static o:OverlayViewModel.HandMarkWidth}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="{Binding Offset}"
+                        Padding="0,3,0,4" CornerRadius="8" Background="{StaticResource OverlayPanel}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
+                        o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding Hint}" c:CardPreview.CardId="{Binding PreviewCardId}"
+                        c:CardPreview.Placement="Below">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding Label}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center"
+                                   Visibility="{Binding Label, Converter={StaticResource Vis}}" />
+                        <Grid Width="26" Height="26" Margin="0,2,0,0" Visibility="{Binding PortraitId, Converter={StaticResource Vis}}">
+                            <Border Margin="2" CornerRadius="11" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding PortraitId}" />
+                            <Ellipse x:Name="Ring" Stroke="{StaticResource Accent}" StrokeThickness="1.5" />
+                            <!-- Created by this card: the portrait is the creator's, marked with the same glyph as created deck cards -->
+                            <Border Width="13" Height="13" CornerRadius="7" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,-3"
+                                    Background="{StaticResource OverlayBadgeShade}" Visibility="{Binding Created, Converter={StaticResource Vis}}">
+                                <TextBlock Text="&#xF0674;" Style="{StaticResource Icon}" FontSize="9" Foreground="{StaticResource Info}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Created}" Value="True">
+                        <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource Info}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

@@ -156,6 +156,7 @@ public partial class OverlayWindow : Window
             {
                 Root.Visibility = Visibility.Hidden;
                 _shown = false;
+                PreviewHost.Hide();
                 ViewModel.HoverLeaderboard(0, 0, 0);
             }
 
@@ -241,6 +242,8 @@ public partial class OverlayWindow : Window
         else
         {
             Native.SetExStyle(_hwnd, Native.WS_EX_TRANSPARENT, 0);
+            // A click-through window gets no mouse-leave, so the hover preview would stay up.
+            PreviewHost.Hide();
         }
     }
 

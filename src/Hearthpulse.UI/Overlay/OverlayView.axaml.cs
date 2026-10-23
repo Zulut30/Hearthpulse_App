@@ -101,6 +101,12 @@ public partial class OverlayView : UserControl
         UpdateGuides();
     }
 
+    /// <summary>Hides the card hover preview (the overlay went click-through, so no pointer-exit will come).</summary>
+    public void HidePreview() => PreviewHost.Hide();
+
+    /// <summary>Shows the hover preview for the first control that passes <paramref name="filter"/> (off-screen renders).</summary>
+    public bool ShowPreviewFor(Func<Control, bool> filter) => PreviewHost.ShowFirst(this, filter);
+
     /// <summary>True when the point (in this view's coordinates) is over a panel that takes the mouse.</summary>
     public bool IsInteractiveAt(Point point)
     {

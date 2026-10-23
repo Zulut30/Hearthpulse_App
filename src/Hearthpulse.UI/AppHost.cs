@@ -109,6 +109,9 @@ public sealed class AppHost : IDisposable
 
     public string? InstallDirectory { get; private set; }
 
+    /// <summary>Constructed stats from the last successful <see cref="LoadMetaAsync"/>; null until then.</summary>
+    public ConstructedMeta? ConstructedMeta { get; private set; }
+
     public CardDb Cards { get; private set; } = CardDb.Empty;
 
     public BattlegroundsMeta? Meta { get; private set; }
@@ -168,6 +171,11 @@ public sealed class AppHost : IDisposable
             if (!Settings.HistoryImported || !Settings.HistoryStatsFilled)
             {
                 await ImportLogsAsync(force: false);
+            }
+            else if (InstallDirectory is { } install)
+            {
+                // Games saved before Decks.log was read correctly (and imported ones) have no deck yet.
+                _ = Task.Run(() => LogBackfill.FillDecks(install, History, Cards));
             }
 
             if (!watchLogs)
@@ -279,6 +287,7 @@ public sealed class AppHost : IDisposable
             var constructed = await ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, Cards.Locale);
             if (constructed is not null)
             {
+                ConstructedMeta = constructed;
                 Session.SetConstructedMeta(constructed);
             }
         }
@@ -414,7 +423,7 @@ public sealed class AppHost : IDisposable
 
     private void RefreshDeckStats(ConstructedView? view)
     {
-        var key = view is null ? null : $"{view.DeckName}|{view.PlayerClass}|{view.OpponentClass}";
+        var key = view is null ? null : $"{view.DeckName}|{view.DeckId}|{view.DeckCode}|{view.PlayerClass}|{view.OpponentClass}";
         if (key == _deckStatsKey)
         {
             return;
@@ -430,8 +439,13 @@ public sealed class AppHost : IDisposable
 
         _ = Task.Run(() =>
         {
-            var deck = History.DeckStats().FirstOrDefault(d => d.DeckName == view.DeckName && d.PlayerClass == view.PlayerClass);
-            var matchup = History.MatchupStats(deck?.DeckCode).FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
+            var sameDeck = InstallDirectory is { } dir ? DecksLog.CodesOf(DecksLog.ReadAll(dir), view.DeckId) : [];
+            var games = DeckRecords.Matching(History.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass, sameDeck);
+            var deck = DeckRecords.Aggregate(games, view.DeckName, view.DeckCode, view.PlayerClass);
+            // The matchup line counts the same games as the record; without any, the class matchup over all decks.
+            var matchup = games.Count > 0
+                ? DeckRecords.Matchup(games, view.OpponentClass)
+                : History.MatchupStats().FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
             return (deck, matchup);
         }).ContinueWith(t =>
         {
