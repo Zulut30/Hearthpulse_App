@@ -36,7 +36,7 @@ Not used: `/v1/meta-intelligence/cards` (needs a token). Docs: `docs/constructed
 | `POST oauth/token` | `grant_type=urn:ietf:params:oauth:grant-type:device_code` or `refresh_token`; refresh rotates |
 | `POST oauth/revoke` | refresh token only |
 | `GET me` (Bearer) | `user{id,name,profileUrl}`, `subscription` -> `Entitlements`; e-mail is never read or stored |
-| `POST tracker/events/batch` | **not called by the app yet** - contract in shared notes `player-games-upload-contract.md` |
+| `POST tracker/events/batch` | finished games for the profile's "My statistics" (`ProfileUploader`, `docs/profile-upload.md`) |
 
 Approval page shows the client name "Manacost Tracker"; `/connect?user_code=` pre-fills the code. Staging identity:
 `test.hearthpulse.net` (set `HEARTHPULSE_SITE_API` to try it).

@@ -57,7 +57,8 @@ public sealed partial class AppHost : IDisposable
         Http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + Version);
         CardArt.Http = Http;
         Api = new HearthpulseApi(Http);
-        Account = new AccountService(new AccountClient(Http));
+        var accountClient = new AccountClient(Http);
+        Account = new AccountService(accountClient);
 
         History = new HistoryStore(AppPaths.Database);
         Memory = new HearthstoneMemory();
@@ -66,6 +67,10 @@ public sealed partial class AppHost : IDisposable
         Session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(Api)));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
+        Uploader = ProfileUploader.For(accountClient, Account, () => Settings.UploadGamesToProfile, History);
+        Uploader.BaseHero = id => Cards.BaseHeroId(id);
+        Account.Changed += Uploader.Kick;
+        Main.AttachUploader(Uploader);
         Account.RestoreAsync().Forget("Account restore");
         Overlay = new OverlayViewModel();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
@@ -82,6 +87,11 @@ public sealed partial class AppHost : IDisposable
 
         _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => Main.RefreshAsync().Forget("History refresh"));
         _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), Settings.Save);
+        Main.UploadSettingChanged += () =>
+        {
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+        };
         _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(3) };
         _metaRefresh.Tick += (_, _) => LoadMetaAsync().Forget("Battlegrounds meta load");
 
@@ -106,6 +116,9 @@ public sealed partial class AppHost : IDisposable
     public HearthpulseApi Api { get; }
 
     public AccountService Account { get; }
+
+    /// <summary>Sends finished games to the hearthpulse.net profile while signed in (Settings, account card).</summary>
+    public ProfileUploader Uploader { get; }
 
     public HistoryStore History { get; }
 
@@ -200,6 +213,7 @@ public sealed partial class AppHost : IDisposable
 
             _watcher = new LogWatcher(Session, () => InstallDirectory);
             _watcher.Start();
+            Uploader.Start();
             SetBusy(InstallDirectory is null
                 ? () => Loc.T("Host.Busy.GameNotFound")
                 : null);
@@ -597,6 +611,9 @@ public sealed partial class AppHost : IDisposable
 
     private void OnGameFinished(GameOutcome outcome)
     {
+        // Reads the history row, so off the UI thread; a game that ends while signed out is not sent.
+        Task.Run(() => Uploader.OnGameFinished(outcome)).Forget("Profile upload");
+
         if (Settings.ShowGameToasts && Settings.OverlayEnabled)
         {
             Overlay.ShowOutcome(outcome);
@@ -618,6 +635,7 @@ public sealed partial class AppHost : IDisposable
     {
         Loc.Instance.LanguageChanged -= OnLanguageChanged;
         _watcher?.Dispose();
+        Uploader.Dispose();
         _metaRefresh.Stop();
         Memory.Dispose();
         Settings.Save();

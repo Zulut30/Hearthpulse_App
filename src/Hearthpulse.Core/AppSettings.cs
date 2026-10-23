@@ -134,6 +134,13 @@ public sealed class AppSettings
 
     public string MetaPeriod { get; set; } = "past_week";
 
+    /// <summary>
+    /// Send finished games to the player's profile on hearthpulse.net ("My statistics"). On by default: games are collected
+    /// automatically while the player is signed in; the switch in Settings turns it off (Accounts/ProfileUploader,
+    /// docs/profile-upload.md).
+    /// </summary>
+    public bool UploadGamesToProfile { get; set; } = true;
+
     /// <summary>Whether the player shares Battlegrounds results with the stats pool; null until they answer.</summary>
     public bool? PoolConsent { get; set; }
 

@@ -68,15 +68,16 @@ now comes from, and what stays empty until the pool runs: `docs/bg-meta-sources.
   working offline, show what unlocks it, and never hide data the player already had.
 - Contract and manual checks: `docs/accounts-api.md`.
 
-## Uploading games (`tracker/events/batch`) - not implemented
+## Uploading games (`tracker/events/batch`)
 
-The app does **not** send games yet (no uploader in `src`; only the `tracker.write` scope is requested). The site
-side expects `POST /api/v1/tracker/events/batch` with the same device-flow token, 1-50 events per call, idempotent by
-`eventId` (UUID), answer 202 `{accepted, rejected}`, payload `schemaVersion: 2` for the site's "My statistics".
-The contract lives in the shared notes as `player-games-upload-contract.md` (site branch
-`claude/profile-game-stats-e88af0`, not merged). Before building it: opt-in setting (off by default), send each game
-once after it ends, queue offline with a bound, never upload hidden information or the opponent's BattleTag beyond
-what the contract asks, and agree the payload with the site session.
+`Core/Accounts/ProfileUploader.cs` sends finished games to the site's "My statistics" (`schemaVersion: 2`) with the
+device-flow token: only while signed in and `AppSettings.UploadGamesToProfile` is on (default on, games are collected
+automatically; switch to turn it off, privacy and data-deletion links in the account card of both apps), batches of at most 50 events, persistent queue `profile-upload.json` per site account, backoff on
+outages, rejected events logged and dropped, idempotent UUID v5 `eventId` per game (without the BattleTag). Mapping
+`GameRecord` -> payload is `ProfileEvents.cs`; every event passes `ProfileEventSchema.cs` (the site's strict check,
+ported) before it is queued, because the site keeps the first copy of an id forever; the contract test checks the
+mapping against the site spec's example. Full rules and mapping: `docs/profile-upload.md`. When the site changes its
+schema (`server/modules/playerGames/schema/gameSchema.ts`), update `ProfileEvents`, `ProfileEventSchema` and the fixture.
 
 ## Licences: what may be reused
 

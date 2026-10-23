@@ -38,6 +38,7 @@ public partial class App : Application
     private Task? _archetypeNames;
     private HearthpulseApi _api = null!;
     private AccountService _account = null!;
+    private ProfileUploader _uploader = null!;
     private HistoryStore _history = null!;
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
@@ -178,8 +179,18 @@ public partial class App : Application
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
-        _account = new AccountService(new AccountClient(_http));
+        var accountClient = new AccountClient(_http);
+        _account = new AccountService(accountClient);
         _mainViewModel.AttachAccount(_account);
+        _uploader = ProfileUploader.For(accountClient, _account, () => _settings.UploadGamesToProfile, _history);
+        _uploader.BaseHero = id => _cards.BaseHeroId(id);
+        _account.Changed += _uploader.Kick;
+        _mainViewModel.AttachUploader(_uploader);
+        _mainViewModel.UploadSettingChanged += () =>
+        {
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+        };
         _account.RestoreAsync().Forget("Account restore");
         _overlayViewModel = new OverlayViewModel();
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
@@ -265,6 +276,7 @@ public partial class App : Application
         _watchdog?.Stop();
         _uiProbe?.Dispose();
         _watcher?.Dispose();
+        _uploader?.Dispose();
         if (_hotkeySource is not null)
         {
             Native.UnregisterHotKey(_hotkeySource.Handle, HotkeyId);
@@ -353,6 +365,7 @@ public partial class App : Application
 
             _watcher = new LogWatcher(_session, () => _installDir);
             _watcher.Start();
+            _uploader.Start();
             _watchdog = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();
@@ -731,6 +744,9 @@ public partial class App : Application
 
     private void OnGameFinished(GameOutcome outcome)
     {
+        // Reads the history row, so off the UI thread; a game that ends while signed out is not sent.
+        Task.Run(() => _uploader.OnGameFinished(outcome)).Forget("Profile upload");
+
         // The event fires again once the new rating is read; share the game only the first time.
         if (outcome.RatingAfter is null && PoolClient.Sharing(_settings)
             && PoolGame.From(outcome, _cards.BaseHeroId, CardRaces, PoolClient.SharingDetails(_settings), PoolClient.Secret(_settings)) is { } game)

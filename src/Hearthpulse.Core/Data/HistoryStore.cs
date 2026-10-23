@@ -215,6 +215,25 @@ public sealed partial class HistoryStore
         + " FROM games";
 
     /// <summary>
+    /// The list columns plus <c>opponent_archetype</c> (the other card columns stay NULL): what the profile upload sends.
+    /// </summary>
+    private static readonly string UploadSelect = "SELECT "
+        + string.Join(", ", FirstColumns.Concat(AddedColumns.Select(c => c.Name))
+            .Select(c => CardColumns.Contains(c) && c != "opponent_archetype" ? $"NULL AS {c}" : c))
+        + " FROM games";
+
+    /// <summary>
+    /// Up to <paramref name="limit"/> games saved after row <paramref name="afterId"/>, in row order, with the columns the
+    /// profile upload needs: a cursor over the whole history that never holds it all in memory.
+    /// </summary>
+    public IReadOnlyList<GameRecord> PageForUpload(long afterId, int limit) =>
+        Query($"{UploadSelect} WHERE id > $after ORDER BY id LIMIT $limit;", p =>
+        {
+            p.AddWithValue("$after", afterId);
+            p.AddWithValue("$limit", limit);
+        });
+
+    /// <summary>
     /// The same games read again with their card columns (mulligan, cards drawn and played, opponent cards and
     /// archetype), in the order given; for the deck page, which needs them for one deck's games only.
     /// </summary>

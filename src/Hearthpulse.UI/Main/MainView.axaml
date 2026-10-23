@@ -1010,6 +1010,25 @@
                                             <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </Button>
+                                    <!-- Games to the profile on the site ("My statistics") -->
+                                    <CheckBox Classes="switch" Content="{i:Loc Upload.Switch}" IsChecked="{Binding UploadGames}" Margin="0,14,0,4" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Text="{i:Loc Upload.Intro}" />
+                                    <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0" Text="{i:Loc Upload.What}" />
+                                    <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <Button Classes="bare" Command="{Binding OpenPrivacy}" Margin="0,0,14,0">
+                                            <TextBlock Text="{i:Loc Upload.Privacy}" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
+                                        </Button>
+                                        <Button Classes="bare" Command="{Binding OpenTrackerData}">
+                                            <TextBlock Text="{i:Loc Upload.YourData}" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
+                                        </Button>
+                                    </WrapPanel>
+                                    <WrapPanel Orientation="Horizontal" Margin="0,8,0,0" IsVisible="{Binding UploadGames}">
+                                        <Button Classes="ghost" Content="{i:Loc Upload.PastGames}" Command="{Binding UploadPastGames}" Margin="0,0,12,0"
+                                                ToolTip.Tip="{i:Loc Upload.PastGamesTip}" />
+                                        <TextBlock Text="{Binding UploadStatus}" Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                    </WrapPanel>
+                                    <TextBlock Text="{Binding UploadMessage}" Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               IsVisible="{Binding UploadMessage, Converter={StaticResource Truthy}}" />
                                     <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
                                         <Button Classes="ghost primary" Content="{i:Loc Settings.Account.SignInAgain}" Command="{Binding SignIn}" Margin="0,0,8,0" IsVisible="{Binding AccountSessionEndingSoon}" />
                                         <Button Classes="ghost" Content="{i:Loc Settings.Account.SignOut}" Command="{Binding SignOut}" />
