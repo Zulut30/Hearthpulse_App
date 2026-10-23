@@ -11,6 +11,7 @@ using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
 using Hearthpulse.UI.Infrastructure;
@@ -263,11 +264,29 @@ public sealed class AppHost : IDisposable
         }
     }
 
+    /// <summary>
+    /// Community stats: the full meta from the stats pool when one is set up (/v1/meta, or its own game totals before
+    /// the meta is imported), otherwise Firestone's with the Hearthpulse API as the fallback.
+    /// </summary>
     public async Task LoadMetaAsync()
     {
+        var loaded = false;
+        if (PoolClient.Available(Settings))
+        {
+            var pooled = await PoolClient.LoadMetaAsync(Http, PoolClient.Endpoint(Settings))
+                ?? await PoolClient.LoadStatsAsync(Http, PoolClient.Endpoint(Settings));
+            if (pooled is not null)
+            {
+                Meta = pooled;
+                Session.SetMeta(pooled);
+                Main.SetMeta(pooled);
+                loaded = true;
+            }
+        }
+
         try
         {
-            var meta = await BattlegroundsMeta.LoadAsync(Http, fallback: new HearthpulseData(Api));
+            var meta = loaded ? null : await BattlegroundsMeta.LoadAsync(Http, fallback: new HearthpulseData(Api));
             if (meta is not null)
             {
                 Meta = meta;

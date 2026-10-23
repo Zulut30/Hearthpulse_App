@@ -32,3 +32,10 @@ CREATE TABLE IF NOT EXISTS snap (
   built INTEGER NOT NULL,     -- unix ms
   body TEXT NOT NULL          -- the JSON returned by /v1/stats
 );
+
+-- Firestone's Battlegrounds data, imported once (import-firestone.mjs + migrations/0004_meta.sql) and served by
+-- /v1/meta. The body is one JSON document split into chunks small enough for a D1 statement.
+CREATE TABLE IF NOT EXISTS meta (
+  seq INTEGER PRIMARY KEY,    -- chunk order
+  body TEXT NOT NULL          -- part of the /v1/meta JSON
+);

@@ -23,6 +23,7 @@ export default {
     if (request.method === "OPTIONS") return reply(null, 204);
     if (request.method === "POST" && url.pathname === "/v1/games") return submit(request, env);
     if (request.method === "GET" && (url.pathname === "/v1/stats" || url.pathname === "/v1/heroes")) return stats(request, env, ctx, url);
+    if (request.method === "GET" && url.pathname === "/v1/meta") return meta(request, env, ctx);
     return reply({ error: "not found" }, 404);
   },
 
@@ -206,6 +207,23 @@ async function stats(request, env, ctx, url) {
 }
 
 const round = (x) => (x === null || x === undefined ? null : Math.round(x * 1000) / 1000);
+
+/**
+ * The Firestone base stats, imported once by migrations/0004_meta.sql and stored as numbered chunks (one D1 row
+ * each). The app reads this instead of zerotoheroes.com; there is no Firestone call anywhere in the worker.
+ */
+async function meta(request, env, ctx) {
+  const cache = caches.default;
+  const hit = await cache.match(request);
+  if (hit) return hit;
+
+  const { results } = await env.DB.prepare("SELECT body FROM meta ORDER BY seq").all();
+  if (results.length === 0) return reply({ error: "meta not imported" }, 503);
+
+  const response = reply(results.map((row) => row.body).join(""), 200, { "cache-control": "public, max-age=1800" });
+  ctx.waitUntil(cache.put(request, response.clone()));
+  return response;
+}
 
 /** Works the totals out again and stores them. Skipped when no game came in and the totals are under a day old. */
 export async function rebuild(env, mode, force) {

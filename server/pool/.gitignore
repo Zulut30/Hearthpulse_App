@@ -1,3 +1,6 @@
 # Local test database and build output from wrangler dev
 .wrangler/
 node_modules/
+
+# One-time Firestone download (see import-firestone.mjs)
+.cache/

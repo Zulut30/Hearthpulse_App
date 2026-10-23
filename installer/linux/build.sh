@@ -7,7 +7,7 @@
 # Every package adds a menu entry, the icon and a desktop shortcut, and uninstalls cleanly.
 set -euo pipefail
 
-VERSION="${1:-0.10.0}"
+VERSION="${1:-0.11.0}"
 ARCH="${2:-x64}"
 case "$ARCH" in
   x64) DEB_ARCH=amd64; RPM_ARCH=x86_64; APPIMAGE_ARCH=x86_64 ;;

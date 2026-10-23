@@ -261,4 +261,64 @@ public sealed class PoolTests
         Assert.Equal("BEAST", tribe.Tribe);
         Assert.Equal(0.6, tribe.Top4Rate);
     }
+
+    [Fact]
+    public void ReadsTheFullMetaServedByThePool()
+    {
+        using var doc = JsonDocument.Parse("""
+            { "v": 1, "updated": "2026-10-23T09:10:37.893Z",
+              "percentiles": [[100, 0], [50, 6000]],
+              "heroes": {
+                "100": [["BG_HERO_1", 1200, 3000, 1500, 3.9, 0.56, 0.15, [[14, 0.12], [5, -0.03]]]],
+                "50":  [["BG_HERO_1", 240, 600, 300, 3.7, 0.6, 0.2, []]],
+                "10":  [["BG_HERO_1", 80, 200, 90, 4.4, 0.4, 0.05, []]] },
+              "cards": {
+                "100": [["BG_CARD_A", 5000, 3.1, [[4, 400, 3.8], [8, 900, 3.0]]]] },
+              "trinkets": [["TRK_1", 600, 0.42, 3.7, [[100, 600, 3.7], [10, 50, 4.1]]]],
+              "comps": [["beast_beetle", 9000, 3.6, [[100, 9000, 3.6], [10, 120, 4.2]], [["BG_HERO_1", 300, 3.4]]]],
+              "guides": [{ "id": "beast_beetle", "name": "Beast Beetle", "power": "A", "difficulty": "Easy",
+                           "tribes": [14], "cards": [["BG_CARD_A", "CORE"], ["BG_CARD_B", "ADDON"]],
+                           "tip": "Buy beasts", "when": "Turn 6" }] }
+            """);
+        var meta = PoolClient.ParseMeta(doc.RootElement)!;
+
+        var hero = meta.Hero("BG_HERO_1", 100)!;
+        Assert.Equal(1200, hero.DataPoints);
+        Assert.Equal(3.9, hero.AveragePosition);
+        Assert.Equal(0.5, hero.PickRate, 3);
+        Assert.Equal(0.56, hero.Top4Rate);
+        Assert.Equal(0.15, hero.FirstRate);
+        Assert.Equal(0.12, hero.TribeImpact[14]);
+        Assert.Equal(new[] { (100, 0), (50, 6000) }, meta.Percentiles);
+        Assert.Equal(50, meta.BracketFor(6100));
+
+        var atTurn = meta.CardAtTurn("BG_CARD_A", 5, 100)!.Value;
+        Assert.Equal(3.8, atTurn.Placement);
+        Assert.Equal(400, atTurn.Games);
+
+        var trinket = meta.Trinket("TRK_1", 10)!.Value;
+        Assert.Equal(4.1, trinket.Placement);
+        Assert.Equal(0.42, trinket.PickRate);
+        Assert.Equal(50, trinket.DataPoints);
+
+        var comp = Assert.Single(meta.Comps);
+        Assert.Equal("Beast Beetle", comp.Name);
+        Assert.Equal("A", comp.PowerLevel);
+        Assert.Equal("Easy", comp.Difficulty);
+        Assert.Equal(new[] { "MURLOC" }, comp.Tribes);
+        Assert.Equal(new[] { ("BG_CARD_A", "CORE"), ("BG_CARD_B", "ADDON") }, comp.Cards.Select(c => (c.CardId, c.Status)));
+        Assert.Equal("Buy beasts", comp.Tip);
+        Assert.Equal("Turn 6", comp.WhenToCommit);
+        Assert.Equal(3.6, comp.AveragePlacement);
+        Assert.Equal(4.2, comp.PlacementAtMmr[10]);
+        Assert.Equal((300, 3.4), comp.HeroPlacement["BG_HERO_1"]);
+        Assert.Equal(new DateTime(2026, 10, 23, 9, 10, 37, 893, DateTimeKind.Utc), meta.Updated);
+    }
+
+    [Fact]
+    public void RejectsMetaWithoutHeroes()
+    {
+        using var doc = JsonDocument.Parse("""{ "cards": { "100": [] }, "comps": [] }""");
+        Assert.Null(PoolClient.ParseMeta(doc.RootElement));
+    }
 }

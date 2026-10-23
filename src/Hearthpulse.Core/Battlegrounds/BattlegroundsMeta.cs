@@ -829,7 +829,7 @@ public sealed class BattlegroundsMeta
     private static double GetDouble(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
 
-    private static string Prettify(string archetype) =>
+    internal static string Prettify(string archetype) =>
         string.Join(' ', archetype.Split('_', StringSplitOptions.RemoveEmptyEntries)
             .Select(w => w == "apm" ? "APM" : char.ToUpperInvariant(w[0]) + w[1..]));
 
