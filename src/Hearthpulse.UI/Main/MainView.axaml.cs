@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Hearthpulse.Core;
 using Hearthpulse.UI.Infrastructure;
@@ -44,6 +45,29 @@ public partial class MainView : UserControl
     /// <summary>Opens the data folder; hosts can replace it (e.g. on mobile, where there is no file manager).</summary>
     public Action<string>? OpenFolder { get; set; } = path =>
         Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+
+    private async void OnCopyAccountCode(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel is not { AccountUserCode.Length: > 0 } viewModel)
+        {
+            return;
+        }
+
+        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+        try
+        {
+            if (clipboard is not null)
+            {
+                await clipboard.SetTextAsync(viewModel.AccountUserCode);
+            }
+
+            viewModel.AccountCodeCopied(clipboard is not null);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.ExternalException)
+        {
+            viewModel.AccountCodeCopied(false);
+        }
+    }
 
     protected override void OnDataContextChanged(EventArgs e)
     {

@@ -48,8 +48,9 @@ Core folders:
 - `Api/HearthpulseApi.cs` (client for `api.kolodahearthstone.com`, `HEARTHPULSE_API` env override; `{"data"}` and
   bare answers, `{"detail"}` errors) and `Api/HearthpulseData.cs` (HSReplay-based fallback stats used by
   `BattlegroundsMeta`/`ConstructedMeta.LoadAsync(..., fallback:)` when Firestone fails; `meta.Source` names the source).
-- `Accounts/` (`AccountService`, `TokenStore` = DPAPI on Windows). Server contract: `docs/accounts-api.md`; until the
-  server implements it, sign-in answers NOT_AVAILABLE. UI: Settings, "Hearthpulse account" in both apps.
+- `Accounts/` - sign-in with a hearthpulse.net account via the OAuth device flow (`AccountClient`, `AccountService`,
+  `TokenStore` = DPAPI on Windows, `Entitlements` = paid access for paywalls). Contract: `docs/accounts-api.md`
+  (`HEARTHPULSE_SITE_API` for a test site). UI: Settings, "Hearthpulse account" in both apps.
 - `Tracking/Counters/` - in-game counters. `CounterTracker` (IPowerListener) records plays/summons/deaths/draws;
   `Counters.cs` defines every counter (player tags seen in real logs: `CTHUN_ABILITY1..4_USED`,
   `HERALD_COLOSSAL_AMOUNT`, `CORPSES`, `NUM_SPELLS_PLAYED_THIS_GAME`, `QUEST_PROGRESS`/`_TOTAL`...). Which cards make a
