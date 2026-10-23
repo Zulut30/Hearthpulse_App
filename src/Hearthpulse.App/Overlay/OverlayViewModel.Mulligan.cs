@@ -40,6 +40,7 @@ public sealed partial class OverlayViewModel
     private string _mulliganSynergyNote = string.Empty;
     private MulliganView? _mulligan;
     private string? _mulliganHand;
+    private string? _mulliganPrint;
     private readonly HashSet<int> _mulliganKept = new();
     private RelayCommand? _toggleMulliganCard;
 
@@ -84,6 +85,7 @@ public sealed partial class OverlayViewModel
         if (mulligan is null)
         {
             _mulliganHand = null;
+            _mulliganPrint = null;
             return;
         }
 
@@ -106,6 +108,15 @@ public sealed partial class OverlayViewModel
             return;
         }
 
+        // Snapshots arrive every 100 ms while anything changes; rebuild the plates only when what they show changed.
+        var print = $"{view.Context}|{view.Source}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{string.Join(",", _mulliganKept.Order())}|"
+                    + string.Join(";", view.Cards.Select(c => $"{c.EntityId}{c.CardId}{c.Call}{c.Delta:0.0000}{c.KeepRate:0.0000}"));
+        if (print == _mulliganPrint)
+        {
+            return;
+        }
+
+        _mulliganPrint = print;
         var culture = CultureInfo.CurrentCulture;
         var impact = MulliganGuide.Evaluate(view, _mulliganKept);
         var vsClass = view.OpponentClass is { } opponent ? $" vs {ClassName(opponent)}" : string.Empty;
