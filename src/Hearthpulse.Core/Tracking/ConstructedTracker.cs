@@ -118,7 +118,35 @@ public sealed class ConstructedTracker : IPowerListener
         {
             Mulligan = Mulligan.Build(game, cards, Deck, Meta, playerClass),
             Counters = Tracking.Counters.Counters.Build(game, Counters, cards, Deck),
+            DeckId = Deck?.DeckId ?? 0,
+            DeckCode = Deck?.Code,
+            DeckMeta = DeckMetaFor(cards, playerClass),
         };
+    }
+
+    private (DeckDefinition? Deck, ConstructedMeta? Meta, DeckMetaStat? Stat) _deckMeta;
+
+    /// <summary>The deck's archetype in the community stats; matched once per deck and stats download.</summary>
+    private DeckMetaStat? DeckMetaFor(CardDb cards, string playerClass)
+    {
+        if (Deck is null || Meta is null)
+        {
+            return null;
+        }
+
+        if (ReferenceEquals(_deckMeta.Deck, Deck) && ReferenceEquals(_deckMeta.Meta, Meta))
+        {
+            return _deckMeta.Stat;
+        }
+
+        var ids = Deck.Cards.Keys.Select(cards.Get).OfType<Card>().Select(c => c.Id).ToList();
+        var archetype = Meta.Match(playerClass, ids);
+        var source = Meta.Source == Api.HearthpulseData.Attribution ? "HSReplay" : "Firestone";
+        var stat = archetype is null
+            ? null
+            : new DeckMetaStat(archetype.Name, archetype.WinRate, archetype.Games, ConstructedMeta.Label(ConstructedMeta.Ranks, Meta.Rank), source);
+        _deckMeta = (Deck, Meta, stat);
+        return stat;
     }
 
     private List<DeckCardRow> BuildDeckRows(GameState game, CardDb cards, int local, int deckCount)

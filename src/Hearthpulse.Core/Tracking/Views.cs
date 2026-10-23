@@ -43,7 +43,19 @@ public sealed record ConstructedView(
 
     /// <summary>Every counter for both players; the overlay shows them by each counter's mode.</summary>
     public IReadOnlyList<Counters.CounterView> Counters { get; init; } = [];
+
+    /// <summary>Deck id from Decks.log (0 when unknown); with the code it finds the player's own games with this deck.</summary>
+    public long DeckId { get; init; }
+
+    /// <summary>Deck code of the deck being played; null when unknown.</summary>
+    public string? DeckCode { get; init; }
+
+    /// <summary>Win rate of the deck's archetype in community stats; null without stats or a matching archetype.</summary>
+    public DeckMetaStat? DeckMeta { get; init; }
 }
+
+/// <summary>Community win rate of the archetype a deck belongs to; <see cref="Rank"/> and <see cref="Source"/> are labels.</summary>
+public sealed record DeckMetaStat(string Archetype, double WinRate, int Games, string Rank, string Source);
 
 public sealed record BgMinion(
     string CardId,

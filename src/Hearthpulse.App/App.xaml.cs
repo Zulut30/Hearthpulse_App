@@ -285,6 +285,11 @@ public partial class App : Application
             {
                 await ImportLogsAsync(force: false);
             }
+            else if (_installDir is { } install)
+            {
+                // Games saved before Decks.log was read correctly (and imported ones) have no deck yet.
+                _ = Task.Run(() => LogBackfill.FillDecks(install, _history, _cards));
+            }
 
             if (_renderDir is not null)
             {
@@ -495,7 +500,7 @@ public partial class App : Application
 
     private void RefreshDeckStats(ConstructedView? view)
     {
-        var key = view is null ? null : $"{view.DeckName}|{view.PlayerClass}|{view.OpponentClass}";
+        var key = view is null ? null : $"{view.DeckName}|{view.DeckId}|{view.DeckCode}|{view.PlayerClass}|{view.OpponentClass}";
         if (key == _deckStatsKey)
         {
             return;
@@ -511,7 +516,8 @@ public partial class App : Application
 
         _ = Task.Run(() =>
         {
-            var deck = _history.DeckStats().FirstOrDefault(d => d.DeckName == view.DeckName && d.PlayerClass == view.PlayerClass);
+            var sameDeck = _installDir is { } dir ? DecksLog.CodesOf(DecksLog.ReadAll(dir), view.DeckId) : [];
+            var deck = DeckRecords.Find(_history.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass, sameDeck);
             var matchup = _history.MatchupStats(deck?.DeckCode).FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
             return (deck, matchup);
         }).ContinueWith(t =>

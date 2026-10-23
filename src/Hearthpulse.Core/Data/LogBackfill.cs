@@ -1,11 +1,16 @@
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Hearthstone;
+using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.Data;
 
-public sealed record BackfillResult(int Sessions, int GamesFound, int GamesAdded);
+public sealed record BackfillResult(int Sessions, int GamesFound, int GamesAdded)
+{
+    /// <summary>Games that got their deck from Decks.log (see <see cref="LogBackfill.FillDecks"/>).</summary>
+    public int DecksFilled { get; init; }
+}
 
 /// <summary>Imports finished games from every Power log the client kept on disk.</summary>
 public static class LogBackfill
@@ -43,7 +48,31 @@ public static class LogBackfill
             }
         }
 
-        return new BackfillResult(sessions, found, added);
+        return new BackfillResult(sessions, found, added) { DecksFilled = FillDecks(installDir, history, cards) };
+    }
+
+    /// <summary>
+    /// Fills the deck of Constructed games saved without a code (imported games, and live games from before the
+    /// Decks.log fix) from the "Finding Game With Deck" block the same log session wrote just before each game.
+    /// Cheap: reads only the small Decks.log files and the history. Returns how many games changed.
+    /// </summary>
+    public static int FillDecks(string installDir, HistoryStore history, CardDb cards)
+    {
+        var entries = DecksLog.ReadAll(installDir);
+        if (entries.Count == 0)
+        {
+            return 0;
+        }
+
+        var games = history.Recent(int.MaxValue);
+        var fills = DeckRecords.MatchFindings(games, entries, code => DeckRecords.ClassOf(code, cards));
+        var changed = fills.Count == 0 ? 0 : history.FillDecks(fills);
+        if (changed > 0)
+        {
+            Diag.Info($"Deck filled in for {changed} past games from Decks.log");
+        }
+
+        return changed;
     }
 
     public static IReadOnlyList<GameRecord> Parse(string powerLogPath, DateOnly date, CardDb cards, CancellationToken cancellationToken = default)
