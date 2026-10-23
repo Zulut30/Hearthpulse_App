@@ -8,8 +8,19 @@ HOW IT WORKS
 - It reads the log files Hearthstone writes on your computer. On first start it
   turns on the log sections it needs in Hearthstone's log.config; restart
   Hearthstone once afterwards.
-- On Windows it also reads a few values from the game's memory, read-only:
-  your Battlegrounds rating, ranked medals and the lobby's tribes.
+- On Windows it also reads a few values from the game's memory while
+  Hearthstone runs. Read-only: it never writes to the game. That is:
+  - your Battlegrounds rating (solo and duos, also right after a game);
+  - in a game, both players' names and ranked medals;
+  - in Battlegrounds, the lobby's tribes and the costs on the tavern
+    buttons (refresh, freeze, upgrade, Dark Gift);
+  - in Battlegrounds with opponent boards on, the leaderboard hero under
+    your mouse, at most four times a second and only while the mouse is
+    near the leaderboard;
+  - in a Constructed game with the card pool on, the card under your
+    mouse, at most four times a second and only while a card in your
+    hand has a pool to show;
+  - to find these, the names and layout of the game's classes.
 - It never changes the game, never sends input to it and never shows hidden
   information such as your opponent's hand or deck.
 - Your history and settings stay on this computer, in %APPDATA%\Hearthpulse.
