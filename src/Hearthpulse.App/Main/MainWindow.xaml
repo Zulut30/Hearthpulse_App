@@ -413,7 +413,7 @@
                                                      ToolTip="Board archetypes (or, from the stats pool, main tribes) ranked by average final placement" />
                                         <RadioButton x:Name="TabTrinkets" Style="{StaticResource Tab}" Content="Trinkets" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="Trinkets ranked by the average placement of players who picked them" />
-                                        <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="Cards" GroupName="BgTab" Checked="OnBgTab" Visibility="{Binding HasCardTiers, Converter={StaticResource Vis}}"
+                                        <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="Cards" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="Minions and tavern spells, ranked inside each tier" />
                                         <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="My heroes" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="Your own results per hero" />
