@@ -43,6 +43,9 @@ public sealed record ConstructedView(
 
     /// <summary>Every counter for both players; the overlay shows them by each counter's mode.</summary>
     public IReadOnlyList<Counters.CounterView> Counters { get; init; } = [];
+
+    /// <summary>The pool of the generator being discovered from, hovered or just played; null when none.</summary>
+    public CardPool.CardPoolView? CardPool { get; init; }
 }
 
 public sealed record BgMinion(
