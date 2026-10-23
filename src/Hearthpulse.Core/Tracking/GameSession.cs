@@ -433,7 +433,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _recorded = true;
         var duos = game.IsDuos;
         int? before = _ratingAtGameStart is { } r ? (duos ? r.Duos : r.Solo) : null;
-        var rank = _constructed.LocalRank?.Display;
+        var rank = _constructed.LocalRank?.Text;
         var races = _battlegrounds.MemoryRaces is { Count: > 0 } list ? string.Join(",", list) : null;
         var record = GameRecords.Build(game, _battlegrounds, _cards, _constructed.Deck, "live", before is > 0 ? before : null, null, rank, races,
             _facts, _constructed.LocalRank);

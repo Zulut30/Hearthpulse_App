@@ -1,4 +1,5 @@
 using System.Globalization;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
 using Microsoft.Data.Sqlite;
 
@@ -490,7 +491,7 @@ public sealed class HistoryStore
                     TavernTier = reader.GetInt32(reader.GetOrdinal("tavern_tier")),
                     FinalBoard = NullableString(reader, "final_board"),
                     Races = NullableString(reader, "races"),
-                    Rank = NullableString(reader, "rank"),
+                    Rank = RankInfo.Normalize(NullableString(reader, "rank")),
                     Source = reader.GetString(reader.GetOrdinal("source")),
                     CombatResults = NullableString(reader, "combat_results"),
                     OfferedHeroes = NullableString(reader, "offered_heroes"),

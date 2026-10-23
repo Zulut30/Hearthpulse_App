@@ -107,6 +107,25 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
         File.Delete(path);
     }
 
+    [Fact]
+    public void Legend_ranks_saved_with_the_user_culture_read_back_culture_independent()
+    {
+        var path = TempDb();
+        using (var connection = new SqliteConnection($"Data Source={path}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            // A ru-RU build of 0.7.x saved the legend number with a no-break space.
+            command.CommandText = FirstSchema.Replace("'Gold 4'", "'Legend 1 204'");
+            command.ExecuteNonQuery();
+        }
+
+        var store = new HistoryStore(path);
+        Assert.Equal("Legend 1,204", Assert.Single(store.Recent()).Rank);
+        SqliteConnection.ClearAllPools();
+        File.Delete(path);
+    }
+
     /// <summary>
     /// Every kept Constructed game says who went first (FIRST_PLAYER on a player entity; checked by hand against the
     /// opening coin's controller in the October 2026 logs). No-op without the client's logs.

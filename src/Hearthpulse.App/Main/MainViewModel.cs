@@ -5,6 +5,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.App.Main;
@@ -541,7 +542,7 @@ public sealed partial class MainViewModel : Observable
             {
                 g.DeckName,
                 string.IsNullOrEmpty(g.OpponentClass) ? null : "vs " + OverlayViewModel.ClassName(g.OpponentClass),
-                g.Rank,
+                RankInfo.Localize(g.Rank),
                 $"{g.Turns} turns",
             }.Where(x => !string.IsNullOrEmpty(x)));
         return new GameRow(
