@@ -21,6 +21,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private readonly HearthstoneMemory _memory;
     private readonly ConstructedTracker _constructed = new();
     private readonly BattlegroundsTracker _battlegrounds = new();
+    private readonly GameFactsTracker _facts = new();
     private readonly object _statsGate = new();
 
     // The watchdog can replace a wedged log watcher while its thread is still in here. This lock keeps the old and the
@@ -143,6 +144,25 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _dirty = true;
     }
 
+    /// <summary>The Hearthpulse API mulligan guide; the host passes it once at start-up. A finished lookup refreshes the overlay.</summary>
+    public void SetMulliganGuide(MulliganGuideSource? guide)
+    {
+        if (_constructed.Guide is { } previous)
+        {
+            previous.Changed -= MarkDirty;
+        }
+
+        _constructed.Guide = guide;
+        if (guide is not null)
+        {
+            guide.Changed += MarkDirty;
+        }
+
+        _dirty = true;
+    }
+
+    private void MarkDirty() => _dirty = true;
+
     /// <summary>
     /// Applies the "Game plan comp" setting; call at start-up and whenever settings change. Manual: the stored
     /// <paramref name="chosenCompId"/> becomes the choice. Switching to Auto drops the manual choice so the advisor
@@ -194,6 +214,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_constructed.Counters);
         _parser.AddListener(_battlegrounds);
         _parser.AddListener(_battlegrounds.Counters);
+        _parser.AddListener(_facts);
+        _parser.AddListener(_cardPool);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
         _dirty = true;
@@ -420,7 +442,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         int? before = _ratingAtGameStart is { } r ? (duos ? r.Duos : r.Solo) : null;
         var rank = _constructed.LocalRank?.Display;
         var races = _battlegrounds.MemoryRaces is { Count: > 0 } list ? string.Join(",", list) : null;
-        var record = GameRecords.Build(game, _battlegrounds, _cards, _constructed.Deck, "live", before is > 0 ? before : null, null, rank, races);
+        var record = GameRecords.Build(game, _battlegrounds, _cards, _constructed.Deck, "live", before is > 0 ? before : null, null, rank, races,
+            _facts, _constructed.LocalRank);
         if (record is null)
         {
             return;
@@ -708,6 +731,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             else if (inGame && game!.IsConstructedLike && game.LocalPlayerId != 0)
             {
                 constructed = _constructed.BuildView(game, _cards);
+                constructed = WithCardPool(constructed, game);
             }
         }
         catch (Exception ex)

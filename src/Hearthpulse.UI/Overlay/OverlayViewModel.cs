@@ -322,6 +322,8 @@ public sealed partial class OverlayViewModel : Observable
         }
 
         UpdateLive(constructed, settings);
+        UpdateHandMarks(constructed, settings);
+        UpdateCardPool(constructed, settings);
 
         var bg = enabled ? snapshot.Battlegrounds : null;
         _bg = bg;
@@ -378,7 +380,9 @@ public sealed partial class OverlayViewModel : Observable
     private void UpdateConstructed(ConstructedView view, DeckAggregate? deck, MatchupAggregate? matchup)
     {
         DeckName = view.DeckName ?? "Deck";
-        DeckRecord = deck is { Games: > 0 } d ? $"{d.Wins}–{d.Losses} · {d.WinRate:P0}" : "New deck";
+        var (record, recordTip, _) = DeckHeader.Describe(deck, view.DeckMeta);
+        DeckRecord = record;
+        DeckRecordTip = recordTip;
         DeckCounts = $"{view.DeckCount} in deck · {view.HandCount} in hand";
         var best = view.Deck.Where(r => r.Remaining > 0).MaxBy(r => r.DrawChance);
         NextDraw = best is null || view.DeckCount == 0 ? string.Empty : $"Next draw: {best.Name} {best.DrawChance:P0}";

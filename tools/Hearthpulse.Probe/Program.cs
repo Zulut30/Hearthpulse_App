@@ -4,6 +4,7 @@ using Hearthpulse.Core.Power;
 // Developer probe.
 //   heroes <Power.log> [maxLines]   dump Battlegrounds hero entities at a point in the log
 //   mem                             read live values from a running Hearthstone client
+//   hover [seconds]                 print the hovered card id (and BG leaderboard hero) every 250 ms
 //   class <Name> [field...]         dump a class's fields / follow a static path
 return args.FirstOrDefault() switch
 {
@@ -17,7 +18,7 @@ return args.FirstOrDefault() switch
 
 static int Usage()
 {
-    Console.WriteLine("usage: heroes <Power.log> [maxLines] | mem | upgrade | class <Name> [path...]");
+    Console.WriteLine("usage: heroes <Power.log> [maxLines] | mem | hover [seconds] | upgrade | class <Name> [path...]");
     return 1;
 }
 
@@ -72,18 +73,14 @@ static int Hover(int seconds)
         return 2;
     }
 
-    string? last = "";
+    // Every 250 ms: the card under the mouse (hand/board/hero...) and the hovered BG leaderboard hero.
     var end = DateTime.UtcNow.AddSeconds(seconds);
     while (DateTime.UtcNow < end)
     {
+        var card = memory.GetHoveredCardId();
         var hero = memory.GetHoveredLeaderboardHero();
-        if (hero != last)
-        {
-            Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} hovered={hero ?? "-"}");
-            last = hero;
-        }
-
-        Thread.Sleep(100);
+        Console.WriteLine($"{DateTime.Now:HH:mm:ss.fff} card={card ?? "-"} leaderboard={hero ?? "-"}");
+        Thread.Sleep(250);
     }
 
     return 0;

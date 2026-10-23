@@ -16,7 +16,20 @@ public sealed record DeckCardRow(
 
 public sealed record PlayedCard(string CardId, string Name, int Cost, int Count, int FirstTurn, bool IsCreated);
 
-public sealed record HandSlot(int Position, int Turn, string? CardId, string? CardName, bool FromMulligan, bool IsCoin, string? CreatedBy);
+public sealed record HandSlot(int Position, int Turn, string? CardId, string? CardName, bool FromMulligan, bool IsCoin, string? CreatedBy)
+{
+    /// <summary>The card's entity id (stable while it stays in the hand).</summary>
+    public int EntityId { get; init; }
+
+    /// <summary>Card id of the card that created this one (<see cref="CreatedBy"/> is its name); null when none or hidden.</summary>
+    public string? CreatedById { get; init; }
+
+    /// <summary>True when the creating card is the local player's (e.g. one of yours shuffled it into their deck).</summary>
+    public bool CreatorIsYours { get; init; }
+
+    /// <summary>How the card got into the hand.</summary>
+    public HandCardOrigin Origin { get; init; }
+}
 
 public sealed record ConstructedView(
     int Turn,
@@ -43,6 +56,24 @@ public sealed record ConstructedView(
 
     /// <summary>Every counter for both players; the overlay shows them by each counter's mode.</summary>
     public IReadOnlyList<Counters.CounterView> Counters { get; init; } = [];
+
+    /// <summary>Deck id from Decks.log (0 when unknown); with the code it finds the player's own games with this deck.</summary>
+    public long DeckId { get; init; }
+
+    /// <summary>Deck code of the deck being played; null when unknown.</summary>
+    public string? DeckCode { get; init; }
+
+    /// <summary>Win rate of the deck's archetype in community stats; null without stats or a matching archetype.</summary>
+    public DeckMetaStat? DeckMeta { get; init; }
+
+    /// <summary>The pool of the generator being discovered from, hovered or just played; null when none.</summary>
+    public CardPool.CardPoolView? CardPool { get; init; }
+}
+
+/// <summary>Community win rate of the archetype a deck belongs to; <see cref="Format"/>, <see cref="Rank"/> and <see cref="Source"/> are labels.</summary>
+public sealed record DeckMetaStat(string Archetype, double WinRate, int Games, string Rank, string Source)
+{
+    public string Format { get; init; } = string.Empty;
 }
 
 public sealed record BgMinion(

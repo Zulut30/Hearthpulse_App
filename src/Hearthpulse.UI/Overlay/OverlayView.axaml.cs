@@ -101,6 +101,12 @@ public partial class OverlayView : UserControl
         UpdateGuides();
     }
 
+    /// <summary>Hides the card hover preview (the overlay went click-through, so no pointer-exit will come).</summary>
+    public void HidePreview() => PreviewHost.Hide();
+
+    /// <summary>Shows the hover preview for the first control that passes <paramref name="filter"/> (off-screen renders).</summary>
+    public bool ShowPreviewFor(Func<Control, bool> filter) => PreviewHost.ShowFirst(this, filter);
+
     /// <summary>True when the point (in this view's coordinates) is over a panel that takes the mouse.</summary>
     public bool IsInteractiveAt(Point point)
     {
@@ -124,6 +130,12 @@ public partial class OverlayView : UserControl
     /// Updates the opponent-board popup from the pointer position (view coordinates, null when outside) and the hero the
     /// game reports under the mouse (null when unknown: then the leaderboard calibration decides).
     /// </summary>
+    /// <summary>
+    /// The card pool panel lets clicks through on every desktop: the host passes the pointer (view coordinates, null
+    /// when outside) and the mouse buttons it reads globally, for hover and right-click on the panel.
+    /// </summary>
+    public void UpdateCardPoolPointer(Point? pointer, (bool Left, bool Right) buttons) => CardPool.UpdatePointer(this, pointer, buttons);
+
     public void UpdateLeaderboardHover(Point? pointer, string? hoveredHero)
     {
         if (_viewModel is not { } vm)

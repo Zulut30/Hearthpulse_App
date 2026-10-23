@@ -329,6 +329,7 @@ public sealed partial class MainViewModel : Observable
     {
         _meta = meta;
         RebuildMeta();
+        RebuildBattlegroundsStats();
     }
 
     public void Apply(LiveSnapshot s)
@@ -487,6 +488,8 @@ public sealed partial class MainViewModel : Observable
                 todayBg.Count > 0 ? $"BG avg {todayBg.Average(g => g.Placement):0.0}" : today.Count > 0 ? $"{today.Count(g => g.Result == "Win")}–{today.Count(g => g.Result == "Loss")}" : "no games yet"),
             new StatTile("All time", HistoryCount.ToString("N0", CultureInfo.CurrentCulture), "games tracked"),
         ];
+
+        await RefreshMyStatsAsync();
     }
 
     private async Task LoadMatchupsAsync(string? deckCode)

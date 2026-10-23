@@ -132,6 +132,7 @@ public sealed partial class MainViewModel
 
         _constructedMeta = meta;
         RebuildConstructedMeta();
+        RebuildConstructedStats();
 
         // Your own decks show the archetype they belong to.
         var selected = SelectedDeck?.Key;
@@ -257,7 +258,7 @@ public sealed partial class MainViewModel
                 c.CardId,
                 _cards.NameOf(c.CardId),
                 c.InHandWinRate.ToString("P0", CultureInfo.CurrentCulture),
-                c.InHandWinRate - archetype.WinRate,
+                c.InHandWinRate - (archetype.MulliganBaseline ?? archetype.WinRate),
                 $"kept {c.KeepRate.ToString("P0", CultureInfo.CurrentCulture)}",
                 c.InHand.ToString("N0", CultureInfo.CurrentCulture)))
             .ToList();

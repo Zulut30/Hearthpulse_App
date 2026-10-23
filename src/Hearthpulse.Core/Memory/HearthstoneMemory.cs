@@ -357,6 +357,26 @@ public sealed class HearthstoneMemory : IDisposable
         return hero.IsNull ? null : hero.String("m_cardIdInternal");
     });
 
+    /// <summary>
+    /// Card id of the game card under the mouse (in hand, on the board, hero, hero power, weapon...), or null when the
+    /// mouse is over no card or the game is not in a match. Read from the game's own input handling
+    /// (<c>InputManager.m_mousedOverCard</c>), so it follows what the client highlights at any resolution. While a card
+    /// is dragged this is the card under the cursor (a target), not the dragged one. Hidden cards (opponent's hand) have
+    /// no id and give null.
+    /// </summary>
+    public string? GetHoveredCardId() => Safe(quiet: true, read: rt =>
+    {
+        var input = rt.FindClass("InputManager")?.GetStatic("s_instance") ?? default;
+        var card = input.IsNull ? default : input["m_mousedOverCard"];
+        if (card.IsNull)
+        {
+            return null;
+        }
+
+        var id = card["m_entity"].String("m_cardIdInternal");
+        return string.IsNullOrEmpty(id) ? null : id;
+    });
+
     /// <summary>Ranked medals for both players of the current game (only valid in-game).</summary>
     public (MatchPlayerInfo? Local, MatchPlayerInfo? Opponent)? GetMatchPlayers() => Safe<(MatchPlayerInfo?, MatchPlayerInfo?)?>(rt =>
     {
@@ -453,7 +473,8 @@ public sealed class HearthstoneMemory : IDisposable
         return default;
     }
 
-    private T? Safe<T>(Func<MonoRuntime, T?> read)
+    /// <param name="quiet">A failed read does not change <see cref="Status"/> (frequent reads from another thread would make it flicker).</param>
+    private T? Safe<T>(Func<MonoRuntime, T?> read, bool quiet = false)
     {
         if (!EnsureAttached())
         {
@@ -493,7 +514,11 @@ public sealed class HearthstoneMemory : IDisposable
         }
         catch (Exception ex)
         {
-            Status = "Read failed: " + ex.Message;
+            if (!quiet)
+            {
+                Status = "Read failed: " + ex.Message;
+            }
+
             return default;
         }
     }

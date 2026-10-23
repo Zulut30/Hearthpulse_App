@@ -1,0 +1,129 @@
+<UserControl x:Class="Hearthpulse.App.Overlay.MulliganPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
+    <!-- Mulligan guide: a plate under each offered card (click = keep / replace) and the impact of the chosen keeps.
+         DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+    <UserControl.Resources>
+        <i:VisibleWhen x:Key="Vis" />
+
+        <Style x:Key="PlateNumber" TargetType="TextBlock" BasedOn="{StaticResource Base}">
+            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="15" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Good}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource Positive}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Bad}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource Negative}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CallText" TargetType="TextBlock" BasedOn="{StaticResource Base}">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding KeepCall}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource Positive}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding MulliganCall}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource Negative}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="PlateTemplate" DataType="{x:Type o:MulliganPlate}">
+            <Button Command="{Binding DataContext.ToggleMulliganCard, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding EntityId}"
+                    Margin="10,0" Cursor="Hand" Focusable="False" ToolTip="{Binding Tooltip}" o:OverlayHit.Interactive="True">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Plate" Style="{StaticResource OverlayCard}" Width="176" Padding="10,7">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                                <Grid Margin="0,3,0,0">
+                                    <TextBlock Text="{Binding Call}" Style="{StaticResource CallText}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Delta}" Style="{StaticResource PlateNumber}" HorizontalAlignment="Right" />
+                                </Grid>
+                                <TextBlock Text="{Binding Numbers}" FontSize="11" Foreground="{StaticResource Muted}" Visibility="{Binding Numbers, Converter={StaticResource Vis}}" />
+                                <TextBlock Text="{Binding Note}" FontSize="10.5" Foreground="{StaticResource Info}" TextWrapping="Wrap" Margin="0,2,0,0"
+                                           Visibility="{Binding Note, Converter={StaticResource Vis}}" />
+                                <Border x:Name="ChoiceChip" Style="{StaticResource Pill}" HorizontalAlignment="Left" Margin="0,5,0,0" Padding="7,1">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="ChoiceIcon" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Positive}"
+                                                   VerticalAlignment="Center" Margin="0,0,4,0" />
+                                        <TextBlock Text="{Binding Choice}" FontSize="10.5" Foreground="{StaticResource Text}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Kept}" Value="False">
+                                <Setter TargetName="Plate" Property="Opacity" Value="0.62" />
+                                <Setter TargetName="ChoiceIcon" Property="Text" Value="&#xF006A;" />
+                                <Setter TargetName="ChoiceIcon" Property="Foreground" Value="{StaticResource Muted}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Synergy}" Value="True">
+                                <Setter TargetName="Plate" Property="BorderBrush" Value="{StaticResource Info}" />
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ChoiceChip" Property="Background" Value="{StaticResource Hover}" />
+                                <Setter TargetName="Plate" Property="Opacity" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <ItemsControl ItemsSource="{Binding MulliganCards}" ItemTemplate="{StaticResource PlateTemplate}" HorizontalAlignment="Center">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
+        <Border Style="{StaticResource OverlayCard}" HorizontalAlignment="Center" Padding="12,6" Margin="0,8,0,0" MaxWidth="780">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding MulliganTitle}" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding MulliganNote}" FontSize="11" Foreground="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                    <TextBlock Text="{Binding MulliganImpact}" FontSize="12" FontWeight="SemiBold">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Base}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding MulliganImpactGood}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource Positive}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding MulliganImpactBad}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource Negative}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding MulliganCompare}" FontSize="11" Foreground="{StaticResource Muted}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <ItemsControl ItemsSource="{Binding MulliganWarnings}" Margin="0,3,0,0" Visibility="{Binding MulliganWarnings, Converter={StaticResource Vis}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                                <TextBlock Text="&#xF0026;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="0,0,5,0" />
+                                <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource Info}" TextWrapping="Wrap" MaxWidth="740" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding MulliganSynergyNote}" FontSize="10.5" Foreground="{StaticResource Faint}" Margin="0,3,0,0"
+                           Visibility="{Binding MulliganSynergyNote, Converter={StaticResource Vis}}" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

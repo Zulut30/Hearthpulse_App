@@ -1,4 +1,4 @@
-using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core.Accounts;
@@ -8,13 +8,17 @@ namespace Hearthpulse.App.Main;
 public sealed partial class MainViewModel
 {
     private AccountService? _account;
+    private RelayCommand? _signIn;
+    private RelayCommand? _cancelSignIn;
+    private RelayCommand? _copyAccountCode;
+    private RelayCommand? _openSignInPage;
     private RelayCommand? _signOut;
-    private RelayCommand? _toggleAccountMode;
-    private bool _accountRegister;
-    private bool _accountBusy;
+    private RelayCommand? _openAccountProfile;
+    private CancellationTokenSource? _signInCancel;
+    private DeviceCode? _accountCode;
+    private bool _accountBrowserOpened;
+    private bool _accountWaiting;
     private string _accountMessage = string.Empty;
-    private string _accountEmailInput = string.Empty;
-    private string _accountNameInput = string.Empty;
 
     /// <summary>Connects the Settings page to the account service; the host restores a saved session afterwards.</summary>
     public void AttachAccount(AccountService account)
@@ -26,45 +30,101 @@ public sealed partial class MainViewModel
 
     public bool AccountSignedIn => _account?.User is not null;
 
+    /// <summary>Neither signed in nor waiting for the browser: the card offers the sign-in button.</summary>
+    public bool AccountSignedOut => !AccountSignedIn && !AccountWaiting;
+
+    /// <summary>The profile part of the card; hidden while a new sign-in runs.</summary>
+    public bool AccountShowProfile => AccountSignedIn && !AccountWaiting;
+
+    /// <summary>"Signed in until 22 Nov 2026"; close to the end, a nudge to sign in again (see <see cref="AccountService.SessionNote"/>).</summary>
+    public string AccountSessionNote => _account?.SessionNote ?? string.Empty;
+
+    public bool AccountSessionEndingSoon => _account?.SessionEndingSoon == true;
+
     public string AccountName => _account?.User?.DisplayName ?? string.Empty;
 
-    public string AccountEmail => _account?.User?.Email ?? string.Empty;
+    /// <summary>Paid access in one line ("Boosty subscription: Arena, Battlegrounds").</summary>
+    public string AccountSubscription => _account?.Entitlements.Summary ?? string.Empty;
 
-    public string AccountSince => _account?.User?.CreatedAt is { } created
-        ? "Member since " + created.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture)
-        : string.Empty;
+    public bool AccountHasSubscription => _account?.Entitlements.HasAccess == true;
 
-    /// <summary>The form creates a new account instead of signing in to an existing one.</summary>
-    public bool AccountRegister
+    /// <summary>A sign-in is under way (getting a code, or waiting for the player to confirm it).</summary>
+    public bool AccountWaiting
     {
-        get => _accountRegister;
+        get => _accountWaiting;
         private set
         {
-            if (Set(ref _accountRegister, value))
+            if (Set(ref _accountWaiting, value))
             {
-                Raise(nameof(AccountSubmitText));
-                Raise(nameof(AccountSwitchText));
+                Raise(nameof(AccountSignedOut));
+                Raise(nameof(AccountShowProfile));
             }
         }
     }
 
-    public string AccountSubmitText => AccountRegister ? "Create account" : "Sign in";
+    /// <summary>The code to type on the site has arrived.</summary>
+    public bool AccountHasCode => _accountCode is not null;
 
-    public string AccountSwitchText => AccountRegister ? "I already have an account" : "Create a Hearthpulse account";
+    public string AccountUserCode => _accountCode?.UserCode ?? string.Empty;
 
-    public bool AccountBusy { get => _accountBusy; private set => Set(ref _accountBusy, value); }
+    /// <summary>Where to type the code: "hearthpulse.net/connect".</summary>
+    public string AccountCodeUri => _accountCode?.DisplayUri ?? string.Empty;
 
-    /// <summary>The last error (or confirmation) under the form.</summary>
+    /// <summary>Under the code: whether the browser has the page open or the player has to open it.</summary>
+    public string AccountWaitingHint => _accountBrowserOpened
+        ? "Waiting for confirmation… The page has opened in your browser."
+        : "Waiting for confirmation… Open the address above in your browser.";
+
+    /// <summary>The last error (or confirmation) under the card.</summary>
     public string AccountMessage { get => _accountMessage; private set => Set(ref _accountMessage, value); }
 
-    public string AccountEmailInput { get => _accountEmailInput; set => Set(ref _accountEmailInput, value); }
-
-    public string AccountNameInput { get => _accountNameInput; set => Set(ref _accountNameInput, value); }
-
-    public RelayCommand ToggleAccountMode => _toggleAccountMode ??= new RelayCommand(() =>
+    /// <summary>Gets a code from hearthpulse.net, opens the confirmation page and waits for the player.</summary>
+    public RelayCommand SignIn => _signIn ??= new RelayCommand(async () =>
     {
-        AccountRegister = !AccountRegister;
+        if (_account is null || AccountWaiting)
+        {
+            return;
+        }
+
         AccountMessage = string.Empty;
+        AccountWaiting = true;
+        using var cancel = new CancellationTokenSource();
+        _signInCancel = cancel;
+        try
+        {
+            var error = await _account.SignInAsync((code, opened) => Application.Current?.Dispatcher.BeginInvoke(() => ShowAccountCode(code, opened)), cancel.Token);
+            AccountMessage = error?.Message ?? string.Empty;
+        }
+        finally
+        {
+            _signInCancel = null;
+            ShowAccountCode(null, opened: false);
+            AccountWaiting = false;
+        }
+    });
+
+    public RelayCommand CancelSignIn => _cancelSignIn ??= new RelayCommand(() => _signInCancel?.Cancel());
+
+    public RelayCommand CopyAccountCode => _copyAccountCode ??= new RelayCommand(() =>
+    {
+        try
+        {
+            Clipboard.SetText(AccountUserCode);
+            AccountMessage = "Code copied.";
+        }
+        catch (ExternalException)
+        {
+            // Another program holds the clipboard; the code is on screen anyway.
+            AccountMessage = "Couldn't copy the code. Type it in by hand.";
+        }
+    });
+
+    public RelayCommand OpenSignInPage => _openSignInPage ??= new RelayCommand(() =>
+    {
+        if (_accountCode is not null && _account?.OpenSignInPage(_accountCode) == false)
+        {
+            AccountMessage = "Couldn't open your browser. Open " + AccountCodeUri + " yourself.";
+        }
     });
 
     public RelayCommand SignOut => _signOut ??= new RelayCommand(async () =>
@@ -76,52 +136,33 @@ public sealed partial class MainViewModel
         }
     });
 
-    /// <summary>Signs in or creates the account. The password comes from the view (a PasswordBox cannot be bound).</summary>
-    public async Task SubmitAccountAsync(string password)
+    public RelayCommand OpenAccountProfile => _openAccountProfile ??= new RelayCommand(() =>
     {
-        if (_account is null || AccountBusy)
+        if (_account?.OpenProfile() == false)
         {
-            return;
+            AccountMessage = "Couldn't open your browser.";
         }
+    });
 
-        var email = AccountEmailInput.Trim();
-        if (email.Length < 3 || !email.Contains('@', StringComparison.Ordinal))
-        {
-            AccountMessage = "Enter your email address.";
-            return;
-        }
-
-        if (password.Length == 0 || (AccountRegister && password.Length < 8))
-        {
-            AccountMessage = AccountRegister ? "Choose a password of at least 8 characters." : "Enter your password.";
-            return;
-        }
-
-        AccountBusy = true;
-        AccountMessage = string.Empty;
-        try
-        {
-            var name = AccountNameInput.Trim().Length > 0 ? AccountNameInput.Trim() : email.Split('@')[0];
-            var error = AccountRegister
-                ? await _account.SignUpAsync(email, password, name)
-                : await _account.SignInAsync(email, password);
-            AccountMessage = error?.Message ?? string.Empty;
-            if (error is null)
-            {
-                AccountNameInput = string.Empty;
-            }
-        }
-        finally
-        {
-            AccountBusy = false;
-        }
+    private void ShowAccountCode(DeviceCode? code, bool opened)
+    {
+        _accountCode = code;
+        _accountBrowserOpened = opened;
+        Raise(nameof(AccountHasCode));
+        Raise(nameof(AccountUserCode));
+        Raise(nameof(AccountCodeUri));
+        Raise(nameof(AccountWaitingHint));
     }
 
     private void RaiseAccount()
     {
         Raise(nameof(AccountSignedIn));
+        Raise(nameof(AccountSignedOut));
+        Raise(nameof(AccountShowProfile));
+        Raise(nameof(AccountSessionNote));
+        Raise(nameof(AccountSessionEndingSoon));
         Raise(nameof(AccountName));
-        Raise(nameof(AccountEmail));
-        Raise(nameof(AccountSince));
+        Raise(nameof(AccountSubscription));
+        Raise(nameof(AccountHasSubscription));
     }
 }

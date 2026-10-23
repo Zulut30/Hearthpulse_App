@@ -25,7 +25,11 @@ public sealed class CountersTests
           {"id":"CS2_087","dbfId":120006,"name":"Blessing of Might","type":"SPELL","cardClass":"PALADIN","cost":1},
           {"id":"CORE_EX1_284","dbfId":120007,"name":"Azure Drake","type":"MINION","cardClass":"NEUTRAL","cost":5,"races":["DRAGON"]},
           {"id":"TLC_515","dbfId":120008,"name":"Cultist Map","type":"SPELL","cardClass":"ROGUE","cost":1,"mechanics":["DISCOVER"]},
-          {"id":"BE_204","dbfId":120009,"name":"Gargantuan Slitherer","type":"MINION","cardClass":"NEUTRAL","cost":6}
+          {"id":"BE_204","dbfId":120009,"name":"Gargantuan Slitherer","type":"MINION","cardClass":"NEUTRAL","cost":6},
+          {"id":"BE_013t1","dbfId":120010,"name":"Wrath of C'Thun","type":"SPELL","cardClass":"NEUTRAL"},
+          {"id":"BE_013t2","dbfId":120011,"name":"Domain of C'Thun","type":"SPELL","cardClass":"NEUTRAL"},
+          {"id":"BE_013t3","dbfId":120012,"name":"Glare of C'Thun","type":"SPELL","cardClass":"NEUTRAL"},
+          {"id":"BE_013t4","dbfId":120013,"name":"Servants of C'Thun","type":"SPELL","cardClass":"NEUTRAL"}
         ]
         """u8.ToArray()));
 
@@ -354,6 +358,64 @@ public sealed class CountersTests
         Assert.Equal(0.5, cthun.Progress);
         Assert.True(cthun.Relevant);
         Assert.Equal("BE_013", cthun.IconCardId);
+    }
+
+    [Fact]
+    public void Cthun_tooltip_lists_the_four_abilities_and_which_triggered()
+    {
+        var view = View(Play([
+            .. Card(10, "BE_013", "DECK", 1, "MINION"),
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CTHUN_ABILITY2_USED value=1 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=CTHUN_ABILITY4_USED value=1 ",
+        ]));
+
+        var cthun = view.Counters.Single(c => c.Id == "cthun" && !c.Opponent);
+        Assert.Equal(4, cthun.Goal);
+        Assert.Equal(["BE_013t1", "BE_013t2", "BE_013t3", "BE_013t4"], cthun.Parts.Select(p => p.CardId));
+        Assert.Equal(["Wrath of C'Thun", "Domain of C'Thun", "Glare of C'Thun", "Servants of C'Thun"], cthun.Parts.Select(p => p.Name));
+        Assert.Equal([false, true, false, true], cthun.Parts.Select(p => p.Done!.Value));
+        Assert.Contains(cthun.RelatedCards, c => c.CardId == "BE_013");
+        Assert.All(view.Counters.Single(c => c.Id == "cthun" && c.Opponent).Parts, p => Assert.False(p.Done));
+    }
+
+    [Fact]
+    public void Related_cards_come_with_the_copies_in_the_deck()
+    {
+        var state = Play(Card(10, "BE_012", "PLAY", 1, "MINION"));
+        state.Tracker.Deck = new DeckDefinition("Test", 1, string.Empty, "FT_STANDARD", [813], new Dictionary<int, int> { [120003] = 2, [120005] = 1 });
+
+        var cthun = View(state).Counters.Single(c => c.Id == "cthun" && !c.Opponent);
+        Assert.Equal([("BE_012", "Dark Deacon", 2), ("BE_014", "Spawn of C'Thun", 1)], cthun.RelatedCards.Select(c => (c.CardId, c.Name, c.Count)));
+        Assert.Empty(View(state).Counters.Single(c => c.Id == "cthun" && c.Opponent).RelatedCards);
+    }
+
+    [Fact]
+    public void Counted_cards_are_grouped_in_the_order_they_were_counted()
+    {
+        var view = View(Play([
+            .. Cast(41, "CS2_087", 1, "SPELL", "tag=SPELL_SCHOOL value=5"),
+            .. Cast(42, "CORE_CS2_004", 1, "SPELL", "tag=SPELL_SCHOOL value=6"),
+            .. Cast(43, "CS2_087", 1, "SPELL", "tag=SPELL_SCHOOL value=5"),
+            .. Card(60, "JAIL_974", "PLAY", 1, "MINION"),
+            .. Die(60, "JAIL_974", 1),
+            // A card the opponent played that is still hidden counts, but cannot be listed.
+            "DebugPrintPower() - FULL_ENTITY - Creating ID=70 CardID=",
+            "DebugPrintPower() -     tag=ZONE value=HAND",
+            "DebugPrintPower() -     tag=CONTROLLER value=2",
+            .. PlayFromHand(70, string.Empty, 2),
+        ]));
+
+        var spells = view.Counters.Single(c => c.Id == "spells-cast" && !c.Opponent);
+        Assert.Equal([("CS2_087", "Blessing of Might", 2), ("CORE_CS2_004", "Power Word: Shield", 1)], spells.Counted.Select(c => (c.CardId, c.Name, c.Count)));
+        Assert.Equal(["CS2_087"], view.Counters.Single(c => c.Id == "spells-holy" && !c.Opponent).Counted.Select(c => c.CardId));
+        Assert.Equal(["CS2_087", "CORE_CS2_004"], view.Counters.Single(c => c.Id == "spell-schools" && !c.Opponent).Counted.Select(c => c.CardId));
+        var archmage = view.Counters.Single(c => c.Id == "captured-archmage" && !c.Opponent);
+        Assert.Equal(4, archmage.Goal);
+        Assert.Equal(1, Assert.Single(archmage.Counted).Count);
+        var opponent = view.Counters.Single(c => c.Id == "cards-played" && c.Opponent);
+        Assert.Equal("1", opponent.Value);
+        Assert.Empty(opponent.Counted);
+        Assert.Empty(spells.Parts);
     }
 
     [Fact]

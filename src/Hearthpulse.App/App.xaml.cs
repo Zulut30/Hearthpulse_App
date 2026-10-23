@@ -60,6 +60,7 @@ public partial class App : Application
     private MatchupAggregate? _matchupStats;
     private string? _renderDir;
     private ConstructedMeta? _constructedMeta;
+    private CancellationTokenSource? _constructedMetaCancel;
     private int _constructedMetaRequest;
     private BattlegroundsMeta? _meta;
     private UpdateInfo? _stagedUpdate;
@@ -139,15 +140,18 @@ public partial class App : Application
         _history = new HistoryStore(AppPaths.Database);
         _memory = new HearthstoneMemory();
         _session = new GameSession(_history, _memory);
+        _session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(_api)));
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
-        _account = new AccountService(_api);
+        _account = new AccountService(new AccountClient(_http));
         _mainViewModel.AttachAccount(_account);
         _ = _account.RestoreAsync();
         _overlayViewModel = new OverlayViewModel();
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
+        _session.SetCardPoolEnabled(_settings.ShowCardPool);
         _overlayViewModel.PinRequested += OnPinRequested;
+        _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
         _overlayViewModel.CounterModeRequested += (id, mode) =>
         {
             _mainViewModel.ApplyCounterMode(id, mode);
@@ -290,10 +294,16 @@ public partial class App : Application
 
             _session.Cards = _cards;
             _mainViewModel.SetCards(_cards);
+            _ = LoadCardPoolAsync();
 
-            if (!_settings.HistoryImported)
+            if (!_settings.HistoryImported || !_settings.HistoryStatsFilled)
             {
                 await ImportLogsAsync(force: false);
+            }
+            else if (_installDir is { } install)
+            {
+                // Games saved before Decks.log was read correctly (and imported ones) have no deck yet.
+                _ = Task.Run(() => LogBackfill.FillDecks(install, _history, _cards));
             }
 
             if (_renderDir is not null)
@@ -419,17 +429,33 @@ public partial class App : Application
 
     private async Task LoadConstructedMetaAsync()
     {
-        // Filters can change while a download runs; only the latest request may update the page.
+        // Filters can change while a download runs; only the latest request may update the page, and an older one stops.
         var request = ++_constructedMetaRequest;
+        _constructedMetaCancel?.Cancel();
+        var cancel = _constructedMetaCancel = new CancellationTokenSource();
+        var done = false;
+
+        // The tier list shows as soon as it is in; the mulligan numbers (many more requests) follow with the full answer.
+        var tierList = new Progress<ConstructedMeta>(m =>
+        {
+            if (!done && request == _constructedMetaRequest)
+            {
+                _mainViewModel.SetConstructedMeta(m);
+            }
+        });
         try
         {
-            var meta = await ConstructedMeta.LoadAsync(_http, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, fallback: new HearthpulseData(_api));
+            var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, _cards.Locale, tierList, cancel.Token);
+            done = true;
             if (request == _constructedMetaRequest)
             {
                 _constructedMeta = meta ?? _constructedMeta;
                 _mainViewModel.SetConstructedMeta(meta);
                 _session.SetConstructedMeta(_constructedMeta);
             }
+        }
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+        {
         }
         catch (Exception ex)
         {
@@ -449,6 +475,7 @@ public partial class App : Application
         var progress = new Progress<string>(text => _mainViewModel.Busy = text);
         var result = await Task.Run(() => LogBackfill.Run(_installDir, _history, _cards, progress));
         _settings.HistoryImported = true;
+        _settings.HistoryStatsFilled = true;
         _settings.Save();
         _mainViewModel.Busy = force || result.GamesAdded > 0
             ? $"Imported {result.GamesAdded} new games from {result.Sessions} log sessions."
@@ -529,7 +556,7 @@ public partial class App : Application
 
     private void RefreshDeckStats(ConstructedView? view)
     {
-        var key = view is null ? null : $"{view.DeckName}|{view.PlayerClass}|{view.OpponentClass}";
+        var key = view is null ? null : $"{view.DeckName}|{view.DeckId}|{view.DeckCode}|{view.PlayerClass}|{view.OpponentClass}";
         if (key == _deckStatsKey)
         {
             return;
@@ -545,8 +572,13 @@ public partial class App : Application
 
         _ = Task.Run(() =>
         {
-            var deck = _history.DeckStats().FirstOrDefault(d => d.DeckName == view.DeckName && d.PlayerClass == view.PlayerClass);
-            var matchup = _history.MatchupStats(deck?.DeckCode).FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
+            var sameDeck = _installDir is { } dir ? DecksLog.CodesOf(DecksLog.ReadAll(dir), view.DeckId) : [];
+            var games = DeckRecords.Matching(_history.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass, sameDeck);
+            var deck = DeckRecords.Aggregate(games, view.DeckName, view.DeckCode, view.PlayerClass);
+            // The matchup line counts the same games as the record; without any, the class matchup over all decks.
+            var matchup = games.Count > 0
+                ? DeckRecords.Matchup(games, view.OpponentClass)
+                : _history.MatchupStats().FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
             return (deck, matchup);
         }).ContinueWith(t =>
         {
@@ -710,6 +742,8 @@ public partial class App : Application
         }
 
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
+        _session.SetCardPoolEnabled(_settings.ShowCardPool);
+        _ = LoadCardPoolAsync();
         _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
         Autostart.Apply(_settings.StartWithWindows);
     }

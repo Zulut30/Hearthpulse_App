@@ -237,6 +237,9 @@ public sealed class BattlegroundsCountersTests
         Assert.Equal("+8/+4", knight.Value);
         Assert.True(knight.Relevant);
         Assert.Contains("Golden Eternal Knight: +16/+8.", knight.Details);
+        // The tooltip lists the golden copy as the normal card.
+        var counted = Assert.Single(knight.Counted);
+        Assert.Equal(("BG25_008", "Eternal Knight", 2), (counted.CardId, counted.Name, counted.Count));
     }
 
     [Fact]
@@ -269,6 +272,9 @@ public sealed class BattlegroundsCountersTests
         Assert.True(seen.Relevant);
         Assert.Equal("BG31_924", seen.IconCardId);
         Assert.Equal(1 / 3.0, seen.Progress!.Value, 3);
+        Assert.Equal(3, seen.Goal);
+        Assert.Equal(["Thaumaturgist"], seen.RelatedCards.Select(c => c.Name));
+        Assert.Empty(unseen.RelatedCards);
     }
 
     [Fact]

@@ -99,8 +99,69 @@ public sealed record LobbyRow(
 
 public sealed record PlaceChip(int Place, bool Top);
 
-/// <summary>One counter chip in the overlay: value, optional progress toward a goal, and its tooltip text.</summary>
-public sealed record CounterChip(string Id, string Title, string Value, double Progress, bool HasProgress, string? IconCardId, string Tooltip, bool Expanded, IReadOnlyList<string> Details);
+/// <summary>One counter chip in the overlay: value, optional progress toward a goal, and the cards for its tooltip.</summary>
+public sealed record CounterChip(string Id, string Title, string Value, double Progress, bool HasProgress, string? IconCardId, string Tooltip, bool Expanded, IReadOnlyList<string> Details)
+{
+    /// <summary>Goals of up to this many steps are drawn as segments; longer ones as a bar.</summary>
+    private const int MaxSegments = 10;
 
-/// <summary>Community mulligan numbers under one card of the opening hand.</summary>
-public sealed record MulliganTile(string CardId, string Name, string Keep, string WinRate, string Delta, bool Good, bool Bad, bool HasStats);
+    /// <summary>Tooltip lists stop here and say how many more there are.</summary>
+    private const int MaxCards = 8;
+
+    public string Description { get; init; } = string.Empty;
+
+    /// <summary>The goal in steps, done ones first ("1/4": one lit of four); empty when the goal is drawn as a bar or there is none.</summary>
+    public IReadOnlyList<bool> Segments { get; init; } = [];
+
+    /// <summary>The parts of the goal, marked done or not (C'Thun's abilities).</summary>
+    public IReadOnlyList<CounterTipCard> Parts { get; init; } = [];
+
+    /// <summary>What was counted.</summary>
+    public IReadOnlyList<CounterTipCard> Counted { get; init; } = [];
+
+    /// <summary>"+3 more" under a cut list of counted cards, or empty.</summary>
+    public string MoreCounted { get; init; } = string.Empty;
+
+    /// <summary>The player's cards that need the count.</summary>
+    public IReadOnlyList<CounterTipCard> Related { get; init; } = [];
+
+    public string MoreRelated { get; init; } = string.Empty;
+
+    public bool HasBar => HasProgress && Segments.Count == 0;
+
+    public static CounterChip From(Hearthpulse.Core.Tracking.Counters.CounterView c, bool expanded)
+    {
+        var segments = c is { Goal: > 0 and <= MaxSegments, Progress: { } progress }
+            ? Enumerable.Range(0, c.Goal.Value).Select(i => i < Math.Round(progress * c.Goal.Value)).ToList()
+            : [];
+        var hasCards = c.Parts.Count + c.Counted.Count + c.RelatedCards.Count > 0;
+        return new CounterChip(
+            c.Id,
+            c.Title,
+            c.Value,
+            c.Progress ?? 0,
+            c.Progress is not null,
+            c.IconCardId,
+            c.Details.Count == 0 ? c.Description : c.Description + Environment.NewLine + string.Join(Environment.NewLine, c.Details),
+            expanded && (c.Details.Count > 0 || hasCards),
+            c.Details)
+        {
+            Description = c.Description,
+            Segments = segments,
+            Parts = c.Parts.Select(p => new CounterTipCard(p.CardId, p.Name, string.Empty, true, p.Done == true)).ToList(),
+            Counted = c.Counted.Take(MaxCards).Select(p => new CounterTipCard(p.CardId, p.Name, Count(p.Count), false, true)).ToList(),
+            MoreCounted = More(c.Counted.Count),
+            // Copies only matter when there are several.
+            Related = c.RelatedCards.Take(MaxCards).Select(p => new CounterTipCard(p.CardId, p.Name, p.Count > 1 ? Count(p.Count) : string.Empty, false, true)).ToList(),
+            MoreRelated = More(c.RelatedCards.Count),
+        };
+    }
+
+    private static string Count(int n) => "×" + n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string More(int count) => count > MaxCards ? $"+{count - MaxCards} more" : string.Empty;
+}
+
+/// <summary>A card strip in a counter's tooltip: art, name, count, and for a part of the goal whether it is done.</summary>
+public sealed record CounterTipCard(string CardId, string Name, string Count, bool IsPart, bool Done);
+

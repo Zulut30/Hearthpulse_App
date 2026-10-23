@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Hearthpulse.Core;
 using Hearthpulse.UI.Infrastructure;
@@ -21,7 +22,7 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
-        foreach (var nav in new[] { NavOverview, NavBattlegrounds, NavConstructed, NavHistory, NavSettings })
+        foreach (var nav in new[] { NavOverview, NavBattlegrounds, NavConstructed, NavArena, NavHistory, NavSettings })
         {
             nav.IsCheckedChanged += (_, _) => UpdatePages();
         }
@@ -44,6 +45,29 @@ public partial class MainView : UserControl
     /// <summary>Opens the data folder; hosts can replace it (e.g. on mobile, where there is no file manager).</summary>
     public Action<string>? OpenFolder { get; set; } = path =>
         Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+
+    private async void OnCopyAccountCode(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel is not { AccountUserCode.Length: > 0 } viewModel)
+        {
+            return;
+        }
+
+        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+        try
+        {
+            if (clipboard is not null)
+            {
+                await clipboard.SetTextAsync(viewModel.AccountUserCode);
+            }
+
+            viewModel.AccountCodeCopied(clipboard is not null);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.ExternalException)
+        {
+            viewModel.AccountCodeCopied(false);
+        }
+    }
 
     protected override void OnDataContextChanged(EventArgs e)
     {
@@ -109,12 +133,19 @@ public partial class MainView : UserControl
         {
             "Battlegrounds" => NavBattlegrounds,
             "Constructed" => NavConstructed,
+            "Arena" => NavArena,
             "History" => NavHistory,
             "Settings" => NavSettings,
             _ => NavOverview,
         };
         nav.IsChecked = true;
     }
+
+    /// <summary>Shows the hover card of one point of the Battlegrounds rating chart (-1 hides it), for the render check.</summary>
+    public void HoverBattlegroundsGame(int index) => BgStats.HoverGame(index);
+
+    /// <summary>Shows the hover card of one point of the rank chart (-1 hides it), for the render check.</summary>
+    public void HoverConstructedGame(int index) => CtStats.HoverGame(index);
 
     public void SyncOverlaySwitch()
     {
@@ -143,10 +174,10 @@ public partial class MainView : UserControl
         }
     }
 
-    /// <summary>Stat tiles sit in one row on wide screens and two columns on narrow ones.</summary>
+    /// <summary>Stat tiles sit in one row on wide screens and two columns on narrow ones (grids classed "fixed" keep theirs).</summary>
     private void UpdateTilePanels()
     {
-        foreach (var grid in this.GetVisualDescendants().OfType<UniformGrid>())
+        foreach (var grid in this.GetVisualDescendants().OfType<UniformGrid>().Where(g => !g.Classes.Contains("fixed")))
         {
             grid.Rows = Compact ? 0 : 1;
             grid.Columns = Compact ? 2 : 0;
@@ -179,6 +210,7 @@ public partial class MainView : UserControl
         PageOverview.IsVisible = NavOverview.IsChecked == true;
         PageBattlegrounds.IsVisible = NavBattlegrounds.IsChecked == true;
         PageConstructed.IsVisible = NavConstructed.IsChecked == true;
+        PageArena.IsVisible = NavArena.IsChecked == true;
         PageHistory.IsVisible = NavHistory.IsChecked == true;
         PageSettings.IsVisible = NavSettings.IsChecked == true;
         // Panels of a page that was hidden are created on its first layout.

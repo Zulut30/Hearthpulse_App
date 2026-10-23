@@ -61,6 +61,17 @@ public sealed class AppSettings
 
     public bool ShowOpponentCounters { get; set; } = true;
 
+    /// <summary>
+    /// The card pool panel: for a card that Discovers or creates random cards, the pool it draws from (during the
+    /// Discover, right after it is played, or while hovered in hand).
+    /// </summary>
+    public bool ShowCardPool { get; set; } = true;
+
+    public const double DefaultCardPoolBrowserWidth = 350;
+
+    /// <summary>Width of the card pool browser (the full-height list of a pool's cards), in overlay units.</summary>
+    public double CardPoolBrowserWidth { get; set; } = DefaultCardPoolBrowserWidth;
+
     /// <summary>Per counter id: "Auto" (when a card that cares is in play), "Always" or "Off". Missing means Auto.</summary>
     public Dictionary<string, string> CounterModes { get; set; } = new(StringComparer.Ordinal);
 
@@ -87,12 +98,13 @@ public sealed class AppSettings
     /// <summary>The tribe the player wants to build around (a race key such as "BEAST"); null for any.</summary>
     public string? CompFocus { get; set; }
 
-    // Filters of the Constructed meta stats (Firestone keys such as "standard", "legend", "past-7").
+    // Filters of the Constructed meta stats (Hearthpulse API keys such as "standard", "legend", "past_week"; keys of
+    // earlier versions, e.g. "past-7", map onto them in ConstructedMeta.Key).
     public string MetaFormat { get; set; } = "standard";
 
     public string MetaRank { get; set; } = "all";
 
-    public string MetaPeriod { get; set; } = "past-7";
+    public string MetaPeriod { get; set; } = "past_week";
 
     /// <summary>Whether the player shares Battlegrounds results with the stats pool; null until they answer.</summary>
     public bool? PoolConsent { get; set; }
@@ -179,6 +191,12 @@ public sealed class AppSettings
     public bool AutoUpdate { get; set; } = true;
 
     public bool HistoryImported { get; set; }
+
+    /// <summary>
+    /// The kept logs were read again once to fill the My Stats fields (who went first, Battlegrounds combats and hero
+    /// offers) of games saved before the app recorded them.
+    /// </summary>
+    public bool HistoryStatsFilled { get; set; }
 
     /// <summary>Colour theme: a preset name, or "Custom" with the three values below.</summary>
     public string Theme { get; set; } = "Tavern";
