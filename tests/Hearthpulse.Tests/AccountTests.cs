@@ -167,7 +167,7 @@ public sealed class AccountTests : IDisposable
     public async Task Restore_refreshes_the_session_and_picks_up_a_new_name_and_subscription()
     {
         _site.Issue("ref-saved");
-        _store.Save("ref-saved", new AccountUser("u-42", "Old name", Entitlements.None));
+        _store.Save("ref-saved", new AccountUser("u-42", "Old name", Entitlements.None), new DateTime(2026, 11, 20, 0, 0, 0, DateTimeKind.Utc));
 
         var account = Service();
         await account.RestoreAsync();
@@ -182,7 +182,7 @@ public sealed class AccountTests : IDisposable
     public async Task Restore_keeps_an_offline_session_with_its_subscription_but_forgets_a_rejected_one()
     {
         var paid = new Entitlements(true, ["boosty"], [Entitlements.Arena], false, new DateTime(2026, 10, 20, 0, 0, 0, DateTimeKind.Utc));
-        _store.Save("ref-gone", new AccountUser("u-42", "Anna", paid));
+        _store.Save("ref-gone", new AccountUser("u-42", "Anna", paid), expiresAt: null);
 
         _site.Offline = true;
         var offline = Service();
@@ -196,6 +196,64 @@ public sealed class AccountTests : IDisposable
         await rejected.RestoreAsync();
         Assert.False(rejected.SignedIn);
         Assert.Null(_store.Load());
+    }
+
+    [Fact]
+    public async Task The_sign_in_lasts_thirty_days_and_refreshing_does_not_extend_it()
+    {
+        _site.ExpiresIn = 1;
+        var account = Service();
+        await account.SignInAsync(_ => { });
+        var end = account.SessionExpires!.Value;
+
+        Assert.InRange(end - DateTime.UtcNow, TimeSpan.FromDays(30) - TimeSpan.FromMinutes(5), TimeSpan.FromDays(30));
+        Assert.False(account.SessionEndingSoon);
+        await account.GetAccessTokenAsync();
+        Assert.Equal(end, account.SessionExpires);
+        Assert.Equal(end, _store.Load()!.Value.ExpiresAt);
+    }
+
+    [Fact]
+    public async Task A_restored_sign_in_near_its_end_asks_to_sign_in_again()
+    {
+        _site.Issue("ref-saved");
+        _store.Save("ref-saved", new AccountUser("u-42", "Anna", Entitlements.None), DateTime.UtcNow.AddDays(1));
+
+        var account = Service();
+        await account.RestoreAsync();
+
+        Assert.True(account.SessionEndingSoon);
+        Assert.Equal(_store.Load()!.Value.ExpiresAt, account.SessionExpires);
+    }
+
+    [Fact]
+    public async Task Signing_in_again_replaces_the_session_and_revokes_the_old_one()
+    {
+        var account = Service();
+        await account.SignInAsync(_ => { });
+
+        Assert.Null(await account.SignInAsync(_ => { }));
+
+        Assert.Equal("ref-2", _store.Load()!.Value.RefreshToken);
+        Assert.Equal("ref-1", FakeSite.Form(_site.Bodies("oauth/revoke").Single())["token"]);
+    }
+
+    [Fact]
+    public async Task A_refreshed_pair_is_saved_before_the_profile_is_read()
+    {
+        _site.Issue("ref-saved");
+        _store.Save("ref-saved", new AccountUser("u-42", "Anna", Entitlements.None), expiresAt: null);
+        _site.MeHold = new TaskCompletionSource();
+
+        var account = Service();
+        var restore = account.RestoreAsync();
+        await _site.MeReached.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // /me is still in flight: had the app been closed now, the next start must present the new token.
+        Assert.Equal("ref-1", _store.Load()!.Value.RefreshToken);
+        _site.MeHold.SetResult();
+        await restore;
+        Assert.Equal("ref-1", _store.Load()!.Value.RefreshToken);
     }
 
     [Fact]
@@ -301,6 +359,11 @@ public sealed class AccountTests : IDisposable
 
         public bool Offline { get; set; }
 
+        /// <summary>When set, <c>/me</c> waits for it (after signalling <see cref="MeReached"/>).</summary>
+        public TaskCompletionSource? MeHold { get; set; }
+
+        public TaskCompletionSource MeReached { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public int BeginStatus { get; set; } = 200;
 
         public string VerificationUri { get; set; } = "https://site.test/connect/";
@@ -332,6 +395,12 @@ public sealed class AccountTests : IDisposable
             }
 
             var path = request.RequestUri!.AbsolutePath["/api/v1/".Length..];
+            if (MeHold is not null && path == "me")
+            {
+                MeReached.TrySetResult();
+                await MeHold.Task;
+            }
+
             var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
             lock (_requests)
             {

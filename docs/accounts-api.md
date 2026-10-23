@@ -51,7 +51,8 @@ revoke 60.
                                    "guidesArchive": true, "arenaArticles": false, "battlegroundsArticles": false}}}
 ```
 
-The app keeps `id`, `name` and `profileUrl` (email is not stored). `source` lists the providers that grant access
+The app keeps `id`, `name` and `profileUrl` (the profile link on the card). `email` is personal data: the app
+does not read, store, log or show it. `source` lists the providers that grant access
 (`boosty`, `patreon`, `telegram`; `none` without access).
 
 ## Sign-in
@@ -72,8 +73,13 @@ The app keeps `id`, `name` and `profileUrl` (email is not stored). `source` list
 ## Session
 
 - Access tokens stay in memory and are renewed a minute before `expires_in` runs out.
-- Refresh tokens rotate: the new one replaces the stored one immediately. Token requests are serialised, because
-  presenting a rotated-out refresh token makes the site revoke the whole token family.
+- Refresh tokens rotate and the site has no grace window: presenting a rotated-out token, or two refreshes at once,
+  revokes the whole token family. So token requests run one at a time under a lock, and the new pair is written to
+  disk (temp file + rename, DPAPI) before the access token is used for anything, `/me` included.
+- The sign-in lasts 30 days from the token exchange; rotation does not extend it. The app records the end
+  (`AccountService.SessionExpires`, saved with the session). The card says "Signed in until <date>"; from two days
+  before the end it says "Sign-in ends on <date>. Sign in again to stay connected." with a "Sign in again" button. A
+  new sign-in replaces the session and revokes the old refresh token.
 - At start the saved session is refreshed and `/me` re-read (new name, changed subscription). Offline, a server error,
   rate limiting or an unexpected answer keep the saved session with its last known paid access; `invalid_grant`
   forgets it.

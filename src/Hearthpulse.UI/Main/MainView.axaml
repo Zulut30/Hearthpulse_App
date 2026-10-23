@@ -642,7 +642,7 @@
                             <StackPanel>
                                 <c:Ornament Text="Hearthpulse account" Icon="&#xF0004;" Size="13" Margin="0,0,0,6" />
                                 <!-- Signed in -->
-                                <StackPanel IsVisible="{Binding AccountSignedIn}">
+                                <StackPanel IsVisible="{Binding AccountShowProfile}">
                                     <TextBlock Text="Signed in with HeartPulse as" Classes="caption" Margin="0,4,0,2" />
                                     <TextBlock Text="{Binding AccountName}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
                                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
@@ -652,13 +652,19 @@
                                                    IsVisible="{Binding AccountHasSubscription}" />
                                         <TextBlock Text="{Binding AccountSubscription}" Classes="caption" IsVisible="{Binding !AccountHasSubscription}" />
                                     </StackPanel>
+                                    <TextBlock Text="{Binding AccountSessionNote}" Classes="caption" Margin="0,6,0,0" IsVisible="{Binding !AccountSessionEndingSoon}" />
+                                    <TextBlock Text="{Binding AccountSessionNote}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               IsVisible="{Binding AccountSessionEndingSoon}" />
                                     <Button Classes="bare" Command="{Binding OpenAccountProfile}" HorizontalAlignment="Left" Margin="0,8,0,0">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="Open profile on the site" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
                                             <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </Button>
-                                    <Button Classes="ghost" Content="Sign out" Command="{Binding SignOut}" HorizontalAlignment="Left" Margin="0,14,0,0" />
+                                    <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                        <Button Classes="ghost primary" Content="Sign in again" Command="{Binding SignIn}" Margin="0,0,8,0" IsVisible="{Binding AccountSessionEndingSoon}" />
+                                        <Button Classes="ghost" Content="Sign out" Command="{Binding SignOut}" />
+                                    </WrapPanel>
                                 </StackPanel>
                                 <!-- Signed out -->
                                 <StackPanel IsVisible="{Binding AccountSignedOut}">

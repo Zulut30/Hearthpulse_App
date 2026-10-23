@@ -20,6 +20,12 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     // Access tokens live 15 minutes; renew a minute early so a call never goes out with a dying one.
     private static readonly TimeSpan RefreshMargin = TimeSpan.FromMinutes(1);
 
+    /// <summary>A sign-in lasts 30 days from the site's approval; refreshing does not extend it.</summary>
+    public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
+
+    // From this close to the end the card asks to sign in again.
+    private static readonly TimeSpan EndingSoonWindow = TimeSpan.FromDays(2);
+
     // RFC 8628 3.5: every slow_down adds five seconds to the polling interval.
     private static readonly TimeSpan SlowDownStep = TimeSpan.FromSeconds(5);
 
@@ -52,6 +58,12 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// <summary>The player's account page on the site (as <c>/me</c> names it).</summary>
     public Uri ProfileUrl { get; private set; } = client.DefaultProfileUrl;
 
+    /// <summary>When the sign-in ends for good (UTC); null for a session saved before this was recorded.</summary>
+    public DateTime? SessionExpires { get; private set; }
+
+    /// <summary>The sign-in ends within two days: time to sign in again.</summary>
+    public bool SessionEndingSoon => SessionExpires is { } end && end - DateTime.UtcNow < EndingSoonWindow;
+
     /// <summary>Waits between polls; tests replace it to run the flow without real time.</summary>
     public Func<TimeSpan, CancellationToken, Task> Delay { get; init; } = Task.Delay;
 
@@ -75,6 +87,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
         _refreshToken = saved.Value.RefreshToken;
         User = saved.Value.User;
+        SessionExpires = saved.Value.ExpiresAt;
         Changed?.Invoke();
         var error = await RefreshAsync(withProfile: true, cancellationToken).ConfigureAwait(false);
         if (error is not null && !Transient.Contains(error.Code))
@@ -95,7 +108,8 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// <summary>
     /// Signs in: asks the site for a code, hands it to <paramref name="showCode"/>, opens the confirmation page in the
     /// browser and polls until the player confirms, declines or the code expires. Cancelling
-    /// <paramref name="cancellationToken"/> abandons the attempt.
+    /// <paramref name="cancellationToken"/> abandons the attempt. Signing in again while signed in (the 30 days are
+    /// running out) replaces the session and revokes the old one.
     /// </summary>
     public async Task<AccountError?> SignInAsync(Action<DeviceCode> showCode, CancellationToken cancellationToken = default)
     {
@@ -110,16 +124,25 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             }
 
             var tokens = await PollUntilConfirmedAsync(device, cancellationToken).ConfigureAwait(false);
+            // The site starts the 30 days when it issues the tokens; a minute off keeps the shown date on the safe side.
+            var expires = DateTime.UtcNow + SessionLifetime - TimeSpan.FromMinutes(1);
             var (user, profileUrl) = await client.GetMeAsync(tokens.AccessToken, cancellationToken).ConfigureAwait(false);
+            string? previous;
             await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
             {
+                previous = _refreshToken;
                 _refreshToken = null;
-                Accept(tokens, user, profileUrl);
+                Accept(tokens, user, profileUrl, expires);
             }
             finally
             {
                 _gate.Release();
+            }
+
+            if (previous is not null)
+            {
+                await TryRevokeAsync(previous, CancellationToken.None).ConfigureAwait(false);
             }
 
             return null;
@@ -150,18 +173,9 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             _gate.Release();
         }
 
-        if (refresh is null)
+        if (refresh is not null)
         {
-            return;
-        }
-
-        try
-        {
-            await client.RevokeAsync(refresh, cancellationToken).ConfigureAwait(false);
-        }
-        catch (AccountException ex)
-        {
-            Diag.Info($"account: could not revoke the session ({ex.Code})");
+            await TryRevokeAsync(refresh, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -224,26 +238,28 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             }
 
             var tokens = await client.RefreshAsync(_refreshToken, cancellationToken).ConfigureAwait(false);
-            var user = User;
-            Uri? profileUrl = null;
-            if (withProfile)
+            // The old refresh token is dead from here on: store the new pair before anything else uses the access token.
+            Accept(tokens, User, profileUrl: null);
+            if (!withProfile)
             {
-                try
-                {
-                    (user, profileUrl) = await client.GetMeAsync(tokens.AccessToken, cancellationToken).ConfigureAwait(false);
-                }
-                catch (AccountException ex) when (Transient.Contains(ex.Code))
-                {
-                    Diag.Info($"account: profile not refreshed ({ex.Code})");
-                }
+                return null;
             }
 
-            if (user.Id != User.Id)
+            try
             {
-                throw new AccountException("BAD_RESPONSE", "refreshed session belongs to another account");
+                var (user, profileUrl) = await client.GetMeAsync(tokens.AccessToken, cancellationToken).ConfigureAwait(false);
+                if (user.Id != User.Id)
+                {
+                    throw new AccountException("WRONG_ACCOUNT", "refreshed session belongs to another account");
+                }
+
+                Accept(tokens, user, profileUrl);
+            }
+            catch (AccountException ex) when (Transient.Contains(ex.Code))
+            {
+                Diag.Info($"account: profile not refreshed ({ex.Code})");
             }
 
-            Accept(tokens, user, profileUrl);
             return null;
         }
         catch (AccountException ex)
@@ -256,17 +272,30 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         }
     }
 
+    private async Task TryRevokeAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await client.RevokeAsync(refreshToken, cancellationToken).ConfigureAwait(false);
+        }
+        catch (AccountException ex)
+        {
+            Diag.Info($"account: could not revoke the session ({ex.Code})");
+        }
+    }
+
     /// <summary>Takes new tokens; a rotated refresh token replaces the stored one at once. Call under the gate.</summary>
-    private void Accept(AccountTokens tokens, AccountUser user, Uri? profileUrl)
+    private void Accept(AccountTokens tokens, AccountUser user, Uri? profileUrl, DateTime? sessionExpires = null)
     {
         _accessToken = tokens.AccessToken;
         _accessExpires = DateTime.UtcNow.AddSeconds(tokens.ExpiresIn);
         _refreshToken = tokens.RefreshToken ?? _refreshToken;
         User = user;
         ProfileUrl = profileUrl ?? ProfileUrl;
+        SessionExpires = sessionExpires ?? SessionExpires;
         if (_refreshToken is not null)
         {
-            _store.Save(_refreshToken, user);
+            _store.Save(_refreshToken, user, SessionExpires);
         }
 
         Changed?.Invoke();
@@ -277,6 +306,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     {
         _accessToken = null;
         _refreshToken = null;
+        SessionExpires = null;
         var had = User is not null;
         User = null;
         _store.Delete();

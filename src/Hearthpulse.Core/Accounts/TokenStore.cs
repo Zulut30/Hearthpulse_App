@@ -12,11 +12,12 @@ namespace Hearthpulse.Core.Accounts;
 /// </summary>
 public sealed class TokenStore(string path)
 {
-    // The last known paid access is kept too, so a start without network shows it as it was.
+    // The last known paid access is kept too, so a start without network shows it as it was. ExpiresAt is the sign-in's
+    // absolute end (refreshing does not extend it).
     private sealed record Saved(string RefreshToken, string Id, string DisplayName, bool HasAccess = false, string[]? Sources = null,
-        string[]? Sections = null, bool Stale = true, DateTime? CheckedAt = null);
+        string[]? Sections = null, bool Stale = true, DateTime? CheckedAt = null, DateTime? ExpiresAt = null);
 
-    public (string RefreshToken, AccountUser User)? Load()
+    public (string RefreshToken, AccountUser User, DateTime? ExpiresAt)? Load()
     {
         try
         {
@@ -34,7 +35,7 @@ public sealed class TokenStore(string path)
             var saved = JsonSerializer.Deserialize<Saved>(bytes);
             return saved is { RefreshToken.Length: > 0 }
                 ? (saved.RefreshToken, new AccountUser(saved.Id, saved.DisplayName,
-                    new Entitlements(saved.HasAccess, saved.Sources ?? [], saved.Sections ?? [], saved.Stale, saved.CheckedAt)))
+                    new Entitlements(saved.HasAccess, saved.Sources ?? [], saved.Sections ?? [], saved.Stale, saved.CheckedAt)), saved.ExpiresAt)
                 : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or CryptographicFailure)
@@ -44,28 +45,43 @@ public sealed class TokenStore(string path)
         }
     }
 
-    public void Save(string refreshToken, AccountUser user)
+    /// <summary>
+    /// Writes the session atomically (temp file, then rename): the site revokes the whole sign-in when an already rotated
+    /// refresh token comes back, so a half-written file must never replace the last good one.
+    /// </summary>
+    public bool Save(string refreshToken, AccountUser user, DateTime? expiresAt)
     {
+        var temp = path + ".tmp";
         try
         {
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(new Saved(refreshToken, user.Id, user.DisplayName, user.Entitlements.HasAccess, [.. user.Entitlements.Sources],
-                [.. user.Entitlements.Sections], user.Entitlements.Stale, user.Entitlements.CheckedAt));
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(new Saved(refreshToken, user.Id, user.DisplayName, user.Entitlements.HasAccess,
+                [.. user.Entitlements.Sources], [.. user.Entitlements.Sections], user.Entitlements.Stale, user.Entitlements.CheckedAt, expiresAt));
             if (OperatingSystem.IsWindows())
             {
-                File.WriteAllBytes(path, Dpapi.Protect(bytes));
-                return;
+                bytes = Dpapi.Protect(bytes);
             }
-
-            using (File.Create(path, 1, FileOptions.None))
+            else
             {
+                using (File.Create(temp, 1, FileOptions.None))
+                {
+                }
+
+                File.SetUnixFileMode(temp, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             }
 
-            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-            File.WriteAllBytes(path, bytes);
+            using (var file = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                file.Write(bytes);
+                file.Flush(flushToDisk: true);
+            }
+
+            File.Move(temp, path, overwrite: true);
+            return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicFailure)
         {
             Diag.Error("account: could not save the session", ex);
+            return false;
         }
     }
 

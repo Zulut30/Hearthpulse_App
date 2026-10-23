@@ -1251,7 +1251,7 @@
                                 <StackPanel>
                                     <c:Ornament Text="Hearthpulse account" Icon="&#xF0004;" Size="13" Margin="0,0,0,6" />
                                     <!-- Signed in -->
-                                    <StackPanel Visibility="{Binding AccountSignedIn, Converter={StaticResource Vis}}">
+                                    <StackPanel Visibility="{Binding AccountShowProfile, Converter={StaticResource Vis}}">
                                         <TextBlock Text="Signed in with HeartPulse as" Style="{StaticResource Caption}" Margin="0,4,0,2" />
                                         <TextBlock Text="{Binding AccountName}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
                                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
@@ -1262,11 +1262,19 @@
                                             <TextBlock Text="{Binding AccountSubscription}" Style="{StaticResource Caption}"
                                                        Visibility="{Binding AccountHasSubscription, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                         </StackPanel>
+                                        <TextBlock Text="{Binding AccountSessionNote}" Style="{StaticResource Caption}" Margin="0,6,0,0"
+                                                   Visibility="{Binding AccountSessionEndingSoon, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <TextBlock Text="{Binding AccountSessionNote}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0"
+                                                   Visibility="{Binding AccountSessionEndingSoon, Converter={StaticResource Vis}}" />
                                         <TextBlock Margin="0,8,0,0">
                                             <Hyperlink Command="{Binding OpenAccountProfile}" Foreground="{StaticResource Accent}"><Run Text="Open profile on the site" /></Hyperlink>
                                             <Run Text="&#xF03CC;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource Accent}" />
                                         </TextBlock>
-                                        <Button Style="{StaticResource GhostButton}" Content="Sign out" Command="{Binding SignOut}" HorizontalAlignment="Left" Margin="0,14,0,0" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                            <Button Style="{StaticResource PrimaryButton}" Content="Sign in again" Command="{Binding SignIn}" Margin="0,0,8,0"
+                                                    Visibility="{Binding AccountSessionEndingSoon, Converter={StaticResource Vis}}" />
+                                            <Button Style="{StaticResource GhostButton}" Content="Sign out" Command="{Binding SignOut}" />
+                                        </StackPanel>
                                     </StackPanel>
                                     <!-- Signed out -->
                                     <StackPanel Visibility="{Binding AccountSignedOut, Converter={StaticResource Vis}}">

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using Hearthpulse.App.Infrastructure;
@@ -32,6 +33,21 @@ public sealed partial class MainViewModel
     /// <summary>Neither signed in nor waiting for the browser: the card offers the sign-in button.</summary>
     public bool AccountSignedOut => !AccountSignedIn && !AccountWaiting;
 
+    /// <summary>The profile part of the card; hidden while a new sign-in runs.</summary>
+    public bool AccountShowProfile => AccountSignedIn && !AccountWaiting;
+
+    /// <summary>
+    /// "Signed in until 22 Nov 2026"; close to the end, a nudge to sign in again. The site's sign-in lasts 30 days from
+    /// approval and refreshing does not extend it.
+    /// </summary>
+    public string AccountSessionNote => _account?.SessionExpires is not { } end
+        ? string.Empty
+        : _account.SessionEndingSoon
+            ? "Sign-in ends on " + end.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture) + ". Sign in again to stay connected."
+            : "Signed in until " + end.ToLocalTime().ToString("d MMM yyyy", CultureInfo.CurrentCulture);
+
+    public bool AccountSessionEndingSoon => _account?.SessionEndingSoon == true;
+
     public string AccountName => _account?.User?.DisplayName ?? string.Empty;
 
     /// <summary>Paid access in one line ("Boosty subscription: Arena, Battlegrounds").</summary>
@@ -48,6 +64,7 @@ public sealed partial class MainViewModel
             if (Set(ref _accountWaiting, value))
             {
                 Raise(nameof(AccountSignedOut));
+                Raise(nameof(AccountShowProfile));
             }
         }
     }
@@ -141,6 +158,9 @@ public sealed partial class MainViewModel
     {
         Raise(nameof(AccountSignedIn));
         Raise(nameof(AccountSignedOut));
+        Raise(nameof(AccountShowProfile));
+        Raise(nameof(AccountSessionNote));
+        Raise(nameof(AccountSessionEndingSoon));
         Raise(nameof(AccountName));
         Raise(nameof(AccountSubscription));
         Raise(nameof(AccountHasSubscription));
