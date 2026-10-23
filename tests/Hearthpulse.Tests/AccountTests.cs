@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using Hearthpulse.Core.Accounts;
@@ -523,7 +524,7 @@ public sealed class AccountTests : IDisposable
         try
         {
             _site.Issue("ref-saved");
-            _store.Save("ref-saved", new AccountUser("u-42", "Anna", Entitlements.None), new DateTime(2026, 11, 22, 12, 0, 0, DateTimeKind.Utc), Site);
+            _store.Save("ref-saved", new AccountUser("u-42", "Anna", Entitlements.None), new DateTime(2026, 11, 22, 12, 0, 0, DateTimeKind.Local).ToUniversalTime(), Site);
             var account = Service();
             await account.RestoreAsync();
 
@@ -553,6 +554,21 @@ public sealed class AccountTests : IDisposable
         var user = new AccountUser("u-42", "Anna", Entitlements.None);
         Assert.True(_store.Save("ref-1", user, expiresAt: null, Site));
 
+        // A directory where the temp file goes: opening it for writing fails on every OS, for root too, so the
+        // write fails before the rename and the last good file must stay.
+        Directory.CreateDirectory(Path.Combine(_dir, "account.dat.tmp"));
+        Assert.False(_store.Save("ref-2", user, expiresAt: null, Site));
+
+        Assert.Equal("ref-1", _store.Load(Site)!.Value.RefreshToken);
+    }
+
+    [WindowsFact]
+    public void A_failed_rename_leaves_the_last_good_file_and_no_temp_file()
+    {
+        var user = new AccountUser("u-42", "Anna", Entitlements.None);
+        Assert.True(_store.Save("ref-1", user, expiresAt: null, Site));
+
+        // Windows only: there an open file cannot be replaced. On Unix FileShare.None is advisory and rename() ignores it.
         using (new FileStream(Path.Combine(_dir, "account.dat"), FileMode.Open, FileAccess.Read, FileShare.None))
         {
             Assert.False(_store.Save("ref-2", user, expiresAt: null, Site));
@@ -560,6 +576,21 @@ public sealed class AccountTests : IDisposable
 
         Assert.Equal("ref-1", _store.Load(Site)!.Value.RefreshToken);
         Assert.False(File.Exists(Path.Combine(_dir, "account.dat.tmp")));
+    }
+
+    [UnixFact]
+    [UnsupportedOSPlatform("windows")]
+    public void On_unix_the_saved_session_is_readable_by_its_owner_only()
+    {
+        var path = Path.Combine(_dir, "account.dat");
+        File.WriteAllText(path, "old");
+        File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+
+        Assert.True(_store.Save("ref-1", new AccountUser("u-42", "Anna", Entitlements.None), expiresAt: null, Site));
+
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
+        Assert.Equal("ref-1", _store.Load(Site)!.Value.RefreshToken);
+        Assert.False(File.Exists(path + ".tmp"));
     }
 
     [Theory]
@@ -767,5 +798,29 @@ public sealed class AccountTests : IDisposable
 
         private static HttpResponseMessage Json(int status, object value) =>
             new((HttpStatusCode)status) { Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json") };
+    }
+}
+
+/// <summary>A test that only means something on Windows (file sharing is enforced there).</summary>
+internal sealed class WindowsFactAttribute : FactAttribute
+{
+    public WindowsFactAttribute()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Skip = "Windows only";
+        }
+    }
+}
+
+/// <summary>A test of Unix file modes (macOS, Linux).</summary>
+internal sealed class UnixFactAttribute : FactAttribute
+{
+    public UnixFactAttribute()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Skip = "Unix only";
+        }
     }
 }
