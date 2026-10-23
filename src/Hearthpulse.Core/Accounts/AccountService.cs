@@ -401,17 +401,22 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// <summary>Takes new tokens; a rotated refresh token replaces the stored one at once. Call under the gate.</summary>
     private void Accept(AccountTokens tokens, AccountUser user, Uri? profileUrl, DateTime? sessionExpires = null)
     {
-        _accessToken = tokens.AccessToken;
-        _accessExpires = DateTime.UtcNow.AddSeconds(tokens.ExpiresIn);
-        _refreshToken = tokens.RefreshToken ?? _refreshToken;
-        User = user;
-        ProfileUrl = profileUrl ?? ProfileUrl;
-        SessionExpires = sessionExpires ?? SessionExpires;
-        if (_refreshToken is not null && !_store.Save(_refreshToken, user, SessionExpires, client.Site))
+        // Disk first: GetAccessTokenAsync hands out a valid access token without taking the gate, so the new pair
+        // must be stored before that token becomes visible.
+        var refresh = tokens.RefreshToken ?? _refreshToken;
+        var expires = sessionExpires ?? SessionExpires;
+        if (refresh is not null && !_store.Save(refresh, user, expires, client.Site))
         {
             // The session works until the app closes; the next start will have to sign in again.
             Diag.Error("account: rotated refresh token kept in memory only");
         }
+
+        _refreshToken = refresh;
+        User = user;
+        ProfileUrl = profileUrl ?? ProfileUrl;
+        SessionExpires = expires;
+        _accessExpires = DateTime.UtcNow.AddSeconds(tokens.ExpiresIn);
+        Volatile.Write(ref _accessToken, tokens.AccessToken);
 
         WatchSessionEnd();
         Changed?.Invoke();
