@@ -328,7 +328,7 @@ public sealed class ProfileUploadTests : IDisposable
     /// <summary>A fake <c>tracker/events/batch</c>: accepts, rejects or refuses events and records every request.</summary>
     private sealed class FakeSite : HttpMessageHandler
     {
-        public List<(string Authorization, string Body, JsonArray Events, int Status)> Requests { get; } = [];
+        public List<(string Authorization, string Body, List<JsonObject> Events, int Status)> Requests { get; } = [];
 
         public Dictionary<string, (string Code, string Field)> Reject { get; } = [];
 
@@ -355,9 +355,9 @@ public sealed class ProfileUploadTests : IDisposable
             var events = JsonNode.Parse(body)!["events"]!.AsArray();
             var ids = events.Select(e => (string)e!["eventId"]!).ToList();
             var status = Status != 202 ? Status
-                : events.Count > RefuseBatchesOver || ids.Contains(RefuseEvent) ? 400
+                : events.Count > RefuseBatchesOver || (RefuseEvent is not null && ids.Contains(RefuseEvent)) ? 400
                 : 202;
-            Requests.Add((request.Headers.Authorization?.ToString() ?? string.Empty, body, events, status));
+            Requests.Add((request.Headers.Authorization?.ToString() ?? string.Empty, body, [.. events.Select(e => e!.AsObject())], status));
 
             var answer = status switch
             {
