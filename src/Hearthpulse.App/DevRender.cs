@@ -69,6 +69,7 @@ public partial class App
             }
 
             _main.ShowConstructedTab("Decks");
+            await RenderMyStatsAsync(folder);
 
             var rating = _history.RatingHistory().LastOrDefault()?.Rating;
             var moments = new (string Name, Func<BattlegroundsView, bool> When, int Hover)[]

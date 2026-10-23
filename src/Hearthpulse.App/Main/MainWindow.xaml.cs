@@ -48,6 +48,7 @@ public partial class MainWindow : Window
         {
             "Battlegrounds" => NavBattlegrounds,
             "Constructed" => NavConstructed,
+            "Arena" => NavArena,
             "History" => NavHistory,
             "Settings" => NavSettings,
             _ => NavOverview,
@@ -61,6 +62,7 @@ public partial class MainWindow : Window
     public string CurrentPage =>
         NavBattlegrounds.IsChecked == true ? "Battlegrounds"
         : NavConstructed.IsChecked == true ? "Constructed"
+        : NavArena.IsChecked == true ? "Arena"
         : NavHistory.IsChecked == true ? "History"
         : NavSettings.IsChecked == true ? "Settings"
         : "Overview";
@@ -117,9 +119,10 @@ public partial class MainWindow : Window
         PageOverview.Visibility = NavOverview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageBattlegrounds.Visibility = NavBattlegrounds.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageConstructed.Visibility = NavConstructed.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageArena.Visibility = NavArena.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageHistory.Visibility = NavHistory.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        Reveal(new FrameworkElement[] { PageOverview, PageBattlegrounds, PageConstructed, PageHistory, PageSettings }
+        Reveal(new FrameworkElement[] { PageOverview, PageBattlegrounds, PageConstructed, PageArena, PageHistory, PageSettings }
             .First(p => p.Visibility == Visibility.Visible));
         PlacePill(animate: true);
     }
@@ -129,7 +132,7 @@ public partial class MainWindow : Window
     /// <summary>Moves the selection pill behind the checked sidebar item, with a light spring when animated.</summary>
     private void PlacePill(bool animate)
     {
-        var nav = new[] { NavOverview, NavBattlegrounds, NavConstructed, NavHistory, NavSettings }.FirstOrDefault(n => n.IsChecked == true);
+        var nav = new[] { NavOverview, NavBattlegrounds, NavConstructed, NavArena, NavHistory, NavSettings }.FirstOrDefault(n => n.IsChecked == true);
         if (nav is null || Sidebar is null || nav.ActualHeight <= 0)
         {
             return;
@@ -197,13 +200,14 @@ public partial class MainWindow : Window
 
         var meta = TabMyDecks.IsChecked != true;
         MyDecksPanel.Visibility = meta ? Visibility.Collapsed : Visibility.Visible;
+        CtStats.Visibility = MyDecksPanel.Visibility;
         MetaTiersPanel.Visibility = TabMetaTiers.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         MetaDecksPanel.Visibility = TabMetaDecks.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         MetaFilters.Visibility = meta ? Visibility.Visible : Visibility.Collapsed;
         MetaFormatPicker.Visibility = meta ? Visibility.Visible : Visibility.Collapsed;
         if (sender is RadioButton { IsChecked: true })
         {
-            Reveal(new FrameworkElement[] { MyDecksPanel, MetaTiersPanel, MetaDecksPanel }.First(c => c.Visibility == Visibility.Visible), 8);
+            Reveal(new FrameworkElement[] { CtStats, MetaTiersPanel, MetaDecksPanel }.First(c => c.Visibility == Visibility.Visible), 8);
         }
     }
 
