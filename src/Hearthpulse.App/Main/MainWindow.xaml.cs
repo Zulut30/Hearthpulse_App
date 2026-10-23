@@ -19,6 +19,7 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelChanged;
+        viewModel.HistoryRequested += ShowHistoryGame;
         SyncStatus();
         StateChanged += (_, _) =>
         {
@@ -88,6 +89,7 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _viewModel.PropertyChanged -= OnViewModelChanged;
+        _viewModel.HistoryRequested -= ShowHistoryGame;
         base.OnClosed(e);
     }
 
@@ -99,6 +101,13 @@ public partial class MainWindow : Window
             case nameof(MainViewModel.MemoryAttached):
             case nameof(MainViewModel.InGame):
                 SyncStatus();
+                break;
+            case nameof(MainViewModel.DeckOpen):
+                if (NavConstructed.IsChecked == true)
+                {
+                    OnNavigate(this, new RoutedEventArgs());
+                }
+
                 break;
         }
     }
@@ -118,11 +127,18 @@ public partial class MainWindow : Window
 
         PageOverview.Visibility = NavOverview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageBattlegrounds.Visibility = NavBattlegrounds.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        PageConstructed.Visibility = NavConstructed.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        // The deck page stands in for the Constructed page while a deck is open (the nav stays on Constructed).
+        PageConstructed.Visibility = NavConstructed.IsChecked == true && !_viewModel.DeckOpen ? Visibility.Visible : Visibility.Collapsed;
+        PageDeck.Visibility = NavConstructed.IsChecked == true && _viewModel.DeckOpen ? Visibility.Visible : Visibility.Collapsed;
+        if (PageDeck.Visibility == Visibility.Visible)
+        {
+            PageDeck.ScrollToTop();
+        }
+
         PageArena.Visibility = NavArena.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageHistory.Visibility = NavHistory.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        Reveal(new FrameworkElement[] { PageOverview, PageBattlegrounds, PageConstructed, PageArena, PageHistory, PageSettings }
+        Reveal(new FrameworkElement[] { PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageArena, PageHistory, PageSettings }
             .First(p => p.Visibility == Visibility.Visible));
         PlacePill(animate: true);
     }
@@ -211,6 +227,9 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>The deck page view (used by the UI render check).</summary>
+    public Decks.DeckDetailsView DeckDetailsPage => DeckDetails;
+
     /// <summary>Opens a Constructed tab: "Decks", "Tiers" or "Top" (used by the UI render check).</summary>
     public void ShowConstructedTab(string tab) => (tab switch
     {
@@ -220,6 +239,48 @@ public partial class MainWindow : Window
     }).IsChecked = true;
 
     private void OnViewHistory(object sender, RoutedEventArgs e) => NavHistory.IsChecked = true;
+
+    /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
+    private void ShowHistoryGame(string key)
+    {
+        NavHistory.IsChecked = true;
+        var refilter = _viewModel.HistoryFilter != "All";
+        if (refilter)
+        {
+            HistoryAll.IsChecked = true;
+            _viewModel.SetHistoryFilter.Execute("All");
+        }
+
+        SelectHistoryRow(key, waitForRows: refilter);
+    }
+
+    private void SelectHistoryRow(string key, bool waitForRows)
+    {
+        if (waitForRows)
+        {
+            // The "All" rows arrive after a reload: select the game once they are there.
+            PropertyChangedEventHandler? handler = null;
+            handler = (_, e) =>
+            {
+                if (e.PropertyName == nameof(MainViewModel.HistoryRows))
+                {
+                    _viewModel.PropertyChanged -= handler;
+                    SelectHistoryRow(key, waitForRows: false);
+                }
+            };
+            _viewModel.PropertyChanged += handler;
+            return;
+        }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            if (_viewModel.HistoryRows.FirstOrDefault(r => r.Key == key) is { } row)
+            {
+                HistoryList.SelectedItem = row;
+                HistoryList.ScrollIntoView(row);
+            }
+        });
+    }
 
     private void OnOverlaySwitch(object sender, RoutedEventArgs e)
     {

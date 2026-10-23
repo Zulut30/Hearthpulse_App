@@ -134,10 +134,8 @@ public sealed partial class MainViewModel
         RebuildConstructedMeta();
         RebuildConstructedStats();
 
-        // Your own decks show the archetype they belong to.
-        var selected = SelectedDeck?.Key;
-        Decks = Decks.Select(d => d with { Meta = DeckMeta(d.DeckCode, d.ClassKey) }).ToList();
-        SelectedDeck = Decks.FirstOrDefault(d => d.Key == selected) ?? Decks.FirstOrDefault();
+        // Your own decks show the archetype they belong to, and the deck page compares with it.
+        RebuildDecks();
     }
 
     private void ChangeMetaFilter(Action apply)
@@ -304,7 +302,7 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>The class's default hero, for its portrait.</summary>
-    private static string ClassHero(string heroClass) => heroClass.ToUpperInvariant() switch
+    internal static string ClassHero(string heroClass) => heroClass.ToUpperInvariant() switch
     {
         "WARRIOR" => "HERO_01",
         "SHAMAN" => "HERO_02",

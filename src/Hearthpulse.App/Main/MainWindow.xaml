@@ -5,6 +5,7 @@
         xmlns:c="clr-namespace:Hearthpulse.App.Controls"
         xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
         xmlns:s="clr-namespace:Hearthpulse.App.Main.Stats"
+        xmlns:dk="clr-namespace:Hearthpulse.App.Main.Decks"
         Title="Hearthpulse" Width="1260" Height="840" MinWidth="1040" MinHeight="660"
         Background="{StaticResource WindowFill}" Foreground="{StaticResource Text}"
         WindowStartupLocation="CenterScreen" UseLayoutRounding="True" Style="{StaticResource AppWindow}"
@@ -813,85 +814,73 @@
                                 <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                                     <StackPanel>
                                         <c:Ornament Text="Decks" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
-                                        <TextBlock Text="Click a deck to see its matchups." Style="{StaticResource Caption}" Margin="0,0,0,8"
+                                        <TextBlock Text="Click a deck for its page: matchups, mulligan, cards and versions." Style="{StaticResource Caption}" Margin="0,0,0,8"
                                                    Visibility="{Binding Decks, Converter={StaticResource Vis}}" />
-                                        <ListBox ItemsSource="{Binding Decks}" SelectedItem="{Binding SelectedDeck}" Background="Transparent" BorderThickness="0">
-                                            <ListBox.Template>
-                                                <ControlTemplate TargetType="ListBox">
-                                                    <ItemsPresenter />
-                                                </ControlTemplate>
-                                            </ListBox.Template>
-                                            <ListBox.ItemContainerStyle>
-                                                <Style TargetType="ListBoxItem">
-                                        <Setter Property="Foreground" Value="{StaticResource Text}" />
-                                                    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRow}" />
-                                                    <Setter Property="Cursor" Value="Hand" />
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate TargetType="ListBoxItem">
-                                                                <Grid>
-                                                                    <Border x:Name="HoverLayer" CornerRadius="8" Margin="0,0,0,3" Background="{StaticResource Hover}" Opacity="0" />
-                                                                    <Border x:Name="Bd" CornerRadius="8" Padding="13,9" Margin="0,0,0,3" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
-                                                                            SnapsToDevicePixels="True">
-                                                                        <ContentPresenter />
-                                                                    </Border>
-                                                                </Grid>
-                                                                <ControlTemplate.Triggers>
-                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Trigger.EnterActions>
-                                                                            <BeginStoryboard>
-                                                                                <Storyboard>
-                                                                                    <DoubleAnimation Storyboard.TargetName="HoverLayer" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
-                                                                                </Storyboard>
-                                                                            </BeginStoryboard>
-                                                                        </Trigger.EnterActions>
-                                                                        <Trigger.ExitActions>
-                                                                            <BeginStoryboard>
-                                                                                <Storyboard>
-                                                                                    <DoubleAnimation Storyboard.TargetName="HoverLayer" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22" />
-                                                                                </Storyboard>
-                                                                            </BeginStoryboard>
-                                                                        </Trigger.ExitActions>
-                                                                    </Trigger>
-                                                                    <Trigger Property="IsSelected" Value="True">
-                                                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource SelectedFill}" />
-                                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
-                                                                    </Trigger>
-                                                                </ControlTemplate.Triggers>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </Style>
-                                            </ListBox.ItemContainerStyle>
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type m:DeckRow}">
-                                                    <Grid>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*" />
-                                                            <ColumnDefinition Width="70" />
-                                                            <ColumnDefinition Width="150" />
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel>
-                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                            <TextBlock Style="{StaticResource Caption}">
-                                                                <Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" />
-                                                            </TextBlock>
-                                                            <TextBlock Text="{Binding Meta}" Style="{StaticResource Caption}" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
-                                                                       Visibility="{Binding Meta, Converter={StaticResource Vis}}" ToolTip="The meta archetype this deck matches, and its community win rate" />
-                                                        </StackPanel>
-                                                        <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource Caption}"
-                                                                   ToolTip="Wins – losses" />
-                                                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Win rate">
-                                                            <Border Width="80" Height="8" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
-                                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
-                                                                        Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=80}" />
-                                                            </Border>
-                                                            <TextBlock Text="{Binding WinRate}" Width="50" TextAlignment="Right" FontWeight="Bold" />
-                                                        </StackPanel>
-                                                    </Grid>
+                                        <!-- Decks that look like versions of one -->
+                                        <ItemsControl ItemsSource="{Binding DeckSuggestions}" Margin="0,0,0,6">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type dk:DeckSuggestionRow}">
+                                                    <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="&#xF062C;" Style="{StaticResource Icon}" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis"><Run Text="Same deck? " Foreground="{StaticResource Muted}" /><Run Text="{Binding Title, Mode=OneWay}" /></TextBlock>
+                                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <Button Style="{StaticResource PrimaryButton}" Content="Merge" Padding="12,5" FontSize="12" Margin="8,0,6,0"
+                                                                        Command="{Binding DataContext.MergeSuggested, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                                        ToolTip="Count both as versions of one deck" />
+                                                                <Button Style="{StaticResource GhostButton}" Content="Not the same" Padding="10,5" FontSize="12"
+                                                                        Command="{Binding DataContext.DismissSuggested, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
                                                 </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <ItemsControl ItemsSource="{Binding Decks}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type m:DeckRow}">
+                                                    <Button Style="{StaticResource RowButton}" Command="{Binding DataContext.OpenDeck, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="70" />
+                                                                <ColumnDefinition Width="150" />
+                                                                <ColumnDefinition Width="22" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                                <TextBlock Style="{StaticResource Caption}">
+                                                                    <Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" />
+                                                                </TextBlock>
+                                                                <TextBlock Text="{Binding Versions}" Style="{StaticResource Caption}" Foreground="{StaticResource Info}"
+                                                                           Visibility="{Binding Versions, Converter={StaticResource Vis}}" ToolTip="Versions merged into this deck; their games count together" />
+                                                                <TextBlock Text="{Binding Meta}" Style="{StaticResource Caption}" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
+                                                                           Visibility="{Binding Meta, Converter={StaticResource Vis}}" ToolTip="The meta archetype this deck matches, and its community win rate" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Style="{StaticResource Caption}"
+                                                                       ToolTip="Wins – losses" />
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Win rate">
+                                                                <Border Width="80" Height="8" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
+                                                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
+                                                                            Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=80}" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding WinRate}" Width="50" TextAlignment="Right" FontWeight="Bold" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="3" Text="&#xF0142;" Style="{StaticResource Icon}" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        </Grid>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
                                         <TextBlock Text="Decks appear once you finish a game with them." Style="{StaticResource Caption}" Margin="0,8"
                                                    Visibility="{Binding Decks, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                     </StackPanel>
@@ -899,7 +888,7 @@
                                 <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                                     <StackPanel>
                                         <c:Ornament Text="Matchups" Icon="&#xF04E5;" Size="13" />
-                                        <TextBlock Text="{Binding SelectedDeck.Name, FallbackValue='All decks'}" FontWeight="SemiBold" Margin="0,8,0,10" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="All decks · open a deck for its own" Style="{StaticResource Caption}" Margin="0,8,0,10" TextTrimming="CharacterEllipsis" />
                                         <ItemsControl ItemsSource="{Binding Matchups}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type m:MatchupRow}">
@@ -1191,6 +1180,11 @@
                         </StackPanel>
                     </ScrollViewer>
 
+                    <!-- ===== Deck page (Main/Decks): replaces the Constructed page while a deck is open ===== -->
+                    <ScrollViewer x:Name="PageDeck" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <dk:DeckDetailsView x:Name="DeckDetails" DataContext="{Binding DeckPage}" Margin="40,0,40,120" />
+                    </ScrollViewer>
+
                     <!-- ===== Arena ===== -->
                     <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
@@ -1219,7 +1213,7 @@
                             </StackPanel>
                             <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}" ToolTip="Filter by game mode">
                                 <StackPanel Orientation="Horizontal">
-                                    <RadioButton Style="{StaticResource Segment}" Content="All" GroupName="Hist" IsChecked="True" Command="{Binding SetHistoryFilter}" CommandParameter="All" />
+                                    <RadioButton x:Name="HistoryAll" Style="{StaticResource Segment}" Content="All" GroupName="Hist" IsChecked="True" Command="{Binding SetHistoryFilter}" CommandParameter="All" />
                                     <RadioButton Style="{StaticResource Segment}" Content="Battlegrounds" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Battlegrounds" />
                                     <RadioButton Style="{StaticResource Segment}" Content="Duos" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Duos" />
                                     <RadioButton Style="{StaticResource Segment}" Content="Ranked" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Ranked" />
@@ -1228,7 +1222,7 @@
                             </Border>
                         </Grid>
                         <Border Grid.Row="1" Style="{StaticResource Card}" Padding="22,10">
-                            <ListBox ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource GameRowTemplate}" Background="Transparent" BorderThickness="0"
+                            <ListBox x:Name="HistoryList" ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource GameRowTemplate}" Background="Transparent" BorderThickness="0"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.ScrollUnit="Pixel">
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
@@ -1237,7 +1231,16 @@
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="ListBoxItem">
-                                                    <ContentPresenter Margin="10,0" />
+                                                    <!-- Selected only when a deck page sends a game here -->
+                                                    <Border x:Name="Bd" CornerRadius="8" BorderThickness="1" BorderBrush="Transparent">
+                                                        <ContentPresenter Margin="10,0" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SelectedFill}" />
+                                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
                                                 </ControlTemplate>
                                             </Setter.Value>
                                         </Setter>

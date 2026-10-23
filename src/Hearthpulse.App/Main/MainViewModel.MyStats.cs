@@ -229,6 +229,7 @@ public sealed partial class MainViewModel
         RebuildBattlegroundsStats();
         RebuildConstructedStats();
         RebuildArenaStats();
+        RebuildDecks();
     }
 
     /// <summary>Builds a page off the UI thread; the returned action applies the result unless a newer build started.</summary>
