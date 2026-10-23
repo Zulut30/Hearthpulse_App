@@ -744,6 +744,12 @@ public static class PoolClient
                 }
             }
 
+            // The imported guides can arrive with an empty tribe list; the id prefix still says what the comp is.
+            if (tribes.Count == 0 && BattlegroundsMeta.TribeForComp(id) is { } prefixTribe)
+            {
+                tribes.Add(prefixTribe);
+            }
+
             comps.Add(new MetaComp(id, name, power, difficulty, tribes, cards, when, tip, NumberAt(e, 2), atMmr, heroPlacement));
         }
 

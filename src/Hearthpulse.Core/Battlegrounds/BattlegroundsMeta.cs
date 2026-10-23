@@ -70,6 +70,13 @@ public sealed class BattlegroundsMeta
         ["pirate"] = "PIRATE", ["elemental"] = "ELEMENTAL", ["undead"] = "UNDEAD", ["naga"] = "NAGA",
     };
 
+    /// <summary>
+    /// The tribe a comp id starts with ("beast_beetle" -> BEAST). Comp guides normally carry an explicit tribe
+    /// list, but some patches leave it empty; the id is then the only stable signal.
+    /// </summary>
+    internal static string? TribeForComp(string id) =>
+        PrefixTribes.GetValueOrDefault(id.Split('_')[0]);
+
     /// <summary>Built by <see cref="LoadAsync"/>; internal so tests can build small offline data sets.</summary>
     internal BattlegroundsMeta(
         IReadOnlyDictionary<int, IReadOnlyDictionary<string, MetaHero>> heroes,
@@ -725,8 +732,7 @@ public sealed class BattlegroundsMeta
             }
         }
 
-        var prefix = id.Split('_')[0];
-        if (tribes.Count == 0 && PrefixTribes.TryGetValue(prefix, out var prefixTribe))
+        if (tribes.Count == 0 && TribeForComp(id) is { } prefixTribe)
         {
             tribes.Add(prefixTribe);
         }

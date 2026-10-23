@@ -316,6 +316,24 @@ public sealed class PoolTests
     }
 
     [Fact]
+    public void DerivesACompTribeFromItsIdWhenTheGuideHasNone()
+    {
+        using var doc = JsonDocument.Parse("""
+            { "heroes": { "100": [["BG_HERO_1", 1200, 3000, 1500, 3.9, 0.56, 0.15, []]] },
+              "comps": [["beast_beetle", 9000, 3.6, [], []], ["neutral_tea_set", 40, 3.2, [], []]],
+              "guides": [{ "id": "beast_beetle", "name": "Beast Beetle", "power": "A", "difficulty": "Easy",
+                           "tribes": [], "cards": [["BG_CARD_A", "CORE"]] },
+                         { "id": "neutral_tea_set", "name": "Neutral Tea Set", "power": "B", "difficulty": "Easy",
+                           "tribes": [], "cards": [["BG_CARD_A", "CORE"]] }] }
+            """);
+
+        var comps = PoolClient.ParseMeta(doc.RootElement)!.Comps;
+
+        Assert.Equal(new[] { "BEAST" }, comps.Single(c => c.Id == "beast_beetle").Tribes);
+        Assert.Empty(comps.Single(c => c.Id == "neutral_tea_set").Tribes);
+    }
+
+    [Fact]
     public void RejectsMetaWithoutHeroes()
     {
         using var doc = JsonDocument.Parse("""{ "cards": { "100": [] }, "comps": [] }""");
