@@ -93,8 +93,6 @@ public sealed class SecretTracker : IPowerListener
 
         public int DefenderDamage { get; set; }
 
-        public int DefenderArmor { get; set; }
-
         public IReadOnlyList<int> Secrets { get; set; } = [];
 
         public Board Before { get; set; }
@@ -227,9 +225,11 @@ public sealed class SecretTracker : IPowerListener
         if (_attack is { } attack)
         {
             _attack = null;
-            if (attack.Defender is { } defender && attack.Attacker.IsMinion)
+            // Reckoning destroys the attacker afterwards: an attacker that died in the trade gives it nothing to do. Armor
+            // soaking the hit is not counted as damage dealt (not confirmed either way, so the cautious reading).
+            if (attack.Defender is { } defender && attack.Attacker is { IsMinion: true, InPlay: true, Health: > 0 })
             {
-                var dealt = defender.GetInt(GameTag.Damage) - attack.DefenderDamage + (attack.DefenderArmor - defender.GetInt(GameTag.Armor));
+                var dealt = defender.GetInt(GameTag.Damage) - attack.DefenderDamage;
                 if (dealt >= 3)
                 {
                     Raise(SecretTrigger.MinionDealtThreeDamage, attack.Secrets, attack.Before, TargetableIf(attack.Attacker));
@@ -380,7 +380,6 @@ public sealed class SecretTracker : IPowerListener
         var attacker = attack.Attacker;
         attack.Defender = defender;
         attack.DefenderDamage = defender.GetInt(GameTag.Damage);
-        attack.DefenderArmor = defender.GetInt(GameTag.Armor);
         attack.Secrets = ActiveUnknown(game);
         attack.Before = BoardOf(game);
         var secrets = attack.Secrets;

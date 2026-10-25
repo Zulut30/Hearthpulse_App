@@ -270,6 +270,22 @@ public sealed class SecretsTests
         Assert.Contains("ULD_152", game.Open());
     }
 
+    [Theory]
+    [InlineData(5, false)]  // the attacker survives the trade: Reckoning would have destroyed it
+    [InlineData(2, true)]   // the attacker dies in the trade: Reckoning has nothing to do
+    public void Reckoning_is_ruled_out_only_when_the_attacker_survives(int attackerHealth, bool stays)
+    {
+        var game = new SecretGame("HERO_04", "FT_WILD");
+        game.Turn(2);
+        var target = game.OpponentMinion();
+        game.OpponentSecret(50, "PALADIN", 1);
+        game.Turn(1);
+        var attacker = game.LocalCard("CS2_182", "MINION", "PLAY", "tag=ATK value=4", $"tag=HEALTH value={attackerHealth}");
+        game.Attack(attacker, target, damage: 4,
+            $"DebugPrintPower() -     TAG_CHANGE Entity={SecretGame.Ref(attacker, "PLAY", 1)} tag=DAMAGE value=3 ");
+        Assert.Equal(stays, game.Open().Contains("CS3_016"));
+    }
+
     [Fact]
     public void Their_turn_start_rules_out_competitive_spirit_when_they_have_a_minion()
     {

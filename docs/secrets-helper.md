@@ -4,6 +4,10 @@ While the opponent has Secrets in play (Constructed and Arena), the overlay pane
 their class and format and crosses out the ones the game has ruled out. Setting: `AppSettings.ShowSecrets`
 (Settings > Overlay, "Secrets helper"). Backlog item C1 (`reference/index/not-implemented-2026-10.md`).
 
+Panel: x 1180-1390 on the 1920x1080 surface (right of the opponent's Hero Power, left of `opponent-archetype`), from
+y 140, above the board. Folded it shows the first 4 possible Secrets and "+N more"; unfolded, the whole pool (crossed
+out by hand, then ruled out). Only the rows and "+N more" take clicks; everything else passes through to the game.
+
 ## Where the code is
 
 | Part | File |
@@ -64,7 +68,7 @@ one of its triggers was seen with all its conditions.
 | card played the turn it entered hand | the played card's `EnteredHandTurn` is the current turn |
 | spent all Mana, turn ended with no Mana | `RESOURCES + TEMP_RESOURCES - RESOURCES_USED - OVERLOAD_LOCKED` = 0, judged only without temporary crystals and Overload |
 | attacks | `ATTACK` block of a local character, defender = first `PROPOSED_DEFENDER` on the game entity |
-| 3+ damage by an attacking minion | defender `DAMAGE` increase plus `ARMOR` loss during the `ATTACK` block |
+| 3+ damage by an attacking minion | defender `DAMAGE` increase during the `ATTACK` block (armor loss not counted), attacker still alive at its end |
 | their hero damaged | their hero's `DAMAGE` increases on your turn |
 | their minion died (the turn after it was played) | their minion `PLAY` -> `GRAVEYARD` on your turn (played turn from their `PLAY` block) |
 | turn ended (after plays / no Mana / they took no damage) | `STEP=MAIN_END` on your turn; only Secrets active since `MAIN_READY` |

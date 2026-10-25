@@ -126,7 +126,7 @@ public sealed record SecretRule(IReadOnlyList<SecretTrigger> Triggers, SecretNee
 /// Trigger table for every collectible Secret, keyed by the card id without its reprint prefix (<c>CORE_</c>, <c>VAN_</c>).
 /// Written from the English card text (HearthstoneJSON). A Secret listed with a null rule fires on something the player
 /// cannot see or check (a minion in their hand, fatal damage), so no event rules it out. A Secret missing from the
-/// table is never ruled out either; <c>SecretRulesTests</c> fails until a new one is added.
+/// table is never ruled out either; <c>SecretsTests.Every_collectible_secret_has_a_rule_entry</c> fails until a new one is added.
 /// </summary>
 public static class SecretRules
 {
@@ -153,7 +153,7 @@ public static class SecretRules
         ["WON_018"] = new(SecretTrigger.MinionPlayed, SecretNeeds.Targetable),                 // Snipe (Wonders)
         ["JAM_003"] = new(SecretTrigger.TurnEndedNoMana, SecretNeeds.BoardSpace),              // Hidden Meaning
         ["LOE_021"] = new(SecretTrigger.HeroPowerUsed),                                        // Dart Trap
-        ["MIS_105"] = new([SecretTrigger.MinionPlayed, SecretTrigger.SpellCast, SecretTrigger.WeaponPlayed]), // Bargain Bin
+        ["MIS_105"] = new([SecretTrigger.MinionPlayed, SecretTrigger.SpellCast, SecretTrigger.WeaponPlayed], SecretNeeds.HandSpace), // Bargain Bin
         ["NX2_013"] = new(SecretTrigger.MinionPlayed, SecretNeeds.BoardSpace),                 // ZOMBEEEES!!!
         ["TSC_929"] = new(SecretTrigger.FriendlyMinionDied),                                   // Emergency Maneuvers
         ["TTN_504"] = new(SecretTrigger.MinionAttacked),                                       // Bait and Switch
@@ -168,7 +168,7 @@ public static class SecretRules
         ["MAW_006"] = new(SecretTrigger.MinionPlayed),                                         // Objection!
         ["REV_516"] = new(SecretTrigger.HeroAttackedByMinion, SecretNeeds.BoardSpace),         // Vengeful Visage
         ["DEEP_000"] = new(SecretTrigger.OwnerTurnStarted, SecretNeeds.OwnerMinion | SecretNeeds.BoardSpace), // Summoning Ward
-        ["DMF_107"] = new(SecretTrigger.TurnEndedOwnerUndamaged),                              // Rigged Faire Game
+        ["DMF_107"] = new(SecretTrigger.TurnEndedOwnerUndamaged, SecretNeeds.HandSpace),       // Rigged Faire Game
         ["EX1_287"] = new(SecretTrigger.SpellCast),                                            // Counterspell
         ["EX1_289"] = new(SecretTrigger.HeroAttacked),                                         // Ice Barrier
         ["EX1_295"] = null,                                                                    // Ice Block: fatal damage
@@ -194,19 +194,19 @@ public static class SecretRules
         ["DAL_570"] = new(SecretTrigger.SpellCast, SecretNeeds.OwnerMinion),                   // Never Surrender!
         ["DMF_236"] = new(SecretTrigger.SpellCast),                                            // Oh My Yogg!
         ["EX1_132"] = new(SecretTrigger.HeroDamaged),                                          // Eye for an Eye
-        ["EX1_136"] = new(SecretTrigger.FriendlyMinionDied),                                   // Redemption
+        ["EX1_136"] = new(SecretTrigger.FriendlyMinionDied, SecretNeeds.BoardSpace),           // Redemption
         ["EX1_379"] = new(SecretTrigger.MinionPlayed, SecretNeeds.Targetable),                 // Repentance
-        ["GIL_903"] = new(SecretTrigger.ThirdCardInTurn),                                      // Hidden Wisdom
+        ["GIL_903"] = new(SecretTrigger.ThirdCardInTurn, SecretNeeds.HandSpace),               // Hidden Wisdom
         ["LOE_027"] = new(SecretTrigger.MinionPlayedOnFourth, SecretNeeds.Targetable),         // Sacred Trial
         ["WC_033"] = new(SecretTrigger.EnemyMinionAttacks, SecretNeeds.Targetable),            // Judgment of Justice
 
         // ---- Rogue --------------------------------------------------------------------------
         ["BT_042"] = new(SecretTrigger.MinionAttacked),                                        // Bamboozle
         ["BT_707"] = new(SecretTrigger.MinionPlayed, SecretNeeds.BoardSpace),                  // Ambush
-        ["BT_709"] = new(SecretTrigger.SpellCast),                                             // Dirty Tricks
+        ["BT_709"] = new(SecretTrigger.SpellCast, SecretNeeds.HandSpace),                      // Dirty Tricks
         ["LOOT_204"] = new(SecretTrigger.FriendlyMinionDied, SecretNeeds.HandSpace),           // Cheat Death
         ["MAW_018"] = new(SecretTrigger.OwnerTurnStarted),                                     // Perjury
-        ["REV_825"] = new(SecretTrigger.SpentAllMana),                                         // Double Cross
+        ["REV_825"] = new(SecretTrigger.SpentAllMana, SecretNeeds.HandSpace),                  // Double Cross
         ["REV_827"] = new(SecretTrigger.SpellCast, SecretNeeds.BoardSpace),                    // Sticky Situation
         ["REV_828"] = new(SecretTrigger.MinionPlayed, SecretNeeds.Targetable),                 // Kidnap
         ["SCH_706"] = new(SecretTrigger.TurnEndedAfterPlays, SecretNeeds.HandSpace),           // Plagiarize
