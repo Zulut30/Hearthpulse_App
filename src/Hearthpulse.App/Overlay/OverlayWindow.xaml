@@ -975,9 +975,14 @@
                 <o:CardPoolBrowser />
             </o:MovablePanel>
 
-            <!-- ============ Constructed: mulligan strip, a badge under each offered card (card row centred, card bottoms at ~690 of 1080) ============ -->
-            <o:MovablePanel Id="mulligan-strip" Title="{i:Loc Overlay.Panel.MulliganStrip}" GameAnchored="True" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="12,700,0,0">
+            <!-- ============ Constructed: mulligan bars over the offered cards (card row centred, card tops at ~310 of 1080; the panel hangs from 300 up) ============ -->
+            <o:MovablePanel Id="mulligan-bars" Title="{i:Loc Overlay.Panel.MulliganStrip}" GameAnchored="True" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,0,0,780">
                 <o:MulliganPanel />
+            </o:MovablePanel>
+
+            <!-- The mulligan summary under the cards (card bottoms at ~690), above the Confirm button -->
+            <o:MovablePanel Id="mulligan-summary" Title="{i:Loc Overlay.Panel.MulliganSummary}" GameAnchored="True" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="12,700,0,0">
+                <o:MulliganSummary />
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: slim top bar + minion browser (top-left) ============ -->

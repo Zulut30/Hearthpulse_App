@@ -62,8 +62,17 @@ public partial class App : Application
     private DeckAggregate? _deckStats;
     private MatchupAggregate? _matchupStats;
     private string? _renderDir;
+    /// <summary>The stats of <see cref="AppSettings.MetaFormat"/> (the format loaded at start), for the render scenes.</summary>
     private ConstructedMeta? _constructedMeta;
-    private CancellationTokenSource? _constructedMetaCancel;
+
+    /// <summary>Constructed stats by format key ("standard", "wild"): the page and a game each use their own format's.</summary>
+    private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
+
+    /// <summary>Formats kept fresh: the one loaded at start, the pages opened and the formats played.</summary>
+    private readonly HashSet<string> _constructedFormats = new(StringComparer.Ordinal);
+
+    /// <summary>Downloads running per format: the latest request and its cancel source (a newer request stops an older one).</summary>
+    private readonly Dictionary<string, (int Request, CancellationTokenSource Cancel)> _constructedMetaLoads = new(StringComparer.Ordinal);
     private int _constructedMetaRequest;
     private BattlegroundsMeta? _meta;
     private UpdateInfo? _stagedUpdate;
@@ -227,8 +236,14 @@ public partial class App : Application
             _settingsDebounce.Start();
             _ = ShareHistoryAsync();
         };
-        _mainViewModel.ConstructedMetaRequested += () =>
+        _mainViewModel.ConstructedMetaRequested += format =>
         {
+            if (format is not null)
+            {
+                EnsureConstructedMeta(format);
+                return;
+            }
+
             _settingsDebounce.Stop();
             _settingsDebounce.Start();
             LoadConstructedMetaAsync().Forget("Constructed meta load");
@@ -259,6 +274,7 @@ public partial class App : Application
         };
 
         _session.SnapshotChanged += OnSnapshot;
+        _session.ConstructedMetaNeeded += format => Dispatcher.BeginInvoke(() => EnsureConstructedMeta(format));
         _session.GameFinished += outcome => Dispatcher.BeginInvoke(() => OnGameFinished(outcome));
         _history.Changed += () => Dispatcher.BeginInvoke(() =>
         {
@@ -531,18 +547,50 @@ public partial class App : Application
         }
     }
 
-    private async Task LoadConstructedMetaAsync()
+    /// <summary>Loads the stats of every format in use again (start, filters, language, the 6-hour refresh).</summary>
+    private Task LoadConstructedMetaAsync()
     {
-        // Filters can change while a download runs; only the latest request may update the page, and an older one stops.
+        _constructedFormats.Add(ConstructedMeta.Key(ConstructedMeta.Formats, _settings.MetaFormat));
+        return Task.WhenAll(_constructedFormats.ToList().Select(LoadConstructedMetaAsync));
+    }
+
+    /// <summary>
+    /// The stats of one format, asked by the page (Standard or Wild) or by a game of that format: passed on at once when
+    /// they are in, else downloaded unless a download already runs.
+    /// </summary>
+    private void EnsureConstructedMeta(string format)
+    {
+        _constructedFormats.Add(format);
+        if (_constructedMetas.TryGetValue(format, out var meta))
+        {
+            _mainViewModel.SetConstructedMeta(meta);
+            _session.SetConstructedMeta(meta);
+        }
+        else if (!_constructedMetaLoads.ContainsKey(format))
+        {
+            LoadConstructedMetaAsync(format).Forget("Constructed meta load");
+        }
+    }
+
+    private async Task LoadConstructedMetaAsync(string format)
+    {
+        // Filters can change while a download runs; only the latest request of a format may pass its stats on, and an
+        // older one stops.
         var request = ++_constructedMetaRequest;
-        _constructedMetaCancel?.Cancel();
-        var cancel = _constructedMetaCancel = new CancellationTokenSource();
+        if (_constructedMetaLoads.TryGetValue(format, out var running))
+        {
+            running.Cancel.Cancel();
+        }
+
+        var cancel = new CancellationTokenSource();
+        _constructedMetaLoads[format] = (request, cancel);
+        bool Latest() => _constructedMetaLoads.TryGetValue(format, out var load) && load.Request == request;
         var done = false;
 
         // The tier list shows as soon as it is in; the mulligan numbers (many more requests) follow with the full answer.
         var tierList = new Progress<ConstructedMeta>(m =>
         {
-            if (!done && request == _constructedMetaRequest)
+            if (!done && Latest())
             {
                 _mainViewModel.SetConstructedMeta(m);
             }
@@ -550,13 +598,28 @@ public partial class App : Application
         try
         {
             LoadArchetypeNames();
-            var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, _settings.MetaFormat, _settings.MetaRank, _settings.MetaPeriod, Loc.CardLocale, tierList, cancel.Token);
+            var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, format, _settings.MetaRank, _settings.MetaPeriod, Loc.CardLocale, tierList, cancel.Token);
             done = true;
-            if (request == _constructedMetaRequest)
+            if (!Latest())
             {
-                _constructedMeta = meta ?? _constructedMeta;
+                return;
+            }
+
+            _constructedMetaLoads.Remove(format);
+            if (meta is not null)
+            {
+                _constructedMetas[format] = meta;
+                if (format == ConstructedMeta.Key(ConstructedMeta.Formats, _settings.MetaFormat))
+                {
+                    _constructedMeta = meta;
+                }
+
                 _mainViewModel.SetConstructedMeta(meta);
-                _session.SetConstructedMeta(_constructedMeta);
+                _session.SetConstructedMeta(meta);
+            }
+            else if (ConstructedMeta.FormatKeyOf(_mainViewModel.ConstructedFormat) == format)
+            {
+                _mainViewModel.SetConstructedMeta(null);
             }
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested)
@@ -564,6 +627,11 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            if (Latest())
+            {
+                _constructedMetaLoads.Remove(format);
+            }
+
             Diag.Error("Constructed stats unavailable", ex);
         }
     }

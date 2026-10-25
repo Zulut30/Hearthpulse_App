@@ -199,6 +199,31 @@ public sealed class OpponentHandTests
     }
 
     [Fact]
+    public void A_game_keeps_its_formats_stats_whatever_format_was_loaded_last()
+    {
+        // The Wild page loads Wild stats after Standard ones: a Standard game still has its archetype, and a Wild game
+        // gets the Wild one. A format without stats is asked for once per game.
+        Core.Constructed.ConstructedMeta Meta(string format, string name) => new(format, "legend", "past-7", DateTime.UtcNow, 5000,
+            [new Core.Constructed.MetaArchetype(1, "cthun", name, "priest", 5000, 2700, 0.54, 0.05, 0, 0, 0, 0, ["BE_012", "BE_014"], [])], []);
+        var deck = new DeckDefinition("Priest", 1, "code", "FT_STANDARD", [813], new Dictionary<int, int> { [120003] = 2, [120005] = 2 });
+        var tracker = new ConstructedTracker { Deck = deck };
+        var asked = new List<string>();
+        tracker.MetaNeeded += asked.Add;
+
+        Assert.Null(View(tracker, "FT_STANDARD", []).DeckMeta);
+        Assert.Null(View(tracker, "FT_WILD", []).DeckMeta);
+        Assert.Equal(["standard", "wild"], asked);
+
+        tracker.Meta = Meta("standard", "Standard Priest");
+        tracker.Meta = Meta("wild", "Wild Priest");
+        Assert.Equal("Standard Priest", View(tracker, "FT_STANDARD", []).DeckMeta?.Archetype);
+        Assert.Equal("Wild Priest", View(tracker, "FT_WILD", []).DeckMeta?.Archetype);
+        Assert.Equal("standard", tracker.MetaFor("FT_STANDARD")?.Format);
+        Assert.Null(tracker.MetaFor("FT_TWIST"));
+        Assert.Equal(2, asked.Count);
+    }
+
+    [Fact]
     public void A_bounced_minion_is_known_and_marked_returned()
     {
         var slot = Assert.Single(Hand(Card(90, "BE_014", "PLAY", 2, "tag=CARDTYPE value=MINION"), ToHand(90, "PLAY", "BE_014")));
