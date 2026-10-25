@@ -120,7 +120,6 @@ public sealed partial class MainViewModel
     private RelayCommand? _setBgPeriod;
     private RelayCommand? _setBgSort;
     private RelayCommand? _setBgMinGames;
-    private RelayCommand? _setCtFormat;
     private RelayCommand? _setCtPeriod;
     private RelayCommand? _setArenaPeriod;
 
@@ -138,7 +137,37 @@ public sealed partial class MainViewModel
         RebuildBattlegroundsStats();
     });
 
-    public RelayCommand SetCtFormat => _setCtFormat ??= new RelayCommand(p => { _ctFormat = p as string ?? "FT_STANDARD"; RebuildConstructedStats(); });
+    /// <summary>The FormatType the Standard or Wild page shows: "FT_STANDARD" or "FT_WILD".</summary>
+    public string ConstructedFormat => _ctFormat;
+
+    /// <summary>The page title: Standard or Wild.</summary>
+    public string ConstructedTitle => Loc.T(_ctFormat == "FT_WILD" ? "Main.Nav.Wild" : "Main.Nav.Standard");
+
+    /// <summary>
+    /// Shows the Constructed page for one FormatType (the Standard and Wild nav items): my stats, your decks and the meta
+    /// follow it. An open deck of the other format closes.
+    /// </summary>
+    public void ShowConstructedFormat(string formatType)
+    {
+        if (formatType != _ctFormat)
+        {
+            _ctFormat = formatType;
+            if (DeckOpen && _deckFamilies.FirstOrDefault(f => f.Key == _openDeckKey) is { } open
+                && ConstructedPage.FormatOf(ConstructedPage.PageOf(open.Format)) != formatType)
+            {
+                CloseDeck();
+            }
+
+            Raise(nameof(ConstructedFormat));
+            Raise(nameof(ConstructedTitle));
+            RebuildConstructedStats();
+            RebuildDecks();
+            RebuildConstructedMeta();
+        }
+
+        // The tier list and top decks follow the page; the overlay keeps the stats of the game's own format.
+        RequestPageMeta();
+    }
 
     public RelayCommand SetCtPeriod => _setCtPeriod ??= new RelayCommand(p => { _ctPeriod = ParsePeriod(p); RebuildConstructedStats(); });
 
@@ -160,6 +189,11 @@ public sealed partial class MainViewModel
     public bool BgHasGlobal { get => _bgHasGlobal; private set => Set(ref _bgHasGlobal, value); }
 
     public string BgStatsNote { get => _bgStatsNote; private set => Set(ref _bgStatsNote, value); }
+
+    private string _bgSimAccuracy = string.Empty;
+
+    /// <summary>One line on how well the combat simulator predicted these games' fights; empty without predictions.</summary>
+    public string BgSimAccuracy { get => _bgSimAccuracy; private set => Set(ref _bgSimAccuracy, value); }
 
     public IReadOnlyList<StatTile> CtStatTiles { get => _ctStatTiles; private set => Set(ref _ctStatTiles, value); }
 
@@ -327,9 +361,16 @@ public sealed partial class MainViewModel
             : meta is null
                 ? Loc.T("Stats.Bg.NoteLoading")
                 : Loc.F("Stats.Bg.NoteSource", meta.Source, BattlegroundsMeta.BracketLabel(meta.WidestBracket));
+        // Duos fights are not predicted with damage (the loser of one board is not the one who takes it).
+        var accuracy = duos ? null : BattlegroundsStats.SimAccuracy(games);
+        var accuracyText = accuracy is not { Fights: > 0 }
+            ? string.Empty
+            : Loc.F("Stats.Bg.SimAccuracy", accuracy.DamageRate is { } dr ? dr.ToString("P0", CultureInfo.CurrentCulture) : "—",
+                accuracy.ResultRate!.Value.ToString("P0", CultureInfo.CurrentCulture), accuracy.Fights);
         return () =>
         {
             BgStatTiles = tiles;
+            BgSimAccuracy = accuracyText;
             BgPlaceShares = shares;
             BgAveragePlace = summary.AveragePlacement ?? double.NaN;
             BgRatingChart = chart;
@@ -446,7 +487,7 @@ public sealed partial class MainViewModel
 
     /// <summary>The loaded Constructed meta when it is the tab's format (else nothing to compare with).</summary>
     private ConstructedMeta? ConstructedMetaFor(string format) =>
-        _constructedMeta is { } m && m.Format == ConstructedMeta.FormatKeyOf(format) ? m : null;
+        ConstructedMeta.FormatKeyOf(format) is { } key && _constructedMetas.TryGetValue(key, out var meta) ? meta : null;
 
     private static string ConstructedNote(ConstructedMeta? meta) => meta is null
         ? Loc.T("Stats.Ct.NoteNoMeta")

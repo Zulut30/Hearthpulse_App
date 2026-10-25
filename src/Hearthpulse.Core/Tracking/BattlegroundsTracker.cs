@@ -601,25 +601,54 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _combats[_pendingDamage] = combat with { DamageTaken = taken, DamageDealt = dealt, Result = result };
     }
 
+    /// <summary>The lobby's combat damage cap, as the game entity announces it (<see cref="DamageRules.Cap"/>).</summary>
+    internal static int DamageCap(GameState game)
+    {
+        var entity = game.GameEntity;
+        if (entity is null)
+        {
+            return 0;
+        }
+
+        int? enabled = entity.Tags.ContainsKey(GameTag.BaconCombatDamageCapEnabled) ? entity.GetInt(GameTag.BaconCombatDamageCapEnabled) : null;
+        return DamageRules.Cap(entity.GetInt(GameTag.BaconCombatDamageCap), enabled);
+    }
+
     private static int Durability(Entity? hero) => hero is null ? 0 : hero.Health + hero.GetInt(GameTag.Armor);
 
     private void CaptureBoards(GameState game, Entity? firstAttacker)
     {
         _boardCaptured = true;
-        // Start-of-combat effects have resolved by the first regular attack, so these boards are what actually fights.
-        var enchantments = Enchantments(game);
-        var ours = BuildSide(game, game.LocalPlayerId, isOpponent: false, enchantments);
-        var theirs = BuildSide(game, game.OpponentPlayerId, isOpponent: true, enchantments);
-        var attacker = firstAttacker is { IsMinion: true } a ? a : null;
-        bool? oursFirst = attacker is null ? null : attacker.Controller == game.LocalPlayerId;
-        var options = SimOptions with { Effects = Effects, FirstAttackerEntityId = attacker?.Id ?? 0 };
-        LastCapture = new CombatCapture(ours, theirs, oursFirst, options.FirstAttackerEntityId);
-        StartSimulation(ours, theirs, oursFirst, options);
         if (!_boardsSnapshotted)
         {
             // After start-of-combat attacks the history keeps the boards from before them (as they were shown).
+            // Taken first: it also reads the combat opponent, whose health the simulation needs.
             SnapshotBoards(game);
         }
+
+        // Start-of-combat effects have resolved by the first regular attack, so these boards are what actually fights.
+        var enchantments = Enchantments(game);
+        // Health for lethal comes from the leaderboard heroes (the fighting heroes are copies), as it was when the fight
+        // started; an opponent tier the combat copy lacks comes from there too.
+        var opponentHero = LeaderboardHero(game, _combatOpponent);
+        var ours = BuildSide(game, game.LocalPlayerId, isOpponent: false, enchantments) with { Health = _localHealthAtCombat };
+        var theirs = BuildSide(game, game.OpponentPlayerId, isOpponent: true, enchantments) with { Health = _opponentHealthAtCombat };
+        if (theirs.TavernTier == 0 && opponentHero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var opponentTier)
+        {
+            theirs = theirs with { TavernTier = opponentTier };
+        }
+
+        var attacker = firstAttacker is { IsMinion: true } a ? a : null;
+        bool? oursFirst = attacker is null ? null : attacker.Controller == game.LocalPlayerId;
+        var options = SimOptions with
+        {
+            Effects = Effects,
+            FirstAttackerEntityId = attacker?.Id ?? 0,
+            DamageCap = DamageCap(game),
+            CountDamage = !game.IsDuos,
+        };
+        LastCapture = new CombatCapture(ours, theirs, oursFirst, options.FirstAttackerEntityId);
+        StartSimulation(ours, theirs, oursFirst, options);
     }
 
     /// <summary>

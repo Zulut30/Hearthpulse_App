@@ -82,6 +82,7 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
             CombatResults = """[{"turn":1,"result":"Win","opponent":"BG22_HERO_305","taken":0,"dealt":3}]""",
             OfferedHeroes = "TB_BaconShop_HERO_72,BG22_HERO_305",
             AnomalyCardId = "BG27_Anomaly_100",
+            CombatOdds = """[{"turn":1,"win":0.7,"tie":0.1,"loss":0.2,"taken":{"mean":4,"low":3,"high":5,"max":7}}]""",
         }));
         Assert.True(store.Add(new GameRecord
         {
@@ -100,6 +101,8 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
         Assert.Equal("TB_BaconShop_HERO_72,BG22_HERO_305", games["bg"].OfferedHeroes);
         Assert.Equal("BG27_Anomaly_100", games["bg"].AnomalyCardId);
         Assert.Contains("\"result\":\"Win\"", games["bg"].CombatResults);
+        Assert.Contains("\"low\":3", games["bg"].CombatOdds);
+        Assert.Null(games["ranked"].CombatOdds);
         Assert.Null(games["bg"].WentFirst);
         Assert.Equal(34, games["ranked"].RankStarLevel);
         Assert.Null(games["ranked"].RankLegend);
