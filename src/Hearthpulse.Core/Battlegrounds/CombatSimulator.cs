@@ -216,7 +216,39 @@ public static class CombatSimulator
             }
         }
 
-        return new CombatOdds(wins / (double)done, (done - wins - losses) / (double)done, losses / (double)done, unsimulated) { Runs = done };
+        if (done == 0)
+        {
+            return new CombatOdds(0, 1.0, 0, unsimulated) { Runs = 0 };
+        }
+
+        var winRate = Math.Clamp(wins / (double)done, 0.0, 1.0);
+        var lossRate = Math.Clamp(losses / (double)done, 0.0, 1.0);
+        var tieRate = Math.Clamp((done - wins - losses) / (double)done, 0.0, 1.0);
+
+        if (wins == done)
+        {
+            winRate = 1.0;
+            lossRate = 0.0;
+            tieRate = 0.0;
+        }
+        else if (losses == done)
+        {
+            winRate = 0.0;
+            lossRate = 1.0;
+            tieRate = 0.0;
+        }
+        else if (wins + losses == 0)
+        {
+            winRate = 0.0;
+            lossRate = 0.0;
+            tieRate = 1.0;
+        }
+        else
+        {
+            tieRate = Math.Max(0.0, 1.0 - winRate - lossRate);
+        }
+
+        return new CombatOdds(winRate, tieRate, lossRate, unsimulated) { Runs = done };
     }
 
     /// <summary>
