@@ -33,7 +33,9 @@ internal static partial class OffscreenRenderer
             ("overlay-arena-pick", ArenaDraftScene.CardPick(meta, host.Cards), settings.OverlayScale),
             ("overlay-arena-pick-scale160", ArenaDraftScene.CardPick(meta, host.Cards), 1.6),
         };
-        var scale = settings.OverlayScale;
+        var (scale, shown) = (settings.OverlayScale, settings.ShowArenaDraft);
+        // The helper is a beta that is off by default; the scenes show it on (the settings file is not saved here).
+        settings.ShowArenaDraft = true;
         foreach (var (name, view, sceneScale) in scenes)
         {
             settings.OverlayScale = sceneScale;
@@ -42,7 +44,7 @@ internal static partial class OffscreenRenderer
             await Save(overlay, Path.Combine(folder, name + ".png"));
         }
 
-        settings.OverlayScale = scale;
+        (settings.OverlayScale, settings.ShowArenaDraft) = (scale, shown);
         host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
         overlayView.Fit(1920, 1080);
     }

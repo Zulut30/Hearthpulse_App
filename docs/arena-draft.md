@@ -9,11 +9,16 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   the class win rate (tier from the win rate) and the 7+ wins share; the best class is marked.
 - **Overlay panel `arena-draft`** (left edge): run class and picks `n/30`, average ArenaSmith score of the deck so far
   with its tier, mana curve 0..7+, class win rates at the hero pick (the offered classes in gold), the cards picked by
-  cost with their scores. Attribution line "Hearthpulse data · ArenaSmith score".
+  cost with their scores. Attribution line "Scores: Hearthpulse data".
 - **Arena page** (main window, My Stats Arena): each run row shows "Deck score N" when the run saved a deck code; a
   "Deck score" card for the latest run (average, tier, curve, three strongest and weakest cards); a "Class win rates"
   card with the community numbers.
-- Setting: `AppSettings.ShowArenaDraft` (default on), Settings → Tracker in both apps. Both panels hide outside the
+- Setting: `AppSettings.ShowArenaDraft`, **beta, off by default** until the log lines and the memory read below are
+  checked on a real draft (review M1); Settings → Tracker in both apps, labelled "(beta)". While it is a beta the
+  tracker logs to `hearthpulse.log` every Arena.log line it recognized with the resulting state
+  (`Arena draft: recognized "..." -> hero ..., deck ..., N cards, mode ...`) and every change of the offer read from
+  memory (`Arena draft: offer read from memory: A, B, C` / `no offer read from memory`): compare them with the screen.
+  In the UI the numbers are credited to "Hearthpulse data" only. Both panels hide outside the
   `DRAFT` scene and take no clicks (`IsHitTestVisible="False"`, no `OverlayHit.Interactive`), so the cards stay
   clickable.
 

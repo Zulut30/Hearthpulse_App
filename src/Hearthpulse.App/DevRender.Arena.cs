@@ -24,7 +24,9 @@ public partial class App
             ("overlay-arena-pick", ArenaDraftScene.CardPick(meta, _cards), _settings.OverlayScale),
             ("overlay-arena-pick-scale160", ArenaDraftScene.CardPick(meta, _cards), 1.6),
         };
-        var scale = _settings.OverlayScale;
+        var (scale, shown) = (_settings.OverlayScale, _settings.ShowArenaDraft);
+        // The helper is a beta that is off by default; the scenes show it on (the settings file is not saved here).
+        _settings.ShowArenaDraft = true;
         foreach (var (name, view, sceneScale) in scenes)
         {
             try
@@ -39,7 +41,7 @@ public partial class App
             }
         }
 
-        _settings.OverlayScale = scale;
+        (_settings.OverlayScale, _settings.ShowArenaDraft) = (scale, shown);
         _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
 
         _main.ShowPage("Arena");

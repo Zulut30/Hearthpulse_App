@@ -29,6 +29,12 @@ public sealed partial class GameSession
             return;
         }
 
+        // Beta (docs/arena-draft.md): what the memory read gives is logged, to check it against the screen on a real draft.
+        if (offer is not null || _draftOffer is not null)
+        {
+            Diag.Info(offer is null ? "Arena draft: no offer read from memory" : "Arena draft: offer read from memory: " + string.Join(", ", offer));
+        }
+
         _draftOffer = offer;
         if (offer is not null && _pickedOffer is not null && !offer.SequenceEqual(_pickedOffer))
         {
@@ -44,6 +50,14 @@ public sealed partial class GameSession
         if (!_arenaDraft.Feed(line))
         {
             return;
+        }
+
+        if (!_catchingUp)
+        {
+            // Beta: every Arena.log line the tracker recognized, with the state it led to.
+            var state = _arenaDraft.State;
+            Diag.Info($"Arena draft: recognized \"{line.Trim()}\" -> hero {state.HeroCardId ?? "none"}, deck {state.DeckId}, "
+                      + $"{state.Cards.Count} cards, mode {state.Mode ?? "unknown"}");
         }
 
         if (_arenaDraft.PickCount != _picksSeen)
