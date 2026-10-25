@@ -123,6 +123,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             {
                 _heroStats = null;
             }
+
+            _ladderReload = true;
         };
         _battlegrounds.HeroStatsProvider = LookupHeroStats;
     }
@@ -258,6 +260,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         }
 
         _parser = new PowerParser(DateOnly.FromDateTime(sessionStart));
+        OnLadderLogSession(sessionStart);
         _parser.AddListener(_constructed);
         _parser.AddListener(_constructed.Counters);
         _parser.AddListener(_battlegrounds);
@@ -897,7 +900,10 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             session,
             _lastOutcome,
             _logConfigMissing,
-            _parseErrorTotal == 0 ? null : new ParseErrorSummary(_parseErrorTotal, ParseErrorText()));
+            _parseErrorTotal == 0 ? null : new ParseErrorSummary(_parseErrorTotal, ParseErrorText()))
+        {
+            Ladder = BuildLadder(game, inGame),
+        };
 
         SnapshotChanged?.Invoke(Current);
     }

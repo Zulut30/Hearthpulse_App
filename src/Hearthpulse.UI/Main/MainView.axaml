@@ -7,6 +7,7 @@
              xmlns:s="using:Hearthpulse.UI.Main.Stats"
              xmlns:dk="using:Hearthpulse.UI.Main.Decks"
              xmlns:mt="using:Hearthpulse.UI.Main.Match"
+             xmlns:cs="using:Hearthpulse.Core.Stats"
              x:Class="Hearthpulse.UI.Main.MainView"
              x:DataType="m:MainViewModel"
              Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
@@ -277,6 +278,41 @@
 
                         <ItemsControl ItemsSource="{Binding OverviewTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}"
                                       Margin="0,0,-14,16" />
+
+                        <!-- Ranked ladder session: Standard and Wild apart (the overlay shows it in the game's menus) -->
+                        <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding ShowLadder}">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,10">
+                                    <c:Ornament Text="{i:Loc Widgets.Ladder.Title}" Icon="&#xF0538;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding LadderSince}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding LadderLines}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="2" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="cs:LadderSessionLine">
+                                            <StackPanel Margin="0,0,24,0">
+                                                <TextBlock Text="{Binding Format}" Classes="label" />
+                                                <DockPanel Margin="0,4,0,0">
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Change}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,0,0"
+                                                               Foreground="{Binding ChangeValue, Converter={StaticResource SignBrush}}" />
+                                                    <TextBlock Text="{Binding Ranks}" FontFamily="{StaticResource DisplayFont}" FontSize="18" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                                <TextBlock Classes="caption" Margin="0,4,0,0" TextTrimming="CharacterEllipsis">
+                                                    <Run Text="{Binding Games, Mode=OneWay}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Record, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding WinRate, Mode=OneWay}" Foreground="{StaticResource Text}" />
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding Streak}" FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
+                                                           Foreground="{Binding StreakValue, Converter={StaticResource SignBrush}}" IsVisible="{Binding Streak, Converter={StaticResource Truthy}}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{i:Loc Widgets.Ladder.RankNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="0,10,0,0" />
+                            </StackPanel>
+                        </Border>
 
                         <Grid Name="HomeCharts" ColumnDefinitions="3*,16,2*" Margin="0,0,0,16">
                             <Border Classes="card">
@@ -894,6 +930,16 @@
                                               ToolTip.Tip="{i:Loc Settings.Overlay.OddsTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Widgets.Archetype.Setting}" IsChecked="{Binding ShowOpponentArchetype}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Widgets.Archetype.SettingTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Widgets.Ladder.Setting}" IsChecked="{Binding ShowLadderSession}" Margin="0,0,0,10"
+                                              ToolTip.Tip="{i:Loc Widgets.Ladder.SettingTip}" />
+                                    <Grid Margin="0,0,0,14" ColumnDefinitions="160,*,56">
+                                        <TextBlock Text="{i:Loc Widgets.Ladder.Break}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Widgets.Ladder.BreakTip}" />
+                                        <Slider Grid.Column="1" Minimum="1" Maximum="12" Value="{Binding LadderSessionBreakHours}" SmallChange="1" LargeChange="2"
+                                                IsSnapToTickEnabled="True" TickFrequency="1" />
+                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption">
+                                            <Run Text="{Binding LadderSessionBreakHours, Mode=OneWay}" /><Run Text=" " /><Run Text="{i:Loc Widgets.Ladder.HoursUnit}" />
+                                        </TextBlock>
+                                    </Grid>
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,18" />
 
                                     <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">

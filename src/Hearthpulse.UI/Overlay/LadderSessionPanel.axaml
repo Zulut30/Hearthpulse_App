@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:s="using:Hearthpulse.Core.Stats"
+             x:Class="Hearthpulse.UI.Overlay.LadderSessionPanel"
+             x:DataType="o:OverlayViewModel">
+    <!-- The ranked session in the game's menus: per format the rank at its start and now, the change, record, win rate
+         and streak. Shown outside games only. -->
+    <UserControl.Resources>
+        <i:Truthy x:Key="Truthy" />
+        <i:SignBrush x:Key="SignBrush" />
+    </UserControl.Resources>
+    <Border Classes="overlayCard" Width="260">
+        <StackPanel Margin="12,9,12,9">
+            <DockPanel Margin="0,0,0,4">
+                <TextBlock DockPanel.Dock="Right" Text="{Binding LadderSince}" FontSize="10.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
+                <TextBlock Text="{i:Loc Widgets.Ladder.Title}" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+            </DockPanel>
+            <ItemsControl ItemsSource="{Binding LadderLines}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="s:LadderSessionLine">
+                        <StackPanel Margin="0,4,0,2">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Change}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0"
+                                           Foreground="{Binding ChangeValue, Converter={StaticResource SignBrush}}" />
+                                <TextBlock Text="{Binding Format}" FontSize="11" Foreground="{StaticResource Accent}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </DockPanel>
+                            <TextBlock Text="{Binding Ranks}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                            <TextBlock FontSize="11.5" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
+                                <Run Text="{Binding Games, Mode=OneWay}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Record, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding WinRate, Mode=OneWay}" Foreground="{StaticResource Text}" />
+                            </TextBlock>
+                            <TextBlock Text="{Binding Streak}" FontSize="11" FontWeight="SemiBold" Margin="0,1,0,0"
+                                       Foreground="{Binding StreakValue, Converter={StaticResource SignBrush}}"
+                                       IsVisible="{Binding Streak, Converter={StaticResource Truthy}}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{i:Loc Widgets.Ladder.RankNote}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,4,0,0" />
+        </StackPanel>
+    </Border>
+</UserControl>

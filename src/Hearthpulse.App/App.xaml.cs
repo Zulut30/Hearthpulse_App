@@ -195,6 +195,7 @@ public partial class App : Application
         _overlayViewModel = new OverlayViewModel();
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
+        _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
         _overlayViewModel.PinRequested += OnPinRequested;
         _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
         _overlayViewModel.CounterModeRequested += (id, mode) =>
@@ -850,6 +851,7 @@ public partial class App : Application
 
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
+        _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
         LoadCardPoolAsync().Forget("Card pool load");
         _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
         Autostart.Apply(_settings.StartWithWindows);

@@ -304,6 +304,7 @@ public sealed partial class MainViewModel : Observable
     public void Apply(LiveSnapshot s)
     {
         _lastSnapshot = s;
+        ApplyLadder(s);
         HearthstoneRunning = s.HearthstoneRunning;
         MemoryAttached = s.MemoryAttached;
         MemoryStatus = s.MemoryStatus;

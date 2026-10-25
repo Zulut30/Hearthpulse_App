@@ -200,6 +200,12 @@ public sealed class AppSettings
 
     public bool ShowSessionPanel { get; set; } = true;
 
+    /// <summary>The ranked ladder session widget: in the overlay outside games and on the Overview page.</summary>
+    public bool ShowLadderSession { get; set; } = true;
+
+    /// <summary>Hours without a game after which the next game starts a new ladder session (Hearthstone starting does too).</summary>
+    public double LadderSessionBreakHours { get; set; } = 2;
+
     /// <summary>Show simulated win / tie / loss odds while a Battlegrounds combat plays out.</summary>
     public bool ShowCombatOdds { get; set; } = true;
 
