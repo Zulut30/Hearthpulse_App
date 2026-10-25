@@ -7,9 +7,16 @@ using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.UI.Overlay;
 
-/// <summary>The badge under one offered card: the guide's call, one number, small flags; details in the tooltip.</summary>
+/// <summary>
+/// The bar over one offered card: the guide's call, a gauge from "replace" to "keep" with the edge in points, a small
+/// second line (keep rate, win rate when drawn) and flags; details in the tooltip.
+/// </summary>
 /// <param name="Call">"Keep", "Replace" or "No data": what the guide recommends.</param>
-/// <param name="Number">The card's win rate delta in points ("+3.1"), else its win rate; empty without numbers.</param>
+/// <param name="Number">What keeping is worth against replacing, in points ("+3.1"); empty without numbers.</param>
+/// <param name="Good">The edge is at least <see cref="MulliganGuide.CloseCall"/>; <paramref name="Bad"/> the same below 0.</param>
+/// <param name="FillLeft">Width of the gauge's fill left of its middle (a card to replace), in overlay units.</param>
+/// <param name="FillRight">Width of the fill right of the middle (a card to keep).</param>
+/// <param name="Details">"Kept 61% · drawn −1.3": the keep rate and the win rate when drawn, against the deck's.</param>
 /// <param name="Kept">The player's current choice (starts as the recommendation; a click toggles it).</param>
 /// <param name="Duplicate">A second copy (counts once, heuristic).</param>
 /// <param name="Late">Usually played late (curve rule).</param>
@@ -22,6 +29,9 @@ public sealed record MulliganPlate(
     string Number,
     bool Good,
     bool Bad,
+    double FillLeft,
+    double FillRight,
+    string Details,
     bool Synergy,
     bool Duplicate,
     bool Late,
@@ -30,16 +40,25 @@ public sealed record MulliganPlate(
 {
     /// <summary>Neither keep nor replace: no numbers for the card.</summary>
     public bool NoCall => !KeepCall && !MulliganCall;
+
+    /// <summary>A close call: the edge is within half a point either way (drawn neutral).</summary>
+    public bool Close => !NoCall && !Good && !Bad;
 }
 
 /// <summary>
-/// The mulligan strip (MulliganPanel.axaml): a slim badge under each offered card, lined up with the cards of the
-/// mulligan screen, and one summary line. It is up while the local MULLIGAN_STATE is INPUT or DEALING (gone at WAITING), with or without numbers.
+/// The mulligan bars (MulliganPanel.axaml): a bar over each offered card, lined up with the cards of the mulligan screen,
+/// under one summary line. It is up while the local MULLIGAN_STATE is INPUT or DEALING (gone at WAITING), with or without numbers.
 /// </summary>
 public sealed partial class OverlayViewModel
 {
     /// <summary>Width of the row of offered cards on the mulligan screen, in units of a 1080-high screen: 3 cards 340 apart, 4 cards 255.</summary>
     public const double MulliganRowGameWidth = 1020;
+
+    /// <summary>Half the gauge's track, in overlay units (MulliganPanel's track is twice this).</summary>
+    public const double MulliganGaugeHalf = 38;
+
+    /// <summary>An edge of this many win rate points fills half the gauge.</summary>
+    private const double MulliganGaugeFull = 0.04;
 
     private double _mulliganRowWidth = MulliganRowGameWidth;
 
@@ -147,9 +166,9 @@ public sealed partial class OverlayViewModel
 
         // Snapshots arrive every 100 ms while anything changes; rebuild the badges only when what they show changed. The
         // language is part of it: after a switch the host pushes the last snapshot again and the texts are made anew.
-        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|"
+        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|"
                     + $"{string.Join(",", _mulliganKept.Order())}|"
-                    + string.Join(";", view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.KeepRate:0.0000}"));
+                    + string.Join(";", view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.Edge:0.0000}|{c.KeepRate:0.0000}|{c.KeptDelta:0.0000}|{c.DrawnDelta:0.0000}"));
         if (print == _mulliganPrint)
         {
             return;
@@ -173,7 +192,8 @@ public sealed partial class OverlayViewModel
             MulliganSummary = Loc.F("Mulligan.Impact", Points(vsAverage));
             // Archetype names come from the API in English.
             var context = string.IsNullOrEmpty(view.Context) ? view.Context : ArchetypeTranslations.Current.Display(view.Context);
-            MulliganSource = string.Join(" · ", new[] { context, view.Source, initiative }.Where(s => !string.IsNullOrEmpty(s)));
+            var slices = view.SliceRank is { } rank ? Loc.F("Mulligan.SliceSource", SliceRankName(rank)) : null;
+            MulliganSource = string.Join(" · ", new[] { context, view.Source, slices, initiative }.Where(s => !string.IsNullOrEmpty(s)));
             var notes = impact.Warnings
                 .Concat(impact.Synergies.Select(s => Loc.F("Mulligan.SynergyKept", s.NameA, s.NameB, Points(s.Interaction))))
                 .ToList();
@@ -194,16 +214,46 @@ public sealed partial class OverlayViewModel
             var kept = _mulliganKept.Contains(c.EntityId);
             var synergy = view.Synergies.FirstOrDefault(s => s.EntityA == c.EntityId || s.EntityB == c.EntityId);
             var late = MulliganGuide.IsLate(c);
-            var number = c.Delta is { } delta ? Points(delta) : c.WinRate is { } win ? win.ToString("P0", culture) : string.Empty;
-            var lines = new List<string> { c.Name };
-            if (c.WinRate is { } rate)
+            var edge = c.Edge ?? 0;
+            var fill = c.Edge is null ? 0 : Math.Min(1, Math.Abs(edge) / MulliganGaugeFull) * MulliganGaugeHalf;
+            var details = string.Join(" · ", new[]
             {
+                c.KeepRate is { } keepRate ? Loc.F("Mulligan.KeepRateShort", keepRate.ToString("P0", culture)) : null,
+                c.DrawnDelta is { } drawn ? Loc.F("Mulligan.DrawnShort", Points(drawn)) : null,
+            }.Where(s => s is not null));
+            var lines = new List<string> { c.Name };
+            if (c.WinRate is { } rate && c.Delta is { } delta)
+            {
+                if (c.Edge is not null)
+                {
+                    lines.Add(Loc.F("Mulligan.EdgeLine", Points(edge), Points(delta), Points(view.ReplaceDelta)));
+                }
+
                 lines.Add(Loc.P("Mulligan.CardWinRate", c.Sample, rate.ToString("P1", culture), view.CardBaseline.ToString("P1", culture)));
                 lines.Add(Loc.F("Mulligan.KeptBy", c.KeepRate?.ToString("P0", culture), c.ExpectedTurn.ToString("0.#", culture)));
+                if (c.CoinShift is { } coinShift)
+                {
+                    lines.Add(Loc.F(view.GoingFirst == true ? "Mulligan.Shift.First" : "Mulligan.Shift.Coin", Points(coinShift)));
+                }
+
+                if (c.OpponentShift is { } opponentShift)
+                {
+                    lines.Add(Loc.F("Mulligan.Shift.Class", ClassName(view.OpponentClass), Points(opponentShift)));
+                }
             }
             else
             {
                 lines.Add(Loc.T("Mulligan.NotEnoughGames"));
+            }
+
+            if (c.KeptDelta is not null || c.ReplacedDelta is not null)
+            {
+                lines.Add(Loc.F("Mulligan.KeptReplaced", c.KeptDelta is { } k ? Points(k) : "—", c.ReplacedDelta is { } r ? Points(r) : "—", SliceName(c.Slice)));
+            }
+
+            if (c.DrawnDelta is { } drawnDelta)
+            {
+                lines.Add(Loc.F("Mulligan.DrawnLine", Points(drawnDelta)));
             }
 
             if (c.Copy > 1)
@@ -228,9 +278,12 @@ public sealed partial class OverlayViewModel
                 c.Call switch { Core.Tracking.MulliganCall.Keep => Loc.T("Mulligan.Call.Keep"), Core.Tracking.MulliganCall.Mulligan => Loc.T("Mulligan.Call.Replace"), _ => Loc.T("Mulligan.Call.NoData") },
                 c.Call == Core.Tracking.MulliganCall.Keep,
                 c.Call == Core.Tracking.MulliganCall.Mulligan,
-                number,
-                c.Delta > 0.005,
-                c.Delta < -0.005,
+                c.Edge is null ? string.Empty : Points(edge),
+                c.Edge >= MulliganGuide.CloseCall,
+                c.Edge <= -MulliganGuide.CloseCall,
+                edge < 0 ? fill : 0,
+                edge > 0 ? fill : 0,
+                details,
                 synergy is not null,
                 c.Copy > 1,
                 late,
@@ -238,6 +291,18 @@ public sealed partial class OverlayViewModel
                 string.Join("\n", lines));
         }).ToList();
     }
+
+    private static string SliceRankName(string rank) => rank == "legend" ? Loc.T("Mulligan.Slice.Legend") : Loc.T("Mulligan.Slice.AllRanks");
+
+    /// <summary>"slice: Legend, on the coin": where a card's kept / replaced numbers come from.</summary>
+    private static string SliceName(MulliganSlice? slice) => slice is null
+        ? string.Empty
+        : string.Join(", ", new[]
+        {
+            Loc.F("Mulligan.SliceSource", SliceRankName(slice.Rank)),
+            slice.Coin switch { "going_first" => Loc.T("Mulligan.GoingFirst"), "on_coin" => Loc.T("Mulligan.OnTheCoin"), _ => null },
+            slice.OpponentClass == MulliganGuide.AnyOpponent ? null : Loc.F("Mulligan.VsClass", ClassName(slice.OpponentClass)).Trim(),
+        }.Where(s => s is not null));
 
     /// <summary>A win rate difference in points: 0.023 → "+2.3".</summary>
     private static string Points(double delta) => (delta * 100).ToString("+0.0;−0.0;0.0", CultureInfo.CurrentCulture);

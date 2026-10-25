@@ -61,17 +61,39 @@ Endpoints used by the app:
 | `GET /api/db/archetypes/{id}/mulligan?display_only=false&limit=250` | per card: `card_id`, `dbf_id`, `cost`, `times_presented_in_initial_cards`, `keep_percentage`, `times_in_opening_hand`, `opening_hand_winrate`, `winrate_when_drawn`, `winrate_when_played`, `avg_turn_played_on` |
 | `GET /api/db/archetypes/{id}/matchups` | `opponent_class`, `total_games`, `win_rate` per opponent archetype |
 
+The HSReplay mulligan rows (checked live 2026-10-25) also carry `times_kept`, `times_card_drawn`, `times_card_played`,
+`avg_turns_in_hand` and the card names. `rank_range` / `game_type` are accepted, but the server only collects
+`LEGEND` / `RANKED_STANDARD` (EU): any other value answers with the Legend snapshot. There is still no coin or class split here.
+
+### 2.1 HSGuru mulligan slices (new, 2026-10-25)
+
+`GET /v1/hsguru/mulligan?archetype=<HSGuru name>&format=standard&rank=legend&coin=on_coin&opponent_class=any` (also
+`/slices` to list what is stored, `/history`, `/coverage`). Answer `{"data": {"rank", "period", "coin", "opponent_class",
+"games", "winrate": null, "rows": [...]}, "meta": {...}}`, one row per card: `card_id`, `dbf_id`, `mulligan_count` /
+`mulligan_impact` (offered), `kept_count` / `kept_impact`, `drawn_count` / `drawn_impact`, `not_drawn_count` /
+`not_drawn_impact`. Impacts are win rate points against the deck's own win rate *in the same slice*; rows with tiny
+counts are present (a card offered once shows +58.8), so the client needs minimum counts.
+
+- Slices: `rank` all, legend, top_legend, top_5k, diamond_to_legend, diamond_4to1; `coin` any_player, going_first,
+  on_coin; `opponent_class` any or a class. The server keeps the coin and the class **apart** (a slice sets one of them),
+  collects the coin from 3,000 archetype games and classes from 10,000 (`/coverage` settings); `period` defaults to the
+  current expansion. A slice not collected answers 404 "This slice is not collected yet".
+- Derived: keep rate = kept / offered; win rate when replaced = (offered × offered impact − kept × kept impact) / (offered − kept).
+- Caveat seen on real rows: kept / replaced numbers carry a strong selection bias for rarely kept cards (Zoolock on the
+  coin: Vaultkeeper kept 16% of the time, +2.6 kept vs −6.8 replaced). "Kept" hands are good hands. That is why the guide
+  does **not** decide from kept vs replaced; it uses the *offered* impact, which does not depend on the choice, for the
+  coin and class adjustments, and shows kept / replaced / drawn only in the tooltip and the second line.
+- Some decks have their own slices (`deck_id`); the app does not map decks to HSGuru deck ids yet.
+
 Not used:
 
 - `/api/db/cards/trends` needs a `card_name` and only returns popularity.
-- `/v1/hsguru/archetypes/analysis` has `class_matchups` and per-card `mulligan_impact` / `kept_impact`, but under HSGuru
-  archetype names and base card ids (`CS1_130`, not `CORE_CS1_130`). Its samples are smaller, and it has no class split
-  per card either.
+- `/v1/hsguru/archetypes/analysis` has `class_matchups` and per-card `mulligan_impact` / `kept_impact` (Legend, past
+  week): the source of the HSGuru guide (Wild, archetypes HSReplay lacks); the slices above add the splits.
 
-Searched and **not found** anywhere on the server: card pairs / "kept with", per-copy stats, mulligan per opponent class,
-going first vs coin (`coin` is fixed to `any_player` in the HSGuru parser), and per-deck mulligan. The only card-to-card
-graph is Vicious Syndicate's radar (`app/vicious_syndicate.py`). Its edges come from deck co-occurrence, not from mulligan
-results.
+Searched and **not found** anywhere on the server: card pairs / "kept with", per-copy stats and HSReplay's G-V2 keep model.
+The only card-to-card graph is Vicious Syndicate's radar (`app/vicious_syndicate.py`). Its edges come from deck
+co-occurrence, not from mulligan results.
 
 Observations on the real data (Quest Priest, archetype 56, 250 rows):
 
@@ -88,29 +110,36 @@ Observations on the real data (Quest Priest, archetype 56, 250 rows):
 Code: `src/Hearthpulse.Core/Tracking/MulliganGuide.cs` (maths), `MulliganGuideSource.cs` (background loading; disk cache
 through `HearthpulseData`, 6 h), `Mulligan.cs` (entry point, Firestone fallback), `MulliganReplay.cs` (render checks).
 UI: `Overlay/MulliganPanel.xaml` (WPF) / `MulliganPanel.axaml` (Avalonia), view model `OverlayViewModel.Mulligan.cs`.
-Since 2026-10-23 a slim strip in the HSReplay style instead of large plates: a badge under each offered card (Keep /
-Replace by colour and icon, the win rate delta as one number, small marks for a synergy, a 2nd copy, a late card; click
-= keep or replace) and one summary line ("Expected impact of your keeps: +2.1%", source in small type). Keep %, win
-rate, sample, curve and synergy notes are in the tooltips. The strip is a 1020-unit row centred on the screen (3 card
-slots 340 apart, 4 slots 255 apart) with its top at 700 of 1080, just under the card row of the mulligan screen. These
-are units of the game's 1080-high screen, not of the overlay: the player's overlay scale only sizes the badges
-(`MovablePanel.GameAnchored`, `OverlayViewModel.MulliganRowWidth`). MovablePanel `mulligan-strip` (a new id, so an
-old placement of the plates does not apply) can move and scale it in layout mode. It shows while the local
-MULLIGAN_STATE is INPUT or DEALING and goes at WAITING, also without numbers (`MulliganView.NoStats`: guide still
-loading, deck unknown, no archetype); without numbers every card starts kept, so no badge reads as "replace".
+Since 2026-10-25 a bar **over** each offered card in the HSReplay style (it replaced the badges under the cards): a large
+Keep / Replace with its icon and colour, the edge in points ("+1.9", `MulliganCardStat.Edge`), a gauge from replace (left)
+to keep (right) whose fill grows from the middle (4 points fill a half), coloured Negative / Accent (close call, under
+half a point) / Positive, and a small second line "kept 61% · drawn −1.3" (keep rate, win rate when drawn against the
+deck's). Small marks for a synergy, a 2nd copy, a late card; click = keep or replace. The summary line ("Expected impact
+of your keeps: +2.1%", source and slice in small type) is its own panel `mulligan-summary` under the cards (top at
+700 of 1080, above the Confirm button): over the cards it ran into the opponent's hand markers at a large overlay scale. Win rate,
+sample, the coin / class adjustments, kept / replaced and curve notes are in the tooltips. The bars are a 1020-unit row
+centred on the screen (3 card slots 340 apart, 4 slots 255 apart) whose **bottom** is at 300 of 1080, just over the
+card row of the mulligan screen, so the panel grows upwards with the overlay scale. These are units of the game's
+1080-high screen, not of the overlay: the player's overlay scale only sizes the bars (`MovablePanel.GameAnchored`,
+`OverlayViewModel.MulliganRowWidth`). MovablePanel `mulligan-bars` (a new id, so an old placement of the strip does not
+apply) and `mulligan-summary` can be moved and scaled in layout mode. It shows while the local MULLIGAN_STATE is INPUT or DEALING and goes at
+WAITING, also without numbers (`MulliganView.NoStats`: guide still loading, deck unknown, no archetype); without
+numbers every card starts kept, so no bar reads as "replace".
 
 | Feature | Status | How |
 |---|---|---|
 | Archetype for the player's deck | **data** | Each archetype of the class gets two scores: (a) the best overlap Σ min(count) of the player's 30 cards with one of its HSReplay lists, which must reach 50%; (b) the deck's *presence* in its mulligan rows (each card weighted by offers relative to the archetype's 10 most offered cards), which must reach 40%. HSReplay's own lists score 0.55–0.6 in their archetype and 0.1–0.2 elsewhere. (b) exists because some archetypes have **no lists** on the server (Herald Death Knight: 51% of DK games, 0 decks; Herald DH). The widest margin over its bar wins. |
 | Keep rate, win rate in opening hand | **data** | `keep_percentage`, `opening_hand_winrate` (HSReplay V1 metrics) |
 | Delta per card | **data** | Δ = opening-hand WR − baseline. The baseline is the opening-hand-weighted mean of the same sample (see above). |
-| Keep / Mulligan label | **data + model** | Keep when Δ beats the expected Δ of a replacement card (the copy-weighted mean Δ of the cards still in the deck), with a 0.5-point margin toward keeping: smaller gaps are noise, and keeping is the game's default. Cards without data count as Δ = 0. |
-| Opponent class | **partial** | Only the *baseline* moves by class: the matchups of this archetype grouped by `opponent_class`, as a shift from its all-opponents mean. Card deltas are the same for every class, because there is no data per class. |
-| Going first / coin | **only with Firestone** | The API has no split. The Firestone fallback has `FirstWinRate` / `CoinWinRate` and uses them for the baseline. |
+| Keep / Mulligan label | **data + model** | Keep when Δ beats the expected Δ of a replacement card (the copy-weighted mean Δ of the cards still in the deck), ties included: the edge Δ − Δ(replacement) is the bar's number and the call follows its sign. Until 2026-10-25 a 0.5-point margin favoured keeping, so a card worse than its replacement could read "Keep −0.6" (a real Coin Rogue hand on the coin: Whip −0.65 and Preparation −0.56 were kept next to a −0.68 replacement, and the badge showed the delta against the deck's average, not against the replacement). Gaps under half a point are now only drawn neutral (`MulliganGuide.CloseCall`). Cards without data count as Δ = 0. |
+| Opponent class | **data (HSGuru slices) + baseline** | The *baseline* moves by the matchups of this archetype grouped by `opponent_class`. Each card's Δ moves by its offered impact against that class minus its offered impact in all games, from the HSGuru slice of the same rank (Legend, else all ranks; slices under 2,000 games and cards offered under 200 times are skipped). |
+| Going first / coin | **data (HSGuru slices)** | The same shift from the `going_first` / `on_coin` slice. Both shifts add up (the server keeps the two splits apart). The Firestone fallback also moves the baseline with `FirstWinRate` / `CoinWinRate`. |
+| Keep rate, kept / replaced / drawn | **data (HSGuru slices)** | From the most specific slice that has the card (class, then coin, then all games; Legend first): keep rate, win rate when kept and when replaced, win rate when drawn, all against the deck's. Without a slice: HSReplay's keep rate and `winrate_when_drawn` − baseline. Shown, not used for the call (selection bias, section 2.1). |
 | Duplicates | **heuristic (labelled)** | The stat describes holding the card, so a second copy adds nothing measurable. In the estimate it counts 0 and blocks a replacement. Recommendation: keep the second copy only for an early play (expected turn ≤ 3) that players keep ≥ 50% of the time. |
 | Mana curve | **heuristic (labelled), warnings only** | Early = cost ≤ 2 or `avg_turn_played_on` ≤ 3. Late = cost ≥ 5, or cost 4 and usually played on turn 6+. The average turn alone is misleading: HSReplay counts late plays too, so 1-mana Void Soul averages turn 4.4. Warnings: no early play kept; top-heavy (≥ 2 late cards kept); both copies of a non-early card kept. A late card gets a note on its plate. The numbers do not change. |
 | Synergies | **no data → off** | `GuidePair` is ready for a future endpoint (interaction = pair WR − additive estimate). With no pairs the panel says so, and no synergy is ever invented. |
 | Impact of your keeps | **model + heuristic shrink** | E[WR \| keep K] ≈ baseline + (Σ Δ(first copies kept) + (cards replaced) × Δ(replacement) + kept pair interactions) / √(hand size). A plain sum overshoots, because the deltas are marginal and share causes: a real Void DH hand of three strong cards came out at 71%. The √ shrink brings that to 63% and leaves every comparison between keep sets unchanged. The panel compares the estimate with the recommended keeps and with a full mulligan. Clicking a plate toggles that card, and the line updates. |
+| Slices loading | **data** | `MulliganGuideSource` matches the deck to an HSGuru archetype too (by its lists), loads the all-games slices with the guide, and the coin and class slices once the mulligan knows them (`For(..., opponentClass, goingFirst)`, background, `Changed` again). Legend and all ranks, cached 6 h like every answer; 404s are remembered. |
 | Sources in order | **data** | 1. HSReplay archetype the deck matches (Standard). 2. HSGuru archetype whose lists the deck matches, with its HSGuru analysis (Legend, past week; Standard and Wild): kept games stand for the opening hand, the class results give the baseline and the class shift. 3. `ConstructedMeta` (docs/constructed-meta-api.md): its archetype by core cards, else the class pool. A guide that cannot compute falls through to the next. The cost replaces the average turn when the source has none. |
 | Offered cards | **data** | Cards in the local hand during `MULLIGAN_STATE` INPUT/DEALING, minus the coin. The coin has cosmetic ids, such as `JAIL_COIN3` in a real log, so it is recognised by the name it shares with `GAME_005`. |
 
@@ -121,6 +150,11 @@ matchups are counted twice. That is why the overlay presents it as an estimate.
 
 ### Checks (2026-10-23)
 
+- 2026-10-25: `MulliganGuideTests` gained the bug case (a card 0.3 under its replacement is replaced, edge = call on real
+  hands), coin / class shifts on synthetic slices and the slice parser on trimmed live Zoolock answers
+  (`Fixtures/Mulligan/hsguru-mulligan-zoolock-*.json`); `ApiLoadTests` loads the coin and class slices lazily over a
+  fake server and reads them back from the disk cache. Renders: `overlay-mulligan(-4)(-scale60|-scale160).png` and
+  `overlay-mulligan-nodata.png` in both apps.
 - Tests: `tests/Hearthpulse.Tests/MulliganGuideTests.cs` (12) on fixtures trimmed from real answers
   (`Fixtures/Mulligan`: Demon Hunter and Priest archetypes, lists, mulligan rows, matchups). The suite has 540 tests;
   only the 2 known failures remain.
@@ -138,6 +172,8 @@ All derive from HSReplay data the server already downloads or can download with 
 follow the existing bare `/api/db/*` style.
 
 ### 4.1 Mulligan by opponent class and initiative (cheapest)
+
+Since 2026-10-25 the HSGuru side has this (section 2.1) and the guide uses it. For the HSReplay numbers it is still open:
 
 `single_archetype_mulligan_guide_v2` answers with one series per filter. Today only `ALL` is kept. Proposal: store every
 series, and add the HSReplay `PlayerInitiative` parameter (FIRST/COIN) as two more fetches.
