@@ -21,7 +21,22 @@ public sealed class ReplayRecorderTests
         var parser = new PowerParser(new DateOnly(2026, 10, 23));
         recorder = new ReplayRecorder();
         parser.AddListener(recorder);
-        string[] setup =
+        Feed(parser, Setup.Concat(bodies));
+        parser.Flush();
+        return recorder.Events;
+    }
+
+    /// <summary>Feeds GameState lines (without their prefix) to a parser.</summary>
+    internal static void Feed(PowerParser parser, IEnumerable<string> bodies)
+    {
+        foreach (var body in bodies)
+        {
+            parser.Feed("D 12:30:00.0000000 GameState." + body);
+        }
+    }
+
+    /// <summary>The game <see cref="Record(string[])"/> starts from: a Ranked game at turn 5, local player 1.</summary>
+    internal static string[] Setup =>
         [
             "DebugPrintPower() - CREATE_GAME",
             "DebugPrintPower() -     GameEntity EntityID=1",
@@ -47,14 +62,6 @@ public sealed class ReplayRecorderTests
             "DebugPrintPower() - TAG_CHANGE Entity=2 tag=CURRENT_PLAYER value=1 ",
             "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=5 ",
         ];
-        foreach (var body in setup.Concat(bodies))
-        {
-            parser.Feed("D 12:30:00.0000000 GameState." + body);
-        }
-
-        parser.Flush();
-        return recorder.Events;
-    }
 
     internal static string[] Card(int id, string cardId, string zone, int controller, string type, params string[] tags) =>
     [

@@ -27,5 +27,7 @@ a merge that touches game memory, input, third-party code/data, paid features or
 `reference/reviews/LEGAL-*.md`.
 
 Ground rules: restore with `--source https://api.nuget.org/v3/index.json`; run the app and `--render-ui` only with
-`HEARTHPULSE_DATA` pointing at a copy of the data folder; never show hidden game information; every user-facing
-feature goes into both UIs.
+`HEARTHPULSE_DATA` pointing at a copy of the data folder; hidden game information: during a game - only what the
+player can see; after the match the review may show everything the log revealed by the end of the game (the match
+page only, `docs/match-replay.md`); every user-facing feature goes into both UIs.
+
