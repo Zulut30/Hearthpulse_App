@@ -461,7 +461,7 @@ public sealed class Fight
         }
 
         var wasAlive = !target.IsDying;
-        target.Health -= amount;
+        target.Health = (int)Math.Clamp((long)target.Health - amount, -1_000_000_000, int.MaxValue);
         if (source is not null && (source.Poisonous || source.Venomous))
         {
             target.Health = Math.Min(target.Health, 0);
@@ -852,9 +852,9 @@ public sealed class Fight
     /// <summary>Gives +Attack/+Health (negative values reduce; Attack never goes below 0).</summary>
     public void Buff(Unit target, int attack, int health)
     {
-        target.Attack = Math.Max(0, target.Attack + attack);
-        target.Health += health;
-        target.MaxHealth += health;
+        target.Attack = (int)Math.Clamp((long)target.Attack + attack, 0, int.MaxValue);
+        target.Health = (int)Math.Clamp((long)target.Health + health, -1_000_000_000, int.MaxValue);
+        target.MaxHealth = (int)Math.Clamp((long)target.MaxHealth + health, 0, int.MaxValue);
         RefreshUnit(target);
     }
 
@@ -863,7 +863,7 @@ public sealed class Fight
     {
         target.Attack = Math.Max(0, attack);
         target.Health = health;
-        target.MaxHealth = health;
+        target.MaxHealth = Math.Max(0, health);
         RefreshUnit(target);
     }
 
@@ -928,10 +928,13 @@ public sealed class Fight
                 var delta = total - unit.AppliedAura;
                 if (!delta.IsZero)
                 {
-                    unit.Attack = Math.Max(0, unit.Attack + delta.Attack);
-                    unit.MaxHealth += delta.Health;
+                    // Summed in 64 bits and clamped, like Buff: a huge aura on a huge minion must not wrap around.
+                    unit.Attack = (int)Math.Clamp((long)unit.Attack + delta.Attack, 0, int.MaxValue);
+                    unit.MaxHealth = (int)Math.Clamp((long)unit.MaxHealth + delta.Health, 0, int.MaxValue);
                     // A removed Health aura lowers current Health only down to the new maximum.
-                    unit.Health = delta.Health > 0 ? unit.Health + delta.Health : Math.Min(unit.Health, unit.MaxHealth);
+                    unit.Health = delta.Health > 0
+                        ? (int)Math.Clamp((long)unit.Health + delta.Health, -1_000_000_000, int.MaxValue)
+                        : Math.Min(unit.Health, unit.MaxHealth);
                 }
 
                 unit.AppliedAura = total;
