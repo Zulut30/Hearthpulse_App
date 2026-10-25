@@ -23,14 +23,14 @@ public static class WidgetScene
     {
         var format = meta?.Format == "wild" ? "FT_WILD" : "FT_STANDARD";
         var shown = view.OpponentPlayed.Where(p => !p.IsCreated).Select(p => p.CardId).ToList();
-        if (ArchetypeOdds.Build(meta, format, view.OpponentClass, shown, cards) is { } real)
+        if (ArchetypeOdds.Build(meta, "GT_RANKED", format, view.OpponentClass, shown, cards) is { } real)
         {
             return real;
         }
 
         // The meta's most played archetype, as if its opponent had shown two of its core cards.
         if (meta?.Archetypes.FirstOrDefault(a => a.CoreCards.Count >= 2) is { } popular
-            && ArchetypeOdds.Build(meta, format, popular.Class, popular.CoreCards.Take(2).ToList(), cards) is { } guessed)
+            && ArchetypeOdds.Build(meta, "GT_RANKED", format, popular.Class, popular.CoreCards.Take(2).ToList(), cards) is { } guessed)
         {
             return guessed;
         }

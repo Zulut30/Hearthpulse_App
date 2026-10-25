@@ -146,23 +146,23 @@ public sealed class ConstructedTracker : IPowerListener
             DeckId = Deck?.DeckId ?? 0,
             DeckCode = Deck?.Code,
             DeckMeta = DeckMetaFor(cards, playerClass, game.FormatType),
-            OpponentArchetype = OpponentArchetypeFor(cards, cards.Get(opponentHero)?.CardClass, game.FormatType, played),
+            OpponentArchetype = OpponentArchetypeFor(cards, cards.Get(opponentHero)?.CardClass, game.GameType, game.FormatType, played),
         };
     }
 
     private (ConstructedMeta? Meta, string Key, OpponentArchetypeView? View) _opponentArchetype;
 
     /// <summary>The archetype odds, worked out again only when the meta or the shown starting-deck cards change.</summary>
-    private OpponentArchetypeView? OpponentArchetypeFor(CardDb cards, string? opponentClass, string formatType, IReadOnlyList<PlayedCard> played)
+    private OpponentArchetypeView? OpponentArchetypeFor(CardDb cards, string? opponentClass, string gameType, string formatType, IReadOnlyList<PlayedCard> played)
     {
         var shown = played.Where(p => !p.IsCreated).Select(p => p.CardId).ToList();
-        var key = $"{opponentClass}|{formatType}|{string.Join(",", shown)}";
+        var key = $"{opponentClass}|{gameType}|{formatType}|{string.Join(",", shown)}";
         if (ReferenceEquals(_opponentArchetype.Meta, Meta) && _opponentArchetype.Key == key)
         {
             return _opponentArchetype.View;
         }
 
-        var view = ArchetypeOdds.Build(Meta, formatType, opponentClass, shown, cards);
+        var view = ArchetypeOdds.Build(Meta, gameType, formatType, opponentClass, shown, cards);
         _opponentArchetype = (Meta, key, view);
         return view;
     }

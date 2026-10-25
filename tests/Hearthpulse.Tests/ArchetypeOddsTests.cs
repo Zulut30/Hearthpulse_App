@@ -39,7 +39,7 @@ public sealed class ArchetypeOddsTests
     [Fact]
     public void Shown_cards_move_the_odds_to_the_archetype_that_runs_them()
     {
-        var view = ArchetypeOdds.Build(Meta(), "FT_STANDARD", "PRIEST", ["P_A", "P_C"], Cards);
+        var view = ArchetypeOdds.Build(Meta(), "GT_RANKED", "FT_STANDARD", "PRIEST", ["P_A", "P_C"], Cards);
 
         Assert.NotNull(view);
         Assert.Equal("Quest Priest", view!.Best.Key);
@@ -57,11 +57,11 @@ public sealed class ArchetypeOddsTests
     [Fact]
     public void A_card_both_run_keeps_the_more_played_archetype_ahead_and_a_tech_card_rules_none_out()
     {
-        var shared = ArchetypeOdds.Build(Meta(), "FT_STANDARD", "PRIEST", ["P_D"], Cards)!;
+        var shared = ArchetypeOdds.Build(Meta(), "GT_RANKED", "FT_STANDARD", "PRIEST", ["P_D"], Cards)!;
         Assert.Equal("Control Priest", shared.Best.Key);
 
         // A card no list runs is weak evidence for every archetype alike: the order stays the meta's.
-        var tech = ArchetypeOdds.Build(Meta(), "FT_STANDARD", "PRIEST", ["N_T"], Cards)!;
+        var tech = ArchetypeOdds.Build(Meta(), "GT_RANKED", "FT_STANDARD", "PRIEST", ["N_T"], Cards)!;
         Assert.Equal("Control Priest", tech.Best.Key);
         Assert.Equal(2000.0 / 3000, tech.Best.Chance, 3);
     }
@@ -69,10 +69,21 @@ public sealed class ArchetypeOddsTests
     [Fact]
     public void Nothing_without_a_shown_card_a_fitting_meta_or_archetypes_of_the_class()
     {
-        Assert.Null(ArchetypeOdds.Build(Meta(), "FT_STANDARD", "PRIEST", [], Cards));
-        Assert.Null(ArchetypeOdds.Build(Meta(), "FT_WILD", "PRIEST", ["P_A"], Cards));
-        Assert.Null(ArchetypeOdds.Build(Meta(), "FT_STANDARD", "MAGE", ["P_A"], Cards));
-        Assert.Null(ArchetypeOdds.Build(null, "FT_STANDARD", "PRIEST", ["P_A"], Cards));
+        Assert.Null(ArchetypeOdds.Build(Meta(), "GT_RANKED", "FT_STANDARD", "PRIEST", [], Cards));
+        Assert.Null(ArchetypeOdds.Build(Meta(), "GT_RANKED", "FT_WILD", "PRIEST", ["P_A"], Cards));
+        Assert.Null(ArchetypeOdds.Build(Meta(), "GT_RANKED", "FT_STANDARD", "MAGE", ["P_A"], Cards));
+        Assert.Null(ArchetypeOdds.Build(null, "GT_RANKED", "FT_STANDARD", "PRIEST", ["P_A"], Cards));
+    }
+
+    [Theory]
+    [InlineData("GT_ARENA")]
+    [InlineData("GT_TAVERNBRAWL")]
+    [InlineData("GT_VS_AI")]
+    [InlineData("GT_VS_FRIEND")]
+    public void Only_ranked_and_casual_games_get_a_ladder_archetype(string gameType)
+    {
+        Assert.Null(ArchetypeOdds.Build(Meta(), gameType, "FT_STANDARD", "PRIEST", ["P_A", "P_C"], Cards));
+        Assert.NotNull(ArchetypeOdds.Build(Meta(), "GT_CASUAL", "FT_STANDARD", "PRIEST", ["P_A", "P_C"], Cards));
     }
 
     [Fact]
@@ -81,7 +92,7 @@ public sealed class ArchetypeOddsTests
         var meta = new ConstructedMeta("standard", "all", "past-7", DateTime.UtcNow, 2000,
             [Archetype(1, "Quest Priest", 1000, "P_A", "P_B"), Archetype(2, "Control Priest", 1000, "P_E", "P_F")], []);
 
-        var view = ArchetypeOdds.Build(meta, "FT_STANDARD", "PRIEST", ["P_E"], Cards)!;
+        var view = ArchetypeOdds.Build(meta, "GT_RANKED", "FT_STANDARD", "PRIEST", ["P_E"], Cards)!;
 
         Assert.Equal("Control Priest", view.Best.Key);
         Assert.Equal("P_F", Assert.Single(view.Cards).CardId);

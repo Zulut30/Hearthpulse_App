@@ -40,12 +40,21 @@ public static class ArchetypeOdds
     /// <summary>A card of an archetype without lists, when only its core cards are known.</summary>
     private const double CoreRate = 0.9;
 
+    /// <summary>
+    /// Games where the opponent plays a ladder deck: ranked and casual. Arena, Tavern Brawl, games against the AI and
+    /// friendly games have their own decks, so a meta archetype would be wrong there.
+    /// </summary>
+    public static readonly IReadOnlySet<string> LadderGameTypes = new HashSet<string>(StringComparer.Ordinal) { "GT_RANKED", "GT_CASUAL" };
+
     private static readonly ConditionalWeakTable<ConstructedMeta, Dictionary<int, IReadOnlyDictionary<string, double>>> Rates = new();
 
-    /// <summary>The view, or null without a meta of the game's format, archetypes of the class or a shown card.</summary>
-    public static OpponentArchetypeView? Build(ConstructedMeta? meta, string? formatType, string? heroClass, IReadOnlyCollection<string> shown, CardDb cards)
+    /// <summary>
+    /// The view, or null outside a ranked or casual game (<see cref="LadderGameTypes"/>), without a meta of the game's
+    /// format, archetypes of the class or a shown card.
+    /// </summary>
+    public static OpponentArchetypeView? Build(ConstructedMeta? meta, string? gameType, string? formatType, string? heroClass, IReadOnlyCollection<string> shown, CardDb cards)
     {
-        if (meta is null || shown.Count == 0 || !Stats.ArchetypeGuess.FitsFormat(meta, formatType))
+        if (meta is null || shown.Count == 0 || gameType is null || !LadderGameTypes.Contains(gameType) || !Stats.ArchetypeGuess.FitsFormat(meta, formatType))
         {
             return null;
         }

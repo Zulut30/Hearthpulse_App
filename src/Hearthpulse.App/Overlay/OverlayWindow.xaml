@@ -914,8 +914,8 @@
                 </Border>
             </o:MovablePanel>
 
-            <!-- ============ Constructed: opponent's likely archetype (top right, beside the deck tracker, above the opponent's deck) ============ -->
-            <o:MovablePanel Id="opponent-archetype" Title="{i:Loc Widgets.Archetype.Panel}" Shown="{Binding ShowArchetype}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,170,276,0">
+            <!-- ============ Constructed: opponent's likely archetype (left, beside the opponent tracker and under the card pool; the right side holds the deck and secrets) ============ -->
+            <o:MovablePanel Id="opponent-archetype" Title="{i:Loc Widgets.Archetype.Panel}" Shown="{Binding ShowArchetype}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,520,0,0">
                 <o:OpponentArchetypePanel />
             </o:MovablePanel>
 
