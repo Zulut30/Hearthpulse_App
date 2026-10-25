@@ -1,7 +1,7 @@
 {
   "Mulligan.GoingFirst": "going first",
   "Mulligan.OnTheCoin": "on the coin",
-  "Mulligan.NoNumbers": "Hearthpulse found no mulligan numbers for this deck: the badges show the offered cards only.",
+  "Mulligan.NoNumbers": "Hearthpulse found no mulligan numbers for this deck: the bars show the offered cards only.",
   "Mulligan.VsClass": " vs {0}",
   "Mulligan.Impact": "Expected impact of your keeps: {0}%",
   "Mulligan.SynergyKept": "Synergy kept: {0} + {1} ({2})",
@@ -29,5 +29,18 @@
 
   "Mulligan.Warn.NoEarly": "No early play kept: nothing you keep costs {0} or less (curve heuristic).",
   "Mulligan.Warn.TopHeavy": "Top-heavy: {0} kept card costs {1}+ or is usually played on turn {2:0}+ (curve heuristic).|Top-heavy: {0} kept cards cost {1}+ or are usually played on turn {2:0}+ (curve heuristic).",
-  "Mulligan.Warn.BothCopies": "Both copies of {0} kept: the stats count the card once, so the second copy adds nothing measurable (duplicate heuristic)."
+  "Mulligan.Warn.BothCopies": "Both copies of {0} kept: the stats count the card once, so the second copy adds nothing measurable (duplicate heuristic).",
+
+  "Mulligan.EdgeLine": "Keeping vs replacing: {0} points (the card {1} against the deck's average, a replacement {2})",
+  "Mulligan.EdgeWithOthers": "The number counts the other cards kept: a synergy with them, or the other copy that already holds the card's value.",
+  "Mulligan.KeepRateShort": "kept {0}",
+  "Mulligan.DrawnShort": "drawn {0}",
+  "Mulligan.Shift.Coin": "On the coin: {0} points for this card against all games",
+  "Mulligan.Shift.First": "Going first: {0} points for this card against all games",
+  "Mulligan.Shift.Class": "Against {0}: {1} points for this card against all games",
+  "Mulligan.KeptReplaced": "Kept: {0}, replaced: {1} against the deck's average ({2})",
+  "Mulligan.DrawnLine": "Drawn at any point: {0} against the deck's average",
+  "Mulligan.SliceSource": "slice: {0}",
+  "Mulligan.Slice.Legend": "Legend",
+  "Mulligan.Slice.AllRanks": "all ranks"
 }

@@ -330,6 +330,10 @@ public sealed class AppSettings
             LeaderboardWidth = DefaultLeaderboardWidth;
             LeaderboardGeometryVersion = CurrentLeaderboardGeometry;
         }
+
+        // The mulligan strip under the cards became bars over them ("mulligan-bars"): its old spot does not fit them, and
+        // a placement always pins a position, so its scale cannot move over alone. The stale entry goes.
+        Panels.Remove("mulligan-strip");
     }
 
     public void Save()

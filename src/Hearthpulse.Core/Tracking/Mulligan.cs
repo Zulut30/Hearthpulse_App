@@ -9,7 +9,7 @@ namespace Hearthpulse.Core.Tracking;
 /// <param name="EntityId">The offered card's entity, so the overlay can toggle it.</param>
 /// <param name="KeepRate">Share of players who kept the card when offered it.</param>
 /// <param name="WinRate">Win rate of games where the card was in hand after the mulligan.</param>
-/// <param name="Delta">WinRate minus the deck's baseline: above 0 favours keeping.</param>
+/// <param name="Delta">WinRate minus the deck's baseline, moved by <see cref="CoinShift"/> and <see cref="OpponentShift"/>.</param>
 /// <param name="Sample">Games the card was offered in.</param>
 public sealed record MulliganCardStat(int EntityId, string CardId, string Name, double? KeepRate, double? WinRate, double? Delta, int Sample)
 {
@@ -22,6 +22,31 @@ public sealed record MulliganCardStat(int EntityId, string CardId, string Name, 
     public double ExpectedTurn { get; init; }
 
     public MulliganCall Call { get; init; }
+
+    /// <summary>
+    /// What keeping the card is worth against replacing it, the other cards as recommended, in win rate (0.019 = +1.9
+    /// points): usually <see cref="Delta"/> minus the average replacement's, plus a kept synergy, minus what a kept second
+    /// copy already gives. The call always follows its sign; the overlay's bar and number show it. Null for a second copy,
+    /// which the duplicate heuristic calls.
+    /// </summary>
+    public double? Edge { get; init; }
+
+    /// <summary>The part of <see cref="Delta"/> that comes from going first / the coin (HSGuru slices); null when not adjusted.</summary>
+    public double? CoinShift { get; init; }
+
+    /// <summary>The part of <see cref="Delta"/> that comes from the opponent's class (HSGuru slices); null when not adjusted.</summary>
+    public double? OpponentShift { get; init; }
+
+    /// <summary>Win rate when the offered card was kept / replaced, against the deck's (HSGuru, <see cref="Slice"/>).</summary>
+    public double? KeptDelta { get; init; }
+
+    public double? ReplacedDelta { get; init; }
+
+    /// <summary>Win rate when the card is drawn at any point, against the deck's (HSGuru slice, else HSReplay).</summary>
+    public double? DrawnDelta { get; init; }
+
+    /// <summary>The HSGuru slice the keep rate and the kept / replaced / drawn numbers come from; null for HSReplay's.</summary>
+    public MulliganSlice? Slice { get; init; }
 }
 
 /// <summary>The mulligan panel: whose numbers they are and one row per offered card.</summary>
@@ -39,8 +64,11 @@ public sealed record MulliganView(string Context, double BaseWinRate, IReadOnlyL
 
     public double? ClassShift { get; init; }
 
-    /// <summary>Going first (true) or on the coin (false), when the baseline was adjusted for it.</summary>
+    /// <summary>Going first (true) or on the coin (false), when the baseline or the cards were adjusted for it.</summary>
     public bool? GoingFirst { get; init; }
+
+    /// <summary>The HSGuru rank most cards' slice numbers come from ("legend", "all"); null without slices.</summary>
+    public string? SliceRank { get; init; }
 
     /// <summary>Entity ids of the cards the guide would keep.</summary>
     public IReadOnlyList<int> Recommended { get; init; } = [];

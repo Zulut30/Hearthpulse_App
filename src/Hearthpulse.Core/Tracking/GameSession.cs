@@ -179,11 +179,29 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _dirty = true;
     }
 
-    /// <summary>Community Constructed stats for the mulligan panel; the host passes them after loading.</summary>
+    /// <summary>
+    /// Community Constructed stats for the mulligan panel; the host passes them after loading. Each format's stats are
+    /// kept apart and a game uses its own format's.
+    /// </summary>
     public void SetConstructedMeta(Constructed.ConstructedMeta? meta)
     {
+        if (meta is null)
+        {
+            return;
+        }
+
         _constructed.Meta = meta;
         _dirty = true;
+    }
+
+    /// <summary>
+    /// Raised on the log thread when a Constructed game's format ("standard", "wild") has no stats yet; the host
+    /// downloads them and passes them to <see cref="SetConstructedMeta"/>.
+    /// </summary>
+    public event Action<string>? ConstructedMetaNeeded
+    {
+        add => _constructed.MetaNeeded += value;
+        remove => _constructed.MetaNeeded -= value;
     }
 
     /// <summary>The Hearthpulse API mulligan guide; the host passes it once at start-up. A finished lookup refreshes the overlay.</summary>
@@ -567,7 +585,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         var rank = _constructed.LocalRank?.Text;
         var races = _battlegrounds.MemoryRaces is { Count: > 0 } list ? string.Join(",", list) : null;
         var record = GameRecords.Build(game, _battlegrounds, _cards, _constructed.Deck, "live", before is > 0 ? before : null, null, rank, races,
-            _facts, _constructed.LocalRank, abandoned, _constructed.Meta);
+            _facts, _constructed.LocalRank, abandoned, _constructed.MetaFor(game.FormatType));
         if (record is null)
         {
             if (abandoned) _recordedAbandoned = true;

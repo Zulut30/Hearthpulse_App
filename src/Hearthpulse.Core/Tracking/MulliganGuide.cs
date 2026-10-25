@@ -10,7 +10,47 @@ namespace Hearthpulse.Core.Tracking;
 /// <param name="InOpeningHand">Games the card was in hand after the mulligan, kept or drawn as a replacement.</param>
 /// <param name="OpeningHandWinRate">Win rate of those games (HSReplay's "Mulligan WR").</param>
 /// <param name="AvgTurnPlayed">The deck's average turn for playing the card; null when unknown (Firestone data).</param>
-public sealed record GuideCard(string CardId, int DbfId, int Cost, int Offered, double KeepRate, int InOpeningHand, double? OpeningHandWinRate, double? AvgTurnPlayed);
+public sealed record GuideCard(string CardId, int DbfId, int Cost, int Offered, double KeepRate, int InOpeningHand, double? OpeningHandWinRate, double? AvgTurnPlayed)
+{
+    /// <summary>Games the card was drawn in (any turn, the opening hand included) and their win rate; HSReplay only.</summary>
+    public int Drawn { get; init; }
+
+    public double? DrawnWinRate { get; init; }
+}
+
+/// <summary>
+/// HSGuru's numbers for one card in one mulligan slice (<c>/v1/hsguru/mulligan</c>). Impacts are win rate points
+/// against the deck's own win rate in the same slice, as fractions (0.042 = +4.2 points).
+/// </summary>
+/// <param name="Offered">Games the card was offered in the mulligan.</param>
+/// <param name="OfferedImpact">Win rate of those games against the deck's: independent of the player's choice.</param>
+/// <param name="Kept">Games the offered card was kept.</param>
+/// <param name="Drawn">Games the card was drawn (any turn).</param>
+public sealed record SliceCard(string CardId, int DbfId, int Offered, double? OfferedImpact, int Kept, double? KeptImpact, int Drawn, double? DrawnImpact)
+{
+    public int Replaced => Math.Max(0, Offered - Kept);
+
+    public double? KeepRate => Offered > 0 ? (double)Kept / Offered : null;
+
+    /// <summary>Win rate of the games where the offered card went back, from offered = kept + replaced.</summary>
+    public double? ReplacedImpact => OfferedImpact is { } offered && KeptImpact is { } kept && Replaced > 0
+        ? (offered * Offered - kept * Kept) / Replaced
+        : null;
+}
+
+/// <summary>One HSGuru mulligan slice of an archetype: a rank, the coin and the opponent's class ("any" for all).</summary>
+/// <param name="Rank">"legend", "all", ... (HSGuru's keys).</param>
+/// <param name="Coin"><see cref="MulliganGuide.AnyCoin"/>, "going_first" or "on_coin".</param>
+/// <param name="OpponentClass"><see cref="MulliganGuide.AnyOpponent"/> or a class ("WARLOCK").</param>
+public sealed record MulliganSlice(string Rank, string Coin, string OpponentClass, int Games, IReadOnlyList<SliceCard> Cards)
+{
+    private IReadOnlyDictionary<string, SliceCard>? _byId;
+
+    /// <summary>The card's row; a slice has hundreds and the guide asks for every card of the deck on each update.</summary>
+    public SliceCard? Card(string cardId) =>
+        (_byId ??= Cards.GroupBy(c => c.CardId, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal))
+        .GetValueOrDefault(cardId);
+}
 
 /// <summary>One decklist HSReplay counts under an archetype: card dbf id → copies.</summary>
 public sealed record GuideDeck(int Games, IReadOnlyDictionary<int, int> Cards);
@@ -42,6 +82,12 @@ public sealed record GuideArchetype(int Id, string Name, string Class, IReadOnly
     /// otherwise <see cref="MulliganGuide.Baseline"/> estimates it from the cards.
     /// </summary>
     public double? BaselineWinRate { get; init; }
+
+    /// <summary>The HSGuru archetype the deck matches, whose mulligan slices are in <see cref="Slices"/>; null when none.</summary>
+    public string? HsguruArchetype { get; init; }
+
+    /// <summary>HSGuru mulligan slices loaded so far (all games, and the coin and the opponent's class once known).</summary>
+    public IReadOnlyList<MulliganSlice> Slices { get; init; } = [];
 }
 
 /// <summary>A card offered in the mulligan, left to right.</summary>
@@ -101,10 +147,25 @@ public static class MulliganGuide
     public const double LateTurn = 6.0;
 
     /// <summary>
-    /// Replacing a card has to win by more than this (half a win rate point) before the guide says Mulligan: smaller
-    /// differences are within the noise of the numbers, and keeping is the default in the game.
+    /// A card whose <see cref="MulliganCardStat.Edge"/> is smaller than this (half a win rate point) either way is a close
+    /// call: the overlay draws it neutral. The call itself follows the sign, so a card worse than its replacement is never
+    /// "Keep" (it used to be, inside this margin: a −0.6 card next to a −0.7 replacement was kept).
     /// </summary>
-    public const double KeepMargin = 0.005;
+    public const double CloseCall = 0.005;
+
+    /// <summary>HSGuru's slice keys for "every game".</summary>
+    public const string AnyCoin = "any_player";
+
+    public const string AnyOpponent = "any";
+
+    /// <summary>A slice with fewer games is not used (HSGuru keeps class slices from about 400 games at Legend).</summary>
+    public const int MinSliceGames = 2000;
+
+    /// <summary>A card offered (or kept, replaced, drawn) fewer times than this in a slice has no numbers there.</summary>
+    public const int MinSliceCount = 200;
+
+    /// <summary>HSGuru ranks the guide reads, most wanted first: Legend like the HSReplay numbers, else all ranks.</summary>
+    public static readonly IReadOnlyList<string> SliceRanks = ["legend", "all"];
 
     /// <summary>
     /// The archetype a deck belongs to. Two signals, because HSReplay lists no decks for some archetypes: the share of
@@ -210,8 +271,22 @@ public static class MulliganGuide
             ? split - overall
             : null;
         var baseRate = Math.Clamp(baseline + (classShift ?? 0) + (initiativeShift ?? 0), 0, 1);
+        var coin = goingFirst switch { true => "going_first", false => "on_coin", null => null };
+        var slices = data.Slices;
+
+        // HSGuru's slices move a card by how much better or worse it does on the coin / against this class than in all
+        // games (offered win rates, which do not depend on the player's choice).
+        double? CoinShift(string cardId) => coin is null ? null : Shift(slices, cardId, coin, AnyOpponent);
+        double? OpponentShift(string cardId) => opponentClass is not { Length: > 0 } ? null : Shift(slices, cardId, AnyCoin, opponentClass.ToUpperInvariant());
 
         double? DeltaOf(string cardId) =>
+            stats.TryGetValue(cardId, out var s) && s.Offered >= MinSample && s.InOpeningHand >= MinSample && s.OpeningHandWinRate is { } rate
+                ? rate - baseline + (CoinShift(cardId) ?? 0) + (OpponentShift(cardId) ?? 0)
+                : null;
+
+        // Pair win rates are over all games: their interaction is measured against the cards' unshifted deltas, or a
+        // coin or class shift of both cards would show up as a synergy of the same size (and cancel itself in the sum).
+        double? AllGamesDeltaOf(string cardId) =>
             stats.TryGetValue(cardId, out var s) && s.Offered >= MinSample && s.InOpeningHand >= MinSample && s.OpeningHandWinRate is { } rate
                 ? rate - baseline
                 : null;
@@ -225,8 +300,13 @@ public static class MulliganGuide
             stats.TryGetValue(card.CardId, out var s);
             var delta = DeltaOf(card.CardId);
             var turn = s?.AvgTurnPlayed ?? (s?.Cost ?? card.Cost);
+            // The most specific slice that has the card: its keep rate and kept / replaced / drawn numbers fit this game.
+            var shown = Fitting(slices, coin, opponentClass)
+                .Select(slice => (Slice: slice, Card: slice.Card(card.CardId)))
+                .FirstOrDefault(x => x.Card is { Offered: >= MinSliceCount, OfferedImpact: not null });
+            var sliceCard = shown.Card;
             rows.Add(new MulliganCardStat(card.EntityId, card.CardId, card.Name,
-                s is { Offered: >= MinSample } ? s.KeepRate : null,
+                sliceCard?.KeepRate ?? (s is { Offered: >= MinSample } ? s.KeepRate : null),
                 delta is null ? null : s!.OpeningHandWinRate,
                 delta,
                 s?.Offered ?? 0)
@@ -234,26 +314,41 @@ public static class MulliganGuide
                 Copy = copy,
                 Cost = card.Cost,
                 ExpectedTurn = turn,
+                CoinShift = delta is null ? null : CoinShift(card.CardId),
+                OpponentShift = delta is null ? null : OpponentShift(card.CardId),
+                KeptDelta = sliceCard is { Kept: >= MinSliceCount } ? sliceCard.KeptImpact : null,
+                ReplacedDelta = sliceCard is { Replaced: >= MinSliceCount } ? sliceCard.ReplacedImpact : null,
+                DrawnDelta = sliceCard is { Drawn: >= MinSliceCount, DrawnImpact: { } drawn } ? drawn
+                    : s is { Drawn: >= MinSample, DrawnWinRate: { } drawnRate } ? drawnRate - baseline
+                    : null,
+                Slice = shown.Slice,
             });
         }
 
-        var synergies = Synergies(data.Pairs, hand, baseline, DeltaOf);
+        var synergies = Synergies(data.Pairs, hand, baseline, AllGamesDeltaOf);
         var view = new MulliganView(context, baseRate, rows, data.Source)
         {
             ReplaceDelta = replace,
             CardBaseline = baseline,
-            OpponentClass = classShift is null ? null : opponentClass,
+            OpponentClass = classShift is not null || rows.Any(r => r.OpponentShift is not null) ? opponentClass : null,
             ClassShift = classShift,
-            GoingFirst = initiativeShift is null ? null : goingFirst,
+            GoingFirst = initiativeShift is not null || rows.Any(r => r.CoinShift is not null) ? goingFirst : null,
             HasPairData = data.Pairs.Count > 0,
             Synergies = synergies,
+            SliceRank = rows.Select(r => r.Slice?.Rank).OfType<string>().GroupBy(r => r).MaxBy(g => g.Count())?.Key,
         };
 
         var recommended = Recommend(view);
+        var keep = recommended.ToHashSet();
         return view with
         {
             Recommended = recommended,
-            Cards = rows.Select(r => r with { Call = Call(r, recommended) }).ToList(),
+            // A second copy is called by the duplicate heuristic, not by a number: it shows none.
+            Cards = rows.Select(r => r with
+            {
+                Call = Call(r, recommended),
+                Edge = r is { Copy: 1, Delta: not null } ? Toggle(view, keep, r.EntityId) : null,
+            }).ToList(),
         };
     }
 
@@ -302,6 +397,19 @@ public static class MulliganGuide
     /// <summary>A card is late when it is expensive, or costs 4+ and is usually held until turn 6.</summary>
     public static bool IsLate(MulliganCardStat card) => card.Cost >= LateCost || (card.Cost >= 4 && card.ExpectedTurn >= LateTurn);
 
+    /// <summary>
+    /// What keeping the card adds to the recommended keeps: the summed deltas with it kept minus with it replaced, the
+    /// other cards as recommended. For a plain card that is its delta minus the replacement's; a kept synergy partner or a
+    /// kept second copy of the same card count too. The recommendation is the best sum, so the sign always matches the call.
+    /// </summary>
+    private static double Toggle(MulliganView view, IReadOnlySet<int> keep, int entityId)
+    {
+        var with = new HashSet<int>(keep) { entityId };
+        var without = new HashSet<int>(keep);
+        without.Remove(entityId);
+        return Sum(view, with) - Sum(view, without);
+    }
+
     /// <summary>The hand's summed deltas: first kept copies, one replacement per replaced card, kept pair interactions.</summary>
     private static double Sum(MulliganView view, IReadOnlySet<int> kept)
     {
@@ -324,9 +432,61 @@ public static class MulliganGuide
     }
 
     /// <summary>
-    /// The best keeps by <see cref="Expected"/> with <see cref="KeepMargin"/> per kept card (every subset; a hand has at
-    /// most five cards). Second copies are fixed beforehand by the duplicate heuristic: keep one only when it is an
-    /// early play most players keep. Cards without data count 0, like an average card.
+    /// The slices that fit a game, most specific first: against the opponent's class, on the coin / going first, then all
+    /// games; each at Legend before all ranks. Thin slices (<see cref="MinSliceGames"/>) are left out.
+    /// </summary>
+    public static IEnumerable<MulliganSlice> Fitting(IReadOnlyList<MulliganSlice> slices, string? coin, string? opponentClass)
+    {
+        var keys = new List<(string Coin, string Opponent)>();
+        if (opponentClass is { Length: > 0 })
+        {
+            keys.Add((AnyCoin, opponentClass.ToUpperInvariant()));
+        }
+
+        if (coin is not null)
+        {
+            keys.Add((coin, AnyOpponent));
+        }
+
+        keys.Add((AnyCoin, AnyOpponent));
+        foreach (var (c, o) in keys)
+        {
+            foreach (var rank in SliceRanks)
+            {
+                if (Find(slices, rank, c, o) is { } slice)
+                {
+                    yield return slice;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// How much better (+) or worse the card is offered in the <paramref name="coin"/> / <paramref name="opponent"/> slice
+    /// than in all games of the same rank: the difference of its two offered impacts. Null without both numbers.
+    /// </summary>
+    private static double? Shift(IReadOnlyList<MulliganSlice> slices, string cardId, string coin, string opponent)
+    {
+        foreach (var rank in SliceRanks)
+        {
+            if (Find(slices, rank, coin, opponent)?.Card(cardId) is { Offered: >= MinSliceCount, OfferedImpact: { } there }
+                && Find(slices, rank, AnyCoin, AnyOpponent)?.Card(cardId) is { Offered: >= MinSliceCount, OfferedImpact: { } all })
+            {
+                return there - all;
+            }
+        }
+
+        return null;
+    }
+
+    private static MulliganSlice? Find(IReadOnlyList<MulliganSlice> slices, string rank, string coin, string opponent) =>
+        slices.FirstOrDefault(s => s.Games >= MinSliceGames && s.Rank == rank && s.Coin == coin && string.Equals(s.OpponentClass, opponent, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The best keeps by <see cref="Expected"/> (every subset; a hand has at most five cards). A card is kept when it beats
+    /// its replacement, ties included; there is no margin in favour of keeping. Second copies are fixed beforehand by the
+    /// duplicate heuristic: keep one only when it is an early play most players keep. Cards without data count 0, like
+    /// an average card.
     /// </summary>
     private static IReadOnlyList<int> Recommend(MulliganView view)
     {
@@ -352,7 +512,7 @@ public static class MulliganGuide
                 }
             }
 
-            var value = Sum(view, set) + KeepMargin * set.Count;
+            var value = Sum(view, set);
             if (best is null || value > bestValue + 1e-9 || (Math.Abs(value - bestValue) <= 1e-9 && set.Count > best.Count))
             {
                 best = set;

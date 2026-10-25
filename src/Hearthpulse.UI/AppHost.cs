@@ -97,6 +97,8 @@ public sealed partial class AppHost : IDisposable
         _metaRefresh.Tick += (_, _) => LoadMetaAsync().Forget("Battlegrounds meta load");
 
         Session.SnapshotChanged += OnSnapshot;
+        Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => EnsureConstructedMeta(format));
+        Main.ConstructedMetaRequested += EnsureConstructedMeta;
         Session.GameFinished += outcome => Dispatcher.UIThread.Post(() => OnGameFinished(outcome));
         History.Changed += () => Dispatcher.UIThread.Post(() =>
         {
@@ -133,8 +135,17 @@ public sealed partial class AppHost : IDisposable
 
     public string? InstallDirectory { get; private set; }
 
-    /// <summary>Constructed stats from the last successful <see cref="LoadMetaAsync"/>; null until then.</summary>
+    /// <summary>Stats of <see cref="AppSettings.MetaFormat"/> (the format loaded at start); null until they are in.</summary>
     public ConstructedMeta? ConstructedMeta { get; private set; }
+
+    /// <summary>Constructed stats by format key ("standard", "wild"): the page and a game each use their own format's.</summary>
+    private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
+
+    /// <summary>Formats kept fresh: the one loaded at start, the pages opened and the formats played.</summary>
+    private readonly HashSet<string> _constructedFormats = new(StringComparer.Ordinal);
+
+    /// <summary>Formats whose download runs now.</summary>
+    private readonly HashSet<string> _constructedLoading = new(StringComparer.Ordinal);
 
     public CardDb Cards { get; private set; } = CardDb.Empty;
 
@@ -382,10 +393,51 @@ public sealed partial class AppHost : IDisposable
                 _archetypeNames.Forget("Archetype names load");
             }
 
-            var constructed = await ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, Settings.MetaFormat, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale);
+            _constructedFormats.Add(ConstructedMeta.Key(ConstructedMeta.Formats, Settings.MetaFormat));
+            await Task.WhenAll(_constructedFormats.ToList().Select(LoadConstructedMetaAsync));
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Constructed stats unavailable", ex);
+        }
+    }
+
+    /// <summary>
+    /// The stats of one format, asked by the Standard or Wild page or by a game of that format: passed on at once when
+    /// they are in, else downloaded unless a download already runs.
+    /// </summary>
+    private void EnsureConstructedMeta(string format)
+    {
+        _constructedFormats.Add(format);
+        if (_constructedMetas.TryGetValue(format, out var meta))
+        {
+            Session.SetConstructedMeta(meta);
+            Main.SetConstructedMeta(meta);
+        }
+        else
+        {
+            LoadConstructedMetaAsync(format).Forget("Constructed meta load");
+        }
+    }
+
+    private async Task LoadConstructedMetaAsync(string format)
+    {
+        if (!_constructedLoading.Add(format))
+        {
+            return;
+        }
+
+        try
+        {
+            var constructed = await Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale);
             if (constructed is not null)
             {
-                ConstructedMeta = constructed;
+                _constructedMetas[format] = constructed;
+                if (format == Core.Constructed.ConstructedMeta.Key(Core.Constructed.ConstructedMeta.Formats, Settings.MetaFormat))
+                {
+                    ConstructedMeta = constructed;
+                }
+
                 Session.SetConstructedMeta(constructed);
                 Main.SetConstructedMeta(constructed);
             }
@@ -393,6 +445,10 @@ public sealed partial class AppHost : IDisposable
         catch (Exception ex)
         {
             Diag.Error("Constructed stats unavailable", ex);
+        }
+        finally
+        {
+            _constructedLoading.Remove(format);
         }
     }
 

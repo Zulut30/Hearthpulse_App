@@ -993,9 +993,14 @@
                 <o:CardPoolBrowser />
             </o:MovablePanel>
 
-            <!-- ============ Constructed: mulligan strip, a badge under each offered card (card row centred, card bottoms at ~690 of 1080) ============ -->
-            <o:MovablePanel Id="mulligan-strip" Title="{i:Loc Overlay.Panel.MulliganStrip}" GameAnchored="True" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="12,700,0,0">
+            <!-- ============ Constructed: mulligan bars over the offered cards (card row centred, card tops at ~310 of 1080; the panel hangs from 300 up) ============ -->
+            <o:MovablePanel Id="mulligan-bars" Title="{i:Loc Overlay.Panel.MulliganStrip}" GameAnchored="True" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,0,0,780">
                 <o:MulliganPanel />
+            </o:MovablePanel>
+
+            <!-- The mulligan summary under the cards (card bottoms at ~690), above the Confirm button -->
+            <o:MovablePanel Id="mulligan-summary" Title="{i:Loc Overlay.Panel.MulliganSummary}" GameAnchored="True" Shown="{Binding ShowMulligan}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="12,700,0,0">
+                <o:MulliganSummary />
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: slim top bar + minion browser (top-left) ============ -->
@@ -1104,12 +1109,24 @@
 
             <!-- ============ Battlegrounds: simulated combat odds (top centre, during combat) ============ -->
             <o:MovablePanel Id="odds" Title="{i:Loc Overlay.Panel.Odds}" Shown="{Binding ShowOdds}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
-                <Border Style="{StaticResource OverlayCard}" Background="{StaticResource OverlayPanelSolid}" Padding="14,7,14,8" Width="250">
+                <Border x:Name="OddsCard" Background="{StaticResource OverlayPanelSolid}" Padding="14,7,14,8" Width="250">
+                    <Border.Style>
+                        <!-- Red edge while the fight can kill the player -->
+                        <Style TargetType="Border" BasedOn="{StaticResource OverlayCard}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding LethalDanger}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <StackPanel>
                         <UniformGrid Columns="3">
                             <StackPanel HorizontalAlignment="Center">
                                 <TextBlock Text="{Binding OddsWin}" Style="{StaticResource Number}" FontSize="17" Foreground="{StaticResource Positive}" HorizontalAlignment="Center" />
                                 <TextBlock Text="{i:Loc Overlay.Odds.Win}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding OddsDamageWin}" ToolTip="{Binding OddsDamageWinTip}" Style="{StaticResource Number}" FontSize="11" Foreground="{StaticResource Positive}"
+                                           HorizontalAlignment="Center" Visibility="{Binding OddsDamageWin, Converter={StaticResource Vis}}" />
                             </StackPanel>
                             <StackPanel HorizontalAlignment="Center">
                                 <TextBlock Text="{Binding OddsTie}" Style="{StaticResource Number}" FontSize="17" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
@@ -1118,6 +1135,8 @@
                             <StackPanel HorizontalAlignment="Center">
                                 <TextBlock Text="{Binding OddsLoss}" Style="{StaticResource Number}" FontSize="17" Foreground="{StaticResource Negative}" HorizontalAlignment="Center" />
                                 <TextBlock Text="{i:Loc Overlay.Odds.Loss}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding OddsDamageLoss}" ToolTip="{Binding OddsDamageLossTip}" Style="{StaticResource Number}" FontSize="11" Foreground="{StaticResource Negative}"
+                                           HorizontalAlignment="Center" Visibility="{Binding OddsDamageLoss, Converter={StaticResource Vis}}" />
                             </StackPanel>
                         </UniformGrid>
                         <Border Height="4" CornerRadius="1" ClipToBounds="True" Margin="0,6,0,5" Background="{StaticResource Surface3}">
@@ -1132,7 +1151,16 @@
                                 <Border Grid.Column="2" Background="{StaticResource Negative}" />
                             </Grid>
                         </Border>
-                        <TextBlock Text="{Binding OddsNote}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+                        <!-- Lethal: the share of fights that kill either hero -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
+                            <StackPanel Orientation="Horizontal" Margin="5,0" ToolTip="{i:Loc Overlay.Odds.LethalTip}" Visibility="{Binding OddsLethal, Converter={StaticResource Vis}}">
+                                <TextBlock Text="&#xF068C;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Negative}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding OddsLethal}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding OddsKill}" ToolTip="{i:Loc Overlay.Odds.KillTip}" FontSize="11" Foreground="{StaticResource Positive}" Margin="5,0" VerticalAlignment="Center"
+                                       Visibility="{Binding OddsKill, Converter={StaticResource Vis}}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding OddsNote}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
                     </StackPanel>
                 </Border>
             </o:MovablePanel>

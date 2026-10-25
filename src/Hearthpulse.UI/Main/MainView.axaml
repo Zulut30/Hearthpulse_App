@@ -202,8 +202,10 @@
                 </Grid>
                 <RadioButton Name="NavBattlegrounds" Classes="nav" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="&#xF0787;" GroupName="Nav"
                              ToolTip.Tip="{i:Loc Main.Nav.BattlegroundsTip}" />
-                <RadioButton Name="NavConstructed" Classes="nav" Content="{i:Loc Main.Nav.Constructed}" Tag="&#xF063A;" GroupName="Nav"
-                             ToolTip.Tip="{i:Loc Main.Nav.ConstructedTipShort}" />
+                <RadioButton Name="NavStandard" Classes="nav" Content="{i:Loc Main.Nav.Standard}" Tag="&#xF063A;" GroupName="Nav"
+                             ToolTip.Tip="{i:Loc Main.Nav.StandardTipShort}" />
+                <RadioButton Name="NavWild" Classes="nav" Content="{i:Loc Main.Nav.Wild}" Tag="&#xF06E4;" GroupName="Nav"
+                             ToolTip.Tip="{i:Loc Main.Nav.WildTipShort}" />
                 <RadioButton Name="NavArena" Classes="nav" Content="{i:Loc Main.Mode.Arena}" Tag="&#xF0538;" GroupName="Nav"
                              ToolTip.Tip="{i:Loc Main.Nav.ArenaTip}" />
 
@@ -638,11 +640,11 @@
                 <!-- ===== Constructed ===== -->
                 <ScrollViewer Name="PageConstructed" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel>
-                        <TextBlock Text="{i:Loc Main.Nav.Constructed}" Classes="display" />
+                        <TextBlock Text="{Binding ConstructedTitle}" Classes="display" />
                         <StackPanel Classes="pageSubtitle">
                             <Panel Width="26" Height="26">
                                 <c:Scallop Fill="{StaticResource AccentContainer}" Lobes="9" Depth="0.12" />
-                                <TextBlock Text="&#xF063A;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding ConstructedIcon}" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
                             </Panel>
                             <TextBlock Text="{i:Loc Main.Ct.SubtitleTracked}" Classes="caption" FontSize="14" Margin="10,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>

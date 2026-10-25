@@ -25,8 +25,37 @@ public sealed class ConstructedTracker : IPowerListener
 
     public DeckDefinition? Deck { get; set; }
 
-    /// <summary>Community stats for the mulligan panel (the format and rank the player picked on the Constructed page).</summary>
-    public ConstructedMeta? Meta { get; set; }
+    /// <summary>Community stats by format key ("standard", "wild"); replaced whole, so the log thread reads a stable copy.</summary>
+    private IReadOnlyDictionary<string, ConstructedMeta> _metas = new Dictionary<string, ConstructedMeta>();
+
+    /// <summary>Formats whose stats this game asked the host for (log thread only).</summary>
+    private readonly HashSet<string> _metaAsked = new(StringComparer.Ordinal);
+
+    /// <summary>The FormatType of the game being tracked (Standard until the log tells).</summary>
+    private string _formatType = "FT_STANDARD";
+
+    /// <summary>
+    /// Community stats for the mulligan panel and the deck's archetype: each game uses the stats of its own format, so
+    /// the page the player last looked at (Standard or Wild) never takes them away. Reading gives the current game's
+    /// format; setting adds stats for their format (null forgets all of them).
+    /// </summary>
+    public ConstructedMeta? Meta
+    {
+        get => MetaFor(_formatType);
+        set => _metas = value is null
+            ? new Dictionary<string, ConstructedMeta>()
+            : new Dictionary<string, ConstructedMeta>(_metas) { [value.Format] = value };
+    }
+
+    /// <summary>
+    /// Raised (on the log thread, once per format and game) when a game's format has no stats yet: the host downloads
+    /// them and sets <see cref="Meta"/>. Argument: the format key ("standard", "wild").
+    /// </summary>
+    public event Action<string>? MetaNeeded;
+
+    /// <summary>The stats of a game FormatType; null for formats without stats or before they are in.</summary>
+    public ConstructedMeta? MetaFor(string? formatType) =>
+        ConstructedMeta.FormatKeyOf(formatType) is { } key && _metas.TryGetValue(key, out var meta) ? meta : null;
 
     /// <summary>The Hearthpulse API mulligan guide (preferred over <see cref="Meta"/> when it knows the deck).</summary>
     public MulliganGuideSource? Guide { get; set; }
@@ -45,6 +74,8 @@ public sealed class ConstructedTracker : IPowerListener
         _cameToHandFrom.Clear();
         _hiddenDraws.Clear();
         _mulliganNote = null;
+        _metaAsked.Clear();
+        _formatType = "FT_STANDARD";
         LocalRank = null;
         OpponentRank = null;
     }
@@ -119,8 +150,13 @@ public sealed class ConstructedTracker : IPowerListener
             .ToList();
 
         var playerClass = cards.Get(playerHero)?.CardClass ?? string.Empty;
+        var meta = GameMeta(game);
         // Asked on every update so the lookup starts as soon as the deck is known, before the mulligan begins.
-        var guide = Deck is not null && game.IsConstructedLike ? Guide?.For(playerClass, Deck, game.FormatType, cards) : null;
+        // During the mulligan the coin and the opponent's class are known: their slices load then.
+        var mulligan = Mulligan.InProgress(game);
+        var guide = Deck is not null && game.IsConstructedLike
+            ? Guide?.For(playerClass, Deck, game.FormatType, cards, mulligan ? cards.Get(game.OpponentHero?.CardId)?.CardClass : null, mulligan ? Mulligan.GoingFirst(game, cards) : null)
+            : null;
         return new ConstructedView(
             ToPlayerTurn(game.Turn),
             Deck?.Name,
@@ -141,7 +177,7 @@ public sealed class ConstructedTracker : IPowerListener
             LocalRank,
             OpponentRank)
         {
-            Mulligan = NoteMulligan(game, Mulligan.Build(game, cards, Deck, Meta, playerClass, guide), guide is not null),
+            Mulligan = NoteMulligan(game, meta, Mulligan.Build(game, cards, Deck, meta, playerClass, guide), guide is not null),
             Counters = Tracking.Counters.Counters.Build(game, Counters, cards, Deck),
             DeckId = Deck?.DeckId ?? 0,
             DeckCode = Deck?.Code,
@@ -170,14 +206,14 @@ public sealed class ConstructedTracker : IPowerListener
     private string? _mulliganNote;
 
     /// <summary>Logs whether the mulligan panel has something to show, once per change while the mulligan is on.</summary>
-    private MulliganView? NoteMulligan(GameState game, MulliganView? view, bool hasGuide)
+    private MulliganView? NoteMulligan(GameState game, ConstructedMeta? meta, MulliganView? view, bool hasGuide)
     {
         if (!Mulligan.InProgress(game))
         {
             return view;
         }
 
-        var note = Mulligan.Explain(game, view, Deck, hasGuide, Meta);
+        var note = Mulligan.Explain(game, view, Deck, hasGuide, meta);
         if (note != _mulliganNote)
         {
             _mulliganNote = note;
@@ -187,37 +223,51 @@ public sealed class ConstructedTracker : IPowerListener
         return view;
     }
 
+    /// <summary>The stats of the game's format; asks the host once per game for a format that has none yet.</summary>
+    private ConstructedMeta? GameMeta(GameState game)
+    {
+        if (!string.IsNullOrEmpty(game.FormatType))
+        {
+            _formatType = game.FormatType;
+        }
+
+        var meta = MetaFor(game.FormatType);
+        if (meta is null && game.IsConstructedLike && ConstructedMeta.FormatKeyOf(game.FormatType) is { } key && _metaAsked.Add(key))
+        {
+            MetaNeeded?.Invoke(key);
+        }
+
+        return meta;
+    }
+
     private (DeckDefinition? Deck, ConstructedMeta? Meta, DeckMetaStat? Stat) _deckMeta;
 
     /// <summary>The deck's archetype in the community stats; matched once per deck and stats download.</summary>
     private DeckMetaStat? DeckMetaFor(CardDb cards, string playerClass, string formatType)
     {
-        // Stats of another format (a Wild deck against Standard stats) would quote the wrong archetype numbers.
-        if (Deck is null || Meta is null || MetaFormatOf(formatType) != Meta.Format)
+        // Only the game's own format: a Wild deck against Standard stats would quote the wrong archetype numbers.
+        if (Deck is null || MetaFor(formatType) is not { } meta)
         {
             return null;
         }
 
-        if (ReferenceEquals(_deckMeta.Deck, Deck) && ReferenceEquals(_deckMeta.Meta, Meta))
+        if (ReferenceEquals(_deckMeta.Deck, Deck) && ReferenceEquals(_deckMeta.Meta, meta))
         {
             return _deckMeta.Stat;
         }
 
         var ids = Deck.Cards.Keys.Select(cards.Get).OfType<Card>().Select(c => c.Id).ToList();
-        var archetype = Meta.Match(playerClass, ids);
-        var source = Meta.Source;
+        var archetype = meta.Match(playerClass, ids);
+        var source = meta.Source;
         var stat = archetype is null
             ? null
-            : new DeckMetaStat(archetype.Name, archetype.WinRate, archetype.Games, ConstructedMeta.Label(ConstructedMeta.Ranks, Meta.Rank), source)
+            : new DeckMetaStat(archetype.Name, archetype.WinRate, archetype.Games, ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank), source)
             {
-                Format = ConstructedMeta.Label(ConstructedMeta.Formats, Meta.Format),
+                Format = ConstructedMeta.Label(ConstructedMeta.Formats, meta.Format),
             };
-        _deckMeta = (Deck, Meta, stat);
+        _deckMeta = (Deck, meta, stat);
         return stat;
     }
-
-    /// <summary>The <see cref="ConstructedMeta.Format"/> key of a game's FormatType; null for formats without stats.</summary>
-    private static string? MetaFormatOf(string formatType) => ConstructedMeta.FormatKeyOf(formatType);
 
     private HandSlot HandSlotOf(GameState game, CardDb cards, Entity e)
     {

@@ -120,7 +120,6 @@ public sealed partial class MainViewModel
     private RelayCommand? _setBgPeriod;
     private RelayCommand? _setBgSort;
     private RelayCommand? _setBgMinGames;
-    private RelayCommand? _setCtFormat;
     private RelayCommand? _setCtPeriod;
     private RelayCommand? _setArenaPeriod;
 
@@ -138,7 +137,45 @@ public sealed partial class MainViewModel
         RebuildBattlegroundsStats();
     });
 
-    public RelayCommand SetCtFormat => _setCtFormat ??= new RelayCommand(p => { _ctFormat = p as string ?? "FT_STANDARD"; RebuildConstructedStats(); });
+    /// <summary>The FormatType the Standard or Wild page shows: "FT_STANDARD" or "FT_WILD".</summary>
+    public string ConstructedFormat => _ctFormat;
+
+    /// <summary>The page title: Standard or Wild.</summary>
+    public string ConstructedTitle => Loc.T(_ctFormat == "FT_WILD" ? "Main.Nav.Wild" : "Main.Nav.Standard");
+
+    /// <summary>The MDI glyph of the page, as in the nav: playing cards for Standard, infinity for Wild.</summary>
+    public string ConstructedIcon => _ctFormat == "FT_WILD" ? "\U000F06E4" : "\U000F063A";
+
+    /// <summary>
+    /// Shows the Constructed page for one FormatType (the Standard and Wild nav items): my stats and your decks follow
+    /// it. An open deck of the other format closes.
+    /// </summary>
+    public void ShowConstructedFormat(string formatType)
+    {
+        // Your decks show their archetype from the page's format stats.
+        if (ConstructedMetaFor(formatType) is null && ConstructedMeta.FormatKeyOf(formatType) is { } key)
+        {
+            ConstructedMetaRequested?.Invoke(key);
+        }
+
+        if (formatType == _ctFormat)
+        {
+            return;
+        }
+
+        _ctFormat = formatType;
+        if (DeckOpen && _deckFamilies.FirstOrDefault(f => f.Key == _openDeckKey) is { } open
+            && ConstructedPage.FormatOf(ConstructedPage.PageOf(open.Format)) != formatType)
+        {
+            CloseDeck();
+        }
+
+        Raise(nameof(ConstructedFormat));
+        Raise(nameof(ConstructedTitle));
+        Raise(nameof(ConstructedIcon));
+        RebuildConstructedStats();
+        RebuildDecks();
+    }
 
     public RelayCommand SetCtPeriod => _setCtPeriod ??= new RelayCommand(p => { _ctPeriod = ParsePeriod(p); RebuildConstructedStats(); });
 
@@ -160,6 +197,11 @@ public sealed partial class MainViewModel
     public bool BgHasGlobal { get => _bgHasGlobal; private set => Set(ref _bgHasGlobal, value); }
 
     public string BgStatsNote { get => _bgStatsNote; private set => Set(ref _bgStatsNote, value); }
+
+    private string _bgSimAccuracy = string.Empty;
+
+    /// <summary>One line on how well the combat simulator predicted these games' fights; empty without predictions.</summary>
+    public string BgSimAccuracy { get => _bgSimAccuracy; private set => Set(ref _bgSimAccuracy, value); }
 
     public IReadOnlyList<StatTile> CtStatTiles { get => _ctStatTiles; private set => Set(ref _ctStatTiles, value); }
 
@@ -327,9 +369,16 @@ public sealed partial class MainViewModel
             : meta is null
                 ? Loc.T("Stats.Bg.NoteLoading")
                 : Loc.F("Stats.Bg.NoteSource", meta.Source, BattlegroundsMeta.BracketLabel(meta.WidestBracket));
+        // Duos fights are not predicted with damage (the loser of one board is not the one who takes it).
+        var accuracy = duos ? null : BattlegroundsStats.SimAccuracy(games);
+        var accuracyText = accuracy is not { Fights: > 0 }
+            ? string.Empty
+            : Loc.F("Stats.Bg.SimAccuracy", accuracy.DamageRate is { } dr ? dr.ToString("P0", CultureInfo.CurrentCulture) : "—",
+                accuracy.ResultRate!.Value.ToString("P0", CultureInfo.CurrentCulture), accuracy.Fights);
         return () =>
         {
             BgStatTiles = tiles;
+            BgSimAccuracy = accuracyText;
             BgPlaceShares = shares;
             BgAveragePlace = summary.AveragePlacement ?? double.NaN;
             BgRatingChart = chart;
@@ -444,20 +493,31 @@ public sealed partial class MainViewModel
         };
     }
 
-    /// <summary>This app has no Constructed meta yet, so there is nothing to compare with.</summary>
-    private ConstructedMeta? _constructedMeta;
+    /// <summary>Community Constructed stats by format key ("standard", "wild"), as the host loaded them.</summary>
+    private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
 
-    /// <summary>The community Constructed stats the host loaded (for vs Global and the deck page); null clears them.</summary>
+    /// <summary>
+    /// Raised when the Standard or Wild page has no stats for its format (key "standard" or "wild"); the host downloads
+    /// them and calls <see cref="SetConstructedMeta"/>.
+    /// </summary>
+    public event Action<string>? ConstructedMetaRequested;
+
+    /// <summary>Stats of one format the host loaded (for your decks' archetypes and the deck page); null is ignored.</summary>
     public void SetConstructedMeta(ConstructedMeta? meta)
     {
-        _constructedMeta = meta;
+        if (meta is null)
+        {
+            return;
+        }
+
+        _constructedMetas[meta.Format] = meta;
         RebuildConstructedStats();
         RebuildDecks();
     }
 
-    /// <summary>The loaded Constructed meta when it is the format's (else nothing to compare with).</summary>
+    /// <summary>The loaded stats of a game format (else nothing to compare with).</summary>
     private ConstructedMeta? ConstructedMetaFor(string format) =>
-        _constructedMeta is { } m && m.Format == ConstructedMeta.FormatKeyOf(format) ? m : null;
+        ConstructedMeta.FormatKeyOf(format) is { } key && _constructedMetas.TryGetValue(key, out var meta) ? meta : null;
 
     private static string ConstructedNote(ConstructedMeta? meta) =>
         Loc.T("Stats.Ct.NoteWindowsOnly");

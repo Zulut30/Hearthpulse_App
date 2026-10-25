@@ -239,8 +239,10 @@
                     </Grid>
                     <RadioButton x:Name="NavBattlegrounds" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="&#xF0787;" GroupName="Nav" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.BattlegroundsTip}" />
-                    <RadioButton x:Name="NavConstructed" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Constructed}" Tag="&#xF063A;" GroupName="Nav" Checked="OnNavigate"
-                                 ToolTip="{i:Loc Main.Nav.ConstructedTip}" />
+                    <RadioButton x:Name="NavStandard" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Standard}" Tag="&#xF063A;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="{i:Loc Main.Nav.StandardTip}" />
+                    <RadioButton x:Name="NavWild" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Wild}" Tag="&#xF06E4;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="{i:Loc Main.Nav.WildTip}" />
                     <RadioButton x:Name="NavArena" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Arena}" Tag="&#xF0538;" GroupName="Nav" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.ArenaTip}" />
 
@@ -794,7 +796,7 @@
                     <!-- ===== Constructed ===== -->
                     <ScrollViewer x:Name="PageConstructed" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="{i:Loc Main.Nav.Constructed}" Style="{StaticResource Display}" />
+                            <TextBlock Text="{Binding ConstructedTitle}" Style="{StaticResource Display}" />
                             <StackPanel Style="{StaticResource PageSubtitle}">
                                 <TextBlock Text="{i:Loc Main.Ct.Subtitle}" Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
                             </StackPanel>
@@ -809,20 +811,6 @@
                                         <RadioButton x:Name="TabMetaDecks" Style="{StaticResource Tab}" Content="{i:Loc Main.Ct.TopDecks}" GroupName="CtTab" Checked="OnCtTab"
                                                      ToolTip="{i:Loc Main.Ct.TopDecksTip}" />
                                     </StackPanel>
-                                </Border>
-                                <Border x:Name="MetaFormatPicker" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource SegmentBar}" Visibility="Collapsed"
-                                        ToolTip="{i:Loc Main.Ct.FormatTip}">
-                                    <ItemsControl ItemsSource="{Binding MetaFormats}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type m:MetaChoice}">
-                                                <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaFormat" IsChecked="{Binding Selected, Mode=OneWay}"
-                                                             Command="{Binding DataContext.SetMetaFormat, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}" />
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
                                 </Border>
                             </Grid>
 

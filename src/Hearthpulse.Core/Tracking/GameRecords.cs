@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
@@ -100,6 +101,7 @@ public static class GameRecords
                 Races = races,
                 Source = source,
                 CombatResults = CombatJson(battlegrounds.Combats),
+                CombatOdds = CombatOddsJson(battlegrounds.Combats),
                 OfferedHeroes = facts is { OfferedHeroes.Count: > 0 } ? string.Join(",", facts.OfferedHeroes) : null,
                 AnomalyCardId = game.GameEntity?.GetInt(GameTag.BaconAnomaly) is > 0 and var anomaly ? cards.Get(anomaly)?.Id : null,
             };
@@ -190,4 +192,26 @@ public static class GameRecords
                 taken = c.DamageTaken,
                 dealt = c.DamageDealt,
             }));
+
+    /// <summary>The prediction behind each combat (<see cref="GameRecord.CombatOdds"/>); null when none was simulated.</summary>
+    internal static string? CombatOddsJson(IReadOnlyList<CombatRecord> combats) =>
+        combats.All(c => c.Odds is null)
+            ? null
+            : JsonSerializer.Serialize(combats.Select(c => c.Odds is not { } o ? null : new
+            {
+                turn = c.Turn,
+                win = Math.Round(o.Win, 4),
+                tie = Math.Round(o.Tie, 4),
+                loss = Math.Round(o.Loss, 4),
+                runs = o.Runs,
+                unsimulated = o.Unsimulated,
+                cap = o.DamageCap,
+                taken = Spread(o.DamageTaken),
+                dealt = Spread(o.DamageDealt),
+                lethal = o.LethalTaken is { } l ? Math.Round(l, 4) : (double?)null,
+                kill = o.LethalDealt is { } k ? Math.Round(k, 4) : (double?)null,
+            }));
+
+    private static object? Spread(DamageSpread? spread) =>
+        spread is null ? null : new { mean = Math.Round(spread.Mean, 2), low = spread.Low, high = spread.High, max = spread.Max };
 }

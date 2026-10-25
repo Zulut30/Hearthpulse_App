@@ -127,6 +127,9 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
 
     public int TavernTier { get; init; }
 
+    /// <summary>The hero's health plus armor when the fight starts (public on the leaderboard); 0 when unknown.</summary>
+    public int Health { get; init; }
+
     internal static readonly IReadOnlyDictionary<string, int> EmptyTags = new Dictionary<string, int>();
 }
 
@@ -149,6 +152,14 @@ public sealed record SimOptions
 
     /// <summary>Ends the runs early (checked every 100 runs); the odds then cover the runs done so far.</summary>
     public CancellationToken Cancel { get; init; }
+
+    /// <summary>The lobby's combat damage cap (<see cref="DamageRules.Cap"/>); 0 = none.</summary>
+    public int DamageCap { get; init; }
+
+    /// <summary>
+    /// Estimate hero damage and lethal. Off for Duos, where the loser of one board is not the one who takes the damage.
+    /// </summary>
+    public bool CountDamage { get; init; } = true;
 }
 
 /// <summary>
@@ -161,6 +172,21 @@ public sealed record CombatOdds(double Win, double Tie, double Loss, int Unsimul
 
     /// <summary>Number of simulated fights behind the numbers (0 when the result needed no simulation).</summary>
     public int Runs { get; init; }
+
+    /// <summary>Damage our hero takes in the fights we lose; null when we never lose (or damage is not counted).</summary>
+    public DamageSpread? DamageTaken { get; init; }
+
+    /// <summary>Damage the opponent's hero takes in the fights we win; null when we never win.</summary>
+    public DamageSpread? DamageDealt { get; init; }
+
+    /// <summary>Share of all fights that kill our hero; null when our health is unknown or damage is not counted.</summary>
+    public double? LethalTaken { get; init; }
+
+    /// <summary>Share of all fights that kill the opponent's hero; null when their health is unknown.</summary>
+    public double? LethalDealt { get; init; }
+
+    /// <summary>The combat damage cap the damage was capped at; 0 = none.</summary>
+    public int DamageCap { get; init; }
 }
 
 /// <summary>One simulated fight: +1 we won, -1 we lost, 0 tie; the surviving minions and (when traced) a log.</summary>
@@ -184,11 +210,14 @@ public static class CombatSimulator
         options ??= SimOptions.Default;
         var effects = options.Effects ?? EffectRegistry.Default;
         var unsimulated = Unsimulated(ours, isOpponent: false, effects) + Unsimulated(theirs, isOpponent: true, effects);
+        var damage = options.CountDamage ? new DamageTally(ours, theirs, options.DamageCap) : null;
         if (ours.Minions.Count == 0 || theirs.Minions.Count == 0)
         {
             var win = ours.Minions.Count > 0 ? 1.0 : 0;
             var loss = theirs.Minions.Count > 0 ? 1.0 : 0;
-            return new CombatOdds(win, 1 - win - loss, loss, unsimulated);
+            damage?.Add(win > 0 ? 1 : loss > 0 ? -1 : 0, ours.Minions.Select(m => m.TechLevel), theirs.Minions.Select(m => m.TechLevel));
+            var certain = new CombatOdds(win, 1 - win - loss, loss, unsimulated);
+            return damage?.With(certain) ?? certain;
         }
 
         var prepared = Fight.PreparedEffects.For(ours, theirs, effects);
@@ -209,11 +238,14 @@ public static class CombatSimulator
             }
 
             var fight = new Fight(ours, theirs, effects, random, trace: false, prepared);
-            switch (fight.Run(firstAttackerIsOurs, options.FirstAttackerEntityId))
+            var outcome = fight.Run(firstAttackerIsOurs, options.FirstAttackerEntityId);
+            switch (outcome)
             {
                 case > 0: wins++; break;
                 case < 0: losses++; break;
             }
+
+            damage?.Add(outcome, Survivors(fight.Ours), Survivors(fight.Theirs));
         }
 
         if (done == 0)
@@ -248,7 +280,60 @@ public static class CombatSimulator
             tieRate = Math.Max(0.0, 1.0 - winRate - lossRate);
         }
 
-        return new CombatOdds(winRate, tieRate, lossRate, unsimulated) { Runs = done };
+        var odds = new CombatOdds(winRate, tieRate, lossRate, unsimulated) { Runs = done };
+        return damage?.With(odds) ?? odds;
+    }
+
+    private static IEnumerable<int> Survivors(Side side)
+    {
+        foreach (var unit in side.Minions)
+        {
+            if (unit.IsAlive)
+            {
+                yield return unit.Spec.TechLevel;
+            }
+        }
+    }
+
+    /// <summary>Hero damage per finished fight, by who won (<see cref="DamageRules"/>), and the fights that were lethal.</summary>
+    private sealed class DamageTally(SimSide ours, SimSide theirs, int cap)
+    {
+        // Damage above this is counted here (no real board gets near it: tier 7 + 7 golden tier-7 minions = 56).
+        private const int MaxDamage = 80;
+
+        private readonly int[] _taken = new int[MaxDamage + 1];
+        private readonly int[] _dealt = new int[MaxDamage + 1];
+        private int _fights;
+        private int _lethalTaken;
+        private int _lethalDealt;
+
+        public void Add(int outcome, IEnumerable<int> ourSurvivors, IEnumerable<int> theirSurvivors)
+        {
+            _fights++;
+            if (outcome > 0)
+            {
+                var dealt = DamageRules.Damage(ours.TavernTier, ourSurvivors, cap);
+                _dealt[Math.Min(dealt, MaxDamage)]++;
+                _lethalDealt += DamageRules.IsLethal(dealt, theirs.Health) ? 1 : 0;
+            }
+            else if (outcome < 0)
+            {
+                var taken = DamageRules.Damage(theirs.TavernTier, theirSurvivors, cap);
+                _taken[Math.Min(taken, MaxDamage)]++;
+                _lethalTaken += DamageRules.IsLethal(taken, ours.Health) ? 1 : 0;
+            }
+        }
+
+        public CombatOdds With(CombatOdds odds) => _fights == 0
+            ? odds
+            : odds with
+            {
+                DamageTaken = DamageSpread.From(_taken),
+                DamageDealt = DamageSpread.From(_dealt),
+                LethalTaken = ours.Health > 0 ? _lethalTaken / (double)_fights : null,
+                LethalDealt = theirs.Health > 0 ? _lethalDealt / (double)_fights : null,
+                DamageCap = cap,
+            };
     }
 
     /// <summary>

@@ -9,6 +9,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Stats;
 using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Main;
@@ -23,7 +24,7 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
-        foreach (var nav in new[] { NavOverview, NavBattlegrounds, NavConstructed, NavArena, NavHistory, NavSettings })
+        foreach (var nav in new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavHistory, NavSettings })
         {
             nav.IsCheckedChanged += (_, _) => UpdatePages();
         }
@@ -170,12 +171,14 @@ public partial class MainView : UserControl
         }
     }
 
+    /// <summary>Opens a page by name ("Overview", "Battlegrounds", "Standard", "Wild", ...); the old "Constructed" opens Standard.</summary>
     public void ShowPage(string page)
     {
-        var nav = page switch
+        var nav = ConstructedPage.Migrate(page) switch
         {
             "Battlegrounds" => NavBattlegrounds,
-            "Constructed" => NavConstructed,
+            ConstructedPage.Standard => NavStandard,
+            ConstructedPage.Wild => NavWild,
             "Arena" => NavArena,
             "History" => NavHistory,
             "Settings" => NavSettings,
@@ -258,6 +261,14 @@ public partial class MainView : UserControl
                 UpdatePages();
                 PageDeck.Offset = default;
                 break;
+            case nameof(MainViewModel.ConstructedFormat):
+                // A deck opened on the other format's page moves the nav to its own (a Wild deck to Wild).
+                if (ConstructedShown)
+                {
+                    ShowPage(ConstructedPage.PageOf(_viewModel.ConstructedFormat));
+                }
+
+                break;
             case nameof(MainViewModel.MatchOpen):
                 // A game opened from the Overview's recent games goes to History, where its page lives.
                 if (_viewModel.MatchOpen && NavHistory.IsChecked != true)
@@ -271,21 +282,30 @@ public partial class MainView : UserControl
         }
     }
 
+    /// <summary>True while the Standard or Wild page (or a deck page standing in for it) is open.</summary>
+    private bool ConstructedShown => NavStandard.IsChecked == true || NavWild.IsChecked == true;
+
     private void UpdatePages()
     {
         // Leaving History lets go of the open match: only the match on screen is kept in memory.
         if (_viewModel is { MatchOpen: true } && NavHistory.IsChecked != true
-            && new[] { NavOverview, NavBattlegrounds, NavConstructed, NavArena, NavSettings }.Any(n => n.IsChecked == true))
+            && new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavSettings }.Any(n => n.IsChecked == true))
         {
             _viewModel.CloseMatch();
         }
 
+        // Standard and Wild are one page shown for a format.
+        if (ConstructedShown)
+        {
+            _viewModel?.ShowConstructedFormat(ConstructedPage.FormatOf(NavWild.IsChecked == true ? ConstructedPage.Wild : ConstructedPage.Standard));
+        }
+
         PageOverview.IsVisible = NavOverview.IsChecked == true;
         PageBattlegrounds.IsVisible = NavBattlegrounds.IsChecked == true;
-        // The deck page stands in for the Constructed page while a deck is open (the nav stays on Constructed).
+        // The deck page stands in for the Standard or Wild page while a deck is open (the nav stays on its format).
         var deckOpen = _viewModel?.DeckOpen == true;
-        PageConstructed.IsVisible = NavConstructed.IsChecked == true && !deckOpen;
-        PageDeck.IsVisible = NavConstructed.IsChecked == true && deckOpen;
+        PageConstructed.IsVisible = ConstructedShown && !deckOpen;
+        PageDeck.IsVisible = ConstructedShown && deckOpen;
         PageArena.IsVisible = NavArena.IsChecked == true;
         // The match page stands in for the History list while a game is open.
         var matchOpen = _viewModel?.MatchOpen == true;
