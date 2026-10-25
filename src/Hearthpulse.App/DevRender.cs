@@ -127,6 +127,7 @@ public partial class App
             }
 
             await RenderCountersAsync(folder);
+            await RenderCombatOddsAsync(folder);
             // The mulligan strip over the newest kept Standard games' opening hands: 3 cards going first, 4 on the coin.
             foreach (var (offered, name) in new[] { (3, "overlay-mulligan.png"), (4, "overlay-mulligan-4.png") })
             {

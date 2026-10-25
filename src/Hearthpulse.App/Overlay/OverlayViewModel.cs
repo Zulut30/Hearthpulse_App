@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
@@ -174,6 +175,13 @@ public sealed partial class OverlayViewModel : Observable
     private string _oddsTie = string.Empty;
     private string _oddsLoss = string.Empty;
     private string _oddsNote = string.Empty;
+    private string _oddsDamageWin = string.Empty;
+    private string _oddsDamageWinTip = string.Empty;
+    private string _oddsDamageLoss = string.Empty;
+    private string _oddsDamageLossTip = string.Empty;
+    private string _oddsLethal = string.Empty;
+    private string _oddsKill = string.Empty;
+    private bool _lethalDanger;
     private System.Windows.GridLength _winShare = new(0, System.Windows.GridUnitType.Star);
     private System.Windows.GridLength _tieShare = new(0, System.Windows.GridUnitType.Star);
     private System.Windows.GridLength _lossShare = new(0, System.Windows.GridUnitType.Star);
@@ -212,6 +220,21 @@ public sealed partial class OverlayViewModel : Observable
     public string OddsTie { get => _oddsTie; private set => Set(ref _oddsTie, value); }
     public string OddsLoss { get => _oddsLoss; private set => Set(ref _oddsLoss, value); }
     public string OddsNote { get => _oddsNote; private set => Set(ref _oddsNote, value); }
+
+    /// <summary>Hero damage if we win ("+8 ±2") / if we lose ("−6 ±2"); empty when that result never came up.</summary>
+    public string OddsDamageWin { get => _oddsDamageWin; private set => Set(ref _oddsDamageWin, value); }
+    public string OddsDamageWinTip { get => _oddsDamageWinTip; private set => Set(ref _oddsDamageWinTip, value); }
+    public string OddsDamageLoss { get => _oddsDamageLoss; private set => Set(ref _oddsDamageLoss, value); }
+    public string OddsDamageLossTip { get => _oddsDamageLossTip; private set => Set(ref _oddsDamageLossTip, value); }
+
+    /// <summary>"you die: 12%" while any simulated fight kills the player's hero; empty otherwise.</summary>
+    public string OddsLethal { get => _oddsLethal; private set => Set(ref _oddsLethal, value); }
+
+    /// <summary>"you kill: 30%" while any simulated fight kills the opponent's hero; empty otherwise.</summary>
+    public string OddsKill { get => _oddsKill; private set => Set(ref _oddsKill, value); }
+
+    /// <summary>The fight can kill the player: the odds panel turns red.</summary>
+    public bool LethalDanger { get => _lethalDanger; private set => Set(ref _lethalDanger, value); }
     public System.Windows.GridLength WinShare { get => _winShare; private set => Set(ref _winShare, value); }
     public System.Windows.GridLength TieShare { get => _tieShare; private set => Set(ref _tieShare, value); }
     public System.Windows.GridLength LossShare { get => _lossShare; private set => Set(ref _lossShare, value); }
@@ -515,6 +538,18 @@ public sealed partial class OverlayViewModel : Observable
             OddsNote = odds.Approximate
                 ? Loc.P("Overlay.Odds.Estimate", odds.Unsimulated)
                 : Loc.T("Overlay.Odds.Simulated");
+            if (odds.DamageCap > 0)
+            {
+                OddsNote = Loc.F("Overlay.Odds.Cap", OddsNote, odds.DamageCap);
+            }
+
+            OddsDamageWin = CombatOddsText.Damage(odds.DamageDealt, dealt: true);
+            OddsDamageWinTip = CombatOddsText.DamageTip(odds.DamageDealt, dealt: true);
+            OddsDamageLoss = CombatOddsText.Damage(odds.DamageTaken, dealt: false);
+            OddsDamageLossTip = CombatOddsText.DamageTip(odds.DamageTaken, dealt: false);
+            OddsLethal = odds.LethalTaken is > 0 and var lethal ? Loc.F("Overlay.Odds.Lethal", OddsPercent(lethal, odds.Runs)) : string.Empty;
+            OddsKill = odds.LethalDealt is > 0 and var kill ? Loc.F("Overlay.Odds.Kill", OddsPercent(kill, odds.Runs)) : string.Empty;
+            LethalDanger = OddsLethal.Length > 0;
         }
         RebuildTiers();
 

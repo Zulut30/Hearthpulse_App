@@ -63,6 +63,7 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
 | `overlay-pick`, `-trinket`, `-discover`, `-game`, `-bg-counters` | 1920x1080 | same | latest kept BG log; each skipped if never reached |
 | `overlay-counters` + `-panel`, `-tooltip`, `-tooltip-counted`, `-open` | 2x crops | 1x crops + `*-full` | `CounterScene` (log or synthetic) |
 | `overlay-mulligan`, `overlay-mulligan-4` | if a log has a 3- / 4-card mulligan | same | `MulliganReplay.LatestAsync(..., offered)` |
+| `overlay-odds`, `overlay-odds-panel` | yes (panel 2x) | yes (panel 1x) | `CombatOddsScene.Synthetic` (made-up fight with a lethal risk; `DevRender.CombatOdds.cs` / `OffscreenRenderer.CombatOdds.cs`) |
 | `overlay-constructed`, `-deck-preview`, `-hand-preview` | yes | yes | `DevRender.Constructed.cs` / `OffscreenRenderer.Constructed.cs` |
 | `overlay-card-pool`, `-runes`, `-sections`, `-uncomputed`, `-browser`, `-browser-filtered` | yes | yes | `App.CardPool.cs` / `Desktop/CardPoolRender.cs` (wiki pools of BE_298 from the API cache) |
 | `overlay-layout` | always last | same | layout mode: every `MovablePanel` as a labelled placeholder at its default spot |

@@ -52,6 +52,8 @@
   "Stats.Bg.NetDetail": "{0} net",
   "Stats.Bg.RatingNotRead": "rating not read yet",
   "Stats.Bg.LowerIsBetter": "lower is better",
+  "Stats.Bg.SimAccuracy": "Combat simulator: damage inside the predicted range in {0} of fights · likeliest result right in {1} · {2} fights",
+  "Stats.Bg.SimAccuracyTip": "Each fight's prediction is compared with what happened: the hero damage after the fight against the range the simulator gave for 8 of 10 fights, and the result it found most likely.",
   "Stats.Bg.Solo": "Solo",
   "Stats.Bg.Duos": "Duos",
   "Stats.Bg.MinPerGame": "{0:0} min a game",

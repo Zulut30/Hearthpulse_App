@@ -76,6 +76,15 @@ public sealed record GameRecord
     /// </summary>
     public string? CombatResults { get; init; }
 
+    /// <summary>
+    /// Battlegrounds: the simulator's prediction for each combat of <see cref="CombatResults"/>, same order, null where
+    /// nothing was simulated:
+    /// <c>[{"turn":3,"win":0.62,"tie":0.08,"loss":0.3,"runs":2000,"cap":5,"taken":{"mean":4.2,"low":3,"high":5,"max":7},
+    /// "dealt":{...},"lethal":0,"kill":0.1}]</c>. <c>taken</c>/<c>dealt</c> is hero damage in the fights lost/won (80 %
+    /// interval <c>low</c>..<c>high</c>), <c>lethal</c>/<c>kill</c> the share of fights that kill our/their hero.
+    /// </summary>
+    public string? CombatOdds { get; init; }
+
     /// <summary>Battlegrounds: hero card ids offered at the hero pick, comma-separated, in offer order.</summary>
     public string? OfferedHeroes { get; init; }
 
@@ -201,6 +210,7 @@ public sealed partial class HistoryStore
         ("opponent_cards", "TEXT NULL"),
         ("opponent_archetype", "TEXT NULL"),
         ("replay", "TEXT NULL"),
+        ("combat_odds", "TEXT NULL"),
     ];
 
     /// <summary>The deck page's per-game card columns: large JSON, read only for the games of an open deck (<see cref="WithCards"/>).</summary>
@@ -309,11 +319,11 @@ public sealed partial class HistoryStore
                     hero, opponent_hero, player_class, opponent_class, result, placement, rating_before, rating_after, turns,
                     deck_name, deck_code, tavern_tier, final_board, races, rank, source,
                     combat_results, offered_heroes, anomaly, rank_star_level, rank_legend, went_first, deck_id,
-                    mulligan, cards_drawn, cards_played, opponent_cards, opponent_archetype, replay)
+                    mulligan, cards_drawn, cards_played, opponent_cards, opponent_archetype, replay, combat_odds)
                 VALUES ($key, $started, $ended, $mode, $type, $format, $player, $opponent, $hero, $ohero, $pclass, $oclass,
                     $result, $placement, $rb, $ra, $turns, $deck, $code, $tier, $board, $races, $rank, $source,
                     $combats, $offered, $anomaly, $stars, $legend, $first, $deckid,
-                    $mulligan, $drawn, $played, $ocards, $oarch, $replay)
+                    $mulligan, $drawn, $played, $ocards, $oarch, $replay, $codds)
                 ON CONFLICT (game_key) DO UPDATE SET
                     ended_at = excluded.ended_at, mode = excluded.mode, game_type = excluded.game_type, format = excluded.format,
                     player_name = excluded.player_name, opponent_name = excluded.opponent_name, hero = excluded.hero,
@@ -323,7 +333,7 @@ public sealed partial class HistoryStore
                     turns = excluded.turns, deck_name = excluded.deck_name, deck_code = excluded.deck_code,
                     tavern_tier = excluded.tavern_tier, final_board = excluded.final_board,
                     races = COALESCE(excluded.races, games.races), rank = COALESCE(games.rank, excluded.rank),
-                    source = excluded.source, combat_results = excluded.combat_results,
+                    source = excluded.source, combat_results = excluded.combat_results, combat_odds = excluded.combat_odds,
                     offered_heroes = COALESCE(excluded.offered_heroes, games.offered_heroes),
                     anomaly = COALESCE(excluded.anomaly, games.anomaly),
                     rank_star_level = COALESCE(games.rank_star_level, excluded.rank_star_level),
@@ -338,6 +348,7 @@ public sealed partial class HistoryStore
                 WHERE games.result = 'Abandoned' AND excluded.result <> 'Abandoned';
                 """;
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
+            command.Parameters.AddWithValue("$codds", (object?)game.CombatOdds ?? DBNull.Value);
             command.Parameters.AddWithValue("$offered", (object?)game.OfferedHeroes ?? DBNull.Value);
             command.Parameters.AddWithValue("$anomaly", (object?)game.AnomalyCardId ?? DBNull.Value);
             command.Parameters.AddWithValue("$stars", (object?)game.RankStarLevel ?? DBNull.Value);
@@ -516,7 +527,8 @@ public sealed partial class HistoryStore
                     cards_played = COALESCE(cards_played, $played),
                     opponent_cards = COALESCE(opponent_cards, $ocards),
                     opponent_archetype = COALESCE(opponent_archetype, $oarch),
-                    replay = COALESCE(replay, $replay)
+                    replay = COALESCE(replay, $replay),
+                    combat_odds = COALESCE(combat_odds, $codds)
                 WHERE game_key = $key
                     AND ((combat_results IS NULL AND $combats IS NOT NULL) OR (offered_heroes IS NULL AND $offered IS NOT NULL)
                         OR (anomaly IS NULL AND $anomaly IS NOT NULL) OR (rank_star_level IS NULL AND $stars IS NOT NULL)
@@ -524,10 +536,11 @@ public sealed partial class HistoryStore
                         OR (deck_id IS NULL AND $deckid IS NOT NULL) OR (mulligan IS NULL AND $mulligan IS NOT NULL)
                         OR (cards_drawn IS NULL AND $drawn IS NOT NULL) OR (cards_played IS NULL AND $played IS NOT NULL)
                         OR (opponent_cards IS NULL AND $ocards IS NOT NULL) OR (opponent_archetype IS NULL AND $oarch IS NOT NULL)
-                        OR (replay IS NULL AND $replay IS NOT NULL));
+                        OR (replay IS NULL AND $replay IS NOT NULL) OR (combat_odds IS NULL AND $codds IS NOT NULL));
                 """;
             command.Parameters.AddWithValue("$key", game.Key);
             command.Parameters.AddWithValue("$combats", (object?)game.CombatResults ?? DBNull.Value);
+            command.Parameters.AddWithValue("$codds", (object?)game.CombatOdds ?? DBNull.Value);
             command.Parameters.AddWithValue("$offered", (object?)game.OfferedHeroes ?? DBNull.Value);
             command.Parameters.AddWithValue("$anomaly", (object?)game.AnomalyCardId ?? DBNull.Value);
             command.Parameters.AddWithValue("$stars", (object?)game.RankStarLevel ?? DBNull.Value);
@@ -775,6 +788,7 @@ public sealed partial class HistoryStore
                     Rank = RankInfo.Normalize(NullableString(reader, "rank")),
                     Source = reader.GetString(reader.GetOrdinal("source")),
                     CombatResults = NullableString(reader, "combat_results"),
+                    CombatOdds = NullableString(reader, "combat_odds"),
                     OfferedHeroes = NullableString(reader, "offered_heroes"),
                     AnomalyCardId = NullableString(reader, "anomaly"),
                     RankStarLevel = NullableInt(reader, "rank_star_level"),
