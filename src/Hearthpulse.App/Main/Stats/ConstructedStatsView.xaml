@@ -9,12 +9,6 @@
     </UserControl.Resources>
     <StackPanel>
         <Grid Margin="0,0,0,14">
-            <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Stats.Ct.FormatTip}">
-                <StackPanel Orientation="Horizontal">
-                    <RadioButton Style="{StaticResource Tab}" Content="{i:Loc Stats.Ct.Standard}" GroupName="CtFormat" IsChecked="True" Command="{Binding SetCtFormat}" CommandParameter="FT_STANDARD" />
-                    <RadioButton Style="{StaticResource Tab}" Content="{i:Loc Stats.Ct.Wild}" GroupName="CtFormat" Command="{Binding SetCtFormat}" CommandParameter="FT_WILD" />
-                </StackPanel>
-            </Border>
             <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Stats.Period.Tip}">
                 <StackPanel Orientation="Horizontal">
                     <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Stats.Period.All}" GroupName="CtPeriod" IsChecked="True" Command="{Binding SetCtPeriod}" CommandParameter="All" />

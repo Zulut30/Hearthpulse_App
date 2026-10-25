@@ -43,7 +43,7 @@ public partial class App
         _mainViewModel.Busy = string.Empty;
         try
         {
-            foreach (var page in new[] { "Overview", "Battlegrounds", "Constructed", "History", "Settings" })
+            foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" })
             {
                 _main.ShowPage(page);
                 await Task.Delay(2500);

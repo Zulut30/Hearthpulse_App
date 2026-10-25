@@ -42,7 +42,6 @@ public sealed partial class MainViewModel
     private Func<string> _constructedMetaStatus = () => Loc.T("Main.Meta.Loading");
     private string _archetypeSummary = string.Empty;
     private Func<string> _copyNote = () => string.Empty;
-    private RelayCommand? _setMetaFormat;
     private RelayCommand? _setMetaRank;
     private RelayCommand? _setMetaPeriod;
     private RelayCommand? _setMetaClass;
@@ -50,8 +49,6 @@ public sealed partial class MainViewModel
 
     /// <summary>Raised when the player changes a meta filter; the host downloads that slice and calls <see cref="SetConstructedMeta"/>.</summary>
     public event Action? ConstructedMetaRequested;
-
-    public IReadOnlyList<MetaChoice> MetaFormats => Choices(ConstructedMeta.Formats, Settings.MetaFormat);
 
     public IReadOnlyList<MetaChoice> MetaRanks => Choices(ConstructedMeta.Ranks, Settings.MetaRank);
 
@@ -91,8 +88,6 @@ public sealed partial class MainViewModel
             }
         }
     }
-
-    public RelayCommand SetMetaFormat => _setMetaFormat ??= new RelayCommand(p => ChangeMetaFilter(() => Settings.MetaFormat = ConstructedMeta.Key(ConstructedMeta.Formats, p as string)));
 
     public RelayCommand SetMetaRank => _setMetaRank ??= new RelayCommand(p => ChangeMetaFilter(() => Settings.MetaRank = ConstructedMeta.Key(ConstructedMeta.Ranks, p as string)));
 
@@ -160,7 +155,6 @@ public sealed partial class MainViewModel
     private void ChangeMetaFilter(Action apply)
     {
         apply();
-        Raise(nameof(MetaFormats));
         Raise(nameof(MetaRanks));
         Raise(nameof(MetaPeriods));
         ShowMetaStatus(() => Loc.T("Main.Meta.LoadingShort"));

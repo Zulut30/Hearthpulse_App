@@ -120,7 +120,6 @@ public sealed partial class MainViewModel
     private RelayCommand? _setBgPeriod;
     private RelayCommand? _setBgSort;
     private RelayCommand? _setBgMinGames;
-    private RelayCommand? _setCtFormat;
     private RelayCommand? _setCtPeriod;
     private RelayCommand? _setArenaPeriod;
 
@@ -138,7 +137,39 @@ public sealed partial class MainViewModel
         RebuildBattlegroundsStats();
     });
 
-    public RelayCommand SetCtFormat => _setCtFormat ??= new RelayCommand(p => { _ctFormat = p as string ?? "FT_STANDARD"; RebuildConstructedStats(); });
+    /// <summary>The FormatType the Standard or Wild page shows: "FT_STANDARD" or "FT_WILD".</summary>
+    public string ConstructedFormat => _ctFormat;
+
+    /// <summary>The page title: Standard or Wild.</summary>
+    public string ConstructedTitle => Loc.T(_ctFormat == "FT_WILD" ? "Main.Nav.Wild" : "Main.Nav.Standard");
+
+    /// <summary>The MDI glyph of the page, as in the nav: playing cards for Standard, infinity for Wild.</summary>
+    public string ConstructedIcon => _ctFormat == "FT_WILD" ? "\U000F06E4" : "\U000F063A";
+
+    /// <summary>
+    /// Shows the Constructed page for one FormatType (the Standard and Wild nav items): my stats and your decks follow
+    /// it. An open deck of the other format closes.
+    /// </summary>
+    public void ShowConstructedFormat(string formatType)
+    {
+        if (formatType == _ctFormat)
+        {
+            return;
+        }
+
+        _ctFormat = formatType;
+        if (DeckOpen && _deckFamilies.FirstOrDefault(f => f.Key == _openDeckKey) is { } open
+            && ConstructedPage.FormatOf(ConstructedPage.PageOf(open.Format)) != formatType)
+        {
+            CloseDeck();
+        }
+
+        Raise(nameof(ConstructedFormat));
+        Raise(nameof(ConstructedTitle));
+        Raise(nameof(ConstructedIcon));
+        RebuildConstructedStats();
+        RebuildDecks();
+    }
 
     public RelayCommand SetCtPeriod => _setCtPeriod ??= new RelayCommand(p => { _ctPeriod = ParsePeriod(p); RebuildConstructedStats(); });
 

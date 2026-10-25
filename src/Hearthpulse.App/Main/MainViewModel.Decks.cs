@@ -72,6 +72,9 @@ public sealed partial class MainViewModel
         }
 
         _openDeckKey = key;
+
+        // A deck opens on its format's page (a Wild deck on Wild); the window moves the nav along.
+        ShowConstructedFormat(ConstructedPage.FormatOf(ConstructedPage.PageOf(family.Format)));
         DeckPage.Show(family, _deckFamilies, _mergeSuggestions, ConstructedMetaFor(family.Format), _cards);
         DeckOpen = true;
         return true;
@@ -288,7 +291,7 @@ public sealed partial class MainViewModel
 
         var build = ++_decksBuild;
         _decksStale = true;
-        var (games, cards) = (_allGames, _cards);
+        var (games, cards, format) = (_allGames, _cards, _ctFormat);
         try
         {
             var data = await Task.Run(() =>
@@ -296,8 +299,11 @@ public sealed partial class MainViewModel
                 var versions = DeckFamilies.Versions(games);
                 var families = DeckFamilies.Build(versions, _history.DeckFamilies());
                 var suggestions = DeckFamilies.Suggest(families, _history.DismissedDeckPairs());
-                return (Families: families, Suggestions: suggestions,
-                    Matchups: DeckDetails.ByOpponentClass(families.SelectMany(f => f.Games).ToList()));
+
+                // The Standard and Wild pages list only their format's decks; the deck page still sees every family.
+                var shown = ConstructedPage.Decks(families, format);
+                return (Families: families, Suggestions: suggestions, Shown: shown, ShownSuggestions: ConstructedPage.Suggestions(suggestions, format),
+                    Matchups: DeckDetails.ByOpponentClass(shown.SelectMany(f => f.Games).ToList()));
             }).ConfigureAwait(true);
             if (build != _decksBuild)
             {
@@ -307,7 +313,7 @@ public sealed partial class MainViewModel
             _deckFamilies = data.Families;
             _mergeSuggestions = data.Suggestions;
             _decksStale = false;
-            Decks = data.Families.Select(f => new DeckRow(
+            Decks = data.Shown.Select(f => new DeckRow(
                     f.Key,
                     f.Name,
                     OverlayViewModel.ClassName(f.PlayerClass),
@@ -321,7 +327,7 @@ public sealed partial class MainViewModel
                     DeckMeta(f.Main.DeckCode, f.PlayerClass),
                     f.Versions.Count > 1 ? Loc.P("Deck.VersionCount", f.Versions.Count) : string.Empty))
                 .ToList();
-            DeckSuggestions = data.Suggestions.Select(s => new DeckSuggestionRow(
+            DeckSuggestions = data.ShownSuggestions.Select(s => new DeckSuggestionRow(
                     s.First.Key,
                     s.Second.Key,
                     $"{s.First.Name} + {s.Second.Name}",
