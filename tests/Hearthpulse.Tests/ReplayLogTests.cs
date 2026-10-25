@@ -124,6 +124,20 @@ public sealed class ReplayLogTests(ITestOutputHelper output) : IDisposable
             Assert.Equal(mulligan.Replaced.Count, mulligan.Received.Count);
         }
 
+        // The post-game part: every card the opponent played was a card back in its hand the log then named.
+        Assert.True(replay.HasPostGame);
+        var revealed = replay.Reveals.Select(r => r.CardId).ToHashSet(StringComparer.Ordinal);
+        Assert.All(replay.OpponentPlayed, c => Assert.Contains(c.CardId, revealed));
+        var backs = replay.Frames.SelectMany(f => f.Opponent.Hand).Where(c => c.IsCardBack).ToList();
+        output.WriteLine($"    reveals {replay.Reveals.Count} ({string.Join(", ", replay.Reveals.GroupBy(r => r.How).Select(g => $"{g.Key} {g.Count()}"))}), "
+                         + $"hand backs named {backs.Count(c => c.Reveal is not null)}/{backs.Count}, their mulligan "
+                         + (replay.OpponentMulligan is { } m ? $"kept {m.Kept.Count(k => k is not null)}/{m.Kept.Count} replaced {m.Replaced.Count(k => k is not null)}/{m.Replaced.Count} received {m.Received.Count}" : "-"));
+        if (replay.OpponentMulligan is { } theirs)
+        {
+            Assert.InRange(theirs.Kept.Count + theirs.Replaced.Count, 3, 4);
+            Assert.Equal(theirs.Replaced.Count, theirs.Received.Count);
+        }
+
         var analysis = MatchAnalysis.Build(record, replay, CardDb.Empty, null);
         Assert.All(analysis.LocalMana.Concat(analysis.OpponentMana), m => Assert.InRange(m, 0, 1));
         Assert.Equal(replay.Turns.Count(t => t.Turn > 0), analysis.TurnRows.Count);

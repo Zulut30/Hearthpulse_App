@@ -67,7 +67,8 @@ public sealed class ReplayStore(string directory)
         {
             System.IO.Directory.CreateDirectory(Directory);
             var path = Path.Combine(Directory, name);
-            if (overwrite || !File.Exists(path) || IsOldFormat(path))
+            // A file of an older format is replaced: a log import of the same game brings it to the current one.
+            if (overwrite || !File.Exists(path) || !IsCurrentFormat(path))
             {
                 // A temp name of its own: the live session and a log import may save the same game at the same time.
                 var temp = $"{path}.{Guid.NewGuid():N}.tmp";
@@ -232,19 +233,24 @@ public sealed class ReplayStore(string directory)
     }
 
     /// <summary>True for a file of the first format (its first line is <see cref="ReplayFile.OldMagic"/>).</summary>
-    private static bool IsOldFormat(string path)
+    private static bool IsOldFormat(string path) => Head(path) == ReplayFile.OldMagic;
+
+    /// <summary>True for a file of the format this version writes (an unreadable file counts as current: it is left alone).</summary>
+    private static bool IsCurrentFormat(string path) => Head(path) is ReplayFile.Magic or null;
+
+    /// <summary>The format line of a saved file, or null when it cannot be read.</summary>
+    private static string? Head(string path)
     {
         try
         {
             using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var gzip = new GZipStream(file, CompressionMode.Decompress);
             Span<byte> head = stackalloc byte[4];
-            return gzip.ReadAtLeast(head, 4, throwOnEndOfStream: false) == 4
-                   && Encoding.ASCII.GetString(head) == ReplayFile.OldMagic;
+            return gzip.ReadAtLeast(head, 4, throwOnEndOfStream: false) == 4 ? Encoding.ASCII.GetString(head) : string.Empty;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            return false;
+            return null;
         }
     }
 

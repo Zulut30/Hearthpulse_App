@@ -26,6 +26,11 @@ public sealed class MatchViewModel : Observable
     private IReadOnlyList<MatchTurnRow> _turns = [];
     private IReadOnlyList<MatchDeckRow> _localDeck = [];
     private IReadOnlyList<MatchDeckRow> _opponentCards = [];
+    private IReadOnlyList<MatchDeckRow> _opponentPredicted = [];
+    private string _opponentPredictedNote = string.Empty;
+    private string _tableNote = string.Empty;
+    private string _opponentCardsNote = string.Empty;
+    private string _opponentCardsEmpty = string.Empty;
     private IReadOnlyList<MatchRoundView> _rounds = [];
     private IReadOnlyList<MatchLobbyRow> _lobby = [];
     private string _localDeckNote = string.Empty;
@@ -166,6 +171,10 @@ public sealed class MatchViewModel : Observable
 
     public int FrameMax => Math.Max(0, (_page?.FrameCount ?? 1) - 1);
 
+    /// <summary>The first step of an action kind (the mulligan, a Discover), or -1; render scenes go to it.</summary>
+    public int FrameOf(ReplayActionKind kind) => _page?.Replay?.Frames.FirstOrDefault(f => f.Action.Kind == kind)?.Index ?? -1;
+
+
     public MatchStepView? Step { get => _step; private set => Set(ref _step, value); }
 
     public string Position => _page is null ? string.Empty : Loc.F("Match.Position", Frame + 1, FrameMax + 1);
@@ -179,6 +188,19 @@ public sealed class MatchViewModel : Observable
     public string LocalDeckNote { get => _localDeckNote; private set => Set(ref _localDeckNote, value); }
 
     public IReadOnlyList<MatchDeckRow> OpponentCards { get => _opponentCards; private set => Set(ref _opponentCards, value); }
+
+    /// <summary>The meta list the opponent's archetype most likely played (a guess, marked as one).</summary>
+    public IReadOnlyList<MatchDeckRow> OpponentPredicted { get => _opponentPredicted; private set => Set(ref _opponentPredicted, value); }
+
+    public string OpponentPredictedNote { get => _opponentPredictedNote; private set => Set(ref _opponentPredictedNote, value); }
+
+    /// <summary>Under the table: what the replay shows of the hidden cards (everything the log revealed, for a finished game).</summary>
+    public string TableNote { get => _tableNote; private set => Set(ref _tableNote, value); }
+
+    public string OpponentCardsNote { get => _opponentCardsNote; private set => Set(ref _opponentCardsNote, value); }
+
+    /// <summary>What the opponent card list says when it is empty.</summary>
+    public string OpponentCardsEmpty { get => _opponentCardsEmpty; private set => Set(ref _opponentCardsEmpty, value); }
 
     /// <summary>"Likely archetype: Zoolock (from the cards it played)" or a note that the call is not clear.</summary>
     public string ArchetypeLine { get => _archetypeLine; private set => Set(ref _archetypeLine, value); }
@@ -212,6 +234,11 @@ public sealed class MatchViewModel : Observable
         Turns = [];
         LocalDeck = [];
         OpponentCards = [];
+        OpponentPredicted = [];
+        OpponentPredictedNote = string.Empty;
+        TableNote = string.Empty;
+        OpponentCardsNote = string.Empty;
+        OpponentCardsEmpty = string.Empty;
         Rounds = [];
         Lobby = [];
         Analysis = null;
@@ -243,6 +270,14 @@ public sealed class MatchViewModel : Observable
         LocalDeck = page.LocalDeck;
         LocalDeckNote = page.LocalDeckNote;
         OpponentCards = page.OpponentCards;
+        OpponentPredicted = page.OpponentPredicted;
+        OpponentPredictedNote = page.OpponentPredictedNote;
+        // A file of a finished game with the post-game part shows what the log revealed; an older one only what was seen.
+        var revealed = page.Replay?.HasPostGame == true;
+        TableNote = Loc.T(revealed ? "Match.View.RevealNote" : "Match.View.HiddenNote");
+        OpponentCardsNote = Loc.T(revealed ? "Match.View.OpponentRevealedNote" : "Match.View.OpponentCardsNote");
+        OpponentCardsEmpty = Loc.T(revealed ? "Match.View.NoReveals" : "Match.View.NoPlays");
+
         ArchetypeLine = page.OpponentArchetype is { } archetype
             ? Loc.F("Match.Deck.LikelyArchetype", archetype)
             : page.OpponentCards.Count > 0 ? Loc.T("Match.Deck.ArchetypeUnclear") : string.Empty;

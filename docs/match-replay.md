@@ -3,11 +3,29 @@
 Click a game in History and its page opens: header, a turn-by-turn replay seen from either side, both decks and an
 analysis. Modelled on what HSReplay / HDT / Firestone show; no code taken from them.
 
-## The rule: nothing hidden
+## The rule: during a game only what the player sees; after it, what the log revealed
 
-The replay shows only what the local player could see at that moment. This is enforced **when recording**
-(`ReplayRecorder`, the same for live games and log imports), so a replay file never holds hidden information,
-whatever reads it later.
+**During a game - only what the player can see; after the match the review may show everything the log revealed by
+the end of the game.** The overlay, the live trackers and everything shown while a game runs are unchanged by this
+page. The page of a finished game shows, like HSReplay, the opponent's cards the game revealed later: a card that was
+a card back in the opponent's hand and was played or shown later is face up on the earlier turns too, marked
+"revealed on turn N"; the opponent's mulligan shows the kept and replaced cards that came to light; the Decks tab lists
+every card the opponent revealed. A card the game never revealed (nowhere in the log) stays a card back.
+
+How the two parts stay apart:
+
+- The **events** of the file are recorded as seen, under the rules below (`ReplayRecorder.Events`). They are the same
+  during and after a game and never hold a later reveal.
+- The **post-game part** (`N`, `K` lines, format 3) is appended only by `ReplayRecorder.Text()` when a game that
+  ended is saved (an abandoned game - the client left mid-game - is saved without it: it may go on after a reconnect): the game entity behind each opponent card back and what the log revealed about each opponent entity
+  that was hidden (hand, secret, deck) by the end. Only `MatchReplay`/`MatchPage` read it.
+- Test: `ReplayRevealTests.The_live_game_gets_nothing_from_the_future` (the live view and the events at turn 5 hold
+  nothing of the card played on turn 7, and stay as they were after it).
+
+### Events: as the player saw them
+
+The event lines show only what the local player could see at that moment. This is enforced **when recording**
+(`ReplayRecorder`, the same for live games and log imports).
 
 - A card's id is written only while the card is face up for the local player: anything in `PLAY` or `GRAVEYARD`, the
   local player's `HAND` and `SECRET` zones, an opponent's quest. The opponent's hand and secrets are card backs: no
@@ -19,8 +37,7 @@ whatever reads it later.
   id in the hand. Which card was drawn therefore cannot be told from the file: the review of v1 found that per-card
   deck ids linked "sent back at the mulligan" with "drawn later and played" (6 of 20 games on 23.10).
 - Any card crossing a hidden zone (a deck, the opponent's hand, an opponent's secret) gets a new replay id, so it
-  cannot be followed. Game entity ids are never written (the rule needs no assumption about how the server numbers
-  them).
+  cannot be followed in the events. Game entity ids are never written in the events (only in the post-game part).
 - Tags are written for face-up cards only, from a short allow-list (stats, keywords, mana). Choices are the local
   player's only (the parser reports nothing else).
 - The filter depends on which player is local, so the recorder checks it: a game whose mulligan offer belongs to the
@@ -45,13 +62,15 @@ whatever reads it later.
 - Limits (`ReplayStore`): a game stops recording after 60 000 events (marked `truncated`); the folder keeps at most
   300 MB / 3 000 files (Settings → Data says so), oldest game first (by the start time in the name, else by the
   file's date). A log import trims once at the end. A deleted file just means "no replay".
-- Format 1 (`HPR1`, with deck card ids) is never read: such a file is deleted when it is opened or saved over, and
-  the first trim of a session deletes every one left (plus temp files a crash left behind).
+- Format 1 (`HPR1`, with deck card ids in the events) is never read: such a file is deleted when it is opened or saved
+  over, and the first trim of a session deletes every one left (plus temp files a crash left behind).
+- Format 2 (`HPR2`, events only) is still read: its games show as seen, without later reveals. A log import of the same
+  game replaces it with format 3 (`ReplayStore.Save` overwrites any file that is not of the current format).
 
-### File format 2
+### File format 3
 
 ```
-HPR2
+HPR3
 {"kind":"constructed"|"battlegrounds","localRank":..,"opponentRank":..,"truncated":..,"events":..}
 <event lines>
 ```
@@ -75,6 +94,16 @@ many lines follow; no names. Events (space-separated; `L`/`O` = local/opponent s
 | `S step` | Game step `BEGIN_MULLIGAN`, `MAIN_READY`, `FINAL_GAMEOVER` |
 | `R result` | Local PLAYSTATE at the end |
 
+Post-game part, after the events (written once the game is over, read only by the match page):
+
+| Line | Meaning |
+|---|---|
+| `N n entity` | Opponent card back `n` (hand or secret) was game entity `entity` |
+| `K entity card turn how created [from]` | What the log revealed about an opponent entity that was hidden: the first card id it was given (later ids are transformations, as `initial_card_id` in python-hearthstone), the game turn of that, how it came to light (`played` from hand, `summoned` to the table, `burned` - into the graveyard without being played, `shown` - anything else), `1` when created during the game (not a deck card; the Coin too), and `TRANSFORMED_FROM_CARD` (dbf id) when set - the page then names the card it was in hand |
+
+The opponent's mulligan is read from the events with `N`: its hand at `S BEGIN_MULLIGAN` against its hand at
+`S MAIN_READY` (at most four cards; the Coin, hidden as a fifth opening card in real logs, is left out).
+
 A card back in the opponent's hand carries `ORIGIN=...` instead of tags. The local mulligan is
 `C MULLIGAN - <offered>`; what went back is read from the hand while the replacements are dealt.
 
@@ -89,7 +118,8 @@ and damage) and the lobby (heroes, final places).
 - `ReplayCapture` - saves a finished game's replay and puts its name on the history row.
 - `MatchReplay.Parse(text)` - folds events into `ReplayFrame`s (one per step: game start, mulligan, turn start, play,
   hero power, location use, attack, choice, end) with both sides' hero, hero power, weapon, board, hand (face up or
-  card back), secrets, deck count, mana; `ReplayTurn`s group the steps of a game turn.
+  card back), secrets, deck count, mana; `ReplayTurn`s group the steps of a game turn. With the post-game part a card
+  back carries `ReplayCard.Reveal`; `Reveals` and `OpponentMulligan` list what came to light.
 - `MatchPage` - what the page shows (header, steps from either side, turn chips, actions, decks, rounds, lobby), in
   the interface language (`Strings/*/match.json`); the open page is built again when the language changes.
 - `MatchAnalysis` - see below.
@@ -102,9 +132,15 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
 1. Header card: both heroes, names, rank/rating, class, format/mode, duration, first/coin, result.
 2. Tabs: **Replay** | **Decks** | **Analysis** (Battlegrounds: **Rounds** | **Lobby**).
 3. Replay: turn strip, step buttons and slider, "My side / Opponent's side" (which side is at the bottom), both
-   heroes, boards, hands (card backs for the opponent), secrets, mana, deck count, the turn's actions.
-4. Decks: our list (deck code, else the cards we drew) with drawn/played marks; the cards the opponent played from
-   hand with the turn, and its archetype guess.
+   heroes, boards, hands, secrets, mana, deck count, the turn's actions. Hands, boards and choices are full card
+   renders from HearthstoneJSON (`render/latest/{locale}/256x/{id}.png`, the card-data locale) through `CardArt.Card`
+   (disk cache per locale, decoded at 256 px, memory cache bounded in bytes); the current attack and health sit over
+   the printed ones; a card back is drawn in the theme. A step with a choice shows its row: the Discover options with
+   the picked one framed, or at the mulligan both players' cards kept and replaced. Hover shows the full card.
+4. Decks: deck-tracker tiles (cost, tile art, copies, as the overlay's deck) with a hover preview. Our list (deck code,
+   else the cards we drew) with drawn/played marks; "Opponent's cards": every card the log revealed, with counts, how
+   and the first turn (created cards last); its archetype guess; "Likely deck": the most played meta list of its
+   archetype (the clear call, else the closest by shown core cards), marked as a guess, the shown cards highlighted.
 5. Analysis: tiles, health and board charts, mana bars, key cards, mulligan vs the meta, meta standing, turn table.
 
 ## Analysis heuristics (`MatchAnalysis`)
@@ -126,6 +162,13 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
 3. UI in both apps + render scenes (`main-match*`, Avalonia also `main-match-compact`). Done.
 4. Analysis. Done.
 5. Review fixes: deck as a count (format 2), reconnect files, local player checks, interface languages. Done.
+6. Post-game reveals (format 3), full card renders, deck tiles, choice rows, likely deck. Done.
+
+Ideas checked (only ideas, no code taken): python-hearthstone / python-hslog (MIT) - first card id of an entity kept
+as `initial_card_id`, `TRANSFORMED_FROM_CARD`; HSReplay's Joust viewer (AGPL, ideas only)
+ - an entity id to card id map
+built from the whole game and applied to earlier turns; HearthstoneJSON - card renders.
+
 
 Known limits: Battlegrounds games keep rounds, not a step-by-step replay; the opponent's rank shows only when the
 client's memory was read during the game (live, not log imports); a reconnect's replay starts at the reconnect; games

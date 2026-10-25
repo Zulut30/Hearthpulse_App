@@ -28,6 +28,18 @@ internal static partial class OffscreenRenderer
             await SaveMatch(main, folder, "main-match-analysis");
             page.ShowReplay = true;
 
+            // The step's choice row: both mulligans (the opponent's as the log revealed it), then a Discover.
+            foreach (var (kind, name) in new[] { (Core.Replay.ReplayActionKind.Mulligan, "main-match-mulligan"), (Core.Replay.ReplayActionKind.Choice, "main-match-choice") })
+            {
+                if (page.FrameOf(kind) is >= 0 and var frame)
+                {
+                    page.Frame = frame;
+                    await Save(main, Path.Combine(folder, name + ".png"));
+                }
+            }
+
+            page.Frame = page.FrameMax * 2 / 3;
+
             // Phone width: the turn's actions go under the table.
             main.Width = 420;
             main.Height = 2600;

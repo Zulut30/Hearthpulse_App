@@ -70,10 +70,15 @@ public sealed record BattlegroundsReplayData
 public static class ReplayFile
 {
     /// <summary>
-    /// The format line. Version 2 keeps a deck as a count (<c>D L n</c>); version 1 gave each deck card an id, which
-    /// linked a card sent back into a deck with its later draw, so a v1 file is never read and is deleted when met.
+    /// The format line. Version 3 adds the post-game part after the events (<c>N</c>: the game entity of an opponent card
+    /// back, <c>K</c>: what the log revealed about an opponent entity by the end of the game). Version 2 (the same events,
+    /// no post-game part) is still read. Version 1 gave each deck card an id in the events themselves, so a v1 file is
+    /// never read and is deleted when met.
     /// </summary>
-    public const string Magic = "HPR2";
+    public const string Magic = "HPR3";
+
+    /// <summary>The second version's format line: read, never written (its games show without retroactive reveals).</summary>
+    public const string PreviousMagic = "HPR2";
 
     /// <summary>The first version's format line (see <see cref="Magic"/>).</summary>
     public const string OldMagic = "HPR1";
@@ -105,7 +110,7 @@ public static class ReplayFile
     public static (ReplayHeader Header, IReadOnlyList<string> Body)? Read(string text)
     {
         var lines = text.Split('\n');
-        if (lines.Length < 2 || lines[0].TrimEnd('\r') != Magic)
+        if (lines.Length < 2 || lines[0].TrimEnd('\r') is not (Magic or PreviousMagic))
         {
             return null;
         }

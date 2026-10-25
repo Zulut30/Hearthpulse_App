@@ -40,6 +40,9 @@ How reviews fit into parallel work: [hearthpulse-parallel-work](../hearthpulse-p
 - Any opponent card id, creator, or deck position shown or used that the player could not see: `CREATOR_DBID`,
   entity ids followed through a shuffle, `SETASIDE` paths, ids kept after `HIDE_ENTITY`, `CHANGE_ENTITY` taken as a
   reveal, fallback icons that look like a reveal. Check the tests do not pin the leak.
+- Exception: the match page of a finished game may show what the log revealed by the end (post-game part of HPR3,
+  `docs/match-replay.md`). It is a finding only when that data reaches anything shown during a game.
+
 
 **3. Licences** ([hearthpulse-data-sources](../hearthpulse-data-sources/SKILL.md))
 - grep characteristic names, UI strings and layout constants of the new code in

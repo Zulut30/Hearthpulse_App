@@ -25,9 +25,21 @@ public sealed record MatchPlayerView(string Name, string HeroCardId, string Hero
 
 public sealed record MatchFact(string Label, string Value);
 
-/// <summary>A card at one step, ready to show. <see cref="CardBack"/> cards have no id and no name.</summary>
+/// <summary>
+/// A card at one step, ready to show. <see cref="CardBack"/> cards have no id and no name. A <see cref="Revealed"/> card
+/// was a card back at this step and is shown face up because the log revealed it later in the game (match page of a
+/// finished game only).
+/// </summary>
 public sealed record MatchCardView(string? CardId, string Name, bool CardBack)
 {
+    public bool Revealed { get; init; }
+
+    /// <summary>In a choice: the card picked (Discover) or kept (mulligan).</summary>
+    public bool Picked { get; init; }
+
+    /// <summary>In a choice: a card not picked, or sent back at the mulligan.</summary>
+    public bool Dimmed { get; init; }
+
     public int Attack { get; init; }
 
     public int Health { get; init; }
@@ -71,7 +83,14 @@ public sealed record MatchSideView(
 }
 
 /// <summary>A step of the replay as shown: the table from the chosen side and what happened.</summary>
-public sealed record MatchStepView(int Index, int Count, string Turn, string Action, string Detail, bool LocalActs, MatchSideView Top, MatchSideView Bottom);
+public sealed record MatchStepView(int Index, int Count, string Turn, string Action, string Detail, bool LocalActs, MatchSideView Top, MatchSideView Bottom)
+{
+    /// <summary>The cards of the step's choice: the Discover options, or both mulligans at the mulligan step.</summary>
+    public IReadOnlyList<MatchChoiceView> Choices { get; init; } = [];
+}
+
+/// <summary>A row of cards offered at a choice ("Your mulligan", "Discover from ..."), each marked picked or not.</summary>
+public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> Cards);
 
 /// <summary>A turn chip in the turn strip.</summary>
 public sealed record MatchTurnChip(int Number, string Label, string Tooltip, bool Local, bool Mulligan, int FirstFrame, int LastFrame);
@@ -138,8 +157,17 @@ public sealed class MatchPage
 
     public string LocalDeckNote { get; private init; } = string.Empty;
 
-    /// <summary>The cards the opponent played from hand, with the turn each was first played.</summary>
+    /// <summary>
+    /// Every opponent card the log revealed by the end of the game (played, summoned, burned, shown), with counts; for a
+    /// format 2 file, the cards it played face up.
+    /// </summary>
     public IReadOnlyList<MatchDeckRow> OpponentCards { get; private init; } = [];
+
+    /// <summary>The meta deck the opponent's archetype most likely played: a guess, marked as one.</summary>
+    public IReadOnlyList<MatchDeckRow> OpponentPredicted { get; private init; } = [];
+
+    /// <summary>Where the guessed list comes from ("Guess: the most played Zoolock list in the meta, 1,204 games").</summary>
+    public string OpponentPredictedNote { get; private init; } = string.Empty;
 
     /// <summary>The opponent's archetype from the cards it showed ("Zoolock"), when the call is clear.</summary>
     public string? OpponentArchetype { get; private init; }
@@ -191,24 +219,92 @@ public sealed class MatchPage
             return new MatchPage(game, cards, header) { Missing = Loc.T("Match.Missing.Unreadable") };
         }
 
-        var shown = replay.OpponentPlayed.Select(c => c.CardId).ToList();
-        var archetype = game.OpponentArchetype
-                        ?? (ArchetypeGuess.FitsFormat(meta, game.Format) ? ArchetypeGuess.FromSeenCards(meta, game.OpponentClass, shown)?.Name : null);
+        // Deck cards the opponent showed: everything the log revealed by the end (format 3), else what it played.
+        var shown = replay.HasPostGame
+            ? replay.Reveals.Where(r => !r.Created).Select(r => r.CardId).Concat(replay.OpponentPlayed.Select(c => c.CardId)).Distinct(StringComparer.Ordinal).ToList()
+            : replay.OpponentPlayed.Select(c => c.CardId).ToList();
+        var fits = ArchetypeGuess.FitsFormat(meta, game.Format);
+        var guessed = fits ? ArchetypeGuess.FromSeenCards(meta, game.OpponentClass, shown) : null;
+        var archetype = game.OpponentArchetype ?? guessed?.Name;
+        var metaArchetype = fits && archetype is not null
+            ? meta!.ForClass(game.OpponentClass).FirstOrDefault(a => string.Equals(a.Name, archetype, StringComparison.OrdinalIgnoreCase)) ?? guessed
+            : null;
+        // Without a clear call the guessed list still comes from the closest archetype (the page marks it a guess).
+        var closest = metaArchetype is null && fits ? ArchetypeGuess.Closest(meta, game.OpponentClass, shown) : null;
         var (deck, deckNote) = LocalDeckRows(game, replay, cards);
+        var (predicted, predictedNote) = PredictedRows(meta, metaArchetype ?? closest?.Archetype, closest?.Hits, shown, cards);
         return new MatchPage(game, cards, header)
         {
             Replay = replay,
             Turns = TurnChips(replay),
             LocalDeck = deck,
             LocalDeckNote = deckNote,
-            OpponentCards = replay.OpponentPlayed
-                .Select(c => new MatchDeckRow(c.CardId, cards.NameOf(c.CardId), cards.Get(c.CardId)?.Cost ?? 0, c.Count > 1 ? $"×{c.Count}" : string.Empty,
-                    Loc.F("Match.Deck.Turn", c.Turn), true))
-                .ToList(),
+            OpponentCards = replay.HasPostGame
+                ? RevealedRows(replay, cards)
+                : replay.OpponentPlayed
+                    .Select(c => new MatchDeckRow(c.CardId, cards.NameOf(c.CardId), cards.Get(c.CardId)?.Cost ?? 0, c.Count > 1 ? $"×{c.Count}" : string.Empty,
+                        Loc.F("Match.Deck.Turn", c.Turn), true))
+                    .ToList(),
+            OpponentPredicted = predicted,
+            OpponentPredictedNote = predictedNote,
             OpponentArchetype = archetype,
             Analysis = MatchAnalysis.Build(game, replay, cards, meta, archetype),
         };
     }
+
+    /// <summary>
+    /// The opponent's revealed cards by card: deck cards first (cheapest first), then the ones created during the game;
+    /// each with how many copies came to light, how, and the first turn.
+    /// </summary>
+    private static IReadOnlyList<MatchDeckRow> RevealedRows(MatchReplay replay, CardDb cards) =>
+        replay.Reveals
+            .GroupBy(r => (Card: Original(r, cards), r.Created))
+            .Select(g =>
+            {
+                var hows = g.GroupBy(r => r.How).OrderBy(h => HowOrder(h.Key))
+                    .Select(h => h.Count() > 1 ? Loc.F("Match.Reveal.HowTimes", Loc.T("Match.Reveal." + h.Key), h.Count()) : Loc.T("Match.Reveal." + h.Key));
+                var note = string.Join(" · ", hows.Prepend(Loc.F("Match.Deck.Turn", g.Min(r => r.Turn)))
+                    .Concat(g.Key.Created ? [Loc.T("Match.Reveal.Created")] : []));
+                var count = g.Count();
+                return new MatchDeckRow(g.Key.Card, cards.NameOf(g.Key.Card), cards.Get(g.Key.Card)?.Cost ?? 0, count > 1 ? $"×{count}" : string.Empty, note,
+                    !g.Key.Created);
+            })
+            .OrderBy(r => r.Used ? 0 : 1).ThenBy(r => r.Cost).ThenBy(r => r.Name, StringComparer.CurrentCulture)
+            .ToList();
+
+    private static int HowOrder(string how) => how switch { "played" => 0, "summoned" => 1, "burned" => 2, _ => 3 };
+
+    /// <summary>The card a revealed entity was in hand: the one it was transformed from when the game said so.</summary>
+    private static string Original(ReplayReveal reveal, CardDb cards) =>
+        reveal.TransformedFrom > 0 && cards.Get(reveal.TransformedFrom)?.Id is { } from ? from : reveal.CardId;
+
+    /// <summary>
+    /// The most played meta list of the opponent's archetype, the cards it showed marked; else the archetype's core
+    /// cards. A guess: the page says so.
+    /// </summary>
+    /// <param name="closestHits">Set when the archetype is only the closest one, not a clear call: how many shown cards it holds.</param>
+    private static (IReadOnlyList<MatchDeckRow> Rows, string Note) PredictedRows(ConstructedMeta? meta, MetaArchetype? archetype, int? closestHits,
+        IReadOnlyCollection<string> shown, CardDb cards)
+    {
+        if (meta is null || archetype is null)
+        {
+            return ([], string.Empty);
+        }
+
+        var seen = new HashSet<string>(shown, StringComparer.Ordinal);
+        var list = meta.Decks.Where(d => d.ArchetypeId == archetype.Id).MaxBy(d => d.Games) is { } top && DeckString.TryDecode(top.DeckString) is { Cards.Count: > 0 } deck
+            ? (Cards: deck.Cards.Select(kv => (Id: cards.Get(kv.Key)?.Id ?? string.Empty, Copies: kv.Value)).Where(c => c.Id.Length > 0).ToList(),
+                Note: Loc.F("Match.Predicted.Note", archetype.Name, top.Games.ToString("N0", CultureInfo.CurrentCulture)))
+            : (Cards: archetype.CoreCards.Distinct(StringComparer.Ordinal).Select(id => (Id: id, Copies: 1)).ToList(),
+                Note: Loc.F("Match.Predicted.Core", archetype.Name));
+        var rows = list.Cards
+            .Select(c => new MatchDeckRow(c.Id, cards.NameOf(c.Id), cards.Get(c.Id)?.Cost ?? 0, c.Copies > 1 ? $"×{c.Copies}" : string.Empty,
+                seen.Contains(c.Id) ? Loc.T("Match.Predicted.Seen") : string.Empty, seen.Contains(c.Id)))
+            .OrderBy(r => r.Cost).ThenBy(r => r.Name, StringComparer.CurrentCulture)
+            .ToList();
+        return (rows, closestHits is { } hits ? $"{list.Note} {Loc.P("Match.Predicted.Closest", hits)}" : list.Note);
+    }
+
 
     /// <summary>The step at <paramref name="frame"/> with <paramref name="bottom"/>'s side at the bottom.</summary>
     public MatchStepView? Step(int frame, ReplayPlayer bottom)
@@ -224,7 +320,68 @@ public sealed class MatchPage
         var turn = f.Mulligan ? Loc.T("Match.Step.Mulligan") : f.Turn == 0 ? Loc.T("Match.Step.Start") : Loc.F("Match.Step.Turn", f.PlayerTurn, Whose(f.Active));
         return new MatchStepView(f.Index, replay.Frames.Count, turn, Describe(f.Action), Details(f.Action), f.Action.Player == ReplayPlayer.Local,
             bottom == ReplayPlayer.Local ? opponent : local,
-            bottom == ReplayPlayer.Local ? local : opponent);
+            bottom == ReplayPlayer.Local ? local : opponent)
+        {
+            Choices = ChoicesOf(replay, f),
+        };
+    }
+
+    /// <summary>The choice rows of a step: a Discover's options, or both mulligans at the mulligan step.</summary>
+    private IReadOnlyList<MatchChoiceView> ChoicesOf(MatchReplay replay, ReplayFrame frame)
+    {
+        if (frame.Action is { Kind: ReplayActionKind.Choice, Options.Count: > 0 } choice)
+        {
+            var left = choice.Picked.ToList();
+            var cards = choice.Options.Select(id =>
+            {
+                var picked = left.Remove(id);
+                return Offered(id, picked, !picked && choice.Picked.Count > 0, string.Empty);
+            }).ToList();
+            var title = choice.CardId is { } source ? Loc.F("Match.Choice.From", _cards.NameOf(source)) : Loc.T("Match.Choice.Title");
+            return [new MatchChoiceView(title, cards)];
+        }
+
+        if (frame.Action.Kind != ReplayActionKind.Mulligan)
+        {
+            return [];
+        }
+
+        var rows = new List<MatchChoiceView>();
+        if (replay.Mulligan is { } mine)
+        {
+            var replaced = mine.Replaced.ToList();
+            rows.Add(new MatchChoiceView(Loc.T("Match.Choice.YourMulligan"), mine.Offered.Select(id =>
+            {
+                var back = replaced.Remove(id);
+                return Offered(id, !back, back, Loc.T(back ? "Match.Choice.Replaced" : "Match.Choice.Kept"));
+            }).ToList()));
+        }
+
+        if (replay.OpponentMulligan is { } theirs)
+        {
+            rows.Add(new MatchChoiceView(Loc.T("Match.Choice.TheirMulligan"),
+                theirs.Kept.Select(id => TheirMulliganCard(id, kept: true)).Concat(theirs.Replaced.Select(id => TheirMulliganCard(id, kept: false))).ToList()));
+        }
+
+        return rows;
+    }
+
+    private MatchCardView Offered(string cardId, bool picked, bool dimmed, string note) => new(cardId, _cards.NameOf(cardId), false)
+    {
+        Cost = _cards.Get(cardId)?.Cost ?? 0,
+        Picked = picked,
+        Dimmed = dimmed,
+        Note = note,
+        Tooltip = _cards.NameOf(cardId),
+    };
+
+    /// <summary>A card of the opponent's mulligan: face up when the log revealed it later, else a card back.</summary>
+    private MatchCardView TheirMulliganCard(string? cardId, bool kept)
+    {
+        var note = Loc.T(kept ? "Match.Choice.Kept" : "Match.Choice.Replaced");
+        return cardId is null
+            ? new MatchCardView(null, string.Empty, true) { Dimmed = !kept, Note = note, Tooltip = Loc.T("Match.Reveal.Never") }
+            : Offered(cardId, kept, !kept, note) with { Revealed = true, Tooltip = $"{_cards.NameOf(cardId)} · {Loc.T("Match.Reveal.Later")}" };
     }
 
     /// <summary>The actions of the turn holding <paramref name="frame"/>, the current one marked.</summary>
@@ -289,8 +446,24 @@ public sealed class MatchPage
 
     private MatchCardView Card(ReplayCard card, int turn)
     {
+        if (card.IsCardBack && card.Reveal is { } reveal)
+        {
+            // Hidden at this step; the log revealed it later in the game (shown only on the page of a finished game).
+            var id = Original(reveal, _cards);
+            var revealedName = _cards.NameOf(id);
+            var revealedNote = Loc.F("Match.Reveal.OnTurn", reveal.Turn);
+            return new MatchCardView(id, revealedName, false)
+            {
+                Revealed = true,
+                Cost = _cards.Get(id)?.Cost ?? 0,
+                Note = revealedNote,
+                Tooltip = $"{revealedName} · {revealedNote}",
+            };
+        }
+
         if (card.IsCardBack)
         {
+
             var origin = card.Origin switch
             {
                 "start" => Loc.T("Match.Origin.Start"),

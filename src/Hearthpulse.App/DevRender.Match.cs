@@ -27,7 +27,18 @@ public partial class App
             page.ShowAnalysis = true;
             await SaveMatchAsync(folder, "main-match-analysis");
             page.ShowReplay = true;
+
+            // The step's choice row: both mulligans (the opponent's as the log revealed it), then a Discover.
+            foreach (var (kind, name) in new[] { (Core.Replay.ReplayActionKind.Mulligan, "main-match-mulligan"), (Core.Replay.ReplayActionKind.Choice, "main-match-choice") })
+            {
+                if (page.FrameOf(kind) is >= 0 and var frame)
+                {
+                    page.Frame = frame;
+                    await SaveMatchAsync(folder, name);
+                }
+            }
         }
+
 
         var battlegrounds = games.FirstOrDefault(g => g.IsBattlegrounds);
         if (battlegrounds is not null && await _mainViewModel.OpenMatchPageAsync(battlegrounds.Key))

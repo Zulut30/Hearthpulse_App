@@ -28,7 +28,9 @@ public static class ReplayCapture
         }
         else if (recorder.HasGame)
         {
-            text = recorder.Text(new ReplayHeader { LocalRank = localRank, OpponentRank = opponentRank });
+            // What the log revealed by the end is only for a game that ended: an abandoned one may still be going on.
+            text = recorder.Text(new ReplayHeader { LocalRank = localRank, OpponentRank = opponentRank }, postGame: !record.IsAbandoned);
+
         }
 
         return text is not null && store.Save(record.Key, text, overwrite) is { } name ? record with { Replay = name } : record;

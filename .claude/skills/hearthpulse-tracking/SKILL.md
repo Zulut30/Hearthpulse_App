@@ -9,11 +9,20 @@ Pipeline, threads and project map: [hearthpulse-dev](../hearthpulse-dev/SKILL.md
 [hearthstone-context reference/power-log.md](../hearthstone-context/reference/power-log.md). Counters have their
 own recipe: [hearthpulse-counters](../hearthpulse-counters/SKILL.md). Tests: [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
 
-## The rule first: no hidden information
+## The rule first: no hidden information during the game
 
-Show and use only what the player could see on screen. The log contains more than the client shows (card ids of
-cards drawn by the opponent in some paths, `CREATOR_DBID` of hidden creators, entity ids that survive a shuffle).
-Using them is cheating and is a review **blocker**.
+**During a game - only what the player can see; after the match the review may show everything the log revealed by
+the end of the game.** Everything a player sees while playing (overlay, live trackers, counters, mulligan guide,
+`LiveSnapshot`/`ConstructedView`) shows and uses only what the client showed on screen. The log contains more
+(card ids of cards drawn by the opponent in some paths, `CREATOR_DBID` of hidden creators, entity ids that survive a
+shuffle). Using them during a game is cheating and is a review **blocker**.
+
+The one exception is the match page of a finished game (`docs/match-replay.md`): `ReplayRecorder` keeps its events
+as seen, and only `Text()` at the end of the game appends the post-game part (`N`/`K` lines of format HPR3: the entity
+behind each opponent card back and the first card id the log gave it). The page then shows those cards face up on
+earlier turns, marked "revealed on turn N". Nothing live may read that part or `ReplayRecorder.PostGame()`; the test
+`ReplayRevealTests.The_live_game_gets_nothing_from_the_future` pins it.
+
 
 - Opponent's hand: a drawn card stays a card back until the game shows it again; a creator is named only through
   `DISPLAYED_CREATOR`/`CREATOR` of a revealed card, never `CREATOR_DBID`

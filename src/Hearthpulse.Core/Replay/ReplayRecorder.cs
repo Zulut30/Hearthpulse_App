@@ -6,8 +6,8 @@ namespace Hearthpulse.Core.Replay;
 
 /// <summary>
 /// Records a Constructed-like game as the local player saw it, as the event lines of a replay file
-/// (<c>docs/match-replay.md</c>). The hidden-information rule is applied here, so the file never holds more than the
-/// player could see:
+/// (<c>docs/match-replay.md</c>). The hidden-information rule is applied to the events (<see cref="Events"/>, what the
+/// game showed while it was played):
 /// <list type="bullet">
 /// <item>a card id is written only while the card is face up for the local player;</item>
 /// <item>a deck is a number of cards and nothing else: no card in a deck has a replay id, so a card going into a deck
@@ -17,6 +17,9 @@ namespace Hearthpulse.Core.Replay;
 /// <item>game entity ids are never written, and <c>CREATOR_DBID</c> is never read;</item>
 /// <item>nothing is recorded after the game is over but the result.</item>
 /// </list>
+/// Only <see cref="Text"/>, called once the game is over, adds the post-game part (<see cref="PostGame"/>): which game
+/// entity each opponent card back was and what the log revealed about it by the end of the game. The match page shows
+/// it after the game; nothing seen during a game reads it.
 /// Battlegrounds and Mercenaries games are not recorded here (see <see cref="BattlegroundsReplayData"/>).
 /// </summary>
 public sealed class ReplayRecorder : IPowerListener
@@ -55,6 +58,15 @@ public sealed class ReplayRecorder : IPowerListener
 
     // Where a card was when it last left the table or a deck (it may come back from SETASIDE), for a card back's origin.
     private readonly Dictionary<int, (string Zone, char Side)> _left = new();
+    // Post-game part, kept aside from the events: opponent card backs by replay id -> game entity id, the opponent
+    // entities that were hidden (hand, secret, deck), the first card id the log gave each entity and on which game turn
+    // (later ids are transformations: python-hearthstone's initial_card_id works the same way), cards played from hand
+    // and cards that were on the table.
+    private readonly Dictionary<int, int> _backs = new();
+    private readonly HashSet<int> _hiddenEntities = new();
+    private readonly Dictionary<int, (string Card, int Turn)> _known = new();
+    private readonly HashSet<int> _played = new();
+    private readonly HashSet<int> _wasInPlay = new();
     private GameState? _game;
     private int _nextId;
     private bool _synced;
@@ -71,8 +83,44 @@ public sealed class ReplayRecorder : IPowerListener
     /// <summary>True once anything was recorded for the current game (a Constructed-like game with a known local player).</summary>
     public bool HasGame => _synced && !_ignored && _events.Count > 0;
 
-    /// <summary>The replay file text for the current game.</summary>
-    public string Text(ReplayHeader header) => ReplayFile.Write(header with { Truncated = Truncated, Events = _events.Count }, _events);
+    /// <summary>
+    /// The replay file text for the current game: the events, then the post-game part. <paramref name="postGame"/> is
+    /// false for a game that did not end (abandoned when the client left): it may go on after a reconnect, so its file
+    /// holds only what was seen.
+    /// </summary>
+    public string Text(ReplayHeader header, bool postGame = true) =>
+        ReplayFile.Write(header with { Truncated = Truncated, Events = _events.Count }, postGame ? _events.Concat(PostGame()) : _events);
+
+
+    /// <summary>
+    /// What the log revealed by the end of the game about the opponent's hidden cards (<c>N</c> and <c>K</c> lines). Only
+    /// for the file of a finished game: the match page uses it to show those cards face up on the turns they were hidden.
+    /// </summary>
+    public IEnumerable<string> PostGame()
+    {
+        foreach (var (replayId, entityId) in _backs.OrderBy(b => b.Key))
+        {
+            yield return string.Create(CultureInfo.InvariantCulture, $"N {replayId} {entityId}");
+        }
+
+        foreach (var entityId in _hiddenEntities.Order())
+        {
+            var entity = _game?.Entities.GetValueOrDefault(entityId);
+            var (card, turn) = _known.TryGetValue(entityId, out var known) ? known : (entity?.CardId ?? string.Empty, _game?.Turn ?? 0);
+            if (card.Length == 0)
+            {
+                continue;
+            }
+
+            var how = _played.Contains(entityId) ? "played"
+                : _wasInPlay.Contains(entityId) ? "summoned"
+                : entity?.Zone == "GRAVEYARD" ? "burned"
+                : "shown";
+            var created = entity is { IsOriginalDeckCard: false } || entity?.GetInt("COIN_CARD") == 1 ? 1 : 0;
+            var from = entity?.GetInt("TRANSFORMED_FROM_CARD") ?? 0;
+            yield return string.Create(CultureInfo.InvariantCulture, $"K {entityId} {card} {turn} {how} {created}{(from > 0 ? $" {from}" : string.Empty)}");
+        }
+    }
 
     public void OnGameStarted(GameState game)
     {
@@ -84,6 +132,11 @@ public sealed class ReplayRecorder : IPowerListener
         _decks[1].Clear();
         _deckWritten[0] = _deckWritten[1] = -1;
         _left.Clear();
+        _backs.Clear();
+        _hiddenEntities.Clear();
+        _known.Clear();
+        _played.Clear();
+        _wasInPlay.Clear();
         _nextId = 0;
         _synced = false;
         _ignored = false;
@@ -160,6 +213,11 @@ public sealed class ReplayRecorder : IPowerListener
         if (blockType != "PLAY")
         {
             return;
+        }
+
+        if (source is { Zone: "HAND" })
+        {
+            _played.Add(source.Id);
         }
 
         // A step boundary: what follows (the card leaving the hand, its effects) belongs to this play.
@@ -347,6 +405,7 @@ public sealed class ReplayRecorder : IPowerListener
             return;
         }
 
+        Learn(game, entity);
         _shown.TryGetValue(entity.Id, out var shown);
         var zone = entity.Zone;
         var controller = entity.Controller;
@@ -364,6 +423,11 @@ public sealed class ReplayRecorder : IPowerListener
             // A deck is a count: the card's table or hand id ends here and nothing about it goes into the deck.
             Remove(shown, entity.Id);
             EnterDeck(entity.Id, side);
+            if (side == 'O')
+            {
+                _hiddenEntities.Add(entity.Id);
+            }
+
             WriteDeckCounts();
             return;
         }
@@ -372,6 +436,14 @@ public sealed class ReplayRecorder : IPowerListener
         // An opponent's secret-zone card is a card back unless it is a quest (shown face up). Not keyed on SECRET=1:
         // that tag can arrive after ZONE=SECRET.
         var hidden = (side == 'O' && zone == "HAND") || (side == 'O' && zone == "SECRET" && !entity.Has("QUEST"));
+        if (hidden)
+        {
+            _hiddenEntities.Add(entity.Id);
+        }
+        else if (zone == "PLAY")
+        {
+            _wasInPlay.Add(entity.Id);
+        }
         if (!hidden && !TableTypes.Contains(entity.CardType))
         {
             // Not drawable yet (a card whose type arrives on a later line) or never (a Battlegrounds-only type).
@@ -422,9 +494,23 @@ public sealed class ReplayRecorder : IPowerListener
         WriteDeckCounts();
         var fresh = new Shown(++_nextId) { Zone = zone, Side = side, Position = position, Card = card, Hidden = hidden };
         _shown[entity.Id] = fresh;
+        if (hidden)
+        {
+            _backs[fresh.Id] = entity.Id;
+        }
+
         var origin = side == 'O' && zone == "HAND" ? OriginOf(game, entity, from, created, _snapshot) : null;
         EmitEntity(entity, fresh, origin);
         AfterMove(entity);
+    }
+
+    /// <summary>Notes the first card id the log gives an entity, for the post-game part only (never written as an event).</summary>
+    private void Learn(GameState game, Entity entity)
+    {
+        if (entity.CardId.Length > 0 && !_known.ContainsKey(entity.Id))
+        {
+            _known[entity.Id] = (entity.CardId, game.Turn);
+        }
     }
 
     /// <summary>How a card back got into the opponent's hand, as the player saw it happen.</summary>
