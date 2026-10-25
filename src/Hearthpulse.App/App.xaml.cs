@@ -196,6 +196,7 @@ public partial class App : Application
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
         _overlayViewModel.PinRequested += OnPinRequested;
+        _overlayViewModel.SecretToggleRequested += _session.ToggleSecret;
         _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
         _overlayViewModel.CounterModeRequested += (id, mode) =>
         {

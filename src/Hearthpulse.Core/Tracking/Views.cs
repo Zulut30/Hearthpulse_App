@@ -69,6 +69,9 @@ public sealed record ConstructedView(
 
     /// <summary>The pool of the generator being discovered from, hovered or just played; null when none.</summary>
     public CardPool.CardPoolView? CardPool { get; init; }
+
+    /// <summary>The opponent's active Secrets and what each can still be; null when they have none.</summary>
+    public Secrets.SecretsView? Secrets { get; init; }
 }
 
 /// <summary>Community win rate of the archetype a deck belongs to; <see cref="Format"/>, <see cref="Rank"/> and <see cref="Source"/> are labels.</summary>

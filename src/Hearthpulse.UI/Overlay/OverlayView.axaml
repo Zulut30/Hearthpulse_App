@@ -852,6 +852,12 @@
                     <o:OpponentHandPanel />
                 </o:MovablePanel>
 
+                <!-- ============ Constructed and Arena: the opponent's Secrets (top, right of their Hero Power; rows take clicks) ============ -->
+                <o:MovablePanel Id="secrets" Title="{i:Loc Overlay.Panel.Secrets}" GameAnchored="True" Shown="{Binding ShowSecrets}"
+                                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="760,120,0,0">
+                    <o:SecretsPanel />
+                </o:MovablePanel>
+
                 <!-- ============ Constructed: counters (bottom-left) ============ -->
                 <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,170">
                     <Border x:Name="CountersCard" Classes="overlayCard" Width="214" o:OverlayHit.Interactive="True">

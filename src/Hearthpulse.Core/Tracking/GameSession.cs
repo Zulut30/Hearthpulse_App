@@ -264,6 +264,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_battlegrounds.Counters);
         _parser.AddListener(_facts);
         _parser.AddListener(_cardPool);
+        _parser.AddListener(_secrets);
         _parser.AddListener(_replay);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
@@ -428,6 +429,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         {
             ApplyMemory(reading);
         }
+
+        TickSecrets(now);
 
         if (_awaitingRatingKey is not null && now > _awaitingRatingUntil)
         {
@@ -869,6 +872,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             {
                 constructed = _constructed.BuildView(game, _cards);
                 constructed = WithCardPool(constructed, game);
+                constructed = WithSecrets(constructed, game);
             }
         }
         catch (Exception ex)

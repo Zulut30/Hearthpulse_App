@@ -47,6 +47,9 @@ public sealed class CardDb
 
     public int Count => _byId.Count;
 
+    /// <summary>Every card, in no particular order.</summary>
+    public IEnumerable<Card> All => _byId.Values;
+
     public IReadOnlyList<Card> BattlegroundsMinions { get; }
 
     public IReadOnlyList<Card> BattlegroundsSpells { get; }

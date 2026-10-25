@@ -76,6 +76,7 @@ public sealed partial class AppHost : IDisposable
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
         Overlay.PinRequested += OnPinRequested;
+        Overlay.SecretToggleRequested += Session.ToggleSecret;
         Overlay.CardPoolBrowserResized += OnSettingsChanged;
         Overlay.CounterModeRequested += (id, mode) =>
         {

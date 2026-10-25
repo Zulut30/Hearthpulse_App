@@ -822,6 +822,9 @@
                                     <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
                                     <CheckBox Name="OverlaySetting" Classes="switch" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.EnabledTipWindows}" />
+                                    <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Classes="label" Margin="0,4,0,10" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Secrets}" IsChecked="{Binding ShowSecrets}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Settings.Overlay.SecretsTip}" />
                                     <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Classes="label" Margin="0,4,0,10" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.TopBar}" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.TopBarTip}" />
