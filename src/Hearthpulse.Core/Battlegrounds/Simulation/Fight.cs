@@ -461,7 +461,7 @@ public sealed class Fight
         }
 
         var wasAlive = !target.IsDying;
-        target.Health -= amount;
+        target.Health = (int)Math.Clamp((long)target.Health - amount, -1_000_000_000, int.MaxValue);
         if (source is not null && (source.Poisonous || source.Venomous))
         {
             target.Health = Math.Min(target.Health, 0);
@@ -852,9 +852,9 @@ public sealed class Fight
     /// <summary>Gives +Attack/+Health (negative values reduce; Attack never goes below 0).</summary>
     public void Buff(Unit target, int attack, int health)
     {
-        target.Attack = Math.Max(0, target.Attack + attack);
-        target.Health += health;
-        target.MaxHealth += health;
+        target.Attack = (int)Math.Clamp((long)target.Attack + attack, 0, int.MaxValue);
+        target.Health = (int)Math.Clamp((long)target.Health + health, -1_000_000_000, int.MaxValue);
+        target.MaxHealth = (int)Math.Clamp((long)target.MaxHealth + health, 0, int.MaxValue);
         RefreshUnit(target);
     }
 
@@ -863,7 +863,7 @@ public sealed class Fight
     {
         target.Attack = Math.Max(0, attack);
         target.Health = health;
-        target.MaxHealth = health;
+        target.MaxHealth = Math.Max(0, health);
         RefreshUnit(target);
     }
 
