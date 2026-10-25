@@ -162,13 +162,11 @@ public sealed partial class MainViewModel
             Raise(nameof(ConstructedTitle));
             RebuildConstructedStats();
             RebuildDecks();
+            RebuildConstructedMeta();
         }
 
-        // The tier list and top decks are the page's format too (the mulligan and deck tracker use the same meta).
-        if (ConstructedMeta.FormatKeyOf(formatType) is { } key && Settings.MetaFormat != key)
-        {
-            ChangeMetaFilter(() => Settings.MetaFormat = key);
-        }
+        // The tier list and top decks follow the page; the overlay keeps the stats of the game's own format.
+        RequestPageMeta();
     }
 
     public RelayCommand SetCtPeriod => _setCtPeriod ??= new RelayCommand(p => { _ctPeriod = ParsePeriod(p); RebuildConstructedStats(); });
@@ -477,7 +475,7 @@ public sealed partial class MainViewModel
 
     /// <summary>The loaded Constructed meta when it is the tab's format (else nothing to compare with).</summary>
     private ConstructedMeta? ConstructedMetaFor(string format) =>
-        _constructedMeta is { } m && m.Format == ConstructedMeta.FormatKeyOf(format) ? m : null;
+        ConstructedMeta.FormatKeyOf(format) is { } key && _constructedMetas.TryGetValue(key, out var meta) ? meta : null;
 
     private static string ConstructedNote(ConstructedMeta? meta) => meta is null
         ? Loc.T("Stats.Ct.NoteNoMeta")

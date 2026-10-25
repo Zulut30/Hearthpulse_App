@@ -67,9 +67,15 @@ swallowed in a fire-and-forget task. Computation itself belongs in Core so it ca
 
 `NavStandard` and `NavWild` open one page, `PageConstructed` (or `PageDeck` while a deck is open), for one format: the
 window calls `MainViewModel.ShowConstructedFormat("FT_STANDARD"|"FT_WILD")` and My stats, Your decks, merge
-suggestions, matchups and (WPF) `Settings.MetaFormat` follow it; there is no format picker on the page. A deck opens on
-its format's page (the window follows `ConstructedFormat`). Page names and the old `"Constructed"` -> Standard
-migration: `Core/Stats/ConstructedPage.cs`.
+suggestions, matchups and (WPF) the tier list follow it; there is no format picker on the page. Standard also lists
+Twist/Classic decks (no page of their own); My stats count the page's format only. A deck opens on its format's page
+(the window follows `ConstructedFormat`). Page names and the old `"Constructed"` -> Standard migration:
+`Core/Stats/ConstructedPage.cs`.
+
+Community stats are kept per format, never one shared slice: the VM asks for the page's format
+(`ConstructedMetaRequested`), the game session for the game's (`GameSession.ConstructedMetaNeeded`), and the host
+(`App.EnsureConstructedMeta` / `AppHost.EnsureConstructedMeta`) downloads each once and hands it to both. Navigation
+never writes `Settings.MetaFormat` (it only names the format loaded at start).
 
 ## Recipe: a tab inside a page
 
@@ -78,7 +84,7 @@ migration: `Core/Stats/ConstructedPage.cs`.
 - Existing: Battlegrounds `TabHeroes`/`TabComps`/`TabTrinkets`/`TabCards`/`TabMine` (both UIs);
   Constructed `TabMyDecks` "My stats" / `TabMetaTiers` "Meta tier list" / `TabMetaDecks` "Top decks" (**WPF only**,
   `ShowConstructedTab("Tiers"|"Top")`).
-- Filters are segment bars bound to VM commands (`SetBgPeriod`, `SetCtFormat`, `SetHistoryFilter`...), placed top
+- Filters are segment bars bound to VM commands (`SetBgPeriod`, `SetCtPeriod`, `SetHistoryFilter`...), placed top
   right of the page header.
 
 ## Recipe: a settings card

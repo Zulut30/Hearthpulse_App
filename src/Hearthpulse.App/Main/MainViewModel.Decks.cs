@@ -324,7 +324,7 @@ public sealed partial class MainViewModel
                     When(f.LastPlayed),
                     f.Main.DeckCode,
                     f.PlayerClass,
-                    DeckMeta(f.Main.DeckCode, f.PlayerClass),
+                    DeckMeta(f.Main.DeckCode, f.PlayerClass, f.Format),
                     f.Versions.Count > 1 ? Loc.P("Deck.VersionCount", f.Versions.Count) : string.Empty))
                 .ToList();
             DeckSuggestions = data.ShownSuggestions.Select(s => new DeckSuggestionRow(

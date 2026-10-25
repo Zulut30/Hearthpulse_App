@@ -24,7 +24,8 @@ public sealed partial class DeckPageTests
 
         var standard = ConstructedPage.FormatOf(ConstructedPage.Standard);
         var wild = ConstructedPage.FormatOf(ConstructedPage.Wild);
-        Assert.Equal(["DK 2", "DK 1"], ConstructedPage.Decks(families, standard).Select(f => f.Name));
+        // Twist (like Classic) has no page of its own: its decks are listed on Standard, where they open.
+        Assert.Equal(["Twist", "DK 2", "DK 1"], ConstructedPage.Decks(families, standard).Select(f => f.Name));
         Assert.Equal(["Wild DK 2", "Wild DK 1"], ConstructedPage.Decks(families, wild).Select(f => f.Name));
         Assert.All(ConstructedPage.Suggestions(suggestions, standard), s => Assert.Equal("FT_STANDARD", s.Second.Format));
         Assert.Equal("FT_WILD", Assert.Single(ConstructedPage.Suggestions(suggestions, wild)).Second.Format);

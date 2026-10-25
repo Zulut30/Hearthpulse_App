@@ -152,6 +152,12 @@ public sealed partial class MainViewModel
     /// </summary>
     public void ShowConstructedFormat(string formatType)
     {
+        // Your decks show their archetype from the page's format stats.
+        if (ConstructedMetaFor(formatType) is null && ConstructedMeta.FormatKeyOf(formatType) is { } key)
+        {
+            ConstructedMetaRequested?.Invoke(key);
+        }
+
         if (formatType == _ctFormat)
         {
             return;
@@ -475,20 +481,31 @@ public sealed partial class MainViewModel
         };
     }
 
-    /// <summary>This app has no Constructed meta yet, so there is nothing to compare with.</summary>
-    private ConstructedMeta? _constructedMeta;
+    /// <summary>Community Constructed stats by format key ("standard", "wild"), as the host loaded them.</summary>
+    private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
 
-    /// <summary>The community Constructed stats the host loaded (for vs Global and the deck page); null clears them.</summary>
+    /// <summary>
+    /// Raised when the Standard or Wild page has no stats for its format (key "standard" or "wild"); the host downloads
+    /// them and calls <see cref="SetConstructedMeta"/>.
+    /// </summary>
+    public event Action<string>? ConstructedMetaRequested;
+
+    /// <summary>Stats of one format the host loaded (for your decks' archetypes and the deck page); null is ignored.</summary>
     public void SetConstructedMeta(ConstructedMeta? meta)
     {
-        _constructedMeta = meta;
+        if (meta is null)
+        {
+            return;
+        }
+
+        _constructedMetas[meta.Format] = meta;
         RebuildConstructedStats();
         RebuildDecks();
     }
 
-    /// <summary>The loaded Constructed meta when it is the format's (else nothing to compare with).</summary>
+    /// <summary>The loaded stats of a game format (else nothing to compare with).</summary>
     private ConstructedMeta? ConstructedMetaFor(string format) =>
-        _constructedMeta is { } m && m.Format == ConstructedMeta.FormatKeyOf(format) ? m : null;
+        ConstructedMeta.FormatKeyOf(format) is { } key && _constructedMetas.TryGetValue(key, out var meta) ? meta : null;
 
     private static string ConstructedNote(ConstructedMeta? meta) =>
         Loc.T("Stats.Ct.NoteWindowsOnly");

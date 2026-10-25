@@ -18,11 +18,14 @@ public static class ConstructedPage
     /// <summary>The FormatType a page shows: "FT_WILD" for Wild, "FT_STANDARD" otherwise.</summary>
     public static string FormatOf(string? page) => page == Wild ? "FT_WILD" : "FT_STANDARD";
 
-    /// <summary>The decks of one FormatType, in the order given.</summary>
+    /// <summary>
+    /// The decks a page lists, in the order given: Wild lists Wild decks, Standard every other one (Twist, Classic and
+    /// other formats have no page of their own, and a deck opens where it is listed, see <see cref="PageOf"/>).
+    /// </summary>
     public static IReadOnlyList<DeckFamily> Decks(IEnumerable<DeckFamily> families, string formatType) =>
-        families.Where(f => string.Equals(f.Format, formatType, StringComparison.Ordinal)).ToList();
+        families.Where(f => PageOf(f.Format) == PageOf(formatType)).ToList();
 
-    /// <summary>The merge suggestions of one FormatType (both decks of a pair always share it).</summary>
+    /// <summary>The merge suggestions a page lists (both decks of a pair always share their format).</summary>
     public static IReadOnlyList<MergeSuggestion> Suggestions(IEnumerable<MergeSuggestion> suggestions, string formatType) =>
-        suggestions.Where(s => string.Equals(s.First.Format, formatType, StringComparison.Ordinal)).ToList();
+        suggestions.Where(s => PageOf(s.First.Format) == PageOf(formatType)).ToList();
 }
