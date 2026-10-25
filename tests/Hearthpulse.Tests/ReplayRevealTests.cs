@@ -235,7 +235,27 @@ public sealed class ReplayRevealTests : IDisposable
     }
 
     [Fact]
+    public void An_abandoned_game_is_saved_without_the_post_game_part()
+    {
+        // The client left mid-game (review M1): the game may go on after a reconnect, so nothing revealed later is kept.
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        var recorder = new ReplayRecorder();
+        parser.AddListener(recorder);
+        Feed(parser, [.. BeforeReveal, .. Reveal]);
+        parser.Flush();
+
+        var abandoned = ReplayCapture.Attach(Game(null) with { Result = GameRecord.AbandonedResult }, parser.Game!, recorder, new BattlegroundsTracker(), _store);
+        var text = _store.Load(abandoned.Replay)!;
+        Assert.DoesNotContain(text.Split('\n'), l => l.StartsWith("N ", StringComparison.Ordinal) || l.StartsWith("K ", StringComparison.Ordinal));
+        Assert.False(MatchReplay.Parse(text)!.HasPostGame);
+
+        var finished = ReplayCapture.Attach(Game(null), parser.Game!, recorder, new BattlegroundsTracker(), _store, overwrite: true);
+        Assert.Contains("K 62 CS2_182 7 played 0", _store.Load(finished.Replay)!);
+    }
+
+    [Fact]
     public void A_format_2_file_still_reads_without_reveals_and_is_replaced_on_the_next_save()
+
 
     {
         Play(out var recorder, [.. BeforeReveal, .. Reveal]);

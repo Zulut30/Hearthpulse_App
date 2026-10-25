@@ -83,8 +83,14 @@ public sealed class ReplayRecorder : IPowerListener
     /// <summary>True once anything was recorded for the current game (a Constructed-like game with a known local player).</summary>
     public bool HasGame => _synced && !_ignored && _events.Count > 0;
 
-    /// <summary>The replay file text for the current game: the events, then the post-game part.</summary>
-    public string Text(ReplayHeader header) => ReplayFile.Write(header with { Truncated = Truncated, Events = _events.Count }, _events.Concat(PostGame()));
+    /// <summary>
+    /// The replay file text for the current game: the events, then the post-game part. <paramref name="postGame"/> is
+    /// false for a game that did not end (abandoned when the client left): it may go on after a reconnect, so its file
+    /// holds only what was seen.
+    /// </summary>
+    public string Text(ReplayHeader header, bool postGame = true) =>
+        ReplayFile.Write(header with { Truncated = Truncated, Events = _events.Count }, postGame ? _events.Concat(PostGame()) : _events);
+
 
     /// <summary>
     /// What the log revealed by the end of the game about the opponent's hidden cards (<c>N</c> and <c>K</c> lines). Only

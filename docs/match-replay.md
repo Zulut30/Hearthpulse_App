@@ -16,8 +16,8 @@ How the two parts stay apart:
 
 - The **events** of the file are recorded as seen, under the rules below (`ReplayRecorder.Events`). They are the same
   during and after a game and never hold a later reveal.
-- The **post-game part** (`N`, `K` lines, format 3) is appended only by `ReplayRecorder.Text()` when the finished
-  game is saved: the game entity behind each opponent card back and what the log revealed about each opponent entity
+- The **post-game part** (`N`, `K` lines, format 3) is appended only by `ReplayRecorder.Text()` when a game that
+  ended is saved (an abandoned game - the client left mid-game - is saved without it: it may go on after a reconnect): the game entity behind each opponent card back and what the log revealed about each opponent entity
   that was hidden (hand, secret, deck) by the end. Only `MatchReplay`/`MatchPage` read it.
 - Test: `ReplayRevealTests.The_live_game_gets_nothing_from_the_future` (the live view and the events at turn 5 hold
   nothing of the card played on turn 7, and stay as they were after it).
@@ -165,7 +165,8 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
 6. Post-game reveals (format 3), full card renders, deck tiles, choice rows, likely deck. Done.
 
 Ideas checked (only ideas, no code taken): python-hearthstone / python-hslog (MIT) - first card id of an entity kept
-as `initial_card_id`, `TRANSFORMED_FROM_CARD`; HSReplay's Joust viewer (no open licence) - an entity id to card id map
+as `initial_card_id`, `TRANSFORMED_FROM_CARD`; HSReplay's Joust viewer (AGPL, ideas only)
+ - an entity id to card id map
 built from the whole game and applied to earlier turns; HearthstoneJSON - card renders.
 
 
