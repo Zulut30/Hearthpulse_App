@@ -371,6 +371,7 @@
     <!-- A button with no chrome: the content draws everything (overlay chips, rows). -->
     <Style Selector="Button.bare">
         <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">

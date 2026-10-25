@@ -361,7 +361,8 @@ public sealed class AccountTests : IDisposable
     public async Task A_restored_sign_in_near_its_end_asks_to_sign_in_again()
     {
         _site.Issue("ref-saved");
-        _store.Save("ref-saved", new AccountUser("u-42", "Anna", Entitlements.None), DateTime.UtcNow.AddDays(1), Site);
+        // On the test clock, not the real one: the service reads _now, and a real date drifts away from it.
+        _store.Save("ref-saved", new AccountUser("u-42", "Anna", Entitlements.None), _now.AddDays(1), Site);
 
         var account = Service();
         await account.RestoreAsync();

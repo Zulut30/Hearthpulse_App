@@ -11,6 +11,8 @@ and how to repeat the sync.
   scripts. `42615b9` (0.7.7) and `955c07d` (0.7.9) differ in 18 and 27 files, so `d26cb30e` is the base.
 - Synced up to upstream `e8b33b74` (merge of PR #9; its last real commit is `84edebe`). Upstream merge commits add
   no changes of their own and were skipped.
+- Upstream later rewrote its history (root `52b5502` = `e8b33b74` + the 0.12 redesign); since then synced up to
+  `3e5c1bc`, see "Upstream history rewrite" below.
 
 ## Porting rules
 
@@ -136,16 +138,54 @@ animations (unchanged, see the design skill's known gaps).
 - `ParserTests.Rank_display` (culture) and `RealLogTests.Battlegrounds_view_tracks_lobby_boards_and_combats`
   (machine-dependent) predate this branch and are fixed on `claude/quality-hardening-431c90` (`6c43c3c`), not here.
 
+## Upstream history rewrite (October 2026)
+
+Upstream force-pushed a new history: its root `52b5502` "Initial commit" (23 Oct 2026) is the old head `e8b33b74`
+plus the 0.12 redesign (Fraunces/Manrope fonts, theme and palette, `Scallop`/`Ornament`/`Wave` controls, main and
+overlay views, version 0.12.1; 64 files). The old upstream commits (`d26cb30e` … `e8b33b74`) are no longer on
+`upstream/main`; the hashes in the table above still name them. The 0.12 redesign in that root is not ported: our
+design follows `.claude/skills/hearthpulse-design` and our 0.12.0 is our own release.
+
+Ported from the new history (branch `upstream-port-ee5db74-3e5c1bc`, same rules as above):
+
+| Upstream | Ours | Subject | Status |
+|---|---|---|---|
+| `ee5db74` | `e0a215a` | Simulator accuracy, 64-bit overflow guards, odds clamps | Adapted: core + tests |
+| `bd478d4` | — | Custom WPF installer, landing site, design preview | Skipped (installer/site) |
+| `8d3bbeb` | — | Release notes clean-up | Skipped (release notes) |
+| `096c4fb` | — | Release notes clean-up | Skipped (release notes) |
+| `6c02a7a` | — | Custom setup wizard on Windows | Skipped (installer) |
+| `3e5c1bc` | `014fda9` | Find the game's memory values at runtime | Adapted: `HearthstoneMemory.cs` only, stricter |
+
+- `ee5db74`: `CombatSimulator` (zero runs, exact 100 % / 0 %, rates clamped and summing to 1), `Fight`/`Side` (stat
+  arithmetic in 64 bits, clamped to `int`) as upstream. Not taken: the `OverlayViewModel` hunks in both UIs (the
+  overlay keeps ">99.9%" / "<0.1%") and the `ChoiceTrackingTests` hunk (`6dd4516` already fixed that test our way).
+  Tests taken: `AccuracyAndOddsTests` (12), `FiftyCombatDeepAccuracyTests` (1) and the 5,000-setup test of
+  `MultithreadedFiveThousandSimulationsTests` (~2 s); its 16M-fight stress test (~42 s) is left out. Follow-up
+  `510a5b2` (ours) clamps the aura deltas in `Fight.RefreshSide` the same way (`StatOverflowTests`).
+- `3e5c1bc`: only `HearthstoneMemory.cs`; the version bump (0.12.3), installer, workflow, release notes and `site/`
+  hunks are dropped. Upstream's fallbacks matched fields by substring and any plausible int, which could read fields
+  we never read; ours fall back only to the same field name respelled (`CanonicalFieldName`: `m_`/`s_` prefix,
+  `<X>k__BackingField`, underscores, case), drop `DiscoverRatingValue`, read only the solo/Duos rating fields in
+  `DiscoverRating`, and match `Player`/`ZoneGameModeButton` by exact name. Every field read is one read before;
+  the only new place is `DiscoverRating`. It runs only when the client has no `NetCacheBaconRatingInfo` class
+  (not for an unrated 0/0 player), at most every 3 minutes, and reads the same solo/Duos rating fields on the one
+  NetCache object whose class name has "Rating" and "Bacon"/"Battlegrounds"; none or several give null
+  (`MemoryRatingLookupTests`). The leaderboard hover still falls back to `m_entity` when `m_playerHeroEntity` is null. New
+  metadata-only reads: class field tables (`AllFields`) for the respelled-name fallback.
+  `GetHoveredCardId` (our `InputManager` read) is unchanged.
+
 ## Repeating the sync
 
 ```
 git remote add upstream https://github.com/Dev-NotAqua/HeartLens.git   # once
 git config remote.upstream.tagOpt --no-tags                           # upstream tags would clash with ours
 git fetch upstream
-git log --oneline --no-merges --reverse 84edebe..upstream/main        # what is new
+git log --oneline --no-merges --reverse 3e5c1bc..upstream/main        # what is new
 ```
 
-Last ported upstream commit: `84edebe` (head `e8b33b74`). To keep conflicts real, port from a rebranded copy of
+Last ported upstream commit: `3e5c1bc` (new history; the next sync counts from it). Before the rewrite it was
+`84edebe` (head `e8b33b74`). To keep conflicts real, port from a rebranded copy of
 upstream: check out the last ported upstream commit in a scratch worktree, apply the rebrand rules above to paths
 and contents, commit, then for each new upstream commit apply its `git diff <c>^ <c>` with the same `sed`
 substitutions (`git apply --index`) and commit with the upstream author. Cherry-pick those rebranded commits onto
