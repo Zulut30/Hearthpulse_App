@@ -1,8 +1,8 @@
 # Card pool panel ("Discover pool")
 
-For a card that Discovers or creates random cards, the overlay shows the pool the cards come from: size,
-Cost/Attack/Health histograms with medians, the share of each mechanic, a highlighted card and, on right-click, the pool
-browser with every card. Everything is built from game data and card text; no code of other trackers was used. The
+For a card that Discovers or creates random cards, the overlay shows the pool the cards come from, next to the card:
+size, classes, format and source, a large Cost/Attack/Health chart with the median, the share of each mechanic, the most
+played pool cards and, on right-click, the pool browser with every card. Everything is built from game data and card text; no code of other trackers was used. The
 idea of a pool panel with a list of options is known from HDT's Outfinder; the layout here follows the spec this
 project was given.
 
@@ -138,7 +138,8 @@ python3 -I tools/cardpool/gen_pool_tables.py cards.enUS.json src/Hearthpulse.Cor
 
 ## Mechanic percentages
 
-Share of pool cards per mechanic, highest first, at most 12 tiles. A mechanic counts when it is in the card's
+Share of pool cards per mechanic, highest first, at most 8 bars (`PoolStats.MaxMechanics`; the most common one fills
+its track, the share is written next to it). A mechanic counts when it is in the card's
 `mechanics` or `referencedTags` (so "Give a minion Taunt" counts as Taunt). Shown mechanics and labels:
 `PoolKeywords.Shown`; technical tags (TRIGGER_VISUAL, AURA, ImmuneToSpellpower...) are not shown. Mechanics every pool
 card has (the filter itself, e.g. Battlecry in a Battlecry pool) and those no card has are left out.
@@ -156,6 +157,16 @@ Text rules (`PoolStats`, over the English text):
 Cost 0..6 and 7+ (all pool cards); Attack 0..6 and 7+ (minions and weapons); Health 1..9 and 10+ (minions). The
 median is the usual median of the cards that have the stat (halves shown as 3.5); its bar is highlighted.
 
+The panel draws one stat at a time as a large chart: tabs Cost / Attack / Health (only stats some pool card has),
+rounded bars with a gradient per stat (tokens `PoolStatCostBar`, `PoolStatAttackBar`, `PoolStatHealthBar`; keys starting
+with `PoolStat` are never recoloured by a theme), the count and share above each bar, the median bar with a sheen and an
+outline, and an axis of mana gems (Cost), round tokens (Attack) or drops (Health). The panel lets clicks through, so it
+reacts to hover only: the pointer on a tab switches the chart, on a column lists that column's cards over the lower part
+of the panel (`PoolStats.CardsIn`: the most played in meta decks first, 14 at most, "+N more"). Below the chart: the
+mechanic bars and the four most played pool cards as art thumbnails (`PoolStats.TopCards`; hidden without meta data).
+Everything is built when the pool changes; a tab or a column only rebuilds the chart. The bars grow in (260 ms) on a
+new pool or tab in WPF when Windows' animation setting is on; the Avalonia UI does not animate.
+
 ## When the panel shows
 
 `CardPoolTracker` (an `IPowerListener`), in priority order:
@@ -164,8 +175,8 @@ median is the usual median of the cards that have the stat (halves shown as 3.5)
 2. **Requested**: `GameSession.ShowCardPool(cardId)` / `ShowCardPool(null)` opens the browser for a card. It is the hook
    for hover over deck and hand rows, which another branch reworks; today only `--render-ui` calls it.
    `GameSession.BuildCardPool(cardId, context)` builds a view outside the live game.
-3. **Hover in hand**: the card under the mouse, read from game memory every 200 ms on its own thread, when it is in
-   your hand (`GameState` HAND zone).
+3. **Hover**: the card under the mouse, read from game memory every 200 ms on its own thread, when it is in your hand
+   (`GameState` HAND zone) or one of your minions or locations on the board (PLAY zone, `ZONE_POSITION` > 0).
 4. **Just played**: a generator you played (`PLAY` block), for 6 s of log time (the hover thread also ends it when the
    log is quiet).
 
@@ -180,8 +191,25 @@ and the mouse buttons are read globally - WPF while the panel is shown; Avalonia
 `XQueryPointer` on X11), the same way the other click-through panels get the pointer. Only the pool browser takes the
 mouse. `OverlayViewModel.UpdateCardPoolPointer` holds the pool only after the pointer has rested on the panel for
 350 ms (crossing the board does not keep a stale pool up). A right-click on the panel opens or closes the browser,
-except while the left button is down (targeting); the game receives that right-click too. The panel starts at the top
-left (324 units wide, next to the opponent panel), clear of the Discover options.
+except while the left button is down (targeting); the game receives that right-click too.
+
+### Where the panel stands
+
+Next to its card, like a tooltip, without covering the game's own enlarged preview (`CardPoolTracker.AnchorOf` ->
+`ConstructedView.CardPoolAnchor`, placed by `PoolPlacement`; no new game memory reads, only the zone, `ZONE_POSITION`
+and counts the log already gives):
+
+- **Hand** (hover): beside the preview that rises above the hovered card, towards the middle of the screen, its bottom
+  above the hand.
+- **Board** (hover, or a minion just played): on the side away from the preview the game draws beside a minion (right of
+  minions on the left half, left of those on the right half); past the preview when the screen ends there.
+- **Discover**: right of the row of options (left of it when there is no room).
+
+The geometry is measured on 16:9 screenshots in units of a 1080-high screen centred horizontally, the way Hearthstone
+lays out its board; the panel undoes the player's overlay scale and is kept on screen. Two copies of the hovered card in
+hand: the leftmost. A pool whose card is not on screen (a request, a played spell) and the layout mode use the movable
+panel `card-pool` (top left by default, 372 units wide, next to the opponent panel), clear of the Discover options. The
+panel next to its card is a second `CardPoolPanel` in a Canvas over the surface (`Anchored`), not a `MovablePanel`.
 
 ## Pool browser ("all options")
 

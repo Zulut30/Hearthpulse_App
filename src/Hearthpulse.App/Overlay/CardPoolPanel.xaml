@@ -3,123 +3,265 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
              xmlns:p="clr-namespace:Hearthpulse.Core.CardPool;assembly=Hearthpulse.Core">
-    <!-- The card pool panel (MovablePanel "card-pool"); DataContext is the OverlayViewModel. -->
+    <!-- The card pool panel: at its own spot (MovablePanel "card-pool") or next to its card (the card pool layer).
+         DataContext is the OverlayViewModel. -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
 
-        <ItemsPanelTemplate x:Key="BarRow">
-            <UniformGrid Rows="1" />
-        </ItemsPanelTemplate>
-
-        <DataTemplate x:Key="HistogramTemplate" DataType="{x:Type o:PoolHistogramModel}">
-            <StackPanel Margin="5,0">
-                <TextBlock x:Name="Title" Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{StaticResource ManaGem}" />
-                <!-- Tag carries the histogram's colour down to its bars. -->
-                <ItemsControl x:Name="Bars" ItemsSource="{Binding Bars}" ItemsPanel="{StaticResource BarRow}" Height="36" Margin="0,4,0,0" Tag="{StaticResource ManaGem}" Focusable="False">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type o:PoolBarModel}">
-                            <Border x:Name="Bar" Height="{Binding Height}" VerticalAlignment="Bottom" Margin="1,0" CornerRadius="1.5" ToolTip="{Binding ToolTip}"
-                                    Background="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsMedian}" Value="True">
-                                    <Setter TargetName="Bar" Property="Background" Value="{StaticResource Text}" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <Border Height="1" Background="{StaticResource OverlayBorder}" />
-                <ItemsControl ItemsSource="{Binding Bars}" ItemsPanel="{StaticResource BarRow}" Focusable="False">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type o:PoolBarModel}">
-                            <TextBlock Text="{Binding Label}" FontSize="8.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Text="{Binding MedianText}" FontFamily="{StaticResource DisplayFont}" FontSize="17" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0" />
-                <TextBlock Text="{i:Loc Pool.Median}" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,-2,0,0" />
-            </StackPanel>
-            <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding IsAttack}" Value="True">
-                    <Setter TargetName="Title" Property="Foreground" Value="{StaticResource TierS}" />
-                    <Setter TargetName="Bars" Property="Tag" Value="{StaticResource TierS}" />
+        <!-- The colour of the chart's stat, handed down to bars and axis gems through Tag. -->
+        <Style x:Key="StatBrushHost" TargetType="ItemsControl">
+            <Setter Property="Tag" Value="{StaticResource PoolStatCostBar}" />
+            <Setter Property="Focusable" Value="False" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding CardPoolStat}" Value="Attack">
+                    <Setter Property="Tag" Value="{StaticResource PoolStatAttackBar}" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding IsHealth}" Value="True">
-                    <Setter TargetName="Title" Property="Foreground" Value="{StaticResource Negative}" />
-                    <Setter TargetName="Bars" Property="Tag" Value="{StaticResource Negative}" />
+                <DataTrigger Binding="{Binding CardPoolStat}" Value="Health">
+                    <Setter Property="Tag" Value="{StaticResource PoolStatHealthBar}" />
                 </DataTrigger>
-            </DataTemplate.Triggers>
-        </DataTemplate>
+            </Style.Triggers>
+        </Style>
 
-        <DataTemplate x:Key="MechanicTemplate" DataType="{x:Type p:PoolMechanic}">
-            <Border Background="{StaticResource Surface3}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="6"
-                    Padding="8,3,8,4" Margin="0,0,5,5" MinWidth="62">
-                <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="{Binding PercentText}" FontFamily="{StaticResource DisplayFont}" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center" />
-                    <TextBlock Text="{Binding Label}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                </StackPanel>
-            </Border>
-        </DataTemplate>
+        <Style x:Key="Chip" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Surface3}" />
+            <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="7,2,7,3" />
+            <Setter Property="Margin" Value="0,0,5,5" />
+        </Style>
 
-        <DataTemplate x:Key="SectionTemplate" DataType="{x:Type o:PoolChipModel}">
-            <Border Background="{StaticResource Surface3}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="6" Padding="7,2" Margin="0,0,5,4">
-                <TextBlock Text="{Binding Label}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Text}" />
-            </Border>
-        </DataTemplate>
+        <Style x:Key="PoolLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
 
+        <!-- A small mana gem with a number (bucket list, top cards) -->
+        <DataTemplate x:Key="CostGem" DataType="{x:Type p:PoolEntry}">
+            <Grid Width="18" Height="18">
+                <Path Data="M9,0 L17,6.5 L14,17.5 L4,17.5 L1,6.5 Z" Fill="{StaticResource PoolStatCostBar}" Stroke="{StaticResource Bg}" StrokeThickness="1" Stretch="Fill" />
+                <TextBlock Text="{Binding Cost}" FontFamily="{StaticResource DisplayFont}" FontSize="10" FontWeight="Bold" Foreground="White"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0" />
+            </Grid>
+        </DataTemplate>
     </UserControl.Resources>
 
     <!-- Not interactive: clicks reach the board and the Discover options under it; hover and right-click are polled. -->
-    <Border x:Name="Card" Style="{StaticResource OverlayCard}" Width="324" Background="{StaticResource OverlayPanelSolid}">
-        <StackPanel Margin="10,9,10,8">
-            <TextBlock Text="{Binding CardPoolTitle}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
-            <TextBlock Text="{Binding CardPoolDescription}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextAlignment="Center"
-                       TextWrapping="Wrap" Margin="0,1,0,0" />
-            <!-- The generator's separate pools (Hearthstone Wiki: one per rune...) and where the pool comes from -->
-            <ItemsControl ItemsSource="{Binding CardPoolSections}" ItemTemplate="{StaticResource SectionTemplate}" Margin="0,6,0,0" HorizontalAlignment="Center" Focusable="False"
-                          Visibility="{Binding CardPoolSections, Converter={StaticResource Vis}}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel HorizontalAlignment="Center" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-            </ItemsControl>
-            <TextBlock Text="{Binding CardPoolSourceNote}" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,2,0,0"
-                       Visibility="{Binding CardPoolSourceNote, Converter={StaticResource Vis}}" />
-            <ItemsControl ItemsSource="{Binding CardPoolHistograms}" ItemTemplate="{StaticResource HistogramTemplate}" Margin="-5,9,-5,0" Focusable="False">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Rows="1" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-            </ItemsControl>
+    <Border x:Name="Card" Style="{StaticResource OverlayCard}" Width="372" Background="{StaticResource OverlayPanelSolid}">
+        <StackPanel>
+            <!-- ===== Summary: pool size, the generator's words, classes, format, source, sections ===== -->
+            <StackPanel Margin="14,11,14,0">
+                <TextBlock Text="{Binding CardPoolTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="19" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding CardPoolPhrase}" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,1,0,0" />
+                <WrapPanel Margin="0,8,0,0">
+                    <Border Style="{StaticResource Chip}" Visibility="{Binding CardPoolClasses, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{Binding CardPoolClasses}" FontSize="10.5" FontWeight="SemiBold" />
+                    </Border>
+                    <Border Style="{StaticResource Chip}" Visibility="{Binding CardPoolFormat, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{Binding CardPoolFormat}" FontSize="10.5" FontWeight="SemiBold" />
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding CardPoolSections}" Focusable="False" Visibility="{Binding CardPoolSections, Converter={StaticResource Vis}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type o:PoolChipModel}">
+                                <Border Style="{StaticResource Chip}" Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}">
+                                    <TextBlock Text="{Binding Label}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border Style="{StaticResource Chip}" Background="Transparent" Visibility="{Binding CardPoolSourceNote, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{Binding CardPoolSourceNote}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" MaxWidth="320" />
+                    </Border>
+                </WrapPanel>
+            </StackPanel>
 
-            <!-- Highlighted card: most played in meta decks -->
-            <Border Margin="-10,8,-10,0" Height="30" Background="{StaticResource Row}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="0,1"
-                    Visibility="{Binding CardPoolFeatured, Converter={StaticResource Vis}}" ToolTip="{Binding CardPoolFeaturedNote}">
-                <Grid>
-                    <Grid Width="200" HorizontalAlignment="Right">
-                        <Image i:CardArt.Tile="{Binding CardPoolFeatured.CardId}" Width="150" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                        <Rectangle Fill="{StaticResource TileFade}" />
+            <!-- ===== Chart: tabs (hover to switch), bars with count and share, axis of gems; hover a column for its cards ===== -->
+            <Border Margin="10,4,10,0" Padding="10,8,10,8" CornerRadius="8" Background="{StaticResource Decor}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
+                    Visibility="{Binding CardPoolBars, Converter={StaticResource Vis}}">
+                <StackPanel>
+                    <Grid>
+                        <ItemsControl ItemsSource="{Binding CardPoolTabs}" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type o:PoolChartTab}">
+                                    <Border x:Name="Tab" Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="2,1,2,3" Margin="0,0,12,0">
+                                        <TextBlock x:Name="TabText" Text="{Binding Label}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Faint}" />
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Selected}" Value="True">
+                                            <Setter TargetName="Tab" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                            <Setter TargetName="TabText" Property="Foreground" Value="{StaticResource Text}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="6" Padding="7,1,7,2" Background="{StaticResource AccentSoft}">
+                            <TextBlock Text="{Binding CardPoolMedianText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}" />
+                        </Border>
                     </Grid>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="&#xF04CE;" FontFamily="{StaticResource IconFont}" FontSize="13" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <TextBlock Text="{Binding CardPoolFeatured.Name}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Grid>
+
+                    <ItemsControl x:Name="Bars" ItemsSource="{Binding CardPoolBars}" Style="{StaticResource StatBrushHost}" Margin="-2,8,-2,0" RenderTransformOrigin="0.5,1">
+                        <ItemsControl.RenderTransform>
+                            <ScaleTransform x:Name="BarsScale" ScaleY="1" />
+                        </ItemsControl.RenderTransform>
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type o:PoolChartBar}">
+                                <!-- The whole column is the hover target (a transparent background is hit-testable). -->
+                                <Border x:Name="Column" Background="Transparent" CornerRadius="6" Margin="1,0" Padding="0,2,0,3">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="128" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel VerticalAlignment="Bottom">
+                                            <TextBlock x:Name="CountText" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" />
+                                            <TextBlock Text="{Binding PercentText}" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,-1,0,2" />
+                                            <Grid Height="{Binding Height}" Margin="4,0">
+                                                <Border x:Name="Bar" CornerRadius="5,5,1,1" Background="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                                <Border x:Name="Shine" CornerRadius="5,5,1,1" Background="{StaticResource PoolStatShine}" BorderBrush="{StaticResource Text}" BorderThickness="1.5" Visibility="Collapsed" />
+                                            </Grid>
+                                        </StackPanel>
+                                        <!-- Axis: a mana gem (Cost), a round attack token or a health drop, with the value -->
+                                        <Grid Grid.Row="1" Width="22" Height="22" Margin="0,5,0,0">
+                                            <Path x:Name="CostGem" Data="M11,0 L21,8 L17.5,21 L4.5,21 L1,8 Z" Stretch="Fill"
+                                                  Fill="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Stroke="{StaticResource Bg}" StrokeThickness="1" />
+                                            <Ellipse x:Name="AttackGem" Visibility="Collapsed"
+                                                     Fill="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Stroke="{StaticResource Bg}" StrokeThickness="1" />
+                                            <Path x:Name="HealthGem" Visibility="Collapsed" Stretch="Fill"
+                                                  Data="M11,0 C14,5 21,9 21,14 C21,18.5 16.5,22 11,22 C5.5,22 1,18.5 1,14 C1,9 8,5 11,0 Z"
+                                                  Fill="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Stroke="{StaticResource Bg}" StrokeThickness="1" />
+                                            <TextBlock Text="{Binding Label}" FontFamily="{StaticResource DisplayFont}" FontSize="10.5" FontWeight="Bold" Foreground="White"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                                        <Setter TargetName="Bar" Property="Opacity" Value="0.35" />
+                                        <Setter TargetName="CountText" Property="Foreground" Value="{StaticResource Faint}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsMedian}" Value="True">
+                                        <Setter TargetName="Shine" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="CountText" Property="Foreground" Value="{StaticResource Accent}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Hovered}" Value="True">
+                                        <Setter TargetName="Column" Property="Background" Value="{StaticResource Hover}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding DataContext.CardPoolStat, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="Attack">
+                                        <Setter TargetName="CostGem" Property="Visibility" Value="Collapsed" />
+                                        <Setter TargetName="AttackGem" Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding DataContext.CardPoolStat, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="Health">
+                                        <Setter TargetName="CostGem" Property="Visibility" Value="Collapsed" />
+                                        <Setter TargetName="HealthGem" Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </Border>
 
-            <ItemsControl ItemsSource="{Binding CardPoolMechanics}" ItemTemplate="{StaticResource MechanicTemplate}" Margin="0,9,0,0" HorizontalAlignment="Center" Focusable="False">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel HorizontalAlignment="Center" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-            </ItemsControl>
+            <!-- ===== Mechanics and the most played cards; the cards of a hovered column cover them ===== -->
+            <Grid Visibility="{Binding CardPoolHasCards, Converter={StaticResource Vis}}">
+                <StackPanel>
+                    <StackPanel Margin="14,12,14,0" Visibility="{Binding CardPoolMechanicRows, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{i:Loc Pool.Mechanics}" Style="{StaticResource PoolLabel}" />
+                        <ItemsControl ItemsSource="{Binding CardPoolMechanicRows}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type o:PoolMechanicRow}">
+                                    <Grid Height="19">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="164" />
+                                            <ColumnDefinition Width="46" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Label}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                        <Border Grid.Column="1" Height="7" CornerRadius="3.5" Background="{StaticResource Hover}" VerticalAlignment="Center">
+                                            <Border Width="{Binding FillWidth}" HorizontalAlignment="Left" CornerRadius="3.5" Background="{StaticResource PoolMechanicFill}" />
+                                        </Border>
+                                        <TextBlock Grid.Column="2" Text="{Binding PercentText}" FontFamily="{StaticResource DisplayFont}" FontSize="11" FontWeight="Bold"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
 
-            <TextBlock Text="{i:Loc Pool.RightClickHint}" FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0"
+                    <StackPanel Margin="11,12,11,0" Visibility="{Binding CardPoolTopCards, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{i:Loc Pool.FeaturedReason}" Style="{StaticResource PoolLabel}" Margin="3,0,0,6" />
+                        <ItemsControl ItemsSource="{Binding CardPoolTopCards}" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" Columns="4" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type p:PoolEntry}">
+                                    <StackPanel Margin="3,0">
+                                        <Grid Height="58">
+                                            <Border CornerRadius="6" Background="{StaticResource Row}" c:RoundClip.Radius="6">
+                                                <Image i:CardArt.Portrait="{Binding CardId}" Stretch="UniformToFill" />
+                                            </Border>
+                                            <Border CornerRadius="6" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" />
+                                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CostGem}" Focusable="False"
+                                                            HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3,3,0,0" />
+                                        </Grid>
+                                        <TextBlock Text="{Binding Name}" FontSize="10" TextAlignment="Center" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                                   MaxHeight="27" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+
+                <Border Background="{StaticResource Surface}" Visibility="{Binding CardPoolBucketTitle, Converter={StaticResource Vis}}">
+                    <StackPanel Margin="14,12,14,0">
+                        <TextBlock Text="{Binding CardPoolBucketTitle}" Style="{StaticResource PoolLabel}" Foreground="{StaticResource Accent}" />
+                        <ItemsControl ItemsSource="{Binding CardPoolBucketCards}" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="2" VerticalAlignment="Top" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type p:PoolEntry}">
+                                    <DockPanel Height="22" Margin="0,0,8,0">
+                                        <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CostGem}" Focusable="False" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Name}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0,0,0" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding CardPoolBucketMore}" FontSize="10.5" Foreground="{StaticResource Faint}" Margin="0,3,0,0"
+                                   Visibility="{Binding CardPoolBucketMore, Converter={StaticResource Vis}}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <TextBlock Text="{i:Loc Pool.RightClickHint}" FontSize="10.5" FontStyle="Italic" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,10,0,10"
                        Visibility="{Binding CardPoolHasCards, Converter={StaticResource Vis}}" />
+            <Border Height="12" Visibility="{Binding CardPoolHasCards, Converter={StaticResource Vis}, ConverterParameter=!}" />
         </StackPanel>
     </Border>
 </UserControl>

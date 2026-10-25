@@ -15,8 +15,8 @@ public static partial class PoolStats
 
     public const string HealTag = "#HEAL";
 
-    /// <summary>Mechanic tiles at most.</summary>
-    public const int MaxMechanics = 12;
+    /// <summary>Mechanic bars at most.</summary>
+    public const int MaxMechanics = 8;
 
     /// <summary>Cost and Attack: 0..6 and 7+.</summary>
     public static PoolHistogram Histogram(string title, IEnumerable<int> values, int first, int last)
@@ -48,6 +48,31 @@ public static partial class PoolStats
             attacks.Count > 0 ? Histogram("Attack", attacks, 0, 7) : null,
             healths.Count > 0 ? Histogram("Health", healths, 1, 10) : null);
     }
+
+    /// <summary>
+    /// The bar of the <paramref name="stat"/> histogram ("Cost", "Attack", "Health") a pool card is counted in, by the
+    /// same rules as <see cref="Histograms"/>; null when the card has no such stat (a spell's Attack).
+    /// </summary>
+    public static int? Bucket(PoolEntry card, string stat) => stat switch
+    {
+        "Cost" => Math.Clamp(card.Cost, 0, 7),
+        "Attack" when card.Type is "MINION" or "WEAPON" && card.Attack is { } attack => Math.Clamp(attack, 0, 7),
+        "Health" when card.Type == "MINION" && card.Health is { } health => Math.Clamp(health, 1, 10) - 1,
+        _ => null,
+    };
+
+    /// <summary>The pool cards of one histogram bar, most played in meta decks first, then by cost and name.</summary>
+    public static IReadOnlyList<PoolEntry> CardsIn(CardPoolView view, string stat, int bar) =>
+        view.Cards.Where(c => Bucket(c, stat) == bar)
+            .OrderByDescending(c => c.MetaGames).ThenBy(c => c.Cost).ThenBy(c => c.Name, StringComparer.CurrentCulture)
+            .ToList();
+
+    /// <summary>The pool cards played in the most meta-deck games (none without meta data).</summary>
+    public static IReadOnlyList<PoolEntry> TopCards(CardPoolView view, int count) =>
+        view.Cards.Where(c => c.MetaGames > 0)
+            .OrderByDescending(c => c.MetaGames).ThenBy(c => c.Name, StringComparer.CurrentCulture)
+            .Take(count)
+            .ToList();
 
     /// <summary>Mechanic shares, highest first; mechanics every card has (the filter itself) or none has are left out.</summary>
     public static IReadOnlyList<PoolMechanic> Mechanics(IReadOnlyCollection<PoolCard> pool, int max = MaxMechanics)

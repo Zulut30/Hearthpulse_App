@@ -7,22 +7,21 @@ using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.App.Overlay;
 
-/// <summary>One histogram of the card pool panel (Cost, Attack or Health; the view picks the colour).</summary>
-public sealed record PoolHistogramModel(string Title, IReadOnlyList<PoolBarModel> Bars, string MedianText)
-{
-    /// <summary>The title in the interface language (<see cref="Title"/> stays English).</summary>
-    public string Label { get; } = PoolDisplay.Stat(Title);
+/// <summary>A tab of the pool chart: Cost, Attack or Health (<see cref="Stat"/> stays English).</summary>
+public sealed record PoolChartTab(string Stat, string Label, bool Selected);
 
-    public bool IsAttack => Title == "Attack";
-
-    public bool IsHealth => Title == "Health";
-}
-
+/// <summary>One column of the pool chart.</summary>
+/// <param name="Index">The bar's index in its histogram (hover asks for that bar's cards).</param>
+/// <param name="Label">The axis value: "3", "7+".</param>
 /// <param name="Height">Bar height in overlay units.</param>
-public sealed record PoolBarModel(string Label, int Count, double Height, bool IsMedian)
+/// <param name="Hovered">The pointer is on this column: its cards are listed.</param>
+public sealed record PoolChartBar(int Index, string Label, int Count, string PercentText, double Height, bool IsMedian, bool Hovered)
 {
-    public string ToolTip => $"{Label}: {Count}";
+    public bool IsEmpty => Count == 0;
 }
+
+/// <summary>One mechanic of the pool: label, share and the bar's filled width in overlay units.</summary>
+public sealed record PoolMechanicRow(string Label, string PercentText, double FillWidth);
 
 /// <summary>A mechanic filter chip of the pool browser, or (Section) one of the generator's pools.</summary>
 public sealed record PoolChipModel(string Key, string Label, bool Selected, bool Section = false);
@@ -37,7 +36,16 @@ public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards);
 /// </summary>
 public sealed partial class OverlayViewModel
 {
-    private const double BarMaxHeight = 34;
+    private const double BarMaxHeight = 96;
+
+    /// <summary>Width of a mechanic bar's track; the most common mechanic fills it.</summary>
+    private const double MechanicTrack = 164;
+
+    private const int TopCardCount = 4;
+
+    private const int BucketCardCount = 14;
+
+    private static readonly string[] CardPoolStats = ["Cost", "Attack", "Health"];
 
     /// <summary>How long the pointer must rest on the compact panel before it holds the pool.</summary>
     private static readonly TimeSpan CardPoolHoldDelay = TimeSpan.FromMilliseconds(350);
@@ -47,8 +55,21 @@ public sealed partial class OverlayViewModel
     private string _cardPoolTitle = string.Empty;
     private string _cardPoolSource = string.Empty;
     private string _cardPoolDescription = string.Empty;
-    private IReadOnlyList<PoolHistogramModel> _cardPoolHistograms = [];
-    private IReadOnlyList<PoolMechanic> _cardPoolMechanics = [];
+    private string _cardPoolPhrase = string.Empty;
+    private string _cardPoolClasses = string.Empty;
+    private string _cardPoolFormat = string.Empty;
+    private string _cardPoolStat = "Cost";
+    private string _cardPoolChartStat = "Cost";
+    private int? _cardPoolBar;
+    private IReadOnlyList<PoolChartTab> _cardPoolTabs = [];
+    private IReadOnlyList<PoolChartBar> _cardPoolBars = [];
+    private string _cardPoolMedianText = string.Empty;
+    private IReadOnlyList<PoolMechanicRow> _cardPoolMechanicRows = [];
+    private IReadOnlyList<PoolEntry> _cardPoolTopCards = [];
+    private string _cardPoolBucketTitle = string.Empty;
+    private IReadOnlyList<PoolEntry> _cardPoolBucketCards = [];
+    private string _cardPoolBucketMore = string.Empty;
+    private CardPoolAnchor? _cardPoolAnchor;
     private PoolEntry? _cardPoolFeatured;
     private string _cardPoolFeaturedNote = string.Empty;
     private bool _cardPoolHasCards;
@@ -91,13 +112,35 @@ public sealed partial class OverlayViewModel
         {
             if (Set(ref _showCardPool, value))
             {
-                Raise(nameof(ShowCardPoolPanel));
+                RaiseCardPoolShown();
             }
         }
     }
 
-    /// <summary>The compact panel: hidden while the browser (which repeats its header) is open, so they never overlap.</summary>
-    public bool ShowCardPoolPanel => ShowCardPool && !CardPoolBrowserOpen;
+    /// <summary>
+    /// The compact panel at its own (movable) spot, for a pool whose card is not on the screen (a request, a played spell).
+    /// Hidden while the browser (which repeats its header) is open, so they never overlap.
+    /// </summary>
+    public bool ShowCardPoolPanel => ShowCardPool && !CardPoolBrowserOpen && CardPoolAnchor is null;
+
+    /// <summary>The same panel next to its card: the hovered card in hand or on the board, or the Discover options.</summary>
+    public bool ShowCardPoolPopup => ShowCardPool && !CardPoolBrowserOpen && CardPoolAnchor is not null;
+
+    /// <summary>Where the pool's card sits; the overlay places <see cref="ShowCardPoolPopup"/> beside it.</summary>
+    public CardPoolAnchor? CardPoolAnchor
+    {
+        get => _cardPoolAnchor;
+        private set
+        {
+            if (Set(ref _cardPoolAnchor, value))
+            {
+                RaiseCardPoolShown();
+            }
+        }
+    }
+
+    /// <summary>The player's overlay scale, which the popup undoes to stand next to a card of the game.</summary>
+    public double CardPoolOverlayScale => _cardPoolSettings?.OverlayScale ?? 1;
 
     /// <summary>"Pool of 136 cards".</summary>
     public string CardPoolTitle { get => _cardPoolTitle; private set => Set(ref _cardPoolTitle, value); }
@@ -108,9 +151,56 @@ public sealed partial class OverlayViewModel
     /// <summary>What the pool is: "Discover a Battlecry minion · Shaman + Neutral · Standard".</summary>
     public string CardPoolDescription { get => _cardPoolDescription; private set => Set(ref _cardPoolDescription, value); }
 
-    public IReadOnlyList<PoolHistogramModel> CardPoolHistograms { get => _cardPoolHistograms; private set => Set(ref _cardPoolHistograms, value); }
+    /// <summary>The generator's words: "Discover a Battlecry minion" (or why the pool is not computed).</summary>
+    public string CardPoolPhrase { get => _cardPoolPhrase; private set => Set(ref _cardPoolPhrase, value); }
 
-    public IReadOnlyList<PoolMechanic> CardPoolMechanics { get => _cardPoolMechanics; private set => Set(ref _cardPoolMechanics, value); }
+    /// <summary>The classes the pool is cut from: "Shaman + Neutral".</summary>
+    public string CardPoolClasses { get => _cardPoolClasses; private set => Set(ref _cardPoolClasses, value); }
+
+    /// <summary>"Standard", "Wild" or "from the past".</summary>
+    public string CardPoolFormat { get => _cardPoolFormat; private set => Set(ref _cardPoolFormat, value); }
+
+    /// <summary>The chart's stat: "Cost", "Attack" or "Health" (English, for the view's colour triggers).</summary>
+    public string CardPoolStat
+    {
+        get => _cardPoolStat;
+        private set
+        {
+            if (Set(ref _cardPoolStat, value))
+            {
+                Raise(nameof(CardPoolStatIsAttack));
+                Raise(nameof(CardPoolStatIsHealth));
+            }
+        }
+    }
+
+    public bool CardPoolStatIsAttack => _cardPoolStat == "Attack";
+
+    public bool CardPoolStatIsHealth => _cardPoolStat == "Health";
+
+    /// <summary>The chart's tabs; only stats some pool card has.</summary>
+    public IReadOnlyList<PoolChartTab> CardPoolTabs { get => _cardPoolTabs; private set => Set(ref _cardPoolTabs, value); }
+
+    /// <summary>The chart of <see cref="CardPoolStat"/>.</summary>
+    public IReadOnlyList<PoolChartBar> CardPoolBars { get => _cardPoolBars; private set => Set(ref _cardPoolBars, value); }
+
+    /// <summary>"median 4".</summary>
+    public string CardPoolMedianText { get => _cardPoolMedianText; private set => Set(ref _cardPoolMedianText, value); }
+
+    /// <summary>The most common mechanics as bars.</summary>
+    public IReadOnlyList<PoolMechanicRow> CardPoolMechanicRows { get => _cardPoolMechanicRows; private set => Set(ref _cardPoolMechanicRows, value); }
+
+    /// <summary>The pool cards played in the most meta-deck games; empty without meta data.</summary>
+    public IReadOnlyList<PoolEntry> CardPoolTopCards { get => _cardPoolTopCards; private set => Set(ref _cardPoolTopCards, value); }
+
+    /// <summary>"Cost 3: 24 cards" while the pointer is on a chart column; empty otherwise.</summary>
+    public string CardPoolBucketTitle { get => _cardPoolBucketTitle; private set => Set(ref _cardPoolBucketTitle, value); }
+
+    /// <summary>The cards of the column under the pointer (the most played first).</summary>
+    public IReadOnlyList<PoolEntry> CardPoolBucketCards { get => _cardPoolBucketCards; private set => Set(ref _cardPoolBucketCards, value); }
+
+    /// <summary>"+10 more" when the column has more cards than the list shows.</summary>
+    public string CardPoolBucketMore { get => _cardPoolBucketMore; private set => Set(ref _cardPoolBucketMore, value); }
 
     /// <summary>The highlighted pool card (most played in meta decks), or null.</summary>
     public PoolEntry? CardPoolFeatured { get => _cardPoolFeatured; private set => Set(ref _cardPoolFeatured, value); }
@@ -167,7 +257,7 @@ public sealed partial class OverlayViewModel
         {
             if (Set(ref _cardPoolBrowserOpen, value))
             {
-                Raise(nameof(ShowCardPoolPanel));
+                RaiseCardPoolShown();
             }
         }
     }
@@ -257,7 +347,7 @@ public sealed partial class OverlayViewModel
     public void UpdateCardPoolPointer(bool over, bool leftDown, bool rightDown)
     {
         var now = DateTime.UtcNow;
-        over &= ShowCardPoolPanel;
+        over &= ShowCardPoolPanel || ShowCardPoolPopup;
         if (over && !_cardPoolPointerOver)
         {
             _cardPoolPointerSince = now;
@@ -279,6 +369,36 @@ public sealed partial class OverlayViewModel
         _cardPoolRightDown = rightDown;
     }
 
+    /// <summary>
+    /// The pointer on the compact panel's chart (the panel lets clicks through, so this is hover only): a tab switches the
+    /// chart to its stat, a column lists its cards; null and null when the pointer is elsewhere.
+    /// </summary>
+    public void HoverCardPoolChart(string? stat, int? bar)
+    {
+        if (_cardPool is null)
+        {
+            return;
+        }
+
+        if (stat is not null)
+        {
+            if (stat != _cardPoolChartStat && CardPoolTabs.Any(t => t.Stat == stat))
+            {
+                _cardPoolChartStat = stat;
+                _cardPoolBar = null;
+                BuildCardPoolChart();
+            }
+
+            return;
+        }
+
+        if (bar != _cardPoolBar)
+        {
+            _cardPoolBar = bar;
+            BuildCardPoolChart();
+        }
+    }
+
     /// <summary>Called when the drag on the browser's edge ends: saves the width.</summary>
     public void CommitCardPoolBrowserWidth() => CardPoolBrowserResized?.Invoke();
 
@@ -293,6 +413,12 @@ public sealed partial class OverlayViewModel
         }
 
         RebuildCardPoolBrowser();
+    }
+
+    private void RaiseCardPoolShown()
+    {
+        Raise(nameof(ShowCardPoolPanel));
+        Raise(nameof(ShowCardPoolPopup));
     }
 
     private void UpdateCardPool(ConstructedView? view, AppSettings settings)
@@ -318,6 +444,8 @@ public sealed partial class OverlayViewModel
             return;
         }
 
+        // The panel stands next to its card; it stays where it is while the player reads it (above).
+        CardPoolAnchor = pool is null ? null : view?.CardPoolAnchor;
         if (pool is null)
         {
             _cardPool = null;
@@ -357,15 +485,25 @@ public sealed partial class OverlayViewModel
         CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {PoolDisplay.Reason(reason)}" : $"{pool.Phrase} · {pool.Description}";
         CardPoolHasCards = pool.Uncomputed is null;
         CardPoolSourceNote = pool.Uncomputed is null ? Loc.F("Pool.SourceNote", PoolDisplay.Source(pool.Source)) : string.Empty;
+        // Description is "classes · format".
+        var parts = pool.Description.Split(" · ");
+        CardPoolPhrase = pool.Uncomputed is { } why ? $"{pool.SourceName}: {PoolDisplay.Reason(why)}" : pool.Phrase;
+        CardPoolClasses = pool.Uncomputed is null && parts.Length > 1 ? string.Join(" · ", parts[..^1]) : string.Empty;
+        CardPoolFormat = pool.Uncomputed is null ? parts[^1] : string.Empty;
         UpdateSectionChips();
-        CardPoolHistograms = new[] { pool.Cost, pool.Attack, pool.Health }
-            .Where(h => h is { Count: > 0 })
-            .Select(h => new PoolHistogramModel(
-                h!.Title,
-                h.Bars.Select(b => new PoolBarModel(b.Label, b.Count, b.Count == 0 ? 1 : 3 + b.Height * (BarMaxHeight - 3), b.IsMedian)).ToList(),
-                h.MedianText))
+        _cardPoolChartStat = "Cost";
+        _cardPoolBar = null;
+        CardPoolTabs = CardPoolStats
+            .Where(s => HistogramOf(pool, s) is { Count: > 0 })
+            .Select(s => new PoolChartTab(s, PoolDisplay.Stat(s), false))
             .ToList();
-        CardPoolMechanics = pool.Mechanics.Select(PoolDisplay.Mechanic).ToList();
+        BuildCardPoolChart();
+        var mechanics = pool.Mechanics.Take(PoolStats.MaxMechanics).Select(PoolDisplay.Mechanic).ToList();
+        var top = mechanics.Count > 0 ? mechanics.Max(m => m.Percent) : 1;
+        CardPoolMechanicRows = mechanics
+            .Select(m => new PoolMechanicRow(m.Label, m.PercentText, Math.Max(2, MechanicTrack * m.Percent / top)))
+            .ToList();
+        CardPoolTopCards = PoolStats.TopCards(pool, TopCardCount);
         CardPoolFeatured = pool.Featured;
         CardPoolFeaturedNote = PoolDisplay.FeaturedReason(pool.FeaturedReason);
         RebuildCardPoolBrowser();
@@ -404,6 +542,49 @@ public sealed partial class OverlayViewModel
         CardPoolBrowserNote = _cardPoolSelected.Count > 0 || _cardPoolSection is not null ? Loc.P("Pool.Match", cards.Count, CardCount(cards.Count)) : string.Empty;
         CardPoolBrowserRows = cards.Chunk(3).Select(row => new PoolCardRowModel(row)).ToList();
     }
+
+    private static PoolHistogram? HistogramOf(CardPoolView pool, string stat) => stat switch
+    {
+        "Attack" => pool.Attack,
+        "Health" => pool.Health,
+        _ => pool.Cost,
+    };
+
+    /// <summary>The chart of the selected stat and the cards of the column under the pointer; built only when one of them changes.</summary>
+    private void BuildCardPoolChart()
+    {
+        if (_cardPool is not { Uncomputed: null } pool || HistogramOf(pool, _cardPoolChartStat) is not { Count: > 0 } histogram)
+        {
+            CardPoolBars = [];
+            CardPoolBucketCards = [];
+            CardPoolMedianText = CardPoolBucketTitle = CardPoolBucketMore = string.Empty;
+            return;
+        }
+
+        CardPoolStat = _cardPoolChartStat;
+        CardPoolTabs = CardPoolTabs.Select(t => t with { Selected = t.Stat == _cardPoolChartStat }).ToList();
+        CardPoolBars = histogram.Bars
+            .Select((b, i) => new PoolChartBar(
+                i,
+                b.Label,
+                b.Count,
+                b.Count == 0 ? string.Empty : Percent(100.0 * b.Count / histogram.Count),
+                b.Count == 0 ? 2 : 6 + (b.Height * (BarMaxHeight - 6)),
+                b.IsMedian,
+                i == _cardPoolBar))
+            .ToList();
+        CardPoolMedianText = Loc.F("Pool.MedianValue", histogram.MedianText);
+
+        var cards = _cardPoolBar is { } bar && bar < histogram.Bars.Count ? PoolStats.CardsIn(pool, _cardPoolChartStat, bar) : [];
+        CardPoolBucketTitle = cards.Count == 0 ? string.Empty
+            : Loc.P("Pool.Bucket", cards.Count, CardCount(cards.Count), PoolDisplay.Stat(_cardPoolChartStat), histogram.Bars[_cardPoolBar!.Value].Label);
+        CardPoolBucketCards = cards.Take(BucketCardCount).ToList();
+        CardPoolBucketMore = cards.Count > BucketCardCount ? Loc.F("Pool.More", cards.Count - BucketCardCount) : string.Empty;
+    }
+
+    /// <summary>"12%"; "0.5%" under 1%.</summary>
+    private static string Percent(double value) =>
+        value.ToString(value < 1 ? "0.#" : "0", CultureInfo.InvariantCulture) + "%";
 
     /// <summary>The section chips of the current pool; the selected one only while the browser is open.</summary>
     private void UpdateSectionChips() =>

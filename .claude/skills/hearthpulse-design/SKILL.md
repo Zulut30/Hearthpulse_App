@@ -31,7 +31,7 @@ WPF themes work by **rewriting hex literals inside Theme.xaml only**:
   parchment, shifted to `BaseHue` with saturation scaled by `BaseTint`.
 - `src/Hearthpulse.App/Infrastructure/ThemeEngine.cs`: loads the embedded `Hearthpulse.Theme.xaml` (the csproj embeds
   `Themes\Theme.xaml` with that LogicalName), runs every `#RRGGBB`/`#AARRGGBB` through `Map` line by line, and parses
-  the result. Lines whose `x:Key` starts with `Positive|Negative|Info|Rarity|Tier|ManaGem` are never recoloured.
+  the result. Lines whose `x:Key` starts with `Positive|Negative|Info|Rarity|Tier|ManaGem|PoolStat` are never recoloured.
   Windows resolve brushes when created, so the host (`App.xaml.cs` `ApplyTheme`) recreates windows after a change.
 - Settings: `AppSettings.Theme` (default `"Tavern"`), `ThemeAccentHue`, `ThemeBaseHue`, `ThemeBaseTint`. Picker UI:
   `Main/MainViewModel.Theme.cs` (`ThemeChoice` previews use `ThemeEngine.Brush`).

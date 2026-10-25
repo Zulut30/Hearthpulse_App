@@ -5,8 +5,8 @@ namespace Hearthpulse.Core.CardPool;
 
 /// <summary>
 /// Decides which generator's pool the overlay shows. In priority order: an open Discover choice from a known card,
-/// a pool asked for by the UI (<see cref="Request"/>), the generator under the mouse in your hand
-/// (<see cref="SetHovered"/>), and a generator you just played (for <see cref="PlayedFor"/>).
+/// a pool asked for by the UI (<see cref="Request"/>), the generator under the mouse in your hand or on your
+/// board (<see cref="SetHovered"/>), and a generator you just played (for <see cref="PlayedFor"/>).
 /// Log events arrive on the log thread; hover and requests from other threads, hence the lock.
 /// </summary>
 public sealed class CardPoolTracker : IPowerListener
@@ -19,6 +19,7 @@ public sealed class CardPoolTracker : IPowerListener
 
     private readonly object _gate = new();
     private string? _choiceSource;
+    private int _choiceOptions;
     private string? _played;
     private DateTime _playedAt;
     private string? _hovered;
@@ -53,6 +54,7 @@ public sealed class CardPoolTracker : IPowerListener
         lock (_gate)
         {
             _choiceSource = generator;
+            _choiceOptions = options.Count;
         }
     }
 
@@ -136,7 +138,7 @@ public sealed class CardPoolTracker : IPowerListener
         }
     }
 
-    /// <summary>The card under the mouse (from game memory), or null. Only cards in your hand count.</summary>
+    /// <summary>The card under the mouse (from game memory), or null. Only cards in your hand and on your board count.</summary>
     /// <param name="utcNow">Now (UTC); a card the mouse left stays for <see cref="HoverLinger"/>.</param>
     /// <returns>Whether what is shown may have changed (a new card, or the linger ran out).</returns>
     public bool SetHovered(string? cardId, DateTime utcNow)
@@ -162,7 +164,7 @@ public sealed class CardPoolTracker : IPowerListener
     }
 
     /// <summary>
-    /// Whether a card in your hand has a pool the overlay would show on hover. Only then is the card under the mouse worth
+    /// Whether a card in your hand or on your board has a pool the overlay would show on hover. Only then is the card under the mouse worth
     /// reading from the game (a Discover choice comes from the log).
     /// </summary>
     public bool HandHasPool(GameState game, CardDb cards)
@@ -173,7 +175,7 @@ public sealed class CardPoolTracker : IPowerListener
         }
 
         var context = ContextOf(game, cards);
-        foreach (var card in game.Controlled(game.LocalPlayerId, "HAND"))
+        foreach (var card in game.Controlled(game.LocalPlayerId, "HAND").Concat(BoardCards(game)))
         {
             if (card.CardId.Length > 0 && engine.Build(card.CardId, context, PoolTrigger.Hover) is not null)
             {
@@ -213,7 +215,7 @@ public sealed class CardPoolTracker : IPowerListener
             return fromRequest;
         }
 
-        if (hovered is not null && InLocalHand(game, hovered) && engine.Build(hovered, context, PoolTrigger.Hover) is { } fromHover)
+        if (hovered is not null && (InLocalHand(game, hovered) || OnLocalBoard(game, hovered)) && engine.Build(hovered, context, PoolTrigger.Hover) is { } fromHover)
         {
             return fromHover;
         }
@@ -236,6 +238,51 @@ public sealed class CardPoolTracker : IPowerListener
         : hero.GetString(GameTag.Class) is { Length: > 0 } tag && tag != "NEUTRAL" && tag != "INVALID" ? tag
         : null;
 
+    /// <summary>
+    /// Where the card of a pool sits, so the panel can stand next to it: the Discover options, the hovered card in your hand
+    /// or on your board, a generator just played onto the board. Null (the panel's own spot) for a requested pool or a
+    /// played spell. Two copies of a hovered card: the leftmost one.
+    /// </summary>
+    public CardPoolAnchor? AnchorOf(GameState game, CardPoolView? view)
+    {
+        int options;
+        lock (_gate)
+        {
+            options = _choiceOptions;
+        }
+
+        if (view is null || view.Trigger == PoolTrigger.Request)
+        {
+            return null;
+        }
+
+        if (view.Trigger == PoolTrigger.Choice)
+        {
+            return new CardPoolAnchor(PoolAnchorZone.Choice, 0, Math.Clamp(options, 1, 5));
+        }
+
+        var hand = view.Trigger == PoolTrigger.Hover ? Slot(game.Controlled(game.LocalPlayerId, "HAND").ToList(), view.SourceCardId) : null;
+        if (hand is { } h)
+        {
+            return new CardPoolAnchor(PoolAnchorZone.Hand, h.Index, h.Count);
+        }
+
+        return Slot(BoardCards(game).ToList(), view.SourceCardId) is { } b ? new CardPoolAnchor(PoolAnchorZone.Board, b.Index, b.Count) : null;
+    }
+
+    private static (int Index, int Count)? Slot(List<Entity> row, string cardId)
+    {
+        row.Sort((a, b) => a.ZonePosition.CompareTo(b.ZonePosition));
+        var index = row.FindIndex(e => e.CardId == cardId);
+        return index < 0 ? null : (index, row.Count);
+    }
+
+    /// <summary>Your minions and locations on the board (not the hero, hero power or weapon).</summary>
+    private static IEnumerable<Entity> BoardCards(GameState game) =>
+        game.Controlled(game.LocalPlayerId, "PLAY").Where(e => e.CardType is "MINION" or "LOCATION" && e.ZonePosition > 0);
+
     private static bool InLocalHand(GameState game, string cardId) =>
         game.Controlled(game.LocalPlayerId, "HAND").Any(e => e.CardId == cardId);
+
+    private static bool OnLocalBoard(GameState game, string cardId) => BoardCards(game).Any(e => e.CardId == cardId);
 }
