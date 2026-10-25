@@ -43,18 +43,18 @@ public sealed partial class OverlayViewModel
         // Archetype names come from the meta in English; the label follows the interface language.
         var best = odds.Best;
         ArchetypeName = ArchetypeTranslations.Current.Display(best.Key);
-        ArchetypeChance = Percent(best.Chance);
+        ArchetypeChance = SharePercent(best.Chance);
         ArchetypeDetail = Loc.F("Widgets.Archetype.WinRate", best.WinRate);
         ArchetypeNote = Loc.P("Widgets.Archetype.Seen", odds.SeenCards, odds.Source);
         Replace(nameof(ArchetypeAlternatives), odds.Archetypes, a => $"{a.Key}{a.Chance:0.00}", () => ArchetypeAlternatives = odds.Archetypes
             .Skip(1)
-            .Select(a => new ArchetypeRow(ArchetypeTranslations.Current.Display(a.Key), Percent(a.Chance), Math.Clamp(a.Chance, 0.02, 1)))
+            .Select(a => new ArchetypeRow(ArchetypeTranslations.Current.Display(a.Key), SharePercent(a.Chance), Math.Clamp(a.Chance, 0.02, 1)))
             .ToList());
         Replace(nameof(LikelyCards), odds.Cards, c => $"{c.CardId}{c.Chance:0.00}", () => LikelyCards = odds.Cards
-            .Select(c => new LikelyTile(c.CardId, c.Name, c.Cost, Percent(c.Chance)))
+            .Select(c => new LikelyTile(c.CardId, c.Name, c.Cost, SharePercent(c.Chance)))
             .ToList());
     }
 
     /// <summary>"62%"; a near-certain share reads "&gt;99%": the odds are an estimate, never a certainty.</summary>
-    private static string Percent(double share) => share >= 0.995 ? ">99%" : (share * 100).ToString("0", CultureInfo.CurrentCulture) + "%";
+    private static string SharePercent(double share) => share >= 0.995 ? ">99%" : (share * 100).ToString("0", CultureInfo.CurrentCulture) + "%";
 }
