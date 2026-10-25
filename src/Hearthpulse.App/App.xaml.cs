@@ -213,6 +213,7 @@ public partial class App : Application
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
         _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
         _overlayViewModel.PinRequested += OnPinRequested;
+        _overlayViewModel.SecretToggleRequested += _session.ToggleSecret;
         _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
         _overlayViewModel.CounterModeRequested += (id, mode) =>
         {

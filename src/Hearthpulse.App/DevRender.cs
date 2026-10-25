@@ -157,6 +157,7 @@ public partial class App
             await RenderCardPoolAsync(folder);
             await RenderArenaAsync(folder);
             await RenderWidgetsAsync(folder);
+            await RenderSecretsAsync(folder);
 
             _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
             _overlayViewModel.LayoutEditing = true;

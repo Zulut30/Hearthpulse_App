@@ -1453,6 +1453,9 @@
                                                 <Run Text="{Binding LadderSessionBreakHours, Mode=OneWay}" /><Run Text=" " /><Run Text="{i:Loc Widgets.Ladder.HoursUnit}" />
                                             </TextBlock>
                                         </Grid>
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Style="{StaticResource Label}" Margin="0,4,0,10" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Secrets}" IsChecked="{Binding ShowSecrets}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Settings.Overlay.SecretsTip}" />
                                         <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Style="{StaticResource Label}" Margin="0,4,0,10" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.TopBar}" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.TopBarTip}" />

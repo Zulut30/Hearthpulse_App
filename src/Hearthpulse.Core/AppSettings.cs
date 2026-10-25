@@ -108,6 +108,12 @@ public sealed class AppSettings
     /// </summary>
     public bool ShowArenaDraft { get; set; }
 
+    /// <summary>
+    /// The Secrets helper panel: while the opponent has Secrets in play (Constructed and Arena), the Secrets of their
+    /// class and format, crossed out as the game rules them out.
+    /// </summary>
+    public bool ShowSecrets { get; set; } = true;
+
     public const double DefaultCardPoolBrowserWidth = 350;
 
     /// <summary>Width of the card pool browser (the full-height list of a pool's cards), in overlay units.</summary>

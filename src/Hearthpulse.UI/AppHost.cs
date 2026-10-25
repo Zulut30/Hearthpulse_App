@@ -77,6 +77,7 @@ public sealed partial class AppHost : IDisposable
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
         Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
         Overlay.PinRequested += OnPinRequested;
+        Overlay.SecretToggleRequested += Session.ToggleSecret;
         Overlay.CardPoolBrowserResized += OnSettingsChanged;
         Overlay.CounterModeRequested += (id, mode) =>
         {

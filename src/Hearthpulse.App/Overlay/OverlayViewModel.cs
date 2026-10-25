@@ -413,6 +413,7 @@ public sealed partial class OverlayViewModel : Observable
         UpdateArchetype(constructed, settings);
         UpdateTurnTimer(constructed, settings);
         UpdateLadder(snapshot, settings);
+        UpdateSecrets(constructed, settings);
 
         var bg = enabled ? snapshot.Battlegrounds : null;
         _bg = bg;
