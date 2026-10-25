@@ -82,6 +82,9 @@ public sealed class AppSettings
     /// <summary>The opponent's likely archetype and the cards its lists usually run that it has not shown yet.</summary>
     public bool ShowOpponentArchetype { get; set; } = true;
 
+    /// <summary>The turn timers by the hero portraits: the running turn, the rope warning and the average turn.</summary>
+    public bool ShowTurnTimer { get; set; } = true;
+
     public bool ShowDrawChance { get; set; } = true;
 
     /// <summary>Keep rate and win rate over your opening hand while you mulligan.</summary>

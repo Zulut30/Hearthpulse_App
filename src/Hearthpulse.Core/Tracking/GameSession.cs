@@ -32,6 +32,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private readonly HistoryStore _history;
     private readonly HearthstoneMemory _memory;
     private readonly ConstructedTracker _constructed = new();
+    private readonly TurnClock _turnClock;
     private readonly BattlegroundsTracker _battlegrounds = new();
     private readonly GameFactsTracker _facts = new();
     private readonly ReplayRecorder _replay = new();
@@ -117,6 +118,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _history = history;
         _memory = memory;
         _memoryPoller = new MemoryPoller(memory);
+        _turnClock = new TurnClock(() => _parser?.LastTimestamp);
         _history.Changed += () =>
         {
             lock (_statsGate)
@@ -268,6 +270,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_facts);
         _parser.AddListener(_cardPool);
         _parser.AddListener(_replay);
+        _parser.AddListener(_turnClock);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
         _dirty = true;
@@ -871,7 +874,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             else if (inGame && game!.IsConstructedLike && game.LocalPlayerId != 0)
             {
                 constructed = _constructed.BuildView(game, _cards);
-                constructed = WithCardPool(constructed, game);
+                constructed = WithCardPool(constructed, game) with { Turns = _turnClock.View(game) };
             }
         }
         catch (Exception ex)

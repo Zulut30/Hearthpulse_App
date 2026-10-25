@@ -388,6 +388,7 @@ public sealed partial class OverlayViewModel : Observable
         UpdateHandMarks(constructed, settings);
         UpdateCardPool(constructed, settings);
         UpdateArchetype(constructed, settings);
+        UpdateTurnTimer(constructed, settings);
         UpdateLadder(snapshot, settings);
 
         var bg = enabled ? snapshot.Battlegrounds : null;

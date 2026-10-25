@@ -27,5 +27,18 @@
   "Widgets.Ladder.SettingTip": "В оверлее вне игр и на странице «Обзор»",
   "Widgets.Ladder.Break": "Новая сессия через",
   "Widgets.Ladder.BreakTip": "Перерыв такой длины без игр начинает новую сессию ладдера; запуск Hearthstone тоже",
-  "Widgets.Ladder.HoursUnit": "ч"
+  "Widgets.Ladder.HoursUnit": "ч",
+  "Widgets.Turn.Panel": "Таймер хода: ваш",
+  "Widgets.Turn.OpponentPanel": "Таймер хода: соперника",
+  "Widgets.Turn.Mine": "Ваш ход",
+  "Widgets.Turn.Theirs": "Ход соперника",
+  "Widgets.Turn.Of": "из {0}",
+  "Widgets.Turn.Rope": "Верёвка: осталось {0}",
+  "Widgets.Turn.Last": "прошлый ход",
+  "Widgets.Turn.Average": "в среднем {0}",
+  "Widgets.Turn.Setting": "Показывать таймеры хода у портретов героев, с предупреждением о верёвке и средним ходом",
+  "Widgets.Turn.SettingTip": "Время берётся из Power.log; игра может добавить несколько секунд на анимации",
+  "Widgets.Turn.Tile": "Средний ход",
+  "Widgets.Turn.TileValue": "{0} / {1}",
+  "Widgets.Turn.TileDetail": "вы / соперник · самый долгий {0}"
 }

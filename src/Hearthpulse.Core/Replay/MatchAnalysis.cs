@@ -86,6 +86,25 @@ public sealed class MatchAnalysis
 
     public string MetaNote { get; private init; } = string.Empty;
 
+    /// <summary>
+    /// The average turn of each player, from the turn starts the replay keeps. The first turn is left out: its clock in
+    /// the log starts with the mulligan.
+    /// </summary>
+    internal static AnalysisTile? TurnTimeTile(IReadOnlyList<ReplayTurn> turns)
+    {
+        var timed = turns.Where(t => t is { Turn: >= 2, Seconds: not null, Player: not null }).ToList();
+        var local = timed.Where(t => t.Player == ReplayPlayer.Local).Select(t => t.Seconds!.Value).ToList();
+        var opponent = timed.Where(t => t.Player == ReplayPlayer.Opponent).Select(t => t.Seconds!.Value).ToList();
+        if (local.Count == 0 && opponent.Count == 0)
+        {
+            return null;
+        }
+
+        static string Average(List<int> seconds) => seconds.Count == 0 ? "—" : Tracking.TurnClockView.Format(TimeSpan.FromSeconds(seconds.Average()));
+        var longest = local.Count == 0 ? "—" : Tracking.TurnClockView.Format(TimeSpan.FromSeconds(local.Max()));
+        return new AnalysisTile(Loc.T("Widgets.Turn.Tile"), Loc.F("Widgets.Turn.TileValue", Average(local), Average(opponent)), Loc.F("Widgets.Turn.TileDetail", longest));
+    }
+
     /// <param name="opponentArchetype">The opponent's archetype as the page names it (saved with the game, or guessed from its cards).</param>
     public static MatchAnalysis Build(GameRecord game, MatchReplay replay, CardDb cards, ConstructedMeta? meta, string? opponentArchetype = null)
     {
@@ -129,6 +148,10 @@ public sealed class MatchAnalysis
             new(Loc.T("Match.Analysis.Played"), replay.LocalPlayed.Sum(c => c.Count).ToString(CultureInfo.CurrentCulture),
                 Loc.F("Match.Analysis.PlayedOpponent", replay.OpponentPlayed.Sum(c => c.Count))),
         };
+        if (TurnTimeTile(turns) is { } turnTime)
+        {
+            tiles.Add(turnTime);
+        }
 
         return new MatchAnalysis
         {

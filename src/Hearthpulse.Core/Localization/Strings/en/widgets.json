@@ -27,5 +27,18 @@
   "Widgets.Ladder.SettingTip": "In the overlay outside games and on the Overview page",
   "Widgets.Ladder.Break": "New session after",
   "Widgets.Ladder.BreakTip": "A break this long with no game starts a new ladder session; so does starting Hearthstone",
-  "Widgets.Ladder.HoursUnit": "h"
+  "Widgets.Ladder.HoursUnit": "h",
+  "Widgets.Turn.Panel": "Turn timer: yours",
+  "Widgets.Turn.OpponentPanel": "Turn timer: opponent's",
+  "Widgets.Turn.Mine": "Your turn",
+  "Widgets.Turn.Theirs": "Opponent's turn",
+  "Widgets.Turn.Of": "of {0}",
+  "Widgets.Turn.Rope": "Rope: {0} left",
+  "Widgets.Turn.Last": "last turn",
+  "Widgets.Turn.Average": "avg {0}",
+  "Widgets.Turn.Setting": "Show turn timers by the hero portraits, with the rope warning and the average turn",
+  "Widgets.Turn.SettingTip": "Timed from Power.log; the game may add a few seconds for animations",
+  "Widgets.Turn.Tile": "Average turn",
+  "Widgets.Turn.TileValue": "{0} / {1}",
+  "Widgets.Turn.TileDetail": "you / opponent · longest {0}"
 }
