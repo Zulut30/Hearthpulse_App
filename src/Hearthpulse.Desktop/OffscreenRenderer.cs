@@ -145,6 +145,7 @@ internal static partial class OffscreenRenderer
         }
 
         await RenderCountersAsync(folder, host, settings, overlay, overlayView);
+        await RenderCombatOddsAsync(folder, host, settings, overlay, overlayView);
         // The mulligan guide over the newest kept Standard game's opening hand (the meta's archetypes as the app's fallback).
         var constructedMeta = await Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(host.Api), host.Cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, host.Cards.Locale);
         // 3 cards going first, 4 on the coin, and the first one again without numbers (no API, no meta).

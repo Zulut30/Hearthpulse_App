@@ -190,6 +190,11 @@ public sealed partial class MainViewModel
 
     public string BgStatsNote { get => _bgStatsNote; private set => Set(ref _bgStatsNote, value); }
 
+    private string _bgSimAccuracy = string.Empty;
+
+    /// <summary>One line on how well the combat simulator predicted these games' fights; empty without predictions.</summary>
+    public string BgSimAccuracy { get => _bgSimAccuracy; private set => Set(ref _bgSimAccuracy, value); }
+
     public IReadOnlyList<StatTile> CtStatTiles { get => _ctStatTiles; private set => Set(ref _ctStatTiles, value); }
 
     public IReadOnlyList<IChartValue> CtRankChart { get => _ctRankChart; private set => Set(ref _ctRankChart, value); }
@@ -356,9 +361,16 @@ public sealed partial class MainViewModel
             : meta is null
                 ? Loc.T("Stats.Bg.NoteLoading")
                 : Loc.F("Stats.Bg.NoteSource", meta.Source, BattlegroundsMeta.BracketLabel(meta.WidestBracket));
+        // Duos fights are not predicted with damage (the loser of one board is not the one who takes it).
+        var accuracy = duos ? null : BattlegroundsStats.SimAccuracy(games);
+        var accuracyText = accuracy is not { Fights: > 0 }
+            ? string.Empty
+            : Loc.F("Stats.Bg.SimAccuracy", accuracy.DamageRate is { } dr ? dr.ToString("P0", CultureInfo.CurrentCulture) : "—",
+                accuracy.ResultRate!.Value.ToString("P0", CultureInfo.CurrentCulture), accuracy.Fights);
         return () =>
         {
             BgStatTiles = tiles;
+            BgSimAccuracy = accuracyText;
             BgPlaceShares = shares;
             BgAveragePlace = summary.AveragePlacement ?? double.NaN;
             BgRatingChart = chart;

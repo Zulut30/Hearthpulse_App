@@ -54,7 +54,7 @@ Core folders:
   API by `ApiConstructedMeta` (HSGuru meta/decks + HSReplay mulligan, names via `ArchetypeNames`; docs/constructed-meta-api.md).
 - `Data/HistoryStore.cs` (SQLite `history.db`), `Data/LogBackfill.cs` (imports games from kept Power logs). Columns added
   after the first schema go in `HistoryStore.AddedColumns` (ALTER TABLE on open, NULL in old rows): `combat_results`
-  (BG combats JSON), `offered_heroes`, `anomaly`, `rank_star_level`, `rank_legend`, `went_first`, `deck_id`, and the deck
+  (BG combats JSON), `combat_odds` (the simulator's prediction per combat, for the accuracy line), `offered_heroes`, `anomaly`, `rank_star_level`, `rank_legend`, `went_first`, `deck_id`, and the deck
   page's card columns `mulligan`, `cards_drawn`, `cards_played`, `opponent_cards`, `opponent_archetype` (JSON via
   `Data/GameCards.cs`; lists read them as NULL, `HistoryStore.WithCards` reads them for one deck's games).
   `Tracking/GameFactsTracker.cs` keeps the BG hero offer for the row; `GameFactsTracker.Cards.cs` the Constructed

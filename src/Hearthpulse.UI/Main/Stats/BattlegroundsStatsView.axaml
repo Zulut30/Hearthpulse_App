@@ -27,19 +27,23 @@
             </Border>
         </Grid>
 
-        <!-- Highest MMR, average placement, games, time played, and where you finish -->
+        <!-- Highest MMR, average placement, games, time played, and where you finish; the combat simulator's accuracy -->
         <Border Classes="card" Margin="0,0,0,16">
-            <Grid RowDefinitions="Auto,Auto">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <ItemsControl Classes="statsLeft" ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel}" Margin="0,0,0,-14" />
-                <StackPanel Classes="statsSide" Margin="10,0,0,0" ToolTip.Tip="{i:Loc Stats.Bg.PlacementsTip}">
-                    <TextBlock Text="{i:Loc Stats.Bg.Placements}" Classes="label" />
-                    <c:MiniBars Width="190" Height="62" Margin="0,10,0,0" Values="{Binding BgPlaceShares}" Marker="{Binding BgAveragePlace}" ShowLabels="True" />
-                </StackPanel>
-            </Grid>
+            <StackPanel>
+                <Grid RowDefinitions="Auto,Auto">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ItemsControl Classes="statsLeft" ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel}" Margin="0,0,0,-14" />
+                    <StackPanel Classes="statsSide" Margin="10,0,0,0" ToolTip.Tip="{i:Loc Stats.Bg.PlacementsTip}">
+                        <TextBlock Text="{i:Loc Stats.Bg.Placements}" Classes="label" />
+                        <c:MiniBars Width="190" Height="62" Margin="0,10,0,0" Values="{Binding BgPlaceShares}" Marker="{Binding BgAveragePlace}" ShowLabels="True" />
+                    </StackPanel>
+                </Grid>
+                <TextBlock Text="{Binding BgSimAccuracy}" ToolTip.Tip="{i:Loc Stats.Bg.SimAccuracyTip}" Classes="caption" FontSize="11.5" Margin="0,12,0,0"
+                           TextWrapping="Wrap" IsVisible="{Binding BgSimAccuracy, Converter={StaticResource Truthy}}" />
+            </StackPanel>
         </Border>
 
         <Border Classes="card" Margin="0,0,0,16">

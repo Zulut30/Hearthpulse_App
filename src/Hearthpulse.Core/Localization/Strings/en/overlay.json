@@ -120,6 +120,13 @@
   "Overlay.Odds.Loss": "loss",
   "Overlay.Odds.Estimate": "estimate · {0} effect not simulated|estimate · {0} effects not simulated",
   "Overlay.Odds.Simulated": "simulated from both boards",
+  "Overlay.Odds.Cap": "{0} · damage cap {1}",
+  "Overlay.Odds.DamageWinTip": "If you win, the opponent takes {0:0.#} on average: {1}–{2} in 8 of 10 fights, {3} at most",
+  "Overlay.Odds.DamageLossTip": "If you lose, you take {0:0.#} on average: {1}–{2} in 8 of 10 fights, {3} at most",
+  "Overlay.Odds.Lethal": "you die: {0}",
+  "Overlay.Odds.LethalTip": "Share of simulated fights whose damage reaches your health plus armor",
+  "Overlay.Odds.Kill": "you kill: {0}",
+  "Overlay.Odds.KillTip": "Share of simulated fights whose damage reaches the opponent's health plus armor",
 
   "Overlay.Plan.Title": "Game plan",
   "Overlay.Plan.BracketTip": "Stats come from players in this rating group",

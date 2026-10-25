@@ -127,6 +127,7 @@ public partial class App
             }
 
             await RenderCountersAsync(folder);
+            await RenderCombatOddsAsync(folder);
             // The mulligan bars over the newest kept Standard games' opening hands: 3 cards going first, 4 on the coin, and
             // the first one again without numbers (no API, no meta).
             foreach (var (offered, name, withData) in new[] { (3, "overlay-mulligan", true), (4, "overlay-mulligan-4", true), (3, "overlay-mulligan-nodata", false) })

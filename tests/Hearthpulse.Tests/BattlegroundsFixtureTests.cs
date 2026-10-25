@@ -47,6 +47,9 @@ public sealed class BattlegroundsFixtureTests(ITestOutputHelper output)
         var combat = Assert.Single(view.Combats);
         Assert.Equal(1, combat.Turn);
         Assert.Equal("Tie", combat.Result);
+        // The game entity announced a combat damage cap of 5 on turn 1 (BACON_COMBAT_DAMAGE_CAP, build 254477).
+        Assert.Equal(5, combat.Odds?.DamageCap);
+        Assert.Equal(0.0, combat.Odds?.LethalTaken);
         Assert.Contains(view.Opponents, o => o.LastBoard.Count > 0);
         // Inferred from the shop: the two tier 1 shops showed a Dragon, a Murloc, a Pirate and a neutral minion.
         Assert.Equal(["DRAGON", "MURLOC", "PIRATE"], view.Races);
