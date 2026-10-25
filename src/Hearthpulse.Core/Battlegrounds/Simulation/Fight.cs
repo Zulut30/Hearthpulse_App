@@ -928,10 +928,13 @@ public sealed class Fight
                 var delta = total - unit.AppliedAura;
                 if (!delta.IsZero)
                 {
-                    unit.Attack = Math.Max(0, unit.Attack + delta.Attack);
-                    unit.MaxHealth += delta.Health;
+                    // Summed in 64 bits and clamped, like Buff: a huge aura on a huge minion must not wrap around.
+                    unit.Attack = (int)Math.Clamp((long)unit.Attack + delta.Attack, 0, int.MaxValue);
+                    unit.MaxHealth = (int)Math.Clamp((long)unit.MaxHealth + delta.Health, 0, int.MaxValue);
                     // A removed Health aura lowers current Health only down to the new maximum.
-                    unit.Health = delta.Health > 0 ? unit.Health + delta.Health : Math.Min(unit.Health, unit.MaxHealth);
+                    unit.Health = delta.Health > 0
+                        ? (int)Math.Clamp((long)unit.Health + delta.Health, -1_000_000_000, int.MaxValue)
+                        : Math.Min(unit.Health, unit.MaxHealth);
                 }
 
                 unit.AppliedAura = total;
