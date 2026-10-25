@@ -19,7 +19,7 @@ public static partial class ThemeEngine
     private static string? _source;
 
     /// <summary>Brushes whose colour carries meaning never change.</summary>
-    [GeneratedRegex("x:Key=\"(Positive|Negative|Info|Rarity|Tier|ManaGem)")]
+    [GeneratedRegex("x:Key=\"(Positive|Negative|Info|Rarity|Tier|ManaGem|PoolStat)")]
     private static partial Regex FixedKey();
 
     [GeneratedRegex("#([0-9A-Fa-f]{8}|[0-9A-Fa-f]{6})\\b")]

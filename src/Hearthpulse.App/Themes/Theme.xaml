@@ -176,6 +176,36 @@
     <SolidColorBrush x:Key="WindowBg" Color="{StaticResource BgColor}" />
     <SolidColorBrush x:Key="ManaGem" Color="#3D7BE0" />
 
+    <!-- Card pool chart: one colour per stat (mana gem, attack, health). Keys start with PoolStat: never recoloured by a theme. -->
+    <Color x:Key="PoolStatCostTopColor">#78B0FF</Color>
+    <Color x:Key="PoolStatCostColor">#2A5FC0</Color>
+    <Color x:Key="PoolStatAttackTopColor">#FFDC82</Color>
+    <Color x:Key="PoolStatAttackColor">#C8871C</Color>
+    <Color x:Key="PoolStatHealthTopColor">#FF907A</Color>
+    <Color x:Key="PoolStatHealthColor">#B23A2B</Color>
+    <LinearGradientBrush x:Key="PoolStatCostBar" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="{StaticResource PoolStatCostTopColor}" Offset="0" />
+        <GradientStop Color="{StaticResource PoolStatCostColor}" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="PoolStatAttackBar" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="{StaticResource PoolStatAttackTopColor}" Offset="0" />
+        <GradientStop Color="{StaticResource PoolStatAttackColor}" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="PoolStatHealthBar" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="{StaticResource PoolStatHealthTopColor}" Offset="0" />
+        <GradientStop Color="{StaticResource PoolStatHealthColor}" Offset="1" />
+    </LinearGradientBrush>
+    <!-- Sheen over the median bar -->
+    <LinearGradientBrush x:Key="PoolStatShine" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#70FFFFFF" Offset="0" />
+        <GradientStop Color="#00FFFFFF" Offset="0.7" />
+    </LinearGradientBrush>
+    <!-- Mechanic share bars (themed: gold follows the accent) -->
+    <LinearGradientBrush x:Key="PoolMechanicFill" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="{StaticResource AccentDeepColor}" Offset="0" />
+        <GradientStop Color="{StaticResource AccentColor}" Offset="1" />
+    </LinearGradientBrush>
+
     <!-- ===== Type: Montserrat for display (OFL), Segoe UI Variable for text, Material Design Icons ===== -->
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">pack://application:,,,/Assets/Fonts/#Montserrat</FontFamily>

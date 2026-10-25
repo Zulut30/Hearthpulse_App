@@ -83,7 +83,7 @@ public sealed partial class GameSession
     private ConstructedView WithCardPool(ConstructedView view, GameState game)
     {
         // Memory is read only when a hover can show a pool: setting on, catalog loaded, a mode and format with a known
-        // pool, and a card with a pool in your hand.
+        // pool, and a card with a pool in your hand or on your board.
         var engine = _cardPoolEnabled ? CardPoolEngineNow() : null;
         _cardPoolHoverWanted = engine is not null && HearthstoneMemory.IsSupported
                                && CardPoolTracker.ContextOf(game, _cards).IsSupported
@@ -102,7 +102,8 @@ public sealed partial class GameSession
         PrefetchWiki(engine, game);
         try
         {
-            return view with { CardPool = _cardPool.BuildView(game, _cards, DateTime.Now) };
+            var pool = _cardPool.BuildView(game, _cards, DateTime.Now);
+            return view with { CardPool = pool, CardPoolAnchor = _cardPool.AnchorOf(game, pool) };
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException)
         {

@@ -36,9 +36,10 @@ public partial class App
     }
 
     /// <summary>
-    /// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman), Scion of Insight's rune
-    /// pool, the "Pool not computed" panel of Dreadsoul Corrupter, then the pool browser for Thief's Tools with its
-    /// filters open, and with one filter on.
+    /// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman) beside the Discover
+    /// options and hovered in hand with a chart column under the pointer, a large pool (Swashburglar) on the board,
+    /// Scion of Insight's rune pool hovered in hand, the "Pool not computed" panel of Dreadsoul Corrupter at its own
+    /// spot, then the pool browser for Thief's Tools with its filters open, and with one filter on.
     /// </summary>
     private async Task RenderCardPoolAsync(string folder)
     {
@@ -53,19 +54,33 @@ public partial class App
             return;
         }
 
-        Show(pool);
+        // Beside the three Discover options.
+        Show(pool, new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3));
         await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-card-pool.png"), 1920, 1080, 0);
 
-        // Death Knight runes (from HearthstoneJSON) and a named group the catalog cannot answer.
-        foreach (var (cardId, ownClass, trigger, name) in new[]
+        // Hovered in hand (fifth of six cards): the chart on Attack, the pointer on the 3-Attack column.
+        if (engine.Build("CORE_GIL_836", new PoolContext("FT_STANDARD", "SHAMAN", "WARRIOR"), PoolTrigger.Hover) is { } hovered)
+        {
+            Show(hovered, new CardPoolAnchor(PoolAnchorZone.Hand, 4, 6));
+            _overlayViewModel.HoverCardPoolChart("Attack", null);
+            _overlayViewModel.HoverCardPoolChart(null, 3);
+            await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-card-pool-hover.png"), 1920, 1080, 0);
+            _overlayViewModel.HoverCardPoolChart(null, null);
+        }
+
+        // A large pool (Swashburglar, a card from another class) just played onto the board; Death Knight runes (from
+        // HearthstoneJSON) hovered in hand; a named group the catalog cannot answer, played: no card on screen, the panel's
+        // own spot.
+        foreach (var (cardId, ownClass, trigger, anchor, name) in new (string, string, PoolTrigger, CardPoolAnchor?, string)[]
                  {
-                     ("BE_298", "DEATHKNIGHT", PoolTrigger.Choice, "overlay-card-pool-runes.png"),
-                     ("EDR_841", "DEMONHUNTER", PoolTrigger.Played, "overlay-card-pool-uncomputed.png"),
+                     ("CORE_KAR_069", "ROGUE", PoolTrigger.Played, new CardPoolAnchor(PoolAnchorZone.Board, 1, 4), "overlay-card-pool-large.png"),
+                     ("BE_298", "DEATHKNIGHT", PoolTrigger.Hover, new CardPoolAnchor(PoolAnchorZone.Hand, 1, 5), "overlay-card-pool-runes.png"),
+                     ("EDR_841", "DEMONHUNTER", PoolTrigger.Played, null, "overlay-card-pool-uncomputed.png"),
                  })
         {
             if (engine.Build(cardId, new PoolContext("FT_STANDARD", ownClass, "WARRIOR"), trigger) is { } extra)
             {
-                Show(extra);
+                Show(extra, anchor);
                 await _overlay.RenderToFileAsync(Path.Combine(folder, name), 1920, 1080, 0);
                 if (extra.Sections.Count > 1)
                 {
@@ -88,11 +103,12 @@ public partial class App
         _overlayViewModel.ToggleCardPoolFilters.Execute(null);
         _overlayViewModel.CloseCardPoolBrowser.Execute(null);
 
-        void Show(CardPoolView view)
+        void Show(CardPoolView view, CardPoolAnchor? anchor = null)
         {
             var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
             {
                 CardPool = view,
+                CardPoolAnchor = anchor,
             };
             var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
             _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
