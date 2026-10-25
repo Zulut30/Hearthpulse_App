@@ -60,6 +60,9 @@ public sealed class ArenaMeta
 
     public int CardCount => _byId.Count;
 
+    /// <summary>Every scored or listed card.</summary>
+    public IEnumerable<ArenaCardScore> Cards => _byId.Values;
+
     public bool HasCards => _byId.Count > 0;
 
     public ArenaCardScore? Card(string? cardId) => cardId is { Length: > 0 } && _byId.TryGetValue(cardId, out var card) ? card : null;

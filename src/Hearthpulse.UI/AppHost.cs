@@ -372,6 +372,8 @@ public sealed partial class AppHost : IDisposable
             Main.SetMeta(meta);
         }
 
+        LoadArenaMetaAsync().Forget("Arena stats load");
+
         try
         {
             // This app has no Constructed meta page yet; the stats still feed the in-game mulligan panel.

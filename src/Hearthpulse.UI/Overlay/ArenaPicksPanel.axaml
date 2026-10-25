@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Overlay.ArenaPicksPanel"
+             x:DataType="o:OverlayViewModel">
+    <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier) or hero (class win rate), the best one
+         in gold. Laid across the width of the draft screen's card row, so each badge sits over its card. Nothing here
+         takes clicks: the cards under it stay clickable. DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+    <UserControl.Resources>
+        <i:KeyBrush x:Key="KeyBrush" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Border.arenaBadge">
+            <Setter Property="Background" Value="{StaticResource OverlayPanelSolid}" />
+            <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="6,5,14,5" />
+            <Setter Property="MinWidth" Value="138" />
+        </Style>
+        <Style Selector="Border.arenaBadge.best">
+            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+            <Setter Property="BorderThickness" Value="2.5" />
+        </Style>
+        <Style Selector="TextBlock.badgeCaption">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="TextBlock.badgeCaption.best">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Width="{Binding ArenaPickRowWidth}" IsHitTestVisible="False">
+        <Border Height="{Binding ArenaPickDrop}" />
+        <ItemsControl ItemsSource="{Binding ArenaPicks}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="1" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="o:ArenaPickBadge">
+                    <Border Classes="arenaBadge" Classes.best="{Binding IsBest}" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Panel Width="34" Height="34" VerticalAlignment="Center">
+                                <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
+                                <TextBlock Text="{Binding Tier}" FontFamily="{DynamicResource DisplayFont}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Panel>
+                            <StackPanel Margin="9,0,0,0" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xF04CE;" Classes="icon" FontSize="15" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,4,0"
+                                               IsVisible="{Binding IsBest}" />
+                                    <TextBlock Text="{Binding Number}" FontFamily="{DynamicResource DisplayFont}" FontSize="20" FontWeight="Bold"
+                                               Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Caption}" Classes="badgeCaption" Classes.best="{Binding IsBest}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Text="{Binding ArenaSource}" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+    </StackPanel>
+</UserControl>

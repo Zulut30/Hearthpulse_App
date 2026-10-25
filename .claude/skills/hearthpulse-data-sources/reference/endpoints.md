@@ -22,9 +22,12 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 | `v1/hsguru/archetypes?format=&min_games=50&limit=500` | per format | archetype list |
 | `v1/hsguru/archetypes/analysis?archetype=&format=` | `hsguru-analysis-{format}-{hash}.json` | Wild/HSGuru mulligan |
 | `api/v1/constructed-cards?format=wild&per_page=200&page=N` (<= 80 pages) | `cache/api/card-pool.json`, 1 day | `CardPoolCatalog` |
+| `datasets/hsreplay_arena_cards_advanced` (envelope `data.structured.cards[]`, ~1.7 MB, list repeated in `hsreplay_extracted`) | `arena-cards.json`, trimmed to id/dbfId/score/win_rate/pick_rate/times_played (`ShrinkArenaCards`) | `HearthpulseData.LoadArenaMetaAsync` -> `ArenaMeta` (ArenaSmith `score`; one all-classes slice, Underground, last 4 days) |
+| `v1/arena/classes?limit=20` | `arena-classes.json` | `ArenaMeta.Classes` (win rate, pick rate, 7+ share, drafts) |
 
 Not used: `/v1/meta-intelligence/cards` (needs a token). Docs: `docs/constructed-meta-api.md`, `docs/mulligan-v2.md`,
-`docs/discover-pool.md`. Server map (owner's notes): `C:\Users\zulut\Downloads\HeartLens-main\reference\server-151.md`.
+`docs/discover-pool.md`, `docs/arena-draft.md` (Arena; endpoints the server lacks: per-class scores, normal vs
+Underground slice). Server map (owner's notes): `C:\Users\zulut\Downloads\HeartLens-main\reference\server-151.md`.
 
 ## hearthpulse.net - `https://hearthpulse.net/api/v1/`
 

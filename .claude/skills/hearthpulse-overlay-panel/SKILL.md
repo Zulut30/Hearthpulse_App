@@ -6,9 +6,10 @@ description: Use when adding or changing an in-game overlay panel in Hearthpulse
 # Adding or changing an overlay panel
 
 The overlay is a transparent, click-through window over the game. Every panel is a `MovablePanel` the player can
-drag, resize and reset in layout mode. Both UIs have the same panels with the same Ids (18 today: `deck`, `opponent`,
+drag, resize and reset in layout mode. Both UIs have the same panels with the same Ids (20 today: `deck`, `opponent`,
 `opponent-hand`, `counters`, `bg-counters`, `card-pool`, `card-pool-browser`, `mulligan`, `bgbar`, `hero-row`,
-`trinket-row`, `tavern-row`, `odds`, `choice-row`, `plan`, `session`, `lobby`, `toast`).
+`trinket-row`, `tavern-row`, `odds`, `choice-row`, `plan`, `session`, `lobby`, `toast`, `arena-picks`, `arena-draft`).
+Arena draft panels show in the `DRAFT` scene, outside games (`docs/arena-draft.md`).
 
 Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). Data into the snapshot:
 [hearthpulse-tracking](../hearthpulse-tracking/SKILL.md). PNG proof: [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md).

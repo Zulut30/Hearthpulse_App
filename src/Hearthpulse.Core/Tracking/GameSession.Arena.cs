@@ -56,10 +56,8 @@ public sealed partial class GameSession
 
     private void ApplyArenaMemory(MemoryReading reading)
     {
-        if (reading.Request.WantDraftChoices)
-        {
-            SetDraftOffer(reading.DraftChoices);
-        }
+        // Off the draft screen the offer is not read; dropping it keeps an old one from showing for a moment on return.
+        SetDraftOffer(reading.Request.WantDraftChoices ? reading.DraftChoices : null);
     }
 
     /// <summary>The draft panels' view while the Arena draft screen is open, else null.</summary>

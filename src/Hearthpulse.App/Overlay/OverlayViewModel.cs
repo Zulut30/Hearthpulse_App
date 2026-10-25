@@ -391,6 +391,7 @@ public sealed partial class OverlayViewModel : Observable
         var bg = enabled ? snapshot.Battlegrounds : null;
         _bg = bg;
         UpdateBgCounters(bg, settings);
+        UpdateArena(snapshot.ArenaDraft, settings);
         ShowBattlegrounds = bg is not null && settings.ShowBattlegroundsBar;
         ApplyPickSettings(settings);
         ShowHeroPick = bg is { IsHeroSelection: true } && ShowPickPanels && bg.HeroOptions.Count > 0;

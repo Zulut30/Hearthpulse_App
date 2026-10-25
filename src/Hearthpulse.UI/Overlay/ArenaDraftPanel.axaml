@@ -1,0 +1,122 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Overlay.ArenaDraftPanel"
+             x:DataType="o:OverlayViewModel">
+    <!-- Arena draft panel: the run's class and picks, the average ArenaSmith score, the mana curve, class win rates at
+         the hero pick and the cards picked so far. Read-only, takes no clicks. DataContext: OverlayViewModel.
+         Tokens only (hearthpulse-design). -->
+    <UserControl.Resources>
+        <i:Truthy x:Key="Truthy" />
+        <i:KeyBrush x:Key="KeyBrush" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Margin" Value="0,10,0,5" />
+        </Style>
+        <Style Selector="TextBlock.className">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="TextBlock.className.offered">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="overlayCard" Width="244" Padding="12,10,12,9" IsHitTestVisible="False">
+        <StackPanel>
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xF0538;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                    <TextBlock Text="{i:Loc Arena.Panel.Title}" Classes="label" FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock Text="{Binding ArenaDraftPicks}" FontFamily="{DynamicResource DisplayFont}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Right"
+                           VerticalAlignment="Center" />
+            </Grid>
+            <TextBlock Text="{Binding ArenaDraftTitle}" FontSize="15" FontWeight="SemiBold" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+
+            <!-- Average score of the deck so far and the mana curve, once a card is picked -->
+            <StackPanel IsVisible="{Binding ArenaHasPicks}">
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Panel Width="38" Height="38" VerticalAlignment="Center">
+                        <c:Scallop Fill="{Binding ArenaAverageTier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
+                        <TextBlock Text="{Binding ArenaAverageTier}" FontFamily="{DynamicResource DisplayFont}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Panel>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ArenaAverage}" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold"
+                                   Foreground="{Binding ArenaAverageTier, Converter={StaticResource KeyBrush}}" />
+                        <TextBlock Text="{i:Loc Arena.Panel.Average}" FontSize="10.5" Foreground="{StaticResource Muted}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Mana curve: 0 .. 7+ -->
+                <TextBlock Text="{i:Loc Arena.Panel.Curve}" Classes="label section" />
+                <ItemsControl ItemsSource="{Binding ArenaCurve}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="o:ArenaCurveBar">
+                            <StackPanel Margin="2,0" VerticalAlignment="Bottom">
+                                <TextBlock Text="{Binding Count}" FontSize="9.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+                                <Panel Height="34">
+                                    <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2" Background="{StaticResource Accent}" />
+                                </Panel>
+                                <TextBlock Text="{Binding Label}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Hero pick: classes by community win rate, the offered ones in gold -->
+            <StackPanel IsVisible="{Binding ArenaClasses, Converter={StaticResource Truthy}}">
+                <TextBlock Text="{i:Loc Arena.Panel.Classes}" Classes="label section" />
+                <ItemsControl ItemsSource="{Binding ArenaClasses}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="o:ArenaClassRow">
+                            <Grid Height="19" ColumnDefinitions="*,Auto,54">
+                                <TextBlock Text="{Binding Name}" Classes="className" Classes.offered="{Binding Offered}" FontSize="11.5"
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Text="{Binding WinRate}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                <TextBlock Grid.Column="2" Text="{Binding SevenPlus}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" TextAlignment="Right" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Cards picked so far, by cost -->
+            <StackPanel IsVisible="{Binding ArenaDeck, Converter={StaticResource Truthy}}">
+                <TextBlock Text="{i:Loc Arena.Panel.Deck}" Classes="label section" />
+                <ItemsControl ItemsSource="{Binding ArenaDeck}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="o:ArenaDeckRow">
+                            <Grid Height="19" Margin="0,0,0,1" ColumnDefinitions="22,*,Auto,28">
+                                <Border Width="18" Height="17" CornerRadius="4" Background="{StaticResource ManaGem}" HorizontalAlignment="Left">
+                                    <TextBlock Text="{Binding Cost}" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="2" Text="{Binding Copies}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                <TextBlock Grid.Column="3" Text="{Binding Score}" FontFamily="{DynamicResource DisplayFont}" FontSize="11.5" FontWeight="Bold" TextAlignment="Right"
+                                           VerticalAlignment="Center" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <TextBlock Text="{Binding ArenaNoData}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
+                       IsVisible="{Binding ArenaNoData, Converter={StaticResource Truthy}}" />
+            <TextBlock Text="{Binding ArenaSource}" FontSize="9.5" Foreground="{StaticResource Faint}" Margin="0,9,0,0" />
+        </StackPanel>
+    </Border>
+</UserControl>

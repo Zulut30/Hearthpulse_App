@@ -191,6 +191,42 @@ public sealed class ArenaDraftTests : IDisposable
     }
 
     [Fact]
+    public void A_run_deck_reports_its_strongest_and_weakest_cards()
+    {
+        var deck = new DeckDefinition("Arena", 1, "", "FT_WILD", [], new Dictionary<int, int> { [129824] = 1, [129793] = 2, [129901] = 1, [120001] = 1, [120002] = 1 });
+
+        var report = ArenaRunDeck.Report(deck, Meta(), Cards)!;
+
+        Assert.Equal(6, report.Score.Cards);
+        Assert.Equal(5, report.Score.Scored);
+        Assert.Equal(["BE_085", "BE_090", "BE_193"], report.Best.Select(c => c.CardId));
+        Assert.Equal(["TIME_063"], report.Weakest.Select(c => c.CardId));
+        Assert.Equal(2, report.Best[0].Count);
+    }
+
+    [Fact]
+    public void A_run_without_a_deck_code_has_no_report()
+    {
+        var run = new Core.Stats.ArenaRun("WARLOCK", null, DateTime.Now, DateTime.Now, 1, 0, false,
+            [new GameRecord { Key = "a", Mode = "Arena", PlayerClass = "WARLOCK", Result = "Win" }]);
+
+        Assert.Null(ArenaRunDeck.Report(run, Meta(), Cards));
+        Assert.Null(ArenaRunDeck.ScoreOf(run, Meta(), Cards));
+    }
+
+    [Fact]
+    public void The_render_scenes_build_from_the_scores()
+    {
+        var hero = ArenaDraftScene.HeroPick(Meta(), Cards);
+        var pick = ArenaDraftScene.CardPick(Meta(), Cards);
+
+        Assert.True(hero.HeroPick);
+        Assert.Equal(3, hero.Options.Count);
+        Assert.Equal("WARLOCK", pick.PlayerClass);
+        Assert.NotEmpty(pick.Options);
+    }
+
+    [Fact]
     public void The_session_shows_the_draft_while_the_screen_is_open_and_hides_a_picked_offer()
     {
         var now = new DateTime(2026, 10, 25, 21, 0, 0, DateTimeKind.Utc);
