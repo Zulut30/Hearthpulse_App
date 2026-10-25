@@ -147,6 +147,27 @@ public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory =
         return doc is null ? null : Read<HsguruAnalysis?>(() => ParseHsguruAnalysis(Data(doc)), "HSGuru analysis", null);
     }
 
+    /// <summary>
+    /// One HSGuru mulligan slice of an archetype (current expansion): a rank ("legend", "all", ...), the coin
+    /// ("any_player", "going_first", "on_coin") and the opponent's class ("any" or "WARLOCK"). The server keeps the coin
+    /// and the class apart, so a slice sets at most one of them. Null when the server has not collected the slice (a 404,
+    /// remembered like any answer).
+    /// </summary>
+    public async Task<MulliganSlice?> LoadHsguruMulliganAsync(string archetype, string format, string rank, string coin, string opponentClass, CancellationToken cancellationToken = default)
+    {
+        var opponent = opponentClass.ToLowerInvariant();
+        if (!SafeKey.IsMatch(format) || !SafeKey.IsMatch(rank) || !SafeKey.IsMatch(coin) || !SafeKey.IsMatch(opponent) || archetype.Length is 0 or > 120)
+        {
+            return null;
+        }
+
+        var server = opponent == MulliganGuide.AnyOpponent ? opponent : opponent.ToUpperInvariant();
+        var file = $"hsguru-mulligan-{format}-{ApiConstructedMeta.StableId(archetype):x8}-{rank}-{coin}-{opponent}.json";
+        using var doc = await FetchAsync($"v1/hsguru/mulligan?archetype={Uri.EscapeDataString(archetype)}&format={format}&rank={rank}&coin={coin}&opponent_class={server}",
+            file, cancellationToken).ConfigureAwait(false);
+        return doc is null ? null : Read(() => ParseHsguruMulligan(Data(doc)), "HSGuru mulligan", (MulliganSlice?)null);
+    }
+
     /// <summary>HSReplay publishes Legend and a few brackets; anything wider than Legend maps to its all-ranks view.</summary>
     internal static string RankRange(string rank) => rank switch
     {
@@ -419,10 +440,41 @@ public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory =
                 (Num(row, "keep_percentage") ?? 0) / 100,
                 (int)(Num(row, "times_in_opening_hand") ?? 0),
                 Num(row, "opening_hand_winrate") / 100,
-                Num(row, "avg_turn_played_on")));
+                Num(row, "avg_turn_played_on"))
+            {
+                Drawn = (int)(Num(row, "times_card_drawn") ?? 0),
+                DrawnWinRate = Num(row, "winrate_when_drawn") / 100,
+            });
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// <c>{"rank", "coin", "opponent_class", "games", "rows": [{card_id, dbf_id, mulligan_count, mulligan_impact,
+    /// kept_count, kept_impact, drawn_count, drawn_impact}]}</c>; impacts become fractions. Null without rows.
+    /// </summary>
+    internal static MulliganSlice? ParseHsguruMulligan(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("rows", out var list))
+        {
+            return null;
+        }
+
+        var cards = new List<SliceCard>();
+        foreach (var row in Items(list))
+        {
+            if (Str(row, "card_id") is { Length: > 0 } id)
+            {
+                cards.Add(new SliceCard(id, (int)(Num(row, "dbf_id") ?? 0),
+                    (int)(Num(row, "mulligan_count") ?? 0), Num(row, "mulligan_impact") / 100,
+                    (int)(Num(row, "kept_count") ?? 0), Num(row, "kept_impact") / 100,
+                    (int)(Num(row, "drawn_count") ?? 0), Num(row, "drawn_impact") / 100));
+            }
+        }
+
+        return new MulliganSlice(Str(root, "rank") ?? "all", Str(root, "coin") ?? MulliganGuide.AnyCoin,
+            Str(root, "opponent_class") ?? MulliganGuide.AnyOpponent, (int)(Num(root, "games") ?? 0), cards);
     }
 
     /// <summary><c>{"matchups": [{"opponent_class", "total_games", "win_rate"}]}</c>.</summary>

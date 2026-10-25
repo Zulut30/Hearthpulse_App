@@ -120,7 +120,11 @@ public sealed class ConstructedTracker : IPowerListener
 
         var playerClass = cards.Get(playerHero)?.CardClass ?? string.Empty;
         // Asked on every update so the lookup starts as soon as the deck is known, before the mulligan begins.
-        var guide = Deck is not null && game.IsConstructedLike ? Guide?.For(playerClass, Deck, game.FormatType, cards) : null;
+        // During the mulligan the coin and the opponent's class are known: their slices load then.
+        var mulligan = Mulligan.InProgress(game);
+        var guide = Deck is not null && game.IsConstructedLike
+            ? Guide?.For(playerClass, Deck, game.FormatType, cards, mulligan ? cards.Get(game.OpponentHero?.CardId)?.CardClass : null, mulligan ? Mulligan.GoingFirst(game, cards) : null)
+            : null;
         return new ConstructedView(
             ToPlayerTurn(game.Turn),
             Deck?.Name,
