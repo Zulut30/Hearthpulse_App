@@ -15,12 +15,6 @@
     </UserControl.Resources>
     <StackPanel>
         <Grid Classes="statsHead" Margin="0,0,0,14" RowDefinitions="Auto,Auto">
-            <Border HorizontalAlignment="Left" Classes="segmentBar" ToolTip.Tip="{i:Loc Stats.Ct.FormatTip}">
-                <StackPanel Orientation="Horizontal">
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Ct.Standard}" GroupName="CtFormat" IsChecked="True" Command="{Binding SetCtFormat}" CommandParameter="FT_STANDARD" />
-                    <RadioButton Classes="segment" Content="{i:Loc Stats.Ct.Wild}" GroupName="CtFormat" Command="{Binding SetCtFormat}" CommandParameter="FT_WILD" />
-                </StackPanel>
-            </Border>
             <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter statsBar" ToolTip.Tip="{i:Loc Stats.Period.Tip}">
                 <StackPanel Orientation="Horizontal">
                     <RadioButton Classes="segment" Content="{i:Loc Stats.Period.All}" GroupName="CtPeriod" IsChecked="True" Command="{Binding SetCtPeriod}" CommandParameter="All" />

@@ -5,7 +5,7 @@ description: Use when adding or changing a page, tab, section or settings card i
 
 # Adding or changing a main-window page or tab
 
-Main window = sidebar (Home, Modes: Battlegrounds / Constructed / Arena, Library: History, Settings at the bottom) +
+Main window = sidebar (Home, Modes: Battlegrounds / Standard / Wild / Arena, Library: History, Settings at the bottom) +
 one visible page + the floating live bar at the bottom. UI text is **English and Russian**: every string is a key in
 `src/Hearthpulse.Core/Localization/Strings/{en,ru}/*.json`, used as `{i:Loc Key}` in XAML and `Loc.T/F/P` in view
 models, and the language switches live (Settings -> General). Recipe, conventions and glossary:
@@ -63,6 +63,20 @@ for actions/filters, data loaded off the UI thread). Heavy work (history scans, 
 a generation counter so a stale result never overwrites a newer one (my-stats review fix); errors go to `Diag`, not
 swallowed in a fire-and-forget task. Computation itself belongs in Core so it can be tested.
 
+## Standard and Wild
+
+`NavStandard` and `NavWild` open one page, `PageConstructed` (or `PageDeck` while a deck is open), for one format: the
+window calls `MainViewModel.ShowConstructedFormat("FT_STANDARD"|"FT_WILD")` and My stats, Your decks, merge
+suggestions, matchups and (WPF) the tier list follow it; there is no format picker on the page. Standard also lists
+Twist/Classic decks (no page of their own); My stats count the page's format only. A deck opens on its format's page
+(the window follows `ConstructedFormat`). Page names and the old `"Constructed"` -> Standard migration:
+`Core/Stats/ConstructedPage.cs`.
+
+Community stats are kept per format, never one shared slice: the VM asks for the page's format
+(`ConstructedMetaRequested`), the game session for the game's (`GameSession.ConstructedMetaNeeded`), and the host
+(`App.EnsureConstructedMeta` / `AppHost.EnsureConstructedMeta`) downloads each once and hands it to both. Navigation
+never writes `Settings.MetaFormat` (it only names the format loaded at start).
+
 ## Recipe: a tab inside a page
 
 - Tabs are `RadioButton`s with a shared `GroupName`: WPF `Style="{StaticResource Tab}"` + a handler
@@ -70,7 +84,7 @@ swallowed in a fire-and-forget task. Computation itself belongs in Core so it ca
 - Existing: Battlegrounds `TabHeroes`/`TabComps`/`TabTrinkets`/`TabCards`/`TabMine` (both UIs);
   Constructed `TabMyDecks` "My stats" / `TabMetaTiers` "Meta tier list" / `TabMetaDecks` "Top decks" (**WPF only**,
   `ShowConstructedTab("Tiers"|"Top")`).
-- Filters are segment bars bound to VM commands (`SetBgPeriod`, `SetCtFormat`, `SetHistoryFilter`...), placed top
+- Filters are segment bars bound to VM commands (`SetBgPeriod`, `SetCtPeriod`, `SetHistoryFilter`...), placed top
   right of the page header.
 
 ## Recipe: a settings card
@@ -103,7 +117,7 @@ ones silently - list them in [hearthpulse-design](../hearthpulse-design/SKILL.md
 
 ## Render scene
 
-- Pages in the render loop: Overview, Battlegrounds, Constructed, History, Settings (`DevRender.cs`,
+- Pages in the render loop: Overview, Battlegrounds, Standard, Wild, History, Settings (`DevRender.cs`,
   `OffscreenRenderer.cs`); My Stats full/hover/compact in `DevRender.MyStats.cs` / `OffscreenRenderer.MyStats.cs`;
   WPF Constructed tabs `main-constructed-tiers|top`. **Arena is not in the loop** (only `main-arena-full`).
 - A new page: add its name to both page loops (the PNG becomes `main-foo.png`); a tab or scrolled section: a public

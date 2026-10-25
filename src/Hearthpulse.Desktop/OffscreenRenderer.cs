@@ -64,7 +64,7 @@ internal static partial class OffscreenRenderer
         var view = new MainView { DataContext = host.Main };
         var main = new Window { Width = 1260, Height = 840, Content = view, Background = ThemeBrushes.Get("Bg") };
         main.Show();
-        foreach (var page in new[] { "Overview", "Battlegrounds", "Constructed", "History", "Settings" })
+        foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" })
         {
             view.ShowPage(page);
             await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
