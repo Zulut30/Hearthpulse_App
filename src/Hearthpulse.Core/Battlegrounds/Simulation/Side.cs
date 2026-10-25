@@ -123,9 +123,9 @@ public sealed class Side
         {
             if (applies(unit))
             {
-                unit.Attack = Math.Max(0, unit.Attack + attack);
-                unit.Health += health;
-                unit.MaxHealth += health;
+                unit.Attack = (int)Math.Clamp((long)unit.Attack + attack, 0, int.MaxValue);
+                unit.Health = (int)Math.Clamp((long)unit.Health + health, -1_000_000_000, int.MaxValue);
+                unit.MaxHealth = (int)Math.Clamp((long)unit.MaxHealth + health, 0, int.MaxValue);
             }
         }
     }
