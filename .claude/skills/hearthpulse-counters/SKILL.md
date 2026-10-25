@@ -38,7 +38,7 @@ File: `src/Hearthpulse.Core/Tracking/Counters/Counters.cs`, array `Defs` of
    {
        var n = c.Tag("HERALD_COLOSSAL_AMOUNT");
        var next = 2 - n % 2;
-       return new(n.ToString(CultureInfo.InvariantCulture), n % 2 / 2.0, [$"Next Colossal upgrade after {next} more Herald{...}."], n > 0, Goal: 2);
+       return new(n.ToString(CultureInfo.InvariantCulture), n % 2 / 2.0, [Loc.P("Core.Counter.HeraldNext", next)], n > 0, Goal: 2);
    }),
    ```
    `CounterValue(Value, Progress, Details, Active, Counted, Parts, Goal)`:
@@ -50,7 +50,10 @@ File: `src/Hearthpulse.Core/Tracking/Counters/Counters.cs`, array `Defs` of
    - Return `null` to hide the counter for that player (e.g. hidden info for the opponent).
    Helpers in the same file: `Num`, `Ids`, `PlayedNum`, `Goal`, `Next`, `Countdown`; context: `c.Tag`, `c.Played()`,
    `c.PlayedIds()`, `c.Plays()`, `c.Deaths()`, `c.Source(key)`, `c.SourceCards(key)`, `c.OwnTurn`, `c.Log`, `c.Cards`.
-2. If you need a new kind of event, record it in `CounterTracker.cs` (`PlayerLog`) - per player, visible events only.
+2. Add EN/RU `Core.Counter.<id>.Title` and `.Description` keys: `CounterDef.LocalTitle/LocalDescription` use those
+   keys with the definition text as fallback. Localize computed details with `Loc.T/F/P`, including plural rules;
+   the same key pattern applies to BG counters. See `docs/localization.md`.
+   If you need a new kind of event, record it in `CounterTracker.cs` (`PlayerLog`) - per player, visible events only.
 3. **Related cards** (what makes the chip appear in Auto): add a regex for the card text to `PATTERNS` (or the card
    name to `NAME_PATTERNS`) in `tools/counters/gen_counter_cards.py` under the **same id**; per-card amounts go to
    `SOURCE_PATTERNS` (`(?P<n>\d+)` = amount, `(?P<twice>...)` doubles). Then regenerate (step below). `Counters.cs`
@@ -90,12 +93,14 @@ tracker `Battlegrounds/BattlegroundsCounterTracker.cs` (local `Died`, `Summoned`
 
 ## UI: nothing to add for a plain counter
 
-- Settings: "Counters and mulligan" card lists `Counters.All` (`MainViewModel.Counters.cs`, `CounterRows`,
-  `SetCounterMode("id|Mode")`) and `BattlegroundsCounters.All` (`MainViewModel.BgCounters.cs`) in **both** UIs.
+- Settings: "Counters and mulligan" card lists `Counters.All` (shared
+  `Presentation/Main/MainViewModel.Counters.cs`, `CounterRows`, `SetCounterMode("id|Mode")`) and
+  `BattlegroundsCounters.All` (shared `MainViewModel.BgCounters.cs`) for both UIs. The Avalonia-only row helper
+  remains in its local counters partial.
   Modes: `CounterMode { Auto, Always, Off }`, stored in `AppSettings.CounterModes` (missing = Auto).
-- Overlay: chips are built by `CounterChip.From(view, expanded)` in `Overlay/OverlayModels.cs` (both UIs; tooltip =
-  Description + Details; `Counted`/`Related` cut to 8 with "+N more"). Constructed chips: `RebuildCounters` in
-  `OverlayViewModel.Live.cs`; BG chips: `OverlayViewModel.BgCounters.cs`.
+- Overlay: chips are built by `CounterChip.From(view, expanded)` in shared `Presentation/Overlay/OverlayModels.cs`
+  (tooltip = Description + Details; `Counted`/`Related` cut to 8 with "+N more"). Constructed chips:
+  `RebuildCounters` in shared `OverlayViewModel.Live.cs`; BG chips: shared `OverlayViewModel.BgCounters.cs`.
 - Change these only if the counter needs a new kind of visual (then follow [hearthpulse-overlay-panel](../hearthpulse-overlay-panel/SKILL.md)
   in both UIs).
 
@@ -121,7 +126,8 @@ tracker `Battlegrounds/BattlegroundsCounterTracker.cs` (local `Died`, `Summoned`
 
 ## Verify
 
-1. Tests: baseline + new, none failing.
+1. Tests: run relevant counter cases and the full suite; record passed/failed/skipped results and inspect discovery
+   changes against the chosen base. Historical totals are not the acceptance criterion.
 2. Render both UIs and look at `overlay-counters*.png` / `overlay-bg-counters.png` and `main-settings-counters.png`
    ([hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md)): title fits, tooltip lines wrap, no clipping.
 3. Spec row added (id, title, what it counts, cards, source, goal), skipped ideas listed with the reason.

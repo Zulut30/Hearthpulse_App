@@ -1,0 +1,224 @@
+using System.ComponentModel;
+using System.Globalization;
+using Hearthpulse.Core;
+using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Replay;
+using Hearthpulse.Core.Stats;
+using Hearthpulse.Core.Tracking;
+using WpfMain = Hearthpulse.App.Main.MainViewModel;
+using AvaMain = Hearthpulse.UI.Main.MainViewModel;
+using WpfOverlay = Hearthpulse.App.Overlay.OverlayViewModel;
+using AvaOverlay = Hearthpulse.UI.Overlay.OverlayViewModel;
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
+namespace Hearthpulse.Presentation.Tests;
+
+/// <summary>Exercises both compiled versions of the shared source, including the deliberate host differences.</summary>
+public sealed class ViewModelContractTests
+{
+    private static HistoryStore History() => new(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
+
+    private static GameRecord Game(int number, string deck = "First deck", string opponent = "WARRIOR") => new()
+    {
+        Key = "presentation-game-" + number,
+        StartedAt = new DateTime(2026, 10, 23, 10, 0, 0).AddMinutes(number),
+        EndedAt = new DateTime(2026, 10, 23, 10, 5, 0).AddMinutes(number),
+        Mode = "Ranked", GameType = "GT_RANKED", Format = "FT_STANDARD", Result = "Win",
+        PlayerClass = "MAGE", OpponentClass = opponent, DeckName = deck,
+    };
+
+    [Fact]
+    public async Task History_rows_match_while_each_host_keeps_its_existing_count_and_label_rules()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var history = History();
+        // The desktop shows the whole database count; the preview deliberately counts its 400 recent rows.
+        for (var i = 0; i < 401; i++) Assert.True(history.Add(Game(i)));
+        var wpf = new WpfMain(history, new AppSettings());
+        var ava = new AvaMain(history, new AppSettings());
+        await wpf.RefreshAsync();
+        await ava.RefreshAsync();
+
+        Assert.Equal(401, wpf.HistoryCount);
+        Assert.Equal(400, ava.HistoryCount);
+        Assert.Equal(wpf.Recent.Select(r => (r.Key, r.Hero, r.Result, r.Detail)),
+            ava.Recent.Select(r => (r.Key, r.Hero, r.Result, r.Detail)));
+        Assert.Equal(wpf.OverviewTiles.Select(t => t.Label.ToUpper(CultureInfo.CurrentCulture)), ava.OverviewTiles.Select(t => t.Label));
+        Assert.Equal(Loc.P("Main.History.SubtitlePc", 401), wpf.HistorySubtitle);
+        Assert.Equal(Loc.P("Main.History.SubtitleDevice", 400), ava.HistorySubtitle);
+    }
+
+    [Fact]
+    public async Task Only_the_Wpf_host_restores_a_rating_from_history_before_a_live_snapshot()
+    {
+        var history = History();
+        Assert.True(history.Add(Game(0) with { Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 2, RatingAfter = 6500 }));
+        var wpf = new WpfMain(history, new AppSettings());
+        var ava = new AvaMain(history, new AppSettings());
+        await wpf.RefreshAsync();
+        await ava.RefreshAsync();
+
+        Assert.Equal(6500.ToString("N0", CultureInfo.CurrentCulture), wpf.SoloRating);
+        Assert.Equal("—", ava.SoloRating);
+        Assert.Equal(wpf.RatingPoints, ava.RatingPoints);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Deck_matchup_filter_survives_a_refresh_but_resets_for_another_family(bool wpf)
+    {
+        var history = History();
+        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new Hearthpulse.App.Main.Decks.DeckDetailsViewModel(owner)
+            : new Hearthpulse.UI.Main.Decks.DeckDetailsViewModel(owner);
+        var games = new[] { Game(0), Game(1, opponent: "MAGE"), Game(2, "Second deck"), Game(3, "Second deck", "MAGE") };
+        var families = DeckFamilies.Build(DeckFamilies.Versions(games), []);
+        var first = families.Single(f => f.Name == "First deck");
+        var second = families.Single(f => f.Name == "Second deck");
+        await Changed((INotifyPropertyChanged)model, "Games", () => model.Show(first, families, Array.Empty<MergeSuggestion>(), null, CardDb.Empty));
+        Assert.Equal(2, ((System.Collections.ICollection)model.Games).Count);
+        await Changed((INotifyPropertyChanged)model, "Games", () => model.SelectMatchup.Execute("WARRIOR"));
+        Assert.Single((System.Collections.IEnumerable)model.Games);
+        string filtered = model.FilterText;
+        Assert.NotEmpty(filtered);
+        // Equal rows deliberately do not notify again; the sort notification follows the updated filter text.
+        await Changed((INotifyPropertyChanged)model, "SortedByWinRate", () => model.Show(first, families, Array.Empty<MergeSuggestion>(), null, CardDb.Empty));
+        Assert.Equal(filtered, (string)model.FilterText);
+        Assert.Single((System.Collections.IEnumerable)model.Games);
+        await Changed((INotifyPropertyChanged)model, "Games", () => model.Show(second, families, Array.Empty<MergeSuggestion>(), null, CardDb.Empty));
+        Assert.Equal(2, ((System.Collections.ICollection)model.Games).Count);
+        Assert.Equal(second.Key, (string)model.Key);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Replay_navigation_clamps_frames_and_preserves_position_only_when_requested(bool wpf)
+    {
+        var history = History();
+        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new Hearthpulse.App.Main.Match.MatchViewModel(owner)
+            : new Hearthpulse.UI.Main.Match.MatchViewModel(owner);
+        var store = new ReplayStore(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N")));
+        var game = Game(0);
+        var replay = store.Save(game.Key, ReplayFile.Write(new ReplayHeader(),
+            ["T 1 L 0", "E 1 L PLAY 0 HERO_08 HERO HEALTH=30", "E 2 O PLAY 0 HERO_01 HERO HEALTH=30",
+             "S MAIN_READY", "T 2 O 30", "V O RESOURCES 2", "B", "E 3 O PLAY 1 CS2_120 MINION ATK=2 HEALTH=3", "P 3 -"]));
+        Assert.NotNull(replay);
+        var page = MatchPage.Load(game with { Replay = replay }, store, CardDb.Empty, null);
+        Assert.Null(page.Missing);
+        Assert.True(page.FrameCount > 1);
+        model.Show(page);
+        model.Frame = int.MaxValue;
+        Assert.Equal(page.FrameCount - 1, (int)model.Frame);
+        model.BottomOpponent = true;
+        model.BottomOpponent = false; // Radio uncheck must not switch perspective back.
+        Assert.True((bool)model.BottomOpponent);
+        model.ShowDecks = true;
+        model.ShowDecks = false;
+        Assert.True((bool)model.ShowDecks);
+        model.Show(page, keepPosition: true);
+        Assert.Equal(page.FrameCount - 1, (int)model.Frame);
+        Assert.True((bool)model.BottomOpponent);
+        Assert.True((bool)model.ShowDecks);
+        model.Show(page);
+        Assert.Equal(0, (int)model.Frame);
+        Assert.True((bool)model.BottomLocal);
+        Assert.True((bool)model.ShowReplay);
+    }
+
+    private static BattlegroundsView Fight() => new(9, 4, 6, "TB_BaconShop_HERO_72", 5, 2, 6,
+        false, true, false, [], ["BEAST", "DRAGON"], true, [], [], [], [], null, 0, [], [])
+    { CombatOdds = new CombatOdds(0.6, 0.1, 0.3, 0) { Runs = 1000 } };
+
+    [Fact]
+    public void Overlay_odds_keep_identical_values_and_the_hosts_original_binding_types()
+    {
+        var snapshot = LiveSnapshot.Empty with { Battlegrounds = Fight(), InGame = true, HearthstoneRunning = true };
+        var wpf = new WpfOverlay();
+        var ava = new AvaOverlay();
+        var settings = new AppSettings { ShowTurnTimer = false, ShowCombatOdds = true };
+        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+
+        Assert.True(wpf.ShowOdds);
+        Assert.True(ava.ShowOdds);
+        Assert.Equal((0.6, 0.1, 0.3), (ava.WinShare, ava.TieShare, ava.LossShare));
+        Assert.Equal((ava.WinShare, ava.TieShare, ava.LossShare), (wpf.WinShare.Value, wpf.TieShare.Value, wpf.LossShare.Value));
+        Assert.True(wpf.WinShare.IsStar && wpf.TieShare.IsStar && wpf.LossShare.IsStar);
+        Assert.Equal((wpf.OddsWin, wpf.OddsTie, wpf.OddsLoss), (ava.OddsWin, ava.OddsTie, ava.OddsLoss));
+        settings.ShowCombatOdds = false;
+        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        Assert.False(wpf.ShowOdds);
+        Assert.False(ava.ShowOdds);
+    }
+
+    [Fact]
+    public void Wpf_tribe_focus_still_selects_and_clears_the_requested_tribe()
+    {
+        var model = new WpfOverlay();
+        model.Update(LiveSnapshot.Empty with { Battlegrounds = Fight(), InGame = true }, CardDb.Empty, new AppSettings(), null, null);
+        var requested = new List<string?>();
+        model.FocusRequested += requested.Add;
+        Assert.Equal(3, model.FocusChoices.Count);
+        model.FocusTribe.Execute("BEAST");
+        Assert.Equal("BEAST", Assert.Single(model.FocusChoices, c => c.Selected).Key);
+        model.FocusTribe.Execute("BEAST");
+        Assert.Equal(string.Empty, Assert.Single(model.FocusChoices, c => c.Selected).Key);
+        Assert.Equal(new string?[] { "BEAST", null }, requested);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Observable_retains_equal_value_rows_and_notifies_when_rows_actually_change(bool wpf)
+    {
+        IRows model = wpf ? new WpfRows() : new AvaRows();
+        var names = new List<string?>();
+        model.PropertyChanged += (_, e) => names.Add(e.PropertyName);
+        var original = new[] { new ValueRow("one") };
+        model.Rows = original;
+        model.Rows = [new ValueRow("one")];
+        Assert.Same(original, model.Rows);
+        Assert.Equal(new[] { "Rows" }, names);
+        model.Rows = [new ValueRow("two")];
+        Assert.Equal("two", Assert.Single(model.Rows).Name);
+        Assert.Equal(new[] { "Rows", "Rows" }, names);
+    }
+
+    public sealed record ValueRow(string Name);
+
+    private static async Task Changed(INotifyPropertyChanged model, string property, Action change)
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnChange(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == property) completion.TrySetResult();
+        }
+        model.PropertyChanged += OnChange;
+        try
+        {
+            change();
+            await completion.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        finally { model.PropertyChanged -= OnChange; }
+    }
+
+    private interface IRows : INotifyPropertyChanged { IReadOnlyList<ValueRow> Rows { get; set; } }
+    private sealed class WpfRows : Hearthpulse.App.Infrastructure.Observable, IRows
+    {
+        private IReadOnlyList<ValueRow> _rows = [];
+        public IReadOnlyList<ValueRow> Rows { get => _rows; set => Set(ref _rows, value); }
+    }
+    private sealed class AvaRows : Hearthpulse.UI.Infrastructure.Observable, IRows
+    {
+        private IReadOnlyList<ValueRow> _rows = [];
+        public IReadOnlyList<ValueRow> Rows { get => _rows; set => Set(ref _rows, value); }
+    }
+}

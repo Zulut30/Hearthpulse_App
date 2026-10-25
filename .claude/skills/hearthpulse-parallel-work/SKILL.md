@@ -35,14 +35,18 @@ big files:
 | Layer | Feature file pattern (existing examples) |
 |---|---|
 | Core | its own folder or file: `Tracking/Counters/`, `CardPool/`, `Stats/`, `Accounts/`; partial `Tracking/GameSession.CardPool.cs` |
-| Overlay VM | `Overlay/OverlayViewModel.<Feature>.cs` in both `Hearthpulse.App` and `Hearthpulse.UI` (`.BgCounters`, `.Mulligan`, `.Deck`, `.Hand`, `.CardPool`, `.Live`) |
+| Overlay VM | One `src/Hearthpulse.Presentation/Overlay/OverlayViewModel.<Feature>.cs`; local `.Platform.cs` only for framework differences, WPF `.Focus.cs` for its existing feature |
 | Overlay view | an extracted UserControl: `Overlay/MulliganPanel`, `OpponentHandPanel`, `CardPoolPanel`, `CardPoolBrowser` (`.xaml` / `.axaml`) |
-| Main VM | `Main/MainViewModel.<Feature>.cs` (`.Account`, `.Counters`, `.BgCounters`, `.MyStats`; WPF also `.Constructed`, `.Theme`) |
+| Main VM | One `src/Hearthpulse.Presentation/Main/MainViewModel.<Feature>.cs`; small local adapters and WPF-only `.Constructed`, `.Theme` |
 | Composition | `App.CardPool.cs` (WPF), `AppHost.CardPool.cs` (Avalonia) |
 | Render scenes | `DevRender.<Feature>.cs` (WPF), `OffscreenRenderer.<Feature>.cs` (Avalonia), `Desktop/CardPoolRender.cs` |
 
 The shared file then gets one line: `UpdateCardPool(...)` in `OverlayViewModel.cs`, `_parser.AddListener(_cardPool);`
 in `GameSession.cs`, one `await RenderXAsync(...)` in `DevRender.cs`.
+Do not assign separate WPF and Avalonia owners to the same common VM behavior: they now edit the same source.
+Assign the shared partial to one owner, and coordinate platform views/adapters separately. Changes to
+`Hearthpulse.Presentation.projitems` and the host import/flavor properties belong to the integration owner;
+preserve CLR namespaces and assembly identities. The shared directory is not a separate DLL.
 
 ## 3. Conflict hotspots (measured over the 9 merges into main)
 
@@ -53,8 +57,8 @@ in `GameSession.cs`, one `await RenderXAsync(...)` in `DevRender.cs`.
 | 6 | `src/Hearthpulse.UI/AppHost.cs` | service wiring |
 | 5 | `src/Hearthpulse.App/Main/MainWindow.xaml`, `src/Hearthpulse.App/App.xaml.cs` | settings blocks, wiring |
 | 4 | `src/Hearthpulse.UI/Main/MainView.axaml`, `src/Hearthpulse.Core/Tracking/GameSession.cs` | listener registration |
-| 3 | `OverlayViewModel.cs` (both), `Core/Tracking/Views.cs`, `Core/AppSettings.cs` | one-line hooks, record members |
-| 2 | `OverlayModels.cs`, `MovablePanel.cs`, `UI/Themes/Theme.axaml`, `OverlayView.axaml.cs`, tests `.csproj` | |
+| 3 | `OverlayViewModel.cs` (historical copies, now `Presentation/Overlay/OverlayViewModel.cs`), `Core/Tracking/Views.cs`, `Core/AppSettings.cs` | one-line hooks, record members |
+| 2 | `OverlayModels.cs` (now shared under Presentation), platform `MovablePanel.cs`, `UI/Themes/Theme.axaml`, `OverlayView.axaml.cs`, tests `.csproj` | |
 
 Traps that a text merge does not show:
 
@@ -69,8 +73,9 @@ Traps that a text merge does not show:
 
 ## 4. Session setup
 
-- Feature branches in sibling worktrees: `git worktree add ../hp-<feature> -b feat/<feature> <main-sha>`
-  (existing: `C:\Users\zulut\Downloads\HeartLens-main\hp-card-pool`, `hp-my-stats`, ...). Claude Code sessions get
+- Feature branches in sibling worktrees: `git worktree add ../hp-<feature> -b feat/<feature> <main-sha>`.
+  Resolve the repository with `git rev-parse --show-toplevel`; inspect `git worktree list` and the intended sibling
+  path before creating a checkout instead of assuming historical worktrees exist. Claude Code sessions get
   their own `.claude/worktrees/<topic>-<hex>` on `claude/<topic>-<hex>`.
 - Build outputs of parallel sessions must not collide: `--artifacts-path` with a **short** path
   (see [hearthpulse-testing](../hearthpulse-testing/SKILL.md) - long paths break `e_sqlite3` loading).
@@ -93,10 +98,11 @@ Written into the shared notes folder, short, in this order:
 ## 6. Reviewer session
 
 A separate read-only session reviews each branch from its commits only (`git diff main...<sha>`, no checkout, no
-edits) and writes `C:\Users\zulut\Downloads\HeartLens-main\reference\reviews\HeartLens-feat-<branch>.md` with
+edits) and writes `<repo>/../reference/reviews/HeartLens-feat-<branch>.md` with
 findings `B#` blocker / `M#` major / `m#` minor. Checklist: [hearthpulse-review](../hearthpulse-review/SKILL.md).
 Authors close findings in a commit such as "Address the card pool review: ..." and list closed/open IDs in the
-handover. A blocker or open major stops the merge.
+handover. Check that the sibling reference folder exists first; if absent, use the agreed workspace report
+location and record it in the handover. A blocker or open major stops the merge.
 
 ## 7. Integration round
 
@@ -104,9 +110,11 @@ handover. A blocker or open major stops the merge.
 2. Merge branches one by one, **fewest conflicts first, the most invasive last** (last round: counters-panel ->
    oidc-login -> mulligan-guide-v2 -> my-stats -> deck-panel-opponent-hand -> card-pool). Message:
    `Merge feat/<branch> (<short-sha>) into review-integration`.
-3. After every merge: restore, `dotnet build Hearthpulse.slnx --no-restore` (0 errors, 0 warnings), tests.
-4. Check that the test count adds up: base count + each branch's additions (528 + 210 = 738 last time). A smaller
-   number means a merge dropped tests.
+3. After every merge: restore, `dotnet build Hearthpulse.slnx --no-restore` (0 errors, 0 warnings), tests. For shared
+   presentation changes compile both flavors and run the additional Windows presentation contract suite.
+4. Record actual passed/failed/skipped counts and inspect discovery differences against the base and branch
+   changes. Counts can change when cases are consolidated or data theories grow; inspect which assertions survived
+   instead of treating historical arithmetic as an acceptance gate.
 5. A fix needed only because of the combination is its own commit, named as such ("... (fix folded into the
    card-pool merge)"). Better: ask the owning session to rebase/merge fresh `main` and fix it in its branch.
 6. Write the round up (`reference\reviews\INTEGRATION.md` style): heads, per-branch test counts, open majors,

@@ -13,24 +13,36 @@ from pathlib import Path
 
 from PIL import Image, ImageChops
 
-THRESHOLD = 24  # per-channel difference that counts as a change (ignores antialiasing noise)
+THRESHOLD = 24  # per-channel RGBA difference that counts as a change (ignores antialiasing noise)
 
 
 def compare(before: Path, after: Path, out: Path) -> str:
-    a = Image.open(before).convert("RGB")
-    b = Image.open(after).convert("RGB")
+    with Image.open(before) as source:
+        a = source.convert("RGBA")
+    with Image.open(after) as source:
+        b = source.convert("RGBA")
     note = "" if a.size == b.size else f" size {a.size[0]}x{a.size[1]} -> {b.size[0]}x{b.size[1]}"
     width, height = max(a.width, b.width), max(a.height, b.height)
-    pad_a = Image.new("RGB", (width, height)); pad_a.paste(a)
-    pad_b = Image.new("RGB", (width, height)); pad_b.paste(b)
-    mask = ImageChops.difference(pad_a, pad_b).convert("L").point(lambda v: 255 if v > THRESHOLD else 0)
+    pad_a = Image.new("RGBA", (width, height)); pad_a.paste(a)
+    pad_b = Image.new("RGBA", (width, height)); pad_b.paste(b)
+    # Luminance weights blue at only 11.4%: a blue-only regression of 200 used to read as "same".
+    # Alpha matters too: a formerly visible overlay becoming transparent must not pass.
+    channels = ImageChops.difference(pad_a, pad_b).split()
+    maximum = channels[0]
+    for channel in channels[1:]:
+        maximum = ImageChops.lighter(maximum, channel)
+    mask = maximum.point(lambda v: 255 if v > THRESHOLD else 0)
     changed = mask.histogram()[255] / (width * height)
     if changed == 0 and not note:
         return "same"
-    diff = Image.blend(Image.new("RGB", (width, height)), pad_b, 0.35)
+    # Composite the previews on a neutral surface so transparency is visible in the comparison sheet.
+    background = Image.new("RGBA", (width, height), (30, 30, 30, 255))
+    shown_a = Image.alpha_composite(background, pad_a).convert("RGB")
+    shown_b = Image.alpha_composite(background, pad_b).convert("RGB")
+    diff = Image.blend(Image.new("RGB", (width, height)), shown_b, 0.35)
     diff.paste(Image.new("RGB", (width, height), (255, 40, 40)), mask=mask)
     sheet = Image.new("RGB", (width * 3 + 20, height), (30, 30, 30))
-    for i, image in enumerate((pad_a, pad_b, diff)):
+    for i, image in enumerate((shown_a, shown_b, diff)):
         sheet.paste(image, (i * (width + 10), 0))
     if sheet.width > 3000:
         sheet = sheet.resize((3000, int(sheet.height * 3000 / sheet.width)))

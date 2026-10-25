@@ -141,10 +141,11 @@ public sealed class ProfileUploadQueue
     /// rating arrived later); one the site has settled is skipped. Returns how many are waiting now that were not before
     /// or were replaced (events dropped for the size bound are not counted). Call <see cref="Flush"/> afterwards.
     /// </summary>
-    public int Enqueue(IEnumerable<ProfileEvent> events, DateTime notBefore)
+    public int Enqueue(IEnumerable<ProfileEvent> events, DateTime notBefore, string? owner = null)
     {
         lock (_gate)
         {
+            if (owner is not null && owner != _owner) return 0;
             var queued = new List<string>();
             foreach (var e in events)
             {
@@ -209,10 +210,11 @@ public sealed class ProfileUploadQueue
     /// The next batch to send: due events in queue order, at most <paramref name="maxEvents"/> and
     /// <paramref name="maxBytes"/> of JSON (always at least one event when any is due).
     /// </summary>
-    public IReadOnlyList<QueuedEvent> NextBatch(DateTime now, int maxEvents, int maxBytes)
+    public IReadOnlyList<QueuedEvent> NextBatch(DateTime now, int maxEvents, int maxBytes, string? owner = null)
     {
         lock (_gate)
         {
+            if (owner is not null && owner != _owner) return [];
             var batch = new List<QueuedEvent>();
             var bytes = 16L;
             foreach (var item in _pending)
@@ -249,10 +251,12 @@ public sealed class ProfileUploadQueue
     /// sent from. An entry replaced while it was being sent (a newer version) stays: the site keeps the first copy of an
     /// id, so it goes out only to be acknowledged, and that is logged.
     /// </summary>
-    public void Settle(IEnumerable<(string EventId, long Version)> sent)
+    public void Settle(IEnumerable<(string EventId, long Version)> sent, string? owner = null)
     {
         lock (_gate)
         {
+            // A reply can arrive after another account adopted the queue. Its acknowledgements belong to the old owner.
+            if (owner is not null && owner != _owner) return;
             var appended = new List<string>();
             foreach (var (id, version) in sent)
             {

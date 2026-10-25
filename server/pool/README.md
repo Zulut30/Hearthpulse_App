@@ -72,3 +72,16 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
 - `GET /v1/meta` returns the base stats (see above) when the table has rows, cached at the edge for 30 minutes.
 
 For a local test, run `npx wrangler dev --test-scheduled` and open `/__scheduled` to run the cron job.
+
+## Validation tests
+
+From the repository root, with Node.js 24 or later:
+
+```
+node --test server/pool/test/validation.test.mjs
+```
+
+The built-in runner needs no npm packages. Tests exercise the validators and `POST /v1/games` with an in-memory
+database stub, without contacting Cloudflare. Invalid required game fields reject that game; invalid optional
+details are omitted while the valid game summary is stored. Card IDs must be strings, and trinket lists are checked
+before they are merged (up to four picks and twelve offers, with at most twelve distinct cards in their union).

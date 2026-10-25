@@ -1,13 +1,18 @@
 ---
 name: hearthpulse-testing
-description: Use when writing, fixing or running Hearthpulse tests (tests/Hearthpulse.Tests, xunit) - synthetic Power.log lines, JSON fixtures, fake HttpMessageHandler instead of the network, temp-folder data isolation, Linux CI (ubuntu-latest) with WindowsFact/UnixFact, the module initializer that isolates the data folder, and why a long --artifacts-path breaks SQLite. Use it before claiming "tests pass" and whenever a test fails only on one OS, culture or machine.
+description: Use when writing, fixing or running Hearthpulse tests (Hearthpulse.Tests and Windows Hearthpulse.Presentation.Tests, xunit) - shared view-model contracts, Avalonia Headless bindings, synthetic Power.log lines, JSON fixtures, fake HttpMessageHandler, temp-folder isolation, WindowsFact/UnixFact, and short --artifacts-path for SQLite. Use it before claiming tests pass and when a test fails only on one OS, culture or machine.
 ---
 
 # Hearthpulse tests
 
-One project: `tests/Hearthpulse.Tests` (net10.0, xunit 2.9, global `using Xunit`). It references
-**`src/Hearthpulse.Core` only** - WPF/Avalonia view models are not testable from here, so logic that needs a test
-belongs in Core (a common review finding). Related: [hearthpulse-tracking](../hearthpulse-tracking/SKILL.md),
+The cross-platform project `tests/Hearthpulse.Tests` (net10.0, xunit 2.9, global `using Xunit`) references
+`src/Hearthpulse.Core` and `src/Hearthpulse.UI`. Avalonia view models can be tested directly; `Avalonia.Headless`
+supports UI binding checks without a window/GPU (`LocBindingTests`). WPF is not referenced by this cross-platform
+test project. `tests/Hearthpulse.Presentation.Tests` is an additional net10.0-windows suite referencing both App
+and UI for presentation contracts. It uses the existing scratch-data initializer and runs on Windows. Keep domain
+rules in Core and shared view-model behavior in `src/Hearthpulse.Presentation`; its sources compile into both
+existing UI assemblies, so both variants must be checked.
+Related: [hearthpulse-tracking](../hearthpulse-tracking/SKILL.md),
 [hearthpulse-counters](../hearthpulse-counters/SKILL.md), [hearthpulse-review](../hearthpulse-review/SKILL.md).
 
 ## Run
@@ -18,22 +23,37 @@ dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore
 dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore --filter "FullyQualifiedName~CountersTests"
 ```
 
-- No NuGet source is configured on this machine; `dotnet test` does not take `--source`, so restore first.
+For shared presentation or platform adapter changes, also run on Windows:
+
+```
+dotnet restore tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --source https://api.nuget.org/v3/index.json
+dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj -c Release --no-restore
+```
+
+Build both UI hosts as well: the shared import selects `HEARTHPULSE_WPF` / `HEARTHPULSE_AVALONIA` from
+`HearthpulsePresentationFlavor`. Tests against Avalonia alone cannot validate the WPF compile branch. Linux CI
+runs the cross-platform suite; Windows also runs the presentation suite. Keep their results and skips separate.
+Preserve intentional differences (public types, constructor defaults, command notifications, platform-only
+properties) in contract tests rather than forcing the two UIs to have identical APIs or behavior.
+
+- Restore with the explicit NuGet source above; do not assume another machine's configured sources. `dotnet test`
+  does not take `--source`, so restore first.
 - Parallel sessions: add `--artifacts-path <dir>` to restore and test so outputs do not collide. **Keep `<dir>`
   short** (e.g. `%TEMP%\hpa`): under a long scratchpad path the native `e_sqlite3.dll` fails to load
   ("file name or extension is too long", 0x800700CE) and every `HistoryStore` test fails with
   `TypeInitializationException` - that is the path, not your change.
-- The test output is localised on this machine (Russian `dotnet` messages): grep for `Не пройден` / `пройдено` as
-  well as `Failed` / `Passed`.
+- Test output follows the machine's language. When parsing output, handle `Не пройден` / `пройдено` as well as
+  `Failed` / `Passed`; prefer a TRX report for machine-readable results.
 
-## Baseline (checked on claude/quality-hardening-431c90 + main 433e8bf, Oct 2026)
+## Establish the baseline for the change
 
-780 tests: 779 pass, 1 skipped (a `[UnixFact]` on Windows), **no known failures** (Debug and Release). The two old
-ones are fixed: ranks are stored culture-independently (`RankInfo.Text`), and the Battlegrounds view test replays the
-fixture `Fixtures/BattlegroundsGame`; runs over `D:\Hearthstone\Logs` are `[RealLogsFact]` (skipped without the logs).
+Run the selected base commit with the same SDK, configuration, OS and fixtures when attributing a failure to a
+change. Record its SHA and passed/failed/skipped counts. Historical snapshots are not acceptance thresholds:
+`433e8bf` had 780 tests; the Windows Release audit of `7657bb5` found 1165 (1164 passed, one Unix-only skip).
+Use the new run's results, not either old count, when reporting current status.
 
-Anything failing is yours. Report counts as "X passed, none failed" and compare the total with the baseline - a
-smaller total after a merge means tests were lost.
+A count difference is a reason to inspect the discovered cases and diff, not proof that tests were lost or that
+coverage was preserved. Check the actual behavior and meaningful assertions of added/removed cases.
 
 ## Style
 
@@ -45,8 +65,10 @@ smaller total after a merge means tests were lost.
 
 ### Power.log input: synthetic lines in the test
 
-There are **no Power.log fixture files**. Each test file builds a game from inline lines and feeds a `PowerParser`
-with its own listeners:
+Most focused parser tests build games from inline lines and feed a `PowerParser` with their own listeners.
+The repository also has a real compressed log, `Fixtures/BattlegroundsGame/power.log.gz`, used by repeatable
+Battlegrounds replay tests; use a small recorded fixture when ordering matters beyond an isolated event.
+Existing inline helpers:
 
 - `CountersTests.Play(params string[] bodies)` -> `(GameState, ConstructedTracker)`; helpers `Card`, `PlayFromHand`,
   `Cast`, `Die`, `View`, `Value(view, id, opponent)`. Ranked game, local player 1, opponent 2.
@@ -62,9 +84,10 @@ failed on real games (deck-hand review M2).
 
 ### Real-log tests
 
-`RealLogTests`, `AdvisorTests`, `CombatOddsTests`, `DiscoverTests`, one test in `HistoryMigrationTests` read
-`D:\Hearthstone\Logs` and return early when it is missing. Keep that pattern for exploratory checks, but never make
-a feature's only test depend on local logs - it proves nothing on CI.
+Tests that need the developer's kept logs use `[RealLogsFact]`, defined in `RealLogTests.cs`; it reports a skip
+when `RealLogTests.LogRoot` (currently `D:\Hearthstone\Logs`) is unavailable. Do not silently return from a test and
+count it as passed. Repository fixtures run on every machine. Never make a feature's only assertion depend on a
+locally installed game; report which kept-log checks actually ran.
 
 ### JSON fixtures
 
@@ -89,7 +112,8 @@ delays are injected too (`AccountService.Delay`, a swappable clock) - never `Tas
 
 ### Data isolation
 
-- Tests run in parallel (no collections). `TestDataFolder` (a `[ModuleInitializer]`) points `HEARTHPULSE_DATA` at a temp
+- Tests normally run in parallel. `LocBindingTests` uses the nonparallel `GlobalLanguage` collection because it
+  changes the shared localization service. `TestDataFolder` (a `[ModuleInitializer]`) points `HEARTHPULSE_DATA` at a temp
   folder before anything reads `AppPaths` and deletes it at the end: never set it in a test. Read the shared log with
   `TestDataFolder.ReadLog()` - a plain `File.ReadAllText` locks out `Diag` in a parallel test and that line is lost.
 - A `GameSession` in a test: set `Clock`, `IsHearthstoneRunning` and `ReadsMemory = false` (internal hooks), so time is
@@ -118,7 +142,22 @@ delays are injected too (`AccountService.Delay`, a swappable clock) - never `Tas
 
 1. Core logic has tests in `tests/Hearthpulse.Tests/<Feature>Tests.cs`; rule-type behaviour has negative tests.
 2. No real network, no real data folder, no dependency on `D:\Hearthstone\Logs` for the main assertion.
-3. Runs on Linux (no Windows APIs without `[WindowsFact]`), any culture, any time zone.
+3. Cross-platform cases run on Linux (no Windows APIs without `[WindowsFact]`), any culture and any time zone.
+   WPF/Avalonia contract comparisons belong in the additional Windows presentation project; do not retarget the
+   existing net10.0 suite to Windows or silently skip it on Linux.
 4. Hard-coded counts updated where the suite pins them (e.g. the BG counter totals in
    `BattlegroundsCountersTests`, unique ids in `CountersTests.Counter_modes_default_to_auto`).
-5. Full run: total = baseline + your new tests, none failing.
+5. Required run succeeds with the intended cases discovered; report passed/failed/skipped and explain changed counts.
+
+## Skill scripts and server code
+
+The .NET suite does not execute Python helpers or the Cloudflare Worker. Run their tests when those files change:
+
+```
+python -B -I -m unittest discover -s tools/skill_checks -v
+node --test server/pool/test/validation.test.mjs
+```
+
+The Python checks require Pillow (visual comparisons) and PyYAML (skill frontmatter). They also verify the catalog's
+relative recipe links. Visual checks mock the .NET child process and use temporary images/data: no real GUI,
+account, game configuration or network is touched. Node uses its built-in test runner. CI runs both script suites.

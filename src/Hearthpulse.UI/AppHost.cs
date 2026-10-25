@@ -27,6 +27,7 @@ namespace Hearthpulse.UI;
 /// </summary>
 public sealed partial class AppHost : IDisposable
 {
+    private readonly bool _rendering;
     private readonly DispatcherTimer _historyDebounce;
     private readonly DispatcherTimer _settingsDebounce;
     private readonly DispatcherTimer _metaRefresh;
@@ -42,8 +43,10 @@ public sealed partial class AppHost : IDisposable
     private Task? _archetypeNames;
     private Func<string>? _updateStatus;
 
-    public AppHost(AppSettings settings)
+    /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
+    public AppHost(AppSettings settings, bool rendering = false)
     {
+        _rendering = rendering;
         Settings = settings;
         Loc.Instance.SetLanguage(settings.InterfaceLanguage());
         Http = new HttpClient(new SocketsHttpHandler
@@ -71,7 +74,10 @@ public sealed partial class AppHost : IDisposable
         Uploader.BaseHero = id => Cards.BaseHeroId(id);
         Account.Changed += Uploader.Kick;
         Main.AttachUploader(Uploader);
-        Account.RestoreAsync().Forget("Account restore");
+        if (!_rendering)
+        {
+            Account.RestoreAsync().Forget("Account restore");
+        }
         Overlay = new OverlayViewModel();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
@@ -166,6 +172,7 @@ public sealed partial class AppHost : IDisposable
     /// <summary>Finds Hearthstone, loads card data, imports history and (unless rendering off-screen) starts following the logs.</summary>
     public async Task InitializeAsync(bool watchLogs = true)
     {
+        var live = watchLogs && !_rendering;
         try
         {
             SetBusy(() => Loc.T("Host.Busy.LookingForGame"));
@@ -184,7 +191,8 @@ public sealed partial class AppHost : IDisposable
             var locale = Settings.CardLocale();
             CardArt.Locale = locale;
 
-            var logConfigChanged = await Task.Run(() =>
+            // Hearthstone's config is outside HEARTHPULSE_DATA, even when our own data is a scratch copy.
+            var logConfigChanged = live && await Task.Run(() =>
             {
                 try
                 {
@@ -219,7 +227,7 @@ public sealed partial class AppHost : IDisposable
                 Task.Run(() => LogBackfill.FillDecks(install, History, Cards)).Forget("Deck backfill");
             }
 
-            if (!watchLogs)
+            if (!live)
             {
                 return;
             }
@@ -243,6 +251,11 @@ public sealed partial class AppHost : IDisposable
         catch (Exception ex)
         {
             Diag.Error("Startup failed", ex);
+            if (_rendering)
+            {
+                throw;
+            }
+
             SetBusy(() => Loc.T("Host.Busy.StartupProblem"));
         }
     }
@@ -486,7 +499,10 @@ public sealed partial class AppHost : IDisposable
         Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
         LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();
-        ApplyAutostart?.Invoke(Settings.StartWithWindows);
+        if (!_rendering)
+        {
+            ApplyAutostart?.Invoke(Settings.StartWithWindows);
+        }
     }
 
     /// <summary>The player chose (or cleared) a comp in the overlay. With "I choose" the choice is saved and kept across games.</summary>

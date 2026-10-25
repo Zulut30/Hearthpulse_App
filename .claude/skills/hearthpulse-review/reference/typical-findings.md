@@ -1,8 +1,9 @@
 # Typical findings from the October 2026 reviews
 
-Source: `C:\Users\zulut\Downloads\HeartLens-main\reference\reviews\HeartLens-feat-*.md`, `HeartLens-main-counters-merged.md`,
+Source: `<repo>/../reference/reviews/HeartLens-feat-*.md`, `HeartLens-main-counters-merged.md`,
 `INTEGRATION.md`. Line numbers refer to the reviewed commits and will have moved; use them to find the pattern, not the
-place. "→" is how it was fixed.
+place. "→" is how it was fixed. Resolve the repository root and check the optional sibling reference folder exists
+before consulting these historical reports.
 
 ## Correctness
 
@@ -70,7 +71,9 @@ statement.
 - Date test depending on the time zone → local noon.
 - Main assertion depending on `D:\Hearthstone\Logs` (machine-dependent).
 - No script to regenerate fixture numbers → `tools/cardpool/pool_fixture.py`.
-- UI/VM logic untestable because tests reference Core only → move logic to Core.
+- Historical UI/VM gap: tests referenced Core only. The suite now references Avalonia UI and Headless as well;
+  test its view models/bindings directly and keep domain rules in Core. Common view models now live in shared
+  `src/Hearthpulse.Presentation`; the separate Windows presentation suite compares both compiled variants.
 
 ## Performance
 
@@ -95,5 +98,6 @@ statement.
 - New CS0618 warning while the project builds with zero warnings (counters M2).
 - Dead code kept: `MulliganTile`, `ShowFirst`, `KeyBrush`.
 - Env override for the site must be https-only and host-checked, falling back instead of crashing (oidc).
-- `--render-ui` aborted by one IO exception (counters m4, deck-hand m10).
+- Historical `--render-ui` abort on an optional scene IO exception (counters m4, deck-hand m10): optional missing
+  log moments should be explicit skips; fatal errors and missing mandatory scenes must still fail the run.
 - Overlay interactive areas stealing game clicks over Discover / End Turn (deck-hand m7, card-pool M6).

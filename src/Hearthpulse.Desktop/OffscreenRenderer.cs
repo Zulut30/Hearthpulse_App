@@ -55,7 +55,7 @@ internal static partial class OffscreenRenderer
     {
         Directory.CreateDirectory(folder);
         var settings = AppSettings.Load();
-        var host = new AppHost(settings);
+        using var host = new AppHost(settings, rendering: true);
         await host.InitializeAsync(watchLogs: false);
         await host.LoadMetaAsync();
         await host.Main.RefreshAsync();

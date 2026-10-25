@@ -19,7 +19,9 @@ You are not a lawyer, and every report opens with that line. Your findings are r
 - **Read-only.** Use `git diff main...<sha>`, `git show`, `grep` and reading files.
   - No checkout in other sessions' worktrees.
   - No edits, commits or pushes.
-- **Your only write** is the report, at `C:\Users\zulut\Downloads\HeartLens-main\reference\reviews\LEGAL-<repo>-<target>.md`.
+- **Your only write** is the report, at `<app-root>/../reference/reviews/LEGAL-<repo>-<target>.md`.
+  Resolve `<app-root>` with `git rev-parse --show-toplevel` and check the sibling reference folder exists; if it is
+  absent, use the agreed workspace report location and record that path.
   - `<repo>` is `HeartLens` or `HeartPulse`.
   - `<target>` is the branch name, or `main-<sha7>`.
 - **Back every finding** with `file:line`, what the code does, why it is a risk, and the fix.
@@ -34,14 +36,14 @@ You are not a lawyer, and every report opens with that line. Your findings are r
 
 ## Repositories
 
-- **App:** `C:\Users\zulut\Downloads\HeartLens-main\HeartLens-main`, a .NET 10 tracker and overlay.
+- **App:** `<app-root>` (the checked repository root), a .NET 10 tracker and overlay.
   - Core `src/Hearthpulse.Core`.
   - WPF `src/Hearthpulse.App`.
   - Avalonia `src/Hearthpulse.UI`.
   - Installers `installer/`.
-- **Site:** `C:\Users\zulut\Downloads\HeartLens-main\reference\repos\HeartPulse`, Node/TS. Read its `AGENTS.md` first.
+- **Site:** `<app-root>/../reference/repos/HeartPulse`, Node/TS. Verify this external checkout exists and read its `AGENTS.md` first.
 - **Licence table and data sources:** `.claude/skills/hearthpulse-data-sources/SKILL.md`, section "Licences: what may be reused".
-- **Third-party repos used for comparison:** `C:\Users\zulut\Downloads\HeartLens-main\reference\repos\*`.
+- **Third-party repos used for comparison:** `<app-root>/../reference/repos/*`; check availability before consulting them.
 
 ## Checklist
 

@@ -9,6 +9,9 @@ public sealed record AccountUser(string Id, string DisplayName, Entitlements Ent
 /// <summary>Why signing in or refreshing failed, in words the player can act on.</summary>
 public sealed record AccountError(string Code, string Message);
 
+/// <summary>A named sign-in. Refreshing tokens keeps it; signing in again creates a new generation.</summary>
+public sealed record AccountSession(string AccountId, long Generation);
+
 /// <summary>
 /// The Hearthpulse account, which is the player's account on the HeartPulse site (hearthpulse.net). Signing in uses
 /// the OAuth device authorization grant (RFC 8628, contract: docs/accounts-api.md): the app shows a short code, the
@@ -62,6 +65,11 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     private string? _refreshToken;
     private Timer? _phaseTimer;
     private int _phase;
+    private AccountSession? _session;
+    private long _sessionGeneration;
+
+    /// <summary>Identity for account-bound background work; null until the account has been named.</summary>
+    public AccountSession? Session => Volatile.Read(ref _session);
 
     /// <summary>
     /// Raised (on any thread) when the player signs in or out, a stored session turns out to be gone, or the sign-in
@@ -133,6 +141,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
         _refreshToken = saved.Value.RefreshToken;
         User = saved.Value.User;
+        SetSession(User, newSignIn: true);
         SessionExpires = saved.Value.ExpiresAt;
         WatchSessionEnd();
         Changed?.Invoke();
@@ -221,6 +230,28 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         }
 
         return _refreshToken is null || await RefreshAsync(withProfile: false, cancellationToken).ConfigureAwait(false) is not null ? null : _accessToken;
+    }
+
+    /// <summary>
+    /// Gets a token only for the sign-in that owns an operation. The account and token are checked together under
+    /// the token gate after a possible refresh, so a sign-in that replaced it can never lend its token to old work.
+    /// </summary>
+    public async Task<string?> GetAccessTokenForSessionAsync(AccountSession expected, CancellationToken cancellationToken = default)
+    {
+        if (Session != expected || await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false) is null)
+        {
+            return null;
+        }
+
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return Session == expected ? _accessToken : null;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     /// <summary>Re-checks how close the sign-in is to its end and raises <see cref="Changed"/> when that moved on.</summary>
@@ -428,6 +459,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         SessionExpires = expires;
         _accessExpires = DateTime.UtcNow.AddSeconds(tokens.ExpiresIn);
         Volatile.Write(ref _accessToken, tokens.AccessToken);
+        SetSession(user, newSignIn: sessionExpires is not null);
 
         WatchSessionEnd();
         Changed?.Invoke();
@@ -436,6 +468,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// <summary>Drops the session here. Call under the gate.</summary>
     private void Forget()
     {
+        Volatile.Write(ref _session, null);
         _accessToken = null;
         _refreshToken = null;
         SessionExpires = null;
@@ -447,6 +480,19 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         if (had)
         {
             Changed?.Invoke();
+        }
+    }
+
+    // Called with the token gate held (or while restoring before any token is available).
+    private void SetSession(AccountUser user, bool newSignIn)
+    {
+        if (user.Id.Length == 0)
+        {
+            Volatile.Write(ref _session, null);
+        }
+        else if (newSignIn || Session?.AccountId != user.Id)
+        {
+            Volatile.Write(ref _session, new AccountSession(user.Id, Interlocked.Increment(ref _sessionGeneration)));
         }
     }
 

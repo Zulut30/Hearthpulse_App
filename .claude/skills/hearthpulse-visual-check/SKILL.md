@@ -12,10 +12,10 @@ to *see* a UI change from a session - use it for every visual change, in both UI
 
 ## Never on the real data folder
 
-A render is a full app start: it creates/updates `history.db`, may import kept logs, saves `settings.json`, downloads
-caches, may rewrite Hearthstone's `log.config`, and WPF may even start the update check. The user's real app may be
-running at the same time. So **always** set `HEARTHPULSE_DATA` to a copy - and do not copy `account.dat` (the
-signed-in session), it is not needed for rendering.
+Render startup suppresses live trackers, account restoration, update checks and changes to Hearthstone's
+`log.config`/`client.config` in both hosts. It still reads history, may save settings and loads data/art caches.
+The user's real app may be running at the same time. **Always** set `HEARTHPULSE_DATA` to a copy, excluding
+`account.dat` (the signed-in session). This keeps render/cache writes isolated; it is not an offline guarantee.
 
 ## Render
 
@@ -23,8 +23,8 @@ Bundled script (copies the data once to `%TEMP%\hpd`, builds into the short `%TE
 child only):
 
 ```
-python -I .claude/skills/hearthpulse-visual-check/scripts/render.py <out-dir> both
-python -I .claude/skills/hearthpulse-visual-check/scripts/render.py <out-dir> wpf --theme Frost
+python -B -I .claude/skills/hearthpulse-visual-check/scripts/render.py <out-dir> both
+python -B -I .claude/skills/hearthpulse-visual-check/scripts/render.py <out-dir> wpf --theme Frost
 ```
 
 Manual equivalent (Git Bash):
@@ -32,27 +32,35 @@ Manual equivalent (Git Bash):
 ```
 export HEARTHPULSE_DATA="$TEMP/hpd"          # a copy: settings.json, history.db, cache/
 dotnet restore src/Hearthpulse.App --source https://api.nuget.org/v3/index.json --artifacts-path "$TEMP/hpa"
+dotnet restore src/Hearthpulse.Desktop --source https://api.nuget.org/v3/index.json --artifacts-path "$TEMP/hpa"
 dotnet run --project src/Hearthpulse.App --no-restore --artifacts-path "$TEMP/hpa" -- --render-ui <out>/wpf
 dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEMP/hpa" -- --render-ui <out>/ava
 ```
 
 - Takes 1-3 minutes per UI (it waits 2.5 s per page and for card art); run it in the background.
 - `--artifacts-path` must be short; parallel sessions should each use their own.
-- WPF is Windows only and prints nothing (WinExe) - judge by the PNG list. Avalonia prints `wrote <path>` and
+- WPF is Windows only and prints nothing (WinExe) - inspect the exit code and current PNG list. Avalonia prints `wrote <path>` and
   "`<scene>`: no kept Battlegrounds log reaches this moment, skipped".
 - Language: the data copy's `settings.json` decides (`"Language": "ru"` or `"en"`; `"auto"` = the machine's). Render
   each language from its own copy (`--data %TEMP%\hpd-ru`, `--data %TEMP%\hpd-en`); see `docs/localization.md`.
 - No other arguments exist (no scene filter, no size). Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
   honoured only while rendering, WPF only (Avalonia has no theme engine).
 - Data: main pages from `history.db`; overlay moments replayed from the **kept Hearthstone logs**
-  (`<install>/Logs`, here `D:\Hearthstone\Logs`); counters fall back to a synthetic scene; meta and card pool come
+  (`<install>/Logs`, resolved from the configured install); counters fall back to a synthetic scene; meta and card pool come
   from the network/cache.
 
-## Scenes (checked 2026-10-23 on main 2e8d9be)
+The script renders into a fresh temporary directory for each UI and publishes that run's PNGs, removing old PNGs
+from the matching output subdirectory. Exit 0 requires a successful child process and seven nonempty mandatory
+files: `main-overview`, `main-battlegrounds`, `main-standard`, `main-wild`, `main-history`, `main-settings`, and
+`overlay-layout` (all `.png`). Missing log-dependent scenes are optional; missing baseline pages are failures.
+Partial current output is kept for diagnosis. The manual commands above do not enforce this validation, so use a
+fresh output folder and check these files yourself when bypassing the wrapper.
+
+## Scenes (renderer code is authoritative)
 
 | PNG | WPF | Avalonia | Source |
 |---|---|---|---|
-| `main-overview`, `-battlegrounds`, `-constructed`, `-history`, `-settings` | 1260x840 window | same | `DevRender.cs` / `OffscreenRenderer.cs` page loop (Arena is not in the loop) |
+| `main-overview`, `-battlegrounds`, `-standard`, `-wild`, `-history`, `-settings` | 1260x840 window | same | `DevRender.cs` / `OffscreenRenderer.cs` page loop (Arena is not in the loop) |
 | `main-settings-general`, `-overlay`, `-tracker`, `-account`, `-data`, `-about` | yes | yes | each Settings tab (`DevRender.Settings.cs` / `OffscreenRenderer.Settings.cs`) |
 | `main-settings-counters` | yes | yes | Tracker tab, scrolled to the Battlegrounds counters |
 | `main-constructed-tiers`, `main-constructed-top` | yes | - (no meta tabs) | `ShowConstructedTab` |
@@ -68,16 +76,17 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
 | `overlay-card-pool`, `-runes`, `-sections`, `-uncomputed`, `-browser`, `-browser-filtered` | yes | yes | `App.CardPool.cs` / `Desktop/CardPoolRender.cs` (wiki pools of BE_298 from the API cache) |
 | `overlay-layout` | always last | same | layout mode: every `MovablePanel` as a labelled placeholder at its default spot |
 
-Last dry run on this machine: WPF 26 PNG, Avalonia 30 PNG (no BG log reached trinket/discover/game moments).
-Missing files are normal when the logs do not reach a moment; a scene that disappeared after your change is not.
+The total PNG count depends on the data and scenes in that commit; historical totals are not a success gate.
+Report optional scenes skipped because no log reaches the moment, and investigate a scene that disappeared.
 
 ## Add a scene
 
-Keep scenes inside the existing `try` so `Quit()`/exit still runs, put them before `overlay-layout`, and catch IO
-errors per scene - one failure must not abort the render (review finding).
+Keep scenes inside the existing `try` so `Quit()`/exit still runs, and put them before `overlay-layout`. Fatal
+startup/render errors and missing mandatory scenes must produce a nonzero exit. A scene that requires an
+unavailable log moment may be explicitly reported as skipped; do not turn a mandatory scene failure into success.
 
 - **Main page, WPF**: in `RenderUiAsync` (`src/Hearthpulse.App/DevRender.cs`) or a feature partial
-  `DevRender.<Feature>.cs`: show the page/tab (`_main.ShowPage("Constructed")`, or a new public helper on
+  `DevRender.<Feature>.cs`: show the page/tab (`_main.ShowPage("Standard")`, or a new public helper on
   `MainWindow` like `ShowConstructedTab`), `await Task.Delay(2500)`, `_main.UpdateLayout()`,
   `Save(_main, Path.Combine(folder, "main-x.png"))`.
 - **Main page, Avalonia**: `OffscreenRenderer.cs` `RenderAsync` or `OffscreenRenderer.<Feature>.cs`:
@@ -100,7 +109,8 @@ errors per scene - one failure must not abort the render (review finding).
    ```
    python -I .claude/skills/hearthpulse-visual-check/scripts/png_diff.py <before>/wpf <after>/wpf <out>/diff-wpf
    ```
-   It lists new/removed scenes and the changed-pixel share, and writes `before | after | diff` sheets - Read the
+   It lists new/removed scenes and the share of pixels whose maximum RGBA-channel difference exceeds 24 (small
+   antialiasing noise is ignored), and writes `before | after | diff` sheets - Read the
    sheet to see the change. Unexpected changes outside your area are regressions until explained.
 4. The same script on `<out>/wpf` vs `<out>/ava` is a quick **parity** check: expect differences from fonts,
    Avalonia's nav group markers and crop scale (WPF counter crops are 2x, `*-full` pages differ in size), not missing
@@ -111,9 +121,8 @@ errors per scene - one failure must not abort the render (review finding).
 Open the PNGs with the Read tool (they are images). For each one touched by the change:
 
 - **Clipping**: text cut at the right edge or ellipsized where it should wrap; numbers like "1,204" or long card
-  names - the chrome is English but card/hero/deck names follow the card locale, and on this machine that is
-  Russian ("Тюремщик Старого города", "Рыцарь смерти3 · vs Paladin · Platinum 5 · 9 turns"), noticeably longer than
-  English; tooltips leaving the 1920x1080 surface; the bottom 120 px of pages reserved for the floating live bar.
+  names - check both English and Russian UI text, plus card/hero/deck names in the card locale. Cyrillic text can
+  be longer; also check tooltips leaving the 1920x1080 surface and the bottom 120 px reserved for the floating live bar.
 - **Overlap**: panels on top of each other in `overlay-layout.png` - fine only between panels that never show in the
   same mode (e.g. `card-pool` vs `bgbar`); text over art; the live bar covering content.
 - **Contrast**: parchment `Text` on wood surfaces; `Muted`/`Faint` only for secondary text; semantic colours
@@ -129,3 +138,10 @@ Open the PNGs with the Read tool (they are images). For each one touched by the 
 
 Report what you rendered (UIs, theme, data copy), which PNGs you inspected, and what you could not render (e.g. no
 kept log reaches the Discover moment) - do not claim a scene looks right if it was skipped.
+
+## Script regression checks
+
+`python -B -I -m unittest discover -s tools/skill_checks -v` uses Pillow synthetic images and mocked child
+processes to check RGB/alpha differences, noise thresholds, current-scene validation, stale output, failed
+processes and data/output isolation. It does not launch either GUI or access the network. These checks do not
+replace opening the actual rendered PNGs.

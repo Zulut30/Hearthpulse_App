@@ -43,12 +43,12 @@ Never design from imagination; real line order differs from what you expect (e.g
 deal, the Coin can be a skin like `JAIL_COIN3` with `COIN_CARD=1`).
 
 - Logs: `<Hearthstone install>/Logs/Hearthstone_yyyy_MM_dd_HH_mm_ss/Power.log` (+ `Power_old.log`, `Decks.log`,
-  `LoadingScreen.log`). On this machine the install is `D:\Hearthstone` (settings `HearthstonePath`), so
-  `D:\Hearthstone\Logs\`. Helpers: `HearthstoneInstall.LatestLogSession`, `AllLogSessions`.
+  `LoadingScreen.log`). Resolve the install from `HearthstonePath` settings / `HearthstoneInstall` and check that
+  its log folder exists. Helpers: `HearthstoneInstall.LatestLogSession`, `AllLogSessions`.
 - Search, then read the surrounding block:
   ```
-  grep -n "tag=HERALD_COLOSSAL_AMOUNT" "D:/Hearthstone/Logs/Hearthstone_2026_10_23_13_40_10/Power.log" | head
-  grep -n "BLOCK_START BlockType=PLAY" .../Power.log | head
+  rg -n -m 20 "tag=HERALD_COLOSSAL_AMOUNT" "<resolved session>/Power.log"
+  rg -n -m 20 "BLOCK_START BlockType=PLAY" "<resolved session>/Power.log"
   ```
   State comes from the `GameState.DebugPrint*` lines; the `PowerTaskList.` copies are only used to follow what the
   client is currently showing (BG combat replay) - match the `GameState.` line when you look for a tag.
@@ -105,8 +105,9 @@ publish, or on a background task with its own cancellation.
    the property inside the right record (a merge once put `CardPool` into the next record).
 2. Fill it in the tracker's `BuildView` (`ConstructedTracker.BuildView`, `BattlegroundsTracker.BuildView`).
    `GameSession.Publish()` builds `LiveSnapshot` at most every 100 ms and raises `SnapshotChanged`.
-3. Read it in **both** overlay view models (`src/Hearthpulse.App/Overlay/OverlayViewModel*.cs` and
-   `src/Hearthpulse.UI/Overlay/OverlayViewModel*.cs`) - see [hearthpulse-overlay-panel](../hearthpulse-overlay-panel/SKILL.md);
+3. Read it once in the shared overlay view model (`src/Hearthpulse.Presentation/Overlay/OverlayViewModel*.cs`),
+   compiled for both UIs; adapt framework-specific values in the local platform partials only. See
+   [hearthpulse-overlay-panel](../hearthpulse-overlay-panel/SKILL.md);
    main-window pages: [hearthpulse-main-page](../hearthpulse-main-page/SKILL.md).
 
 Performance: `BuildView` runs on every publish (up to 10/s). Do not rebuild expensive lists each time - cache by
@@ -140,7 +141,9 @@ games") instead of showing 0. If other sessions consume the columns, write a sho
 - [ ] Signal confirmed in at least two real logs; line references noted.
 - [ ] No hidden information; negative test for the leak path.
 - [ ] Listener registered in `GameSession` (and `LogBackfill` if history needs it).
-- [ ] View property + both overlay/main view models; render scene shows it ([hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md)).
+- [ ] View property + shared overlay/main presentation mapping; both platform views bind it and the render scene
+  shows it ([hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md)).
 - [ ] Migration: `AddedColumns` appended, insert/fill/query by name, migration test extended.
-- [ ] Tests with synthetic lines in real order; full suite = baseline + new, none failing.
+- [ ] Tests with synthetic lines in real order; replay the checked-in compressed fixture when ordering matters.
+  Record actual full-suite results and skips; inspect changes in discovered cases against the selected base.
 - [ ] A replay over your kept logs for the new value (keep the output as `*-real-log-run.txt` evidence).

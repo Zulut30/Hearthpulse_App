@@ -6,6 +6,7 @@
     <Project Path="src/Hearthpulse.App/Hearthpulse.App.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj" />
     <Project Path="tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">

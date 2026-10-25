@@ -83,19 +83,23 @@ async function submit(request, env) {
 }
 
 const int = (x, min, max) => Number.isInteger(x) && x >= min && x <= max;
-const cards = (list, max) => Array.isArray(list) && list.length <= max && list.every((c) => typeof c === "string" && CARD.test(c));
+const card = (x) => typeof x === "string" && CARD.test(x);
+const tribe = (x) => typeof x === "string" && TRIBE.test(x);
+const cards = (list, max) => Array.isArray(list) && list.length <= max && list.every(card);
 
 /** A clean row for a version 3 game, or null when its core fields are missing or out of range. */
 export function validateGame(g, today) {
   if (!g || typeof g !== "object") return null;
-  const id = String(g.id ?? "");
+  const id = g.id;
   const mode = g.mode === "solo" || g.mode === "duos" ? g.mode : null;
   const day = g.day ?? today;
-  const offered = Array.isArray(g.offered) ? [...new Set(g.offered.map(String))] : [];
-  if (!GAME_ID.test(id) || !mode || !int(day, today - 400, today + 1)) return null;
-  if (typeof g.picked !== "string" || !CARD.test(g.picked) || !int(g.placement, 1, 8)) return null;
+  const rawOffered = Array.isArray(g.offered) ? g.offered : [];
+  if (!rawOffered.every(card)) return null;
+  const offered = [...new Set(rawOffered)];
+  if (typeof id !== "string" || !GAME_ID.test(id) || !mode || !int(day, today - 400, today + 1)) return null;
+  if (!card(g.picked) || !int(g.placement, 1, 8)) return null;
   if (!int(g.bracket ?? 0, 0, 20000) || (g.bracket ?? 0) % 500 !== 0) return null;
-  if (offered.length > 4 || !offered.every((h) => CARD.test(h)) || (offered.length > 0 && !offered.includes(g.picked))) return null;
+  if (offered.length > 4 || (offered.length > 0 && !offered.includes(g.picked))) return null;
 
   const row = {
     id, day, mode, bracket: g.bracket ?? 0, hero: g.picked, placement: g.placement, src: g.src === "history" ? "history" : "live",
@@ -106,20 +110,28 @@ export function validateGame(g, today) {
 
 /** The optional details of a game, or {} when they are missing or anything core in them is out of range. */
 export function validateDetails(d) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return {};
   if (!int(d.turns, 0, 99) || !int(d.tier, 1, 7) || !int(d.triples ?? 0, 0, 99)) return {};
   const anomaly = d.anomaly ?? null;
-  const tribes = Array.isArray(d.tribes) ? [...new Set(d.tribes.map(String))].sort() : [];
+  const rawTribes = Array.isArray(d.tribes) ? d.tribes : [];
+  if (!rawTribes.every(tribe)) return {};
+  const tribes = [...new Set(rawTribes)].sort();
   const comp = d.comp ?? null;
-  if ((anomaly !== null && !CARD.test(String(anomaly))) || tribes.length > 8 || !tribes.every((t) => TRIBE.test(t))) return {};
-  if (comp !== null && !TRIBE.test(String(comp))) return {};
+  if ((anomaly !== null && !card(anomaly)) || tribes.length > 8) return {};
+  if (comp !== null && !tribe(comp)) return {};
 
   const board = d.board ?? [];
   if (!Array.isArray(board) || board.length > 7) return {};
-  if (!board.every((m) => m && CARD.test(String(m.c ?? "")) && int(m.a, 0, 1_000_000) && int(m.h, 0, 1_000_000))) return {};
+  if (!board.every((m) => m && card(m.c) && int(m.a, 0, 1_000_000) && int(m.h, 0, 1_000_000))) return {};
 
+  if (d.trinkets != null && (typeof d.trinkets !== "object" || Array.isArray(d.trinkets))) return {};
   const picked = d.trinkets?.p ?? [];
-  const trinketsOffered = [...new Set([...(d.trinkets?.o ?? []), ...picked])];
-  if (!cards(picked, 4) || !cards(trinketsOffered, 12)) return {};
+  const offered = d.trinkets?.o ?? [];
+  // Validate before spreading: JSON may contain a number/object here, which is not iterable. Bounding the raw
+  // arrays also avoids allocating a large merged list just to reject it after deduplication.
+  if (!cards(picked, 4) || !cards(offered, 12)) return {};
+  const trinketsOffered = [...new Set([...offered, ...picked])];
+  if (trinketsOffered.length > 12) return {};
 
   const tierups = d.tierups ?? [];
   if (!Array.isArray(tierups) || tierups.length > 7 || !tierups.every((t) => Array.isArray(t) && int(t[0], 0, 99) && int(t[1], 1, 7))) return {};
@@ -136,7 +148,7 @@ export function validateDetails(d) {
 
   // Picks and plays are long lists: a bad entry is dropped instead of the whole game.
   const choices = (Array.isArray(d.choices) ? d.choices : []).slice(0, 120)
-    .filter((c) => Array.isArray(c) && int(c[0], 0, 99) && KINDS.has(c[1]) && (c[2] === null || CARD.test(String(c[2])))
+    .filter((c) => Array.isArray(c) && int(c[0], 0, 99) && KINDS.has(c[1]) && (c[2] === null || card(c[2]))
       && cards(c[3], 8) && c[3].length > 0 && cards(c[4], 4) && c[4].every((p) => c[3].includes(p)))
     .map((c) => [c[0], c[1], c[2], c[3], c[4]]);
   const plays = (Array.isArray(d.plays) ? d.plays : []).slice(0, 300)
@@ -150,7 +162,7 @@ export function validateDetails(d) {
     anomaly,
     tribes: tribes.join(","),
     comp,
-    board: board.map((m) => ({ c: String(m.c), g: m.g ? 1 : 0, a: m.a, h: m.h })),
+    board: board.map((m) => ({ c: m.c, g: m.g ? 1 : 0, a: m.a, h: m.h })),
     trinkets: { o: trinketsOffered, p: picked },
     tierups: tierups.map((t) => [t[0], t[1]]),
     combats: fights,

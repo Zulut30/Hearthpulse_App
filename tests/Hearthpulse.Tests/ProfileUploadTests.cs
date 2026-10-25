@@ -21,6 +21,9 @@ public sealed class ProfileUploadTests : IDisposable
     private bool _enabled = true;
     private string? _user = "u-42";
     private string? _token = "acc-1";
+    private long _sessionGeneration = 1;
+
+    private AccountSession? Session => _user is { } id ? new AccountSession(id, _sessionGeneration) : null;
 
     public ProfileUploadTests()
     {
@@ -36,9 +39,11 @@ public sealed class ProfileUploadTests : IDisposable
 
     private string QueuePath => Path.Combine(_dir, "profile-upload.json");
 
-    private ProfileUploader Uploader(Func<bool>? enabled = null, int backfillPage = ProfileUploader.BackfillPage) =>
+    private ProfileUploader Uploader(Func<bool>? enabled = null, int backfillPage = ProfileUploader.BackfillPage,
+        Func<AccountSession, CancellationToken, Task<string?>>? accessToken = null) =>
         new(new AccountClient(new HttpClient(_site), "https://site.test/api/v1/"),
-            _ => Task.FromResult(_token), () => _user, enabled ?? (() => _enabled), _history, new ProfileUploadQueue(QueuePath))
+            accessToken ?? ((expected, _) => Task.FromResult(expected == Session ? _token : null)),
+            () => Session, enabled ?? (() => _enabled), _history, new ProfileUploadQueue(QueuePath))
         {
             UtcNow = () => _now,
             BackfillPageSize = backfillPage,
@@ -408,6 +413,159 @@ public sealed class ProfileUploadTests : IDisposable
     }
 
     [Fact]
+    public async Task An_account_change_between_batches_stops_the_old_queue()
+    {
+        using var uploader = Uploader();
+        for (var i = 0; i < 51; i++) uploader.OnGameFinished(Outcome(Saved(Ranked())));
+        _site.AfterRequest = _ => { _user = "u-77"; _token = "acc-other"; uploader.Kick(); };
+
+        await uploader.PassAsync(CancellationToken.None);
+        await uploader.PassAsync(CancellationToken.None);
+
+        var request = Assert.Single(_site.Requests);
+        Assert.Equal(50, request.Events.Count);
+        Assert.Equal("Bearer acc-1", request.Authorization);
+        Assert.Equal("u-77", new ProfileUploadQueue(QueuePath).Owner);
+        Assert.Equal(0, uploader.PendingCount);
+    }
+
+    [Fact]
+    public async Task Turning_sending_off_during_a_batch_discards_unsent_events()
+    {
+        using var uploader = Uploader();
+        for (var i = 0; i < 51; i++) uploader.OnGameFinished(Outcome(Saved(Ranked())));
+        _site.AfterRequest = _ => { _enabled = false; uploader.Kick(); };
+
+        await uploader.PassAsync(CancellationToken.None);
+
+        Assert.Equal(50, Assert.Single(_site.Requests).Events.Count);
+        Assert.Equal(0, new ProfileUploadQueue(QueuePath).PendingCount);
+    }
+
+    [Theory]
+    [InlineData("other-account")]
+    [InlineData("same-account-new-session")]
+    [InlineData("off-then-on")]
+    public async Task A_changed_session_or_opt_out_invalidates_a_batch_waiting_for_a_token(string change)
+    {
+        var requested = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var token = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var uploader = Uploader(accessToken: (_, _) => { requested.SetResult(); return token.Task; });
+        uploader.OnGameFinished(Outcome(Saved(Ranked())));
+        var sending = uploader.PassAsync(CancellationToken.None);
+        await requested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        if (change == "other-account") _user = "u-77";
+        else if (change == "same-account-new-session") _sessionGeneration++;
+        else
+        {
+            _enabled = false;
+            uploader.Kick();
+            _enabled = true;
+            uploader.Kick();
+        }
+        token.SetResult("acc-new");
+        await sending;
+
+        Assert.Empty(_site.Requests);
+        if (change == "off-then-on") Assert.Equal(0, uploader.PendingCount);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Single_event_retries_recheck_the_account_and_sending_switch(bool switchAccount)
+    {
+        _site.RefuseBatchesOver = 1;
+        using var uploader = Uploader();
+        for (var i = 0; i < 3; i++) uploader.OnGameFinished(Outcome(Saved(Ranked())));
+        _site.AfterRequest = count =>
+        {
+            if (count != 2) return;
+            if (switchAccount) { _user = "u-77"; _token = "acc-other"; }
+            else _enabled = false;
+            uploader.Kick();
+        };
+
+        await uploader.PassAsync(CancellationToken.None);
+        await uploader.PassAsync(CancellationToken.None);
+
+        Assert.Equal([3, 1], _site.Requests.Select(r => r.Events.Count));
+        Assert.All(_site.Requests, r => Assert.Equal("Bearer acc-1", r.Authorization));
+        Assert.Equal(0, uploader.PendingCount);
+    }
+
+    [Fact]
+    public async Task Turning_sending_off_while_mapping_backfill_cannot_restore_the_dropped_queue()
+    {
+        RatedBattlegrounds(3, "Win");
+        using var uploader = Uploader();
+        var mapped = false;
+        uploader.BaseHero = id =>
+        {
+            mapped = true;
+            _enabled = false;
+            uploader.Kick();
+            _enabled = true;
+            uploader.Kick();
+            return id;
+        };
+        Assert.True(uploader.StartBackfill());
+
+        await uploader.PassAsync(CancellationToken.None);
+        uploader.BaseHero = null;
+        _now += TimeSpan.FromMinutes(5);
+        await uploader.PassAsync(CancellationToken.None);
+
+        Assert.True(mapped);
+        Assert.Empty(_site.Requests);
+        Assert.Equal(0, uploader.PendingCount);
+        Assert.False(uploader.Backfilling);
+        Assert.Equal(0, new ProfileUploadQueue(QueuePath).PendingCount);
+        Assert.Null(new ProfileUploadQueue(QueuePath).BackfillAfter);
+    }
+
+    [Fact]
+    public async Task Single_event_retries_keep_events_that_the_server_did_not_name()
+    {
+        _site.RefuseBatchesOver = 1;
+        _site.OmitAcknowledgements = true;
+        using var uploader = Uploader();
+        for (var i = 0; i < 2; i++) uploader.OnGameFinished(Outcome(Saved(Ranked())));
+
+        Assert.Equal(TimeSpan.FromSeconds(30), await uploader.PassAsync(CancellationToken.None));
+
+        Assert.Equal([2, 1], _site.Requests.Select(r => r.Events.Count));
+        Assert.Equal(2, new ProfileUploadQueue(QueuePath).PendingCount);
+        _site.OmitAcknowledgements = false;
+        _now += TimeSpan.FromMinutes(1);
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.Equal(0, uploader.PendingCount);
+        Assert.Equal([2, 1, 2, 1, 1], _site.Requests.Select(r => r.Events.Count));
+    }
+
+    [Fact]
+    public void An_old_owners_response_cannot_settle_the_new_owners_queue()
+    {
+        var queue = new ProfileUploadQueue(QueuePath);
+        var e = new ProfileEvent(ProfileEvents.EventId("same-game"), ProfileEvents.Constructed, "2026-10-22T10:00:00Z", new JsonObject());
+        queue.Adopt("u-1");
+        queue.Enqueue([e], _now);
+        var old = Assert.Single(queue.NextBatch(_now, 50, int.MaxValue));
+        queue.Adopt("u-2");
+        queue.Enqueue([e], _now);
+        queue.Settle([(old.Event.EventId, old.Version)], "u-1");
+        queue.Flush();
+
+        var restored = new ProfileUploadQueue(QueuePath);
+        Assert.Equal("u-2", restored.Owner);
+        Assert.Equal(1, restored.PendingCount);
+        restored.ClearPending();
+        Assert.False(restored.Knows(e.EventId));
+        Assert.Empty(queue.NextBatch(_now, 50, int.MaxValue, "u-1"));
+        Assert.Equal(0, queue.Enqueue([e], _now, "u-1"));
+    }
+
+    [Fact]
     public void The_queue_replaces_a_waiting_event_and_bounds_its_size()
     {
         var queue = new ProfileUploadQueue(QueuePath);
@@ -464,6 +622,8 @@ public sealed class ProfileUploadTests : IDisposable
 
         /// <summary>An event refused with 400 even alone.</summary>
         public string? RefuseEvent { get; set; }
+        public bool OmitAcknowledgements { get; set; }
+        public Action<int>? AfterRequest { get; set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -481,12 +641,13 @@ public sealed class ProfileUploadTests : IDisposable
                 : events.Count > RefuseBatchesOver || (RefuseEvent is not null && ids.Contains(RefuseEvent)) ? 400
                 : 202;
             Requests.Add((request.Headers.Authorization?.ToString() ?? string.Empty, body, [.. events.Select(e => e!.AsObject())], status));
+            AfterRequest?.Invoke(Requests.Count);
 
             var answer = status switch
             {
                 202 => new JsonObject
                 {
-                    ["accepted"] = new JsonArray([.. ids.Where(id => !Reject.ContainsKey(id)).Select(id => (JsonNode)id)]),
+                    ["accepted"] = new JsonArray([.. ids.Where(id => !OmitAcknowledgements && !Reject.ContainsKey(id)).Select(id => (JsonNode)id)]),
                     ["rejected"] = new JsonArray([.. ids.Where(Reject.ContainsKey).Select(id => (JsonNode)new JsonObject
                     {
                         ["eventId"] = id, ["code"] = Reject[id].Code, ["field"] = Reject[id].Field,

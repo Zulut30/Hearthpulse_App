@@ -27,7 +27,9 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 
 Not used: `/v1/meta-intelligence/cards` (needs a token). Docs: `docs/constructed-meta-api.md`, `docs/mulligan-v2.md`,
 `docs/discover-pool.md`, `docs/arena-draft.md` (Arena; endpoints the server lacks: per-class scores, normal vs
-Underground slice). Server map (owner's notes): `C:\Users\zulut\Downloads\HeartLens-main\reference\server-151.md`.
+Underground slice). Server map (owner's optional notes): `<repo>/../reference/server-151.md`.
+Resolve the repository root and check this sibling file exists before consulting it. Endpoint examples here are
+dated observations; check the current service contract before relying on changing fields or limits.
 
 ## hearthpulse.net - `https://hearthpulse.net/api/v1/`
 

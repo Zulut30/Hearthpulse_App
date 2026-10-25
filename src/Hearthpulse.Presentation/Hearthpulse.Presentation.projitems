@@ -1,0 +1,18 @@
+<Project>
+  <!-- One maintained implementation, compiled with the host's existing CLR namespaces and assembly identity.
+       WPF and Avalonia keep their framework adapters alongside their views. -->
+  <PropertyGroup Condition="'$(HearthpulsePresentationFlavor)' == 'Wpf'">
+    <DefineConstants>$(DefineConstants);HEARTHPULSE_WPF</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(HearthpulsePresentationFlavor)' == 'Avalonia'">
+    <DefineConstants>$(DefineConstants);HEARTHPULSE_AVALONIA</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)**\*.cs"
+             Link="Presentation\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <Target Name="ValidatePresentationFlavor" BeforeTargets="CoreCompile">
+    <Error Condition="'$(HearthpulsePresentationFlavor)' != 'Wpf' and '$(HearthpulsePresentationFlavor)' != 'Avalonia'"
+           Text="Set HearthpulsePresentationFlavor to Wpf or Avalonia before importing the shared presentation sources." />
+  </Target>
+</Project>

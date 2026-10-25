@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Hearthpulse.UI</RootNamespace>
     <Version>0.12.0</Version>
+    <HearthpulsePresentationFlavor>Avalonia</HearthpulsePresentationFlavor>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
@@ -24,5 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Hearthpulse.Core\Hearthpulse.Core.csproj" />
   </ItemGroup>
+
+  <Import Project="..\Hearthpulse.Presentation\Hearthpulse.Presentation.projitems" />
 
 </Project>

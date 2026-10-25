@@ -29,6 +29,7 @@ public enum CompMode
 public sealed class AppSettings
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };
+    private string? _unpreservedFile;
 
     /// <summary>
     /// Card data language (HearthstoneJSON locale such as "ruRU"); "auto" decides by <see cref="CardLocale"/>.
@@ -285,21 +286,29 @@ public sealed class AppSettings
 
     public double ThemeBaseTint { get; set; } = 1.0;
 
-    public static AppSettings Load()
+    public static AppSettings Load() => Load(AppPaths.Settings);
+
+    /// <summary>Reads a specific file without changing the process-wide data folder.</summary>
+    internal static AppSettings Load(string path)
     {
+        string? unpreserved = null;
         try
         {
-            if (File.Exists(AppPaths.Settings))
+            if (File.Exists(path))
             {
-                return FromJson(File.ReadAllText(AppPaths.Settings));
+                return FromJson(File.ReadAllText(path));
             }
         }
-        catch (Exception ex) when (ex is JsonException or IOException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             Diag.Error("Settings unreadable, using defaults", ex);
+            if (!PreserveUnreadable(path))
+            {
+                unpreserved = path;
+            }
         }
 
-        var fresh = new AppSettings();
+        var fresh = new AppSettings { _unpreservedFile = unpreserved };
         fresh.Migrate();
         return fresh;
     }
@@ -308,6 +317,7 @@ public sealed class AppSettings
     public static AppSettings FromJson(string json)
     {
         var settings = JsonSerializer.Deserialize<AppSettings>(json, Json) ?? new AppSettings();
+        settings.Normalize();
         settings.Migrate();
         return settings;
     }
@@ -321,6 +331,56 @@ public sealed class AppSettings
             apply();
         }
     }
+
+    // Nullable annotations do not reject explicit JSON nulls. Repair them before migrations and UI bindings use
+    // these values; keep valid choices and dictionary keys, including panels/counters from a newer version.
+    private void Normalize()
+    {
+        Locale = DefaultIfBlank(Locale, "auto");
+        Language = DefaultIfBlank(Language, Localization.Loc.Auto);
+        SettingsTab = DefaultIfBlank(SettingsTab, "General");
+        MetaFormat = DefaultIfBlank(MetaFormat, "standard");
+        MetaRank = DefaultIfBlank(MetaRank, "all");
+        MetaPeriod = DefaultIfBlank(MetaPeriod, "past_week");
+        Theme = DefaultIfBlank(Theme, "Tavern");
+        CounterModes ??= new(StringComparer.Ordinal);
+        foreach (var key in CounterModes.Where(p => p.Value is null).Select(p => p.Key).ToArray())
+        {
+            CounterModes.Remove(key);
+        }
+
+        Panels ??= new(StringComparer.Ordinal);
+        foreach (var (key, panel) in Panels.ToArray())
+        {
+            if (panel is null || !double.IsFinite(panel.X) || !double.IsFinite(panel.Y) || !double.IsFinite(panel.Scale))
+            {
+                Panels.Remove(key);
+                continue;
+            }
+
+            panel.X = Math.Clamp(panel.X, 0, 1);
+            panel.Y = Math.Clamp(panel.Y, 0, 1);
+            panel.Scale = Math.Clamp(panel.Scale, 0.6, 1.6);
+        }
+
+        if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
+        if (!Enum.IsDefined(CompMode)) CompMode = CompMode.Manual;
+        OverlayScale = Bounded(OverlayScale, 0.6, 1.6, 1);
+        OverlayOpacity = Bounded(OverlayOpacity, 0.3, 1, 1);
+        CardPoolBrowserWidth = Bounded(CardPoolBrowserWidth, 280, 640, DefaultCardPoolBrowserWidth);
+        LadderSessionBreakHours = Bounded(LadderSessionBreakHours, 1, 12, 2);
+        LeaderboardTop = Bounded(LeaderboardTop, 0, 1, DefaultLeaderboardTop);
+        LeaderboardSlotHeight = Bounded(LeaderboardSlotHeight, 0.01, 1, DefaultLeaderboardSlotHeight);
+        LeaderboardWidth = Bounded(LeaderboardWidth, 0.01, 1, DefaultLeaderboardWidth);
+        ThemeAccentHue = double.IsFinite(ThemeAccentHue) ? ThemeAccentHue : 42;
+        ThemeBaseHue = double.IsFinite(ThemeBaseHue) ? ThemeBaseHue : 28;
+        ThemeBaseTint = Bounded(ThemeBaseTint, 0, 1.5, 1);
+    }
+
+    private static string DefaultIfBlank(string? value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value;
+
+    private static double Bounded(double value, double min, double max, double fallback) =>
+        double.IsFinite(value) ? Math.Clamp(value, min, max) : fallback;
 
     private void Migrate()
     {
@@ -349,17 +409,49 @@ public sealed class AppSettings
         Panels.Remove("mulligan-strip");
     }
 
-    public void Save()
+    public void Save() => Save(AppPaths.Settings);
+
+    internal void Save(string path)
+    {
+        // If recovery could not make a diagnostic copy (for example the disk was full), do not silently replace the
+        // original on shutdown. Retry copying first, so normal saving resumes when the storage problem is resolved.
+        if (_unpreservedFile is { } unreadable)
+        {
+            if (!PreserveUnreadable(unreadable)) return;
+            _unpreservedFile = null;
+        }
+
+        try
+        {
+            var temp = path + ".tmp";
+            File.WriteAllText(temp, ToJson());
+            File.Move(temp, path, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Settings not saved", ex);
+        }
+    }
+
+    private static bool PreserveUnreadable(string path)
     {
         try
         {
-            var temp = AppPaths.Settings + ".tmp";
-            File.WriteAllText(temp, ToJson());
-            File.Move(temp, AppPaths.Settings, overwrite: true);
+            var backup = path + ".invalid";
+            if (File.Exists(backup)) backup += "." + Guid.NewGuid().ToString("N");
+            File.Copy(path, backup, overwrite: false);
+            Diag.Info($"Unreadable settings preserved at {backup}");
+            return true;
         }
-        catch (IOException ex)
+        catch (FileNotFoundException)
         {
-            Diag.Error("Settings not saved", ex);
+            // The original was removed since the read failed; there is no longer anything to overwrite.
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Unreadable settings could not be preserved; saving is paused", ex);
+            return false;
         }
     }
 }

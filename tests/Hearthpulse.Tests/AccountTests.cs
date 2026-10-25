@@ -49,6 +49,28 @@ public sealed class AccountTests : IDisposable
     private static double[] Seconds(IEnumerable<TimeSpan> waits) => waits.Select(w => w.TotalSeconds).ToArray();
 
     [Fact]
+    public async Task Account_bound_tokens_never_outlive_the_sign_in_that_requested_them()
+    {
+        var account = Service();
+        Assert.Null(await account.SignInAsync((_, _) => { }));
+        var first = Assert.IsType<AccountSession>(account.Session);
+        Assert.Equal("u-42", first.AccountId);
+        Assert.Equal("acc-1", await account.GetAccessTokenForSessionAsync(first));
+        Assert.Null(await account.GetAccessTokenForSessionAsync(first with { AccountId = "another-user" }));
+
+        Assert.Null(await account.SignInAsync((_, _) => { }));
+        var next = Assert.IsType<AccountSession>(account.Session);
+        Assert.Equal(first.AccountId, next.AccountId);
+        Assert.True(next.Generation > first.Generation);
+        Assert.Null(await account.GetAccessTokenForSessionAsync(first));
+        Assert.NotNull(await account.GetAccessTokenForSessionAsync(next));
+
+        await account.SignOutAsync();
+        Assert.Null(account.Session);
+        Assert.Null(await account.GetAccessTokenForSessionAsync(next));
+    }
+
+    [Fact]
     public async Task Device_flow_shows_the_code_waits_for_confirmation_and_reads_the_profile()
     {
         _site.Polls.Enqueue("authorization_pending");

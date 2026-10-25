@@ -16,8 +16,19 @@ Full token/style tables with hex values: [reference/tokens.md](reference/tokens.
 [hearthpulse-overlay-panel](../hearthpulse-overlay-panel/SKILL.md), [hearthpulse-main-page](../hearthpulse-main-page/SKILL.md);
 PNG checks: [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md).
 
-UI text is English and hardcoded in XAML (no resx), sentence case. Card, hero and deck names follow the card locale
-(Russian on the owner's machine), so layouts must survive long Cyrillic names.
+UI text is localized in English and Russian: keys live in `src/Hearthpulse.Core/Localization/Strings/{en,ru}/*.json`,
+used through `{i:Loc Key}` in XAML and `Loc.T/F/P` in code (`docs/localization.md`). Use sentence case, not hardcoded
+English. Card, hero and deck names follow the card locale, so layouts must survive long Cyrillic names and live
+language switching.
+
+Custom Avalonia button templates must forward `ContentTemplate` and content alignment to their `ContentPresenter`.
+Without this, a `Button.bare` history row renders the record's `ToString()` instead of the game-row template.
+Regression: `LocBindingTests.Bare_history_button_renders_the_game_row_template_instead_of_record_text`.
+
+Display state/records are maintained in `src/Hearthpulse.Presentation`, compiled into both original UI assemblies.
+Views, controls, resources and framework-specific values stay local to App/UI. Change common labels/row selection
+once in the shared source and visual bindings in both views; do not recreate duplicate VM implementations. WPF
+theme/focus and Avalonia compact differences remain intentional. See `src/Hearthpulse.Presentation/README.md`.
 
 ## Rule 1: never hardcode colours in views - use tokens
 

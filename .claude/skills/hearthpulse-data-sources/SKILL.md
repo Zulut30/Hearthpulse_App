@@ -73,7 +73,9 @@ now comes from, and what stays empty until the pool runs: `docs/bg-meta-sources.
 `Core/Accounts/ProfileUploader.cs` sends finished games to the site's "My statistics" (`schemaVersion: 2`) with the
 device-flow token: only while signed in and `AppSettings.UploadGamesToProfile` is on (default on, games are collected
 automatically; switch to turn it off, privacy and data-deletion links in the account card of both apps), batches of at most 50 events, persistent queue `profile-upload.json` per site account, backoff on
-outages, rejected events logged and dropped, idempotent UUID v5 `eventId` per game (without the BattleTag). Mapping
+outages, rejected events logged and dropped, idempotent UUID v5 `eventId` per game (without the BattleTag). Recheck
+consent and account identity before each batch; a response from an earlier account must not acknowledge a new
+account's queue. Only acknowledged event IDs from the submitted batch may be removed. Mapping
 `GameRecord` -> payload is `ProfileEvents.cs`; every event passes `ProfileEventSchema.cs` (the site's strict check,
 ported) before it is queued, because the site keeps the first copy of an id forever; the contract test checks the
 mapping against the site spec's example. Full rules and mapping: `docs/profile-upload.md`. When the site changes its
@@ -85,7 +87,7 @@ schema (`server/modules/playerGames/schema/gameSchema.ts`), update `ProfileEvent
 |---|---|---|
 | Hearthstone Deck Tracker (HearthSim/HDT) | All rights reserved (source published for reading) | **Ideas only.** No code, no XAML structure, no copied UI strings; do not mirror its layouts element by element (card-pool review). |
 | Firestone (Zero-to-Heroes) | No licence = all rights reserved; ToS forbids derivatives | **Ideas only** for code/UI. Its stats files (`static.zerotoheroes.com`) are **not** used: no permission. |
-| HdtArenaHelper (`reference/repos/ideas/HdtArenaHelper`) | MIT, (c) 2026 Alessandro Colace | Code may be adapted **with attribution**: keep the copyright + MIT notice (file header and the notice file). Done once: the draft-screen anchors in `Overlay/OverlayViewModel.Arena.cs` of both UIs (`docs/arena-draft.md`). It reads the offer through HearthMirror; we read it ourselves (`HearthstoneMemory.GetArenaDraftChoices`). |
+| HdtArenaHelper (`reference/repos/ideas/HdtArenaHelper`) | MIT, (c) 2026 Alessandro Colace | Code may be adapted **with attribution**: keep the copyright + MIT notice (file header and the notice file). Done once: the draft-screen anchors in shared `src/Hearthpulse.Presentation/Overlay/OverlayViewModel.Arena.cs` (`docs/arena-draft.md`). It reads the offer through HearthMirror; we read it ourselves (`HearthstoneMemory.GetArenaDraftChoices`). |
 | bgtracker (`reference/repos/ideas/bgtracker`) | MIT, (c) 2026 the bgtracker contributors | Same as above: reuse with the MIT notice and credit. |
 | tavern-ledger (`reference/repos/ideas/tavern-ledger`) | AGPL-3.0-only | **Ideas only.** Copying code would put Hearthpulse under AGPL. |
 | HeartLens upstream (`Dev-NotAqua/HeartLens`, git remote `upstream`) | the original project | Port commits **only with the author's permission** (the `upstream-heartlens-sync` session does this); keep authorship in commit messages. |
@@ -95,7 +97,10 @@ schema (`server/modules/playerGames/schema/gameSchema.ts`), update `ProfileEvent
 
 The combat simulator is **clean-room**: no other simulator's code is read at all (see
 `src/Hearthpulse.Core/Battlegrounds/Effects/README.md`). The HDT/Firestone index in
-`C:\Users\zulut\Downloads\HeartLens-main\reference\index\` (`hdt.md`, `firestone.md`, `feature-gap.md`,
+`<repo>/../reference/index/` (`hdt.md`, `firestone.md`, `feature-gap.md`,
 `ideas-bg-arena.md`, `LICENSES.md`) holds paths and one-line purposes for orientation - use it to learn *what* a
 feature does, then design it from game data. Record a clean-room statement in the feature's doc
-(`docs/counters-constructed.md` and `docs/discover-pool.md` do).
+(`docs/counters-constructed.md` and `docs/discover-pool.md` do). Resolve `<repo>` with
+`git rev-parse --show-toplevel` and verify the optional sibling `reference` directory exists. Paths under
+`reference/repos` in the table mean this sibling directory, not a required part of the app checkout; report missing
+comparison sources rather than inventing their contents.

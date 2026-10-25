@@ -18,11 +18,13 @@ Recipes: [hearthpulse-tracking](../hearthpulse-tracking/SKILL.md), [hearthpulse-
 
 | Project | Target | Purpose |
 |---|---|---|
-| `src/Hearthpulse.Core` | net10.0 | All logic, UI-free. Only package: `Microsoft.Data.Sqlite`. |
+| `src/Hearthpulse.Core` | net10.0 | Domain logic and services, UI-free. Only package: `Microsoft.Data.Sqlite`. |
 | `src/Hearthpulse.App` | net10.0-windows, WPF, AssemblyName `Hearthpulse` | The Windows app the installer ships. |
 | `src/Hearthpulse.UI` | net10.0, Avalonia 12.1.4 | Cross-platform views/view models ("preview"). |
 | `src/Hearthpulse.Desktop` | net10.0, AssemblyName `Hearthpulse` | Avalonia desktop host: windows, per-OS overlay platform. |
-| `tests/Hearthpulse.Tests` | net10.0, xunit | Tests; reference Core, and Hearthpulse.UI + Avalonia.Headless for the `{i:Loc}` binding test only. |
+| `src/Hearthpulse.Presentation` | shared `.projitems`, no DLL | Common Main/Overlay/Decks/Match view models, display records and `Observable`; compiled into both existing UI assemblies. |
+| `tests/Hearthpulse.Tests` | net10.0, xunit | References Core and Hearthpulse.UI; Avalonia.Headless supports `{i:Loc}` binding tests. UI view models are testable; WPF is not referenced. |
+| `tests/Hearthpulse.Presentation.Tests` | net10.0-windows, xunit | References WPF and Avalonia together to verify presentation contracts and platform differences; run on Windows. |
 | `tools/Hearthpulse.Probe` | net10.0 | Dev probe: `heroes <Power.log>`, `mem`, `class <Name>` (read live client memory). |
 | `tools/effects/*.py` | Python | Generators for `CombatRelevance.g.cs` and effect pools (`*Pool.g.cs`). |
 | `tools/counters/gen_counter_cards.py` | Python | Generates `Tracking/Counters/CounterCards.g.cs` from enUS HearthstoneJSON. |
@@ -98,12 +100,19 @@ Core folders:
   for the deck, keep/mulligan calls, keep impact; `ConstructedMeta` is the fallback. Shown while the local `MULLIGAN_STATE` is
   INPUT/DEALING; hosts call `GameSession.SetMulliganGuide` and `SetConstructedMeta`.
 
-App/UI folders: `Main/` (main window + `MainViewModel` and its partials `.Account`, `.Counters`, `.BgCounters`,
-`.MyStats`, WPF also `.Constructed`, `.Theme`; `Main/Stats/` My Stats views), `Overlay/` (overlay window,
-`OverlayViewModel` + partials `.Live`, `.Mulligan`, `.Deck`, `.Hand`, `.CardPool`, `.BgCounters` flatten snapshots,
-`MovablePanel` drag/resize panels, extracted panels `MulliganPanel`, `OpponentHandPanel`, `CardPoolPanel`,
-`CardPoolBrowser`), `Infrastructure/` (converters, `CardArt`, `Observable`, WPF
-`ThemeEngine`, `Native`, `Autostart`), `Controls/`. WPF composition root: `App.xaml.cs` (+ `DevRender.cs`); Avalonia:
+Shared presentation lives in `src/Hearthpulse.Presentation`: `Main/MainViewModel*.cs` (including account,
+counters, decks, history and My Stats), `Main/Decks/DeckDetailsViewModel.cs`, `Main/Match/MatchViewModel.cs`,
+`Overlay/OverlayViewModel*.cs`, `OverlayModels*.cs`, and `Infrastructure/Observable.cs`. App/UI import its
+`.projitems` with `HearthpulsePresentationFlavor=Wpf|Avalonia`; conditional namespaces preserve the existing
+`Hearthpulse.App.*` / `Hearthpulse.UI.*` CLR types in their original assemblies. This shares source, not runtime
+instances or a new DLL. See `src/Hearthpulse.Presentation/README.md` for the boundary.
+
+App/UI keep views/code-behind in `Main/` (including `Stats/`), overlay controls/windows and platform partials.
+The local `MainViewModel*.cs` files contain only platform behavior (dispatch, clipboard, wording, WPF-only
+Constructed/theme features); `OverlayViewModel.Platform.cs` and `OverlayModels.Platform.cs` adapt framework
+types, with WPF-only focus in `.Focus.cs`. `Infrastructure/` keeps converters, art, native integration and each
+framework's `RelayCommand`; its notification semantics differ. Edit shared behavior once and add local code only
+for a concrete platform difference. WPF composition root: `App.xaml.cs` (+ `DevRender.cs`); Avalonia:
 `Hearthpulse.UI/AppHost.cs`, `Hearthpulse.Desktop/DesktopApp.cs`, `Desktop/Platform/*OverlayPlatform.cs`.
 
 ## Data flow
@@ -118,7 +127,7 @@ Hearthstone writes Logs/Hearthstone_<date>/Power.log, Decks.log, LoadingScreen.l
   + MemoryPoller -> HearthstoneMemory (rating, ranks, tribes, button costs)
   + CardDb (names/stats), BattlegroundsMeta / ConstructedMeta (community stats), BattlegroundsAdvisor (Enrich)
   -> LiveSnapshot (SnapshotChanged) -> host dispatches to UI thread
-  -> MainViewModel / OverlayViewModel (WPF and Avalonia each have their own)
+  -> MainViewModel / OverlayViewModel (shared source, instantiated in the active UI with its platform adapters)
   finished game -> GameRecords.Build -> HistoryStore (SQLite)
 ```
 
@@ -169,7 +178,7 @@ Read `src/Hearthpulse.Core/Battlegrounds/Effects/README.md` before touching effe
 
 ## Build and test
 
-This machine has **no NuGet source configured** (`dotnet nuget list source` -> none), so restore explicitly:
+Restore with an explicit source so the commands do not depend on one machine's NuGet configuration:
 
 ```
 dotnet restore Hearthpulse.slnx --source https://api.nuget.org/v3/index.json
@@ -183,10 +192,13 @@ dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore
   fails to load and every `HistoryStore` test fails.
 - `Hearthpulse.App` targets net10.0-windows; off Windows publish needs `-p:EnableWindowsTargeting=true` (as
   `installer/windows/build.sh` does). The build must stay at 0 warnings.
-- Baseline (claude/quality-hardening-431c90 on main 433e8bf, Oct 2026): 780 tests - 779 pass, 1 skipped (`[UnixFact]` on
-  Windows; the `[RealLogsFact]` ones skip too where `D:\Hearthstone\Logs` is missing), **no known failures**. Anything failing
-  is yours. Details: [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
+- Record actual test results for the selected SHA, OS and configuration, including fixture-dependent and platform
+  skips. Historical counts are not gates or proof that a new failure belongs to the change; compare the selected
+  base under the same conditions. Details: [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
 - UI checks: [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md) (`--render-ui` on a copy of the data folder).
+- Shared presentation changes also require the Windows suite:
+  `dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-restore` after
+  restoring that project. Build both UI hosts; a green Avalonia test run alone does not compile the WPF branch.
 
 ## Release
 
@@ -198,6 +210,7 @@ Tagging/pushing/publishing only with explicit permission.
 
 What may be borrowed from HDT, Firestone, HdtArenaHelper, bgtracker, tavern-ledger and upstream HeartLens, and the
 rules for every network source: [hearthpulse-data-sources](../hearthpulse-data-sources/SKILL.md). The reference
-index `C:\Users\zulut\Downloads\HeartLens-main\reference\index\` (`hdt.md`, `firestone.md`, `feature-gap.md`,
+index `<repo>/../reference/index/` (`hdt.md`, `firestone.md`, `feature-gap.md`,
 `ideas-bg-arena.md`, `*.jsonl`, `LICENSES.md`) is for orientation only - never copy code from it, and never consult it
-for combat effects (clean-room rule).
+for combat effects (clean-room rule). Resolve `<repo>` with `git rev-parse --show-toplevel` and verify the sibling
+`reference` directory exists before using it; it is optional external material, not part of a clean checkout.

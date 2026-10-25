@@ -22,6 +22,9 @@ Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commi
   deletion of everything the tracker stored), the "Send past games" button and the queue status.
 - Only while signed in and switched on: a game that ends otherwise is not queued, and switching off drops what was
   waiting (and a backfill under way).
+- Each request is bound to the account and sign-in generation that started the send pass. The token, account and
+  switch are checked again before every batch and individual retry, and after each response. A new sign-in (even to
+  the same account) or an off/on toggle ends the old pass; a request already sent cannot be recalled.
 - "Send past games" (only when switched on) starts a backfill: the history is read 1 000 rows at a time
   (`PageForUpload`, by row id, with only the `opponent_archetype` card column) whenever fewer than 1 000 events wait,
   so the queue never holds the whole history. Its cursor (the last row queued) is saved with the queue and survives a
@@ -51,6 +54,8 @@ Site contract (HeartPulse repo, branch `claude/profile-game-stats-e88af0`, commi
     `warnings` (`INVALID_STATISTICS`: stored, but the statistics skip it) is logged as `stored without statistics` -
     a mapping bug to fix here; resending the same id changes nothing on the site. The status line counts both since
     the app started ("2 games sent without statistics, 1 game refused by the site; see hearthpulse.log").
+    An event absent from both lists stays queued, including during individual retries; a response naming none of
+    the sent events triggers the normal retry delay.
   - 400/413/422 (bad envelope, too large): the batch is sent again one event at a time; an event refused alone is
     logged and dropped.
   - no connection, 401/403, 429, 5xx, 404, or a 2xx without the answer object (captive portal): the events stay and

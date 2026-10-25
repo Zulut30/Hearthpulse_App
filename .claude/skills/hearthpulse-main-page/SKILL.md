@@ -21,12 +21,16 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof
 |---|---|---|
 | Sidebar + pages | `MainWindow.xaml` (Window 1260x840, min 1040x660) | `MainView.axaml` (UserControl; window in `src/Hearthpulse.Desktop/MainWindow.axaml`) |
 | Navigation code | `MainWindow.xaml.cs`: `ShowPage`, `CurrentPage`, `OnNavigate`, `PlacePill`, `Reveal`, `ShowConstructedTab`, tab handlers `OnBgTab`/`OnCtTab` | `MainView.axaml.cs`: `ShowPage`, `UpdatePages`, `UpdateTabs`, `ApplyWidth` (compact), `ApplyChoice` |
-| View model | `MainViewModel.cs` + `.Account` `.BgCounters` `.Counters` `.MyStats` `.Constructed` (WPF only) `.Theme` (WPF only) | `MainViewModel.cs` + `.Account` `.BgCounters` `.Counters` `.MyStats` |
+| Platform VM partials | Small `MainViewModel*.cs` adapters; `.Constructed` and `.Theme` are WPF-only | Small `MainViewModel*.cs` adapters for framework/established platform differences |
 | My Stats views | `Stats/BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView`, `StatsResources.xaml` | same names, `.axaml` |
 | Composition | `src/Hearthpulse.App/App.xaml.cs` (+ `App.CardPool.cs`) | `src/Hearthpulse.UI/AppHost.cs` (+ `AppHost.CardPool.cs`) |
 | Logic | `src/Hearthpulse.Core` (e.g. `Stats/BattlegroundsStats.cs`, `ConstructedStats.cs`, `ArenaStats.cs`) | same |
 
 Element names match between the UIs (`NavArena`/`PageArena`, `TabHeroes`...): WPF `x:Name`, Avalonia `Name`.
+The common view model lives once in `src/Hearthpulse.Presentation/Main/MainViewModel*.cs`; deck and match models
+are in its `Main/Decks` and `Main/Match` subdirectories. Its `.projitems` compiles those sources into each existing
+UI assembly with the original namespaces, so XAML type names stay unchanged. See
+`src/Hearthpulse.Presentation/README.md`; local partials are adapters, not a second implementation to update.
 
 ## Recipe: a new sidebar page "Foo"
 
@@ -58,8 +62,10 @@ Navigation is hand-written lists, not data binding - a new page must be added to
    `UniformGrid` tiles drop to 2 columns unless `fixed`. Check that the page stacks instead of clipping
    (render `main-compact` style scenes).
 
-**View model**: a partial `MainViewModel.Foo.cs` in **both** UIs (properties with `Set(ref ...)`, `RelayCommand`
-for actions/filters, data loaded off the UI thread). Heavy work (history scans, chart series) goes to `Task.Run` with
+**View model**: one partial `src/Hearthpulse.Presentation/Main/MainViewModel.Foo.cs` (properties with `Set(ref ...)`,
+the host's `RelayCommand` for actions/filters, data loaded off the UI thread). Follow the shared namespace/import
+conditional pattern; place framework dispatch/clipboard work in a small local partial when needed. Heavy work
+(history scans, chart series) goes to `Task.Run` with
 a generation counter so a stale result never overwrites a newer one (my-stats review fix); errors go to `Diag`, not
 swallowed in a fire-and-forget task. Computation itself belongs in Core so it can be tested.
 
@@ -101,8 +107,9 @@ card goes into the tab that fits. Content `MaxWidth="780"`, left aligned. Render
   the host saves settings.
 - Choice rows: WPF segment buttons bound to commands; Avalonia radios with `Tag="PickHints.X"` applied in
   `ApplyChoice`.
-- Account card: `MainViewModel.Account.cs` (`Account*` properties, `SignIn`/`SignOut`; WPF `CopyAccountCode`,
-  Avalonia `AccountCodeCopied`); states signed out / waiting for code / signed in / session ending soon. Contract:
+- Account card: shared `Presentation/Main/MainViewModel.Account.cs` (`Account*`, `SignIn`/`SignOut`) with local
+  account partials for dispatch and clipboard behavior (WPF `CopyAccountCode`, Avalonia `AccountCodeCopied`);
+  states signed out / waiting for code / signed in / session ending soon. Contract:
   [hearthpulse-data-sources](../hearthpulse-data-sources/SKILL.md).
 
 ## Parity
@@ -122,12 +129,16 @@ ones silently - list them in [hearthpulse-design](../hearthpulse-design/SKILL.md
   WPF Constructed tabs `main-constructed-tiers|top`. **Arena is not in the loop** (only `main-arena-full`).
 - A new page: add its name to both page loops (the PNG becomes `main-foo.png`); a tab or scrolled section: a public
   helper on `MainWindow`/`MainView` (like `ShowConstructedTab`, `HoverBattlegroundsGame`) called from your own
-  render partial. See [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md).
+  render partial. If the baseline loop changes, update `REQUIRED_SCENES` in the visual-check wrapper and its focused
+  tests as well; mandatory scenes must not become silently optional. See [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md).
 
 ## Checklist
 
 - [ ] Nav + page + every code-behind list in both UIs; `ShowPage("Foo")` works in both.
-- [ ] VM partial in both UIs; logic in Core with tests.
+- [ ] Common VM partial in Presentation; domain logic in Core; only actual platform differences in local partials.
+  Build both hosts and run the Windows presentation contract suite as well as the cross-platform tests. Use
+  Headless for Avalonia bindings and the nonparallel `GlobalLanguage` collection in the existing suite for tests
+  that change the process-wide language.
 - [ ] Layout: 40/120 page margins, cards 24 apart, Ornament headings, empty state text, compact mode (Avalonia).
 - [ ] Tokens only; WPF rendered with one non-default theme.
 - [ ] Render scene added; PNGs of both UIs inspected side by side.

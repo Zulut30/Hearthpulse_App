@@ -207,7 +207,10 @@ public partial class App : Application
             _settingsDebounce.Stop();
             _settingsDebounce.Start();
         };
-        _account.RestoreAsync().Forget("Account restore");
+        if (_renderDir is null)
+        {
+            _account.RestoreAsync().Forget("Account restore");
+        }
         _overlayViewModel = new OverlayViewModel();
         _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
@@ -293,7 +296,10 @@ public partial class App : Application
 
         Loc.Instance.LanguageChanged += OnLanguageChanged;
         InitializeAsync().Forget("Start-up");
-        StartUpdateChecks();
+        if (_renderDir is null)
+        {
+            StartUpdateChecks();
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -347,7 +353,8 @@ public partial class App : Application
             var locale = _settings.CardLocale();
             CardArt.Locale = locale;
 
-            var logConfigChanged = await Task.Run(() =>
+            // HEARTHPULSE_DATA isolates our files, but Hearthstone's log.config is outside that folder.
+            var logConfigChanged = _renderDir is null && await Task.Run(() =>
             {
                 try
                 {
@@ -410,6 +417,12 @@ public partial class App : Application
         catch (Exception ex)
         {
             Diag.Error("Startup failed", ex);
+            if (_renderDir is not null)
+            {
+                Quit(1);
+                return;
+            }
+
             SetBusy(() => Loc.T("Host.Busy.StartupProblem"));
         }
     }
@@ -932,7 +945,10 @@ public partial class App : Application
         _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
         LoadCardPoolAsync().Forget("Card pool load");
         _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
-        Autostart.Apply(_settings.StartWithWindows);
+        if (_renderDir is null)
+        {
+            Autostart.Apply(_settings.StartWithWindows);
+        }
     }
 
     /// <summary>The player chose (or cleared) a comp in the overlay. With "I choose" the choice is saved and kept across games.</summary>
@@ -1208,11 +1224,11 @@ public partial class App : Application
             : Loc.T("Host.Notify.HardwareRendering"));
     }
 
-    private void Quit()
+    private void Quit(int exitCode = 0)
     {
         _main.CloseForReal();
         _overlay.Close();
-        Shutdown();
+        Shutdown(exitCode);
     }
 
     private void RegisterHotkey()

@@ -163,10 +163,14 @@ public partial class App
             _overlayViewModel.LayoutEditing = true;
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-layout.png"), 1920, 1080, 0);
         }
-        finally
+        catch (Exception ex)
         {
-            Quit();
+            Diag.Error("UI render failed", ex);
+            Quit(1);
+            return;
         }
+
+        Quit();
     }
 
     /// <summary>

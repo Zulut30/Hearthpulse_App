@@ -12,6 +12,8 @@ Usage (from the repository root, isolated interpreter):
 - --theme sets HEARTHPULSE_THEME (WPF only: Tavern, Frost, Fel, Arcane, Ember, Tide, Shadow).
 - --artifacts must be a SHORT path (default %TEMP%/hpa): a long one breaks loading of e_sqlite3.dll.
 - Writes <out-dir>/wpf and/or <out-dir>/ava plus a render log per UI.
+- Each render starts in an empty temporary folder; exit zero alone is not success: the six main pages and
+  overlay-layout must be present and nonempty. Optional log-dependent scenes may be absent.
 """
 import os
 import shutil
@@ -22,6 +24,10 @@ from pathlib import Path
 
 PROJECTS = {"wpf": "src/Hearthpulse.App", "ava": "src/Hearthpulse.Desktop"}
 NUGET = "https://api.nuget.org/v3/index.json"
+REQUIRED_SCENES = frozenset({
+    "main-overview.png", "main-battlegrounds.png", "main-standard.png", "main-wild.png",
+    "main-history.png", "main-settings.png", "overlay-layout.png",
+})
 
 
 def real_data_dir() -> Path:
@@ -33,9 +39,11 @@ def real_data_dir() -> Path:
 
 
 def ensure_copy(target: Path) -> None:
+    source = real_data_dir().resolve()
+    if target.resolve().is_relative_to(source):
+        raise ValueError("--data must be a scratch copy outside the real Hearthpulse data folder")
     if (target / "settings.json").exists():
         return
-    source = real_data_dir()
     target.mkdir(parents=True, exist_ok=True)
     for name in ("settings.json", "history.db"):
         if (source / name).exists():
@@ -43,6 +51,26 @@ def ensure_copy(target: Path) -> None:
     if (source / "cache").is_dir():
         shutil.copytree(source / "cache", target / "cache", dirs_exist_ok=True)
     print(f"data copy: {source} -> {target}")
+
+
+def missing_scenes(folder: Path) -> list[str]:
+    """Mandatory scenes are independent of history/log availability in both renderers."""
+    return sorted(name for name in REQUIRED_SCENES
+                  if not (folder / name).is_file() or (folder / name).stat().st_size == 0)
+
+
+def publish_scenes(source: Path, target: Path, out: Path) -> list[str]:
+    """Keep the latest run's partial output for diagnosis, without leaving stale scenes in the result."""
+    if not target.resolve().is_relative_to(out.resolve()):
+        raise ValueError("render output must stay inside --out-dir")
+    target.mkdir(parents=True, exist_ok=True)
+    for previous in target.glob("*.png"):
+        if previous.is_file() or previous.is_symlink():
+            previous.unlink()
+    pngs = sorted(source.glob("*.png"))
+    for png in pngs:
+        shutil.copy2(png, target / png.name)
+    return [p.name for p in pngs]
 
 
 def main() -> int:
@@ -64,25 +92,34 @@ def main() -> int:
     if "--theme" in opts:
         env["HEARTHPULSE_THEME"] = opts["--theme"]
 
-    failed = 0
+    failed = False
+    ran = False
     for ui in (["wpf", "ava"] if which == "both" else [which]):
         if ui == "wpf" and sys.platform != "win32":
             print("wpf: skipped (Windows only)")
             continue
         project = PROJECTS[ui]
         target = out / ui
-        target.mkdir(parents=True, exist_ok=True)
+        out.mkdir(parents=True, exist_ok=True)
         subprocess.run(["dotnet", "restore", project, "--source", NUGET, "--artifacts-path", str(artifacts)],
                        check=True, stdout=subprocess.DEVNULL)
         log = out / f"{ui}-render.log"
-        with open(log, "w", encoding="utf-8") as handle:
-            code = subprocess.run(["dotnet", "run", "--project", project, "--no-restore", "--artifacts-path",
-                                   str(artifacts), "--", "--render-ui", str(target)],
-                                  env=env, stdout=handle, stderr=subprocess.STDOUT).returncode
-        pngs = sorted(p.name for p in target.glob("*.png"))
+        # A process can exit before rendering, or render only a few scenes. Files from an earlier run must not
+        # disguise that failure; timestamp comparison would still accept files on coarse-resolution filesystems.
+        with tempfile.TemporaryDirectory(prefix="hp-render-") as temporary:
+            staging = Path(temporary)
+            with open(log, "w", encoding="utf-8") as handle:
+                code = subprocess.run(["dotnet", "run", "--project", project, "--no-restore", "--artifacts-path",
+                                       str(artifacts), "--", "--render-ui", str(staging)],
+                                      env=env, stdout=handle, stderr=subprocess.STDOUT).returncode
+            missing = missing_scenes(staging)
+            pngs = publish_scenes(staging, target, out)
+        ran = True
         print(f"{ui}: exit {code}, {len(pngs)} PNG in {target} (log {log})")
-        failed |= code != 0
-    return 1 if failed else 0
+        if missing:
+            print(f"{ui}: missing or empty required scenes: {', '.join(missing)}")
+        failed |= code != 0 or bool(missing)
+    return 1 if failed or not ran else 0
 
 
 if __name__ == "__main__":

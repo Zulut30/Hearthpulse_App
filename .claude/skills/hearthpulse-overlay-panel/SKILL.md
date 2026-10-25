@@ -6,28 +6,33 @@ description: Use when adding or changing an in-game overlay panel in Hearthpulse
 # Adding or changing an overlay panel
 
 The overlay is a transparent, click-through window over the game. Every panel is a `MovablePanel` the player can
-drag, resize and reset in layout mode. Both UIs have the same panels with the same Ids (20 today: `deck`, `opponent`,
-`opponent-hand`, `counters`, `bg-counters`, `card-pool`, `card-pool-browser`, `mulligan`, `bgbar`, `hero-row`,
-`trinket-row`, `tavern-row`, `odds`, `choice-row`, `plan`, `session`, `lobby`, `toast`, `arena-picks`, `arena-draft`).
+drag, resize and reset in layout mode. Both UIs have the same panels with the same Ids. At `7657bb5` there are 26:
+`deck`, `opponent`, `opponent-archetype`, `ladder-session`, `turn-timer-opponent`, `turn-timer`, `opponent-hand`,
+`secrets`, `counters`, `bg-counters`, `card-pool`, `card-pool-browser`, `mulligan-bars`, `mulligan-summary`, `bgbar`,
+`hero-row`, `trinket-row`, `tavern-row`, `odds`, `choice-row`, `plan`, `session`, `lobby`, `toast`, `arena-picks`,
+`arena-draft`. The two surface files are authoritative; compare their `MovablePanel` Id sets after a change.
 Arena draft panels show in the `DRAFT` scene, outside games (`docs/arena-draft.md`).
 
 Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). Data into the snapshot:
 [hearthpulse-tracking](../hearthpulse-tracking/SKILL.md). PNG proof: [hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md).
 
-## Files (same names in both UIs)
+## Files
 
 | Role | WPF `src/Hearthpulse.App/Overlay/` | Avalonia `src/Hearthpulse.UI/Overlay/` |
 |---|---|---|
 | Surface with all panels | `OverlayWindow.xaml` (+ `.xaml.cs`: layout, click-through, `RenderToFileAsync`) | `OverlayView.axaml` (+ `.axaml.cs`: layout, `IsInteractiveAt`) |
 | Panel host control | `MovablePanel.cs` | `MovablePanel.cs` (also defines `OverlayHit`) |
-| View model | `OverlayViewModel.cs` + partials `.Live` `.Mulligan` `.Hand` `.Deck` `.CardPool` `.BgCounters` | same files, near-identical code |
-| Small records for binding | `OverlayModels.cs` (`DeckTile`, `CounterChip`, `HandTile`, ...) | `OverlayModels.cs` |
+| Platform VM adapter | `OverlayViewModel.Platform.cs` (framework values/timer), `.Focus.cs` (WPF feature) | `OverlayViewModel.Platform.cs` |
+| Platform records | `OverlayModels.Platform.cs` (`HandMark`, WPF-only members) | `OverlayModels.Platform.cs` (`HandMark`) |
 | Extracted panels | `MulliganPanel`, `OpponentHandPanel`, `CardPoolPanel`, `CardPoolBrowser` (`.xaml`) | same (`.axaml`) |
 | Window host | `App.xaml.cs` | `src/Hearthpulse.Desktop/OverlayWindow.cs` + `Platform/*OverlayPlatform.cs` |
 
-The view models are copies: write the partial once, copy it, then fix only the UI-specific types
-(WPF `GridLength`/`Visibility` vs Avalonia `double`/`bool`). Tests cannot reach these projects, so keep logic
-(what to show, sorting, numbers) in Core and the VM thin.
+Common view models and display records live in `src/Hearthpulse.Presentation/Overlay/`: `OverlayViewModel.cs`
+and feature partials, plus `OverlayModels.cs` / `.Widgets.cs`. Both UI projects compile the same sources into their
+existing namespaces/assemblies. Edit those files once; retain framework types (WPF `GridLength`, framework-specific
+`Thickness`, dispatcher timers) and intentional platform-only members in the local adapters. Domain rules belong
+in Core. See `src/Hearthpulse.Presentation/README.md`; the Windows presentation suite checks both compiled variants,
+while the cross-platform test project continues to reference Avalonia UI.
 
 ## Recipe: new panel "X"
 
@@ -40,8 +45,8 @@ The view models are copies: write the partial once, copy it, then fix only the U
    WPF `src/Hearthpulse.App/Main/MainWindow.xaml` (a `CheckBox Style="{StaticResource Switch}"` bound to
    `Settings.ShowX`; changes reach `OnSettingChanged` automatically), Avalonia `src/Hearthpulse.UI/Main/MainView.axaml`
    (`Classes="switch"`; `MainView.axaml.cs` hooks every CheckBox of the view into `OnSettingChanged` at load).
-   UI text is English, sentence case: "Show card pool: what a Discover or random card can give".
-4. **VM partial** `OverlayViewModel.X.cs` in both UIs:
+   Add English/Russian localization keys and bind with `{i:Loc Key}`; use sentence case (`docs/localization.md`).
+4. **VM partial** `src/Hearthpulse.Presentation/Overlay/OverlayViewModel.X.cs`, maintained once for both UIs:
    ```csharp
    public bool ShowX { get => _showX; private set => Set(ref _showX, value); }
    private void UpdateX(ConstructedView? view, AppSettings settings)
@@ -50,11 +55,13 @@ The view models are copies: write the partial once, copy it, then fix only the U
        // build display records once per change, not per publish
    }
    ```
-   Call it with **one line** from `Update(...)` in `OverlayViewModel.cs`, next to `UpdateLive`, `UpdateHandMarks`,
+   Follow the existing conditional namespace/import header. Call it with **one line** from `Update(...)` in the
+   shared `OverlayViewModel.cs`, next to `UpdateLive`, `UpdateHandMarks`,
    `UpdateCardPool`, `UpdateBgCounters` (Constructed-only parts may hang off `UpdateLive` in `.Live.cs`, as
    `UpdateMulligan` does). `Update` runs up to 10 times a second: compare inputs and skip rebuilding
    when nothing changed (`Replace<T>` helper in `OverlayViewModel.cs` diffs collections).
-5. **Models**: small immutable records in `OverlayModels.cs` (both UIs) - display strings, flags, card ids; no brushes.
+5. **Models**: small immutable records in shared `Presentation/Overlay/OverlayModels.cs` - display strings, flags,
+   card ids; no brushes. Framework-specific member types stay in each UI's `OverlayModels.Platform.cs`.
 6. **View**: for anything bigger than a few lines, a UserControl `XPanel.xaml` / `XPanel.axaml` in `Overlay/`
    (copy `MulliganPanel` headers: WPF `xmlns:o="clr-namespace:Hearthpulse.App.Overlay"`, local `i:VisibleWhen`;
    Avalonia `xmlns:o="using:Hearthpulse.UI.Overlay"`, `x:DataType="o:OverlayViewModel"`, `i:Truthy`). DataContext is
@@ -69,7 +76,8 @@ The view models are copies: write the partial once, copy it, then fix only the U
    </o:MovablePanel>
    ```
    Same Id, Title, alignment and Margin in `OverlayWindow.xaml` and `OverlayView.axaml`.
-8. **Clicks** (below), **render scene** (below), tests for the Core logic.
+8. **Clicks** (below), **render scene** (below), tests for Core rules and presentation behavior; build both flavors
+   and run `Hearthpulse.Presentation.Tests` on Windows when changing shared models/adapters.
 
 ## Default position and layout mode
 
@@ -117,8 +125,9 @@ The window passes every click to the game except over elements marked interactiv
 
 ## Changing an existing panel
 
-Find it by Id in both XAML files and the VM partial named after it; change both UIs in the same commit; re-render
-before/after. If a shared method (`MovablePanel`, `Update`) must change and another session also touches it, agree
+Find it by Id in both XAML files and the shared VM partial named after it; edit the shared behavior once and each
+affected platform view/adapter; re-render before/after. If a common entry point (`Update`) or both platform controls
+(`MovablePanel`) must change and another session also touches it, agree
 on one owner ([hearthpulse-parallel-work](../hearthpulse-parallel-work/SKILL.md)).
 
 ## Checklist

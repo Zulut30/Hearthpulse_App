@@ -8,7 +8,10 @@ description: Use when a Hearthpulse task needs Hearthstone domain knowledge - ga
 Hearthstone (Blizzard) is a digital card game. Hearthpulse tracks games from the client's log files and a read-only
 look at client memory, then shows stats and an in-game overlay. This skill explains the game concepts and where the
 app models them. Season-specific Battlegrounds mechanics change often: trust the code and current card data over
-this text.
+this text. Enum values and formats retained for old log replays are not proof a mode is currently playable.
+The API examples in the reference were checked on their stated date, not on every use of this skill; verify current
+card mechanics and service responses when the task depends on them, and keep offline fixture evidence distinct
+from live game verification.
 
 References:
 - [reference/power-log.md](reference/power-log.md) - log files, `log.config`/`client.config`, Power.log grammar,
