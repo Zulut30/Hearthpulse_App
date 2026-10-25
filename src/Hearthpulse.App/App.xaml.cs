@@ -100,8 +100,15 @@ public partial class App : Application
             }
         }
 
-        _mutex = new Mutex(true, @"Local\Hearthpulse.SingleInstance", out var firstInstance);
-        if (!firstInstance && _renderDir is null)
+        // A --render-ui run never takes the single-instance lock: it closes by itself, and holding the lock would make the
+        // player's own copy refuse to start while it runs.
+        var firstInstance = true;
+        if (_renderDir is null)
+        {
+            _mutex = new Mutex(true, @"Local\Hearthpulse.SingleInstance", out firstInstance);
+        }
+
+        if (!firstInstance)
         {
             // Settings are not loaded yet; read the language only, so the message is in the player's language.
             Loc.Instance.SetLanguage(AppSettings.Load().InterfaceLanguage());
