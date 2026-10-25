@@ -892,6 +892,8 @@
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Lobby}" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Odds}" IsChecked="{Binding ShowCombatOdds}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.OddsTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Widgets.Archetype.Setting}" IsChecked="{Binding ShowOpponentArchetype}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Widgets.Archetype.SettingTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,18" />
 
                                     <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">

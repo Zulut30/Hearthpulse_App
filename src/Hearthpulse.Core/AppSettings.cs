@@ -79,6 +79,9 @@ public sealed class AppSettings
 
     public bool ShowOpponentTracker { get; set; } = true;
 
+    /// <summary>The opponent's likely archetype and the cards its lists usually run that it has not shown yet.</summary>
+    public bool ShowOpponentArchetype { get; set; } = true;
+
     public bool ShowDrawChance { get; set; } = true;
 
     /// <summary>Keep rate and win rate over your opening hand while you mulligan.</summary>

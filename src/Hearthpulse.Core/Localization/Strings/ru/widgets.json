@@ -1,0 +1,10 @@
+{
+  "Widgets.Archetype.Panel": "Архетип соперника",
+  "Widgets.Archetype.Title": "Вероятный архетип",
+  "Widgets.Archetype.WinRate": "Винрейт в мете {0:P1}",
+  "Widgets.Archetype.Seen": "По {0} сыгранной карте соперника · {1}|По {0} сыгранным картам соперника · {1}|По {0} сыгранным картам соперника · {1}",
+  "Widgets.Archetype.Alternatives": "Может быть и",
+  "Widgets.Archetype.MayHold": "Может ещё быть в колоде",
+  "Widgets.Archetype.Setting": "Показывать вероятный архетип соперника и карты, которые обычно есть в его списках",
+  "Widgets.Archetype.SettingTip": "Считается только по картам, которые соперник разыграл открыто, и мете Hearthpulse data для формата игры"
+}

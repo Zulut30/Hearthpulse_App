@@ -1,0 +1,10 @@
+{
+  "Widgets.Archetype.Panel": "Opponent's archetype",
+  "Widgets.Archetype.Title": "Likely archetype",
+  "Widgets.Archetype.WinRate": "Meta win rate {0:P1}",
+  "Widgets.Archetype.Seen": "From {0} card the opponent played · {1}|From {0} cards the opponent played · {1}",
+  "Widgets.Archetype.Alternatives": "Could also be",
+  "Widgets.Archetype.MayHold": "May still be in the deck",
+  "Widgets.Archetype.Setting": "Show the opponent's likely archetype and the cards its lists usually run",
+  "Widgets.Archetype.SettingTip": "Worked out only from the cards the opponent played face up and the Hearthpulse data meta of the game's format"
+}

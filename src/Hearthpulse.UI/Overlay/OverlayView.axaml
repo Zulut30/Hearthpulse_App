@@ -846,6 +846,11 @@
                     </Border>
                 </o:MovablePanel>
 
+                <!-- ============ Constructed: opponent's likely archetype (top right, beside the deck tracker, above the opponent's deck) ============ -->
+                <o:MovablePanel Id="opponent-archetype" Title="{i:Loc Widgets.Archetype.Panel}" Shown="{Binding ShowArchetype}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,170,276,0">
+                    <o:OpponentArchetypePanel />
+                </o:MovablePanel>
+
                 <!-- ============ Constructed: marks under the opponent's hand fan (top centre; move and scale it onto the cards) ============ -->
                 <o:MovablePanel Id="opponent-hand" Title="{i:Loc Overlay.Panel.OpponentHand}" MinWidth="{x:Static o:OverlayViewModel.HandPanelWidth}" Shown="{Binding ShowHandMarks}"
                                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,92,0,0">
