@@ -72,6 +72,12 @@ public sealed record ConstructedView(
 
     /// <summary>Where the card of <see cref="CardPool"/> sits (hand, board, Discover options), to show the pool beside it; null otherwise.</summary>
     public CardPool.CardPoolAnchor? CardPoolAnchor { get; init; }
+
+    /// <summary>The opponent's likely archetype from the cards it played face up; null without a fitting meta or a shown card.</summary>
+    public Constructed.OpponentArchetypeView? OpponentArchetype { get; init; }
+
+    /// <summary>The running turn's clock and the average turn of each player so far; null before the first turn.</summary>
+    public TurnClockView? Turns { get; init; }
 }
 
 /// <summary>Community win rate of the archetype a deck belongs to; <see cref="Format"/>, <see cref="Rank"/> and <see cref="Source"/> are labels.</summary>
@@ -397,6 +403,9 @@ public sealed record LiveSnapshot(
     IReadOnlyList<string> LogConfigMissing,
     ParseErrorSummary? ParseErrors = null)
 {
+    /// <summary>Ranked games of the current play session, Standard and Wild apart.</summary>
+    public Stats.LadderSessions Ladder { get; init; } = Stats.LadderSessions.None;
+
     public static LiveSnapshot Empty { get; } = new(
         "UNKNOWN", false, false, "Idle", null, false, null, null, null,
         new SessionSummary(null, null, 0, Array.Empty<int>(), 0, 0), null, Array.Empty<string>());

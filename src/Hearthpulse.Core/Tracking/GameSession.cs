@@ -32,6 +32,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private readonly HistoryStore _history;
     private readonly HearthstoneMemory _memory;
     private readonly ConstructedTracker _constructed = new();
+    private readonly TurnClock _turnClock;
     private readonly BattlegroundsTracker _battlegrounds = new();
     private readonly GameFactsTracker _facts = new();
     private readonly ReplayRecorder _replay = new();
@@ -117,12 +118,15 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _history = history;
         _memory = memory;
         _memoryPoller = new MemoryPoller(memory);
+        _turnClock = new TurnClock(() => _parser?.LastTimestamp);
         _history.Changed += () =>
         {
             lock (_statsGate)
             {
                 _heroStats = null;
             }
+
+            _ladderReload = true;
         };
         _battlegrounds.HeroStatsProvider = LookupHeroStats;
     }
@@ -276,6 +280,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         }
 
         _parser = new PowerParser(DateOnly.FromDateTime(sessionStart));
+        OnLadderLogSession(sessionStart);
         _parser.AddListener(_constructed);
         _parser.AddListener(_constructed.Counters);
         _parser.AddListener(_battlegrounds);
@@ -283,6 +288,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_facts);
         _parser.AddListener(_cardPool);
         _parser.AddListener(_replay);
+        _parser.AddListener(_turnClock);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
         _arenaDraft.Reset();
@@ -892,7 +898,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             else if (inGame && game!.IsConstructedLike && game.LocalPlayerId != 0)
             {
                 constructed = _constructed.BuildView(game, _cards);
-                constructed = WithCardPool(constructed, game);
+                constructed = WithCardPool(constructed, game) with { Turns = _turnClock.View(game) };
             }
         }
         catch (Exception ex)
@@ -924,6 +930,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _parseErrorTotal == 0 ? null : new ParseErrorSummary(_parseErrorTotal, ParseErrorText()))
         {
             ArenaDraft = BuildArenaDraft(),
+            Ladder = BuildLadder(game, inGame),
         };
 
         SnapshotChanged?.Invoke(Current);

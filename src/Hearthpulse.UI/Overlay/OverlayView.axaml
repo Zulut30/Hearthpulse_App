@@ -846,6 +846,24 @@
                     </Border>
                 </o:MovablePanel>
 
+                <!-- ============ Constructed: opponent's likely archetype (left, beside the opponent tracker and under the card pool; the right side holds the deck and secrets) ============ -->
+                <o:MovablePanel Id="opponent-archetype" Title="{i:Loc Widgets.Archetype.Panel}" Shown="{Binding ShowArchetype}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,520,0,0">
+                    <o:OpponentArchetypePanel />
+                </o:MovablePanel>
+
+                <!-- ============ Menus: ranked ladder session (top right, outside games only) ============ -->
+                <o:MovablePanel Id="ladder-session" Title="{i:Loc Widgets.Ladder.Panel}" Shown="{Binding ShowLadder}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,276,0">
+                    <o:LadderSessionPanel />
+                </o:MovablePanel>
+
+                <!-- ============ Constructed: turn timers, left of each hero portrait (weapon slot side, clear of the hero power) ============ -->
+                <o:MovablePanel Id="turn-timer-opponent" Title="{i:Loc Widgets.Turn.OpponentPanel}" Shown="{Binding ShowTurnTimer}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,170,660,0">
+                    <o:TurnTimerPanel DataContext="{Binding OpponentTimer}" />
+                </o:MovablePanel>
+                <o:MovablePanel Id="turn-timer" Title="{i:Loc Widgets.Turn.Panel}" Shown="{Binding ShowTurnTimer}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,660,200">
+                    <o:TurnTimerPanel DataContext="{Binding MyTimer}" />
+                </o:MovablePanel>
+
                 <!-- ============ Constructed: marks under the opponent's hand fan (top centre; move and scale it onto the cards) ============ -->
                 <o:MovablePanel Id="opponent-hand" Title="{i:Loc Overlay.Panel.OpponentHand}" MinWidth="{x:Static o:OverlayViewModel.HandPanelWidth}" Shown="{Binding ShowHandMarks}"
                                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,92,0,0">

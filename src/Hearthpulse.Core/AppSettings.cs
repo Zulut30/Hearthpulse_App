@@ -79,6 +79,12 @@ public sealed class AppSettings
 
     public bool ShowOpponentTracker { get; set; } = true;
 
+    /// <summary>The opponent's likely archetype and the cards its lists usually run that it has not shown yet.</summary>
+    public bool ShowOpponentArchetype { get; set; } = true;
+
+    /// <summary>The turn timers by the hero portraits: the running turn, the rope warning and the average turn.</summary>
+    public bool ShowTurnTimer { get; set; } = true;
+
     public bool ShowDrawChance { get; set; } = true;
 
     /// <summary>Keep rate and win rate over your opening hand while you mulligan.</summary>
@@ -203,6 +209,12 @@ public sealed class AppSettings
     public bool ShowLobbyPanel { get; set; } = true;
 
     public bool ShowSessionPanel { get; set; } = true;
+
+    /// <summary>The ranked ladder session widget: in the overlay outside games and on the Overview page.</summary>
+    public bool ShowLadderSession { get; set; } = true;
+
+    /// <summary>Hours without a game after which the next game starts a new ladder session (Hearthstone starting does too).</summary>
+    public double LadderSessionBreakHours { get; set; } = 2;
 
     /// <summary>Show simulated win / tie / loss odds while a Battlegrounds combat plays out.</summary>
     public bool ShowCombatOdds { get; set; } = true;

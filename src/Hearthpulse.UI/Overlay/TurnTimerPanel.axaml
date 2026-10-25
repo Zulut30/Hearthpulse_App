@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Overlay.TurnTimerPanel"
+             x:DataType="o:TurnTimerSide">
+    <!-- One player's turn timer (DataContext: a TurnTimerSide). While the turn runs: the time spent over the limit,
+         red with the time left once the rope burns; otherwise the last turn. The average turn underneath. -->
+    <UserControl.Resources>
+        <i:Truthy x:Key="Truthy" />
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="Border.overlayCard.active">
+            <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+        </Style>
+        <Style Selector="Border.overlayCard.rope">
+            <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
+            <Setter Property="Background" Value="{StaticResource NegativeSoft}" />
+        </Style>
+        <Style Selector="TextBlock.time">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="TextBlock.time.active">
+            <Setter Property="Foreground" Value="{StaticResource Text}" />
+        </Style>
+        <Style Selector="TextBlock.time.rope, TextBlock.detail.rope">
+            <Setter Property="Foreground" Value="{StaticResource Negative}" />
+        </Style>
+        <Style Selector="TextBlock.detail">
+            <Setter Property="Foreground" Value="{StaticResource Faint}" />
+        </Style>
+        <Style Selector="TextBlock.detail.rope">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </UserControl.Styles>
+    <Border Classes="overlayCard" Classes.active="{Binding Active}" Classes.rope="{Binding Rope}" MinWidth="150" Padding="11,6,11,7">
+        <StackPanel>
+            <TextBlock Text="{Binding Label}" FontSize="10.5" Foreground="{StaticResource Muted}" />
+            <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                <TextBlock Classes="time" Classes.active="{Binding Active}" Classes.rope="{Binding Rope}" Text="{Binding Time}"
+                           FontFamily="{StaticResource DisplayFont}" FontSize="20" VerticalAlignment="Bottom" />
+                <TextBlock Classes="detail" Classes.rope="{Binding Rope}" Text="{Binding Detail}" FontSize="11" VerticalAlignment="Bottom" Margin="7,0,0,3" />
+            </StackPanel>
+            <TextBlock Text="{Binding Average}" FontSize="10.5" Foreground="{StaticResource Faint}" IsVisible="{Binding Average, Converter={StaticResource Truthy}}" />
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -86,6 +86,7 @@ internal static partial class OffscreenRenderer
         await RenderDeckPageAsync(main, view, host, folder);
         await RenderMatchPageAsync(main, view, host, folder);
         await RenderArenaPageAsync(main, view, host, folder);
+        await RenderLadderPageAsync(main, view, host, folder);
 
         // Phone-sized dashboard: the compact layout used on narrow windows and mobile.
         main.Width = 420;
@@ -186,6 +187,8 @@ internal static partial class OffscreenRenderer
             overlayView.Fit(1920, 1080);
             return Save(overlay, path);
         });
+
+        await RenderWidgetsAsync(host, settings, overlayView, overlay, folder);
 
         host.Overlay.Update(LiveSnapshot.Empty, host.Cards, settings, null, null);
         host.Overlay.LayoutEditing = true;
