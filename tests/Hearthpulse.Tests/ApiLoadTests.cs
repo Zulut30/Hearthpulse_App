@@ -244,6 +244,31 @@ public sealed class ApiLoadTests : IDisposable
     }
 
     [Fact]
+    public async Task A_slice_listing_original_and_reprint_keeps_the_row_with_more_games()
+    {
+        var cards = CardDb.Parse("enUS", new MemoryStream(Encoding.UTF8.GetBytes("""
+            [
+              {"id": "CS1_130", "dbfId": 279, "name": "Holy Smite", "cost": 1},
+              {"id": "CORE_CS1_130", "dbfId": 69636, "name": "Holy Smite", "cost": 1}
+            ]
+            """)));
+        var server = new FixtureServer();
+        server.Route("v1/hsguru/mulligan?archetype=Smite%20Priest&format=standard&rank=legend&coin=any_player&opponent_class=any", """
+            {"data": {"rank": "legend", "coin": "any_player", "opponent_class": "any", "games": 9000, "rows": [
+              {"card_id": "CS1_130", "dbf_id": 279, "mulligan_count": 300, "mulligan_impact": 1.0, "kept_count": 100, "kept_impact": 2.0, "drawn_count": 900, "drawn_impact": 0.5},
+              {"card_id": "CORE_CS1_130", "dbf_id": 69636, "mulligan_count": 2000, "mulligan_impact": -1.0, "kept_count": 900, "kept_impact": -2.0, "drawn_count": 5000, "drawn_impact": -0.5}
+            ]}}
+            """);
+        var guide = new GuideArchetype(1, "Smite Priest", "PRIEST", [], [], "test") { HsguruArchetype = "Smite Priest" };
+
+        var loaded = await MulliganGuideSource.WithSlicesAsync(Data(server), guide, "standard", new Dictionary<int, int> { [69636] = 2 }, cards, null, null);
+
+        var slice = Assert.Single(loaded.Slices);
+        var smite = Assert.Single(slice.Cards);
+        Assert.Equal(("CORE_CS1_130", 2000), (smite.CardId, smite.Offered));
+    }
+
+    [Fact]
     public void The_class_pool_counts_a_shared_hsreplay_archetype_once_and_uses_its_baseline()
     {
         MetaArchetype Archetype(int id, string name, int? hsreplay, double baseline) =>

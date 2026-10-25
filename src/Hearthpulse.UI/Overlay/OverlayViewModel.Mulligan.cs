@@ -60,6 +60,14 @@ public sealed partial class OverlayViewModel
     /// <summary>An edge of this many win rate points fills half the gauge.</summary>
     private const double MulliganGaugeFull = 0.04;
 
+    /// <summary>
+    /// From this overlay scale the bars drop their second line (it stays in the tooltip): taller bars would reach the
+    /// opponent's hand markers at the top of the mulligan screen.
+    /// </summary>
+    private const double MulliganCompactScale = 1.4;
+
+    private bool _mulliganCompact;
+
     private double _mulliganRowWidth = MulliganRowGameWidth;
 
     private bool _showMulligan;
@@ -121,6 +129,7 @@ public sealed partial class OverlayViewModel
     {
         ShowMulligan = settings.ShowMulligan && mulligan is not null;
         MulliganRowWidth = MulliganRowGameWidth / Math.Clamp(settings.OverlayScale, 0.6, 1.6);
+        _mulliganCompact = settings.OverlayScale >= MulliganCompactScale;
         // The tracker logs why the strip has or lacks numbers; only the setting is known here.
         var offBySetting = mulligan is not null && !settings.ShowMulligan;
         if (offBySetting && !_mulliganOffNoted)
@@ -166,7 +175,7 @@ public sealed partial class OverlayViewModel
 
         // Snapshots arrive every 100 ms while anything changes; rebuild the badges only when what they show changed. The
         // language is part of it: after a switch the host pushes the last snapshot again and the texts are made anew.
-        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|"
+        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|{_mulliganCompact}|"
                     + $"{string.Join(",", _mulliganKept.Order())}|"
                     + string.Join(";", view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.Edge:0.0000}|{c.KeepRate:0.0000}|{c.KeptDelta:0.0000}|{c.DrawnDelta:0.0000}"));
         if (print == _mulliganPrint)
@@ -216,7 +225,7 @@ public sealed partial class OverlayViewModel
             var late = MulliganGuide.IsLate(c);
             var edge = c.Edge ?? 0;
             var fill = c.Edge is null ? 0 : Math.Min(1, Math.Abs(edge) / MulliganGaugeFull) * MulliganGaugeHalf;
-            var details = string.Join(" · ", new[]
+            var details = _mulliganCompact ? string.Empty : string.Join(" · ", new[]
             {
                 c.KeepRate is { } keepRate ? Loc.F("Mulligan.KeepRateShort", keepRate.ToString("P0", culture)) : null,
                 c.DrawnDelta is { } drawn ? Loc.F("Mulligan.DrawnShort", Points(drawn)) : null,
@@ -227,6 +236,11 @@ public sealed partial class OverlayViewModel
                 if (c.Edge is not null)
                 {
                     lines.Add(Loc.F("Mulligan.EdgeLine", Points(edge), Points(delta), Points(view.ReplaceDelta)));
+                    if (Math.Abs(edge - (delta - view.ReplaceDelta)) > 0.0005)
+                    {
+                        // A kept synergy partner or the other copy changes what keeping this one adds.
+                        lines.Add(Loc.T("Mulligan.EdgeWithOthers"));
+                    }
                 }
 
                 lines.Add(Loc.P("Mulligan.CardWinRate", c.Sample, rate.ToString("P1", culture), view.CardBaseline.ToString("P1", culture)));

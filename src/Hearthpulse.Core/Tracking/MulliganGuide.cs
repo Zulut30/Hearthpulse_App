@@ -284,6 +284,13 @@ public static class MulliganGuide
                 ? rate - baseline + (CoinShift(cardId) ?? 0) + (OpponentShift(cardId) ?? 0)
                 : null;
 
+        // Pair win rates are over all games: their interaction is measured against the cards' unshifted deltas, or a
+        // coin or class shift of both cards would show up as a synergy of the same size (and cancel itself in the sum).
+        double? AllGamesDeltaOf(string cardId) =>
+            stats.TryGetValue(cardId, out var s) && s.Offered >= MinSample && s.InOpeningHand >= MinSample && s.OpeningHandWinRate is { } rate
+                ? rate - baseline
+                : null;
+
         var replace = ReplaceDelta(data.Cards, hand, deck, DeltaOf);
         var seen = new Dictionary<string, int>(StringComparer.Ordinal);
         var rows = new List<MulliganCardStat>();
@@ -307,8 +314,6 @@ public static class MulliganGuide
                 Copy = copy,
                 Cost = card.Cost,
                 ExpectedTurn = turn,
-                // A second copy is called by the duplicate heuristic, not by a number: it shows none.
-                Edge = copy == 1 ? delta - replace : null,
                 CoinShift = delta is null ? null : CoinShift(card.CardId),
                 OpponentShift = delta is null ? null : OpponentShift(card.CardId),
                 KeptDelta = sliceCard is { Kept: >= MinSliceCount } ? sliceCard.KeptImpact : null,
@@ -320,7 +325,7 @@ public static class MulliganGuide
             });
         }
 
-        var synergies = Synergies(data.Pairs, hand, baseline, DeltaOf);
+        var synergies = Synergies(data.Pairs, hand, baseline, AllGamesDeltaOf);
         var view = new MulliganView(context, baseRate, rows, data.Source)
         {
             ReplaceDelta = replace,
@@ -334,10 +339,16 @@ public static class MulliganGuide
         };
 
         var recommended = Recommend(view);
+        var keep = recommended.ToHashSet();
         return view with
         {
             Recommended = recommended,
-            Cards = rows.Select(r => r with { Call = Call(r, recommended) }).ToList(),
+            // A second copy is called by the duplicate heuristic, not by a number: it shows none.
+            Cards = rows.Select(r => r with
+            {
+                Call = Call(r, recommended),
+                Edge = r is { Copy: 1, Delta: not null } ? Toggle(view, keep, r.EntityId) : null,
+            }).ToList(),
         };
     }
 
@@ -385,6 +396,19 @@ public static class MulliganGuide
 
     /// <summary>A card is late when it is expensive, or costs 4+ and is usually held until turn 6.</summary>
     public static bool IsLate(MulliganCardStat card) => card.Cost >= LateCost || (card.Cost >= 4 && card.ExpectedTurn >= LateTurn);
+
+    /// <summary>
+    /// What keeping the card adds to the recommended keeps: the summed deltas with it kept minus with it replaced, the
+    /// other cards as recommended. For a plain card that is its delta minus the replacement's; a kept synergy partner or a
+    /// kept second copy of the same card count too. The recommendation is the best sum, so the sign always matches the call.
+    /// </summary>
+    private static double Toggle(MulliganView view, IReadOnlySet<int> keep, int entityId)
+    {
+        var with = new HashSet<int>(keep) { entityId };
+        var without = new HashSet<int>(keep);
+        without.Remove(entityId);
+        return Sum(view, with) - Sum(view, without);
+    }
 
     /// <summary>The hand's summed deltas: first kept copies, one replacement per replaced card, kept pair interactions.</summary>
     private static double Sum(MulliganView view, IReadOnlySet<int> kept)

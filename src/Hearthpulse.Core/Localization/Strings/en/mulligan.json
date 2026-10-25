@@ -32,6 +32,7 @@
   "Mulligan.Warn.BothCopies": "Both copies of {0} kept: the stats count the card once, so the second copy adds nothing measurable (duplicate heuristic).",
 
   "Mulligan.EdgeLine": "Keeping vs replacing: {0} points (the card {1} against the deck's average, a replacement {2})",
+  "Mulligan.EdgeWithOthers": "The number counts the other cards kept: a synergy with them, or the other copy that already holds the card's value.",
   "Mulligan.KeepRateShort": "kept {0}",
   "Mulligan.DrawnShort": "drawn {0}",
   "Mulligan.Shift.Coin": "On the coin: {0} points for this card against all games",

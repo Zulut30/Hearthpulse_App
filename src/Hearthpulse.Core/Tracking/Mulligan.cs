@@ -24,9 +24,10 @@ public sealed record MulliganCardStat(int EntityId, string CardId, string Name, 
     public MulliganCall Call { get; init; }
 
     /// <summary>
-    /// What keeping the card is worth against replacing it: <see cref="Delta"/> minus the average replacement's, in win
-    /// rate (0.019 = +1.9 points). The call follows its sign; the overlay's bar and number show it. Null for a second
-    /// copy, which the duplicate heuristic calls.
+    /// What keeping the card is worth against replacing it, the other cards as recommended, in win rate (0.019 = +1.9
+    /// points): usually <see cref="Delta"/> minus the average replacement's, plus a kept synergy, minus what a kept second
+    /// copy already gives. The call always follows its sign; the overlay's bar and number show it. Null for a second copy,
+    /// which the duplicate heuristic calls.
     /// </summary>
     public double? Edge { get; init; }
 

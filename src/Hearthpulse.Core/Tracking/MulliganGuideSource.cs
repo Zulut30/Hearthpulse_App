@@ -19,8 +19,12 @@ public sealed class MulliganGuideSource(HearthpulseData data)
     private GuideArchetype? _result;
     private DateTime _retryAt;
 
-    /// <summary>Coin / opponent contexts whose slices were asked for (for the current deck).</summary>
-    private readonly HashSet<string> _contexts = new(StringComparer.Ordinal);
+    /// <summary>
+    /// Coin / opponent contexts whose slices were asked for (for the current deck), with the time they may be asked
+    /// again: a lookup that brought nothing new (offline, a timeout) is tried again after <see cref="RetryAfter"/>, like
+    /// the guide itself; answers and 404s come from the disk cache then.
+    /// </summary>
+    private readonly Dictionary<string, DateTime> _contexts = new(StringComparer.Ordinal);
 
     /// <summary>Raised on a worker thread when a lookup finished with a result.</summary>
     public event Action? Changed;
@@ -54,8 +58,10 @@ public sealed class MulliganGuideSource(HearthpulseData data)
             }
 
             var context = $"{goingFirst}|{opponentClass}";
-            if (_result is { HsguruArchetype: not null } ready && (goingFirst is not null || opponentClass is { Length: > 0 }) && _contexts.Add(context))
+            if (_result is { HsguruArchetype: not null } ready && (goingFirst is not null || opponentClass is { Length: > 0 })
+                && DateTime.UtcNow >= _contexts.GetValueOrDefault(context, DateTime.MinValue))
             {
+                _contexts[context] = DateTime.UtcNow + RetryAfter;
                 var requested = _key!;
                 Task.Run(() => LoadSlicesAsync(requested, ready, format, deck, cards, opponentClass, goingFirst)).Forget("Mulligan guide slices");
             }
@@ -66,7 +72,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
             }
 
             _retryAt = DateTime.UtcNow + RetryAfter;
-            _contexts.Add(context);
+            _contexts[context] = DateTime.UtcNow + RetryAfter;
             var lookupKey = _key;
             Task.Run(() => LoadAsync(lookupKey!, format, playerClass, deck, cards, opponentClass, goingFirst)).Forget("Mulligan guide lookup");
             return null;
@@ -217,7 +223,8 @@ public sealed class MulliganGuideSource(HearthpulseData data)
             rows.AddRange(ids.Select(id => row with { CardId = id }));
         }
 
-        return slice with { Cards = rows };
+        // HSGuru may list both the original and the reprint: the deck's id keeps the row with more games.
+        return slice with { Cards = rows.GroupBy(r => r.CardId, StringComparer.Ordinal).Select(g => g.MaxBy(r => r.Offered)!).ToList() };
     }
 
     /// <summary>The HSGuru archetype (current expansion, all ranks) whose lists the deck matches, or null.</summary>
