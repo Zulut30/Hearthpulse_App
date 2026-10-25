@@ -53,6 +53,12 @@ public static class GameTag
     public const string BaconMaxTechLevel = "BACON_MAX_PLAYER_TECH_LEVEL";
     public const string BaconDuoTeamId = "BACON_DUO_TEAM_ID";
 
+    /// <summary>Game entity: the combat damage cap in force (0 once lifted in builds without the switch below).</summary>
+    public const string BaconCombatDamageCap = "BACON_COMBAT_DAMAGE_CAP";
+
+    /// <summary>Game entity: 1 while the combat damage cap applies (newer builds).</summary>
+    public const string BaconCombatDamageCapEnabled = "BACON_COMBAT_DAMAGE_CAP_ENABLED";
+
     private static readonly Dictionary<string, int> Zones = new(StringComparer.Ordinal)
     {
         ["INVALID"] = 0, ["PLAY"] = 1, ["DECK"] = 2, ["HAND"] = 3, ["GRAVEYARD"] = 4,

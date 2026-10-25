@@ -193,25 +193,221 @@ public sealed class MulliganGuideTests
     }
 
     [Fact]
-    public void Near_ties_stay_kept()
+    public void A_card_worse_than_its_replacement_is_never_kept()
     {
-        // Synthetic archetype: one card is half a point worse than an average replacement, the other two points worse.
+        // The bug: B is 0.6 points under the deck's average and 0.3 under an average replacement. A half-point margin in
+        // favour of keeping made it "Keep" next to a negative number. Now the call follows the edge over the replacement.
         var cards = new List<GuideCard>
         {
             new("A", 1, 1, 1000, 0.5, 1000, 0.500, 2),
-            new("B", 2, 2, 1000, 0.5, 1000, 0.497, 2),
+            new("B", 2, 2, 1000, 0.5, 1000, 0.494, 2),
             new("C", 3, 3, 1000, 0.5, 1000, 0.480, 3),
-            new("D", 4, 4, 1000, 0.5, 1000, 0.501, 4),
+            new("D", 4, 4, 1000, 0.5, 1000, 0.491, 4),
+            new("E", 5, 1, 1000, 0.5, 1000, 0.5025, 1),
         };
-        var guide = new GuideArchetype(1, "Test", "MAGE", cards, [], "test");
-        var deck = new Dictionary<string, int>(StringComparer.Ordinal) { ["A"] = 2, ["B"] = 2, ["C"] = 2, ["D"] = 20 };
+        var guide = new GuideArchetype(1, "Test", "MAGE", cards, [], "test") { BaselineWinRate = 0.5 };
+        // Left in the deck: two A (0) and one D (−0.9): an average replacement is −0.3.
+        var deck = new Dictionary<string, int>(StringComparer.Ordinal) { ["A"] = 2, ["B"] = 1, ["C"] = 1, ["D"] = 1, ["E"] = 1 };
 
-        var view = Compute(guide, ["B", "C"], deck);
+        var view = Compute(guide, ["B", "C", "E"], deck);
+        var b = view.Cards[0];
 
-        Assert.InRange(view.Cards[0].Delta!.Value - view.ReplaceDelta, -MulliganGuide.KeepMargin, 0);
-        Assert.Equal(MulliganCall.Keep, view.Cards[0].Call);
-        Assert.Equal(MulliganCall.Mulligan, view.Cards[1].Call);
+        Assert.Equal(-0.006, b.Delta!.Value, 6);
+        Assert.Equal(-0.003, view.ReplaceDelta, 6);
+        Assert.Equal(-0.003, b.Edge!.Value, 6);
+        Assert.InRange(-b.Edge.Value, 0, MulliganGuide.CloseCall);
+        Assert.Equal(new[] { MulliganCall.Mulligan, MulliganCall.Mulligan, MulliganCall.Keep }, view.Cards.Select(c => c.Call));
     }
+
+    [Fact]
+    public void The_call_follows_the_sign_of_the_edge_on_real_hands()
+    {
+        foreach (var hand in new[] { new[] { "JAIL_732", "JAIL_730", "JAIL_719", "CORE_YOP_001" }, ["CORE_BT_187", "DINO_136", "JAIL_732"], ["JAIL_730", "JAIL_719", "JAIL_732"] })
+        {
+            var view = DemonHunterHand(hand, "WARLOCK");
+            foreach (var card in view.Cards.Where(c => c is { Copy: 1, Edge: not null }))
+            {
+                Assert.Equal(card.Edge >= 0 ? MulliganCall.Keep : MulliganCall.Mulligan, card.Call);
+                Assert.Equal(card.Delta!.Value - view.ReplaceDelta, card.Edge!.Value, 9);
+            }
+        }
+    }
+
+    [Fact]
+    public void Coin_and_class_slices_move_a_card_by_its_offered_win_rate()
+    {
+        // B: +1 point in all games; on the coin 4 points worse than in all games, against Warlock 1 point better.
+        var guide = SliceGuide(
+            Slice("legend", MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, 10000, B(0.01, 0.02, -0.01)),
+            Slice("legend", "on_coin", MulliganGuide.AnyOpponent, 5000, B(-0.03, -0.01, -0.05)),
+            Slice("all", MulliganGuide.AnyCoin, "WARLOCK", 3000, B(0.03, 0.04, 0.0)),
+            Slice("all", MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, 30000, B(0.02, 0.03, 0.0)),
+            // Too few games: never used.
+            Slice("legend", MulliganGuide.AnyCoin, "WARLOCK", 500, B(0.5, 0.5, 0.5)));
+        var hand = new[] { new OfferedCard(1, "A", "A", 1), new OfferedCard(2, "B", "B", 2) };
+
+        var plain = MulliganGuide.Compute(guide, hand, null, null, null, "Test")!;
+        var coin = MulliganGuide.Compute(guide, hand, null, null, false, "Test")!;
+        var first = MulliganGuide.Compute(guide, hand, null, null, true, "Test")!;
+        var warlock = MulliganGuide.Compute(guide, hand, null, "WARLOCK", null, "Test")!;
+
+        Assert.Equal(MulliganCall.Keep, plain.Cards[1].Call);
+        Assert.Null(plain.Cards[1].CoinShift);
+
+        // On the coin: −3 − (+1) at Legend.
+        Assert.Equal(-0.04, coin.Cards[1].CoinShift!.Value, 6);
+        Assert.Equal(MulliganCall.Mulligan, coin.Cards[1].Call);
+        Assert.False(coin.GoingFirst);
+        Assert.Equal("on_coin", coin.Cards[1].Slice?.Coin);
+        Assert.Equal(0.4, coin.Cards[1].KeepRate!.Value, 6);
+        Assert.Equal(-0.01, coin.Cards[1].KeptDelta!.Value, 6);
+        Assert.Equal((-0.03 * 1000 + 0.01 * 400) / 600, coin.Cards[1].ReplacedDelta!.Value, 6);
+        Assert.Equal(-0.05, coin.Cards[1].DrawnDelta!.Value, 6);
+
+        // No going-first slice: nothing moves.
+        Assert.Null(first.Cards[1].CoinShift);
+        Assert.Null(first.GoingFirst);
+
+        // Against Warlock: the Legend class slice is too thin, all ranks say +3 − (+2).
+        Assert.Equal(0.01, warlock.Cards[1].OpponentShift!.Value, 6);
+        Assert.Equal("WARLOCK", warlock.OpponentClass);
+        Assert.Equal("all", warlock.Cards[1].Slice?.Rank);
+    }
+
+    [Fact]
+    public void A_coin_shift_of_both_cards_is_no_synergy()
+    {
+        // The review's case: A and B together win exactly as their own numbers add up (over all games); on the coin both
+        // are 3 points worse. Measured against the shifted deltas the pair looked like a +6 synergy and kept both at −0.7.
+        var cards = new List<GuideCard>
+        {
+            new("A", 1, 1, 1000, 0.5, 1000, 0.51, 2),
+            new("B", 2, 2, 1000, 0.5, 1000, 0.51, 2),
+            new("C", 3, 3, 1000, 0.5, 1000, 0.50, 3),
+        };
+        SliceCard Row(string id, int dbf, double offered) => new(id, dbf, 1000, offered, 400, offered, 3000, offered);
+        var guide = new GuideArchetype(1, "Test", "MAGE", cards, [], "test")
+        {
+            BaselineWinRate = 0.5,
+            Pairs = [new GuidePair("A", "B", 500, 0.52)],
+            Slices =
+            [
+                new MulliganSlice("legend", MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, 10000, [Row("A", 1, 0), Row("B", 2, 0)]),
+                new MulliganSlice("legend", "on_coin", MulliganGuide.AnyOpponent, 5000, [Row("A", 1, -0.03), Row("B", 2, -0.03)]),
+            ],
+        };
+        var hand = new[] { new OfferedCard(1, "A", "A", 1), new OfferedCard(2, "B", "B", 2), new OfferedCard(3, "C", "C", 3) };
+
+        var all = MulliganGuide.Compute(guide, hand, null, null, null, "Test")!;
+        var coin = MulliganGuide.Compute(guide, hand, null, null, false, "Test")!;
+
+        Assert.Empty(all.Synergies);
+        Assert.Empty(coin.Synergies);
+        Assert.Equal(new[] { MulliganCall.Mulligan, MulliganCall.Mulligan }, coin.Cards.Take(2).Select(c => c.Call));
+        Assert.All(coin.Cards.Take(2), c => Assert.True(c.Edge < 0));
+        AssertCallsFollowTheEdge(all);
+        AssertCallsFollowTheEdge(coin);
+    }
+
+    [Fact]
+    public void A_first_copy_next_to_a_kept_second_shows_what_it_adds()
+    {
+        // A (1 mana, kept 80%) twice: the second copy is kept by the duplicate rule, so the first adds nothing a
+        // replacement (+1 point) would not beat. It reads "Replace" with a negative number, never "Replace +2.0".
+        var cards = new List<GuideCard>
+        {
+            new("A", 1, 1, 1000, 0.8, 1000, 0.53, 1),
+            new("C", 3, 3, 1000, 0.5, 1000, 0.50, 3),
+            new("X", 4, 4, 1000, 0.5, 1000, 0.51, 4),
+        };
+        var guide = new GuideArchetype(1, "Test", "MAGE", cards, [], "test") { BaselineWinRate = 0.5 };
+        var deck = new Dictionary<string, int>(StringComparer.Ordinal) { ["A"] = 2, ["C"] = 1, ["X"] = 10 };
+
+        var view = Compute(guide, ["A", "A", "C"], deck);
+
+        Assert.Equal(0.01, view.ReplaceDelta, 6);
+        Assert.Equal(MulliganCall.Mulligan, view.Cards[0].Call);
+        Assert.Equal(-0.01, view.Cards[0].Edge!.Value, 6);
+        Assert.Equal(MulliganCall.Keep, view.Cards[1].Call);
+        Assert.Null(view.Cards[1].Edge);
+        AssertCallsFollowTheEdge(view);
+    }
+
+    [Fact]
+    public void A_real_synergy_shows_in_the_number_of_the_card_it_keeps()
+    {
+        // B alone is worse than a replacement, but with A it wins 3 points more than the two add up to: keeping B is
+        // worth that, and its number says so.
+        var cards = new List<GuideCard>
+        {
+            new("A", 1, 1, 1000, 0.5, 1000, 0.530, 2),
+            new("B", 2, 2, 1000, 0.5, 1000, 0.495, 2),
+            new("C", 3, 3, 1000, 0.5, 1000, 0.500, 3),
+        };
+        var guide = new GuideArchetype(1, "Test", "MAGE", cards, [], "test")
+        {
+            BaselineWinRate = 0.5,
+            Pairs = [new GuidePair("A", "B", 500, 0.5 + 0.03 - 0.005 + 0.03)],
+        };
+
+        var view = Compute(guide, ["A", "B", "C"], null);
+        var b = view.Cards[1];
+
+        Assert.Equal(0.03, Assert.Single(view.Synergies).Interaction, 6);
+        Assert.True(b.Delta - view.ReplaceDelta < 0);
+        Assert.Equal(MulliganCall.Keep, b.Call);
+        Assert.Equal(b.Delta!.Value - view.ReplaceDelta + 0.03, b.Edge!.Value, 6);
+        AssertCallsFollowTheEdge(view);
+    }
+
+    [Fact]
+    public void The_old_mulligan_strip_placement_is_dropped()
+    {
+        var settings = new Hearthpulse.Core.AppSettings();
+        settings.Panels["mulligan-strip"] = new Hearthpulse.Core.PanelPlacement { X = 0.3, Y = 0.65, Scale = 1.3 };
+        settings.Panels["deck"] = new Hearthpulse.Core.PanelPlacement { X = 0.8, Y = 0.1 };
+
+        var loaded = Hearthpulse.Core.AppSettings.FromJson(settings.ToJson());
+
+        Assert.False(loaded.Panels.ContainsKey("mulligan-strip"));
+        Assert.Equal(0.8, loaded.Panels["deck"].X, 6);
+    }
+
+    private static void AssertCallsFollowTheEdge(MulliganView view)
+    {
+        foreach (var card in view.Cards.Where(c => c.Edge is not null))
+        {
+            Assert.Equal(card.Edge >= 0 ? MulliganCall.Keep : MulliganCall.Mulligan, card.Call);
+        }
+    }
+
+    [Fact]
+    public void Hsguru_mulligan_slices_parse_with_impacts_as_fractions()
+    {
+        var slice = HearthpulseData.ParseHsguruMulligan(Fixture("hsguru-mulligan-zoolock-legend-on_coin-any.json").GetProperty("data"))!;
+
+        Assert.Equal(("legend", "on_coin", "any", 25195), (slice.Rank, slice.Coin, slice.OpponentClass, slice.Games));
+        var ritual = slice.Card("BE_085")!;
+        Assert.Equal((10821, 7092, 25379), (ritual.Offered, ritual.Kept, ritual.Drawn));
+        Assert.Equal(0.077, ritual.OfferedImpact!.Value, 6);
+        Assert.Equal(0.079, ritual.KeptImpact!.Value, 6);
+        Assert.Equal(-0.013, ritual.DrawnImpact!.Value, 6);
+        Assert.Equal(7092.0 / 10821, ritual.KeepRate!.Value, 6);
+        Assert.Equal((0.077 * 10821 - 0.079 * 7092) / (10821 - 7092), ritual.ReplacedImpact!.Value, 6);
+        Assert.Equal("WARLOCK", HearthpulseData.ParseHsguruMulligan(Fixture("hsguru-mulligan-zoolock-legend-any_player-warlock.json").GetProperty("data"))!.OpponentClass);
+    }
+
+    private static GuideArchetype SliceGuide(params MulliganSlice[] slices) =>
+        new(1, "Test", "MAGE", [new GuideCard("A", 1, 1, 1000, 0.5, 1000, 0.50, 2), new GuideCard("B", 2, 2, 1000, 0.5, 1000, 0.51, 2)], [], "test")
+        {
+            BaselineWinRate = 0.5,
+            Slices = slices,
+        };
+
+    private static MulliganSlice Slice(string rank, string coin, string opponent, int games, SliceCard card) => new(rank, coin, opponent, games, [card]);
+
+    /// <summary>Card B offered 1000 times and kept 400 times in a slice.</summary>
+    private static SliceCard B(double offered, double kept, double drawn) => new("B", 2, 1000, offered, 400, kept, 3000, drawn);
 
     private static MulliganView DemonHunterHand(IReadOnlyList<string> hand, string? opponentClass)
     {

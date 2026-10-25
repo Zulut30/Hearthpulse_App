@@ -10,6 +10,31 @@ public sealed record BgBoardMinion(string CardId, int Attack, int Health, bool G
 /// <summary>One saved combat, from the player's side.</summary>
 public sealed record BgCombatResult(int Turn, string Result, string OpponentHeroCardId, int DamageTaken, int DamageDealt);
 
+/// <summary>Saved hero damage prediction for the fights one side won: mean, 80 % interval, worst case.</summary>
+public sealed record BgDamageRange(double Mean, int Low, int High, int Max)
+{
+    public bool Covers(int damage) => damage >= Low && damage <= High;
+}
+
+/// <summary>The simulator's saved prediction for one combat (<see cref="GameRecord.CombatOdds"/>).</summary>
+public sealed record BgCombatPrediction(int Turn, double Win, double Tie, double Loss, BgDamageRange? Taken, BgDamageRange? Dealt, double? Lethal, double? Kill)
+{
+    /// <summary>The most likely result: Win, Loss or Tie.</summary>
+    public string Likely => Win >= Loss && Win >= Tie ? "Win" : Loss >= Tie ? "Loss" : "Tie";
+}
+
+/// <summary>
+/// How the simulator's predictions held up against what happened. <see cref="ResultHits"/>: the most likely result was the
+/// real one. <see cref="DamageHits"/>: of the fights won or lost with seen damage, the damage fell inside the predicted
+/// 80 % interval for that result.
+/// </summary>
+public sealed record BgSimAccuracy(int Fights, int ResultHits, int DamageFights, int DamageHits)
+{
+    public double? ResultRate => Fights > 0 ? ResultHits / (double)Fights : null;
+
+    public double? DamageRate => DamageFights > 0 ? DamageHits / (double)DamageFights : null;
+}
+
 /// <summary>Header numbers of the Battlegrounds page.</summary>
 /// <param name="PlacementCounts">Games per final place, index 0 = 1st (8 places solo, 4 teams in Duos).</param>
 public sealed record BgSummary(int Games, int? HighestRating, double? AveragePlacement, TimeSpan TimePlayed, IReadOnlyList<int> PlacementCounts, int? NetRating);
@@ -142,6 +167,82 @@ public static class BattlegroundsStats
             return [];
         }
     }
+
+    /// <summary>The saved prediction of each combat of <see cref="Combats"/> (same order, null where none was saved).</summary>
+    public static IReadOnlyList<BgCombatPrediction?> Predictions(GameRecord game)
+    {
+        if (string.IsNullOrEmpty(game.CombatOdds))
+        {
+            return [];
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(game.CombatOdds);
+            return doc.RootElement.ValueKind != JsonValueKind.Array
+                ? []
+                : doc.RootElement.EnumerateArray()
+                    .Select(c => c.ValueKind != JsonValueKind.Object
+                        ? null
+                        : new BgCombatPrediction(Int(c, "turn"), Dbl(c, "win") ?? 0, Dbl(c, "tie") ?? 0, Dbl(c, "loss") ?? 0,
+                            Range(c, "taken"), Range(c, "dealt"), Dbl(c, "lethal"), Dbl(c, "kill")))
+                    .ToList();
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>Simulator accuracy over the saved combats that have a prediction (<see cref="BgSimAccuracy"/>).</summary>
+    public static BgSimAccuracy SimAccuracy(IEnumerable<GameRecord> games)
+    {
+        int fights = 0, resultHits = 0, damageFights = 0, damageHits = 0;
+        foreach (var game in games)
+        {
+            var predictions = Predictions(game);
+            if (predictions.Count == 0)
+            {
+                continue;
+            }
+
+            var combats = Combats(game);
+            for (var i = 0; i < Math.Min(combats.Count, predictions.Count); i++)
+            {
+                if (predictions[i] is not { } predicted || predicted.Turn != combats[i].Turn || combats[i].Result is not ("Win" or "Loss" or "Tie"))
+                {
+                    continue;
+                }
+
+                var actual = combats[i];
+                fights++;
+                resultHits += predicted.Likely == actual.Result ? 1 : 0;
+                var (range, damage) = actual.Result switch
+                {
+                    "Win" => (predicted.Dealt, actual.DamageDealt),
+                    "Loss" => (predicted.Taken, actual.DamageTaken),
+                    _ => (null, 0),
+                };
+
+                // Damage nobody saw (a tie, or a result read from the boards with no health change) says nothing.
+                if (damage > 0)
+                {
+                    damageFights++;
+                    damageHits += range?.Covers(damage) == true ? 1 : 0;
+                }
+            }
+        }
+
+        return new BgSimAccuracy(fights, resultHits, damageFights, damageHits);
+    }
+
+    private static BgDamageRange? Range(JsonElement e, string name) =>
+        e.TryGetProperty(name, out var r) && r.ValueKind == JsonValueKind.Object
+            ? new BgDamageRange(Dbl(r, "mean") ?? 0, Int(r, "low"), Int(r, "high"), Int(r, "max"))
+            : null;
+
+    private static double? Dbl(JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d) ? d : null;
 
     /// <summary>Community numbers for a hero from the API (or stats pool) meta; solo only (no source publishes Duos heroes).</summary>
     public static BgHeroGlobal? GlobalOf(MetaHero? hero) =>

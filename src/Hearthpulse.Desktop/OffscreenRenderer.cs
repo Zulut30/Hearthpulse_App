@@ -64,7 +64,7 @@ internal static partial class OffscreenRenderer
         var view = new MainView { DataContext = host.Main };
         var main = new Window { Width = 1260, Height = 840, Content = view, Background = ThemeBrushes.Get("Bg") };
         main.Show();
-        foreach (var page in new[] { "Overview", "Battlegrounds", "Constructed", "History", "Settings" })
+        foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" })
         {
             view.ShowPage(page);
             await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
@@ -145,26 +145,28 @@ internal static partial class OffscreenRenderer
         }
 
         await RenderCountersAsync(folder, host, settings, overlay, overlayView);
+        await RenderCombatOddsAsync(folder, host, settings, overlay, overlayView);
         // The mulligan guide over the newest kept Standard game's opening hand (the meta's archetypes as the app's fallback).
         var constructedMeta = await Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(host.Api), host.Cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, host.Cards.Locale);
-        // 3 cards going first, 4 on the coin.
-        foreach (var (offered, name) in new[] { (3, "overlay-mulligan.png"), (4, "overlay-mulligan-4.png") })
+        // 3 cards going first, 4 on the coin, and the first one again without numbers (no API, no meta).
+        foreach (var (offered, name, withData) in new[] { (3, "overlay-mulligan", true), (4, "overlay-mulligan-4", true), (3, "overlay-mulligan-nodata", false) })
         {
-            if (host.InstallDirectory is { } install && await MulliganReplay.LatestAsync(install, host.Cards, new HearthpulseData(host.Api), constructedMeta, offered) is { } mulligan)
+            if (host.InstallDirectory is { } install
+                && await MulliganReplay.LatestAsync(install, host.Cards, withData ? new HearthpulseData(host.Api) : null, withData ? constructedMeta : null, offered) is { } mulligan)
             {
                 host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null, null);
                 overlayView.Fit(1920, 1080);
-                await Save(overlay, Path.Combine(folder, name));
-                if (offered == 4)
+                await Save(overlay, Path.Combine(folder, name + ".png"));
+                if (withData)
                 {
-                    // The strip stays under the cards at any overlay scale; only its badges grow or shrink.
+                    // The bars stay over the cards at any overlay scale; only the bars themselves grow or shrink.
                     var scale = settings.OverlayScale;
                     foreach (var (s, suffix) in new[] { (0.6, "60"), (1.6, "160") })
                     {
                         settings.OverlayScale = s;
                         host.Overlay.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan }, host.Cards, settings, null, null);
                         overlayView.Fit(1920, 1080);
-                        await Save(overlay, Path.Combine(folder, $"overlay-mulligan-4-scale{suffix}.png"));
+                        await Save(overlay, Path.Combine(folder, $"{name}-scale{suffix}.png"));
                     }
 
                     settings.OverlayScale = scale;

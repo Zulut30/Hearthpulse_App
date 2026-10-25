@@ -95,9 +95,15 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
   and its printed Attack); **Windfury** (attacks twice), **Mega-Windfury** (four times); **Stealth**.
 - Mechanics (`Traits.CardMechanic`): **Deathrattle** (on death), **Avenge (X)** (after X friendly deaths),
   **Rally** ("whenever this attacks", hooked in `OnAttack`), Battlecry, Start of Combat, Magnetic.
-- The loser's hero takes damage after combat (armor first; tracked in `CombatRecord.DamageTaken/DamageDealt`). The
-  exact damage formula and caps are season rules not encoded in the simulator.
-- Odds: `CombatOdds(Win, Tie, Loss, Unsimulated)`; minions with combat-relevant text but no registered effect make
+- The loser's hero takes damage after combat (armor first; tracked in `CombatRecord.DamageTaken/DamageDealt`): the
+  winner's tavern tier + the tier of each surviving minion (tokens without a tier count 1), capped while the lobby's
+  combat damage cap is on (`DamageRules`, `CombatDamage.cs`). The cap changes by season (15 until the first death in
+  2022; a 5/10/15 ramp until Top 4 in patch 31.2; 2 then 5 on the first turns in build 254477), so it is read from the
+  game entity: `BACON_COMBAT_DAMAGE_CAP` (value), `BACON_COMBAT_DAMAGE_CAP_ENABLED` (newer builds; 0 = lifted; older
+  builds set the cap itself to 0). Duos damage is not modelled (the loser of one board is not the one who takes it).
+- Odds: `CombatOdds(Win, Tie, Loss, Unsimulated)` plus `DamageTaken`/`DamageDealt` (`DamageSpread`: mean, 10th-90th
+  percentile, max, histogram over the fights lost/won) and `LethalTaken`/`LethalDealt` (share of fights whose damage
+  reaches the hero's health + armor, `SimSide.Health`); minions with combat-relevant text but no registered effect make
   the result `Approximate`. Adding effects: see `hearthpulse-dev` skill and `Battlegrounds/Effects/README.md`.
 
 ## Card identity

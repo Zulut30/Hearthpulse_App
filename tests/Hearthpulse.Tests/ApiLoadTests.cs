@@ -131,6 +131,56 @@ public sealed class ApiLoadTests : IDisposable
     }
 
     [Fact]
+    public async Task Coin_and_class_slices_load_once_the_mulligan_knows_them()
+    {
+        var server = FixtureServer.Standard();
+        foreach (var (query, file) in new[]
+                 {
+                     ("rank=legend&coin=any_player&opponent_class=any", "legend-any_player-any"),
+                     ("rank=legend&coin=on_coin&opponent_class=any", "legend-on_coin-any"),
+                     ("rank=legend&coin=any_player&opponent_class=WARLOCK", "legend-any_player-warlock"),
+                 })
+        {
+            server.Route($"v1/hsguru/mulligan?archetype=Zoolock&format=standard&{query}", FixtureServer.Text($"hsguru-mulligan-zoolock-{file}.json"));
+        }
+
+        var list = Assert.Single(HearthpulseData.ParseHsguruArchetypes(FixtureServer.Json("hsguru-archetypes-standard.json")), a => a.Name == "Zoolock").Decks[0];
+        var deck = DeckString.TryDecode(list.Code)!;
+        var source = new MulliganGuideSource(Data(server));
+        var changed = new SemaphoreSlim(0);
+        source.Changed += () => changed.Release();
+
+        // Before the mulligan: the guide with the all-games slice.
+        Assert.Null(source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        var guide = source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty)!;
+        Assert.Equal("Zoolock", guide.HsguruArchetype);
+        var all = Assert.Single(guide.Slices);
+        Assert.Equal(("legend", "any_player", "any", 51613), (all.Rank, all.Coin, all.OpponentClass, all.Games));
+
+        // The mulligan on the coin against a Warlock: those slices follow, once.
+        Assert.Same(guide, source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty, "WARLOCK", false));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        guide = source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty, "WARLOCK", false)!;
+        Assert.Equal(3, guide.Slices.Count);
+        Assert.Contains(guide.Slices, s => s is { Coin: "on_coin", Games: 25195 });
+        Assert.Contains(guide.Slices, s => s.OpponentClass == "WARLOCK");
+        var asked = server.Requests.Count(r => r.StartsWith("v1/hsguru/mulligan", StringComparison.Ordinal));
+        Assert.Equal(6, asked); // Legend and all ranks for each of the three; all ranks are 404s here.
+
+        // Cached on disk: a second lookup asks nothing.
+        var again = await MulliganGuideSource.LoadGuideAsync(Data(server), "standard", "WARLOCK", deck.Cards, CardDb.Empty, "WARLOCK", false);
+        Assert.Equal(3, again!.Slices.Count);
+        Assert.Equal(asked, server.Requests.Count(r => r.StartsWith("v1/hsguru/mulligan", StringComparison.Ordinal)));
+
+        var hand = new[] { new OfferedCard(1, "BE_085", "Ritual of Summoning", 1), new OfferedCard(2, "BE_151", "Vaultkeeper", 5) };
+        var view = MulliganGuide.Compute(again, hand, null, "WARLOCK", false, again.Name)!;
+        Assert.False(view.GoingFirst);
+        Assert.Equal("WARLOCK", view.OpponentClass);
+        Assert.Equal("legend", view.SliceRank);
+    }
+
+    [Fact]
     public async Task The_guide_source_starts_over_for_another_deck_and_ignores_a_late_answer()
     {
         var server = FixtureServer.Standard();
@@ -191,6 +241,31 @@ public sealed class ApiLoadTests : IDisposable
         Assert.Equal(0.575, smite.OpeningHandWinRate!.Value, 6);
         Assert.Equal(1, smite.Cost);
         Assert.Null(rows.Single(r => r.CardId == "EX1_197").OpeningHandWinRate);
+    }
+
+    [Fact]
+    public async Task A_slice_listing_original_and_reprint_keeps_the_row_with_more_games()
+    {
+        var cards = CardDb.Parse("enUS", new MemoryStream(Encoding.UTF8.GetBytes("""
+            [
+              {"id": "CS1_130", "dbfId": 279, "name": "Holy Smite", "cost": 1},
+              {"id": "CORE_CS1_130", "dbfId": 69636, "name": "Holy Smite", "cost": 1}
+            ]
+            """)));
+        var server = new FixtureServer();
+        server.Route("v1/hsguru/mulligan?archetype=Smite%20Priest&format=standard&rank=legend&coin=any_player&opponent_class=any", """
+            {"data": {"rank": "legend", "coin": "any_player", "opponent_class": "any", "games": 9000, "rows": [
+              {"card_id": "CS1_130", "dbf_id": 279, "mulligan_count": 300, "mulligan_impact": 1.0, "kept_count": 100, "kept_impact": 2.0, "drawn_count": 900, "drawn_impact": 0.5},
+              {"card_id": "CORE_CS1_130", "dbf_id": 69636, "mulligan_count": 2000, "mulligan_impact": -1.0, "kept_count": 900, "kept_impact": -2.0, "drawn_count": 5000, "drawn_impact": -0.5}
+            ]}}
+            """);
+        var guide = new GuideArchetype(1, "Smite Priest", "PRIEST", [], [], "test") { HsguruArchetype = "Smite Priest" };
+
+        var loaded = await MulliganGuideSource.WithSlicesAsync(Data(server), guide, "standard", new Dictionary<int, int> { [69636] = 2 }, cards, null, null);
+
+        var slice = Assert.Single(loaded.Slices);
+        var smite = Assert.Single(slice.Cards);
+        Assert.Equal(("CORE_CS1_130", 2000), (smite.CardId, smite.Offered));
     }
 
     [Fact]
@@ -297,6 +372,8 @@ public sealed class ApiLoadTests : IDisposable
                 ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{\"detail\": \"Not Found\"}", Encoding.UTF8, "application/json") }
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(route.Body, Encoding.UTF8, "application/json") });
         }
+
+        public static string Text(string name) => Fixture(name);
 
         private static string Fixture(string name) => System.IO.File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Mulligan", name));
     }

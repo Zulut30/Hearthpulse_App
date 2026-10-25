@@ -29,7 +29,8 @@ public sealed record MulliganRow(string CardId, string Name, string WinRate, dou
 
 public sealed partial class MainViewModel
 {
-    private ConstructedMeta? _constructedMeta;
+    /// <summary>Community stats by format key ("standard", "wild"), as the host loaded them.</summary>
+    private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
     private IReadOnlyList<MetaArchetypeRow> _metaArchetypes = [];
     private IReadOnlyList<MetaDeckRow> _metaDecks = [];
     private IReadOnlyList<MetaDeckRow> _archetypeDecks = [];
@@ -42,16 +43,16 @@ public sealed partial class MainViewModel
     private Func<string> _constructedMetaStatus = () => Loc.T("Main.Meta.Loading");
     private string _archetypeSummary = string.Empty;
     private Func<string> _copyNote = () => string.Empty;
-    private RelayCommand? _setMetaFormat;
     private RelayCommand? _setMetaRank;
     private RelayCommand? _setMetaPeriod;
     private RelayCommand? _setMetaClass;
     private RelayCommand? _copyDeck;
 
-    /// <summary>Raised when the player changes a meta filter; the host downloads that slice and calls <see cref="SetConstructedMeta"/>.</summary>
-    public event Action? ConstructedMetaRequested;
-
-    public IReadOnlyList<MetaChoice> MetaFormats => Choices(ConstructedMeta.Formats, Settings.MetaFormat);
+    /// <summary>
+    /// Raised when the page needs stats: a format key ("standard", "wild") the page shows and has none for, or null when
+    /// the player changed a meta filter (every format in use loads again). The host calls <see cref="SetConstructedMeta"/>.
+    /// </summary>
+    public event Action<string?>? ConstructedMetaRequested;
 
     public IReadOnlyList<MetaChoice> MetaRanks => Choices(ConstructedMeta.Ranks, Settings.MetaRank);
 
@@ -92,8 +93,6 @@ public sealed partial class MainViewModel
         }
     }
 
-    public RelayCommand SetMetaFormat => _setMetaFormat ??= new RelayCommand(p => ChangeMetaFilter(() => Settings.MetaFormat = ConstructedMeta.Key(ConstructedMeta.Formats, p as string)));
-
     public RelayCommand SetMetaRank => _setMetaRank ??= new RelayCommand(p => ChangeMetaFilter(() => Settings.MetaRank = ConstructedMeta.Key(ConstructedMeta.Ranks, p as string)));
 
     public RelayCommand SetMetaPeriod => _setMetaPeriod ??= new RelayCommand(p => ChangeMetaFilter(() => Settings.MetaPeriod = ConstructedMeta.Key(ConstructedMeta.Periods, p as string)));
@@ -129,6 +128,7 @@ public sealed partial class MainViewModel
         }
     });
 
+    /// <summary>Stats of one format from the host; null when the page's format could not be loaded.</summary>
     public void SetConstructedMeta(ConstructedMeta? meta)
     {
         if (meta is null)
@@ -137,7 +137,7 @@ public sealed partial class MainViewModel
             return;
         }
 
-        _constructedMeta = meta;
+        _constructedMetas[meta.Format] = meta;
         RebuildConstructedMeta();
         RebuildConstructedStats();
 
@@ -160,12 +160,24 @@ public sealed partial class MainViewModel
     private void ChangeMetaFilter(Action apply)
     {
         apply();
-        Raise(nameof(MetaFormats));
         Raise(nameof(MetaRanks));
         Raise(nameof(MetaPeriods));
         ShowMetaStatus(() => Loc.T("Main.Meta.LoadingShort"));
-        ConstructedMetaRequested?.Invoke();
+        ConstructedMetaRequested?.Invoke(null);
     }
+
+    /// <summary>Asks the host for the page's format stats while it has none (the tier list waits with "Loading").</summary>
+    private void RequestPageMeta()
+    {
+        if (PageMeta is null && ConstructedMeta.FormatKeyOf(_ctFormat) is { } key)
+        {
+            ShowMetaStatus(() => Loc.T("Main.Meta.LoadingShort"));
+            ConstructedMetaRequested?.Invoke(key);
+        }
+    }
+
+    /// <summary>The stats of the format the page shows.</summary>
+    private ConstructedMeta? PageMeta => ConstructedMetaFor(_ctFormat);
 
     private static IReadOnlyList<MetaChoice> Choices(IReadOnlyList<MetaOption> options, string? selected)
     {
@@ -173,10 +185,10 @@ public sealed partial class MainViewModel
         return options.Select(o => new MetaChoice(o.Key, o.Label, o.Key == key)).ToList();
     }
 
-    /// <summary>"Quest Priest · 58% in the meta" for one of your decks, or empty when it matches no archetype.</summary>
-    private string DeckMeta(string? deckCode, string? heroClass)
+    /// <summary>"Quest Priest · 58% in the meta" for one of your decks (its format's stats), or empty when it matches no archetype.</summary>
+    private string DeckMeta(string? deckCode, string? heroClass, string format)
     {
-        if (_constructedMeta is not { } meta || deckCode is null || DeckString.TryDecode(deckCode) is not { } deck)
+        if (ConstructedMetaFor(format) is not { } meta || deckCode is null || DeckString.TryDecode(deckCode) is not { } deck)
         {
             return string.Empty;
         }
@@ -198,8 +210,14 @@ public sealed partial class MainViewModel
 
     private void RebuildConstructedMeta()
     {
-        if (_constructedMeta is not { } meta)
+        // Another format's stats never stand in: the tier list stays empty until the page's own are in.
+        if (PageMeta is not { } meta)
         {
+            MetaClasses = [];
+            MetaArchetypes = [];
+            MetaDecks = [];
+            SelectedArchetype = null;
+            RebuildArchetypeDetail();
             return;
         }
 
@@ -249,7 +267,7 @@ public sealed partial class MainViewModel
 
     private void RebuildArchetypeDetail()
     {
-        var archetype = _constructedMeta?.Archetypes.FirstOrDefault(a => a.Id == _selectedArchetype?.Id);
+        var archetype = PageMeta?.Archetypes.FirstOrDefault(a => a.Id == _selectedArchetype?.Id);
         if (archetype is null)
         {
             ArchetypeSummary = string.Empty;
@@ -261,7 +279,7 @@ public sealed partial class MainViewModel
         ArchetypeSummary = Loc.P("Main.Meta.Summary", archetype.Games, ConstructedMeta.ClassName(archetype.Class),
             archetype.WinRate.ToString("P1", CultureInfo.CurrentCulture), archetype.Share.ToString("P1", CultureInfo.CurrentCulture));
 
-        ArchetypeDecks = _constructedMeta!.Decks
+        ArchetypeDecks = PageMeta!.Decks
             .Where(d => d.ArchetypeId == archetype.Id)
             .OrderByDescending(d => d.Games >= 200 ? 1 : 0)
             .ThenByDescending(d => d.WinRate)
