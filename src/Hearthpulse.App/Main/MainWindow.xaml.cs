@@ -7,6 +7,7 @@ using System.Windows.Media;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Stats;
 
 namespace Hearthpulse.App.Main;
 
@@ -46,12 +47,14 @@ public partial class MainWindow : Window
         Close();
     }
 
+    /// <summary>Opens a page by name (see <see cref="CurrentPage"/>); the old "Constructed" opens Standard.</summary>
     public void ShowPage(string page)
     {
-        var nav = page switch
+        var nav = ConstructedPage.Migrate(page) switch
         {
             "Battlegrounds" => NavBattlegrounds,
-            "Constructed" => NavConstructed,
+            ConstructedPage.Standard => NavStandard,
+            ConstructedPage.Wild => NavWild,
             "Arena" => NavArena,
             "History" => NavHistory,
             "Settings" => NavSettings,
@@ -74,7 +77,8 @@ public partial class MainWindow : Window
     /// <summary>The open page, as <see cref="ShowPage"/> takes it.</summary>
     public string CurrentPage =>
         NavBattlegrounds.IsChecked == true ? "Battlegrounds"
-        : NavConstructed.IsChecked == true ? "Constructed"
+        : NavStandard.IsChecked == true ? ConstructedPage.Standard
+        : NavWild.IsChecked == true ? ConstructedPage.Wild
         : NavArena.IsChecked == true ? "Arena"
         : NavHistory.IsChecked == true ? "History"
         : NavSettings.IsChecked == true ? "Settings"
@@ -115,9 +119,17 @@ public partial class MainWindow : Window
                 SyncStatus();
                 break;
             case nameof(MainViewModel.DeckOpen):
-                if (NavConstructed.IsChecked == true)
+                if (ConstructedShown)
                 {
                     OnNavigate(this, new RoutedEventArgs());
+                }
+
+                break;
+            case nameof(MainViewModel.ConstructedFormat):
+                // A deck opened on the other format's page moves the nav to its own (a Wild deck to Wild).
+                if (ConstructedShown)
+                {
+                    ShowPage(ConstructedPage.PageOf(_viewModel.ConstructedFormat));
                 }
 
                 break;
@@ -142,6 +154,9 @@ public partial class MainWindow : Window
         LivePulse.Fill = (Brush)FindResource(_viewModel.InGame ? "AccentContainer" : "Surface4");
     }
 
+    /// <summary>True while the Standard or Wild page (or a deck page standing in for it) is open.</summary>
+    private bool ConstructedShown => NavStandard.IsChecked == true || NavWild.IsChecked == true;
+
     private void OnNavigate(object sender, RoutedEventArgs e)
     {
         if (PageOverview is null)
@@ -151,16 +166,22 @@ public partial class MainWindow : Window
 
         // Leaving History lets go of the open match: only the match on screen is kept in memory.
         if (_viewModel.MatchOpen && NavHistory.IsChecked != true
-            && new[] { NavOverview, NavBattlegrounds, NavConstructed, NavArena, NavSettings }.Any(n => n.IsChecked == true))
+            && new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavSettings }.Any(n => n.IsChecked == true))
         {
             _viewModel.CloseMatch();
         }
 
+        // Standard and Wild are one page shown for a format.
+        if (ConstructedShown)
+        {
+            _viewModel.ShowConstructedFormat(ConstructedPage.FormatOf(NavWild.IsChecked == true ? ConstructedPage.Wild : ConstructedPage.Standard));
+        }
+
         PageOverview.Visibility = NavOverview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageBattlegrounds.Visibility = NavBattlegrounds.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        // The deck page stands in for the Constructed page while a deck is open (the nav stays on Constructed).
-        PageConstructed.Visibility = NavConstructed.IsChecked == true && !_viewModel.DeckOpen ? Visibility.Visible : Visibility.Collapsed;
-        PageDeck.Visibility = NavConstructed.IsChecked == true && _viewModel.DeckOpen ? Visibility.Visible : Visibility.Collapsed;
+        // The deck page stands in for the Standard or Wild page while a deck is open (the nav stays on its format).
+        PageConstructed.Visibility = ConstructedShown && !_viewModel.DeckOpen ? Visibility.Visible : Visibility.Collapsed;
+        PageDeck.Visibility = ConstructedShown && _viewModel.DeckOpen ? Visibility.Visible : Visibility.Collapsed;
         if (PageDeck.Visibility == Visibility.Visible)
         {
             PageDeck.ScrollToTop();
@@ -186,7 +207,7 @@ public partial class MainWindow : Window
     /// <summary>Moves the selection pill behind the checked sidebar item, with a light spring when animated.</summary>
     private void PlacePill(bool animate)
     {
-        var nav = new[] { NavOverview, NavBattlegrounds, NavConstructed, NavArena, NavHistory, NavSettings }.FirstOrDefault(n => n.IsChecked == true);
+        var nav = new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavHistory, NavSettings }.FirstOrDefault(n => n.IsChecked == true);
         if (nav is null || Sidebar is null || nav.ActualHeight <= 0)
         {
             return;
@@ -258,7 +279,6 @@ public partial class MainWindow : Window
         MetaTiersPanel.Visibility = TabMetaTiers.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         MetaDecksPanel.Visibility = TabMetaDecks.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         MetaFilters.Visibility = meta ? Visibility.Visible : Visibility.Collapsed;
-        MetaFormatPicker.Visibility = meta ? Visibility.Visible : Visibility.Collapsed;
         if (sender is RadioButton { IsChecked: true })
         {
             Reveal(new FrameworkElement[] { CtStats, MetaTiersPanel, MetaDecksPanel }.First(c => c.Visibility == Visibility.Visible), 8);

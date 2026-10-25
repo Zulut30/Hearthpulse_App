@@ -4,41 +4,43 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              x:Class="Hearthpulse.UI.Overlay.MulliganPanel"
              x:DataType="o:OverlayViewModel">
-    <!-- Mulligan strip: a slim badge under each offered card (Keep / Replace, one number, small flags; click = keep or
-         replace), lined up with the cards of the mulligan screen, and one summary line. Details are in the tooltips.
+    <!-- Mulligan bars: a bar over each offered card in the HSReplay style (Keep / Replace, a
+         gauge from replace to keep with the edge in points, keep rate and drawn win rate; click = keep or replace),
+         lined up with the cards of the mulligan screen. Details are in the tooltips.
          DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <Style Selector="Border.badge">
+        <Style Selector="Border.bar">
             <Setter Property="Background" Value="{StaticResource OverlayPanelSolid}" />
             <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
             <Setter Property="BorderThickness" Value="1.5" />
-            <Setter Property="CornerRadius" Value="15" />
-            <Setter Property="Padding" Value="9,4,11,4" />
-            <Setter Property="MinWidth" Value="124" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="10,6,10,7" />
+            <Setter Property="Width" Value="148" />
         </Style>
-        <Style Selector="Border.badge.keep">
+        <Style Selector="Border.bar.keep">
             <Setter Property="BorderBrush" Value="{StaticResource Positive}" />
         </Style>
-        <Style Selector="Border.badge.toss">
+        <Style Selector="Border.bar.toss">
             <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
         </Style>
-        <!-- The player replaces it (a click on the badge): dimmed until they keep it again -->
-        <Style Selector="Border.badge.replaced">
+        <!-- The player replaces it (a click on the bar): dimmed until they keep it again -->
+        <Style Selector="Border.bar.replaced">
             <Setter Property="Opacity" Value="0.55" />
         </Style>
-        <Style Selector="Button.badgeButton:pointerover Border.badge">
+        <Style Selector="Button.barButton:pointerover Border.bar">
             <Setter Property="Background" Value="{StaticResource Hover}" />
             <Setter Property="Opacity" Value="1" />
         </Style>
         <Style Selector="TextBlock.call">
-            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
         <Style Selector="TextBlock.call.keep">
             <Setter Property="Foreground" Value="{StaticResource Positive}" />
@@ -46,21 +48,42 @@
         <Style Selector="TextBlock.call.toss">
             <Setter Property="Foreground" Value="{StaticResource Negative}" />
         </Style>
+        <!-- Bad to good: Negative, Accent for a close call, Positive -->
+        <Style Selector="TextBlock.edge">
+            <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource Text}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.edge.good">
+            <Setter Property="Foreground" Value="{StaticResource Positive}" />
+        </Style>
+        <Style Selector="TextBlock.edge.bad">
+            <Setter Property="Foreground" Value="{StaticResource Negative}" />
+        </Style>
+        <Style Selector="TextBlock.edge.close">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="Border.fill">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="Border.fill.good">
+            <Setter Property="Background" Value="{StaticResource Positive}" />
+        </Style>
+        <Style Selector="Border.fill.bad">
+            <Setter Property="Background" Value="{StaticResource Negative}" />
+        </Style>
         <Style Selector="TextBlock.flag">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Foreground" Value="{StaticResource Info}" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="5,0,0,0" />
-        </Style>
-        <Style Selector="TextBlock.summary.good">
-            <Setter Property="Foreground" Value="{StaticResource Positive}" />
-        </Style>
-        <Style Selector="TextBlock.summary.bad">
-            <Setter Property="Foreground" Value="{StaticResource Negative}" />
+            <Setter Property="Margin" Value="4,0,0,0" />
         </Style>
     </UserControl.Styles>
 
-    <!-- One slot per offered card across the width of the mulligan card row, so each badge sits under its card -->
+    <!-- One slot per offered card across the width of the mulligan card row, so each bar sits over its card (the summary
+         line is MulliganSummary, under the cards). The panel hangs from the top edge of the cards (OverlayView), so it grows upwards. -->
     <StackPanel Width="{Binding MulliganRowWidth}">
         <ItemsControl ItemsSource="{Binding MulliganCards}">
             <ItemsControl.ItemsPanel>
@@ -70,37 +93,45 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="o:MulliganPlate">
-                    <Button Classes="bare badgeButton" HorizontalAlignment="Center" Focusable="False" Cursor="Hand" ToolTip.Tip="{Binding Tooltip}" o:OverlayHit.Interactive="True"
+                    <Button Classes="bare barButton" HorizontalAlignment="Center" VerticalAlignment="Bottom" Focusable="False" Cursor="Hand" ToolTip.Tip="{Binding Tooltip}" o:OverlayHit.Interactive="True"
                             Command="{Binding $parent[o:MulliganPanel].((o:OverlayViewModel)DataContext).ToggleMulliganCard}" CommandParameter="{Binding EntityId}">
-                        <Border Classes="badge" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Classes.replaced="{Binding !Kept}">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Panel VerticalAlignment="Center">
-                                    <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="15" Foreground="{StaticResource Positive}" IsVisible="{Binding KeepCall}" />
-                                    <TextBlock Text="&#xF006A;" Classes="icon" FontSize="15" Foreground="{StaticResource Negative}" IsVisible="{Binding MulliganCall}" />
-                                    <TextBlock Text="&#xF0625;" Classes="icon" FontSize="15" Foreground="{StaticResource Muted}" IsVisible="{Binding NoCall}" />
-                                </Panel>
-                                <TextBlock Text="{Binding Call}" Classes="call" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Margin="5,0,0,0" />
-                                <TextBlock Text="{Binding Number}" Classes="number" FontSize="14" VerticalAlignment="Center" Margin="9,0,0,0"
-                                           Classes.good="{Binding Good}" Classes.bad="{Binding Bad}" IsVisible="{Binding Number, Converter={StaticResource Truthy}}" />
-                                <TextBlock Text="&#xF0339;" Classes="icon flag" IsVisible="{Binding Synergy}" />
-                                <TextBlock Text="×2" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="5,0,0,0"
-                                           IsVisible="{Binding Duplicate}" />
-                                <TextBlock Text="&#xF0150;" Classes="icon flag" IsVisible="{Binding Late}" />
+                        <Border Classes="bar" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Classes.replaced="{Binding !Kept}">
+                            <StackPanel>
+                                <!-- Call and flags -->
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Panel VerticalAlignment="Center">
+                                        <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="15" Foreground="{StaticResource Positive}" IsVisible="{Binding KeepCall}" />
+                                        <TextBlock Text="&#xF006A;" Classes="icon" FontSize="15" Foreground="{StaticResource Negative}" IsVisible="{Binding MulliganCall}" />
+                                        <TextBlock Text="&#xF0625;" Classes="icon" FontSize="15" Foreground="{StaticResource Muted}" IsVisible="{Binding NoCall}" />
+                                    </Panel>
+                                    <TextBlock Grid.Column="1" Text="{Binding Call}" Classes="call" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Margin="5,0,0,0" />
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xF0339;" Classes="icon flag" IsVisible="{Binding Synergy}" />
+                                        <TextBlock Text="×2" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
+                                                   IsVisible="{Binding Duplicate}" />
+                                        <TextBlock Text="&#xF0150;" Classes="icon flag" IsVisible="{Binding Late}" />
+                                    </StackPanel>
+                                </Grid>
+                                <!-- Gauge (replace on the left, keep on the right, the fill grows from the middle) and the edge -->
+                                <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0" Height="20">
+                                    <Panel Width="78" Height="8" VerticalAlignment="Center">
+                                        <Border Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
+                                        <Grid ColumnDefinitions="*,*" Margin="1">
+                                            <Border Classes="fill" Classes.bad="{Binding Bad}" HorizontalAlignment="Right" Width="{Binding FillLeft}" CornerRadius="3,0,0,3" />
+                                            <Border Grid.Column="1" Classes="fill" Classes.good="{Binding Good}" HorizontalAlignment="Left" Width="{Binding FillRight}" CornerRadius="0,3,3,0" />
+                                        </Grid>
+                                        <Rectangle Width="2" Height="12" Margin="0,-2" HorizontalAlignment="Center" Fill="{StaticResource Muted}" />
+                                    </Panel>
+                                    <TextBlock Grid.Column="1" Text="{Binding Number}" Classes="edge" Classes.good="{Binding Good}" Classes.bad="{Binding Bad}" Classes.close="{Binding Close}"
+                                               HorizontalAlignment="Right" Margin="4,0,0,0" IsVisible="{Binding Number, Converter={StaticResource Truthy}}" />
+                                </Grid>
+                                <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,5,0,0"
+                                           TextTrimming="CharacterEllipsis" IsVisible="{Binding Details, Converter={StaticResource Truthy}}" />
                             </StackPanel>
                         </Border>
                     </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Border Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="12"
-                HorizontalAlignment="Center" Padding="12,3,12,4" Margin="0,8,0,0" ToolTip.Tip="{Binding MulliganDetails}" o:OverlayHit.Interactive="True">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding MulliganSummary}" Classes="summary" Classes.good="{Binding MulliganImpactGood}" Classes.bad="{Binding MulliganImpactBad}"
-                           FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
-                <TextBlock Text="&#xF02FD;" Classes="icon flag" IsVisible="{Binding MulliganHasWarnings}" />
-                <TextBlock Text="{Binding MulliganSource}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" Margin="10,0,0,0"
-                           IsVisible="{Binding MulliganSource, Converter={StaticResource Truthy}}" />
-            </StackPanel>
-        </Border>
     </StackPanel>
 </UserControl>

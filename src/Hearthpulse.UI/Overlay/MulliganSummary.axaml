@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Overlay.MulliganSummary"
+             x:DataType="o:OverlayViewModel">
+    <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps,
+         the source and slice in small type; the estimate and curve notes in the tooltip. Above the Confirm button.
+         DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+    <UserControl.Resources>
+        <i:Truthy x:Key="Truthy" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.summary.good">
+            <Setter Property="Foreground" Value="{StaticResource Positive}" />
+        </Style>
+        <Style Selector="TextBlock.summary.bad">
+            <Setter Property="Foreground" Value="{StaticResource Negative}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="12"
+            HorizontalAlignment="Center" Padding="12,3,12,4" ToolTip.Tip="{Binding MulliganDetails}" o:OverlayHit.Interactive="True">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding MulliganSummary}" Classes="summary" Classes.good="{Binding MulliganImpactGood}" Classes.bad="{Binding MulliganImpactBad}"
+                       FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock Text="&#xF02FD;" Classes="icon" FontSize="12" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
+                       IsVisible="{Binding MulliganHasWarnings}" />
+            <TextBlock Text="{Binding MulliganSource}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" Margin="10,0,0,0"
+                       IsVisible="{Binding MulliganSource, Converter={StaticResource Truthy}}" />
+        </StackPanel>
+    </Border>
+</UserControl>
