@@ -1,0 +1,144 @@
+{
+ "data": [
+  {
+   "class": "Warlock",
+   "win_rate": 55.42,
+   "pick_rate": 83.98,
+   "pct_7_plus": 14.36,
+   "num_drafts": 2626,
+   "slug": "warlock",
+   "class_name": "Warlock",
+   "url": "https://hsreplay.net/arena/warlock/",
+   "winrate": "55.42%",
+   "deck_class": 9
+  },
+  {
+   "class": "Shaman",
+   "win_rate": 53.5,
+   "pick_rate": 63.7,
+   "pct_7_plus": 10.86,
+   "num_drafts": 1851,
+   "slug": "shaman",
+   "class_name": "Shaman",
+   "url": "https://hsreplay.net/arena/shaman/",
+   "winrate": "53.50%",
+   "deck_class": 8
+  },
+  {
+   "class": "Deathknight",
+   "win_rate": 50.06,
+   "pick_rate": 65.82,
+   "pct_7_plus": 7.2,
+   "num_drafts": 2056,
+   "slug": "deathknight",
+   "class_name": "Death Knight",
+   "url": "https://hsreplay.net/arena/deathknight/",
+   "winrate": "50.06%",
+   "deck_class": 1
+  },
+  {
+   "class": "Paladin",
+   "win_rate": 48.88,
+   "pick_rate": 37.04,
+   "pct_7_plus": 6.87,
+   "num_drafts": 1136,
+   "slug": "paladin",
+   "class_name": "Paladin",
+   "url": "https://hsreplay.net/arena/paladin/",
+   "winrate": "48.88%",
+   "deck_class": 5
+  },
+  {
+   "class": "Warrior",
+   "win_rate": 47.92,
+   "pick_rate": 36.82,
+   "pct_7_plus": 6.73,
+   "num_drafts": 1130,
+   "slug": "warrior",
+   "class_name": "Warrior",
+   "url": "https://hsreplay.net/arena/warrior/",
+   "winrate": "47.92%",
+   "deck_class": 10
+  },
+  {
+   "class": "Hunter",
+   "win_rate": 46.21,
+   "pick_rate": 15.84,
+   "pct_7_plus": 4.82,
+   "num_drafts": 477,
+   "slug": "hunter",
+   "class_name": "Hunter",
+   "url": "https://hsreplay.net/arena/hunter/",
+   "winrate": "46.21%",
+   "deck_class": 3
+  },
+  {
+   "class": "Mage",
+   "win_rate": 41.01,
+   "pick_rate": 22.62,
+   "pct_7_plus": 3.24,
+   "num_drafts": 680,
+   "slug": "mage",
+   "class_name": "Mage",
+   "url": "https://hsreplay.net/arena/mage/",
+   "winrate": "41.01%",
+   "deck_class": 4
+  },
+  {
+   "class": "Rogue",
+   "win_rate": 39.37,
+   "pick_rate": 16.15,
+   "pct_7_plus": 2.24,
+   "num_drafts": 492,
+   "slug": "rogue",
+   "class_name": "Rogue",
+   "url": "https://hsreplay.net/arena/rogue/",
+   "winrate": "39.37%",
+   "deck_class": 7
+  },
+  {
+   "class": "Priest",
+   "win_rate": 38.56,
+   "pick_rate": 14.63,
+   "pct_7_plus": 1.08,
+   "num_drafts": 465,
+   "slug": "priest",
+   "class_name": "Priest",
+   "url": "https://hsreplay.net/arena/priest/",
+   "winrate": "38.56%",
+   "deck_class": 6
+  },
+  {
+   "class": "Druid",
+   "win_rate": 37.71,
+   "pick_rate": 6.72,
+   "pct_7_plus": 1.43,
+   "num_drafts": 210,
+   "slug": "druid",
+   "class_name": "Druid",
+   "url": "https://hsreplay.net/arena/druid/",
+   "winrate": "37.71%",
+   "deck_class": 2
+  },
+  {
+   "class": "Demonhunter",
+   "win_rate": 36.1,
+   "pick_rate": 4.61,
+   "pct_7_plus": 2.9,
+   "num_drafts": 138,
+   "slug": "demonhunter",
+   "class_name": "Demon Hunter",
+   "url": "https://hsreplay.net/arena/demonhunter/",
+   "winrate": "36.10%",
+   "deck_class": 14
+  }
+ ],
+ "meta": {
+  "source_id": "hsreplay_arena_class_pages_firecrawl",
+  "fetched_at": "2026-10-25T12:45:06.231210+00:00",
+  "stale": false,
+  "count": 11,
+  "limit": 20,
+  "offset": 0
+ }
+}

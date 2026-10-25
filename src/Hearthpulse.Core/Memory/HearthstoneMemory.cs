@@ -108,7 +108,7 @@ public sealed record MatchPlayerInfo(string? Name, RankInfo? Standard, RankInfo?
 /// Reads Hearthstone client state straight from process memory: Battlegrounds rating, ranked medals,
 /// the Battlegrounds tribe pool. All calls are read-only and return null when data is unavailable.
 /// </summary>
-public sealed class HearthstoneMemory : IDisposable
+public sealed partial class HearthstoneMemory : IDisposable
 {
     private readonly object _gate = new();
     private ProcessMemory? _memory;

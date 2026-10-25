@@ -260,6 +260,7 @@ public sealed class LogWatcher : IDisposable
         new("LoadingScreen.log"),
         new("Decks.log"),
         new("Power.log"),
+        new("Arena.log"),
     ];
 
     private readonly CancellationTokenSource _cts = new();

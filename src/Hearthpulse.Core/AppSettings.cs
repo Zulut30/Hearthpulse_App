@@ -95,6 +95,12 @@ public sealed class AppSettings
     /// </summary>
     public bool ShowCardPool { get; set; } = true;
 
+    /// <summary>
+    /// The Arena draft helper: an ArenaSmith score over each offered card (class win rate over each hero) and the
+    /// draft panel with the deck so far, its mana curve, average score and class results.
+    /// </summary>
+    public bool ShowArenaDraft { get; set; } = true;
+
     public const double DefaultCardPoolBrowserWidth = 350;
 
     /// <summary>Width of the card pool browser (the full-height list of a pool's cards), in overlay units.</summary>
