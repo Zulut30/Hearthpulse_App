@@ -854,7 +854,7 @@
 
                 <!-- ============ Constructed and Arena: the opponent's Secrets (top, right of their Hero Power; rows take clicks) ============ -->
                 <o:MovablePanel Id="secrets" Title="{i:Loc Overlay.Panel.Secrets}" GameAnchored="True" Shown="{Binding ShowSecrets}"
-                                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="760,120,0,0">
+                                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="860,120,0,0">
                     <o:SecretsPanel />
                 </o:MovablePanel>
 
