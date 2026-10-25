@@ -40,5 +40,6 @@
   "Widgets.Turn.SettingTip": "Время берётся из Power.log; игра может добавить несколько секунд на анимации",
   "Widgets.Turn.Tile": "Средний ход",
   "Widgets.Turn.TileValue": "{0} / {1}",
-  "Widgets.Turn.TileDetail": "вы / соперник · самый долгий {0}"
+  "Widgets.Turn.TileDetail": "вы / соперник · самый долгий {0}",
+  "Widgets.Settings.Section": "Конструированный и меню игры"
 }

@@ -40,5 +40,6 @@
   "Widgets.Turn.SettingTip": "Timed from Power.log; the game may add a few seconds for animations",
   "Widgets.Turn.Tile": "Average turn",
   "Widgets.Turn.TileValue": "{0} / {1}",
-  "Widgets.Turn.TileDetail": "you / opponent · longest {0}"
+  "Widgets.Turn.TileDetail": "you / opponent · longest {0}",
+  "Widgets.Settings.Section": "Constructed and the game's menus"
 }

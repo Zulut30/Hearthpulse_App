@@ -55,5 +55,6 @@ public sealed partial class OverlayViewModel
             .ToList());
     }
 
-    private static string Percent(double share) => (share * 100).ToString("0", CultureInfo.CurrentCulture) + "%";
+    /// <summary>"62%"; a near-certain share reads "&gt;99%": the odds are an estimate, never a certainty.</summary>
+    private static string Percent(double share) => share >= 0.995 ? ">99%" : (share * 100).ToString("0", CultureInfo.CurrentCulture) + "%";
 }

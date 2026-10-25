@@ -1445,6 +1445,26 @@
                                         <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.EnabledTip}" />
+                                        <TextBlock Text="{i:Loc Widgets.Settings.Section}" Style="{StaticResource Label}" Margin="0,4,0,10" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Turn.Setting}" IsChecked="{Binding ShowTurnTimer}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Widgets.Turn.SettingTip}" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Archetype.Setting}" IsChecked="{Binding ShowOpponentArchetype}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Widgets.Archetype.SettingTip}" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Ladder.Setting}" IsChecked="{Binding ShowLadderSession}" Margin="0,0,0,10"
+                                                  ToolTip="{i:Loc Widgets.Ladder.SettingTip}" />
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="160" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="56" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Widgets.Ladder.Break}" VerticalAlignment="Center" ToolTip="{i:Loc Widgets.Ladder.BreakTip}" />
+                                            <Slider Grid.Column="1" Minimum="1" Maximum="12" Value="{Binding LadderSessionBreakHours}" SmallChange="1" LargeChange="2"
+                                                    IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="OnSliderChanged" />
+                                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}">
+                                                <Run Text="{Binding LadderSessionBreakHours, Mode=OneWay}" /><Run Text=" " /><Run Text="{i:Loc Widgets.Ladder.HoursUnit}" />
+                                            </TextBlock>
+                                        </Grid>
                                         <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Style="{StaticResource Label}" Margin="0,4,0,10" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.TopBar}" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.TopBarTip}" />
@@ -1537,25 +1557,6 @@
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Lobby}" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Odds}" IsChecked="{Binding ShowCombatOdds}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.OddsTip}" />
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Turn.Setting}" IsChecked="{Binding ShowTurnTimer}" Margin="0,0,0,14"
-                                                  ToolTip="{i:Loc Widgets.Turn.SettingTip}" />
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Archetype.Setting}" IsChecked="{Binding ShowOpponentArchetype}" Margin="0,0,0,14"
-                                                  ToolTip="{i:Loc Widgets.Archetype.SettingTip}" />
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Ladder.Setting}" IsChecked="{Binding ShowLadderSession}" Margin="0,0,0,10"
-                                                  ToolTip="{i:Loc Widgets.Ladder.SettingTip}" />
-                                        <Grid Margin="0,0,0,14">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="56" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{i:Loc Widgets.Ladder.Break}" VerticalAlignment="Center" ToolTip="{i:Loc Widgets.Ladder.BreakTip}" />
-                                            <Slider Grid.Column="1" Minimum="1" Maximum="12" Value="{Binding LadderSessionBreakHours}" SmallChange="1" LargeChange="2"
-                                                    IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="OnSliderChanged" />
-                                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}">
-                                                <Run Text="{Binding LadderSessionBreakHours, Mode=OneWay}" /><Run Text=" " /><Run Text="{i:Loc Widgets.Ladder.HoursUnit}" />
-                                            </TextBlock>
-                                        </Grid>
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,18" />
 
                                         <Grid Margin="0,0,0,12">

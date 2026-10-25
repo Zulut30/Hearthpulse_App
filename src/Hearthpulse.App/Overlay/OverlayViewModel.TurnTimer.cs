@@ -14,9 +14,6 @@ public sealed partial class OverlayViewModel
     private TurnClockView? _turnView;
     private DispatcherTimer? _turnTick;
 
-    /// <summary>The wall clock the running turn is measured against (log times are local); the render scene fixes it.</summary>
-    internal Func<DateTime> TurnNow { get; set; } = () => DateTime.Now;
-
     public bool ShowTurnTimer { get => _showTurnTimer; private set => Set(ref _showTurnTimer, value); }
 
     public TurnTimerSide MyTimer { get => _myTimer; private set => Set(ref _myTimer, value); }
@@ -48,7 +45,8 @@ public sealed partial class OverlayViewModel
     private void RefreshTurnTimer()
     {
         var view = _turnView;
-        var now = TurnNow();
+        // Log times are local wall-clock times.
+        var now = DateTime.Now;
         ShowTurnTimer = view is not null && !(view.Running && view.IsStale(now));
         if (!ShowTurnTimer)
         {
