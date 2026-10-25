@@ -1431,6 +1431,17 @@
             <!-- ============ Leaderboard calibration guides ============ -->
             <Canvas x:Name="GuideLayer" IsHitTestVisible="False" />
 
+            <!-- ============ Arena draft: a score badge over each offered card or hero (centred on the play area left of the client's
+                 deck list: right margin 339 shifts the centre 170 left; anchors from HdtArenaHelper, MIT) ============ -->
+            <o:MovablePanel Id="arena-picks" Title="{i:Loc Arena.Panel.Picks}" GameAnchored="True" Shown="{Binding ShowArenaPicks}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,566,339,0">
+                <o:ArenaPicksPanel />
+            </o:MovablePanel>
+
+            <!-- ============ Arena draft: deck so far, curve, average score, class win rates (left) ============ -->
+            <o:MovablePanel Id="arena-draft" Title="{i:Loc Arena.Panel.Title}" Shown="{Binding ShowArenaDraft}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,64,0,0">
+                <o:ArenaDraftPanel />
+            </o:MovablePanel>
+
             <!-- ============ Battlegrounds: session (top-right) ============ -->
             <o:MovablePanel Id="session" Title="{i:Loc Overlay.Session.Title}" Shown="{Binding ShowSession}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,12,0">
                 <Border Style="{StaticResource OverlayCard}" Padding="12,7">

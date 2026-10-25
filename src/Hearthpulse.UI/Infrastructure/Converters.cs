@@ -44,7 +44,7 @@ public sealed class KeyBrush : IValueConverter
         "A" => "TierA",
         "B" => "TierB",
         "C" => "TierC",
-        "D" => "TierD",
+        "D" or "E" => "TierD",
         "COMMON" or "FREE" => "RarityCommon",
         "RARE" => "RarityRare",
         "EPIC" => "RarityEpic",

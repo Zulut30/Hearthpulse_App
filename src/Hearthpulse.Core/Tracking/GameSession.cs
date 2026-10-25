@@ -285,6 +285,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_replay);
         _parser.AddListener(this);
         _scene = "UNKNOWN";
+        _arenaDraft.Reset();
         _dirty = true;
         Diag.Info($"Log session {Path.GetFileName(sessionDir)} (mid-session: {attachedMidSession})");
     }
@@ -354,6 +355,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                 break;
             case "Decks.log":
                 foreach (var line in lines) HandleDecks(line);
+                break;
+            case "Arena.log":
+                foreach (var line in lines) HandleArena(line);
                 break;
         }
 
@@ -670,12 +674,14 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             // Lobby tribes are set before hero selection, which is when the hero advisor needs them.
             WantRaces: battlegrounds && !_racesRead,
             WantRanks: inGame && game!.IsConstructedLike && !_ranksRead && game.Turn >= 1,
-            _awaitingRatingKey);
+            _awaitingRatingKey,
+            WantDraftChoices: _scene == "DRAFT");
     }
 
     /// <summary>Applies a memory reading on the tracking thread. Values read for an earlier game are dropped.</summary>
     private void ApplyMemory(MemoryReading reading)
     {
+        ApplyArenaMemory(reading);
         var request = reading.Request;
         if (_awaitingRatingKey is not null && request.AwaitingRatingKey == _awaitingRatingKey)
         {
@@ -915,7 +921,10 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             session,
             _lastOutcome,
             _logConfigMissing,
-            _parseErrorTotal == 0 ? null : new ParseErrorSummary(_parseErrorTotal, ParseErrorText()));
+            _parseErrorTotal == 0 ? null : new ParseErrorSummary(_parseErrorTotal, ParseErrorText()))
+        {
+            ArenaDraft = BuildArenaDraft(),
+        };
 
         SnapshotChanged?.Invoke(Current);
     }

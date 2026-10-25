@@ -12,7 +12,7 @@ namespace Hearthpulse.Core.Api;
 /// Answers are cached on disk, and a stale cache is used when the server is down. Never throws.
 /// </summary>
 /// <param name="cacheDirectory">Where answers are cached; the app's cache folder by default (tests pass a scratch one).</param>
-public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
+public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 {
     /// <summary>The name every number from the Hearthpulse API goes by in the UI, in both languages.</summary>
     public const string Attribution = "Hearthpulse data";
@@ -497,7 +497,8 @@ public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory =
         return result;
     }
 
-    private async Task<JsonDocument?> FetchAsync(string path, string cacheName, CancellationToken cancellationToken)
+    /// <param name="shrink">Keeps only what the app reads of a large answer, so the cache file stays small.</param>
+    private async Task<JsonDocument?> FetchAsync(string path, string cacheName, CancellationToken cancellationToken, Func<JsonElement, object>? shrink = null)
     {
         var file = Path.Combine(_cacheDirectory, cacheName);
         var info = new FileInfo(file);
@@ -507,9 +508,10 @@ public sealed class HearthpulseData(HearthpulseApi api, string? cacheDirectory =
             if (result.Ok)
             {
                 // "meta" (periods, fetch time) is kept next to "data" when the endpoint sends it.
+                var data = shrink is null ? (object)result.Data : shrink(result.Data);
                 var text = result.Meta.ValueKind == JsonValueKind.Undefined
-                    ? JsonSerializer.Serialize(new { data = result.Data })
-                    : JsonSerializer.Serialize(new { data = result.Data, meta = result.Meta });
+                    ? JsonSerializer.Serialize(new { data })
+                    : JsonSerializer.Serialize(new { data, meta = result.Meta });
                 // The whole answer is kept (not only "data"): some endpoints put their list next to it.
                 await WriteCacheAsync(file, text, cancellationToken).ConfigureAwait(false);
                 return JsonDocument.Parse(text);

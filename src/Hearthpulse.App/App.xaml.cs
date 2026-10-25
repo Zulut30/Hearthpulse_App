@@ -513,6 +513,8 @@ public partial class App : Application
             _session.SetMeta(meta);
             _mainViewModel.SetMeta(meta);
         }
+
+        LoadArenaMetaAsync().Forget("Arena stats load");
     }
 
     /// <summary>Russian archetype names, once per run and only while the interface is Russian (the only language that uses them).</summary>

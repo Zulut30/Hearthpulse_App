@@ -400,4 +400,7 @@ public sealed record LiveSnapshot(
     public static LiveSnapshot Empty { get; } = new(
         "UNKNOWN", false, false, "Idle", null, false, null, null, null,
         new SessionSummary(null, null, 0, Array.Empty<int>(), 0, 0), null, Array.Empty<string>());
+
+    /// <summary>The Arena draft while its screen is open (offer, deck, scores), else null.</summary>
+    public Arena.ArenaDraftView? ArenaDraft { get; init; }
 }

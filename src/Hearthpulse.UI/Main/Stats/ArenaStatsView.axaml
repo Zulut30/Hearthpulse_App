@@ -5,12 +5,21 @@
              xmlns:m="using:Hearthpulse.UI.Main"
              xmlns:c="using:Hearthpulse.UI.Controls"
              xmlns:i="using:Hearthpulse.UI.Infrastructure">
-    <!-- Arena "My stats": header numbers, runs, classes and opponent classes -->
+    <!-- Arena "My stats": header numbers, runs (with their deck score), classes and opponent classes, then the latest run's
+         deck score and the community class win rates (docs/arena-draft.md) -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
             </ResourceDictionary.MergedDictionaries>
+            <!-- A card of the deck score: name and ArenaSmith score in its tier colour -->
+            <DataTemplate x:Key="ArenaCardLineTemplate" x:DataType="m:ArenaCardLine">
+                <Grid Margin="0,0,0,5" ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding Score}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" Margin="8,0,0,0"
+                               Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center" />
+                </Grid>
+            </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
     <StackPanel>
@@ -56,6 +65,8 @@
                                             <TextBlock Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis">
                                                 <Run Text="{Binding When, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Status, Mode=OneWay}" />
                                             </TextBlock>
+                                            <TextBlock Text="{Binding DeckScore}" FontSize="11.5" FontWeight="SemiBold" Foreground="{Binding DeckTier, Converter={StaticResource KeyBrush}}"
+                                                       IsVisible="{Binding DeckScore, Converter={StaticResource Truthy}}" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Stats.Arena.RecordTip}">
                                             <Border Classes="wide" Width="90" Height="7" CornerRadius="3" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,10,0">
@@ -89,6 +100,73 @@
                     </StackPanel>
                 </Border>
             </StackPanel>
+        </Grid>
+
+        <!-- Latest run's deck score and the community class win rates -->
+        <Grid Margin="0,0,0,24" RowDefinitions="Auto,Auto">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Classes="card statsLeft" VerticalAlignment="Top">
+                <StackPanel>
+                    <c:Ornament Text="{i:Loc Arena.Page.DeckTitle}" Icon="&#xF0D8F;" Size="13" Margin="0,0,0,10" />
+                    <StackPanel IsVisible="{Binding HasArenaDeck}">
+                        <TextBlock Text="{Binding ArenaDeckTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Margin="0,10,0,0">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <Panel Width="46" Height="46" VerticalAlignment="Center">
+                                    <c:Scallop Fill="{Binding ArenaDeckTier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
+                                    <TextBlock Text="{Binding ArenaDeckTier}" FontFamily="{DynamicResource DisplayFont}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Panel>
+                                <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ArenaDeckAverage}" Classes="stat" Foreground="{Binding ArenaDeckTier, Converter={StaticResource KeyBrush}}" />
+                                    <TextBlock Text="{Binding ArenaDeckNote}" Classes="caption" FontSize="11.5" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding ArenaDeckCurve}" Margin="0,12,0,0" MaxWidth="280" HorizontalAlignment="Left">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Classes="fixed" Rows="1" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:ArenaCurveColumn">
+                                        <StackPanel Margin="3,0" VerticalAlignment="Bottom" ToolTip.Tip="{Binding Count}">
+                                            <Panel Height="46">
+                                                <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="3" Background="{StaticResource Accent}" />
+                                            </Panel>
+                                            <TextBlock Text="{Binding Label}" Classes="caption" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                        <Grid Margin="0,16,0,0" ColumnDefinitions="*,16,*">
+                            <StackPanel>
+                                <TextBlock Text="{i:Loc Arena.Page.Best}" Classes="label" Margin="0,0,0,6" />
+                                <ItemsControl ItemsSource="{Binding ArenaDeckBest}" ItemTemplate="{StaticResource ArenaCardLineTemplate}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{i:Loc Arena.Page.Weakest}" Classes="label" Margin="0,0,0,6" />
+                                <ItemsControl ItemsSource="{Binding ArenaDeckWeakest}" ItemTemplate="{StaticResource ArenaCardLineTemplate}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                    <TextBlock Text="{i:Loc Arena.Page.DeckEmpty}" Classes="caption" TextWrapping="Wrap" IsVisible="{Binding !HasArenaDeck}" />
+                </StackPanel>
+            </Border>
+            <Border Classes="card statsRight" VerticalAlignment="Top">
+                <StackPanel>
+                    <c:Ornament Text="{i:Loc Arena.Page.Community}" Icon="&#xF0127;" Size="13" Margin="0,0,0,10" />
+                    <ItemsControl ItemsSource="{Binding ArenaCommunity}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                    <TextBlock Text="{i:Loc Arena.Page.CommunityEmpty}" Classes="caption" TextWrapping="Wrap"
+                               IsVisible="{Binding ArenaCommunity, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    <TextBlock Text="{Binding ArenaCommunitySource}" Classes="caption" FontSize="11" Margin="0,10,0,0" />
+                </StackPanel>
+            </Border>
         </Grid>
     </StackPanel>
 </UserControl>

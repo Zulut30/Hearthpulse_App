@@ -943,6 +943,8 @@
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.CardPool}" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Arena.Settings.Show}" IsChecked="{Binding ShowArenaDraft}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Arena.Settings.ShowTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Summary}" IsChecked="{Binding ShowGameToasts}" />
                                 </StackPanel>
                             </Border>

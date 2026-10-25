@@ -85,7 +85,8 @@ public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign)
 public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs);
 
 /// <summary>One Arena run.</summary>
-public sealed record ArenaRunRow(string ClassName, string HeroCardId, string Record, double WinFraction, string When, string Status, bool Finished);
+/// <param name="DeckScore">"Deck score 41" (ArenaSmith average of the run's deck), or empty.</param>
+public sealed record ArenaRunRow(string ClassName, string HeroCardId, string Record, double WinFraction, string When, string Status, bool Finished, string DeckScore = "", string DeckTier = "");
 
 public sealed partial class MainViewModel
 {
@@ -447,11 +448,11 @@ public sealed partial class MainViewModel
 
     private void RebuildArenaStats()
     {
-        var (all, period) = (_allGames, _arenaPeriod);
-        RunStatsBuild(2, () => BuildArenaStats(all, period));
+        var (all, period, cards, arena) = (_allGames, _arenaPeriod, _cards, _arenaMeta);
+        RunStatsBuild(2, () => BuildArenaStats(all, period, cards, arena));
     }
 
-    private Action BuildArenaStats(IReadOnlyList<GameRecord> all, StatsPeriod period)
+    private Action BuildArenaStats(IReadOnlyList<GameRecord> all, StatsPeriod period, CardDb cards, Core.Arena.ArenaMeta? arena)
     {
         var games = StatsFilter.Apply(all.Where(StatsFilter.IsArena), period, DateTime.Now);
         var runs = ArenaStats.Runs(games);
@@ -464,15 +465,22 @@ public sealed partial class MainViewModel
             new StatTile(Loc.T("Stats.WinRate"), Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), Loc.P("Stats.Games", summary.Record.Games)),
         ];
-        var runRows = runs.AsEnumerable().Reverse().Select(r => new ArenaRunRow(
-                OverlayViewModel.ClassName(r.PlayerClass),
-                ClassHero(r.PlayerClass),
-                $"{r.Wins}–{r.Losses}",
-                r.Wins / (double)ArenaStats.MaxWins,
-                When(r.Started),
-                r.Finished ? Loc.P("Stats.Games", r.Games.Count) : Loc.F("Stats.Arena.InProgress", Loc.P("Stats.Games", r.Games.Count)),
-                r.Finished))
+        var runRows = runs.AsEnumerable().Reverse().Select(r =>
+            {
+                var (deckScore, deckTier) = RunDeckScore(r, cards, arena);
+                return new ArenaRunRow(
+                    OverlayViewModel.ClassName(r.PlayerClass),
+                    ClassHero(r.PlayerClass),
+                    $"{r.Wins}–{r.Losses}",
+                    r.Wins / (double)ArenaStats.MaxWins,
+                    When(r.Started),
+                    r.Finished ? Loc.P("Stats.Games", r.Games.Count) : Loc.F("Stats.Arena.InProgress", Loc.P("Stats.Games", r.Games.Count)),
+                    r.Finished,
+                    deckScore,
+                    deckTier);
+            })
             .ToList();
+        var applyDeck = BuildArenaDeck(runs, cards, arena);
         var classes = ArenaStats.ByClass(runs)
             .Select(c => new StatGroupRow(
                 OverlayViewModel.ClassName(c.PlayerClass),
@@ -490,6 +498,7 @@ public sealed partial class MainViewModel
             ArenaRuns = runRows;
             ArenaClasses = classes;
             ArenaOpponents = opponents;
+            applyDeck(this);
         };
     }
 

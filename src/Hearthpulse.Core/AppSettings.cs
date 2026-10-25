@@ -95,6 +95,13 @@ public sealed class AppSettings
     /// </summary>
     public bool ShowCardPool { get; set; } = true;
 
+    /// <summary>
+    /// The Arena draft helper (beta): an ArenaSmith score over each offered card (class win rate over each hero) and the
+    /// draft panel with the deck so far, its mana curve, average score and class results. Off by default until the
+    /// Arena.log lines and the memory read are checked on a real draft (docs/arena-draft.md).
+    /// </summary>
+    public bool ShowArenaDraft { get; set; }
+
     public const double DefaultCardPoolBrowserWidth = 350;
 
     /// <summary>Width of the card pool browser (the full-height list of a pool's cards), in overlay units.</summary>

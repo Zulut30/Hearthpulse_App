@@ -11,7 +11,8 @@ internal sealed record MemoryRequest(
     bool ReadRating,
     bool WantRaces,
     bool WantRanks,
-    string? AwaitingRatingKey);
+    string? AwaitingRatingKey,
+    bool WantDraftChoices = false);
 
 /// <summary>What one memory scan found; null where nothing was read.</summary>
 internal sealed record MemoryReading(
@@ -20,7 +21,8 @@ internal sealed record MemoryReading(
     int? PostGameRating,
     IReadOnlyList<int>? Races,
     BattlegroundsButtonCosts? ButtonCosts,
-    (MatchPlayerInfo? Local, MatchPlayerInfo? Opponent)? Players);
+    (MatchPlayerInfo? Local, MatchPlayerInfo? Opponent)? Players,
+    IReadOnlyList<string>? DraftChoices = null);
 
 /// <summary>
 /// Reads the game's memory on its own thread. A scan can take seconds on a slow PC, or when a security tool inspects
@@ -84,7 +86,7 @@ internal sealed class MemoryPoller
                     Diag.Info($"Memory scan took {elapsed.TotalMilliseconds:N0} ms; the next one waits longer");
                     delay = TimeSpan.FromSeconds(10);
                 }
-                else if (request.AwaitingRatingKey is not null)
+                else if (request.AwaitingRatingKey is not null || request.WantDraftChoices)
                 {
                     delay = TimeSpan.FromSeconds(1);
                 }
@@ -109,6 +111,7 @@ internal sealed class MemoryPoller
             awaiting ? _memory.GetPostGameBattlegroundsRating() : null,
             battlegroundsGame && request.WantRaces ? _memory.GetBattlegroundsRaces() : null,
             battlegroundsGame ? _memory.GetBattlegroundsButtonCosts() : null,
-            request.InGame && request.WantRanks ? _memory.GetMatchPlayers() : null);
+            request.InGame && request.WantRanks ? _memory.GetMatchPlayers() : null,
+            request.WantDraftChoices ? _memory.GetArenaDraftChoices() : null);
     }
 }
