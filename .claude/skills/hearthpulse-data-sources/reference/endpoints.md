@@ -1,4 +1,4 @@
-# Endpoints Hearthpulse calls (checked in code on main 2e8d9be, 2026-10-23)
+# Endpoints Hearthpulse calls (checked in code on main 950e0ab, 2026-10-26)
 
 Paths are relative to each base URL. Cache files live under the data folder (`AppPaths.Cache` = `<data>/cache`).
 
@@ -21,11 +21,19 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 | `v1/hsguru/meta?format=&rank=&period=&min_games=100` | `hsguru-meta-{format}-{rank}-{period}.json` | tier list (period probed via `past_day` -> `current_period`) |
 | `v1/hsguru/archetypes?format=&min_games=50&limit=500` | per format | archetype list |
 | `v1/hsguru/archetypes/analysis?archetype=&format=` | `hsguru-analysis-{format}-{hash}.json` | Wild/HSGuru mulligan |
+| `v1/hsguru/mulligan?archetype=&format=&rank=&coin=&opponent_class=` (one slice sets the coin *or* the class; 404 = not collected) | `hsguru-mulligan-{format}-{hash}-{rank}-{coin}-{opponent}.json` | `LoadHsguruMulliganAsync` -> `MulliganGuideSource` slices |
+| `api/v1/constructed-cards/{cardId}/wiki` (`CardIdKey` `^[A-Za-z0-9_]{1,48}$`) | `card-wiki-{cardId}.json` | `LoadCardWikiAsync` -> `WikiPools` (Discover pools) |
 | `api/v1/constructed-cards?format=wild&per_page=200&page=N` (<= 80 pages) | `cache/api/card-pool.json`, 1 day | `CardPoolCatalog` |
 | `datasets/hsreplay_arena_cards_advanced` (envelope `data.structured.cards[]`, ~1.7 MB, list repeated in `hsreplay_extracted`) | `arena-cards.json`, trimmed to id/dbfId/score/win_rate/pick_rate/times_played (`ShrinkArenaCards`) | `HearthpulseData.LoadArenaMetaAsync` -> `ArenaMeta` (ArenaSmith `score`; one all-classes slice, Underground, last 4 days) |
 | `v1/arena/classes?limit=20` | `arena-classes.json` | `ArenaMeta.Classes` (win rate, pick rate, 7+ share, drafts) |
 
-Not used: `/v1/meta-intelligence/cards` (needs a token). Docs: `docs/constructed-meta-api.md`, `docs/mulligan-v2.md`,
+Not used: `/v1/meta-intelligence/*` (needs a token). Available without a token but not called yet (fields in
+[kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)): Discover/Adapt pick rates
+`v1/hsreplay/card-choices`, per-deck HSReplay mulligan `v1/hsreplay/mulligan` (premium-sourced, ~18 decks), HSGuru
+matchup matrix `v1/hsguru/matchups` and `v1/hsguru/class-matchups`, BG hero detail `api/bg/heroes/{dbf}` and trinkets
+`api/bg/trinkets`, Blizzard leaderboards `v1/leaderboards*`, balance radar, patches, streamers, Brawl, esports.
+Premium-sourced HSReplay data needs a `hearthpulse-legal` check before it reaches players.
+Docs: `docs/constructed-meta-api.md`, `docs/mulligan-v2.md`,
 `docs/discover-pool.md`, `docs/arena-draft.md` (Arena; endpoints the server lacks: per-class scores, normal vs
 Underground slice). Server map (owner's optional notes): `<repo>/../reference/server-151.md`.
 Resolve the repository root and check this sibling file exists before consulting it. Endpoint examples here are

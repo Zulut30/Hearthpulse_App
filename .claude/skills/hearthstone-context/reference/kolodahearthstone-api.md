@@ -1,8 +1,10 @@
 # api.kolodahearthstone.com - Hearthstone data API
 
-Base URL `https://api.kolodahearthstone.com`. Checked with curl on 2026-10-23: `GET /openapi.json` (title
-"Hearthstone Data API", 0.1.0) and `GET /api` (name "HS Battlegrounds RU API", version 1.16.0, with an endpoint index
-and totals). All endpoints below returned 200 **without** credentials. The app's client is
+Base URL `https://api.kolodahearthstone.com`. Checked live on 2026-10-26 (first pass 2026-10-23): `GET /openapi.json`
+(title "Hearthstone Data API", 0.1.0, 144 paths) and `GET /api` (name "HS Battlegrounds RU API", version 1.16.0, with an
+endpoint index and totals). All endpoints below returned 200 **without** credentials unless marked otherwise. A
+Russian overview of what is there and what the app could use: `<workspace>/api-kolodahearthstone-2026-10-26.md`
+(sibling of the repo; optional). The app's client is
 `src/Hearthpulse.Core/Api/HearthpulseApi.cs` (`DefaultBaseUrl`, `HEARTHPULSE_API` env override for a test server) with
 typed, cached calls in `HearthpulseData.cs`; which endpoints the app actually calls is listed in the
 `hearthpulse-data-sources` skill (`reference/endpoints.md`).
@@ -20,7 +22,19 @@ Data provenance is in `source_id`, e.g. `hsreplay_battlegrounds_hero_details`, `
 `hsreplay_battlegrounds_minion_stats`, `hsreplay_archetypes`, `hsguru_meta_matrix`.
 
 Errors seen: `/v1/*` -> `{"detail": {"code": "INVALID_TOKEN", "message": "..."}}` (401) or FastAPI validation list
-(422); `/api/v1/*` -> `{"error": {"code": "not_found" | "invalid_parameter", "message": "<Russian text>"}}`.
+(422, e.g. a missing required `card`, `deck`, `archetype`+`format`, `name`, `q`, `card_name`); `/api/v1/*` ->
+`{"error": {"code": "not_found" | "invalid_parameter", "message": "<Russian text>"}}`.
+
+Freshness: `GET /v1/sources` (alias `/sources`, `/v1/system/sources`) lists every source (110 on 2026-10-26: 73
+HSReplay, 22 HSGuru, 8 Firestone, Vicious Syndicate, Metastats, Blizzard, HearthArena, hearthstone-decks) with
+`enabled`, `freshness_state`, `stale`, `age_hours`, `stale_after_hours`, `last_success_at`, `next_run_at`,
+`completeness`, `diagnostics`, `site`, `category`, `url`. `GET /v1/health` summarises (`serving_ok`, `freshness_ok`,
+`degraded`, `stale_sources[]`, `operationally_disabled_sources[]`). Raw stored answers: `GET /datasets/{source_id}`.
+
+**Provenance caveat.** HSReplay mulligan and card-choice answers carry `premium: true` / `premium_session` and are
+collected through scrape.do on a daily credit budget (`stop_reason: scrape_do_budget`); per-opponent-class splits
+exist "only in premium answers". Run `hearthpulse-legal` before showing such data to players, and expect partial
+coverage (`no_data`, 404, `stale`).
 
 ## Auth
 
@@ -42,10 +56,16 @@ Errors seen: `/v1/*` -> `{"detail": {"code": "INVALID_TOKEN", "message": "..."}}
 | `GET /v1/battlegrounds/minions/{minion}/stats`, `.../stats/history` | `mmr`, `period`, `composition`, `snapshot_id` / `limit` | one minion, normal and golden |
 | `GET /api/bg/heroes` | `mode`=solo, `q`, `mmr`=TOP_50_PERCENT | **bare**: {type: "bg_heroes", mode, count, fetched_at, filters {mmr_percentile, time_range}, source {...}, `heroes[]` (same item fields as /v1 heroes plus `adjusted_avg_placement`)}. No paging (~3 MB) |
 | `GET /api/bg/heroes/duos` | `q` | bare, same shape, duos (placement_distribution has 4 entries) |
-| `GET /api/bg/heroes/{dbf_id}` | - | bare: `hero`, `mode`, `filters`, `source_url`, `as_of`, `tavern_up[]`, `tavern_up_by_turn[]`, `hero_power[]`, `hero_power_by_turn[]`, `combat_winrate[]`, `compositions[]`, `best_composition` |
+| `GET /api/bg/heroes/{dbf_id}` | - | bare (~150 KB): `hero` (list item), `mode`, `filters` {mmr_percentile, time_range}, `source_url`, `as_of` {tavern_up, hero_power, combat_winrate, ...}, `tavern_up[]` {turn, tavern_tier, occurrences, pct_at_tier, num_games}, `tavern_up_by_turn[]` {turn, recommended_tavern_tier, pct_at_tier, num_games}, `hero_power[]` {turn, tavern_tier, gold, end_of_round_median_tavern_tier, times_invoked, invoked_rate, total_data_points}, `hero_power_by_turn[]`, `combat_winrate[]` {combat_round, data_points, combat_winrate}, `compositions[]` {composition_id, name, num_games, avg_placement, placement_distribution}, `best_composition` |
 | `GET /api/bg/heroes/{dbf_id}/tavern-up`, `/hero-power`, `/best-composition` | - | parts of the above |
 | `GET /api/bg/trinkets` | `trinket_tier`=all, `active_only`=true, `mmr`=TOP_1_PERCENT, `timeRange`=LAST_7_DAYS | bare: {type: "bg_trinkets", count, ..., `trinkets[]` {name, dbfId, id, trinket_id (e.g. `BG35_MagicItem_701`), cost, description, type/trinket_tier ("Lesser"/"Greater"), tier, pick_rate ("6.3%"), avg_placement (string), placement_distribution[], games, games_is_minimum, localized_name, localized_description, variant_key, source_id, source_url}} |
 | `GET /api/db/bg/minions`, `/api/db/bg/minions/{dbf_id}`, `.../history` | `q`, `tavern_tier`, `limit`, `offset` | stored minion DB |
+| `GET /api/bg/compositions/screenshot/latest[/image]` | - | bare {ok, source_id, url, captured_at, image_mime, ...}; source marked `missing` on 2026-10-26 |
+
+Per-minion `stats` takes `minion` = dbf id or card id, `mmr` (TOP_50_PERCENT, TOP_20_PERCENT, ALL), `period`
+(LAST_7_DAYS, CURRENT_BATTLEGROUNDS_PATCH), `composition` (board positions of one comp; 0 = all) and `snapshot_id`.
+`/api/bg/trinkets` had 251 trinkets; `games` is a lower bound (`games_is_minimum`), `localized_name` /
+`localized_description` are Russian.
 
 ## Constructed
 
@@ -59,8 +79,69 @@ Errors seen: `/v1/*` -> `{"detail": {"code": "INVALID_TOKEN", "message": "..."}}
 | `GET /api/db/decks`, `/v1/constructed/decks` | `class_name`, `format_name`, `source_id`, `min_win_rate`, `q`, `limit`, `offset` | decks |
 | `GET /v1/hsguru/meta` | `format`=standard\|wild, `rank`=all (diamond, diamond_4to1, diamond_to_legend, legend, top_5k, top_legend, top_500, top_100), `period`=past_day, `coin`=any_player, `min_games`=100 | `data` {format, rank, period, coin, min_games, source_url, `items[]` {archetype, winrate, popularity, games, turns, duration_minutes, climbing_speed}}; `meta.available_periods` (e.g. past_3_hours ... past_30_days, `patch_<version>`, current expansion slug), `current_period`, `current_patch_period` |
 | `GET /v1/hsguru/archetypes` | `format`=all, `q`, `min_games`=50, `has_decks`, `sort`=games (winrate, popularity, name), `order`=desc, `limit`, `offset` | `data[]` {format, format_id, archetype, games, winrate, popularity_pct, avg_turns, avg_duration_minutes, climbing_speed_stars_per_hour, period, rank, source_url, archetype_url, decks_url, `decks[]` {source_id, title, archetype, class, format, deck_code, win_rate, score, games, url, updated_at, sample_period, sample_rank}, deck_count, has_decks}, plus `criteria`, `coverage` |
-| `GET /v1/hsguru/archetypes/history`, `/analysis` | `archetype`, `format` | per archetype |
-| `GET /v1/meta-intelligence/*` | `format`, `rank`, `period`, `patch` | archetypes, cards, signals, snapshots |
+| `GET /v1/hsguru/archetypes/history`, `/analysis` | `archetype`*, `format`* | per archetype |
+| `GET /v1/hsguru/matchups` | `format`=standard, `rank`=all (all, top_legend, top_5k, legend, diamond_to_legend, diamond_4to1, bronze_plat), `period` (from `meta.available.periods`; default `meta.available.default_period`), `coin` (only any_player), `min_games`, `min_archetype_games`, `limit`<=200 (top N archetypes) | `data` {total_games, `archetypes[]` {archetype, class, games, winrate, popularity_pct}, `matchups[]` {archetype, opponent, winrate, games}}; `meta.available` {formats, ranks, periods, coins, current_period, default_period}. `/v1/hsguru/matchups/slices`: 140 stored slices with `state`, `total_games`, `archetypes`, `cells` |
+| `GET /v1/hsguru/class-matchups` | `archetype`+`format` or `deck_id`; `rank`, `period`, `coin` | `data` {games, winrate, `rows[]` {opponent_class (lower case), winrate, games, share_pct}} |
+| `GET /v1/constructed/hsguru-deck` | `archetype`*, `format_name`=standard, `rank`=legend | `data[]` HSGuru builds {deck_code, win_rate, games, url, sample_period, sample_rank} |
+| `GET /api/hsreplay/archetypes` | `hl`=en | bare {count (778), `archetypes[]` {id, name, class, url, standard, wild}} - the whole HSReplay archetype dictionary |
+| `GET /api/db/cards/trends` | `card_name`*, `source_id`, `class_name`, `limit` | stored trend rows of one card |
+| `GET /v1/meta-intelligence/*` | `format`, `rank`, `period`, `patch` | archetypes, cards, signals, snapshots, budget. **401 without a token** (header `x-api-key` or Bearer) |
+
+## Mulligan
+
+| Endpoint | Params (default) | Response |
+|---|---|---|
+| `GET /v1/hsguru/mulligan` (app: `LoadHsguruMulliganAsync`) | `archetype`+`format` or `deck_id`; `rank`=all (all, diamond_4to1, diamond_to_legend, legend, top_5k, top_legend), `period`=current, `coin`=any_player (on_coin, going_first), `opponent_class`=any (upper-case class), `min_mull_count`, `min_drawn_count` | `data` {kind "cards", subject_type, games, winrate, period, snapshot_id, active, stale, source_url, `rows[]` {position, card_id, dbf_id, card_name, mulligan_impact, mulligan_count, drawn_impact, drawn_count, not_drawn_impact, not_drawn_count, kept_impact, kept_count}} (~190 KB for a big archetype). `/slices` (which slices exist), `/history` (`kind`=cards\|matchups, `card`), `/coverage` |
+| `GET /v1/hsreplay/mulligan` | `deck`* (HSReplay shortid), `format`, `rank`=legend (diamond_4to1, diamond, bronze_gold), `initiative`=all (first, coin), `period`=last_30_days (current_patch, current_expansion), `opponent_class`=any (premium only) | `data` {deck {archetype_id, archetype_name, player_class, deck_list [[dbf, count]...]}, state, no_data, games, base_winrate, scope, as_of, `sample` {deck_games, deck_winrate, archetype_games, archetype_winrate, class_games, class_winrate}, opponent_classes[], premium, `rows[]` {dbf_id, card_id, card_name, keep_percentage, opening_hand_winrate, winrate_when_drawn, winrate_when_played, avg_turns_in_hand, avg_turn_played_on, opening_hand_impact, drawn_impact, played_impact}} |
+| `GET /v1/hsreplay/mulligan/decks` | `format`, `rank`, `limit`<=1000 | collected decks {deck_id, archetype_id, archetype_name, player_class, total_games, win_rate, pick_reason, slices_planned, slices_with_data}. Only ~18 decks (Standard 10 popular + 2 by win rate, Wild 5 + 1; `coverage.settings`) |
+| `GET /v1/hsreplay/mulligan/slices`, `/history`, `/coverage` | `deck`* (+ slice params, `card`) | stored slices, snapshots, collection runs |
+
+No endpoint returns card **pairs** (synergies) - `GuidePair` in Mulligan v2 still has no data.
+
+## Card choices (Discover, Adapt, Dredge, Choose One, Excavate)
+
+| Endpoint | Params | Response |
+|---|---|---|
+| `GET /v1/hsreplay/card-choices/cards` | `format`, `kind` (discover, adapt, dredge, choose_one, excavate) | `data[]` (533 cards, 382 discover) {card_id, dbf_id, name, name_ru, kind, card_class, set, formats[], has_hsreplay_stats, collected[]} |
+| `GET /v1/hsreplay/card-choices` | `card`* (card id or dbf), `format`, `rank`=legend (bronze_gold; diamond_4to1/diamond when enabled) | `data` {card {...text}, stats {state, tracked, as_of, stale, options_total}, `options[]` {dbf_id, card_id, name, name_ru, card_class, cost, type, rarity, popularity, win_rate, in_pool, low_sample, undervalued}, `pool` {kind, resolved, class_dependent, total, cards[] {..., has_stats, popularity, win_rate}}, available[] {format, rank}, premium_session} |
+| `GET /v1/hsreplay/card-choices/coverage` | - | per format/rank `targets`, `with_data`, `no_data`; last run (budget-limited) |
+
+## Balance, patches
+
+| Endpoint | Params | Response |
+|---|---|---|
+| `GET /v1/constructed/balance-radar` | `format`=standard\|wild | `data` (~290 KB) {runId, generatedAt, summary (ru), `nerfs[]`/`buffs[]` {ref, kind (class/card), id, dbfId, name, nameEn, class, confidence, headline, verdict, reasons[], suggestedChange, stats {source, rank, period, winrate, popularity, games, topArchetypes}, social {mentions {reddit, x}, sentiment, stance, topPosts[]}, precedents[]}, patch, model, history, accuracy, changesSincePrevious}. Texts are Russian |
+| `GET /v1/constructed/balance-radar/history` | `card`, `direction` (nerf, buff, rework, neutral, mixed), `class`, `since`, `limit`<=100 | coverage since 2023, `contentDrops[]`, `patches[]` {version, date, title(Ru), officialUrl, wikiUrl, manacostUrl, `changes[]` {cardId, dbfId, fields[] {field, before, after}, textBefore/After, direction}, metaBefore[]} |
+| `/balance-radar/runs[/{run_id}]`, `/backtest`, `/confidence-history`, `/patterns` | `format`, `status`, `side`, `runs` | model run history |
+| `GET /api/patches`, `/api/patches/{version}` | `q`, `match_state`, `include_content`, `limit`<=500 | bare {total (321), `patches[]` {version, wiki_url, official_url, official_published_at, official_summary, title (ru), source_url (hs-manacost), sections[] with `include_content`}} |
+
+## Leaderboards (Blizzard)
+
+`mode` = standard, wild, battlegrounds, battlegroundsduo, arena, undergroundarena, twist; `region` = EU (default), US,
+AP. Daily snapshots (`day`); `rating` is null for Standard/Wild (rank only) and set for Battlegrounds and Arena.
+
+| Endpoint | Params | Response |
+|---|---|---|
+| `GET /v1/leaderboards` | `mode`, `region`, `season`, `day`, `q`, `limit`<=100, `offset` | `data` {board {region, mode, season_id, season_start, is_latest, final, rated}, snapshot {day, captured_at, total_size}, days[], total, `rows[]` {rank, name, rating, previous_rank}} |
+| `GET /v1/leaderboards/player` | `name`*, `region`, `mode` | one player's places |
+| `GET /v1/leaderboards/players` | `q`* (name prefix), `region`, `limit`<=50 | `data[]` {region, name, current[] {mode, season_id, rank, rating}} |
+| `GET /v1/leaderboards/stats` | `mode`, `region`, `season`, `bucket` | thresholds {rank 100/1000/5000, rating}, histogram, daily `series[]` |
+| `GET /v1/leaderboards/seasons`, `/coverage` | - | stored seasons per region/mode; collection runs |
+
+## Streamers, Brawl, esports (HSGuru)
+
+| Endpoint | Params | Response |
+|---|---|---|
+| `GET /v1/hsguru/streamers` | `q`, `format` (standard, wild, classic, twist), `player_class`, `language` (only `ru` is read by default), `live`, `days`=30, `sort` (active, followers, decks, rank), `decks`=3, `limit`<=100 | `data[]` (153) {slug, display_name, twitch_url, youtube_url, x_url, links[], avatar_url, followers, decks_total, last_played_at, `live` {title, viewers, started_at, stream_url}, `recent_decks[]`} |
+| `GET /v1/hsguru/streamers/{streamer}`, `/{streamer}/decks` | slug, Twitch login or id | profile with VODs; decks |
+| `GET /v1/hsguru/streaming-now` | `language`, `mode`, `known`, `limit`<=300 | `data[]` {platform, title, viewers, mode, started_at, stream_url, login, display_name, current_deck} |
+| `GET /v1/hsguru/streamer-decks` | `format`, `player_class`, `archetype`, `max_rank`, `days`=7, `limit`<=200 | `data[]` (1864) {deck_id, deck_code, archetype, player_class, format, peak_rank, wins, losses, games, winrate, last_played_at, on_current_stream, vod, streamer {...}} |
+| `GET /v1/constructed/deck-radar` | `status` (candidate, confirmed), `limit` | new exact decks of top-1000 legend streamers {fingerprint, event_type, deck_code, deck_name, streamer, format, first_seen_at}; `meta.beta`, was `stale` on 2026-10-26 |
+| `GET /v1/hsguru/brawl/meta` | `rank`, `coin`, `opponent_class`, `min_games`=10 | `data` {total_games, `items[]` {archetype, winrate, popularity, games, turns, duration_minutes, climbing_speed}} |
+| `GET /v1/hsguru/brawl/decks` | `rank` (all, legend, diamond_to_legend), `class`, `archetype` | `data` {`items[]` {title, class, deck_code, win_rate, games, url}} |
+| `GET /v1/hsguru/esports/tournaments[/{id}]`, `/upcoming` | `kind` (tour_stop, community), `limit` | {tournament_id, name, kind, start_time, tags[], players, complete, winner {name, country}, top_archetypes[] {archetype, lineups, share}}; detail adds standings and lineups |
+| `GET /v1/hsguru/esports/points[/seasons]` | `season`, `leaderboard` (STD, BG_LL), `region` (EU, AM, AP, CN) | {headers[], `items[]` {rank, player {name, battletag, region, country}, <month> points, total}} |
+| `GET /v1/hsguru/esports/legacy/{table}` | `table` (mt-stats, qualifier-stats, mt-points), `selector` | Masters Tour archive |
 
 ## Cards and Battlegrounds libraries (`/api/v1`, page/per_page)
 
@@ -75,11 +156,14 @@ Errors seen: `/v1/*` -> `{"detail": {"code": "INVALID_TOKEN", "message": "..."}}
 | `GET /api/v1/constructed-cards?format=standard\|wild`, `/{card_id}`, `/by-dbf/{dbf}`, `/{card_id}/wiki` | Standard/Wild collectible cards |
 | `GET /api/v1/hero-skins`, `/pets`, `/coins`, `/bartender-skins`, `/diamond-cards` | cosmetics |
 | `GET /api/v1/card-history/{entity}/{card_id}` | stored versions of a card |
-| `GET /api/v1/meta` | library totals, creature types, mechanics, tavern tiers [1..7], counts |
+| `GET /api/v1/meta` | library totals (2026-10-26: BG cards 1419 / 2653 records, heroes 123, timewarped 197, libraries 711, constructed 9950 = Standard 1322 + Wild 6501, in_pool 380), creature types, mechanics, tavern tiers [1..7], counts |
 
-Other read endpoints: `/v1/search` (`q`, `kind`, `limit`<=50, `mode`=hybrid), `/api/patches` (`q`, `match_state`,
-`include_content`, `limit`, `offset`), `/api/patches/{version}`, `/v1/health`, `/v1/sources`, `/v1/datasets`,
-`/v1/arena/classes`, `/v1/constructed/deck-radar`, `/v1/constructed/hsguru-deck`, `/api/db/cards/trends`.
+`/api/v1` library items also carry `tile_layout` (ready deck-tile layout: art URL, fonts, colours, cost/title
+styles). `GET /api/v1/bartender-skins[/{card_id}]` and `GET /api/v1/card-history/card/{card_id}/legacy` exist too.
+
+Other read endpoints: `/v1/search` (`q`*, `kind`, `limit`<=50, `mode`=hybrid; items {id, kind, title, subtitle,
+image_url, metadata, url -> `/v1/materials/{id}`}), `/v1/arena/classes` (`limit`<=100; {class, win_rate, pick_rate,
+pct_7_plus, num_drafts, class_ru}), `/v1/system/parsing-reliability`, `/system/technologies`.
 
 ## Practical notes
 

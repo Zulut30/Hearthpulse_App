@@ -7,6 +7,9 @@ description: Use when Hearthpulse code talks to anything outside the machine or 
 
 Endpoint-by-endpoint detail: [reference/endpoints.md](reference/endpoints.md). Field-level notes on the data API:
 [hearthstone-context reference/kolodahearthstone-api.md](../hearthstone-context/reference/kolodahearthstone-api.md).
+Before adding a new data API call, check that reference first: it lists what exists but the app does not call yet
+(card-choice pick rates, per-deck HSReplay mulligan, matchup matrix, BG hero detail and trinkets, leaderboards,
+balance radar, streamers, Brawl, esports) and which answers are premium-sourced (legal check first).
 Tests use fake handlers, never the network: [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
 
 ## Sources at a glance

@@ -16,7 +16,9 @@ from live game verification.
 References:
 - [reference/power-log.md](reference/power-log.md) - log files, `log.config`/`client.config`, Power.log grammar,
   zones, tags, game types.
-- [reference/kolodahearthstone-api.md](reference/kolodahearthstone-api.md) - the Hearthstone data API
+- [reference/kolodahearthstone-api.md](reference/kolodahearthstone-api.md) - the Hearthstone data API (meta,
+  matchups, mulligan, card-choice pick rates, BG heroes/minions/trinkets, leaderboards, balance radar, patches,
+  streamers, Brawl, esports, card libraries; checked 2026-10-26)
   (BG hero/minion/trinket stats, archetypes, card library) with verified response fields.
 
 ## Game modes
