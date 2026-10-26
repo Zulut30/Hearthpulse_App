@@ -54,7 +54,9 @@ public sealed class RatingChart : Control
         {
             var empty = new FormattedText(Loc.T("Stats.Bg.RatingEmpty"), CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight, typeface, 12, muted);
-            context.DrawText(empty, new Point((w - empty.Width) / 2, (h - empty.Height) / 2));
+            empty.MaxTextWidth = Math.Max(10, w - 20);
+            empty.TextAlignment = TextAlignment.Center;
+            context.DrawText(empty, new Point(10, (h - empty.Height) / 2));
             return;
         }
 
