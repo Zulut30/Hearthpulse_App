@@ -6,9 +6,6 @@ public enum PoolAnchorZone
     /// <summary>A card in your hand (the game shows its enlarged preview above it).</summary>
     Hand,
 
-    /// <summary>A minion or location on your side of the board (the game shows its preview beside it).</summary>
-    Board,
-
     /// <summary>The open Discover options, a row in the middle of the screen.</summary>
     Choice,
 }
@@ -17,8 +14,8 @@ public enum PoolAnchorZone
 /// The card a pool panel belongs to, from the game state the tracker already has (zone, position, counts): the panel is
 /// placed next to it instead of at its saved spot.
 /// </summary>
-/// <param name="Index">0-based slot from the left (hand and board); 0 for a choice.</param>
-/// <param name="Count">Cards in that hand or board row, or Discover options.</param>
+/// <param name="Index">0-based slot from the left in the hand; 0 for a choice.</param>
+/// <param name="Count">Cards in the hand, or Discover options.</param>
 public sealed record CardPoolAnchor(PoolAnchorZone Zone, int Index, int Count);
 
 /// <summary>
@@ -39,28 +36,16 @@ public static class PoolPlacement
     private const double HandPreviewHalf = 150;
     private const double HandTop = 900;
 
-    // Board: your minions in a row at about y 610, 138 apart; the game draws the preview to the right of a minion on the
-    // left half and to the left of one on the right half, about 270 wide.
-    private const double BoardSlot = 138;
-    private const double BoardRow = 610;
-    private const double MinionHalf = 70;
-    private const double BoardPreview = 270;
-
     // Discover: the options are about 300 apart, centred at about y 470.
     private const double ChoiceSlot = 300;
     private const double ChoiceRow = 470;
 
-    /// <summary>Centre x of a hand or board slot, relative to the screen centre.</summary>
+    /// <summary>Centre x of a hand slot, relative to the screen centre.</summary>
     public static double SlotOffset(CardPoolAnchor anchor)
     {
         var count = Math.Max(1, anchor.Count);
         var index = Math.Clamp(anchor.Index, 0, count - 1);
-        var slot = anchor.Zone switch
-        {
-            PoolAnchorZone.Hand => count == 1 ? 0 : Math.Min(HandSlot, HandSpan / (count - 1)),
-            PoolAnchorZone.Board => BoardSlot,
-            _ => 0,
-        };
+        var slot = anchor.Zone == PoolAnchorZone.Hand && count > 1 ? Math.Min(HandSlot, HandSpan / (count - 1)) : 0;
         return (index - ((count - 1) / 2.0)) * slot;
     }
 
@@ -79,18 +64,6 @@ public static class PoolPlacement
                 // Towards the middle of the screen, beside the preview; the panel's bottom stays above the hand.
                 x = card <= centre ? card + HandPreviewHalf + Gap : card - HandPreviewHalf - Gap - panelWidth;
                 y = HandTop - Gap - panelHeight;
-                break;
-            }
-
-            case PoolAnchorZone.Board:
-            {
-                var minion = centre + SlotOffset(anchor);
-                var previewRight = minion <= centre;
-                // The side away from the preview; if the screen ends there, past the preview on the other side.
-                var away = previewRight ? minion - MinionHalf - Gap - panelWidth : minion + MinionHalf + Gap;
-                var past = previewRight ? minion + MinionHalf + BoardPreview + Gap : minion - MinionHalf - BoardPreview - Gap - panelWidth;
-                x = away >= Edge && away + panelWidth <= width - Edge ? away : past;
-                y = BoardRow - (panelHeight / 2);
                 break;
             }
 

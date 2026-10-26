@@ -123,7 +123,7 @@ public sealed partial class GameSession
         PrefetchWiki(engine, game);
         try
         {
-            var pool = _cardPool.BuildView(game, _cards, DateTime.Now);
+            var pool = _cardPool.BuildView(game, _cards);
             return view with { CardPool = pool, CardPoolAnchor = _cardPool.AnchorOf(game, pool), DiscoverPicks = PicksOf(game, pool) };
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException)
@@ -225,8 +225,7 @@ public sealed partial class GameSession
 
                 // Attaching is MemoryPoller's job; only read once it is done.
                 var hovered = active && _memory.IsAttached ? _memory.GetHoveredCardId() : null;
-                // The "just played" pool must also go away when the log is quiet.
-                if (_cardPool.SetHovered(hovered, now) | _cardPool.PlayedExpired(DateTime.Now))
+                if (_cardPool.SetHovered(hovered, now))
                 {
                     _dirty = true;
                 }

@@ -5,15 +5,12 @@ namespace Hearthpulse.Core.CardPool;
 
 /// <summary>
 /// Decides which generator's pool the overlay shows. In priority order: an open Discover choice from a known card,
-/// a pool asked for by the UI (<see cref="Request"/>), the generator under the mouse in your hand or on your
-/// board (<see cref="SetHovered"/>), and a generator you just played (for <see cref="PlayedFor"/>).
+/// a pool asked for by the UI (<see cref="Request"/>) and the generator under the mouse in your hand
+/// (<see cref="SetHovered"/>). Cards on the board and cards just played show no pool.
 /// Log events arrive on the log thread; hover and requests from other threads, hence the lock.
 /// </summary>
 public sealed class CardPoolTracker : IPowerListener
 {
-    /// <summary>How long the pool of a played generator stays up.</summary>
-    public static readonly TimeSpan PlayedFor = TimeSpan.FromSeconds(6);
-
     /// <summary>How long a hovered card's pool stays after the mouse leaves it, so the panel can be reached.</summary>
     public static readonly TimeSpan HoverLinger = TimeSpan.FromSeconds(1.5);
 
@@ -21,8 +18,6 @@ public sealed class CardPoolTracker : IPowerListener
     private string? _choiceSource;
     private int _choiceOptions;
     private (string Source, IReadOnlyList<string> Offered)? _openChoice;
-    private string? _played;
-    private DateTime _playedAt;
     private string? _hovered;
     private string? _lingering;
     private DateTime _lingerUntil;
@@ -37,7 +32,6 @@ public sealed class CardPoolTracker : IPowerListener
         {
             _choiceSource = null;
             _openChoice = null;
-            _played = null;
             _hovered = null;
             _lingering = null;
             _requested = null;
@@ -110,40 +104,7 @@ public sealed class CardPoolTracker : IPowerListener
         }
     }
 
-    public void OnBlockStart(GameState game, string blockType, Entity? source)
-    {
-        if (blockType != "PLAY" || game.IsBattlegrounds || source is not { CardId.Length: > 0 } || source.Controller != game.LocalPlayerId
-            || Engine?.Parse(source.CardId).Status is not (PoolParseStatus.Pool or PoolParseStatus.Uncomputed))
-        {
-            return;
-        }
-
-        lock (_gate)
-        {
-            _played = source.CardId;
-            _playedAt = game.LastActivity;
-        }
-    }
-
     public void OnGameEnded(GameState game) => OnGameStarted(game);
-
-    /// <summary>
-    /// True once when the "just played" pool has run out (<see cref="PlayedFor"/>), so the host can publish again even
-    /// when the log is quiet.
-    /// </summary>
-    public bool PlayedExpired(DateTime now)
-    {
-        lock (_gate)
-        {
-            if (_played is null || now - _playedAt <= PlayedFor)
-            {
-                return false;
-            }
-
-            _played = null;
-            return true;
-        }
-    }
 
     private static bool IsHelperOf(Entity? source, Entity outer) =>
         source is null || source.CardType == "ENCHANTMENT"
@@ -158,7 +119,7 @@ public sealed class CardPoolTracker : IPowerListener
         }
     }
 
-    /// <summary>The card under the mouse (from game memory), or null. Only cards in your hand and on your board count.</summary>
+    /// <summary>The card under the mouse (from game memory), or null. Only cards in your hand count.</summary>
     /// <param name="utcNow">Now (UTC); a card the mouse left stays for <see cref="HoverLinger"/>.</param>
     /// <returns>Whether what is shown may have changed (a new card, or the linger ran out).</returns>
     public bool SetHovered(string? cardId, DateTime utcNow)
@@ -184,7 +145,7 @@ public sealed class CardPoolTracker : IPowerListener
     }
 
     /// <summary>
-    /// Whether a card in your hand or on your board has a pool the overlay would show on hover. Only then is the card under the mouse worth
+    /// Whether a card in your hand has a pool the overlay would show on hover. Only then is the card under the mouse worth
     /// reading from the game (a Discover choice comes from the log).
     /// </summary>
     public bool HandHasPool(GameState game, CardDb cards)
@@ -195,7 +156,7 @@ public sealed class CardPoolTracker : IPowerListener
         }
 
         var context = ContextOf(game, cards);
-        foreach (var card in game.Controlled(game.LocalPlayerId, "HAND").Concat(BoardCards(game)))
+        foreach (var card in game.Controlled(game.LocalPlayerId, "HAND"))
         {
             if (card.CardId.Length > 0 && engine.Build(card.CardId, context, PoolTrigger.Hover) is not null)
             {
@@ -207,21 +168,19 @@ public sealed class CardPoolTracker : IPowerListener
     }
 
     /// <summary>The pool to show now, or null.</summary>
-    /// <param name="now">Local time, compared with log timestamps for the "just played" pool.</param>
-    public CardPoolView? BuildView(GameState game, CardDb cards, DateTime now)
+    public CardPoolView? BuildView(GameState game, CardDb cards)
     {
         if (Engine is not { } engine || game.IsBattlegrounds)
         {
             return null;
         }
 
-        string? choice, requested, hovered, played;
+        string? choice, requested, hovered;
         lock (_gate)
         {
             choice = _choiceSource;
             requested = _requested;
             hovered = _hovered ?? (_lingering is not null && DateTime.UtcNow <= _lingerUntil ? _lingering : null);
-            played = _played is not null && now - _playedAt <= PlayedFor ? _played : null;
         }
 
         var context = ContextOf(game, cards);
@@ -235,12 +194,7 @@ public sealed class CardPoolTracker : IPowerListener
             return fromRequest;
         }
 
-        if (hovered is not null && (InLocalHand(game, hovered) || OnLocalBoard(game, hovered)) && engine.Build(hovered, context, PoolTrigger.Hover) is { } fromHover)
-        {
-            return fromHover;
-        }
-
-        return played is not null ? engine.Build(played, context, PoolTrigger.Played) : null;
+        return hovered is not null && InLocalHand(game, hovered) ? engine.Build(hovered, context, PoolTrigger.Hover) : null;
     }
 
     /// <summary>Game type, format and both classes of a game (classes from the heroes' cards).</summary>
@@ -259,9 +213,8 @@ public sealed class CardPoolTracker : IPowerListener
         : null;
 
     /// <summary>
-    /// Where the card of a pool sits, so the panel can stand next to it: the Discover options, the hovered card in your hand
-    /// or on your board, a generator just played onto the board. Null (the panel's own spot) for a requested pool or a
-    /// played spell. Two copies of a hovered card: the leftmost one.
+    /// Where the card of a pool sits, so the panel can stand next to it: the Discover options or the hovered card in your
+    /// hand. Null (the panel's own spot) for a requested pool. Two copies of a hovered card: the leftmost one.
     /// </summary>
     public CardPoolAnchor? AnchorOf(GameState game, CardPoolView? view)
     {
@@ -281,13 +234,9 @@ public sealed class CardPoolTracker : IPowerListener
             return new CardPoolAnchor(PoolAnchorZone.Choice, 0, Math.Clamp(options, 1, 5));
         }
 
-        var hand = view.Trigger == PoolTrigger.Hover ? Slot(game.Controlled(game.LocalPlayerId, "HAND").ToList(), view.SourceCardId) : null;
-        if (hand is { } h)
-        {
-            return new CardPoolAnchor(PoolAnchorZone.Hand, h.Index, h.Count);
-        }
-
-        return Slot(BoardCards(game).ToList(), view.SourceCardId) is { } b ? new CardPoolAnchor(PoolAnchorZone.Board, b.Index, b.Count) : null;
+        return Slot(game.Controlled(game.LocalPlayerId, "HAND").ToList(), view.SourceCardId) is { } h
+            ? new CardPoolAnchor(PoolAnchorZone.Hand, h.Index, h.Count)
+            : null;
     }
 
     private static (int Index, int Count)? Slot(List<Entity> row, string cardId)
@@ -297,12 +246,6 @@ public sealed class CardPoolTracker : IPowerListener
         return index < 0 ? null : (index, row.Count);
     }
 
-    /// <summary>Your minions and locations on the board (not the hero, hero power or weapon).</summary>
-    private static IEnumerable<Entity> BoardCards(GameState game) =>
-        game.Controlled(game.LocalPlayerId, "PLAY").Where(e => e.CardType is "MINION" or "LOCATION" && e.ZonePosition > 0);
-
     private static bool InLocalHand(GameState game, string cardId) =>
         game.Controlled(game.LocalPlayerId, "HAND").Any(e => e.CardId == cardId);
-
-    private static bool OnLocalBoard(GameState game, string cardId) => BoardCards(game).Any(e => e.CardId == cardId);
 }

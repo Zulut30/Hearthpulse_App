@@ -8,7 +8,7 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// The pool panel's chart and placement: which cards a histogram column holds, the most played cards, where the panel
-/// stands next to its card (hand, board, Discover options) and the tracker's anchor from the game state.
+/// stands next to its card (hand, Discover options) and the tracker's anchor from the game state.
 /// </summary>
 public sealed class CardPoolPanelTests
 {
@@ -57,10 +57,14 @@ public sealed class CardPoolPanelTests
         Assert.Equal(9, PoolStats.Bucket(new PoolEntry("X", "X", 12, 9, 15, "MINION", "COMMON", "MAGE", 0), "Health"));
     }
 
+    // The compact panel: 300 wide, about 400 high (more with the pick hint of an open choice).
+    private const double PanelWidth = 300;
+    private const double PanelHeight = 400;
+
     [Fact]
     public void The_panel_stands_beside_the_hovered_hand_card_and_above_the_hand()
     {
-        const double w = 372, h = 560;
+        const double w = PanelWidth, h = PanelHeight;
         var left = new CardPoolAnchor(PoolAnchorZone.Hand, 0, 6);
         var leftCard = 960 + PoolPlacement.SlotOffset(left);
         var (x, y) = PoolPlacement.Place(left, 1920, w, h);
@@ -73,41 +77,40 @@ public sealed class CardPoolPanelTests
         (x, _) = PoolPlacement.Place(right, 1920, w, h);
         Assert.True(x + w <= rightCard - 150);
         Assert.True(rightCard > leftCard);
-    }
 
-    [Fact]
-    public void On_the_board_the_panel_takes_the_side_away_from_the_preview_unless_the_screen_ends_there()
-    {
-        var minion = new CardPoolAnchor(PoolAnchorZone.Board, 0, 4);
-        var centre = 960 + PoolPlacement.SlotOffset(minion);
-        var (x, y) = PoolPlacement.Place(minion, 1920, 372, 500);
-        Assert.True(x + 372 <= centre - 70);
-        Assert.InRange(y, 8, 1080 - 8 - 500);
-
-        // The far-left minion of a full board with a wide panel: no room on its left, so past the preview on its right.
-        var edge = new CardPoolAnchor(PoolAnchorZone.Board, 0, 7);
-        (x, _) = PoolPlacement.Place(edge, 1920, 600, 500);
-        Assert.True(x >= 960 + PoolPlacement.SlotOffset(edge) + 70 + 270);
+        // The hovered card itself stays clear: the panel is beside its preview, not over the card.
+        for (var i = 0; i < 10; i++)
+        {
+            var anchor = new CardPoolAnchor(PoolAnchorZone.Hand, i, 10);
+            var card = 960 + PoolPlacement.SlotOffset(anchor);
+            (x, y) = PoolPlacement.Place(anchor, 1920, w, h);
+            Assert.True(x >= card + 150 || x + w <= card - 150);
+            Assert.InRange(y, 8, 900 - h);
+        }
     }
 
     [Fact]
     public void Beside_the_Discover_options_and_always_on_screen()
     {
         var choice = new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3);
-        var (x, _) = PoolPlacement.Place(choice, 1920, 372, 560);
+        var (x, _) = PoolPlacement.Place(choice, 1920, PanelWidth, PanelHeight);
         Assert.True(x >= 960 + 450);
-        Assert.True(x + 372 <= 1920);
+        Assert.True(x + PanelWidth <= 1920);
 
-        foreach (var anchor in new[] { choice, new CardPoolAnchor(PoolAnchorZone.Hand, 9, 10), new CardPoolAnchor(PoolAnchorZone.Board, 6, 7) })
+        // Five options on a narrow 4:3 screen leave no room on the right: left of the row, still on screen.
+        foreach (var anchor in new[] { choice, new CardPoolAnchor(PoolAnchorZone.Choice, 0, 5), new CardPoolAnchor(PoolAnchorZone.Hand, 0, 10), new CardPoolAnchor(PoolAnchorZone.Hand, 9, 10) })
         {
-            var (nx, ny) = PoolPlacement.Place(anchor, 1440, 372, 700);
-            Assert.InRange(nx, 8, 1440 - 8 - 372);
-            Assert.InRange(ny, 8, 1080 - 8 - 700);
+            foreach (var height in new[] { PanelHeight, 560 })
+            {
+                var (nx, ny) = PoolPlacement.Place(anchor, 1440, PanelWidth, height);
+                Assert.InRange(nx, 8, 1440 - 8 - PanelWidth);
+                Assert.InRange(ny, 8, 1080 - 8 - height);
+            }
         }
 
         // The overlay's own scale enlarges the panel but not the game's cards.
-        var (sx, sy) = PoolPlacement.PlaceOnSurface(choice, 1920 / 1.25, 1.25, 372, 560);
-        var (gx, gy) = PoolPlacement.Place(choice, 1920, 372 * 1.25, 560 * 1.25);
+        var (sx, sy) = PoolPlacement.PlaceOnSurface(choice, 1920 / 1.25, 1.25, PanelWidth, PanelHeight);
+        var (gx, gy) = PoolPlacement.Place(choice, 1920, PanelWidth * 1.25, PanelHeight * 1.25);
         Assert.Equal(gx / 1.25, sx, 6);
         Assert.Equal(gy / 1.25, sy, 6);
     }
@@ -151,7 +154,7 @@ public sealed class CardPoolPanelTests
             "DebugPrintGame() - PlayerID=1, PlayerName=velox#21276",
             "DebugPrintGame() - PlayerID=2, PlayerName=UNKNOWN HUMAN PLAYER",
         };
-        // Hand: three cards, Blazing Invocation in the middle; board: Swashburglar left of another minion.
+        // Hand: three cards, Blazing Invocation in the middle; board: Swashburglar (a generator) left of another minion.
         foreach (var (id, cardId, zone, type, position) in new[]
                  {
                      (60, "CS2_029", "HAND", "SPELL", 1), (61, "CORE_GIL_836", "HAND", "SPELL", 2), (62, "CS2_025", "HAND", "SPELL", 3),
@@ -172,18 +175,16 @@ public sealed class CardPoolPanelTests
 
         parser.Flush();
         var game = parser.Game!;
-        var now = game.LastActivity;
 
         tracker.SetHovered("CORE_GIL_836", DateTime.UtcNow);
-        var hand = tracker.BuildView(game, cards, now)!;
+        var hand = tracker.BuildView(game, cards)!;
         Assert.Equal(PoolTrigger.Hover, hand.Trigger);
         Assert.Equal(new CardPoolAnchor(PoolAnchorZone.Hand, 1, 3), tracker.AnchorOf(game, hand));
 
-        // A generator on your board shows its pool on hover too, next to the minion.
+        // A generator on your board shows no pool on hover; only the hand counts for memory reads too.
         tracker.SetHovered("CORE_KAR_069", DateTime.UtcNow);
-        var board = tracker.BuildView(game, cards, now)!;
-        Assert.Equal("CORE_KAR_069", board.SourceCardId);
-        Assert.Equal(new CardPoolAnchor(PoolAnchorZone.Board, 0, 2), tracker.AnchorOf(game, board));
+        Assert.Null(tracker.BuildView(game, cards));
+        Assert.True(tracker.HandHasPool(game, cards));
 
         // An open Discover choice comes first and stands beside the options.
         foreach (var line in new[]
@@ -199,13 +200,49 @@ public sealed class CardPoolPanelTests
         }
 
         parser.Flush();
-        var choice = tracker.BuildView(game, cards, now)!;
+        var choice = tracker.BuildView(game, cards)!;
         Assert.Equal(PoolTrigger.Choice, choice.Trigger);
         Assert.Equal(new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3), tracker.AnchorOf(game, choice));
 
         // A requested pool has no card on the screen: the panel keeps its own spot.
         tracker.OnChoiceMade(game);
         tracker.Request("CORE_KAR_069");
-        Assert.Null(tracker.AnchorOf(game, tracker.BuildView(game, cards, now)));
+        Assert.Null(tracker.AnchorOf(game, tracker.BuildView(game, cards)));
+    }
+
+    [Fact]
+    public void Memory_is_not_read_for_a_generator_that_is_only_on_the_board()
+    {
+        var cards = CardDb.Empty;
+        var tracker = new CardPoolTracker { Engine = new CardPoolEngine(Fixture.Value, cards) };
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        parser.AddListener(tracker);
+        foreach (var line in new[]
+                 {
+                     "DebugPrintPower() - CREATE_GAME",
+                     "DebugPrintPower() -     GameEntity EntityID=1",
+                     "DebugPrintPower() -         tag=CARDTYPE value=GAME",
+                     "DebugPrintPower() -     Player EntityID=2 PlayerID=1 GameAccountId=[hi=144115198130930503 lo=11]",
+                     "DebugPrintPower() -         tag=CONTROLLER value=1",
+                     "DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+                     "DebugPrintPower() -     Player EntityID=3 PlayerID=2 GameAccountId=[hi=144115198130930503 lo=22]",
+                     "DebugPrintPower() -         tag=CONTROLLER value=2",
+                     "DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+                     "DebugPrintGame() - GameType=GT_RANKED",
+                     "DebugPrintGame() - FormatType=FT_STANDARD",
+                     "DebugPrintGame() - PlayerID=1, PlayerName=velox#21276",
+                     "DebugPrintGame() - PlayerID=2, PlayerName=UNKNOWN HUMAN PLAYER",
+                     "DebugPrintPower() - FULL_ENTITY - Creating ID=70 CardID=CORE_KAR_069",
+                     "DebugPrintPower() -     tag=ZONE value=PLAY",
+                     "DebugPrintPower() -     tag=CONTROLLER value=1",
+                     "DebugPrintPower() -     tag=CARDTYPE value=MINION",
+                     "DebugPrintPower() -     tag=ZONE_POSITION value=1",
+                 })
+        {
+            parser.Feed("D 12:30:00.0000000 GameState." + line);
+        }
+
+        parser.Flush();
+        Assert.False(tracker.HandHasPool(parser.Game!, cards));
     }
 }

@@ -23,13 +23,13 @@ public sealed record PoolChartTab(string Stat, string Label, bool Selected);
 /// <param name="Label">The axis value: "3", "7+".</param>
 /// <param name="Height">Bar height in overlay units.</param>
 /// <param name="Hovered">The pointer is on this column: its cards are listed.</param>
-public sealed record PoolChartBar(int Index, string Label, int Count, string PercentText, double Height, bool IsMedian, bool Hovered)
+public sealed record PoolChartBar(int Index, string Label, int Count, double Height, bool IsMedian, bool Hovered)
 {
     public bool IsEmpty => Count == 0;
 }
 
-/// <summary>One mechanic of the pool: label, share and the bar's filled width in overlay units.</summary>
-public sealed record PoolMechanicRow(string Label, string PercentText, double FillWidth);
+/// <summary>One mechanic chip of the pool: label and share.</summary>
+public sealed record PoolMechanicRow(string Label, string PercentText);
 
 /// <summary>A mechanic filter chip of the pool browser, or (Section) one of the generator's pools.</summary>
 public sealed record PoolChipModel(string Key, string Label, bool Selected, bool Section = false);
@@ -46,23 +46,25 @@ public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards);
 public sealed record PoolPickRowModel(string CardId, string Name, string PickText, double FillWidth, string WinText, bool Top);
 
 /// <summary>
-/// The card pool: a compact panel (pool of the generator being discovered from, hovered or just played) and the pool
-/// browser, a full-height side panel with every card, opened by right-click on the compact panel or by
-/// <see cref="GameSession.ShowCardPool"/>.
+/// The card pool: a compact panel (pool of the generator being discovered from or hovered in hand, about 300 x 350
+/// units) and the pool browser, a full-height side panel with every card, opened by right-click on the compact panel or
+/// by <see cref="GameSession.ShowCardPool"/>.
 /// </summary>
 public sealed partial class OverlayViewModel
 {
-    private const double BarMaxHeight = 96;
+    /// <summary>Height of the tallest chart bar in overlay units (a low chart: the browser has the full view).</summary>
+    private const double BarMaxHeight = 34;
 
-    /// <summary>Width of a mechanic bar's track; the most common mechanic fills it.</summary>
-    private const double MechanicTrack = 164;
+    /// <summary>The most common mechanics, shown as chips.</summary>
+    private const int MechanicChipCount = 6;
 
     /// <summary>Width of a pick bar's track; an option taken every time it is offered fills it.</summary>
-    private const double PickTrack = 200;
+    private const double PickTrack = 72;
 
     private const int TopCardCount = 4;
 
-    private const int BucketCardCount = 14;
+    /// <summary>Cards listed for a hovered chart column (two columns, they cover mechanics and top cards).</summary>
+    private const int BucketCardCount = 8;
 
     private static readonly string[] CardPoolStats = ["Cost", "Attack", "Health"];
 
@@ -75,8 +77,7 @@ public sealed partial class OverlayViewModel
     private string _cardPoolSource = string.Empty;
     private string _cardPoolDescription = string.Empty;
     private string _cardPoolPhrase = string.Empty;
-    private string _cardPoolClasses = string.Empty;
-    private string _cardPoolFormat = string.Empty;
+    private string _cardPoolMeta = string.Empty;
     private string _cardPoolStat = "Cost";
     private string _cardPoolChartStat = "Cost";
     private int? _cardPoolBar;
@@ -92,7 +93,6 @@ public sealed partial class OverlayViewModel
     private PoolEntry? _cardPoolFeatured;
     private string _cardPoolFeaturedNote = string.Empty;
     private bool _cardPoolHasCards;
-    private string _cardPoolSourceNote = string.Empty;
     private IReadOnlyList<PoolChipModel> _cardPoolSections = [];
     private string? _cardPoolSection;
     private RelayCommand? _toggleCardPoolSection;
@@ -140,12 +140,12 @@ public sealed partial class OverlayViewModel
     }
 
     /// <summary>
-    /// The compact panel at its own (movable) spot, for a pool whose card is not on the screen (a request, a played spell).
+    /// The compact panel at its own (movable) spot, for a pool whose card is not on the screen (a request).
     /// Hidden while the browser (which repeats its header) is open, so they never overlap.
     /// </summary>
     public bool ShowCardPoolPanel => ShowCardPool && !CardPoolBrowserOpen && CardPoolAnchor is null;
 
-    /// <summary>The same panel next to its card: the hovered card in hand or on the board, or the Discover options.</summary>
+    /// <summary>The same panel next to its card: the hovered card in hand or the Discover options.</summary>
     public bool ShowCardPoolPopup => ShowCardPool && !CardPoolBrowserOpen && CardPoolAnchor is not null;
 
     /// <summary>Where the pool's card sits; the overlay places <see cref="ShowCardPoolPopup"/> beside it.</summary>
@@ -176,11 +176,8 @@ public sealed partial class OverlayViewModel
     /// <summary>The generator's words: "Discover a Battlecry minion" (or why the pool is not computed).</summary>
     public string CardPoolPhrase { get => _cardPoolPhrase; private set => Set(ref _cardPoolPhrase, value); }
 
-    /// <summary>The classes the pool is cut from: "Shaman + Neutral".</summary>
-    public string CardPoolClasses { get => _cardPoolClasses; private set => Set(ref _cardPoolClasses, value); }
-
-    /// <summary>"Standard", "Wild" or "from the past".</summary>
-    public string CardPoolFormat { get => _cardPoolFormat; private set => Set(ref _cardPoolFormat, value); }
+    /// <summary>One line under the title: classes, format and source, "Shaman + Neutral · Standard · pool: card text".</summary>
+    public string CardPoolMeta { get => _cardPoolMeta; private set => Set(ref _cardPoolMeta, value); }
 
     /// <summary>The chart's stat: "Cost", "Attack" or "Health" (English, for the view's colour triggers).</summary>
     public string CardPoolStat
@@ -209,7 +206,7 @@ public sealed partial class OverlayViewModel
     /// <summary>"median 4".</summary>
     public string CardPoolMedianText { get => _cardPoolMedianText; private set => Set(ref _cardPoolMedianText, value); }
 
-    /// <summary>The most common mechanics as bars.</summary>
+    /// <summary>The most common mechanics as chips, highest share first.</summary>
     public IReadOnlyList<PoolMechanicRow> CardPoolMechanicRows { get => _cardPoolMechanicRows; private set => Set(ref _cardPoolMechanicRows, value); }
 
     /// <summary>The pool cards played in the most meta-deck games; empty without meta data.</summary>
@@ -234,9 +231,6 @@ public sealed partial class OverlayViewModel
 
     /// <summary>"312 choices from this card · Hearthpulse stats pool, 30 days", or that the pool has too few yet.</summary>
     public string CardPoolPicksNote { get => _cardPoolPicksNote; private set => Set(ref _cardPoolPicksNote, value); }
-
-    /// <summary>"pool: Hearthstone Wiki" or "pool: card text".</summary>
-    public string CardPoolSourceNote { get => _cardPoolSourceNote; private set => Set(ref _cardPoolSourceNote, value); }
 
     /// <summary>The generator's separate pools ("Blood Rune 29"); in the browser the selected one filters the grid.</summary>
     public IReadOnlyList<PoolChipModel> CardPoolSections
@@ -513,12 +507,9 @@ public sealed partial class OverlayViewModel
         CardPoolSource = pool.SourceName;
         CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {PoolDisplay.Reason(reason)}" : $"{pool.Phrase} · {pool.Description}";
         CardPoolHasCards = pool.Uncomputed is null;
-        CardPoolSourceNote = pool.Uncomputed is null ? Loc.F("Pool.SourceNote", PoolDisplay.Source(pool.Source)) : string.Empty;
-        // Description is "classes · format".
-        var parts = pool.Description.Split(" · ");
         CardPoolPhrase = pool.Uncomputed is { } why ? $"{pool.SourceName}: {PoolDisplay.Reason(why)}" : pool.Phrase;
-        CardPoolClasses = pool.Uncomputed is null && parts.Length > 1 ? string.Join(" · ", parts[..^1]) : string.Empty;
-        CardPoolFormat = pool.Uncomputed is null ? parts[^1] : string.Empty;
+        // Description is "classes · format"; the source follows it.
+        CardPoolMeta = pool.Uncomputed is null ? $"{pool.Description} · {Loc.F("Pool.SourceNote", PoolDisplay.Source(pool.Source))}" : string.Empty;
         UpdateSectionChips();
         _cardPoolChartStat = "Cost";
         _cardPoolBar = null;
@@ -527,10 +518,8 @@ public sealed partial class OverlayViewModel
             .Select(s => new PoolChartTab(s, PoolDisplay.Stat(s), false))
             .ToList();
         BuildCardPoolChart();
-        var mechanics = pool.Mechanics.Take(PoolStats.MaxMechanics).Select(PoolDisplay.Mechanic).ToList();
-        var top = mechanics.Count > 0 ? mechanics.Max(m => m.Percent) : 1;
-        CardPoolMechanicRows = mechanics
-            .Select(m => new PoolMechanicRow(m.Label, m.PercentText, Math.Max(2, MechanicTrack * m.Percent / top)))
+        CardPoolMechanicRows = pool.Mechanics.Take(MechanicChipCount).Select(PoolDisplay.Mechanic)
+            .Select(m => new PoolMechanicRow(m.Label, m.PercentText))
             .ToList();
         CardPoolTopCards = PoolStats.TopCards(pool, TopCardCount);
         CardPoolFeatured = pool.Featured;
@@ -634,8 +623,7 @@ public sealed partial class OverlayViewModel
                 i,
                 b.Label,
                 b.Count,
-                b.Count == 0 ? string.Empty : Percent(100.0 * b.Count / histogram.Count),
-                b.Count == 0 ? 2 : 6 + (b.Height * (BarMaxHeight - 6)),
+                b.Count == 0 ? 2 : 4 + (b.Height * (BarMaxHeight - 4)),
                 b.IsMedian,
                 i == _cardPoolBar))
             .ToList();
@@ -647,10 +635,6 @@ public sealed partial class OverlayViewModel
         CardPoolBucketCards = cards.Take(BucketCardCount).ToList();
         CardPoolBucketMore = cards.Count > BucketCardCount ? Loc.F("Pool.More", cards.Count - BucketCardCount) : string.Empty;
     }
-
-    /// <summary>"12%"; "0.5%" under 1%.</summary>
-    private static string Percent(double value) =>
-        value.ToString(value < 1 ? "0.#" : "0", CultureInfo.InvariantCulture) + "%";
 
     /// <summary>The section chips of the current pool; the selected one only while the browser is open.</summary>
     private void UpdateSectionChips() =>

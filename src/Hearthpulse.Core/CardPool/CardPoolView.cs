@@ -6,9 +6,6 @@ public enum PoolTrigger
     /// <summary>A Discover choice from a known card is open.</summary>
     Choice,
 
-    /// <summary>A generator was just played (shown for a few seconds).</summary>
-    Played,
-
     /// <summary>The mouse is over a generator card in hand.</summary>
     Hover,
 

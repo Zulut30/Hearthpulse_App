@@ -9,17 +9,24 @@ using Hearthpulse.Core.CardPool;
 namespace Hearthpulse.App.Overlay;
 
 /// <summary>
-/// The card pool panel. It appears on its own (Discover, a play, a hovered card), often over the board, so it lets
+/// The card pool panel. It appears on its own (Discover, a hovered card in hand), often over the board, so it lets
 /// clicks through to the game: the pointer and mouse buttons are read while it is shown and handed to
 /// <see cref="OverlayViewModel.UpdateCardPoolPointer"/> (hold the pool, right-click opens the pool browser) and
 /// <see cref="OverlayViewModel.HoverCardPoolChart"/> (chart tabs and columns react to hover).
 /// With <see cref="Anchored"/> it sits in a Canvas over the whole surface and stands next to its card.
+/// It fades in and rises a few units when it appears or its pool changes (<see cref="Reveal"/>).
 /// </summary>
 public partial class CardPoolPanel : UserControl
 {
+    private static readonly TimeSpan RevealTime = TimeSpan.FromMilliseconds(170);
+
+    /// <summary>How far below its spot the panel starts when it fades in, in overlay units.</summary>
+    private const double RevealRise = 6;
+
     private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromMilliseconds(50) };
     private OverlayViewModel? _subscribed;
     private string _chartKey = string.Empty;
+    private string _revealKey = string.Empty;
     private bool _pointerWasOver;
 
     public CardPoolPanel()
@@ -31,7 +38,10 @@ public partial class CardPoolPanel : UserControl
             if (IsVisible)
             {
                 _poll.Start();
+                // Measured and placed before the first frame, so the panel never shows at its previous spot.
+                UpdateLayout();
                 Place();
+                Reveal();
             }
             else
             {
@@ -82,7 +92,35 @@ public partial class CardPoolPanel : UserControl
             case nameof(OverlayViewModel.CardPoolBars):
                 GrowBars();
                 break;
+            case nameof(OverlayViewModel.CardPoolTitle) or nameof(OverlayViewModel.CardPoolPhrase) or nameof(OverlayViewModel.CardPoolSource):
+                if (IsVisible && RevealKey() != _revealKey)
+                {
+                    Reveal();
+                }
+
+                break;
         }
+    }
+
+    private string RevealKey() => ViewModel is { } vm ? $"{vm.CardPoolSource}|{vm.CardPoolTitle}|{vm.CardPoolPhrase}" : string.Empty;
+
+    /// <summary>
+    /// A short fade and rise (ease-out) when the panel appears or shows another pool; nothing when Windows' animation
+    /// setting is off. The position is set before, so only the panel itself moves the few units.
+    /// </summary>
+    private void Reveal()
+    {
+        _revealKey = RevealKey();
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            Card.BeginAnimation(OpacityProperty, null);
+            CardShift.BeginAnimation(TranslateTransform.YProperty, null);
+            return;
+        }
+
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        Card.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, RevealTime) { EasingFunction = ease });
+        CardShift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(RevealRise, 0, RevealTime) { EasingFunction = ease });
     }
 
     /// <summary>Stands next to the card: <see cref="PoolPlacement"/> in surface units, from the panel's measured size.</summary>

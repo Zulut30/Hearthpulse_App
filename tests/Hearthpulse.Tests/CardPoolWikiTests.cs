@@ -83,7 +83,7 @@ public sealed class CardPoolWikiTests
         // Hematurge's wiki page was read on 2026-10-12: its 23 Blood Rune cards miss the 6 of the newest set.
         var (engine, _) = await EngineAsync("CORE_RLK_066");
 
-        var view = engine.Build("CORE_RLK_066", DeathKnight, PoolTrigger.Played)!;
+        var view = engine.Build("CORE_RLK_066", DeathKnight, PoolTrigger.Hover)!;
 
         Assert.Equal(29, view.Count);
         Assert.Equal("card text (the Hearthstone Wiki list is older: 23 of 29)", view.Source);
@@ -128,7 +128,7 @@ public sealed class CardPoolWikiTests
     {
         var (engine, _) = await EngineAsync("EDR_841");
 
-        var view = engine.Build("EDR_841", DeathKnight with { OwnClass = "DEMONHUNTER" }, PoolTrigger.Played)!;
+        var view = engine.Build("EDR_841", DeathKnight with { OwnClass = "DEMONHUNTER" }, PoolTrigger.Hover)!;
 
         Assert.Equal("a named group of cards that the catalog does not mark", view.Uncomputed);
     }

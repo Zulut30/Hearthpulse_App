@@ -1,8 +1,9 @@
 # Card pool panel ("Discover pool")
 
-For a card that Discovers or creates random cards, the overlay shows the pool the cards come from, next to the card:
-size, classes, format and source, a large Cost/Attack/Health chart with the median, the share of each mechanic, the most
-played pool cards and, on right-click, the pool browser with every card. Everything is built from game data and card text; no code of other trackers was used. The
+For a card that Discovers or creates random cards, the overlay shows the pool the cards come from, next to the card in
+your hand or the Discover options, as a compact tooltip (300 units wide): size, classes, format and source on one line, a
+low Cost/Attack/Health chart with the median, the most common mechanics as chips, the most played pool cards as small
+tiles and, on right-click, the pool browser with every card. Everything is built from game data and card text; no code of other trackers was used. The
 idea of a pool panel with a list of options is known from HDT's Outfinder; the layout here follows the spec this
 project was given.
 
@@ -124,7 +125,7 @@ them (ids written to `CardPoolTables.Overrides`):
   `playable spell`), pool from another card (`of the same Cost/Rarity`), named token groups (Animal Companions,
   Dormant Dreadseeds, Dream cards, Leylines, Shatter, Masks, Rewind cards, Wild Gods, Old Gods, contraband, Mimiron's
   tech card). Status `Uncomputed`: the compact panel says "Pool not computed" with the reason (on a Discover from the
-  card, while it is hovered and after it is played) instead of showing nothing; logged as `pool not computed`.
+  card and while it is hovered in hand) instead of showing nothing; logged as `pool not computed`.
   Rune pools ("Discover a Blood Rune card", "a Blood, Frost or Unholy card") are read by the parser since
   2026-10-23: `PoolQuery.Runes`, rune costs from HearthstoneJSON, any class (only Death Knight cards have runes).
 - `sub` / `text` - parse a corrected text (`2-Cost minion that is Dormant for 2 turns` -> `2-Cost minion`,
@@ -138,8 +139,8 @@ python3 -I tools/cardpool/gen_pool_tables.py cards.enUS.json src/Hearthpulse.Cor
 
 ## Mechanic percentages
 
-Share of pool cards per mechanic, highest first, at most 8 bars (`PoolStats.MaxMechanics`; the most common one fills
-its track, the share is written next to it). A mechanic counts when it is in the card's
+Share of pool cards per mechanic, highest first (`PoolStats.Mechanics`, at most `PoolStats.MaxMechanics` = 8); the
+compact panel shows the first 6 as chips "Taunt 12.8%" (`OverlayViewModel.MechanicChipCount`). A mechanic counts when it is in the card's
 `mechanics` or `referencedTags` (so "Give a minion Taunt" counts as Taunt). Shown mechanics and labels:
 `PoolKeywords.Shown`; technical tags (TRIGGER_VISUAL, AURA, ImmuneToSpellpower...) are not shown. Mechanics every pool
 card has (the filter itself, e.g. Battlecry in a Battlecry pool) and those no card has are left out.
@@ -157,15 +158,22 @@ Text rules (`PoolStats`, over the English text):
 Cost 0..6 and 7+ (all pool cards); Attack 0..6 and 7+ (minions and weapons); Health 1..9 and 10+ (minions). The
 median is the usual median of the cards that have the stat (halves shown as 3.5); its bar is highlighted.
 
-The panel draws one stat at a time as a large chart: tabs Cost / Attack / Health (only stats some pool card has),
-rounded bars with a gradient per stat (tokens `PoolStatCostBar`, `PoolStatAttackBar`, `PoolStatHealthBar`; keys starting
-with `PoolStat` are never recoloured by a theme), the count and share above each bar, the median bar with a sheen and an
-outline, and an axis of mana gems (Cost), round tokens (Attack) or drops (Health). The panel lets clicks through, so it
-reacts to hover only: the pointer on a tab switches the chart, on a column lists that column's cards over the lower part
-of the panel (`PoolStats.CardsIn`: the most played in meta decks first, 14 at most, "+N more"). Below the chart: the
-mechanic bars and the four most played pool cards as art thumbnails (`PoolStats.TopCards`; hidden without meta data).
+The panel draws one stat at a time as a low chart (bars at most 34 units, `OverlayViewModel.BarMaxHeight`): tabs
+Cost / Attack / Health (only stats some pool card has), rounded bars with a gradient per stat (tokens `PoolStatCostBar`,
+`PoolStatAttackBar`, `PoolStatHealthBar`; keys starting with `PoolStat` are never recoloured by a theme), the count above
+each bar, the median bar with a sheen and an outline, and an axis of small mana gems (Cost), round tokens (Attack) or
+drops (Health). The panel lets clicks through, so it reacts to hover only: the pointer on a tab switches the chart, on a
+column lists that column's cards over the lower part of the panel (`PoolStats.CardsIn`: the most played in meta decks
+first, 8 at most, "+N more"). Below the chart: the mechanic chips and the four most played pool cards as small art tiles
+with cost and name (`PoolStats.TopCards`; hidden without meta data). The full lists are in the pool browser.
 Everything is built when the pool changes; a tab or a column only rebuilds the chart. The bars grow in (260 ms) on a
-new pool or tab in WPF when Windows' animation setting is on; the Avalonia UI does not animate.
+new pool or tab in WPF when Windows' animation setting is on.
+
+The panel fades in and rises 6 units (170 ms, cubic ease-out) when it appears or shows another pool, in both UIs, only
+with Windows' animation setting on (WPF `SystemParameters.ClientAreaAnimation`, Avalonia `PoolInput.AnimationsOn`, so
+not on macOS/Linux). Its position next to the card is set before the first frame (WPF measures it on becoming visible),
+so it never shows at the previous spot; only the panel itself moves the few units. `--render-ui` turns the Avalonia fade
+off (`CardPoolPanel.Motion`); the WPF render waits long enough for it to finish.
 
 ## When the panel shows
 
@@ -176,16 +184,16 @@ new pool or tab in WPF when Windows' animation setting is on; the Avalonia UI do
    for hover over deck and hand rows, which another branch reworks; today only `--render-ui` calls it.
    `GameSession.BuildCardPool(cardId, context)` builds a view outside the live game.
 3. **Hover**: the card under the mouse, read from game memory every 200 ms on its own thread, when it is in your hand
-   (`GameState` HAND zone) or one of your minions or locations on the board (PLAY zone, `ZONE_POSITION` > 0).
-4. **Just played**: a generator you played (`PLAY` block), for 6 s of log time (the hover thread also ends it when the
-   log is quiet).
+   (`GameState` HAND zone).
 
-Only in Ranked/Casual/Friendly games and with the overlay setting "Show card pool" on. The catalog is downloaded only
-while that setting is on. Game memory is read (every 200 ms, on its own thread) only while a pool can be shown: setting
-on, catalog loaded, a supported mode; the thread ends after 10 s without a Constructed game. Its read errors do not
-change the memory status shown in the app.
+Cards on the board (minions, locations) and a generator just played show no pool (since 2026-10-26: the panel over
+the board got in the way). Only in Ranked/Casual/Friendly games and with the overlay setting "Show card pool" on. The
+catalog is downloaded only while that setting is on. Game memory is read (every 200 ms, on its own thread) only while a
+pool can be shown on hover: setting on, catalog loaded, a supported mode and a card with a pool in your hand
+(`CardPoolTracker.HandHasPool`); the thread ends after 10 s without a Constructed game. Its read errors do not change
+the memory status shown in the app.
 
-The compact panel lets clicks through to the game on every desktop (it appears on its own over the board): the pointer
+The compact panel lets clicks through to the game on every desktop (it appears on its own over the game): the pointer
 and the mouse buttons are read globally - WPF while the panel is shown; Avalonia through the overlay platform layer
 (`IOverlayPlatform.PointerPosition`/`MouseButtons`: `GetAsyncKeyState` on Windows, `CGEventSourceButtonState` on macOS,
 `XQueryPointer` on X11), the same way the other click-through panels get the pointer. Only the pool browser takes the
@@ -201,22 +209,20 @@ and counts the log already gives):
 
 - **Hand** (hover): beside the preview that rises above the hovered card, towards the middle of the screen, its bottom
   above the hand.
-- **Board** (hover, or a minion just played): on the side away from the preview the game draws beside a minion (right of
-  minions on the left half, left of those on the right half); past the preview when the screen ends there.
 - **Discover**: right of the row of options (left of it when there is no room).
 
 The geometry is measured on 16:9 screenshots in units of a 1080-high screen centred horizontally, the way Hearthstone
 lays out its board; the panel undoes the player's overlay scale and is kept on screen. Two copies of the hovered card in
-hand: the leftmost. A pool whose card is not on screen (a request, a played spell) and the layout mode use the movable
-panel `card-pool` (top left by default, 372 units wide, next to the opponent panel), clear of the Discover options. The
+hand: the leftmost. A pool whose card is not on screen (a request) and the layout mode use the movable
+panel `card-pool` (top left by default, 300 units wide, next to the opponent panel), clear of the Discover options. The
 panel next to its card is a second `CardPoolPanel` in a Canvas over the surface (`Anchored`), not a `MovablePanel`.
 
 ## What players take (pick hint)
 
-While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the chart:
-each offered card, the share of offers in which stats pool players took it (bar and percent), the share of games they
-won after taking it, a "most taken" mark when one option leads the next by 5 points or more, and a line with the
-number of choices from this card in the pool's 30 days. Numbers only, never advice or a click for the player.
+While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the chart,
+one line per offered card: its name, the share of offers in which stats pool players took it (bar and percent), the
+share of games they won after taking it, the name in gold with a star when one option leads the next by 5 points or
+more; then a line with the number of choices from this card in the pool's 30 days. Numbers only, never advice or a click for the player.
 
 - **Data: our own stats pool, not HSReplay.** The legal check (`reference/reviews/LEGAL-HeartLens-card-choices.md`,
   2026-10-26) ruled out `api.kolodahearthstone.com/v1/hsreplay/card-choices` (HSReplay Premium data scraped without
@@ -279,8 +285,9 @@ it is read fresh each time. Not checked: outside a match (expected null), during
   this date, Wild + HearthstoneJSON minion types, English text for Standard cards): 26 real Standard generators with
   pool sizes counted by a separate script from the raw API pages (one hand-written filter per card), parser cases
   (not a generator / not a pool / unrecognized / counts, costs, keyword lists, schools, class clauses), histograms,
-  text rules, the view (filter mechanic left out, highlighted card) and the tracker on a synthetic Power.log (play ->
-  choice -> request -> hover outside the hand -> played expiry), the supported game types, `PoolText.Normalize` and
+  text rules, the view (filter mechanic left out, highlighted card) and the tracker on a synthetic Power.log (hover in
+  hand -> play, no pool -> choice -> request -> hover outside the hand; a board generator gives no pool and no memory
+  reads, `CardPoolPanelTests`), the supported game types, `PoolText.Normalize` and
   `ParseApiPage`. After a rotation: `tools/cardpool/pool_fixture.py fetch|fixture|check` rebuilds the fixture and
   recounts the expected sizes with its own hand-written filters (the committed fixture is reproduced exactly).
 - **Real logs**: replaying 11 Constructed games (10 Standard, 1 Wild; Power.logs of 2026-10-21..23) met 12 generator

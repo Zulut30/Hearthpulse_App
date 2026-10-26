@@ -1,27 +1,43 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Hearthpulse.Core.CardPool;
 
 namespace Hearthpulse.UI.Overlay;
 
 /// <summary>
-/// The card pool panel. It appears on its own (Discover, a play, a hovered card), often over the board, so it lets
+/// The card pool panel. It appears on its own (Discover, a hovered card in hand), often over the board, so it lets
 /// clicks through to the game on every desktop, like the other click-through panels: the overlay host reads the pointer
 /// and mouse buttons through its platform layer and passes them in (<see cref="OverlayView.UpdateCardPoolPointer"/>);
 /// chart tabs and columns react to hover (<see cref="OverlayViewModel.HoverCardPoolChart"/>).
 /// With <see cref="Anchored"/> it sits in a Canvas over the whole surface and stands next to its card.
+/// It fades in and rises a few units when it appears or its pool changes (<see cref="Reveal"/>).
 /// </summary>
 public partial class CardPoolPanel : UserControl
 {
+    private static readonly TimeSpan RevealTime = TimeSpan.FromMilliseconds(170);
+
+    /// <summary>How far below its spot the panel starts when it fades in, in overlay units.</summary>
+    private const double RevealRise = 6;
+
+    private readonly TranslateTransform _shift = new();
+    private readonly DispatcherTimer _reveal = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private readonly Stopwatch _revealClock = new();
     private OverlayViewModel? _subscribed;
     private bool _pointerWasOver;
+    private bool _shown;
+    private string _revealKey = string.Empty;
 
     public CardPoolPanel()
     {
         InitializeComponent();
+        Card.RenderTransform = _shift;
+        _reveal.Tick += (_, _) => StepReveal();
         SizeChanged += (_, _) => Place();
         PropertyChanged += (_, e) =>
         {
@@ -31,6 +47,9 @@ public partial class CardPoolPanel : UserControl
             }
         };
     }
+
+    /// <summary>Off for --render-ui, which captures the overlay right after an update.</summary>
+    public static bool Motion { get; set; } = true;
 
     /// <summary>The panel is the popup next to its card (in a Canvas over the surface), not the movable panel's content.</summary>
     public bool Anchored { get; set; }
@@ -62,9 +81,69 @@ public partial class CardPoolPanel : UserControl
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(OverlayViewModel.CardPoolAnchor))
+        if (sender is not OverlayViewModel vm)
         {
-            Place();
+            return;
+        }
+
+        switch (e.PropertyName)
+        {
+            case nameof(OverlayViewModel.CardPoolAnchor):
+                Place();
+                break;
+            case nameof(OverlayViewModel.ShowCardPoolPanel) or nameof(OverlayViewModel.ShowCardPoolPopup):
+                // The movable panel hides its content through its own host, so the view model says when this one shows.
+                var shown = Anchored ? vm.ShowCardPoolPopup : vm.ShowCardPoolPanel;
+                if (shown && !_shown)
+                {
+                    Place();
+                    Reveal();
+                }
+
+                _shown = shown;
+                break;
+            case nameof(OverlayViewModel.CardPoolTitle) or nameof(OverlayViewModel.CardPoolPhrase) or nameof(OverlayViewModel.CardPoolSource):
+                if (_shown && RevealKey() != _revealKey)
+                {
+                    Reveal();
+                }
+
+                break;
+        }
+    }
+
+    private string RevealKey() => DataContext is OverlayViewModel vm ? $"{vm.CardPoolSource}|{vm.CardPoolTitle}|{vm.CardPoolPhrase}" : string.Empty;
+
+    /// <summary>
+    /// A short fade and rise (ease-out) when the panel appears or shows another pool; only with the Windows animation
+    /// setting on, like the pool browser. The position is set before, so only the panel itself moves the few units.
+    /// </summary>
+    private void Reveal()
+    {
+        _revealKey = RevealKey();
+        if (!Motion || !PoolInput.AnimationsOn())
+        {
+            _reveal.Stop();
+            Card.Opacity = 1;
+            _shift.Y = 0;
+            return;
+        }
+
+        Card.Opacity = 0;
+        _shift.Y = RevealRise;
+        _revealClock.Restart();
+        _reveal.Start();
+    }
+
+    private void StepReveal()
+    {
+        var t = Math.Min(1, _revealClock.Elapsed / RevealTime);
+        var eased = 1 - Math.Pow(1 - t, 3);
+        Card.Opacity = eased;
+        _shift.Y = RevealRise * (1 - eased);
+        if (t >= 1)
+        {
+            _reveal.Stop();
         }
     }
 

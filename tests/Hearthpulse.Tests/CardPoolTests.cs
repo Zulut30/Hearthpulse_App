@@ -202,7 +202,7 @@ public sealed class CardPoolTests
         Assert.Equal(156, view.Cost.Count);
         Assert.Equal(view.Cards.OrderBy(c => c.Cost).Select(c => c.Cost), view.Cards.Select(c => c.Cost));
         // A named group the catalog does not mark has no cards, only the reason (the "Pool not computed" panel).
-        Assert.Equal(0, new CardPoolEngine(Fixture.Value, CardDb.Empty).Build("EDR_841", Standard("WARLOCK"), PoolTrigger.Played)!.Count);
+        Assert.Equal(0, new CardPoolEngine(Fixture.Value, CardDb.Empty).Build("EDR_841", Standard("WARLOCK"), PoolTrigger.Hover)!.Count);
 
         // The browser's filter chips: every mechanic some but not all cards have; each card knows its own.
         Assert.True(view.Filters.Count >= view.Mechanics.Count);
@@ -230,7 +230,7 @@ public sealed class CardPoolTests
     }
 
     [Fact]
-    public void The_tracker_follows_the_play_the_choice_and_requests()
+    public void The_tracker_follows_the_hand_the_choice_and_requests()
     {
         var cards = CardDb.Parse("enUS", new MemoryStream("""
             [
@@ -271,23 +271,40 @@ public sealed class CardPoolTests
             "DebugPrintPower() -     tag=ZONE value=HAND",
             "DebugPrintPower() -     tag=CONTROLLER value=1",
             "DebugPrintPower() -     tag=CARDTYPE value=SPELL",
-            "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=X id=50 zone=HAND zonePos=1 cardId=CORE_GIL_836 player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
-            "DebugPrintPower() -     TAG_CHANGE Entity=[entityName=X id=50 zone=HAND zonePos=1 cardId=CORE_GIL_836 player=1] tag=ZONE value=PLAY ",
-            "DebugPrintPower() - BLOCK_END",
         ];
         foreach (var line in lines)
         {
             parser.Feed("D 12:30:00.0000000 GameState." + line);
         }
 
+        parser.Flush();
         var game = parser.Game!;
-        var logTime = game.LastActivity;
+        Assert.True(tracker.HandHasPool(game, cards));
+        Assert.Null(tracker.BuildView(game, cards));
 
-        var played = tracker.BuildView(game, cards, logTime.AddSeconds(1))!;
-        Assert.Equal(PoolTrigger.Played, played.Trigger);
-        Assert.Equal(156, played.Count);
-        Assert.Equal("Mage + Neutral · Standard", played.Description);
-        Assert.Null(tracker.BuildView(game, cards, logTime + CardPoolTracker.PlayedFor + TimeSpan.FromSeconds(1)));
+        // Hovered in hand.
+        tracker.SetHovered("CORE_GIL_836", DateTime.UtcNow);
+        var hovered = tracker.BuildView(game, cards)!;
+        Assert.Equal(PoolTrigger.Hover, hovered.Trigger);
+        Assert.Equal(156, hovered.Count);
+        Assert.Equal("Mage + Neutral · Standard", hovered.Description);
+        tracker.SetHovered(null, DateTime.UtcNow - CardPoolTracker.HoverLinger - TimeSpan.FromSeconds(1));
+        tracker.SetHovered(null, DateTime.UtcNow);
+
+        // Played: a card that left the hand shows no pool, not even for a few seconds.
+        foreach (var line in new[]
+                 {
+                     "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=X id=50 zone=HAND zonePos=1 cardId=CORE_GIL_836 player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
+                     "DebugPrintPower() -     TAG_CHANGE Entity=[entityName=X id=50 zone=HAND zonePos=1 cardId=CORE_GIL_836 player=1] tag=ZONE value=PLAY ",
+                     "DebugPrintPower() - BLOCK_END",
+                 })
+        {
+            parser.Feed("D 12:30:00.5000000 GameState." + line);
+        }
+
+        parser.Flush();
+        Assert.Null(tracker.BuildView(game, cards));
+        Assert.False(tracker.HandHasPool(game, cards));
 
         foreach (var line in new[]
                  {
@@ -300,27 +317,22 @@ public sealed class CardPoolTests
         }
 
         parser.Flush();
-        var choice = tracker.BuildView(game, cards, logTime.AddMinutes(1))!;
+        var choice = tracker.BuildView(game, cards)!;
         Assert.Equal(PoolTrigger.Choice, choice.Trigger);
         Assert.Contains(choice.Cards, c => c.CardId == "BE_014");
 
         tracker.Request("CORE_KAR_069");
-        Assert.Equal(PoolTrigger.Choice, tracker.BuildView(game, cards, logTime.AddMinutes(1))!.Trigger);
+        Assert.Equal(PoolTrigger.Choice, tracker.BuildView(game, cards)!.Trigger);
         tracker.OnChoiceMade(game);
-        var requested = tracker.BuildView(game, cards, logTime.AddMinutes(1))!;
+        var requested = tracker.BuildView(game, cards)!;
         Assert.Equal(PoolTrigger.Request, requested.Trigger);
         Assert.Equal("CORE_KAR_069", requested.SourceCardId);
         tracker.Request(null);
-        Assert.Null(tracker.BuildView(game, cards, logTime.AddMinutes(1)));
+        Assert.Null(tracker.BuildView(game, cards));
 
         // Hover counts only for cards in your hand: the played Blazing Invocation is not.
         tracker.SetHovered("CORE_GIL_836", DateTime.UtcNow);
-        Assert.Null(tracker.BuildView(game, cards, logTime.AddMinutes(1)));
-
-        // The "just played" pool runs out once, so the host publishes again even with a quiet log.
-        Assert.False(tracker.PlayedExpired(logTime.AddSeconds(1)));
-        Assert.True(tracker.PlayedExpired(logTime.AddMinutes(1)));
-        Assert.False(tracker.PlayedExpired(logTime.AddMinutes(2)));
+        Assert.Null(tracker.BuildView(game, cards));
     }
 
     [Fact]
@@ -376,17 +388,17 @@ public sealed class CardPoolTests
     [InlineData("CORE_BOT_256", "the pool depends on the game state")] // a minion with Cost equal to your hand size
     public void Generators_the_catalog_cannot_answer_get_a_pool_not_computed_view(string cardId, string reason)
     {
-        var view = Engine().Build(cardId, Standard("DEMONHUNTER"), PoolTrigger.Played)!;
+        var view = Engine().Build(cardId, Standard("DEMONHUNTER"), PoolTrigger.Hover)!;
 
         Assert.Equal(PoolParseStatus.Uncomputed, Engine().Parse(cardId).Status);
         Assert.Equal(reason, view.Uncomputed);
         Assert.Equal(0, view.Count);
         Assert.Empty(view.Cards);
-        Assert.Null(Engine().Build("CORE_CS2_029", Standard("MAGE"), PoolTrigger.Played)); // Fireball generates nothing
+        Assert.Null(Engine().Build("CORE_CS2_029", Standard("MAGE"), PoolTrigger.Hover)); // Fireball generates nothing
     }
 
     [Fact]
-    public void The_scion_discover_of_a_real_game_shows_its_rune_pool_and_a_played_named_group_says_why_it_has_none()
+    public void The_scion_discover_of_a_real_game_shows_its_rune_pool_and_a_hovered_named_group_says_why_it_has_none()
     {
         // Lines from Hearthstone_2026_10_23_18_17_17 (18:29:16): Scion of Insight offers an Unholy, a Frost and a Blood card.
         var cards = CardDb.Parse("enUS", new MemoryStream("""
@@ -443,7 +455,7 @@ public sealed class CardPoolTests
 
         parser.Flush();
         var game = parser.Game!;
-        var choice = tracker.BuildView(game, cards, game.LastActivity)!;
+        var choice = tracker.BuildView(game, cards)!;
         Assert.Equal(PoolTrigger.Choice, choice.Trigger);
         Assert.Equal("BE_298", choice.SourceCardId);
         Assert.Equal(70, choice.Count);
@@ -457,7 +469,23 @@ public sealed class CardPoolTests
                      "DebugPrintPower() -     tag=ZONE value=HAND",
                      "DebugPrintPower() -     tag=CONTROLLER value=1",
                      "DebugPrintPower() -     tag=CARDTYPE value=MINION",
+                 })
+        {
+            parser.Feed("D 18:30:00.0000000 GameState." + line);
+        }
+
+        parser.Flush();
+        tracker.SetHovered("EDR_841", DateTime.UtcNow);
+        var hovered = tracker.BuildView(game, cards)!;
+        Assert.Equal(PoolTrigger.Hover, hovered.Trigger);
+        Assert.Equal("EDR_841", hovered.SourceCardId);
+        Assert.Equal("a named group of cards that the catalog does not mark", hovered.Uncomputed);
+
+        // Once played it shows nothing.
+        foreach (var line in new[]
+                 {
                      "DebugPrintPower() - BLOCK_START BlockType=PLAY Entity=[entityName=X id=27 zone=HAND zonePos=1 cardId=EDR_841 player=1] EffectCardId=System.Collections.Generic.List`1[System.String] EffectIndex=0 Target=0 SubOption=-1 ",
+                     "DebugPrintPower() -     TAG_CHANGE Entity=[entityName=X id=27 zone=HAND zonePos=1 cardId=EDR_841 player=1] tag=ZONE value=PLAY ",
                      "DebugPrintPower() - BLOCK_END",
                  })
         {
@@ -465,10 +493,7 @@ public sealed class CardPoolTests
         }
 
         parser.Flush();
-        var played = tracker.BuildView(game, cards, game.LastActivity)!;
-        Assert.Equal(PoolTrigger.Played, played.Trigger);
-        Assert.Equal("EDR_841", played.SourceCardId);
-        Assert.Equal("a named group of cards that the catalog does not mark", played.Uncomputed);
+        Assert.Null(tracker.BuildView(game, cards));
     }
 
     [Theory]

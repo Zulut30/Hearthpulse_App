@@ -5,12 +5,13 @@ using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI;
 using Hearthpulse.UI.Infrastructure;
+using Hearthpulse.UI.Overlay;
 
 namespace Hearthpulse.Desktop;
 
 /// <summary>
 /// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman) beside the Discover options
-/// and hovered in hand with a chart column under the pointer, a large pool (Swashburglar) on the board, Scion of
+/// and hovered in hand with a chart column under the pointer, a large pool (Swashburglar) at the left of the hand, Scion of
 /// Insight's rune pool hovered in hand, the "Pool not computed" panel of Dreadsoul Corrupter at its own spot, then the
 /// pool browser for Thief's Tools with its filters open, and with one filter on.
 /// </summary>
@@ -18,6 +19,8 @@ internal static class CardPoolRender
 {
     public static async Task RenderAsync(AppHost host, AppSettings settings, string folder, Func<string, Task> save)
     {
+        // Frames are captured right after each update: no fade-in.
+        CardPoolPanel.Motion = false;
         var catalog = await CardPoolCatalog.LoadAsync(host.Api, host.Http);
         var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(host.Api), host.Cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, host.Cards.Locale);
         var wiki = new WikiPoolSource(new HearthpulseData(host.Api));
@@ -46,14 +49,14 @@ internal static class CardPoolRender
             host.Overlay.HoverCardPoolChart(null, null);
         }
 
-        // A large pool (Swashburglar, a card from another class) just played onto the board; Death Knight runes (from
-        // HearthstoneJSON) hovered in hand; a named group the catalog cannot answer, played: no card on screen, the panel's
-        // own spot.
+        // A large pool (Swashburglar, a card from another class) hovered as the leftmost card in hand; Death Knight runes
+        // (from HearthstoneJSON) hovered in hand; a named group the catalog cannot answer, asked for from a deck row: no
+        // card on screen, the panel's own spot.
         foreach (var (cardId, ownClass, trigger, anchor, name) in new (string, string, PoolTrigger, CardPoolAnchor?, string)[]
                  {
-                     ("CORE_KAR_069", "ROGUE", PoolTrigger.Played, new CardPoolAnchor(PoolAnchorZone.Board, 1, 4), "overlay-card-pool-large.png"),
+                     ("CORE_KAR_069", "ROGUE", PoolTrigger.Hover, new CardPoolAnchor(PoolAnchorZone.Hand, 0, 4), "overlay-card-pool-large.png"),
                      ("BE_298", "DEATHKNIGHT", PoolTrigger.Hover, new CardPoolAnchor(PoolAnchorZone.Hand, 1, 5), "overlay-card-pool-runes.png"),
-                     ("EDR_841", "DEMONHUNTER", PoolTrigger.Played, null, "overlay-card-pool-uncomputed.png"),
+                     ("EDR_841", "DEMONHUNTER", PoolTrigger.Request, null, "overlay-card-pool-uncomputed.png"),
                  })
         {
             if (engine.Build(cardId, new PoolContext("FT_STANDARD", ownClass, "WARRIOR"), trigger) is { } extra)
