@@ -23,6 +23,8 @@ public partial class App
             ("overlay-arena-hero", ArenaDraftScene.HeroPick(meta, _cards), _settings.OverlayScale),
             ("overlay-arena-pick", ArenaDraftScene.CardPick(meta, _cards), _settings.OverlayScale),
             ("overlay-arena-pick-scale160", ArenaDraftScene.CardPick(meta, _cards), 1.6),
+            ("overlay-arena-heropower", ArenaDraftScene.HeroPowerPick(meta, _cards), _settings.OverlayScale),
+            ("overlay-arena-package", ArenaDraftScene.PackagePick(meta, _cards), _settings.OverlayScale),
         };
         var (scale, shown) = (_settings.OverlayScale, _settings.ShowArenaDraft);
         // The helper is a beta that is off by default; the scenes show it on (the settings file is not saved here).

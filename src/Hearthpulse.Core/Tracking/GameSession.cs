@@ -684,7 +684,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             WantRaces: battlegrounds && !_racesRead,
             WantRanks: inGame && game!.IsConstructedLike && !_ranksRead && game.Turn >= 1,
             _awaitingRatingKey,
-            WantDraftChoices: _scene == "DRAFT");
+            WantDraftChoices: WantDraftChoices);
     }
 
     /// <summary>Applies a memory reading on the tracking thread. Values read for an earlier game are dropped.</summary>

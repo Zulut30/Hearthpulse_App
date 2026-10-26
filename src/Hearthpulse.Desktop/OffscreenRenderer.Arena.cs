@@ -32,6 +32,8 @@ internal static partial class OffscreenRenderer
             ("overlay-arena-hero", ArenaDraftScene.HeroPick(meta, host.Cards), settings.OverlayScale),
             ("overlay-arena-pick", ArenaDraftScene.CardPick(meta, host.Cards), settings.OverlayScale),
             ("overlay-arena-pick-scale160", ArenaDraftScene.CardPick(meta, host.Cards), 1.6),
+            ("overlay-arena-heropower", ArenaDraftScene.HeroPowerPick(meta, host.Cards), settings.OverlayScale),
+            ("overlay-arena-package", ArenaDraftScene.PackagePick(meta, host.Cards), settings.OverlayScale),
         };
         var (scale, shown) = (settings.OverlayScale, settings.ShowArenaDraft);
         // The helper is a beta that is off by default; the scenes show it on (the settings file is not saved here).

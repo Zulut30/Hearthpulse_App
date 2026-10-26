@@ -21,6 +21,15 @@
         <Style Selector="TextBlock.className">
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
         </Style>
+        <Style Selector="Border.curveBar">
+            <Setter Property="Background" Value="{StaticResource AccentDeep}" />
+        </Style>
+        <Style Selector="Border.curveBar.offered">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="TextBlock.curveCost.offered">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
         <Style Selector="TextBlock.className.offered">
             <Setter Property="Foreground" Value="{StaticResource Accent}" />
             <Setter Property="FontWeight" Value="Bold" />
@@ -38,6 +47,7 @@
                            VerticalAlignment="Center" />
             </Grid>
             <TextBlock Text="{Binding ArenaDraftTitle}" FontSize="15" FontWeight="SemiBold" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding ArenaMode}" FontSize="10.5" Foreground="{StaticResource Muted}" IsVisible="{Binding ArenaMode, Converter={StaticResource Truthy}}" />
 
             <!-- Average score of the deck so far and the mana curve, once a card is picked -->
             <StackPanel IsVisible="{Binding ArenaHasPicks}">
@@ -66,14 +76,18 @@
                         <DataTemplate x:DataType="o:ArenaCurveBar">
                             <StackPanel Margin="2,0" VerticalAlignment="Bottom">
                                 <TextBlock Text="{Binding Count}" FontSize="9.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+                                <!-- The costs of the offered cards are lit, so the curve shows where each would go -->
                                 <Panel Height="34">
-                                    <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2" Background="{StaticResource Accent}" />
+                                    <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2" Classes="curveBar" Classes.offered="{Binding Offered}" />
                                 </Panel>
-                                <TextBlock Text="{Binding Label}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding Label}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,2,0,0"
+                                           Classes="curveCost" Classes.offered="{Binding Offered}" />
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <TextBlock Text="{Binding ArenaTypes}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,6,0,0" TextWrapping="Wrap"
+                           IsVisible="{Binding ArenaTypes, Converter={StaticResource Truthy}}" />
             </StackPanel>
 
             <!-- Hero pick: classes by community win rate, the offered ones in gold -->
@@ -117,6 +131,8 @@
             <TextBlock Text="{Binding ArenaNoData}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
                        IsVisible="{Binding ArenaNoData, Converter={StaticResource Truthy}}" />
             <TextBlock Text="{Binding ArenaSource}" FontSize="9.5" Foreground="{StaticResource Faint}" Margin="0,9,0,0" />
+            <TextBlock Text="{Binding ArenaSliceNote}" FontSize="9.5" Foreground="{StaticResource Faint}" TextWrapping="Wrap"
+                       IsVisible="{Binding ArenaSliceNote, Converter={StaticResource Truthy}}" />
         </StackPanel>
     </Border>
 </UserControl>

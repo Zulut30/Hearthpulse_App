@@ -29,11 +29,14 @@ namespace Hearthpulse.UI.Overlay;
 /// <summary>The badge over one offered draft card (or hero): tier, score (or class win rate), a caption.</summary>
 /// <param name="Number">ArenaSmith score ("54") or class win rate ("55.4%"); "—" without numbers.</param>
 /// <param name="Tier">Tier letter for the colour, or empty.</param>
-/// <param name="Caption">"ArenaSmith", "Best pick", or the 7+ wins share of a class.</param>
-public sealed record ArenaPickBadge(string CardId, string Number, string Tier, string Caption, bool IsBest);
+/// <param name="Caption">"Card score", "Best pick", or the class's place and 7+ wins share.</param>
+/// <param name="FitCost">Where the card sits on the curve: "3 mana · 4 in deck"; empty for a hero.</param>
+/// <param name="FitType">Its type in the deck ("Spell · 5 in deck") or the package it brings ("+2 cards"); empty for a hero.</param>
+public sealed record ArenaPickBadge(string CardId, string Number, string Tier, string Caption, bool IsBest, string FitCost = "", string FitType = "");
 
 /// <summary>One bar of the draft's mana curve.</summary>
-public sealed record ArenaCurveBar(string Label, int Count, double Height);
+/// <param name="Offered">An offered card costs this much: the bar is highlighted.</param>
+public sealed record ArenaCurveBar(string Label, int Count, double Height, bool Offered = false);
 
 /// <summary>One distinct card of the deck so far.</summary>
 public sealed record ArenaDeckRow(string CardId, string Cost, string Name, string Copies, string Score, string Tier);
@@ -77,6 +80,9 @@ public sealed partial class OverlayViewModel
     private IReadOnlyList<ArenaDeckRow> _arenaDeck = [];
     private IReadOnlyList<ArenaClassRow> _arenaClasses = [];
     private string _arenaNoData = string.Empty;
+    private string _arenaMode = string.Empty;
+    private string _arenaTypes = string.Empty;
+    private string _arenaSliceNote = string.Empty;
     private bool _arenaHasPicks;
     private string? _arenaPrint;
 
@@ -118,6 +124,15 @@ public sealed partial class OverlayViewModel
     /// <summary>Why there are no numbers (server and cache empty), else empty.</summary>
     public string ArenaNoData { get => _arenaNoData; private set => Set(ref _arenaNoData, value); }
 
+    /// <summary>"Underground Arena" or "Normal Arena" once the client told the run's mode, else empty.</summary>
+    public string ArenaMode { get => _arenaMode; private set => Set(ref _arenaMode, value); }
+
+    /// <summary>Card types of the deck so far: "12 minions · 5 spells · 1 weapon"; empty before the first card.</summary>
+    public string ArenaTypes { get => _arenaTypes; private set => Set(ref _arenaTypes, value); }
+
+    /// <summary>"Scores come from Underground Arena games" when the run is the other mode, else empty.</summary>
+    public string ArenaSliceNote { get => _arenaSliceNote; private set => Set(ref _arenaSliceNote, value); }
+
     /// <summary>"Hearthpulse data · ArenaSmith score".</summary>
     public string ArenaSource => Loc.F("Arena.Source", ArenaMeta.Attribution);
 
@@ -125,7 +140,8 @@ public sealed partial class OverlayViewModel
     {
         var shown = settings.OverlayEnabled && settings.ShowArenaDraft && draft is not null;
         ShowArenaDraft = shown;
-        ShowArenaPicks = shown && draft!.Options.Count > 0;
+        // Hero powers have no numbers: their pick shows only the panel.
+        ShowArenaPicks = shown && draft!.Options.Count > 0 && draft.Phase is ArenaDraftPhase.Hero or ArenaDraftPhase.Cards;
         if (!shown)
         {
             _arenaPrint = null;
@@ -137,8 +153,8 @@ public sealed partial class OverlayViewModel
         ArenaPickDrop = draft.HeroPick ? ArenaHeroDrop / scale : 0;
 
         // Snapshots arrive every 100 ms while anything changes; rebuild only when what the panels show changed.
-        var print = $"{Loc.Instance.Language}|{draft.PlayerClass}|{draft.HasData}|{draft.Score.Average:0.00}|"
-                    + string.Join(",", draft.Options.Select(o => $"{o.CardId}:{o.Score}:{o.WinRate}:{o.IsBest}")) + "|"
+        var print = $"{Loc.Instance.Language}|{draft.PlayerClass}|{draft.HasData}|{draft.Score.Average:0.00}|{draft.Phase}|{draft.Underground}|{draft.ScoresFromOtherMode}|"
+                    + string.Join(",", draft.Options.Select(o => $"{o.CardId}:{o.Score}:{o.WinRate}:{o.IsBest}:{o.SameCost}:{o.SameType}:{o.Package?.Count}")) + "|"
                     + string.Join(",", draft.Deck.Select(c => $"{c.CardId}:{c.Count}:{c.Score}")) + "|"
                     + string.Join(",", draft.Classes.Select(c => $"{c.PlayerClass}:{c.WinRate}:{c.Offered}"));
         if (print == _arenaPrint)
@@ -148,32 +164,38 @@ public sealed partial class OverlayViewModel
 
         _arenaPrint = print;
         var culture = CultureInfo.CurrentCulture;
-        ArenaPicks = draft.Options.Select(o => draft.HeroPick
-                ? new ArenaPickBadge(o.CardId,
-                    o.WinRate?.ToString("P1", culture) ?? "—",
-                    o.Tier ?? string.Empty,
-                    o.IsBest ? Loc.T("Arena.BestClass")
-                        : draft.Classes.FirstOrDefault(c => c.PlayerClass == o.PlayerClass)?.SevenPlus is { } seven ? Loc.F("Arena.SevenPlus", seven.ToString("P0", culture))
-                        : ClassName(o.PlayerClass),
-                    o.IsBest)
-                : new ArenaPickBadge(o.CardId,
-                    o.Score?.ToString("0", culture) ?? "—",
-                    o.Tier ?? string.Empty,
-                    o.IsBest ? Loc.T("Arena.BestPick") : o.Score is null ? Loc.T("Arena.NoScore") : Loc.T("Arena.Score"),
-                    o.IsBest))
-            .ToList();
+        ArenaPicks = draft.Phase is ArenaDraftPhase.Hero or ArenaDraftPhase.Cards
+            ? draft.Options.Select(o => draft.HeroPick ? HeroBadge(o, draft, culture) : CardBadge(o, culture)).ToList()
+            : [];
 
-        ArenaDraftTitle = draft.PlayerClass is { } cls ? ClassName(cls) : Loc.T("Arena.ChooseHero");
+        // The hero power is picked after the hero, so the class is known by then: the pick still gets its own title.
+        ArenaDraftTitle = draft.Phase == ArenaDraftPhase.HeroPower ? Loc.T("Arena.ChooseHeroPower")
+            : draft.PlayerClass is { } cls ? ClassName(cls)
+            : Loc.T("Arena.ChooseHero");
         ArenaDraftPicks = $"{draft.Picks}/{ArenaDraft.DeckSize}";
+        ArenaMode = draft.Underground switch
+        {
+            true => Loc.T("Arena.Mode.Underground"),
+            false => Loc.T("Arena.Mode.Normal"),
+            null => string.Empty,
+        };
+        ArenaSliceNote = draft.ScoresFromOtherMode
+            ? Loc.T(draft.Underground == true ? "Arena.Slice.Normal" : "Arena.Slice.Underground")
+            : string.Empty;
         ArenaAverage = draft.Score.Average?.ToString("0.0", culture) ?? "—";
         ArenaHasPicks = draft.Picks > 0;
         ArenaAverageTier = draft.Score.Tier ?? string.Empty;
         var most = Math.Max(1, draft.Score.Curve.Max());
+        var offeredCosts = draft.Phase == ArenaDraftPhase.Cards
+            ? draft.Options.Where(o => o.Cost is not null).Select(o => ArenaDraft.Bucket(o.Cost!.Value)).ToHashSet()
+            : [];
         ArenaCurve = draft.Score.Curve.Select((count, cost) => new ArenaCurveBar(
                 cost == ArenaDraft.CurveBuckets - 1 ? $"{cost}+" : cost.ToString(culture),
                 count,
-                count == 0 ? 2 : Math.Max(4, ArenaCurveHeight * count / most)))
+                count == 0 ? 2 : Math.Max(4, ArenaCurveHeight * count / most),
+                offeredCosts.Contains(cost)))
             .ToList();
+        ArenaTypes = TypesLine(draft.Types ?? ArenaDeckTypes.Empty);
         ArenaDeck = draft.Deck.Select(c => new ArenaDeckRow(
                 c.CardId,
                 c.Cost.ToString(culture),
@@ -191,5 +213,48 @@ public sealed partial class OverlayViewModel
             .ToList();
         ArenaNoData = draft.HasData ? string.Empty : Loc.T("Arena.NoData");
         Raise(nameof(ArenaSource));
+    }
+
+    /// <summary>A hero: class win rate, its place among the classes and the 7+ wins share.</summary>
+    private static ArenaPickBadge HeroBadge(ArenaPickOption o, ArenaDraftView draft, CultureInfo culture)
+    {
+        var seven = draft.Classes.FirstOrDefault(c => c.PlayerClass == o.PlayerClass)?.SevenPlus;
+        var caption = o.IsBest ? Loc.T("Arena.BestClass")
+            : seven is { } s ? Loc.F("Arena.SevenPlus", s.ToString("P0", culture))
+            : ClassName(o.PlayerClass);
+        var rank = o.ClassRank is { } place && draft.Classes.Count > 0 ? Loc.F("Arena.ClassRank", place, draft.Classes.Count) : string.Empty;
+        var detail = o.IsBest && seven is { } best ? Loc.F("Arena.SevenPlusShort", best.ToString("P0", culture)) : string.Empty;
+        return new ArenaPickBadge(o.CardId, o.WinRate?.ToString("P1", culture) ?? "—", o.Tier ?? string.Empty, caption, o.IsBest, rank, detail);
+    }
+
+    /// <summary>A card: its score, and where it would sit in the deck (curve bucket and type, or its package).</summary>
+    private static ArenaPickBadge CardBadge(ArenaPickOption o, CultureInfo culture)
+    {
+        var caption = o.IsBest ? Loc.T("Arena.BestPick") : o.Score is null ? Loc.T("Arena.NoScore") : Loc.T("Arena.Score");
+        var cost = o.Cost is { } c
+            ? Loc.F("Arena.Fit", Loc.P("Arena.Mana", c), o.SameCost)
+            : string.Empty;
+        var type = o.Package is { Count: > 0 } package ? Loc.P("Arena.Package", package.Count)
+            : o.CardType is { } kind && TypeName(kind) is { Length: > 0 } name ? Loc.F("Arena.Fit", name, o.SameType)
+            : string.Empty;
+        return new ArenaPickBadge(o.CardId, o.Score?.ToString("0", culture) ?? "—", o.Tier ?? string.Empty, caption, o.IsBest, cost, type);
+    }
+
+    /// <summary>"Minion", "Spell"... for the badge; empty for a type the draft does not offer.</summary>
+    private static string TypeName(string cardType) => cardType switch
+    {
+        "MINION" or "SPELL" or "WEAPON" or "LOCATION" or "HERO" => Loc.T("Arena.Type." + cardType),
+        _ => string.Empty,
+    };
+
+    /// <summary>"12 minions · 5 spells · 1 weapon": the types the deck has, empty before the first card.</summary>
+    private static string TypesLine(ArenaDeckTypes types)
+    {
+        var parts = new List<string>(4);
+        if (types.Minions > 0) parts.Add(Loc.P("Arena.Types.Minions", types.Minions));
+        if (types.Spells > 0) parts.Add(Loc.P("Arena.Types.Spells", types.Spells));
+        if (types.Weapons > 0) parts.Add(Loc.P("Arena.Types.Weapons", types.Weapons));
+        if (types.Locations > 0) parts.Add(Loc.P("Arena.Types.Locations", types.Locations));
+        return string.Join(" · ", parts);
     }
 }

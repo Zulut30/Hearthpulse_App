@@ -18,17 +18,21 @@ public sealed partial class HearthpulseData
     {
         var cards = LoadArenaCardsAsync(cancellationToken);
         var classes = LoadArenaClassesAsync(cancellationToken);
-        var (scores, fetchedAt) = await cards.ConfigureAwait(false);
-        return new ArenaMeta(scores, await classes.ConfigureAwait(false), fetchedAt);
+        var (scores, fetchedAt, underground) = await cards.ConfigureAwait(false);
+        return new ArenaMeta(scores, await classes.ConfigureAwait(false), fetchedAt, underground);
     }
 
-    private async Task<(IReadOnlyList<ArenaCardScore> Cards, DateTime? FetchedAt)> LoadArenaCardsAsync(CancellationToken cancellationToken)
+    private async Task<(IReadOnlyList<ArenaCardScore> Cards, DateTime? FetchedAt, bool? Underground)> LoadArenaCardsAsync(CancellationToken cancellationToken)
     {
-        (IReadOnlyList<ArenaCardScore>, DateTime?) empty = ([], null);
+        (IReadOnlyList<ArenaCardScore>, DateTime?, bool?) empty = ([], null, null);
         try
         {
             using var doc = await FetchAsync(ArenaCardsPath, "arena-cards.json", cancellationToken, ShrinkArenaCards).ConfigureAwait(false);
-            return doc is null ? empty : Read(() => ParseArenaCards(Data(doc)), "arena cards", empty);
+            return doc is null ? empty : Read(() =>
+            {
+                var (list, fetchedAt) = ParseArenaCards(Data(doc));
+                return (list, fetchedAt, ParseArenaSlice(Data(doc)));
+            }, "arena cards", empty);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -73,7 +77,7 @@ public sealed partial class HearthpulseData
             })
             .ToList();
         var observed = structured.TryGetProperty("upstream_freshness", out var fresh) ? Str(fresh, "observed_at") : null;
-        return new Dictionary<string, object?> { ["fetched_at"] = observed, ["cards"] = cards };
+        return new Dictionary<string, object?> { ["fetched_at"] = observed, ["game_type"] = GameTypeOf(structured), ["cards"] = cards };
     }
 
     /// <summary>
@@ -126,6 +130,34 @@ public sealed partial class HearthpulseData
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Which Arena the card slice is: Underground (true) for <c>BGT_UNDERGROUND_ARENA</c>, normal (false) for
+    /// <c>BGT_ARENA</c>, null when the answer does not say. The whole answer names it in the source's request
+    /// (<c>ArenaGameTypeFilter=...</c>), the cache keeps it as <c>game_type</c>.
+    /// </summary>
+    internal static bool? ParseArenaSlice(JsonElement data)
+    {
+        if (data.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var root = data.TryGetProperty("cards", out _) ? data : Structured(data);
+        return (Str(root, "game_type") ?? GameTypeOf(root)) switch
+        {
+            "BGT_UNDERGROUND_ARENA" => true,
+            "BGT_ARENA" => false,
+            _ => null,
+        };
+    }
+
+    private static string? GameTypeOf(JsonElement structured)
+    {
+        var url = structured.ValueKind == JsonValueKind.Object && structured.TryGetProperty("source", out var source) ? Str(source, "api_url") : null;
+        var match = url is null ? null : System.Text.RegularExpressions.Regex.Match(url, @"ArenaGameTypeFilter=(BGT_[A-Z_]+)");
+        return match is { Success: true } ? match.Groups[1].Value : null;
     }
 
     private static JsonElement Structured(JsonElement data) =>

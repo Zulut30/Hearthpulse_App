@@ -22,7 +22,7 @@ internal sealed record MemoryReading(
     IReadOnlyList<int>? Races,
     BattlegroundsButtonCosts? ButtonCosts,
     (MatchPlayerInfo? Local, MatchPlayerInfo? Opponent)? Players,
-    IReadOnlyList<string>? DraftChoices = null);
+    Arena.ArenaDraftOffer? DraftChoices = null);
 
 /// <summary>
 /// Reads the game's memory on its own thread. A scan can take seconds on a slow PC, or when a security tool inspects

@@ -159,6 +159,54 @@ public sealed class ViewModelContractTests
         Assert.False(ava.ShowOdds);
     }
 
+    private static readonly CardDb ArenaCards = CardDb.Parse("enUS", new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
+        [
+          {"id":"BIG","dbfId":11,"name":"Big","cost":6,"type":"MINION","cardClass":"WARLOCK","collectible":true},
+          {"id":"SPELL","dbfId":12,"name":"Spell","cost":2,"type":"SPELL","cardClass":"WARLOCK","collectible":true},
+          {"id":"ONE","dbfId":13,"name":"One","cost":1,"type":"MINION","cardClass":"NEUTRAL","collectible":true},
+          {"id":"HERO_07","dbfId":893,"name":"Gul'dan","type":"HERO","cardClass":"WARLOCK","collectible":true},
+          {"id":"HERO_07bp","dbfId":1,"name":"Life Tap","type":"HERO_POWER","cardClass":"WARLOCK"},
+          {"id":"HERO_08bp","dbfId":2,"name":"Fireblast","type":"HERO_POWER","cardClass":"MAGE"}
+        ]
+        """)));
+
+    [Fact]
+    public void Overlay_arena_badges_show_the_same_fit_in_both_hosts_and_hide_for_hero_powers()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var meta = new Hearthpulse.Core.Arena.ArenaMeta(
+            [new("BIG", 11, 50, null, null, 0), new("SPELL", 12, 30, null, null, 0), new("ONE", 13, 20, null, null, 0)], [], underground: true);
+        var state = new Hearthpulse.Core.Arena.ArenaDraftState("HERO_07", 0, ["SPELL", "SPELL", "ONE"], "DRAFTING");
+        var view = Hearthpulse.Core.Arena.ArenaDraft.Build(state, ["BIG", "SPELL"], meta, ArenaCards, underground: false);
+        var snapshot = LiveSnapshot.Empty with { Scene = "DRAFT", HearthstoneRunning = true, ArenaDraft = view };
+        var settings = new AppSettings { ShowArenaDraft = true };
+        var wpf = new WpfOverlay();
+        var ava = new AvaOverlay();
+        wpf.Update(snapshot, ArenaCards, settings, null, null);
+        ava.Update(snapshot, ArenaCards, settings, null, null);
+
+        Assert.True(wpf.ShowArenaPicks && ava.ShowArenaPicks);
+        Assert.Equal(wpf.ArenaPicks.Select(b => (b.Number, b.Caption, b.FitCost, b.FitType)), ava.ArenaPicks.Select(b => (b.Number, b.Caption, b.FitCost, b.FitType)));
+        Assert.Equal(("Best pick", "6 mana · 0 in deck", "Minion · 1 in deck"), (ava.ArenaPicks[0].Caption, ava.ArenaPicks[0].FitCost, ava.ArenaPicks[0].FitType));
+        Assert.Equal("2 mana · 2 in deck", ava.ArenaPicks[1].FitCost);
+        Assert.Equal([2, 6], ava.ArenaCurve.Select((bar, cost) => (bar, cost)).Where(b => b.bar.Offered).Select(b => b.cost));
+        Assert.Equal(wpf.ArenaCurve.Select(b => (b.Label, b.Count, b.Height, b.Offered)), ava.ArenaCurve.Select(b => (b.Label, b.Count, b.Height, b.Offered)));
+        Assert.Equal("1 minion · 2 spells", ava.ArenaTypes);
+        Assert.Equal((ava.ArenaMode, ava.ArenaSliceNote), (wpf.ArenaMode, wpf.ArenaSliceNote));
+        Assert.Equal("Normal Arena", ava.ArenaMode);
+        Assert.Equal("Scores come from Underground Arena games", ava.ArenaSliceNote);
+
+        // The hero power pick: no numbers over the cards, the panel asks for the pick.
+        var power = Hearthpulse.Core.Arena.ArenaDraft.Build(state with { Cards = [] }, ["HERO_07bp", "HERO_08bp"], meta, ArenaCards);
+        foreach (dynamic model in new object[] { wpf, ava })
+        {
+            model.Update(snapshot with { ArenaDraft = power }, ArenaCards, settings, null, null);
+            Assert.False((bool)model.ShowArenaPicks);
+            Assert.True((bool)model.ShowArenaDraft);
+            Assert.Equal("Choose a hero power", (string)model.ArenaDraftTitle);
+        }
+    }
+
     [Fact]
     public void Wpf_tribe_focus_still_selects_and_clears_the_requested_tribe()
     {
