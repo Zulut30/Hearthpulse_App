@@ -70,6 +70,22 @@ public sealed class ViewModelContractTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public async Task Home_shows_the_Battlegrounds_cards_only_once_there_are_Battlegrounds_games(bool wpf)
+    {
+        var history = History();
+        Assert.True(history.Add(Game(0)));
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        await (Task)model.RefreshAsync();
+        Assert.False((bool)model.HasBgGames);
+
+        Assert.True(history.Add(Game(1) with { Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 3 }));
+        await (Task)model.RefreshAsync();
+        Assert.True((bool)model.HasBgGames);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public async Task Deck_matchup_filter_survives_a_refresh_but_resets_for_another_family(bool wpf)
     {
         var history = History();
