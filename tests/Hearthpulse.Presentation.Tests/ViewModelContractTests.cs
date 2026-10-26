@@ -260,6 +260,53 @@ public sealed class ViewModelContractTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void Overlay_archetype_closes_until_the_game_ends_or_the_opponent_changes(bool wpf)
+    {
+        var odds = new Core.Constructed.OpponentArchetypeView(
+            [new("Aggro Warrior", "Aggro Warrior", 0.7, 0.55, 900), new("Control Warrior", "Control Warrior", 0.3, 0.5, 400)],
+            [new("CS2_108", "Execute", 2, 0.8)], 3, "Standard");
+        var constructed = new ConstructedView(5, null, false, "HERO_10", "DEMONHUNTER", "HERO_01", "WARRIOR", "Rival#1234", [], 0, 0, [], [], 0, 0, 0, null, null)
+        {
+            OpponentArchetype = odds,
+        };
+        var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
+        var settings = new AppSettings { ShowOpponentArchetype = true };
+        dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
+        void Show(LiveSnapshot s) => model.Update(s, CardDb.Empty, settings, null, null);
+
+        Show(snapshot);
+        Assert.True((bool)model.ShowArchetype);
+        Assert.Equal("CS2_108", (string)model.LikelyCards[0].CardId);
+
+        // Closed: hidden for the rest of this game, the setting stays on.
+        ((System.Windows.Input.ICommand)model.DismissArchetype).Execute(null);
+        Assert.False((bool)model.ShowArchetype);
+        Show(snapshot with { Constructed = constructed with { Turn = 9 } });
+        Assert.False((bool)model.ShowArchetype);
+        Assert.True(settings.ShowOpponentArchetype);
+
+        // The game ends, the next one shows the panel again.
+        Show(snapshot with { InGame = false, Constructed = null });
+        Assert.False((bool)model.ShowArchetype);
+        Show(snapshot with { Constructed = constructed with { Turn = 1 } });
+        Assert.True((bool)model.ShowArchetype);
+
+        // A new game that starts without a gap in the updates: the turn goes back.
+        ((System.Windows.Input.ICommand)model.DismissArchetype).Execute(null);
+        Show(snapshot with { Constructed = constructed with { Turn = 4 } });
+        Assert.False((bool)model.ShowArchetype);
+        Show(snapshot with { Constructed = constructed with { Turn = 2 } });
+        Assert.True((bool)model.ShowArchetype);
+
+        // Another opponent shows it again too.
+        ((System.Windows.Input.ICommand)model.DismissArchetype).Execute(null);
+        Show(snapshot with { Constructed = constructed with { Turn = 6, OpponentName = "Other#5678" } });
+        Assert.True((bool)model.ShowArchetype);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void Observable_retains_equal_value_rows_and_notifies_when_rows_actually_change(bool wpf)
     {
         IRows model = wpf ? new WpfRows() : new AvaRows();
