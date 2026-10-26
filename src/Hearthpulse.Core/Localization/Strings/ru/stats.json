@@ -97,7 +97,7 @@
   "Stats.Arena.PerFinishedRun": "за завершённый забег",
   "Stats.Arena.BestRun": "Лучший забег",
   "Stats.Arena.Wins": "{0} победа|{0} победы|{0} побед",
-  "Stats.Arena.MostWins": "больше всего побед за забег",
+  "Stats.Arena.MostWins": "рекорд побед за забег",
   "Stats.Arena.InProgress": "{0} · идёт",
   "Stats.Arena.AvgWinsSuffix": " · {0:0.0} побед в среднем",
   "Stats.Arena.NoneFinished": " · нет завершённых",
