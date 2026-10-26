@@ -257,6 +257,40 @@ public sealed class ViewModelContractTests
         Assert.Empty(ava.CardPoolPicks);
     }
 
+    [Fact]
+    public void Both_overlays_dim_unknown_hand_cards_and_fold_identical_secret_lines()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var secrets = new Core.Secrets.SecretsView(
+            [new(11, "MAGE", 3, 3, null, null, 3), new(12, "MAGE", 3, 3, null, null, 3), new(13, "MAGE", 5, 2, null, null, 4)], [])
+        {
+            Pool = "Mage · Standard",
+        };
+        var constructed = new ConstructedView(6, null, false, "HERO_10", "DEMONHUNTER", "HERO_08", "MAGE", null, [], 20, 4, [],
+            [new(1, 1, null, null, false, false, null), new(2, 0, null, null, true, false, null), new(3, 2, null, null, false, false, "Arcane Intellect"),
+             new(4, 0, null, null, false, true, null)], 18, 4, 3, null, null)
+        {
+            Secrets = secrets,
+        };
+        var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
+        var wpf = new WpfOverlay();
+        var ava = new AvaOverlay();
+        var settings = new AppSettings();
+        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+
+        // Only the card nothing is known about is drawn faint; kept, created and the Coin keep their colour.
+        var hand = wpf.Hand.Select(h => (h.Slot, h.Highlight, h.Unknown)).ToList();
+        Assert.Equal([("1", false, true), ("2", false, false), ("3", false, false), ("4", true, false)], hand);
+        Assert.Equal(hand, ava.Hand.Select(h => (h.Slot, h.Highlight, h.Unknown)));
+
+        // Two Secrets played on turn 3 for 3 mana read the same, so they share one line.
+        var lines = wpf.SecretSlots.Select(s => s.Text).ToList();
+        Assert.Equal(["×2 · turn 3 · 3 mana · 3 left", "turn 5 · 2 mana · 4 left"], lines);
+        Assert.Equal(lines, ava.SecretSlots.Select(s => s.Text));
+        Assert.Equal("Secrets · 3", wpf.SecretsTitle);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
