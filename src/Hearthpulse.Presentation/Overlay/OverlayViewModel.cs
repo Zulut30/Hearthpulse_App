@@ -475,7 +475,8 @@ public sealed partial class OverlayViewModel : Observable
                 h.Position.ToString(CultureInfo.InvariantCulture),
                 h.Turn > 0 ? Loc.F("Overlay.Turn.Short", h.Turn) : Loc.T("Overlay.Hand.MulliganShort"),
                 h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : h.FromMulligan ? Loc.T("Overlay.Hand.KeptInMulligan") : Loc.T("Overlay.Hand.Unknown")),
-                h.CardName is not null || h.IsCoin))
+                h.CardName is not null || h.IsCoin,
+                h.CardName is null && !h.IsCoin && h.CreatedBy is null && !h.FromMulligan))
             .ToList());
     }
 

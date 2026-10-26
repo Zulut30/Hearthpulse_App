@@ -95,7 +95,7 @@ public sealed partial class OverlayViewModel
         SecretsTitle = $"{Loc.T("Overlay.Secrets.Title")} · {secrets!.Slots.Count}";
         SecretsPool = secrets.Pool;
         Replace("secret-slots", secrets.Slots, s => $"{s.EntityId}:{s.CardClass}:{s.PaidCost}:{s.CreatedBy}:{s.KnownCardId}:{s.Possible}", () =>
-            SecretSlots = secrets.Slots.Select(s => new SecretSlotLine(SlotText(s))).ToList());
+            SecretSlots = SlotLines(secrets.Slots));
         _secrets = secrets;
         Replace("secret-rows", secrets.Rows, r => $"{secrets.Slots.Count}:{r.Key}:{r.Possible}:{r.Crossed}:{r.Known}", () => BuildSecretTiles(secrets));
     }
@@ -117,6 +117,13 @@ public sealed partial class OverlayViewModel
     /// <summary>"×N" only when it tells something: more than one, but not every active Secret, can be the card.</summary>
     private static string CountText(int possible, int secrets) =>
         possible > 1 && possible < secrets ? Loc.F("Overlay.Secrets.Possible", possible) : string.Empty;
+
+    /// <summary>Secrets that read the same (two played on one turn for the same mana) share one "×2 · ..." line.</summary>
+    private static List<SecretSlotLine> SlotLines(IReadOnlyList<SecretSlot> slots) =>
+        slots.Select(SlotText)
+            .GroupBy(text => text)
+            .Select(g => new SecretSlotLine(g.Count() > 1 ? Loc.F("Overlay.Secrets.Same", g.Key, g.Count()) : g.Key))
+            .ToList();
 
     private static string SlotText(SecretSlot slot)
     {

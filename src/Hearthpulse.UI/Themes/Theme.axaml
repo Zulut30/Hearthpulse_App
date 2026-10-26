@@ -180,6 +180,8 @@
             </LinearGradientBrush>
             <!-- Dark plate under small numbers drawn over card art (same as the WPF token) -->
             <SolidColorBrush x:Key="OverlayBadgeShade" Color="#CC140D08" />
+            <!-- Layout-mode stand-in for a panel that is not shown (same as the WPF token) -->
+            <SolidColorBrush x:Key="OverlayPlaceholder" Color="#E6201510" />
 
             <!-- Gold trim, framed edges and the selected / primary fills. -->
             <SolidColorBrush x:Key="GoldTrim" Color="#8A6533" />
