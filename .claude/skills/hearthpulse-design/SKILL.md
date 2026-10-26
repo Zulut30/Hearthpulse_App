@@ -156,7 +156,4 @@ no hex literals outside the theme files, new tokens in both theme files, animati
   `OverlayViewModel`).
 - Avalonia only: compact layout below 900 px, separate Hearthstone/memory status dots, an extra overlay switch in
   Settings. Avalonia has no theme engine (static Tavern).
-- `RatingChart` empty state draws one unwrapped line ("Play a few rated Battlegrounds games...") centred at
-  `(w - width)/2`; in narrow hosts it overflows on both sides (both UIs).
-- Compact live bar (Avalonia, `MainView.axaml` "Floating live bar"): title/detail are squeezed by the arrange button and
-  Overlay switch and truncate with ellipsis at phone width (`main-compact.png`).
+- Compact hero/comp tier tables (Avalonia): fixed column widths leave no room for the name column at phone width.

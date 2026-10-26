@@ -255,6 +255,7 @@ public sealed partial class MainViewModel : Observable
     private IReadOnlyList<StatTile> _constructedTiles = Array.Empty<StatTile>();
     private IReadOnlyList<RatingPoint> _ratingPoints = Array.Empty<RatingPoint>();
     private IReadOnlyList<PlacementBar> _placements = Array.Empty<PlacementBar>();
+    private bool _hasBgGames;
     private IReadOnlyList<HeroRow> _myHeroes = Array.Empty<HeroRow>();
     private IReadOnlyList<MetaHeroRow> _heroTiers = Array.Empty<MetaHeroRow>();
     private IReadOnlyList<MetaCompRow> _compTiers = Array.Empty<MetaCompRow>();
@@ -284,6 +285,10 @@ public sealed partial class MainViewModel : Observable
     public IReadOnlyList<StatTile> ConstructedTiles { get => _constructedTiles; private set => Set(ref _constructedTiles, value); }
     public IReadOnlyList<RatingPoint> RatingPoints { get => _ratingPoints; private set => Set(ref _ratingPoints, value); }
     public IReadOnlyList<PlacementBar> Placements { get => _placements; private set => Set(ref _placements, value); }
+
+    /// <summary>Home shows the Battlegrounds rating and placement cards only once the mode has games to draw.</summary>
+    public bool HasBgGames { get => _hasBgGames; private set => Set(ref _hasBgGames, value); }
+
     public IReadOnlyList<HeroRow> MyHeroes { get => _myHeroes; private set => Set(ref _myHeroes, value); }
     public IReadOnlyList<MetaHeroRow> HeroTiers
     {
@@ -471,6 +476,7 @@ public sealed partial class MainViewModel : Observable
             .Select(p => new PlacementBar(p, data.Distribution[p - 1], data.Distribution[p - 1] / (double)max,
                 (data.Distribution[p - 1] / (double)total).ToString("P0", CultureInfo.CurrentCulture), p <= top))
             .ToList();
+        HasBgGames = data.Distribution.Sum() > 0 || data.Rating.Count >= 2;
 
         var bg = data.Bg;
         var net = bg.Where(g => g.RatingDelta is not null).Sum(g => g.RatingDelta ?? 0);
