@@ -73,9 +73,7 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 ## Draft state
 
 - **Arena.log** (`[Arena]` is in `log.config`; `LogWatcher` tails it, also when the file appears mid-session):
-  `ArenaDraftTracker` reads the client's DraftManager lines. Their format strings were checked against the metadata of
-  the installed client (`Assembly-CSharp.dll` of 2026-10-13, names and string constants only):
-  `DraftManager.OnChosen(): hero=` (new run), `DraftManager.OnChosen(): heroPower=` (the hero power pick, new in the
+  `ArenaDraftTracker` reads the client's DraftManager lines: `DraftManager.OnChosen(): hero=` (new run), `DraftManager.OnChosen(): heroPower=` (the hero power pick, new in the
   current client), `DraftManager.OnChoicesAndContents - Draft Deck ID: {0}, Hero Card = {1}` (the deck is listed again
   after it), `DraftManager.OnChoicesAndContents - Draft deck contains card {0}`, `Client chooses: {0} ({1})` (a pick)
   and `SetDraftMode - ` with the modes `NO_ACTIVE_DRAFT` (clears), `DRAFTING`, `ACTIVE_DRAFT_DECK`, `IN_REWARDS`,
@@ -87,8 +85,8 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 - **The offer is not in the logs**: `HearthstoneMemory.GetArenaDraftChoices` reads `DraftDisplay.s_instance.m_choices`,
   each choice's `m_cardID` and `m_packageCardIds`, and `m_choicesAreUnderground` (read only, only while the scene is
   `DRAFT` and the helper is on, every second; a choice without a card id means the offer is being dealt and nothing
-  is shown). The names are in the client's metadata (2026-10-13); the values are not yet seen on a live draft. The
-  offer is face up on the player's screen: no hidden information.
+  is shown). The values are not yet seen on a live draft. The offer is face up on the player's screen: no hidden
+  information - to be confirmed for a legendary's package (below).
 - After a pick the offer stays in memory for a moment: `GameSession.Arena.cs` hides the offer that **holds the chosen
   card** until a different one arrives. When the memory read already has the next offer as the log line arrives, that
   offer stays (no blank pick); when no offer was known yet, the first one read that holds the chosen card is the
@@ -101,8 +99,12 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 
 1. One real draft of each mode with the helper on: `hearthpulse.log` lines match the screen (hero, hero power,
    each offer, the package of a legendary, the mode), picks reach 30, the deck matches the client's list.
-2. Keep that Arena.log as a test fixture in place of the synthetic lines.
-3. The owner decides on the HSReplay and HearthArena data (legal report) and on turning the helper on by default.
+2. **The package cards are on screen before the pick** (legal report `LEGAL-HeartLens-claude-arena-draft-v1.md`,
+   L-M1): the badge scores the whole package and says "+N cards with it". If the client shows the package only after
+   the pick (or only part of it), use `m_packageCardIds` only once the pick is made, never on the badge.
+3. Keep that Arena.log as a test fixture in place of the synthetic lines; name the log, not anything else, as the
+   source of the line formats.
+4. The owner decides on the HSReplay and HearthArena data (legal reports, L-M2) and on turning the helper on by default.
 
 ## Layout and licences
 

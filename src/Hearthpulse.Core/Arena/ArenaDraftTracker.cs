@@ -17,11 +17,8 @@ public sealed record ArenaDraftState(string? HeroCardId, long DeckId, IReadOnlyL
 /// <summary>
 /// Follows an Arena draft through Arena.log: the hero and hero power picks, every card the player takes and the deck
 /// the client lists when the Arena screen opens. The log does not name the offered cards; they come from the game's
-/// memory (<see cref="Memory.HearthstoneMemory.GetArenaDraftChoices"/>). The line formats are the client's DraftManager
-/// format strings as its metadata of 2026-10-13 has them (docs/arena-draft.md): <c>DraftManager.OnChosen(): hero=</c>,
-/// <c>DraftManager.OnChosen(): heroPower=</c>, <c>DraftManager.OnChoicesAndContents - Draft Deck ID: {0}, Hero Card = {1}</c>,
-/// <c>DraftManager.OnChoicesAndContents - Draft deck contains card {0}</c>, <c>Client chooses: {0} ({1})</c> and
-/// <c>SetDraftMode - </c>.
+/// memory (<see cref="Memory.HearthstoneMemory.GetArenaDraftChoices"/>). The lines are the client's DraftManager lines
+/// of Arena.log (docs/arena-draft.md), not yet checked against a log written on a live draft.
 /// </summary>
 public sealed partial class ArenaDraftTracker
 {

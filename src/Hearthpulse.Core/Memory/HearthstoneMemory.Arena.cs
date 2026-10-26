@@ -8,9 +8,9 @@ public sealed partial class HearthstoneMemory
     /// The offer on the Arena draft screen (three heroes, three hero powers, then three cards per pick), read from the
     /// client's draft screen: <c>DraftDisplay.s_instance.m_choices</c>, each choice's <c>m_cardID</c> and
     /// <c>m_packageCardIds</c> (the cards that come with a legendary), and <c>m_choicesAreUnderground</c>. Null when the
-    /// screen is not open, the offer is still being dealt (a partial list) or the client moved these fields. The names
-    /// match the client's metadata of 2026-10-13. The cards are face up on the player's screen, so this is no hidden
-    /// information. Read only, like every other value here.
+    /// screen is not open, the offer is still being dealt (a partial list) or the client moved these fields. Not yet
+    /// checked on a live draft (docs/arena-draft.md). The cards are face up on the player's screen, so this is no
+    /// hidden information. Read only, like every other value here.
     /// </summary>
     public ArenaDraftOffer? GetArenaDraftChoices() => Safe(quiet: true, read: rt =>
     {
