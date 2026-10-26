@@ -30,9 +30,11 @@ internal static class CardPoolRender
             return;
         }
 
-        // Beside the three Discover options.
+        // Beside the three Discover options; then with the stats pool's picks of those options (sample totals).
         Show(pool, new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3));
         await save(Path.Combine(folder, "overlay-card-pool.png"));
+        Show(pool, new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3), DiscoverPicks.RenderSample(pool, host.Cards));
+        await save(Path.Combine(folder, "overlay-card-pool-picks.png"));
 
         // Hovered in hand (fifth of six cards): the chart on Attack, the pointer on the 3-Attack column.
         if (engine.Build("CORE_GIL_836", new PoolContext("FT_STANDARD", "SHAMAN", "WARRIOR"), PoolTrigger.Hover) is { } hovered)
@@ -79,12 +81,13 @@ internal static class CardPoolRender
         host.Overlay.ToggleCardPoolFilters.Execute(null);
         host.Overlay.CloseCardPoolBrowser.Execute(null);
 
-        void Show(CardPoolView view, CardPoolAnchor? anchor = null)
+        void Show(CardPoolView view, CardPoolAnchor? anchor = null, DiscoverPicksView? picks = null)
         {
             var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
             {
                 CardPool = view,
                 CardPoolAnchor = anchor,
+                DiscoverPicks = picks,
             };
             var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
             host.Overlay.Update(snapshot, host.Cards, settings, null, null);

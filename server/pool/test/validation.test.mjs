@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
-import worker, { validateDetails, validateGame, validateLegacy } from "../src/index.js";
+import worker, { rebuildChoices, validateConstructed, validateDetails, validateGame, validateLegacy } from "../src/index.js";
 
 const TODAY = Math.floor(Date.now() / 86_400_000);
 const HERO = "BG_HERO_1";
@@ -138,4 +140,84 @@ test("POST accepts a batch at the twenty game boundary", async () => {
   assert.equal(response.status, 200);
   assert.equal(writes.length, 1);
   assert.equal(writes[0].length, 20);
+});
+
+// ---- Constructed picks ----------------------------------------------------------------------------------------
+
+const DISCOVER = "CORE_YOP_001";
+const constructed = (overrides = {}) => ({
+  id: "c".repeat(32), day: TODAY, format: "standard", won: true,
+  picks: [[4, DISCOVER, ["CARD_A", "CARD_B", "CARD_C"], ["CARD_B"]]], ...overrides,
+});
+
+/** The pool's tables in an in-memory SQLite, behind the few D1 calls the worker makes. */
+function sqlite() {
+  const db = new DatabaseSync(":memory:");
+  db.exec(readFileSync(new URL("../schema.sql", import.meta.url), "utf8"));
+  const statement = (sql, args = []) => ({
+    bind: (...values) => statement(sql, values),
+    first: async () => db.prepare(sql).get(...args) ?? null,
+    all: async () => ({ results: db.prepare(sql).all(...args) }),
+    run: async () => db.prepare(sql).run(...args),
+  });
+  return { db, DB: { prepare: (sql) => statement(sql), batch: async (list) => Promise.all(list.map((s) => s.all())) } };
+}
+
+async function submitConstructed(body, env) {
+  const request = new Request("https://pool.test/v1/constructed", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+  return worker.fetch(request, env, {});
+}
+
+test("a Constructed game keeps only valid picks and holds no deck, class or opponent", () => {
+  const row = validateConstructed(constructed({
+    class: "MAGE", deck: "AAEC...", picks: [
+      [4, DISCOVER, ["CARD_A", "CARD_B", "CARD_A"], ["CARD_B"]],
+      [5, DISCOVER, ["CARD_A", "CARD_B"], ["CARD_X"]],
+      [6, null, ["CARD_A", "CARD_B"], ["CARD_A"]],
+      [7, DISCOVER, ["CARD_A"], ["CARD_A"]],
+      "junk",
+    ],
+  }), TODAY);
+  assert.deepEqual(row, { id: "c".repeat(32), day: TODAY, fmt: "standard", won: 1, src: "live", picks: [[4, DISCOVER, ["CARD_A", "CARD_B"], ["CARD_B"]]] });
+});
+
+test("a Constructed game without a valid core field or any valid pick is rejected", () => {
+  for (const overrides of [
+    { id: "short" }, { format: "classic" }, { won: "yes" }, { day: TODAY - 500 }, { picks: [] },
+    { picks: [[4, DISCOVER, ["CARD_A", "CARD_B"], []]] }, { picks: [[4, { toString: null }, ["CARD_A", "CARD_B"], ["CARD_A"]]] },
+  ]) assert.equal(validateConstructed(constructed(overrides), TODAY), null, JSON.stringify(overrides));
+});
+
+test("POST /v1/constructed stores a batch once and the totals count offers, picks and wins", async () => {
+  const env = sqlite();
+  const lost = constructed({ id: "d".repeat(32), won: false, picks: [[3, DISCOVER, ["CARD_A", "CARD_B", "CARD_D"], ["CARD_A"]]] });
+  const third = constructed({ id: "e".repeat(32), picks: [[2, DISCOVER, ["CARD_A", "CARD_B", "CARD_C"], ["CARD_B"]]] });
+  for (let i = 0; i < 2; i++) {
+    const response = await submitConstructed({ v: 1, games: [constructed(), lost, third] }, env);
+    assert.equal(response.status, 200);
+  }
+
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM c").get().n, 3);
+  const totals = JSON.parse(await rebuildChoices(env, "standard", true));
+  assert.equal(totals.games, 3);
+  assert.equal(totals.sources.length, 1);
+  assert.equal(totals.sources[0].source, DISCOVER);
+  assert.equal(totals.sources[0].choices, 3);
+  // CARD_D was offered once: under the three-offer floor, so it is left out.
+  const options = Object.fromEntries(totals.sources[0].options.map((o) => [o[0], o.slice(1)]));
+  assert.deepEqual(options, { CARD_A: [3, 1, 0], CARD_B: [3, 2, 2] });
+  assert.equal(JSON.parse(await rebuildChoices(env, "wild", true)).games, 0);
+});
+
+test("POST /v1/constructed rejects malformed bodies before writing", async () => {
+  const env = sqlite();
+  for (const body of ["{", { v: 2, games: [constructed()] }, { v: 1, games: [] }, { v: 1, games: [constructed({ won: null })] },
+    { v: 1, games: Array(21).fill(constructed()) }]) {
+    assert.equal((await submitConstructed(body, env)).status, 400);
+  }
+
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM c").get().n, 0);
 });

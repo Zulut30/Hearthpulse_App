@@ -1,4 +1,5 @@
-// Hearthpulse stats pool. Players who opt in send their Battlegrounds games; anyone can read the totals.
+// Hearthpulse stats pool. Players who opt in send their Battlegrounds games, and the Discover-style picks of their
+// Constructed games; anyone can read the totals.
 // Records hold no player identity and nothing about other players. The IP address is only seen by Cloudflare's
 // rate limiter and is never stored.
 //
@@ -12,23 +13,30 @@ const CARD = /^[A-Za-z0-9_]{3,64}$/;
 const TRIBE = /^[A-Z0-9_]{2,24}$/;
 const GAME_ID = /^[0-9a-f]{32}$/;
 const KINDS = new Set(["discover", "trinket", "choice"]);
+const FORMATS = new Set(["standard", "wild"]);
 const DAY = 86_400_000;
 const WINDOW_DAYS = 30;
 const MAX_BATCH = 20;
 const MAX_BODY = 512 * 1024;
+const MAX_PICKS = 60;
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") return reply(null, 204);
     if (request.method === "POST" && url.pathname === "/v1/games") return submit(request, env);
+    if (request.method === "POST" && url.pathname === "/v1/constructed") return submitConstructed(request, env);
     if (request.method === "GET" && (url.pathname === "/v1/stats" || url.pathname === "/v1/heroes")) return stats(request, env, ctx, url);
+    if (request.method === "GET" && url.pathname === "/v1/choices") return choices(request, env, ctx, url);
     if (request.method === "GET" && url.pathname === "/v1/meta") return meta(request, env, ctx);
     return reply({ error: "not found" }, 404);
   },
 
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(Promise.all(["solo", "duos"].map((mode) => rebuild(env, mode, false))));
+    ctx.waitUntil(Promise.all([
+      ...["solo", "duos"].map((mode) => rebuild(env, mode, false)),
+      ...[...FORMATS].map((format) => rebuildChoices(env, format, false)),
+    ]));
   },
 };
 
@@ -55,21 +63,26 @@ const INSERT = `INSERT OR IGNORE INTO g (id, day, mode, bracket, hero, placement
          json_extract(value, '$.tierups'), json_extract(value, '$.combats'), json_extract(value, '$.choices'), json_extract(value, '$.plays')
   FROM json_each(?1)`;
 
-async function submit(request, env) {
+/** The parsed JSON body, or the error response to send instead (rate limit, size, not JSON). */
+async function readBody(request, env) {
   if (env.LIMITER) {
     const { success } = await env.LIMITER.limit({ key: request.headers.get("cf-connecting-ip") ?? "unknown" });
-    if (!success) return reply({ error: "too many requests, slow down" }, 429);
+    if (!success) return { error: reply({ error: "too many requests, slow down" }, 429) };
   }
 
-  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY) return reply({ error: "too large" }, 413);
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY) return { error: reply({ error: "too large" }, 413) };
   const text = await request.text();
-  if (text.length > MAX_BODY) return reply({ error: "too large" }, 413);
-  let body;
+  if (text.length > MAX_BODY) return { error: reply({ error: "too large" }, 413) };
   try {
-    body = JSON.parse(text);
+    return { body: JSON.parse(text) };
   } catch {
-    return reply({ error: "not json" }, 400);
+    return { error: reply({ error: "not json" }, 400) };
   }
+}
+
+async function submit(request, env) {
+  const { body, error } = await readBody(request, env);
+  if (error) return error;
 
   // Version 3 sends {v:3, games:[...]}; versions 1 and 2 (Hearthpulse 0.8 and 0.9) send one game.
   const today = Math.floor(Date.now() / DAY);
@@ -198,6 +211,46 @@ export function validateLegacy(body, today) {
   }, today);
 }
 
+// A Constructed game is only its picks: which cards a Discover, Adapt or Choose One card offered, which one the
+// player took, and whether the game was won. No deck, class, rank or opponent.
+const INSERT_CONSTRUCTED = `INSERT OR IGNORE INTO c (id, day, fmt, won, src, picks)
+  SELECT json_extract(value, '$.id'), json_extract(value, '$.day'), json_extract(value, '$.fmt'), json_extract(value, '$.won'),
+         json_extract(value, '$.src'), json_extract(value, '$.picks')
+  FROM json_each(?1)`;
+
+async function submitConstructed(request, env) {
+  const { body, error } = await readBody(request, env);
+  if (error) return error;
+
+  const today = Math.floor(Date.now() / DAY);
+  const batch = body?.v === 1 && Array.isArray(body.games) ? body.games : [];
+  if (batch.length === 0 || batch.length > MAX_BATCH) return reply({ error: "send 1 to 20 games" }, 400);
+  const rows = batch.map((game) => validateConstructed(game, today)).filter(Boolean);
+  if (rows.length === 0) return reply({ error: "invalid game" }, 400);
+
+  await env.DB.prepare(INSERT_CONSTRUCTED).bind(JSON.stringify(rows)).run();
+  return reply({ ok: true, stored: rows.length });
+}
+
+/**
+ * A clean row for a Constructed game, or null when its core fields are out of range or no pick is valid. A bad pick is
+ * dropped instead of the whole game. A pick is [turn, source card, [offered], [picked]], the picked cards among the offered.
+ */
+export function validateConstructed(g, today) {
+  if (!g || typeof g !== "object" || Array.isArray(g)) return null;
+  const day = g.day ?? today;
+  if (typeof g.id !== "string" || !GAME_ID.test(g.id) || !FORMATS.has(g.format) || typeof g.won !== "boolean") return null;
+  if (!int(day, today - 400, today + 1)) return null;
+
+  const picks = (Array.isArray(g.picks) ? g.picks : []).slice(0, MAX_PICKS)
+    .filter((p) => Array.isArray(p) && int(p[0], 0, 199) && card(p[1]) && cards(p[2], 8) && p[2].length >= 2
+      && cards(p[3], 4) && p[3].length >= 1 && p[3].every((c) => p[2].includes(c)))
+    .map((p) => [p[0], p[1], [...new Set(p[2])], [...new Set(p[3])]]);
+  if (picks.length === 0) return null;
+
+  return { id: g.id, day, fmt: g.format, won: g.won ? 1 : 0, src: g.src === "history" ? "history" : "live", picks };
+}
+
 // ---- Reading ---------------------------------------------------------------------------------------------
 
 async function stats(request, env, ctx, url) {
@@ -216,6 +269,68 @@ async function stats(request, env, ctx, url) {
   const response = reply(body, 200, { "cache-control": "public, max-age=1800" });
   ctx.waitUntil(cache.put(request, response.clone()));
   return response;
+}
+
+/** What Constructed players pick from each Discover-style card, over the last 30 days of one format. */
+async function choices(request, env, ctx, url) {
+  const cache = caches.default;
+  const hit = await cache.match(request);
+  if (hit) return hit;
+
+  const format = url.searchParams.get("format") === "wild" ? "wild" : "standard";
+  const row = await env.DB.prepare("SELECT body FROM snap WHERE mode = ?1").bind(`choices-${format}`).first();
+  const body = row?.body ?? (await rebuildChoices(env, format, true));
+  const response = reply(body, 200, { "cache-control": "public, max-age=1800" });
+  ctx.waitUntil(cache.put(request, response.clone()));
+  return response;
+}
+
+/**
+ * Works the pick totals of one format out again and stores them in snap under "choices-<format>". Per source card:
+ * how many choices it opened, and per offered card [card, times offered, times picked, games won when picked].
+ * Skipped when no game came in and the totals are under a day old.
+ */
+export async function rebuildChoices(env, format, force) {
+  const key = `choices-${format}`;
+  const last = (await env.DB.prepare("SELECT MAX(rowid) AS r FROM c").first())?.r ?? 0;
+  if (!force) {
+    const snap = await env.DB.prepare("SELECT last_row, built FROM snap WHERE mode = ?1").bind(key).first();
+    if (snap && snap.last_row === last && Date.now() - snap.built < DAY) return null;
+  }
+
+  const since = Math.floor(Date.now() / DAY) - WINDOW_DAYS;
+  const w = "c.fmt = ?1 AND c.day >= ?2";
+  const q = (sql) => env.DB.prepare(sql).bind(format, since);
+  const [totals, sources, offers, picks] = (await env.DB.batch([
+    q(`SELECT COUNT(*) AS games FROM c WHERE ${w}`),
+    q(`SELECT json_extract(p.value, '$[1]') AS source, COUNT(*) AS n FROM c, json_each(c.picks) p WHERE ${w} GROUP BY source`),
+    q(`SELECT json_extract(p.value, '$[1]') AS source, o.value AS card, COUNT(*) AS n
+       FROM c, json_each(c.picks) p, json_each(p.value, '$[2]') o WHERE ${w} GROUP BY source, card HAVING n >= 3`),
+    q(`SELECT json_extract(p.value, '$[1]') AS source, k.value AS card, COUNT(*) AS n, SUM(c.won) AS won
+       FROM c, json_each(c.picks) p, json_each(p.value, '$[3]') k WHERE ${w} GROUP BY source, card`),
+  ])).map((r) => r.results);
+
+  const pickBy = new Map(picks.map((r) => [`${r.source}|${r.card}`, r]));
+  const optionsBy = new Map();
+  for (const r of offers) {
+    const pick = pickBy.get(`${r.source}|${r.card}`);
+    if (!optionsBy.has(r.source)) optionsBy.set(r.source, []);
+    optionsBy.get(r.source).push([r.card, r.n, pick?.n ?? 0, pick?.won ?? 0]);
+  }
+
+  const body = JSON.stringify({
+    format,
+    days: WINDOW_DAYS,
+    updated: new Date().toISOString(),
+    games: totals[0]?.games ?? 0,
+    sources: sources.filter((r) => optionsBy.has(r.source)).map((r) => ({ source: r.source, choices: r.n, options: optionsBy.get(r.source) })),
+  });
+
+  await env.DB.prepare(
+    `INSERT INTO snap (mode, last_row, built, body) VALUES (?1, ?2, ?3, ?4)
+     ON CONFLICT(mode) DO UPDATE SET last_row = ?2, built = ?3, body = ?4`)
+    .bind(key, last, Date.now(), body).run();
+  return body;
 }
 
 const round = (x) => (x === null || x === undefined ? null : Math.round(x * 1000) / 1000);

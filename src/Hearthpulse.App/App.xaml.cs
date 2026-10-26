@@ -192,6 +192,7 @@ public partial class App : Application
         _session = new GameSession(_history, _memory);
         _session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(_api)));
         _session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(_api)));
+        _session.SetDiscoverPicks(new DiscoverPickSource(_http, () => PoolClient.Endpoint(_settings)));
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
@@ -844,6 +845,14 @@ public partial class App : Application
             && PoolGame.From(outcome, _cards.BaseHeroId, CardRaces, PoolClient.SharingDetails(_settings), PoolClient.Secret(_settings)) is { } game)
         {
             _ = PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), [PoolClient.Limit(game, _settings)]);
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+        }
+
+        // A Constructed game shares only its Discover-style picks, once the player agreed to that list (version 4).
+        if (PoolClient.SharingPicks(_settings) && ConstructedPoolGame.From(outcome, PoolClient.Secret(_settings)) is { } picks)
+        {
+            _ = PoolClient.SubmitConstructedAsync(_http, PoolClient.Endpoint(_settings), [picks]);
             _settingsDebounce.Stop();
             _settingsDebounce.Start();
         }

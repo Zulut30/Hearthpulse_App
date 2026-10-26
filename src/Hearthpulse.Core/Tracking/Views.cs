@@ -73,6 +73,9 @@ public sealed record ConstructedView(
     /// <summary>Where the card of <see cref="CardPool"/> sits (hand, board, Discover options), to show the pool beside it; null otherwise.</summary>
     public CardPool.CardPoolAnchor? CardPoolAnchor { get; init; }
 
+    /// <summary>While the player's own Discover-style choice is open: what pool players pick from its options; null otherwise.</summary>
+    public CardPool.DiscoverPicksView? DiscoverPicks { get; init; }
+
     /// <summary>The opponent's likely archetype from the cards it played face up; null without a fitting meta or a shown card.</summary>
     public Constructed.OpponentArchetypeView? OpponentArchetype { get; init; }
 
@@ -365,6 +368,14 @@ public sealed record GameOutcome(string Mode, string Result, int Placement, int?
 
     /// <summary>The history key of the game (see <see cref="GameRecords.KeyOf"/>).</summary>
     public string? Key { get; init; }
+
+    /// <summary>The game's type and format as the log names them (GT_RANKED, FT_STANDARD...).</summary>
+    public string GameType { get; init; } = string.Empty;
+
+    public string Format { get; init; } = string.Empty;
+
+    /// <summary>The local player's Discover-style picks of a Constructed game watched live; empty otherwise.</summary>
+    public IReadOnlyList<ConstructedPick> ConstructedPicks { get; init; } = [];
 
     public int? RatingDelta => RatingBefore is { } b && RatingAfter is { } a ? a - b : null;
 }

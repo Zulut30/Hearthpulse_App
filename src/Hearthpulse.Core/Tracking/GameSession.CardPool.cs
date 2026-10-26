@@ -16,6 +16,7 @@ public sealed partial class GameSession
     private readonly object _cardPoolGate = new();
     private CardPoolCatalog _cardPoolCatalog = CardPoolCatalog.Empty;
     private WikiPoolSource? _cardPoolWiki;
+    private Pool.DiscoverPickSource? _discoverPicks;
     private Cards.DeckDefinition? _wikiPrefetched;
     private (CardPoolCatalog Catalog, Cards.CardDb Cards, Constructed.ConstructedMeta? Meta)? _cardPoolInputs;
     private volatile bool _cardPoolEnabled = true;
@@ -53,6 +54,26 @@ public sealed partial class GameSession
             }
 
             _cardPool.Engine = null;
+        }
+
+        _dirty = true;
+    }
+
+    /// <summary>The stats pool's pick totals for the pick hint of an open choice; the host passes it once at start-up.</summary>
+    public void SetDiscoverPicks(Pool.DiscoverPickSource? picks)
+    {
+        lock (_cardPoolGate)
+        {
+            if (_discoverPicks is { } previous)
+            {
+                previous.Changed -= MarkDirty;
+            }
+
+            _discoverPicks = picks;
+            if (picks is not null)
+            {
+                picks.Changed += MarkDirty;
+            }
         }
 
         _dirty = true;
@@ -103,13 +124,28 @@ public sealed partial class GameSession
         try
         {
             var pool = _cardPool.BuildView(game, _cards, DateTime.Now);
-            return view with { CardPool = pool, CardPoolAnchor = _cardPool.AnchorOf(game, pool) };
+            return view with { CardPool = pool, CardPoolAnchor = _cardPool.AnchorOf(game, pool), DiscoverPicks = PicksOf(game, pool) };
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException)
         {
             Diag.Error("Building the card pool failed", ex);
             return view;
         }
+    }
+
+    /// <summary>
+    /// The pick hint while the player's own choice is open and its pool is up: from the totals already in memory, so a
+    /// choice never waits on (or tells) the server. Null outside a choice, without a pool address or in other formats.
+    /// </summary>
+    private DiscoverPicksView? PicksOf(GameState game, CardPoolView? pool)
+    {
+        if (pool?.Trigger != PoolTrigger.Choice || _discoverPicks is not { } source || _cardPool.OpenChoice is not { } open
+            || DiscoverPicks.FormatOf(game.FormatType) is not { } format || source.TryGet(format) is not { } stats)
+        {
+            return null;
+        }
+
+        return DiscoverPicks.Build(stats, open.Source, open.Offered, _cards);
     }
 
     private CardPoolEngine? CardPoolEngineNow()

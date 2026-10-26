@@ -211,6 +211,31 @@ hand: the leftmost. A pool whose card is not on screen (a request, a played spel
 panel `card-pool` (top left by default, 372 units wide, next to the opponent panel), clear of the Discover options. The
 panel next to its card is a second `CardPoolPanel` in a Canvas over the surface (`Anchored`), not a `MovablePanel`.
 
+## What players take (pick hint)
+
+While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the chart:
+each offered card, the share of offers in which stats pool players took it (bar and percent), the share of games they
+won after taking it, a "most taken" mark when one option leads the next by 5 points or more, and a line with the
+number of choices from this card in the pool's 30 days. Numbers only, never advice or a click for the player.
+
+- **Data: our own stats pool, not HSReplay.** The legal check (`reference/reviews/LEGAL-HeartLens-card-choices.md`,
+  2026-10-26) ruled out `api.kolodahearthstone.com/v1/hsreplay/card-choices` (HSReplay Premium data scraped without
+  HearthSim's written permission, ToS §8). The pool counts only games players chose to share.
+- **Collected**: `ConstructedPicksTracker` keeps the local player's picks of a Ranked/Casual Standard/Wild game
+  (source card id as the log names it, 2 to 8 offered card ids, the taken ones; the opponent's choices never reach
+  listeners, and the source must be the player's). At the game's end `ConstructedPoolGame.From` turns them into
+  `{id, day, format, won, picks}` - no deck, class, rank or opponent - and the WPF app posts it to
+  `POST /v1/constructed` when the player agreed to consent version 4 (`PoolClient.SharingPicks`). Sharing, as for
+  Battlegrounds, is the WPF app's; the Avalonia preview only reads.
+- **Read**: `DiscoverPickSource` loads `GET /v1/choices?format=` whole per format in the background, keeps it for 6 h
+  and retries after 5 minutes; the panel answers from memory, so a choice never waits on the network and never tells
+  the server which card is being played. Without a pool address (`PoolClient.DefaultEndpoint` is empty until the pool
+  is deployed) nothing is requested and the block does not show.
+- **Thresholds** (`DiscoverPicks`): a pick rate from 20 offers of that option from that source, a win rate from 20
+  picks; below, a dash, and "Too few stats pool games with this card yet" when no option has a number.
+- Panel and rows: `OverlayViewModel.UpdateCardPoolPicks` (`CardPoolPicks`, `CardPoolPicksNote`), both `CardPoolPanel`s.
+  Render scene `overlay-card-pool-picks` uses made-up totals (`DiscoverPicks.RenderSample`).
+
 ## Pool browser ("all options")
 
 A full-height side panel (`CardPoolBrowser`, MovablePanel `card-pool-browser`, default 350 units wide; drag its right

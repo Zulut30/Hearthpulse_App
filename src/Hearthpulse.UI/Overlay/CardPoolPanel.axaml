@@ -129,6 +129,39 @@
                 </WrapPanel>
             </StackPanel>
 
+            <!-- ===== Your open choice: what stats pool players take from these options (numbers only, no advice) ===== -->
+            <Border Margin="10,8,10,0" Padding="10,8,10,8" CornerRadius="8" Background="{StaticResource Decor}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
+                    IsVisible="{Binding CardPoolPicks, Converter={StaticResource Truthy}}">
+                <StackPanel>
+                    <TextBlock Classes="poolLabel" Text="{i:Loc Pool.Picks.Title}" />
+                    <ItemsControl ItemsSource="{Binding CardPoolPicks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="o:PoolPickRowModel">
+                                <!-- Two lines: the card's name (and the mark), then the pick bar, its share and the win rate. -->
+                                <StackPanel Margin="0,0,0,6">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="230" VerticalAlignment="Center" />
+                                        <Border IsVisible="{Binding Top}" CornerRadius="5" Padding="5,0,5,1" Margin="6,0,0,0" Background="{StaticResource AccentSoft}" VerticalAlignment="Center">
+                                            <TextBlock Text="{i:Loc Pool.Picks.Top}" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <Grid Height="16" ColumnDefinitions="200,48,*" Margin="0,2,0,0">
+                                        <Border Height="7" CornerRadius="3.5" Background="{StaticResource Hover}" VerticalAlignment="Center">
+                                            <Border Width="{Binding FillWidth}" HorizontalAlignment="Left" CornerRadius="3.5" Background="{StaticResource PoolMechanicFill}" />
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="{Binding PickText}" FontFamily="{StaticResource DisplayFont}" FontSize="11" FontWeight="Bold"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="{Binding WinText}" FontSize="10.5" Foreground="{StaticResource Muted}"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding CardPoolPicksNote}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
             <!-- ===== Chart: tabs (hover to switch), bars with count and share, axis of gems; hover a column for its cards ===== -->
             <Border Margin="10,4,10,0" Padding="10,8,10,8" CornerRadius="8" Background="{StaticResource Decor}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
                     IsVisible="{Binding CardPoolBars, Converter={StaticResource Truthy}}">

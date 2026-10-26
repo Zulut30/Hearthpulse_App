@@ -25,7 +25,21 @@ CREATE TABLE IF NOT EXISTS g (
 
 CREATE INDEX IF NOT EXISTS g_by_mode_day ON g (mode, day);
 
--- The totals the app shows, worked out by the cron job and served as they are.
+-- One row per shared Constructed game, holding only its Discover-style picks (migrations/0005_constructed.sql).
+-- No deck, class, rank, opponent, player name or account.
+CREATE TABLE IF NOT EXISTS c (
+  id TEXT PRIMARY KEY,        -- keyed hash of the game from the app, so sending a game twice stores it once
+  day INTEGER NOT NULL,       -- day the game was played (days since 1970-01-01)
+  fmt TEXT NOT NULL,          -- 'standard' or 'wild'
+  won INTEGER NOT NULL,       -- 1 when the player won
+  src TEXT NOT NULL,          -- 'live' (sent when it ended) or 'history'
+  picks TEXT NOT NULL         -- [[turn, source card, [offered], [picked]], ...]
+);
+
+CREATE INDEX IF NOT EXISTS c_by_fmt_day ON c (fmt, day);
+
+-- The totals the app shows, worked out by the cron job and served as they are: one row per Battlegrounds mode
+-- ('solo', 'duos') and per Constructed format of picks ('choices-standard', 'choices-wild').
 CREATE TABLE IF NOT EXISTS snap (
   mode TEXT PRIMARY KEY,
   last_row INTEGER NOT NULL,  -- newest game counted

@@ -27,9 +27,10 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 | `datasets/hsreplay_arena_cards_advanced` (envelope `data.structured.cards[]`, ~1.7 MB, list repeated in `hsreplay_extracted`) | `arena-cards.json`, trimmed to id/dbfId/score/win_rate/pick_rate/times_played (`ShrinkArenaCards`) | `HearthpulseData.LoadArenaMetaAsync` -> `ArenaMeta` (ArenaSmith `score`; one all-classes slice, Underground, last 4 days) |
 | `v1/arena/classes?limit=20` | `arena-classes.json` | `ArenaMeta.Classes` (win rate, pick rate, 7+ share, drafts) |
 
-Not used: `/v1/meta-intelligence/*` (needs a token). Available without a token but not called yet (fields in
-[kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)): Discover/Adapt pick rates
-`v1/hsreplay/card-choices`, per-deck HSReplay mulligan `v1/hsreplay/mulligan` (premium-sourced, ~18 decks), HSGuru
+Not used: `/v1/meta-intelligence/*` (needs a token). **Not to be used**: `v1/hsreplay/card-choices` and
+`v1/hsreplay/mulligan` - HSReplay Premium data, a Blocker in `reference/reviews/LEGAL-HeartLens-card-choices.md`
+(the Discover pick hint uses the stats pool instead). Available without a token but not called yet (fields in
+[kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)): HSGuru
 matchup matrix `v1/hsguru/matchups` and `v1/hsguru/class-matchups`, BG hero detail `api/bg/heroes/{dbf}` and trinkets
 `api/bg/trinkets`, Blizzard leaderboards `v1/leaderboards*`, balance radar, patches, streamers, Brawl, esports.
 Premium-sourced HSReplay data needs a `hearthpulse-legal` check before it reaches players.
@@ -92,6 +93,16 @@ labels fall back to the built-in `ArchetypeNames.RussianLabel`, then the English
 
 Comps, trinkets, tribe impact, turn results and MMR floors come only from the stats pool (`PoolClient.OverlayAsync`).
 Firestone (`static.zerotoheroes.com`) is not used. Details: `docs/bg-meta-sources.md`.
+
+## Hearthpulse stats pool - `PoolClient.Endpoint` (server/pool, off until deployed)
+
+- `POST v1/games` - shared Battlegrounds games (`PoolClient.SubmitAsync`, WPF only).
+- `POST v1/constructed` - Discover-style picks of shared Ranked/Casual games, consent version 4
+  (`PoolClient.SubmitConstructedAsync`, `ConstructedPoolGame`; WPF only).
+- `GET v1/stats`, `v1/meta` - Battlegrounds totals and base stats (`OverlayAsync`).
+- `GET v1/choices?format=standard|wild` - pick totals for the card pool panel's pick hint (`DiscoverPickSource`,
+  whole format in memory for 6 h; never one request per choice). Contract: `server/pool/README.md`,
+  `docs/discover-pool.md` ("What players take").
 
 ## GitHub
 

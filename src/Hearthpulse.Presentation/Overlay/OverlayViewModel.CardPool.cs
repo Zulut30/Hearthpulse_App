@@ -38,6 +38,14 @@ public sealed record PoolChipModel(string Key, string Label, bool Selected, bool
 public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards);
 
 /// <summary>
+/// One option of the player's open choice with what stats pool players did when it was offered: the share of offers
+/// in which it was taken (the bar) and the share of games won after taking it. Empty texts when the pool has too few.
+/// </summary>
+/// <param name="FillWidth">The pick bar's filled width in overlay units (the track is a fixed width).</param>
+/// <param name="Top">The most taken option, clearly ahead of the others.</param>
+public sealed record PoolPickRowModel(string CardId, string Name, string PickText, double FillWidth, string WinText, bool Top);
+
+/// <summary>
 /// The card pool: a compact panel (pool of the generator being discovered from, hovered or just played) and the pool
 /// browser, a full-height side panel with every card, opened by right-click on the compact panel or by
 /// <see cref="GameSession.ShowCardPool"/>.
@@ -48,6 +56,9 @@ public sealed partial class OverlayViewModel
 
     /// <summary>Width of a mechanic bar's track; the most common mechanic fills it.</summary>
     private const double MechanicTrack = 164;
+
+    /// <summary>Width of a pick bar's track; an option taken every time it is offered fills it.</summary>
+    private const double PickTrack = 200;
 
     private const int TopCardCount = 4;
 
@@ -93,6 +104,9 @@ public sealed partial class OverlayViewModel
     private ConstructedView? _cardPoolView;
     private AppSettings? _cardPoolSettings;
     private string _cardPoolLanguage = string.Empty;
+    private IReadOnlyList<PoolPickRowModel> _cardPoolPicks = [];
+    private string _cardPoolPicksNote = string.Empty;
+    private string _cardPoolPicksKey = string.Empty;
 
     private bool _cardPoolBrowserOpen;
     private bool _cardPoolFiltersOpen;
@@ -214,6 +228,12 @@ public sealed partial class OverlayViewModel
     public PoolEntry? CardPoolFeatured { get => _cardPoolFeatured; private set => Set(ref _cardPoolFeatured, value); }
 
     public string CardPoolFeaturedNote { get => _cardPoolFeaturedNote; private set => Set(ref _cardPoolFeaturedNote, value); }
+
+    /// <summary>The options of the player's open choice with the stats pool's picks; empty outside a choice or without the pool.</summary>
+    public IReadOnlyList<PoolPickRowModel> CardPoolPicks { get => _cardPoolPicks; private set => Set(ref _cardPoolPicks, value); }
+
+    /// <summary>"312 choices from this card · Hearthpulse stats pool, 30 days", or that the pool has too few yet.</summary>
+    public string CardPoolPicksNote { get => _cardPoolPicksNote; private set => Set(ref _cardPoolPicksNote, value); }
 
     /// <summary>"pool: Hearthstone Wiki" or "pool: card text".</summary>
     public string CardPoolSourceNote { get => _cardPoolSourceNote; private set => Set(ref _cardPoolSourceNote, value); }
@@ -446,6 +466,7 @@ public sealed partial class OverlayViewModel
         }
 
         var pool = settings.ShowCardPool ? view?.CardPool : null;
+        UpdateCardPoolPicks(pool is null ? null : view?.DiscoverPicks);
         if (pool is null && view is not null && settings.ShowCardPool && (CardPoolHeld || CardPoolBrowserOpen) && _cardPool is not null)
         {
             // The player is reading a pool panel: the pool that triggered it has gone, keep it until they leave or close.
@@ -517,6 +538,43 @@ public sealed partial class OverlayViewModel
         RebuildCardPoolBrowser();
         ShowCardPool = true;
     }
+
+    /// <summary>
+    /// The pick hint rows: rebuilt only when a number, the options or the language changed, since the session hands a
+    /// fresh view on every publish.
+    /// </summary>
+    private void UpdateCardPoolPicks(DiscoverPicksView? picks)
+    {
+        var key = picks is null ? string.Empty
+            : string.Join('|', picks.Rows.Select(r => $"{r.CardId}:{r.Offered}:{r.Picked}:{r.WinRate}:{r.Top}")) + "|" + picks.Choices + "|" + Loc.Instance.Language;
+        if (key == _cardPoolPicksKey)
+        {
+            return;
+        }
+
+        _cardPoolPicksKey = key;
+        if (picks is null)
+        {
+            CardPoolPicks = [];
+            CardPoolPicksNote = string.Empty;
+            return;
+        }
+
+        CardPoolPicks = picks.Rows
+            .Select(r => new PoolPickRowModel(
+                r.CardId,
+                r.Name,
+                r.PickRate is { } p ? PickPercent(p) : "—",
+                r.PickRate is { } f ? Math.Max(2, PickTrack * f) : 0,
+                r.WinRate is { } w ? Loc.F("Pool.Picks.Win", PickPercent(w)) : string.Empty,
+                r.Top))
+            .ToList();
+        CardPoolPicksNote = picks.HasNumbers
+            ? Loc.P("Pool.Picks.Note", picks.Choices, CardCount(picks.Choices), Core.Pool.PoolClient.HistoryDays)
+            : Loc.T("Pool.Picks.Few");
+    }
+
+    private static string PickPercent(double share) => (share * 100).ToString("0", CultureInfo.InvariantCulture) + "%";
 
     private void RebuildCardPoolBrowser()
     {

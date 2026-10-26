@@ -35,6 +35,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private readonly TurnClock _turnClock;
     private readonly BattlegroundsTracker _battlegrounds = new();
     private readonly GameFactsTracker _facts = new();
+    private readonly ConstructedPicksTracker _picks = new();
     private readonly ReplayRecorder _replay = new();
     private readonly object _statsGate = new();
 
@@ -287,6 +288,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         _parser.AddListener(_battlegrounds.Counters);
         _parser.AddListener(_facts);
         _parser.AddListener(_cardPool);
+        _parser.AddListener(_picks);
         _parser.AddListener(_secrets);
         _parser.AddListener(_replay);
         _parser.AddListener(_turnClock);
@@ -665,7 +667,14 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                 seen.Last.TierHistory,
                 seen.Last.Combats) { Choices = seen.Last.Choices, Plays = seen.Last.Plays }
             : null;
-        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered) { Details = details, Key = record.Key };
+        _lastOutcome = new GameOutcome(record.Mode, record.Result, record.Placement, record.RatingBefore, null, record.HeroCardId, offered)
+        {
+            Details = details,
+            Key = record.Key,
+            GameType = record.GameType,
+            Format = record.Format,
+            ConstructedPicks = record.IsBattlegrounds ? [] : _picks.Picks,
+        };
         GameFinished?.Invoke(_lastOutcome);
         _dirty = true;
     }

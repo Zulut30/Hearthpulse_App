@@ -2,7 +2,9 @@
 
 A small Cloudflare Worker that collects the Battlegrounds games players choose to share and serves the totals:
 heroes, final boards, trinkets, tribes, tavern tier timing, combat odds, picks (Discover, triple rewards, trinkets)
-and the cards played. It is built to stay inside Cloudflare's free plan.
+and the cards played. It also collects the Discover-style picks of shared Ranked and Casual Constructed games and
+serves what players take from each card (the pick hint on the app's card pool panel). It is built to stay inside
+Cloudflare's free plan.
 
 It can also serve **base Battlegrounds statistics** (heroes, cards, trinkets and comp guides) from D1 at `/v1/meta`.
 Hearthpulse ships that table empty: upstream filled it once from a third-party stats service, and that data is not
@@ -10,6 +12,8 @@ part of this repository. Fill it only from a source you are allowed to redistrib
 
 What a shared game contains: a game id (an HMAC of the game made with a key that never leaves the player's PC), the day it was played, solo or duos, the rating rounded down to 500,
 the heroes offered and picked, the placement, and (if the player agreed to it) the game details listed in the app.
+A shared Constructed game (consent version 4) holds only its id, day, format (standard or wild), whether it was won,
+and its picks: the source card, the cards it offered and the one taken. No deck, class, rank or opponent.
 No player name, BattleTag, account or IP address is stored, and nothing about other players.
 
 ## Free plan budget
@@ -69,6 +73,13 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
 - `GET /v1/stats?mode=solo` returns everything: `games`, `detailedGames`, `heroes`, `cards`, `trinkets`, `comps`,
   `tierUps`, `combatOdds`, `choices` and `plays`, over the last 30 days.
 - `GET /v1/heroes?mode=solo` returns only the hero totals (used by Hearthpulse 0.8).
+- `POST /v1/constructed` with `{"v":1,"games":[...]}`, 1 to 20 games. Each game:
+  `{"id":"<32 hex>","day":20752,"format":"standard","won":true,"src":"live","picks":[[turn,"SOURCE",["A","B","C"],["B"]],...]}`
+  (up to 60 picks, 2 to 8 offered, 1 to 4 picked among the offered). A bad pick is dropped; a game without a valid
+  pick is rejected. Needs `migrations/0005_constructed.sql` on an existing pool.
+- `GET /v1/choices?format=standard` (or `wild`) returns `{format, days, updated, games, sources:[{source, choices,
+  options:[[card, offered, picked, wonWhenPicked], ...]}]}` over the last 30 days; options offered fewer than 3
+  times are left out. Rebuilt by the same cron job into `snap` rows `choices-standard` / `choices-wild`.
 - `GET /v1/meta` returns the base stats (see above) when the table has rows, cached at the edge for 30 minutes.
 
 For a local test, run `npx wrangler dev --test-scheduled` and open `/__scheduled` to run the cron job.
@@ -82,6 +93,7 @@ node --test server/pool/test/validation.test.mjs
 ```
 
 The built-in runner needs no npm packages. Tests exercise the validators and `POST /v1/games` with an in-memory
-database stub, without contacting Cloudflare. Invalid required game fields reject that game; invalid optional
+database stub, and `POST /v1/constructed` with the pick totals on Node's built-in SQLite (`node:sqlite`, the real
+`schema.sql`), without contacting Cloudflare. Invalid required game fields reject that game; invalid optional
 details are omitted while the valid game summary is stored. Card IDs must be strings, and trinket lists are checked
 before they are merged (up to four picks and twelve offers, with at most twelve distinct cards in their union).

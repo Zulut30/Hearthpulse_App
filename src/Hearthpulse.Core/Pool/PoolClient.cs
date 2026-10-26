@@ -255,7 +255,7 @@ public static class PoolClient
     /// Raised whenever the list of shared fields grows. Players who agreed to an older list are asked again;
     /// until they answer, only the fields they agreed to are sent.
     /// </summary>
-    public const int ConsentVersion = 3;
+    public const int ConsentVersion = 4;
 
     /// <summary>Heroes and tribes need this many shared games before their numbers are shown.</summary>
     public const int MinGames = 20;
@@ -278,6 +278,9 @@ public static class PoolClient
 
     /// <summary>Picks, plays and earlier games were added in version 3.</summary>
     public static bool SharingAll(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 3;
+
+    /// <summary>The Discover-style picks of Ranked and Casual Constructed games were added in version 4.</summary>
+    public static bool SharingPicks(AppSettings settings) => Sharing(settings) && settings.PoolConsentVersion >= 4;
 
     /// <summary>The install's secret for game ids, made on first use. Callers save the settings afterwards.</summary>
     public static string Secret(AppSettings settings)
@@ -354,6 +357,59 @@ public static class PoolClient
         {
             Diag.Error("Sharing games failed", ex);
             return false;
+        }
+    }
+
+    internal static object ConstructedBody(IEnumerable<ConstructedPoolGame> games) => new
+    {
+        v = 1,
+        games = games.Select(g => new
+        {
+            id = g.GameId,
+            day = g.Day,
+            format = g.Format,
+            won = g.Won,
+            src = "live",
+            picks = g.Picks.Select(p => new object[] { p.Turn, p.Source, p.Offered, p.Picked }),
+        }).ToList(),
+    };
+
+    /// <summary>Sends finished Constructed games' picks (<see cref="SharingPicks"/>); false when the pool did not take them.</summary>
+    public static async Task<bool> SubmitConstructedAsync(HttpClient http, string endpoint, IReadOnlyList<ConstructedPoolGame> games, CancellationToken cancellationToken = default)
+    {
+        if (games.Count is 0 or > MaxBatch)
+        {
+            return games.Count == 0;
+        }
+
+        try
+        {
+            using var response = await http.PostAsJsonAsync(endpoint + "/v1/constructed", ConstructedBody(games), cancellationToken).ConfigureAwait(false);
+            Diag.Info(response.IsSuccessStatusCode
+                ? $"Shared the picks of {games.Count} Constructed game(s) with the stats pool"
+                : $"Pool refused the Constructed picks: {(int)response.StatusCode}");
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Diag.Error("Sharing Constructed picks failed", ex);
+            return false;
+        }
+    }
+
+    /// <summary>What pool players pick from each Discover-style card in "standard" or "wild"; null when unavailable.</summary>
+    public static async Task<DiscoverPickStats?> LoadChoicesAsync(HttpClient http, string endpoint, string format, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await using var stream = await http.GetStreamAsync($"{endpoint}/v1/choices?format={(format == "wild" ? "wild" : "standard")}", cancellationToken).ConfigureAwait(false);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return doc.RootElement.ValueKind == JsonValueKind.Object ? DiscoverPickStats.Parse(doc.RootElement) : null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
+        {
+            Diag.Error("Pool pick totals unavailable", ex);
+            return null;
         }
     }
 

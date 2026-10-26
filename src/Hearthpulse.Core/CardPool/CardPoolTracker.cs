@@ -20,6 +20,7 @@ public sealed class CardPoolTracker : IPowerListener
     private readonly object _gate = new();
     private string? _choiceSource;
     private int _choiceOptions;
+    private (string Source, IReadOnlyList<string> Offered)? _openChoice;
     private string? _played;
     private DateTime _playedAt;
     private string? _hovered;
@@ -35,6 +36,7 @@ public sealed class CardPoolTracker : IPowerListener
         lock (_gate)
         {
             _choiceSource = null;
+            _openChoice = null;
             _played = null;
             _hovered = null;
             _lingering = null;
@@ -51,10 +53,27 @@ public sealed class CardPoolTracker : IPowerListener
         }
 
         var generator = GeneratorOf(game, source);
+        // The options of the player's own choice, which are on the player's screen: what the pick hint is about.
+        var open = source is { CardId.Length: > 0 } && source.Controller == game.LocalPlayerId && options.Count > 1 && options.All(o => o.CardId.Length > 0)
+            ? (source.CardId, (IReadOnlyList<string>)options.Select(o => o.CardId).ToList())
+            : ((string, IReadOnlyList<string>)?)null;
         lock (_gate)
         {
             _choiceSource = generator;
             _choiceOptions = options.Count;
+            _openChoice = open;
+        }
+    }
+
+    /// <summary>The source card id and offered card ids of the player's open choice, or null when none is open.</summary>
+    public (string Source, IReadOnlyList<string> Offered)? OpenChoice
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _openChoice;
+            }
         }
     }
 
@@ -87,6 +106,7 @@ public sealed class CardPoolTracker : IPowerListener
         lock (_gate)
         {
             _choiceSource = null;
+            _openChoice = null;
         }
     }
 

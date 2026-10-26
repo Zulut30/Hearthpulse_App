@@ -174,6 +174,41 @@ public sealed class ViewModelContractTests
         Assert.Equal(new string?[] { "BEAST", null }, requested);
     }
 
+    [Fact]
+    public void Both_overlays_show_the_same_pick_hint_and_drop_it_once_the_choice_closes()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var pool = new Core.CardPool.CardPoolView("CORE_YOP_001", "Illidari Studies", Core.CardPool.PoolTrigger.Choice, "Discover", "Outcast cards · Standard",
+            3, new Core.CardPool.PoolHistogram("Cost", [], 0, 0), null, null, [], null, null, []);
+        var options = new Dictionary<string, Core.Pool.PickOption> { ["CARD_A"] = new(200, 120, 70), ["CARD_B"] = new(180, 40, 15), ["CARD_C"] = new(10, 5, 2) };
+        var stats = new Core.Pool.DiscoverPickStats("standard", 900, new Dictionary<string, Core.Pool.SourcePicks> { ["CORE_YOP_001"] = new(300, options) });
+        var picks = Core.CardPool.DiscoverPicks.Build(stats, "CORE_YOP_001", ["CARD_A", "CARD_B", "CARD_C"], CardDb.Empty);
+        var constructed = new ConstructedView(5, null, false, "HERO_10", "DEMONHUNTER", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
+        {
+            CardPool = pool,
+            DiscoverPicks = picks,
+        };
+        var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
+        var wpf = new WpfOverlay();
+        var ava = new AvaOverlay();
+        var settings = new AppSettings();
+        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+
+        var rows = wpf.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top)).ToList();
+        Assert.Equal(rows, ava.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top)));
+        Assert.Equal([("CARD_A", "60%", "58% won", true), ("CARD_B", "22%", "38% won", false), ("CARD_C", "—", "", false)], rows);
+        Assert.Equal("300 choices from this card · Hearthpulse stats pool, 30 days", wpf.CardPoolPicksNote);
+        Assert.Equal(wpf.CardPoolPicksNote, ava.CardPoolPicksNote);
+
+        // The pick is made: the session hands no hint any more, and the rows go.
+        var closed = snapshot with { Constructed = constructed with { DiscoverPicks = null } };
+        wpf.Update(closed, CardDb.Empty, settings, null, null);
+        ava.Update(closed, CardDb.Empty, settings, null, null);
+        Assert.Empty(wpf.CardPoolPicks);
+        Assert.Empty(ava.CardPoolPicks);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
