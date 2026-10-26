@@ -30,8 +30,8 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 
 Not used: `/v1/meta-intelligence/*` (needs a token). Available without a token but not called yet (fields in
 [kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)): Discover/Adapt pick rates
-`v1/hsreplay/card-choices`, per-deck HSReplay mulligan `v1/hsreplay/mulligan` (premium-sourced, ~18 decks; waits for the legal
-check `../reference/reviews/LEGAL-HeartLens-card-choices.md`, absent on 2026-10-26), HSGuru
+`v1/hsreplay/card-choices`, per-deck HSReplay mulligan `v1/hsreplay/mulligan` (premium-sourced, ~18 decks; **blocked**: legal
+check `../reference/reviews/LEGAL-HeartLens-card-choices.md` L-B1, HearthSim's terms forbid it without written permission), HSGuru
 matchup matrix `v1/hsguru/matchups`, BG hero detail `api/bg/heroes/{dbf}` and trinkets
 `api/bg/trinkets`, Blizzard leaderboards `v1/leaderboards*`, balance radar, patches, streamers, Brawl, esports.
 Premium-sourced HSReplay data needs a `hearthpulse-legal` check before it reaches players.

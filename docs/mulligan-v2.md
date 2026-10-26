@@ -96,16 +96,18 @@ class win rate minus the games-weighted mean of all classes, at least `MinClassG
 404 is remembered for the cache age. The HSGuru guide (source 2) already has class results from its analysis.
 
 `GET /v1/hsreplay/mulligan?deck=<shortid>&initiative=all|first|coin` (per-deck HSReplay mulligan, ~18 collected decks
-in `/v1/hsreplay/mulligan/decks`, with going-first / coin slices) is **not used yet**: the server collects it from a
-premium HSReplay account, and the legal check (`../reference/reviews/LEGAL-HeartLens-card-choices.md`) had no verdict
-on 2026-10-26. Its `opponent_class` split is premium-only and stays out in any case. Once the check allows it, it would
-be source 1: the deck's `deck_list` `[[dbf, count]]` compared with the player's 30 cards, rows `keep_percentage`,
+in `/v1/hsreplay/mulligan/decks`, with going-first / coin slices) is **not used**: the server collects it from a
+premium HSReplay account, and the legal check (`../reference/reviews/LEGAL-HeartLens-card-choices.md`, 2026-10-26)
+rates HSReplay data a blocker (L-B1: HearthSim's terms forbid scraping and republishing without written permission).
+The existing HSReplay mulligan calls stay as they are until the owner decides (L-M2); do not widen HSReplay use. Its
+`opponent_class` split is premium-only and stays out in any case. Only with written permission from HearthSim would it
+become source 1: the deck's `deck_list` `[[dbf, count]]` compared with the player's 30 cards, rows `keep_percentage`,
 `opening_hand_winrate`, `winrate_when_drawn`, `winrate_when_played`, `avg_turn_played_on`, `opening_hand_impact`.
 
 Not used:
 
 - `/api/db/cards/trends` needs a `card_name` and only returns popularity.
-- `/v1/hsreplay/mulligan` (per deck): waits for the legal check, section 2.2.
+- `/v1/hsreplay/mulligan` (per deck): blocked by the legal check (L-B1), section 2.2.
 - `/v1/hsguru/archetypes/analysis` has `class_matchups` and per-card `mulligan_impact` / `kept_impact` (Legend, past
   week): the source of the HSGuru guide (Wild, archetypes HSReplay lacks); the slices above add the splits.
 
