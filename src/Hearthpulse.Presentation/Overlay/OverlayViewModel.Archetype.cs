@@ -1,3 +1,8 @@
+#if HEARTHPULSE_WPF
+using Hearthpulse.App.Infrastructure;
+#else
+using Hearthpulse.UI.Infrastructure;
+#endif
 using System.Globalization;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Constructed;
@@ -20,6 +25,11 @@ public sealed partial class OverlayViewModel
     private string _archetypeNote = string.Empty;
     private IReadOnlyList<ArchetypeRow> _archetypeAlternatives = [];
     private IReadOnlyList<LikelyTile> _likelyCards = [];
+    private RelayCommand? _dismissArchetype;
+    private ConstructedView? _archetypeView;
+    private bool _archetypeDismissed;
+    private int _archetypeDismissedTurn;
+    private string? _archetypeDismissedOpponent;
 
     public bool ShowArchetype { get => _showArchetype; private set => Set(ref _showArchetype, value); }
 
@@ -35,9 +45,39 @@ public sealed partial class OverlayViewModel
 
     public IReadOnlyList<LikelyTile> LikelyCards { get => _likelyCards; private set => Set(ref _likelyCards, value); }
 
+    /// <summary>Hides the panel for the rest of this game; the next game (or another opponent) shows it again.</summary>
+    public RelayCommand DismissArchetype => _dismissArchetype ??= new RelayCommand(() =>
+    {
+        if (_archetypeView is null)
+        {
+            return;
+        }
+
+        _archetypeDismissed = true;
+        _archetypeDismissedTurn = _archetypeView.Turn;
+        _archetypeDismissedOpponent = _archetypeView.OpponentName;
+        ShowArchetype = false;
+    });
+
     private void UpdateArchetype(ConstructedView? view, AppSettings settings)
     {
-        var odds = settings.ShowOpponentArchetype ? view?.OpponentArchetype : null;
+        _archetypeView = view;
+        // The game ended (no view), a new one started (the turn went back) or the opponent's name changed: show again.
+        if (_archetypeDismissed && (view is null || view.Turn < _archetypeDismissedTurn
+            || (!string.IsNullOrEmpty(_archetypeDismissedOpponent) && !string.IsNullOrEmpty(view.OpponentName) && view.OpponentName != _archetypeDismissedOpponent)))
+        {
+            _archetypeDismissed = false;
+        }
+        else if (_archetypeDismissed)
+        {
+            _archetypeDismissedTurn = Math.Max(_archetypeDismissedTurn, view!.Turn);
+            if (string.IsNullOrEmpty(_archetypeDismissedOpponent))
+            {
+                _archetypeDismissedOpponent = view.OpponentName;
+            }
+        }
+
+        var odds = settings.ShowOpponentArchetype && !_archetypeDismissed ? view?.OpponentArchetype : null;
         ShowArchetype = odds is not null;
         if (odds is null)
         {
