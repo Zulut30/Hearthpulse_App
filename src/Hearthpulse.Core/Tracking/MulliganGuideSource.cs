@@ -157,7 +157,38 @@ public sealed class MulliganGuideSource(HearthpulseData data)
             guide = guide with { HsguruArchetype = hsguru.Name };
         }
 
-        return guide is null ? null : await WithSlicesAsync(data, guide, format, deck, cards, opponentClass, goingFirst, cancellationToken).ConfigureAwait(false);
+        if (guide is null)
+        {
+            return null;
+        }
+
+        guide = await WithClassMatchupsAsync(data, guide, format, cancellationToken).ConfigureAwait(false);
+        return await WithSlicesAsync(data, guide, format, deck, cards, opponentClass, goingFirst, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The guide with HSGuru's class results as its matchups when it has none (an HSReplay archetype the server holds no
+    /// matchups for): they move the baseline against the opponent's class. Legend first, else all ranks; a rank whose
+    /// results do not reach <see cref="MulliganGuide.MinClassGames"/> for any class is skipped.
+    /// </summary>
+    public static async Task<GuideArchetype> WithClassMatchupsAsync(HearthpulseData data, GuideArchetype guide, string format, CancellationToken cancellationToken = default)
+    {
+        if (guide.Matchups.Count > 0 || guide.HsguruArchetype is not { } archetype)
+        {
+            return guide;
+        }
+
+        foreach (var rank in MulliganGuide.SliceRanks)
+        {
+            var matchups = await data.LoadHsguruClassMatchupsAsync(archetype, format, rank, cancellationToken).ConfigureAwait(false);
+            if (matchups.Any(m => m.Games >= MulliganGuide.MinClassGames))
+            {
+                Diag.Info($"Mulligan guide: no HSReplay matchups for {guide.Name}, HSGuru {archetype} {rank} class results ({matchups.Sum(m => m.Games)} games)");
+                return guide with { Matchups = matchups };
+            }
+        }
+
+        return guide;
     }
 
     /// <summary>

@@ -181,6 +181,76 @@ public sealed class ApiLoadTests : IDisposable
     }
 
     [Fact]
+    public async Task An_hsreplay_archetype_without_matchups_takes_hsguru_class_results()
+    {
+        var server = FixtureServer.Standard();
+        server.Route("api/db/archetypes/56/matchups", """{"matchups": []}""");
+        server.Route("v1/hsguru/class-matchups?archetype=Quest%20Priest&format=standard&rank=legend", FixtureServer.Text("hsguru-class-matchups-quest-priest-legend.json"));
+        var list = Assert.Single(HearthpulseData.ParseHsguruArchetypes(FixtureServer.Json("hsguru-archetypes-standard.json")), a => a.Name == "Quest Priest").Decks[0];
+        var deck = DeckString.TryDecode(list.Code)!;
+
+        var guide = await MulliganGuideSource.LoadGuideAsync(Data(server), "standard", "PRIEST", deck.Cards, CardDb.Empty);
+
+        Assert.NotNull(guide);
+        Assert.Equal((56, "Quest Priest"), (guide.Id, guide.HsguruArchetype));
+        Assert.Equal(11, guide.Matchups.Count);
+        var warlock = Assert.Single(guide.Matchups, m => m.OpponentClass == "WARLOCK");
+        Assert.Equal(7403, warlock.Games);
+        Assert.Equal(0.474, warlock.WinRate, 6);
+        var mean = guide.Matchups.Sum(m => m.WinRate * m.Games) / guide.Matchups.Sum(m => m.Games);
+        Assert.Equal(0.474 - mean, MulliganGuide.ClassShift(guide.Matchups, "WARLOCK")!.Value, 6);
+        Assert.Single(server.Requests, r => r.StartsWith("v1/hsguru/class-matchups", StringComparison.Ordinal));
+
+        // Cached on disk: a second lookup asks nothing.
+        await MulliganGuideSource.LoadGuideAsync(Data(server), "standard", "PRIEST", deck.Cards, CardDb.Empty);
+        Assert.Single(server.Requests, r => r.StartsWith("v1/hsguru/class-matchups", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Hsguru_class_results_are_asked_for_only_when_hsreplay_has_no_matchups()
+    {
+        var list = Assert.Single(HearthpulseData.ParseHsguruArchetypes(FixtureServer.Json("hsguru-archetypes-standard.json")), a => a.Name == "Quest Priest").Decks[0];
+        var deck = DeckString.TryDecode(list.Code)!;
+
+        // HSReplay's own matchups stay.
+        var withMatchups = FixtureServer.Standard();
+        var guide = await MulliganGuideSource.LoadGuideAsync(Data(withMatchups), "standard", "PRIEST", deck.Cards, CardDb.Empty);
+        Assert.Equal(HearthpulseData.ParseMatchups(FixtureServer.Json("56-matchups.json")).Count, guide!.Matchups.Count);
+        Assert.DoesNotContain(withMatchups.Requests, r => r.StartsWith("v1/hsguru/class-matchups", StringComparison.Ordinal));
+
+        // Neither source has them (404 at Legend and all ranks): the guide still loads, without a class shift, and the
+        // 404s are remembered.
+        var neither = FixtureServer.Standard();
+        neither.Route("api/db/archetypes/56/matchups", """{"matchups": []}""");
+        guide = await MulliganGuideSource.LoadGuideAsync(Data(neither, "neither"), "standard", "PRIEST", deck.Cards, CardDb.Empty);
+        Assert.NotNull(guide);
+        Assert.Empty(guide.Matchups);
+        Assert.Equal(2, neither.Requests.Count(r => r.StartsWith("v1/hsguru/class-matchups", StringComparison.Ordinal)));
+        await MulliganGuideSource.LoadGuideAsync(Data(neither, "neither"), "standard", "PRIEST", deck.Cards, CardDb.Empty);
+        Assert.Equal(2, neither.Requests.Count(r => r.StartsWith("v1/hsguru/class-matchups", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task Hsguru_class_results_need_a_safe_rank_and_read_upper_case_fractions()
+    {
+        var server = new FixtureServer();
+
+        Assert.Empty(await Data(server).LoadHsguruClassMatchupsAsync("Quest Priest", "standard", "../legend"));
+        Assert.Empty(server.Requests);
+
+        var rows = HearthpulseData.ParseHsguruClassMatchups(System.Text.Json.JsonDocument.Parse("""
+            {"games": 900, "winrate": 55.0, "rows": [
+              {"opponent_class": "demonhunter", "winrate": 60.5, "games": 600, "share_pct": 66.7},
+              {"opponent_class": "mage", "winrate": 45.0, "games": 0, "share_pct": 0},
+              {"winrate": 50.0, "games": 300}
+            ]}
+            """).RootElement);
+        var row = Assert.Single(rows);
+        Assert.Equal(("DEMONHUNTER", 600), (row.OpponentClass, row.Games));
+        Assert.Equal(0.605, row.WinRate, 6);
+    }
+
+    [Fact]
     public async Task The_guide_source_starts_over_for_another_deck_and_ignores_a_late_answer()
     {
         var server = FixtureServer.Standard();
@@ -310,7 +380,9 @@ public sealed class ApiLoadTests : IDisposable
         Assert.Equal(0.5, view.CardBaseline, 6);
     }
 
-    private HearthpulseData Data(FixtureServer server) => new(new HearthpulseApi(new HttpClient(server), "https://api.test/"), _cache);
+    /// <param name="cache">A folder of its own under the scratch cache, for a second server in the same test.</param>
+    private HearthpulseData Data(FixtureServer server, string? cache = null) =>
+        new(new HearthpulseApi(new HttpClient(server), "https://api.test/"), cache is null ? _cache : Path.Combine(_cache, cache));
 
     private sealed class Collect(List<ConstructedMeta> into) : IProgress<ConstructedMeta>
     {

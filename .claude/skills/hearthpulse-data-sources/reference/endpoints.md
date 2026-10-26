@@ -22,6 +22,7 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 | `v1/hsguru/archetypes?format=&min_games=50&limit=500` | per format | archetype list |
 | `v1/hsguru/archetypes/analysis?archetype=&format=` | `hsguru-analysis-{format}-{hash}.json` | Wild/HSGuru mulligan |
 | `v1/hsguru/mulligan?archetype=&format=&rank=&coin=&opponent_class=` (one slice sets the coin *or* the class; 404 = not collected) | `hsguru-mulligan-{format}-{hash}-{rank}-{coin}-{opponent}.json` | `LoadHsguruMulliganAsync` -> `MulliganGuideSource` slices |
+| `v1/hsguru/class-matchups?archetype=&format=&rank=` (Legend, then all ranks; rows' `opponent_class` lower case -> upper case; 404 = not collected) | `hsguru-class-matchups-{format}-{hash}-{rank}.json` | `LoadHsguruClassMatchupsAsync` -> `MulliganGuideSource.WithClassMatchupsAsync`: class shift of the baseline when the HSReplay archetype has no matchups |
 | `api/v1/constructed-cards/{cardId}/wiki` (`CardIdKey` `^[A-Za-z0-9_]{1,48}$`) | `card-wiki-{cardId}.json` | `LoadCardWikiAsync` -> `WikiPools` (Discover pools) |
 | `api/v1/constructed-cards?format=wild&per_page=200&page=N` (<= 80 pages) | `cache/api/card-pool.json`, 1 day | `CardPoolCatalog` |
 | `datasets/hsreplay_arena_cards_advanced` (envelope `data.structured.cards[]`, ~1.7 MB, list repeated in `hsreplay_extracted`) | `arena-cards.json`, trimmed to id/dbfId/score/win_rate/pick_rate/times_played (`ShrinkArenaCards`) | `HearthpulseData.LoadArenaMetaAsync` -> `ArenaMeta` (ArenaSmith `score`; one all-classes slice, Underground, last 4 days) |
@@ -29,8 +30,9 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 
 Not used: `/v1/meta-intelligence/*` (needs a token). Available without a token but not called yet (fields in
 [kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)): Discover/Adapt pick rates
-`v1/hsreplay/card-choices`, per-deck HSReplay mulligan `v1/hsreplay/mulligan` (premium-sourced, ~18 decks), HSGuru
-matchup matrix `v1/hsguru/matchups` and `v1/hsguru/class-matchups`, BG hero detail `api/bg/heroes/{dbf}` and trinkets
+`v1/hsreplay/card-choices`, per-deck HSReplay mulligan `v1/hsreplay/mulligan` (premium-sourced, ~18 decks; waits for the legal
+check `../reference/reviews/LEGAL-HeartLens-card-choices.md`, absent on 2026-10-26), HSGuru
+matchup matrix `v1/hsguru/matchups`, BG hero detail `api/bg/heroes/{dbf}` and trinkets
 `api/bg/trinkets`, Blizzard leaderboards `v1/leaderboards*`, balance radar, patches, streamers, Brawl, esports.
 Premium-sourced HSReplay data needs a `hearthpulse-legal` check before it reaches players.
 Docs: `docs/constructed-meta-api.md`, `docs/mulligan-v2.md`,

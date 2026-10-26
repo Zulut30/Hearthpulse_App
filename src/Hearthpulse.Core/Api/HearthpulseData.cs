@@ -168,6 +168,23 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
         return doc is null ? null : Read(() => ParseHsguruMulligan(Data(doc)), "HSGuru mulligan", (MulliganSlice?)null);
     }
 
+    /// <summary>
+    /// HSGuru's results of an archetype against each class (current expansion, all players) at one rank ("legend",
+    /// "all", ...): the mulligan guide's class shift when HSReplay has no matchups for the archetype. Empty when the
+    /// server has not collected it (a 404, remembered like any answer).
+    /// </summary>
+    public async Task<IReadOnlyList<GuideMatchup>> LoadHsguruClassMatchupsAsync(string archetype, string format, string rank, CancellationToken cancellationToken = default)
+    {
+        if (!SafeKey.IsMatch(format) || !SafeKey.IsMatch(rank) || archetype.Length is 0 or > 120)
+        {
+            return [];
+        }
+
+        var file = $"hsguru-class-matchups-{format}-{ApiConstructedMeta.StableId(archetype):x8}-{rank}.json";
+        using var doc = await FetchAsync($"v1/hsguru/class-matchups?archetype={Uri.EscapeDataString(archetype)}&format={format}&rank={rank}", file, cancellationToken).ConfigureAwait(false);
+        return doc is null ? [] : Read(() => ParseHsguruClassMatchups(Data(doc)), "HSGuru class matchups", new List<GuideMatchup>());
+    }
+
     /// <summary>HSReplay publishes Legend and a few brackets; anything wider than Legend maps to its all-ranks view.</summary>
     internal static string RankRange(string rank) => rank switch
     {
@@ -475,6 +492,29 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
 
         return new MulliganSlice(Str(root, "rank") ?? "all", Str(root, "coin") ?? MulliganGuide.AnyCoin,
             Str(root, "opponent_class") ?? MulliganGuide.AnyOpponent, (int)(Num(root, "games") ?? 0), cards);
+    }
+
+    /// <summary>
+    /// <c>{"games", "winrate", "rows": [{"opponent_class" (lower case, "deathknight"), "winrate", "games", "share_pct"}]}</c>;
+    /// win rates become fractions, classes upper case like HSReplay's.
+    /// </summary>
+    internal static List<GuideMatchup> ParseHsguruClassMatchups(JsonElement root)
+    {
+        var result = new List<GuideMatchup>();
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("rows", out var list))
+        {
+            return result;
+        }
+
+        foreach (var m in Items(list))
+        {
+            if (Str(m, "opponent_class") is { Length: > 0 } opponent && Num(m, "winrate") is { } winRate && Num(m, "games") is { } games && games > 0)
+            {
+                result.Add(new GuideMatchup(opponent.ToUpperInvariant(), (int)games, winRate / 100));
+            }
+        }
+
+        return result;
     }
 
     /// <summary><c>{"matchups": [{"opponent_class", "total_games", "win_rate"}]}</c>.</summary>

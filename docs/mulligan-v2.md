@@ -85,9 +85,27 @@ counts are present (a card offered once shows +58.8), so the client needs minimu
   coin and class adjustments, and shows kept / replaced / drawn only in the tooltip and the second line.
 - Some decks have their own slices (`deck_id`); the app does not map decks to HSGuru deck ids yet.
 
+### 2.2 HSGuru class results and the HSReplay per-deck mulligan (2026-10-26)
+
+`GET /v1/hsguru/class-matchups?archetype=<HSGuru name>&format=standard&rank=legend` answers `{"data": {"games",
+"winrate", "rows": [{"opponent_class": "deathknight", "winrate": 78.8, "games": 1544, "share_pct": 5.1}, ...]}}`
+(current expansion, all players; also `deck_id`, `period`, `coin`). The guide uses it **only** when the matched HSReplay
+archetype has no matchups on the server (`/api/db/archetypes/{id}/matchups` empty or missing): its rows become the
+guide's matchups and move the baseline against the opponent's class exactly like HSReplay's (`MulliganGuide.ClassShift`,
+class win rate minus the games-weighted mean of all classes, at least `MinClassGames`). Legend first, else all ranks; a
+404 is remembered for the cache age. The HSGuru guide (source 2) already has class results from its analysis.
+
+`GET /v1/hsreplay/mulligan?deck=<shortid>&initiative=all|first|coin` (per-deck HSReplay mulligan, ~18 collected decks
+in `/v1/hsreplay/mulligan/decks`, with going-first / coin slices) is **not used yet**: the server collects it from a
+premium HSReplay account, and the legal check (`../reference/reviews/LEGAL-HeartLens-card-choices.md`) had no verdict
+on 2026-10-26. Its `opponent_class` split is premium-only and stays out in any case. Once the check allows it, it would
+be source 1: the deck's `deck_list` `[[dbf, count]]` compared with the player's 30 cards, rows `keep_percentage`,
+`opening_hand_winrate`, `winrate_when_drawn`, `winrate_when_played`, `avg_turn_played_on`, `opening_hand_impact`.
+
 Not used:
 
 - `/api/db/cards/trends` needs a `card_name` and only returns popularity.
+- `/v1/hsreplay/mulligan` (per deck): waits for the legal check, section 2.2.
 - `/v1/hsguru/archetypes/analysis` has `class_matchups` and per-card `mulligan_impact` / `kept_impact` (Legend, past
   week): the source of the HSGuru guide (Wild, archetypes HSReplay lacks); the slices above add the splits.
 
@@ -133,7 +151,7 @@ numbers every card starts kept, so no bar reads as "replace".
 | Keep rate, win rate in opening hand | **data** | `keep_percentage`, `opening_hand_winrate` (HSReplay V1 metrics) |
 | Delta per card | **data** | Δ = opening-hand WR − baseline. The baseline is the opening-hand-weighted mean of the same sample (see above). |
 | Keep / Mulligan label | **data + model** | Keep when Δ beats the expected Δ of a replacement card (the copy-weighted mean Δ of the cards still in the deck), ties included. The bar's number is the edge: what keeping the card adds to the recommended keeps (the summed deltas with it kept minus with it replaced), usually Δ − Δ(replacement); a kept synergy partner adds its interaction, and next to a kept second copy the first adds only −Δ(replacement). The recommendation is the best sum, so the call always follows the edge's sign (a tooltip line says when the other cards changed the number); a second copy shows no number (duplicate rule). Until 2026-10-25 a 0.5-point margin favoured keeping, so a card worse than its replacement could read "Keep −0.6" (a real Coin Rogue hand on the coin: Whip −0.65 and Preparation −0.56 were kept next to a −0.68 replacement, and the badge showed the delta against the deck's average, not against the replacement). Gaps under half a point are now only drawn neutral (`MulliganGuide.CloseCall`). Cards without data count as Δ = 0. |
-| Opponent class | **data (HSGuru slices) + baseline** | The *baseline* moves by the matchups of this archetype grouped by `opponent_class`. Each card's Δ moves by its offered impact against that class minus its offered impact in all games, from the HSGuru slice of the same rank (Legend, else all ranks; slices under 2,000 games and cards offered under 200 times are skipped). |
+| Opponent class | **data (HSGuru slices) + baseline** | The *baseline* moves by the matchups of this archetype grouped by `opponent_class` (HSReplay's; when the server has none for the archetype, HSGuru's class results of the matched HSGuru archetype, section 2.2). Each card's Δ moves by its offered impact against that class minus its offered impact in all games, from the HSGuru slice of the same rank (Legend, else all ranks; slices under 2,000 games and cards offered under 200 times are skipped). |
 | Going first / coin | **data (HSGuru slices)** | The same shift from the `going_first` / `on_coin` slice. Both shifts add up (the server keeps the two splits apart). The Firestone fallback also moves the baseline with `FirstWinRate` / `CoinWinRate`. |
 | Keep rate, kept / replaced / drawn | **data (HSGuru slices)** | From the most specific slice that has the card (class, then coin, then all games; Legend first): keep rate, win rate when kept and when replaced, win rate when drawn, all against the deck's. Without a slice: HSReplay's keep rate and `winrate_when_drawn` − baseline. Shown, not used for the call (selection bias, section 2.1). |
 | Duplicates | **heuristic (labelled)** | The stat describes holding the card, so a second copy adds nothing measurable. In the estimate it counts 0 and blocks a replacement. Recommendation: keep the second copy only for an early play (expected turn ≤ 3) that players keep ≥ 50% of the time. |
@@ -151,6 +169,10 @@ matchups are counted twice. That is why the overlay presents it as an estimate.
 
 ### Checks (2026-10-23)
 
+- 2026-10-26: `ApiLoadTests` covers the HSGuru class results: an HSReplay archetype with empty matchups takes them
+  (`Fixtures/Mulligan/hsguru-class-matchups-quest-priest-legend.json`, a live answer), the shift equals HSReplay's
+  formula, the answer and 404s come from the disk cache, HSReplay's own matchups never trigger the request, unsafe
+  ranks never reach the server.
 - 2026-10-25: `MulliganGuideTests` gained the bug case (a card 0.3 under its replacement is replaced, edge = call on real
   hands), coin / class shifts on synthetic slices and the slice parser on trimmed live Zoolock answers
   (`Fixtures/Mulligan/hsguru-mulligan-zoolock-*.json`); `ApiLoadTests` loads the coin and class slices lazily over a
