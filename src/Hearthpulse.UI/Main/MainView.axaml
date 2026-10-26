@@ -39,7 +39,7 @@
                         <TextBlock Text="{Binding Mode}" Classes="caption" />
                     </StackPanel>
                     <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                               ToolTip.Tip="{Binding Detail}" />
+                               Margin="0,0,16,0" ToolTip.Tip="{Binding Detail}" />
                     <TextBlock Grid.Column="3" Text="{Binding When}" Classes="caption" VerticalAlignment="Center" />
                     <Border Grid.Column="4" CornerRadius="6" Padding="10,3" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{StaticResource Surface3}">
                         <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
@@ -130,6 +130,23 @@
         </Style>
         <Style Selector="m|MainView.compact Grid.choiceRow RadioButton.segment /template/ Border#Bd">
             <Setter Property="Padding" Value="9,5" />
+        </Style>
+        <!-- A page's header filter sits top right; narrow, it drops under the title instead of covering it. -->
+        <Style Selector="Grid.pageHead Border.headFilter">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,8,0,0" />
+        </Style>
+        <Style Selector="Grid#PageHistory">
+            <Setter Property="Margin" Value="40,0,40,110" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.pageHead Border.headFilter">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,0,0,16" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid#PageHistory">
+            <Setter Property="Margin" Value="16,0,16,110" />
         </Style>
 
         <!-- My Stats (Main/Stats): filters drop under the title, side-by-side cards stack, the hero table loses its charts. -->
@@ -316,7 +333,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Grid Name="HomeCharts" ColumnDefinitions="3*,16,2*" Margin="0,0,0,16">
+                        <Grid Name="HomeCharts" ColumnDefinitions="3*,16,2*" Margin="0,0,0,16" IsVisible="{Binding HasBgGames}">
                             <Border Classes="card">
                                 <DockPanel>
                                     <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
@@ -336,7 +353,7 @@
                                                                 HorizontalAlignment="Left" CornerRadius="3" Opacity="0.85"
                                                                 Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=220}" />
                                                     </Border>
-                                                    <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"><Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" " /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" /></TextBlock>
+                                                    <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"><Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" /></TextBlock>
                                                 </Grid>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -362,7 +379,7 @@
                 <!-- ===== Battlegrounds ===== -->
                 <ScrollViewer Name="PageBattlegrounds" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel>
-                        <Grid>
+                        <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
                             <StackPanel>
                                 <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Classes="display" />
                                 <StackPanel Classes="pageSubtitle">
@@ -374,7 +391,7 @@
                                                Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </StackPanel>
                             </StackPanel>
-                            <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Classes="segmentBar"
+                            <Border Classes="segmentBar headFilter"
                                     ToolTip.Tip="{i:Loc Main.Bg.ModeTip}">
                                 <StackPanel Orientation="Horizontal">
                                     <RadioButton Classes="segment" Content="{i:Loc Main.Bg.Solo}" GroupName="BgMode" IsChecked="True" Command="{Binding SetBgMode}" CommandParameter="Battlegrounds" />
@@ -389,7 +406,7 @@
                         <c:Ornament Text="{i:Loc Main.Bg.TierLists}" Icon="&#xF11D0;" Size="15" Margin="0,0,0,14" />
                         <WrapPanel Margin="0,0,0,14">
                             <Border Classes="segmentBar" Margin="0,0,12,8">
-                                <StackPanel Orientation="Horizontal">
+                                <WrapPanel>
                                     <RadioButton Name="TabHeroes" Classes="segment" Content="{i:Loc Main.Bg.Heroes}" GroupName="BgTab" IsChecked="True"
                                                  ToolTip.Tip="{i:Loc Main.Bg.HeroesTip}" />
                                     <RadioButton Name="TabComps" Classes="segment" Content="{i:Loc Main.Bg.Comps}" GroupName="BgTab"
@@ -400,7 +417,7 @@
                                                  ToolTip.Tip="{i:Loc Main.Bg.CardsTip}" />
                                     <RadioButton Name="TabMine" Classes="segment" Content="{i:Loc Main.Bg.MyHeroes}" GroupName="BgTab"
                                                  ToolTip.Tip="{i:Loc Main.Bg.MyHeroesTip}" />
-                                </StackPanel>
+                                </WrapPanel>
                             </Border>
                             <!-- The brackets the loaded stats have (the API: top 50/20/5/1%); hidden when there is no choice -->
                             <Panel IsVisible="{Binding HasBracketChoice}">
@@ -758,8 +775,8 @@
                 </ScrollViewer>
 
                 <!-- ===== History ===== -->
-                <Grid Name="PageHistory" Grid.Row="1" Margin="40,0,40,110" IsVisible="False" RowDefinitions="Auto,*">
-                    <Grid>
+                <Grid Name="PageHistory" Grid.Row="1" IsVisible="False" RowDefinitions="Auto,*">
+                    <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
                         <StackPanel>
                             <TextBlock Text="{i:Loc Main.Nav.History}" Classes="display" />
                             <StackPanel Classes="pageSubtitle">
@@ -770,14 +787,14 @@
                                 <TextBlock Classes="caption" FontSize="14" Margin="10,0,0,0" VerticalAlignment="Center"><Run Text="{Binding HistorySubtitle, Mode=OneWay}" /></TextBlock>
                             </StackPanel>
                         </StackPanel>
-                        <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Classes="segmentBar wide" ToolTip.Tip="{i:Loc Main.History.FilterTip}">
-                            <StackPanel Orientation="Horizontal">
+                        <Border Classes="segmentBar headFilter" ToolTip.Tip="{i:Loc Main.History.FilterTip}">
+                            <WrapPanel>
                                 <RadioButton Name="HistoryAll" Classes="segment" Content="{i:Loc Main.History.All}" GroupName="Hist" IsChecked="True" Command="{Binding SetHistoryFilter}" CommandParameter="All" />
                                 <RadioButton Classes="segment" Content="{i:Loc Main.Mode.Battlegrounds}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Battlegrounds" />
                                 <RadioButton Classes="segment" Content="{i:Loc Main.Mode.Duos}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Duos" />
                                 <RadioButton Classes="segment" Content="{i:Loc Main.Mode.Ranked}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Ranked" />
                                 <RadioButton Classes="segment" Content="{i:Loc Main.History.Other}" GroupName="Hist" Command="{Binding SetHistoryFilter}" CommandParameter="Other" />
-                            </StackPanel>
+                            </WrapPanel>
                         </Border>
                     </Grid>
                     <Border Grid.Row="1" Classes="card" Padding="22,10">
@@ -1190,7 +1207,8 @@
                         BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="9,9,15,9"
                         BoxShadow="0 4 24 0 #59000000">
                     <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                        <Panel Width="46" Height="46">
+                        <!-- Compact: the pulse icon and the arrange button (also in Settings -> Overlay) give their room to the text -->
+                        <Panel Width="46" Height="46" Classes="wide">
                             <c:Scallop Name="LivePulse" Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
                             <TextBlock Text="&#xF0EB7;" Classes="icon" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
                         </Panel>
@@ -1204,7 +1222,7 @@
                                        Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}" />
                         </StackPanel>
                         <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Classes="icon" Content="&#xF01BE;" Width="38" Height="38" Background="{StaticResource Surface4}" Margin="0,0,14,0"
+                            <Button Classes="icon wide" Content="&#xF01BE;" Width="38" Height="38" Background="{StaticResource Surface4}" Margin="0,0,14,0"
                                     Click="OnArrangeOverlay" ToolTip.Tip="{i:Loc Main.Live.ArrangeTipShort}" />
                             <CheckBox Name="OverlaySwitch" Classes="switch" Content="{i:Loc Main.Live.Overlay}" HorizontalAlignment="Right"
                                       Click="OnOverlaySwitch" ToolTip.Tip="{i:Loc Main.Live.OverlayTipShort}" />
