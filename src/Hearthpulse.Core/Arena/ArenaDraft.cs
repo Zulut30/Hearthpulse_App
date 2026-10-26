@@ -3,12 +3,33 @@ using Hearthpulse.Core.Cards;
 namespace Hearthpulse.Core.Arena;
 
 /// <summary>One of the cards (or heroes) offered at a draft pick.</summary>
-/// <param name="Score">ArenaSmith score of a card; null for a hero or a card without a score.</param>
+/// <param name="Score">ArenaSmith score of a card (of the whole package when it has one); null for a hero or a card without a score.</param>
 /// <param name="Tier">Tier letter of the score, or of the class win rate for a hero.</param>
 /// <param name="IsBest">The highest score (or class win rate) of the offer.</param>
 /// <param name="PlayerClass">Class key of a hero option.</param>
 /// <param name="WinRate">Class win rate of a hero option, 0..1.</param>
-public sealed record ArenaPickOption(string CardId, string Name, double? Score, string? Tier, bool IsBest, string? PlayerClass = null, double? WinRate = null);
+/// <param name="Kind">Card, hero or hero power.</param>
+/// <param name="Cost">Mana cost of a card option.</param>
+/// <param name="CardType">MINION, SPELL, WEAPON, LOCATION, HERO... of a card option.</param>
+/// <param name="SameCost">Cards of the deck so far in the curve bucket of this card (0..6, 7+).</param>
+/// <param name="SameType">Cards of the deck so far of this card's type.</param>
+/// <param name="Package">The cards that come with this one (a legendary's package).</param>
+/// <param name="ClassRank">Place of a hero's class by win rate, 1 = best, among <see cref="ArenaDraftView.Classes"/>.</param>
+public sealed record ArenaPickOption(
+    string CardId,
+    string Name,
+    double? Score,
+    string? Tier,
+    bool IsBest,
+    string? PlayerClass = null,
+    double? WinRate = null,
+    ArenaChoiceKind Kind = ArenaChoiceKind.Card,
+    int? Cost = null,
+    string? CardType = null,
+    int SameCost = 0,
+    int SameType = 0,
+    IReadOnlyList<string>? Package = null,
+    int? ClassRank = null);
 
 /// <summary>One distinct card of the drafted deck.</summary>
 public sealed record ArenaDeckCard(string CardId, string Name, int Cost, int Count, double? Score, string? Tier);
@@ -26,12 +47,42 @@ public sealed record ArenaDeckScore(double? Average, string? Tier, IReadOnlyList
     public static ArenaDeckScore Empty { get; } = new(null, null, new int[ArenaDraft.CurveBuckets], 0, 0);
 }
 
+/// <summary>Card types of a deck, copies counted; <see cref="Other"/> holds heroes and anything new.</summary>
+public sealed record ArenaDeckTypes(int Minions, int Spells, int Weapons, int Locations, int Other)
+{
+    public static ArenaDeckTypes Empty { get; } = new(0, 0, 0, 0, 0);
+
+    /// <summary>Cards of the type <paramref name="cardType"/> (MINION, SPELL...).</summary>
+    public int Of(string? cardType) => cardType switch
+    {
+        "MINION" => Minions,
+        "SPELL" => Spells,
+        "WEAPON" => Weapons,
+        "LOCATION" => Locations,
+        _ => Other,
+    };
+}
+
+/// <summary>What the offer on screen is.</summary>
+public enum ArenaDraftPhase
+{
+    /// <summary>No offer is known (between picks, or the memory read gave nothing).</summary>
+    None,
+    Hero,
+    HeroPower,
+    Cards,
+}
+
 /// <summary>Everything the Arena draft panels show.</summary>
 /// <param name="PlayerClass">Class of the run, or null before the hero pick.</param>
 /// <param name="Picks">Cards in the deck so far (30 at the end).</param>
 /// <param name="Options">The offer on screen (empty when it is not known).</param>
 /// <param name="HeroPick">The offer is the three heroes, not cards.</param>
 /// <param name="Classes">All classes with results, best first; filled for the hero pick.</param>
+/// <param name="Phase">Hero, hero power or card pick.</param>
+/// <param name="Underground">The run is an Underground Arena run; null when the client did not say.</param>
+/// <param name="ScoresFromOtherMode">The scores come from the other Arena mode than the run's (the server has one slice).</param>
+/// <param name="Types">Card types of the deck so far.</param>
 public sealed record ArenaDraftView(
     string? PlayerClass,
     string? HeroCardId,
@@ -41,7 +92,11 @@ public sealed record ArenaDraftView(
     IReadOnlyList<ArenaDeckCard> Deck,
     ArenaDeckScore Score,
     IReadOnlyList<ArenaClassChoice> Classes,
-    bool HasData);
+    bool HasData,
+    ArenaDraftPhase Phase = ArenaDraftPhase.None,
+    bool? Underground = null,
+    bool ScoresFromOtherMode = false,
+    ArenaDeckTypes? Types = null);
 
 /// <summary>Builds <see cref="ArenaDraftView"/> from the log state, the offer read from memory and the community numbers.</summary>
 public static class ArenaDraft
@@ -50,27 +105,44 @@ public static class ArenaDraft
 
     public const int CurveBuckets = 8;
 
-    public static ArenaDraftView Build(ArenaDraftState state, IReadOnlyList<string>? offer, ArenaMeta? meta, CardDb cards)
+    /// <summary>The view for an offer given as card ids only (render scenes, tests).</summary>
+    public static ArenaDraftView Build(ArenaDraftState state, IReadOnlyList<string>? offer, ArenaMeta? meta, CardDb cards, bool? underground = null) =>
+        Build(state, offer is null ? null : new ArenaDraftOffer(offer, underground), meta, cards, underground);
+
+    /// <param name="underground">The run's mode when the offer does not say (the last one seen on this draft screen).</param>
+    public static ArenaDraftView Build(ArenaDraftState state, ArenaDraftOffer? offer, ArenaMeta? meta, CardDb cards, bool? underground = null)
     {
         meta ??= ArenaMeta.Empty;
         var playerClass = ClassOfHero(state.HeroCardId, cards);
-        var options = offer is { Count: > 0 } ? Options(offer, meta, cards) : [];
-        var heroPick = options.Count > 0 && options.All(o => o.PlayerClass is not null);
+        // A hero power logged as a choice is no card of the deck.
+        var deckIds = state.Cards.Where(id => ArenaDraftTracker.KindOf(id, cards) == ArenaChoiceKind.Card).ToList();
+        var score = ScoreOf(deckIds, meta, cards);
+        var types = TypesOf(deckIds, cards);
+        var options = offer is { CardIds.Count: > 0 } ? Options(offer, meta, cards, score, types) : [];
+        var phase = options.Count == 0 ? ArenaDraftPhase.None
+            : options.All(o => o.Kind == ArenaChoiceKind.Hero) ? ArenaDraftPhase.Hero
+            : options.All(o => o.Kind == ArenaChoiceKind.HeroPower) ? ArenaDraftPhase.HeroPower
+            : ArenaDraftPhase.Cards;
+        var heroPick = phase == ArenaDraftPhase.Hero;
         var offeredClasses = heroPick ? options.Select(o => o.PlayerClass!).ToHashSet(StringComparer.Ordinal) : [];
         var classes = playerClass is null || heroPick
             ? meta.Classes.Select(c => new ArenaClassChoice(c.PlayerClass, c.WinRate, c.SevenPlus, offeredClasses.Contains(c.PlayerClass))).ToList()
             : [];
-        var deck = Deck(state.Cards, meta, cards);
+        var mode = offer?.Underground ?? underground;
         return new ArenaDraftView(
             playerClass,
             state.HeroCardId,
-            state.Cards.Count,
+            deckIds.Count,
             options,
             heroPick,
-            deck,
-            ScoreOf(state.Cards, meta, cards),
+            Deck(deckIds, meta, cards),
+            score,
             classes,
-            meta.HasCards || meta.Classes.Count > 0);
+            meta.HasCards || meta.Classes.Count > 0,
+            phase,
+            mode,
+            meta.HasCards && mode is { } m && meta.Underground is { } slice && m != slice,
+            types);
     }
 
     /// <summary>Scores a deck given as card ids (a card listed once per copy).</summary>
@@ -83,7 +155,7 @@ public static class ArenaDraft
         foreach (var id in cardIds)
         {
             count++;
-            curve[Math.Clamp(cards.Get(id)?.Cost ?? 0, 0, CurveBuckets - 1)]++;
+            curve[Bucket(cards.Get(id)?.Cost ?? 0)]++;
             if (meta.Score(id) is { } score)
             {
                 sum += score;
@@ -99,32 +171,74 @@ public static class ArenaDraft
     public static ArenaDeckScore ScoreOf(DeckDefinition deck, ArenaMeta? meta, CardDb cards) =>
         ScoreOf(deck.Cards.SelectMany(c => Enumerable.Repeat(cards.Get(c.Key)?.Id ?? meta?.Card(c.Key)?.CardId ?? string.Empty, c.Value)).Where(id => id.Length > 0), meta, cards);
 
+    /// <summary>Card types of a deck given as card ids (a card listed once per copy).</summary>
+    public static ArenaDeckTypes TypesOf(IEnumerable<string> cardIds, CardDb cards)
+    {
+        int minions = 0, spells = 0, weapons = 0, locations = 0, other = 0;
+        foreach (var id in cardIds)
+        {
+            switch (cards.Get(id)?.Type)
+            {
+                case "MINION": minions++; break;
+                case "SPELL": spells++; break;
+                case "WEAPON": weapons++; break;
+                case "LOCATION": locations++; break;
+                default: other++; break;
+            }
+        }
+
+        return new ArenaDeckTypes(minions, spells, weapons, locations, other);
+    }
+
+    /// <summary>Curve bucket of a mana cost: 0..6, and 7 for 7 or more.</summary>
+    public static int Bucket(int cost) => Math.Clamp(cost, 0, CurveBuckets - 1);
+
     /// <summary>Class key of a hero card (HERO_08 -> MAGE), or null.</summary>
     public static string? ClassOfHero(string? heroCardId, CardDb cards) =>
         heroCardId is null ? null : ArenaMeta.ClassKey(cards.Get(heroCardId)?.CardClass);
 
-    private static List<ArenaPickOption> Options(IReadOnlyList<string> offer, ArenaMeta meta, CardDb cards)
+    private static List<ArenaPickOption> Options(ArenaDraftOffer offer, ArenaMeta meta, CardDb cards, ArenaDeckScore deck, ArenaDeckTypes types)
     {
-        var options = new List<ArenaPickOption>(offer.Count);
-        foreach (var id in offer)
+        var options = new List<ArenaPickOption>(offer.CardIds.Count);
+        for (var i = 0; i < offer.CardIds.Count; i++)
         {
+            var id = offer.CardIds[i];
             var card = cards.Get(id);
             var name = card?.Name ?? id;
-            if (ArenaDraftTracker.IsHeroId(id) || card?.Type == "HERO" && ArenaMeta.ClassKey(card.CardClass) is not null && !card.Collectible)
+            switch (ArenaDraftTracker.KindOf(id, cards))
             {
-                var key = ArenaMeta.ClassKey(card?.CardClass);
-                var stat = meta.Class(key);
-                options.Add(new ArenaPickOption(id, name, null, TierOfWinRate(stat?.WinRate), false, key ?? string.Empty, stat?.WinRate));
-            }
-            else
-            {
-                var score = meta.Score(id);
-                options.Add(new ArenaPickOption(id, name, score, ArenaMeta.TierOf(score), false));
+                case ArenaChoiceKind.Hero:
+                {
+                    var key = ArenaMeta.ClassKey(card?.CardClass);
+                    var stat = meta.Class(key);
+                    var rank = stat is null ? (int?)null : IndexOf(meta.Classes, stat) + 1;
+                    options.Add(new ArenaPickOption(id, name, null, TierOfWinRate(stat?.WinRate), false, key ?? string.Empty, stat?.WinRate, ArenaChoiceKind.Hero, ClassRank: rank));
+                    break;
+                }
+
+                case ArenaChoiceKind.HeroPower:
+                    options.Add(new ArenaPickOption(id, name, null, null, false, Kind: ArenaChoiceKind.HeroPower));
+                    break;
+                default:
+                {
+                    // A legendary that brings a package is taken as a whole: the score is the package's average.
+                    var package = offer.PackageOf(i);
+                    var score = package.Count == 0 ? meta.Score(id) : ScoreOf(package.Prepend(id), meta, cards).Average;
+                    var cost = card?.Cost;
+                    options.Add(new ArenaPickOption(id, name, score, ArenaMeta.TierOf(score), false,
+                        Kind: ArenaChoiceKind.Card,
+                        Cost: cost,
+                        CardType: card?.Type,
+                        SameCost: cost is { } c ? deck.Curve[Bucket(c)] : 0,
+                        SameType: card is null ? 0 : types.Of(card.Type),
+                        Package: package));
+                    break;
+                }
             }
         }
 
         // The best is marked only when it can be compared with at least one other option.
-        var values = options.Select(o => o.PlayerClass is not null ? o.WinRate : o.Score).ToList();
+        var values = options.Select(o => o.Kind == ArenaChoiceKind.Hero ? o.WinRate : o.Score).ToList();
         if (values.Count(v => v is not null) >= 2)
         {
             var best = values.Max(v => v ?? double.MinValue);
@@ -138,6 +252,19 @@ public static class ArenaDraft
         }
 
         return options;
+    }
+
+    private static int IndexOf(IReadOnlyList<ArenaClassStat> classes, ArenaClassStat stat)
+    {
+        for (var i = 0; i < classes.Count; i++)
+        {
+            if (ReferenceEquals(classes[i], stat))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     private static List<ArenaDeckCard> Deck(IReadOnlyList<string> cardIds, ArenaMeta meta, CardDb cards) =>

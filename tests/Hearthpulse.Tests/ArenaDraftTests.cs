@@ -167,7 +167,7 @@ public sealed class ArenaDraftTests : IDisposable
     [Fact]
     public void The_deck_so_far_has_a_curve_and_an_average()
     {
-        var view = ArenaDraft.Build(State(["BE_085", "BE_085", "BE_193", "VAC_301"]), null, Meta(), Cards);
+        var view = ArenaDraft.Build(State(["BE_085", "BE_085", "BE_193", "VAC_301"]), (ArenaDraftOffer?)null, Meta(), Cards);
 
         Assert.Equal(4, view.Picks);
         Assert.Equal(3, view.Deck.Count);
@@ -241,6 +241,7 @@ public sealed class ArenaDraftTests : IDisposable
             Cards = Cards,
         };
         session.SetArenaMeta(Meta());
+        session.SetArenaDraftEnabled(true);
 
         session.OnLines("LoadingScreen.log", ["D 21:00:00.0000000 LoadingScreen.OnSceneLoaded() - prevMode=HUB currMode=DRAFT"], catchingUp: false);
         session.OnLines("Arena.log", DraftLog, catchingUp: false);
@@ -271,6 +272,206 @@ public sealed class ArenaDraftTests : IDisposable
         Assert.Null(session.Current.ArenaDraft);
     }
 
+    [Theory]
+    [InlineData("HERO_07", ArenaChoiceKind.Hero)]
+    [InlineData("HERO_07bp", ArenaChoiceKind.HeroPower)]
+    [InlineData("BE_085", ArenaChoiceKind.Card)]
+    [InlineData("RLK_HERO_01", ArenaChoiceKind.Card)]
+    [InlineData("HERO_02", ArenaChoiceKind.Hero)]
+    [InlineData("HERO_02bp2", ArenaChoiceKind.HeroPower)]
+    [InlineData("HERO_01aphp", ArenaChoiceKind.HeroPower)]
+    [InlineData("HERO_01aa", ArenaChoiceKind.Hero)]
+    [InlineData("XYZ_123", ArenaChoiceKind.Card)]
+    public void Choices_are_told_apart_by_the_card_data_and_else_by_the_id(string cardId, ArenaChoiceKind kind) =>
+        Assert.Equal(kind, ArenaDraftTracker.KindOf(cardId, Cards));
+
+    [Fact]
+    public void The_hero_power_pick_is_no_card_of_the_deck()
+    {
+        var tracker = new ArenaDraftTracker();
+        tracker.Feed("D 21:00:02.0000000 DraftManager.OnChosen(): hero=HERO_07 premium=NORMAL", Cards);
+        tracker.Feed("D 21:00:03.0000000 DraftManager.OnChosen(): heroPower=HERO_07bp", Cards);
+        tracker.Feed("D 21:00:03.1000000 Client chooses: Life Tap (HERO_07bp)", Cards);
+        tracker.Feed("D 21:00:04.0000000 Client chooses: Small Warlock Spell (BE_085)", Cards);
+
+        Assert.Equal("HERO_07", tracker.State.HeroCardId);
+        Assert.Equal("HERO_07bp", tracker.State.HeroPowerCardId);
+        Assert.Equal(["BE_085"], tracker.State.Cards);
+
+        var view = ArenaDraft.Build(tracker.State, ["HERO_07bp", "HERO_08bp", "HERO_10bp"], Meta(), Cards);
+        Assert.Equal(ArenaDraftPhase.HeroPower, view.Phase);
+        Assert.False(view.HeroPick);
+        Assert.All(view.Options, o => Assert.Null(o.Score));
+    }
+
+    [Fact]
+    public void A_new_hero_starts_a_new_run_even_without_its_OnChosen_line()
+    {
+        var tracker = new ArenaDraftTracker();
+        foreach (var line in DraftLog)
+        {
+            tracker.Feed(line, Cards);
+        }
+
+        // The previous run's deck must not carry over when only the "Client chooses" line of the hero was written.
+        tracker.Feed("D 22:00:00.0000000 Client chooses: Jaina (HERO_08)", Cards);
+        Assert.Equal("HERO_08", tracker.State.HeroCardId);
+        Assert.Empty(tracker.State.Cards);
+
+        // The same hero logged twice (OnChosen, then Client chooses) is one pick.
+        tracker.Feed("D 22:00:01.0000000 Client chooses: Small Warlock Spell (BE_085)", Cards);
+        tracker.Feed("D 22:10:00.0000000 DraftManager.OnChosen(): hero=HERO_07 premium=NORMAL", Cards);
+        tracker.Feed("D 22:10:00.1000000 Client chooses: Gul'dan (HERO_07)", Cards);
+        Assert.Equal("HERO_07", tracker.State.HeroCardId);
+        Assert.Empty(tracker.State.Cards);
+    }
+
+    [Fact]
+    public void Each_offered_card_shows_where_it_would_sit_in_the_deck()
+    {
+        // Deck: two 2-mana spells, a 1-mana minion; offer: a 3-mana minion, a 6-mana minion, a 2-mana spell.
+        var view = ArenaDraft.Build(State(["BE_085", "BE_085", "BE_193"]), ["TIME_063", "BE_090", "BE_085"], Meta(), Cards);
+
+        Assert.Equal(ArenaDraftPhase.Cards, view.Phase);
+        Assert.Equal(new ArenaDeckTypes(1, 2, 0, 0, 0), view.Types);
+        var spell = view.Options[2];
+        Assert.Equal((2, "SPELL", 2, 2), (spell.Cost!.Value, spell.CardType, spell.SameCost, spell.SameType));
+        var big = view.Options[1];
+        Assert.Equal((6, 0, 1), (big.Cost!.Value, big.SameCost, big.SameType));
+    }
+
+    [Fact]
+    public void A_legendary_with_a_package_is_scored_as_a_whole()
+    {
+        IReadOnlyList<IReadOnlyList<string>> packages = [[], ["BE_085", "TIME_063"], []];
+        var offer = new ArenaDraftOffer(["BE_193", "BE_090", "VAC_301"], true, packages);
+
+        var view = ArenaDraft.Build(State([]), offer, Meta(), Cards);
+
+        var legendary = view.Options[1];
+        Assert.Equal(["BE_085", "TIME_063"], legendary.Package);
+        Assert.Equal(ArenaDraft.ScoreOf(["BE_090", "BE_085", "TIME_063"], Meta(), Cards).Average, legendary.Score);
+        Assert.Equal(Meta().Score("BE_193"), view.Options[0].Score);
+        Assert.True(view.Underground);
+    }
+
+    [Fact]
+    public void The_card_slice_says_it_is_Underground_and_a_normal_run_is_told()
+    {
+        var data = Data("arena-cards.json");
+        Assert.True(HearthpulseData.ParseArenaSlice(data));
+        Assert.True(HearthpulseData.ParseArenaSlice(JsonSerializer.SerializeToElement(HearthpulseData.ShrinkArenaCards(data))));
+
+        var meta = new ArenaMeta(Meta().Cards, Meta().Classes, underground: true);
+        Assert.True(ArenaDraft.Build(State(["BE_085"]), ["BE_090", "BE_193"], meta, Cards, underground: false).ScoresFromOtherMode);
+        Assert.False(ArenaDraft.Build(State(["BE_085"]), ["BE_090", "BE_193"], meta, Cards, underground: true).ScoresFromOtherMode);
+        Assert.False(ArenaDraft.Build(State(["BE_085"]), ["BE_090", "BE_193"], meta, Cards).ScoresFromOtherMode);
+    }
+
+    [Fact]
+    public async Task The_loaded_meta_knows_its_slice()
+    {
+        var meta = await Data(new FixtureServer(ok: true)).LoadArenaMetaAsync();
+
+        Assert.True(meta.Underground);
+    }
+
+    [Fact]
+    public void A_pick_logged_after_the_next_offer_was_read_keeps_that_offer()
+    {
+        using var draft = Session();
+        draft.Session.SetDraftOffer(["TIME_063", "BE_090", "VAC_301"]);
+        draft.Tick();
+
+        // The memory read already has the next offer when the pick's log line arrives: it is no stale offer.
+        draft.Session.SetDraftOffer(["BE_193", "BE_085", "TIME_063"]);
+        draft.Session.OnLines("Arena.log", ["D 21:01:00.0000000 Client chooses: Card (BE_090)"], catchingUp: false);
+        draft.Tick();
+
+        Assert.Equal(["BE_193", "BE_085", "TIME_063"], draft.Session.Current.ArenaDraft!.Options.Select(o => o.CardId));
+    }
+
+    [Fact]
+    public void A_pick_logged_before_its_offer_was_read_hides_that_offer()
+    {
+        using var draft = Session();
+        draft.Session.OnLines("Arena.log", ["D 21:01:00.0000000 Client chooses: Card (BE_090)"], catchingUp: false);
+        draft.Session.SetDraftOffer(["TIME_063", "BE_090", "VAC_301"]);
+        draft.Tick();
+        Assert.Empty(draft.Session.Current.ArenaDraft!.Options);
+
+        draft.Session.SetDraftOffer(["BE_193", "BE_085", "TIME_063"]);
+        draft.Tick();
+        Assert.Equal(3, draft.Session.Current.ArenaDraft!.Options.Count);
+    }
+
+    [Fact]
+    public void Picking_a_legendary_adds_its_package_to_the_deck()
+    {
+        using var draft = Session();
+        IReadOnlyList<IReadOnlyList<string>> packages = [[], ["BE_085", "TIME_063"], []];
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["BE_193", "BE_090", "VAC_301"], true, packages));
+        draft.Tick();
+        var before = draft.Session.Current.ArenaDraft!.Picks;
+
+        draft.Session.OnLines("Arena.log", ["D 21:01:00.0000000 Client chooses: Big Warlock Card (BE_090)"], catchingUp: false);
+        draft.Tick();
+
+        var view = draft.Session.Current.ArenaDraft!;
+        Assert.Equal(before + 3, view.Picks);
+        Assert.Contains(view.Deck, c => c.CardId == "TIME_063");
+        Assert.True(view.Underground);
+    }
+
+    [Fact]
+    public void With_the_helper_off_the_draft_screen_is_not_shown()
+    {
+        using var draft = Session();
+        draft.Session.SetDraftOffer(["TIME_063", "BE_090", "VAC_301"]);
+        draft.Tick();
+        Assert.NotNull(draft.Session.Current.ArenaDraft);
+
+        draft.Session.SetArenaDraftEnabled(false);
+        draft.Tick();
+        Assert.Null(draft.Session.Current.ArenaDraft);
+    }
+
+    /// <summary>A session on the draft screen with the helper on, three cards drafted (<see cref="DraftLog"/>).</summary>
+    private static DraftSession Session()
+    {
+        var db = Path.Combine(Path.GetTempPath(), $"hp-arena-{Guid.NewGuid():N}.db");
+        var memory = new HearthstoneMemory();
+        var draft = new DraftSession(memory, new DateTime(2026, 10, 25, 21, 0, 0, DateTimeKind.Utc));
+        draft.Session = new GameSession(new HistoryStore(db), memory)
+        {
+            Clock = () => draft.Now,
+            IsHearthstoneRunning = () => true,
+            ReadsMemory = false,
+            Cards = Cards,
+        };
+        draft.Session.SetArenaMeta(Meta());
+        draft.Session.SetArenaDraftEnabled(true);
+        draft.Session.OnLines("LoadingScreen.log", ["D 21:00:00.0000000 LoadingScreen.OnSceneLoaded() - prevMode=HUB currMode=DRAFT"], catchingUp: false);
+        draft.Session.OnLines("Arena.log", DraftLog, catchingUp: false);
+        return draft;
+    }
+
+    private sealed class DraftSession(HearthstoneMemory memory, DateTime now) : IDisposable
+    {
+        public GameSession Session { get; set; } = null!;
+
+        public DateTime Now { get; private set; } = now;
+
+        /// <summary>Publishes a snapshot (at most one per 100 ms, so the clock moves on).</summary>
+        public void Tick()
+        {
+            Now = Now.AddSeconds(1);
+            Session.OnTick();
+        }
+
+        public void Dispose() => memory.Dispose();
+    }
+
     private static readonly string[] DraftLog =
     [
         "D 21:00:01.0000000 SetDraftMode - DRAFTING",
@@ -295,9 +496,13 @@ public sealed class ArenaDraftTests : IDisposable
           {"id":"BE_193","dbfId":129901,"name":"Neutral One","cost":1,"type":"MINION","cardClass":"NEUTRAL","collectible":true},
           {"id":"TIME_063","dbfId":120001,"name":"Weak Neutral","cost":3,"type":"MINION","cardClass":"NEUTRAL","collectible":true},
           {"id":"VAC_301","dbfId":120002,"name":"Unscored","cost":7,"type":"MINION","cardClass":"NEUTRAL","collectible":true},
-          {"id":"HERO_07","dbfId":893,"name":"Gul'dan","type":"HERO","cardClass":"WARLOCK"},
+          {"id":"HERO_07","dbfId":893,"name":"Gul'dan","type":"HERO","cardClass":"WARLOCK","collectible":true},
           {"id":"HERO_08","dbfId":637,"name":"Jaina","type":"HERO","cardClass":"MAGE"},
-          {"id":"HERO_10","dbfId":56550,"name":"Illidan","type":"HERO","cardClass":"DEMONHUNTER"}
+          {"id":"HERO_10","dbfId":56550,"name":"Illidan","type":"HERO","cardClass":"DEMONHUNTER"},
+          {"id":"HERO_07bp","dbfId":1,"name":"Life Tap","type":"HERO_POWER","cardClass":"WARLOCK"},
+          {"id":"HERO_08bp","dbfId":2,"name":"Fireblast","type":"HERO_POWER","cardClass":"MAGE"},
+          {"id":"HERO_10bp","dbfId":3,"name":"Demon Claws","type":"HERO_POWER","cardClass":"DEMONHUNTER"},
+          {"id":"RLK_HERO_01","dbfId":4,"name":"Collectible Hero Card","cost":7,"type":"HERO","cardClass":"DEATHKNIGHT","collectible":true}
         ]
         """)));
 

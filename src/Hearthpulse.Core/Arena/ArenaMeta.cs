@@ -32,7 +32,8 @@ public sealed class ArenaMeta
     private readonly Dictionary<int, ArenaCardScore> _byDbf;
     private readonly Dictionary<string, ArenaClassStat> _byClass;
 
-    public ArenaMeta(IEnumerable<ArenaCardScore> cards, IEnumerable<ArenaClassStat> classes, DateTime? fetchedAt = null)
+    /// <param name="underground">The card slice is Underground Arena (true) or normal Arena (false); null when the server did not say.</param>
+    public ArenaMeta(IEnumerable<ArenaCardScore> cards, IEnumerable<ArenaClassStat> classes, DateTime? fetchedAt = null, bool? underground = null)
     {
         _byId = new Dictionary<string, ArenaCardScore>(StringComparer.Ordinal);
         _byDbf = new Dictionary<int, ArenaCardScore>();
@@ -48,6 +49,7 @@ public sealed class ArenaMeta
         Classes = classes.OrderByDescending(c => c.WinRate).ToList();
         _byClass = Classes.GroupBy(c => c.PlayerClass, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         FetchedAt = fetchedAt;
+        Underground = underground;
     }
 
     public static ArenaMeta Empty { get; } = new([], []);
@@ -57,6 +59,9 @@ public sealed class ArenaMeta
 
     /// <summary>When the server fetched the card numbers.</summary>
     public DateTime? FetchedAt { get; }
+
+    /// <summary>Which Arena the card scores come from: Underground (true), normal (false) or unknown (null).</summary>
+    public bool? Underground { get; }
 
     public int CardCount => _byId.Count;
 

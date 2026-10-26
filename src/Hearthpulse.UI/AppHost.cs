@@ -82,6 +82,7 @@ public sealed partial class AppHost : IDisposable
         Overlay = new OverlayViewModel();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
+        Session.SetArenaDraftEnabled(Settings.ShowArenaDraft);
         Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
         Overlay.PinRequested += OnPinRequested;
         Overlay.SecretToggleRequested += Session.ToggleSecret;
@@ -497,6 +498,7 @@ public sealed partial class AppHost : IDisposable
         _settingsDebounce.Start();
         Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
+        Session.SetArenaDraftEnabled(Settings.ShowArenaDraft);
         Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
         LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();

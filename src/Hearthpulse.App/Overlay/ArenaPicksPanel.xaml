@@ -4,8 +4,8 @@
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
              xmlns:c="clr-namespace:Hearthpulse.App.Controls">
-    <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier) or hero (class win rate), the best one
-         in gold. Laid across the width of the draft screen's card row, so each badge sits over its card. Nothing here
+    <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier, its place on the curve and among the
+         deck's types) or hero (class win rate and place), the best one in gold. Laid across the width of the draft screen's card row, so each badge sits over its card. Nothing here
          takes clicks: the cards under it stay clickable. DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
@@ -29,6 +29,11 @@
                                        Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center" />
                         </StackPanel>
                         <TextBlock x:Name="Caption" Text="{Binding Caption}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                        <!-- Where the card would sit in the deck: its curve bucket, its type (or package) -->
+                        <TextBlock Text="{Binding FitCost}" FontSize="10" Foreground="{StaticResource Text}" Margin="0,2,0,0"
+                                   Visibility="{Binding FitCost, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="{Binding FitType}" FontSize="10" Foreground="{StaticResource Muted}"
+                                   Visibility="{Binding FitType, Converter={StaticResource Vis}}" />
                     </StackPanel>
                 </StackPanel>
             </Border>
