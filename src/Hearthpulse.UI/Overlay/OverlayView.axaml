@@ -744,7 +744,7 @@
                     <Panel>
                         <LayoutTransformControl Name="PART_Scaler" ClipToBounds="False">
                             <Panel>
-                                <Border Name="Placeholder" IsVisible="False" MinWidth="200" MinHeight="56" Background="#E6201510" CornerRadius="8"
+                                <Border Name="Placeholder" IsVisible="False" MinWidth="200" MinHeight="56" Background="{StaticResource OverlayPlaceholder}" CornerRadius="8"
                                         BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1">
                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16,10">
                                         <TextBlock Text="{TemplateBinding Title}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
@@ -780,6 +780,10 @@
             <Setter Property="IsVisible" Value="True" />
         </Style>
         <Style Selector="o|MovablePanel.placeholder /template/ ContentPresenter#Body">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours -->
+        <Style Selector="o|MovablePanel.editing.placeholder /template/ Border#Tag">
             <Setter Property="IsVisible" Value="False" />
         </Style>
     </UserControl.Styles>
@@ -1319,8 +1323,8 @@
                     </Border>
                 </o:MovablePanel>
 
-                <!-- ============ Layout mode banner ============ -->
-                <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,120,0,0" Classes="overlayCard"
+                <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->
+                <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,400,0,0" Classes="overlayCard"
                         Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,10" o:OverlayHit.Interactive="True"
                         IsVisible="{Binding LayoutEditing}">
                     <StackPanel Orientation="Horizontal">

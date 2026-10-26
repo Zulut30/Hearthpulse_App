@@ -781,9 +781,11 @@
                                 <Setter TargetName="Frame" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Tag" Property="Visibility" Value="Visible" />
                             </Trigger>
+                            <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours -->
                             <Trigger Property="ShowPlaceholder" Value="True">
                                 <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Body" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="Tag" Property="Visibility" Value="Collapsed" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -1507,8 +1509,8 @@
                 </Border>
             </o:MovablePanel>
 
-            <!-- ============ Layout mode banner ============ -->
-            <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,120,0,0" Style="{StaticResource OverlayCard}"
+            <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,400,0,0" Style="{StaticResource OverlayCard}"
                     Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,10" o:OverlayHit.Interactive="True"
                     Visibility="{Binding LayoutEditing, Converter={StaticResource Vis}}">
                 <StackPanel Orientation="Horizontal">
