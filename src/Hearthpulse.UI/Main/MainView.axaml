@@ -969,12 +969,12 @@
 
                                     <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
                                         <TextBlock Text="{i:Loc Settings.Overlay.Size}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
-                                        <Slider Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" />
+                                        <Slider Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
                                         <TextBlock Grid.Column="2" Text="{Binding OverlayScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                                     </Grid>
                                     <Grid ColumnDefinitions="160,*,56">
                                         <TextBlock Text="{i:Loc Settings.Overlay.Opacity}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
-                                        <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" />
+                                        <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
                                         <TextBlock Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                                     </Grid>
                                 </StackPanel>
