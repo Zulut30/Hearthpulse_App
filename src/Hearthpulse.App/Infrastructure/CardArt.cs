@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
@@ -54,6 +55,14 @@ public static class CardArt
     /// asks for dozens of cards at once) must not eat the whole machine.
     /// </summary>
     private static readonly SemaphoreSlim Decodes = new(4);
+
+    /// <summary>
+    /// Pixel buffers for trimming art. A portrait needed two fresh 160 KB arrays, both on the large object heap, so a
+    /// page of portraits ran a full (gen2) collection every dozen images; a bitmap copies its pixels, so the buffers are
+    /// handed back right after. Kept: at most 8 per size up to 256 KB (2 MB with portraits, two per running decode);
+    /// splash art (1 MB) is rare and not kept.
+    /// </summary>
+    private static readonly ArrayPool<byte> PixelBuffers = ArrayPool<byte>.Create(256 * 1024, 8);
 
     public static HttpClient? Http { get; set; }
 
@@ -370,13 +379,15 @@ public static class CardArt
     private static BitmapSource FadeTileMargin(BitmapSource bitmap)
     {
         // A failure here keeps the art as it is: the caller would delete the cached file as unreadable.
+        byte[]? buffer = null;
         try
         {
             var pixels = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
             var stride = pixels.PixelWidth * 4;
-            var buffer = new byte[stride * pixels.PixelHeight];
-            pixels.CopyPixels(buffer, stride, 0);
-            if (!ArtTrim.CleanTile(buffer, pixels.PixelWidth, pixels.PixelHeight, stride, premultiplied: false))
+            var size = stride * pixels.PixelHeight;
+            buffer = PixelBuffers.Rent(size);
+            pixels.CopyPixels(Int32Rect.Empty, buffer, stride, 0);
+            if (!ArtTrim.CleanTile(buffer.AsSpan(0, size), pixels.PixelWidth, pixels.PixelHeight, stride, premultiplied: false))
             {
                 return bitmap;
             }
@@ -390,26 +401,36 @@ public static class CardArt
             Diag.Error("Tile margin was not faded", ex);
             return bitmap;
         }
+        finally
+        {
+            if (buffer is not null)
+            {
+                PixelBuffers.Return(buffer);
+            }
+        }
     }
 
     /// <summary>Cuts the white paper margins around square art, which show as a light ring on round portraits.</summary>
     private static BitmapSource TrimMargins(BitmapSource bitmap)
     {
         // A failure here keeps the art as it is: the caller would delete the cached file as unreadable.
+        byte[]? buffer = null;
+        byte[]? square = null;
         try
         {
             var pixels = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
             var stride = pixels.PixelWidth * 4;
-            var buffer = new byte[stride * pixels.PixelHeight];
-            pixels.CopyPixels(buffer, stride, 0);
-            if (ArtTrim.FindSquare(buffer, pixels.PixelWidth, pixels.PixelHeight, stride) is not { } crop)
+            var size = stride * pixels.PixelHeight;
+            buffer = PixelBuffers.Rent(size);
+            pixels.CopyPixels(Int32Rect.Empty, buffer, stride, 0);
+            if (ArtTrim.FindSquare(buffer.AsSpan(0, size), pixels.PixelWidth, pixels.PixelHeight, stride) is not { } crop)
             {
                 return bitmap;
             }
 
             // A copy of the square only: a CroppedBitmap would keep the whole decoded source alive in the cache.
             var squareStride = crop.Size * 4;
-            var square = new byte[squareStride * crop.Size];
+            square = PixelBuffers.Rent(squareStride * crop.Size);
             for (var row = 0; row < crop.Size; row++)
             {
                 Buffer.BlockCopy(buffer, ((crop.Y + row) * stride) + (crop.X * 4), square, row * squareStride, squareStride);
@@ -423,6 +444,18 @@ public static class CardArt
         {
             Diag.Error("Art margins were not trimmed", ex);
             return bitmap;
+        }
+        finally
+        {
+            if (buffer is not null)
+            {
+                PixelBuffers.Return(buffer);
+            }
+
+            if (square is not null)
+            {
+                PixelBuffers.Return(square);
+            }
         }
     }
 }
