@@ -323,12 +323,7 @@
                     <!-- ===== Home ===== -->
                     <ScrollViewer x:Name="PageOverview" Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource Display}" />
-                            <StackPanel Style="{StaticResource PageSubtitle}">
-                                <TextBlock Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center">
-                                    <Run Text="{Binding Greeting, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text="{i:Loc Main.Home.Glance}" />
-                                </TextBlock>
-                            </StackPanel>
+                            <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource Display}" Margin="0,0,0,20" />
 
                             <Border Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
                                     Visibility="{Binding SetupWarning, Converter={StaticResource Vis}}">
@@ -361,7 +356,8 @@
                                                     <DockPanel Margin="0,4,0,0">
                                                         <TextBlock DockPanel.Dock="Right" Text="{Binding Change}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,0,0"
                                                                    Foreground="{Binding ChangeValue, Converter={StaticResource SignBrush}}" />
-                                                        <TextBlock Text="{Binding Ranks}" FontFamily="{StaticResource DisplayFont}" FontSize="18" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding Ranks}" FontFamily="{StaticResource DisplayFont}" FontSize="18" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                                   ToolTip="{i:Loc Widgets.Ladder.RankNote}" />
                                                     </DockPanel>
                                                     <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis">
                                                         <Run Text="{Binding Games, Mode=OneWay}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Record, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding WinRate, Mode=OneWay}" Foreground="{StaticResource Text}" />
@@ -372,7 +368,6 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="{i:Loc Widgets.Ladder.RankNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="0,10,0,0" />
                                 </StackPanel>
                             </Border>
 
@@ -443,11 +438,7 @@
                         <StackPanel Margin="40,0,40,120">
                             <Grid>
                                 <StackPanel>
-                                    <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Style="{StaticResource Display}" />
-                                    <StackPanel Style="{StaticResource PageSubtitle}">
-                                        <TextBlock Text="{i:Loc Main.Bg.Subtitle}" Style="{StaticResource Caption}" FontSize="14"
-                                                   VerticalAlignment="Center" />
-                                    </StackPanel>
+                                    <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Style="{StaticResource Display}" Margin="0,0,0,20" />
                                 </StackPanel>
                                 <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}"
                                         ToolTip="{i:Loc Main.Bg.ModeTip}">
@@ -468,11 +459,11 @@
                                         <RadioButton x:Name="TabHeroes" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.Heroes}" GroupName="BgTab" IsChecked="True" Checked="OnBgTab"
                                                      ToolTip="{i:Loc Main.Bg.HeroesTip}" />
                                         <RadioButton x:Name="TabComps" Style="{StaticResource Tab}" Content="{Binding CompTabLabel}" GroupName="BgTab" Checked="OnBgTab"
-                                                     ToolTip="{i:Loc Main.Bg.CompsTip}" />
+                                                     ToolTip="{Binding CompCaption}" />
                                         <RadioButton x:Name="TabTrinkets" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.Trinkets}" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="{i:Loc Main.Bg.TrinketsTip}" />
                                         <RadioButton x:Name="TabCards" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.Cards}" GroupName="BgTab" Checked="OnBgTab"
-                                                     ToolTip="{i:Loc Main.Bg.CardsTip}" />
+                                                     ToolTip="{i:Loc Main.Bg.CardsCaption}" />
                                         <RadioButton x:Name="TabMine" Style="{StaticResource Tab}" Content="{i:Loc Main.Bg.MyHeroes}" GroupName="BgTab" Checked="OnBgTab"
                                                      ToolTip="{i:Loc Main.Bg.MyHeroesTip}" />
                                     </StackPanel>
@@ -573,8 +564,6 @@
                             <!-- Comps -->
                             <Border x:Name="CompTierCard" Style="{StaticResource Card}" Visibility="Collapsed">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding CompCaption}"
-                                               Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
                                     <ItemsControl ItemsSource="{Binding CompTiers}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type m:MetaCompRow}">
@@ -682,9 +671,7 @@
                             <Border x:Name="CardStatsCard" Style="{StaticResource Card}" Visibility="Collapsed">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,12">
-                                        <TextBlock Text="{i:Loc Main.Bg.CardsCaption}"
-                                                   Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,330,0" VerticalAlignment="Center" />
-                                        <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Bg.CardTierTip}">
+                                        <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Bg.CardTierTip}">
                                             <StackPanel Orientation="Horizontal">
                                                 <RadioButton Style="{StaticResource Segment}" Content="1" GroupName="CardTier" IsChecked="True" Command="{Binding SetCardTier}" CommandParameter="1" />
                                                 <RadioButton Style="{StaticResource Segment}" Content="2" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="2" />
@@ -796,10 +783,7 @@
                     <!-- ===== Constructed ===== -->
                     <ScrollViewer x:Name="PageConstructed" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="{Binding ConstructedTitle}" Style="{StaticResource Display}" />
-                            <StackPanel Style="{StaticResource PageSubtitle}">
-                                <TextBlock Text="{i:Loc Main.Ct.Subtitle}" Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
-                            </StackPanel>
+                            <TextBlock Text="{Binding ConstructedTitle}" Style="{StaticResource Display}" Margin="0,0,0,20" />
 
                             <Grid Margin="0,0,0,14">
                                 <Border HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource SegmentBar}">
@@ -869,8 +853,6 @@
                                 <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                                     <StackPanel>
                                         <c:Ornament Text="{i:Loc Main.Ct.Decks}" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
-                                        <TextBlock Text="{i:Loc Main.Ct.DecksHint}" Style="{StaticResource Caption}" Margin="0,0,0,8"
-                                                   Visibility="{Binding Decks, Converter={StaticResource Vis}}" />
                                         <!-- Decks that look like versions of one -->
                                         <ItemsControl ItemsSource="{Binding DeckSuggestions}" Margin="0,0,0,6">
                                             <ItemsControl.ItemTemplate>
@@ -939,8 +921,8 @@
                                 </Border>
                                 <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                                     <StackPanel>
-                                        <c:Ornament Text="{i:Loc Main.Ct.Matchups}" Icon="&#xF04E5;" Size="13" />
-                                        <TextBlock Text="{i:Loc Main.Ct.MatchupsHint}" Style="{StaticResource Caption}" Margin="0,8,0,10" TextTrimming="CharacterEllipsis" />
+                                        <c:Ornament Text="{i:Loc Main.Ct.Matchups}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10"
+                                                    ToolTip="{i:Loc Main.Ct.MatchupsHint}" />
                                         <ItemsControl ItemsSource="{Binding Matchups}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type m:MatchupRow}">
@@ -1096,9 +1078,8 @@
                                             </Border>
                                         </StackPanel>
 
-                                        <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,0,0,4" />
-                                        <TextBlock Text="{i:Loc Main.Meta.MulliganCaption}" Style="{StaticResource Caption}"
-                                                   TextWrapping="Wrap" Margin="0,0,0,8" />
+                                        <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,0,0,8"
+                                                    ToolTip="{i:Loc Main.Meta.MulliganCaption}" />
                                         <ItemsControl ItemsSource="{Binding Mulligan}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type m:MulliganRow}">
@@ -1240,10 +1221,7 @@
                     <!-- ===== Arena ===== -->
                     <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource Display}" />
-                            <StackPanel Style="{StaticResource PageSubtitle}">
-                                <TextBlock Text="{i:Loc Main.Arena.Subtitle}" Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
-                            </StackPanel>
+                            <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource Display}" Margin="0,0,0,20" />
                             <s:ArenaStatsView />
                         </StackPanel>
                     </ScrollViewer>

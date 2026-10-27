@@ -45,8 +45,6 @@
             <DockPanel>
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
                     <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
-                    <TextBlock Text="{i:Loc Stats.Chart.HoverHint}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                               Visibility="{Binding BgRatingChart, Converter={StaticResource Vis}}" />
                 </Grid>
                 <!-- No games in the period: one line instead of a tall empty chart, so the tier lists stay in view -->
                 <TextBlock DockPanel.Dock="Top" Text="{i:Loc Stats.Bg.RatingEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,2,0,4"

@@ -183,15 +183,6 @@ public sealed partial class MainViewModel : Observable
     /// <summary>The running version, for Settings → About.</summary>
     public string VersionText => $"Hearthpulse {UpdateService.CurrentVersion}";
 
-    /// <summary>"Good morning" / "Good afternoon" / "Good evening" for the page header.</summary>
-    public string Greeting => DateTime.Now.Hour switch
-    {
-        < 5 => Loc.T("Main.Greeting.Night"),
-        < 12 => Loc.T("Main.Greeting.Morning"),
-        < 18 => Loc.T("Main.Greeting.Afternoon"),
-        _ => Loc.T("Main.Greeting.Evening"),
-    };
-
     public AppSettings Settings { get; }
 
     public RelayCommand SetBracket { get; }

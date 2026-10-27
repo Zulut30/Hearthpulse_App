@@ -5,9 +5,6 @@ namespace Hearthpulse.UI.Main;
 
 public sealed partial class MainViewModel
 {
-    /// <summary>The MDI glyph of the page, as in the nav: playing cards for Standard, infinity for Wild.</summary>
-    public string ConstructedIcon => _ctFormat == "FT_WILD" ? "\U000F06E4" : "\U000F063A";
-
     /// <summary>Community Constructed stats by format key ("standard", "wild"), as the host loaded them.</summary>
     private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
 
@@ -58,6 +55,4 @@ public sealed partial class MainViewModel
             ConstructedMetaRequested?.Invoke(key);
         }
     }
-
-    partial void OnConstructedTitleChanged() => Raise(nameof(ConstructedIcon));
 }

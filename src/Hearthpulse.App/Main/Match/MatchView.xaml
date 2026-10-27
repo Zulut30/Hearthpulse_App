@@ -409,8 +409,8 @@
 
             <!-- ===== Replay ===== -->
             <StackPanel Visibility="{Binding ShowReplay, Converter={StaticResource Vis}}">
-                <ItemsControl ItemsSource="{Binding Turns}" ItemTemplate="{StaticResource TurnChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,0,0,2" />
-                <TextBlock Text="{i:Loc Match.View.TurnsLegend}" Style="{StaticResource Caption}" FontSize="11.5" Margin="2,0,0,10" />
+                <ItemsControl ItemsSource="{Binding Turns}" ItemTemplate="{StaticResource TurnChip}" ItemsPanel="{StaticResource Wrap}" Margin="0,0,0,10"
+                              ToolTip="{i:Loc Match.View.TurnsLegend}" />
                 <Grid Margin="0,0,0,14">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -543,15 +543,15 @@
                     </Grid.ColumnDefinitions>
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
-                            <c:Ornament Text="{i:Loc Match.View.HealthChart}" Icon="&#xF02D1;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="{i:Loc Match.View.HealthChartNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.HealthChart}" Icon="&#xF02D1;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,10"
+                                        ToolTip="{i:Loc Match.View.HealthChartNote}" />
                             <c:Sparkline Height="140" Values="{Binding Analysis.LocalHealth}" Compare="{Binding Analysis.OpponentHealth}" Maximum="{Binding Analysis.HealthMaximum}" />
                         </StackPanel>
                     </Border>
                     <Border Grid.Column="2" Style="{StaticResource Card}">
                         <StackPanel>
-                            <c:Ornament Text="{i:Loc Match.View.BoardChart}" Icon="&#xF0787;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="{i:Loc Match.View.BoardChartNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.BoardChart}" Icon="&#xF0787;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,10"
+                                        ToolTip="{i:Loc Match.View.BoardChartNote}" />
                             <c:Sparkline Height="140" Values="{Binding Analysis.LocalBoard}" Compare="{Binding Analysis.OpponentBoard}" Maximum="{Binding Analysis.BoardMaximum}" />
                         </StackPanel>
                     </Border>
@@ -565,8 +565,8 @@
                     </Grid.ColumnDefinitions>
                     <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="{i:Loc Match.View.KeyCards}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="{i:Loc Match.View.KeyCardsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.KeyCards}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,10"
+                                        ToolTip="{i:Loc Match.View.KeyCardsNote}" />
                             <ItemsControl ItemsSource="{Binding Analysis.KeyCards}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type r:KeyCardRow}">
@@ -665,8 +665,8 @@
                     </Grid.ColumnDefinitions>
                     <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                         <StackPanel>
-                            <c:Ornament Text="{i:Loc Match.View.ManaChart}" Icon="&#xF05E0;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,4" />
-                            <TextBlock Text="{i:Loc Match.View.ManaChartNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <c:Ornament Text="{i:Loc Match.View.ManaChart}" Icon="&#xF05E0;" Size="13" HorizontalAlignment="Left" Margin="0,0,0,10"
+                                        ToolTip="{i:Loc Match.View.ManaChartNote}" />
                             <c:MiniBars Height="80" Values="{Binding Analysis.LocalMana}" Compare="{Binding Analysis.ManaFull}" ShowLabels="True" />
                         </StackPanel>
                     </Border>

@@ -201,7 +201,8 @@
             <Border Classes="card statsLeft" VerticalAlignment="Top">
                 <StackPanel>
                     <Grid Classes="statsHead" Margin="0,0,0,8" RowDefinitions="Auto,Auto">
-                        <c:Ornament Text="{i:Loc Deck.Matchups.Title}" Icon="&#xF04E5;" Size="13" HorizontalAlignment="Left" />
+                        <c:Ornament Text="{i:Loc Deck.Matchups.Title}" Icon="&#xF04E5;" Size="13" HorizontalAlignment="Left"
+                                    ToolTip.Tip="{i:Loc Deck.Matchups.Hint}" />
                         <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter" ToolTip.Tip="{i:Loc Deck.Matchups.SortTip}">
                             <StackPanel Orientation="Horizontal">
                                 <RadioButton Classes="segment" Content="{i:Loc Deck.Matchups.SortGames}" GroupName="DeckMatchupSort" IsChecked="True" Command="{Binding SortMatchups}" CommandParameter="Games" />
@@ -209,8 +210,6 @@
                             </StackPanel>
                         </Border>
                     </Grid>
-                    <TextBlock Text="{i:Loc Deck.Matchups.Hint}" Classes="caption"
-                               TextWrapping="Wrap" Margin="0,0,0,8" />
                     <ItemsControl ItemsSource="{Binding Matchups}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="d:DeckMatchupRow">
