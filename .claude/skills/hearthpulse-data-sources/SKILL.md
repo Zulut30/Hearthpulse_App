@@ -9,8 +9,9 @@ Endpoint-by-endpoint detail: [reference/endpoints.md](reference/endpoints.md). F
 [hearthstone-context reference/kolodahearthstone-api.md](../hearthstone-context/reference/kolodahearthstone-api.md).
 Before adding a new data API call, check that reference first: it lists what exists but the app does not call yet
 (matchup matrix, BG hero detail and trinkets, leaderboards, balance radar, streamers, Brawl, esports) and which answers
-are premium-sourced. HSReplay card choices and per-deck mulligan are a legal Blocker
-(`reference/reviews/LEGAL-HeartLens-card-choices.md`): do not call them; the Discover pick hint uses the stats pool.
+are premium-sourced. HSReplay per-deck mulligan is a legal Blocker
+(`reference/reviews/LEGAL-HeartLens-card-choices.md`): do not call it. HSReplay card choices are under the same Blocker,
+but the owner accepted that risk on 2026-10-27: the Discover pick hint reads `v1/hsreplay/card-choices`.
 Tests use fake handlers, never the network: [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
 
 ## Sources at a glance
@@ -22,7 +23,7 @@ Tests use fake handlers, never the network: [hearthpulse-testing](../hearthpulse
 | **HearthstoneJSON** | all card data (`cards.json` per locale), card art (`art.hearthstonejson.com`), card pool fallback | `Core/Cards/CardDb.cs`, `App|UI/Infrastructure/CardArt.cs`, `CardRender.cs` | `cache/cards.<locale>.json` 2 days, `cache/images/` |
 | **hsbg.cards** | BG tiers, text, current pool | `Core/Cards/BgCardSource.cs` (`BgCardDb`) | `cache/bgcards.hsbg.json` 12 h; 120 req/min anonymous |
 | **Hearthpulse archetype dictionary** `https://api.blizzcore.ru/archetypes?limit=1000` (owner's service, deckview on our server; no separate attribution) | Russian archetype names (`name_en` -> `name_ru`) when the interface is Russian | `Core/Constructed/ArchetypeTranslations.cs` (hosts start `LoadAsync` beside the meta, never before it, and reload the meta when the names arrive; `RussianLabel` in `ApiConstructedMeta`, `Display` for names shown later) | `cache/api/blizzcore-archetypes.json` 12 h, stale copy offline; own 5 s timeout; failures back off 1-6 h (`blizzcore-archetypes.failed`) |
-| **Hearthpulse stats pool** (`PoolClient.Endpoint`, off by default) | BG comps, guides, trinkets, tribes, card turn results, MMR floors; shared games; Discover-style picks of shared Constructed games and the card pool panel's pick hint (`v1/constructed`, `v1/choices`, consent version 4) | `Core/Pool/PoolClient.cs` (`OverlayAsync` lays it over the API meta), `Core/Pool/ConstructedPicks.cs` (`ConstructedPoolGame`, `DiscoverPickSource`) | pick totals in memory 6 h |
+| **Hearthpulse stats pool** (`PoolClient.Endpoint`, off by default) | BG comps, guides, trinkets, tribes, card turn results, MMR floors; shared games; Discover-style picks of shared Constructed games (`v1/constructed`, consent version 4; the pick hint reads the data API, not `v1/choices`) | `Core/Pool/PoolClient.cs` (`OverlayAsync` lays it over the API meta), `Core/Pool/ConstructedPicks.cs` (`ConstructedPoolGame`) | - |
 | **GitHub releases** `Zulut30/Hearthpulse_App` | updates | `Core/Updates/UpdateService.cs` | see [hearthpulse-release](../hearthpulse-release/SKILL.md) |
 
 Firestone (`static.zerotoheroes.com`) is **not used at all**: there is no permission for its data, and upstream HeartLens

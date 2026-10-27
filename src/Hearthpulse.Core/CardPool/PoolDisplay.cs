@@ -26,9 +26,6 @@ public static class PoolDisplay
     /// <summary>Why a pool is not computed (<see cref="CardPoolView.Uncomputed"/>).</summary>
     public static string Reason(string reason) => ReasonKeys.TryGetValue(reason, out var key) ? Loc.T(key) : reason;
 
-    /// <summary>Where the pool comes from (<see cref="CardPoolView.Source"/>): the card text, or the source's name.</summary>
-    public static string Source(string source) => source == CardPoolEngine.TextSource ? Loc.T("Pool.Source.CardText") : source;
-
     /// <summary>Why the featured card is highlighted (<see cref="CardPoolView.FeaturedReason"/>).</summary>
     public static string FeaturedReason(string? reason) => reason is null ? string.Empty : Loc.T("Pool.FeaturedReason");
 }

@@ -16,7 +16,7 @@ public sealed partial class GameSession
     private readonly object _cardPoolGate = new();
     private CardPoolCatalog _cardPoolCatalog = CardPoolCatalog.Empty;
     private WikiPoolSource? _cardPoolWiki;
-    private Pool.DiscoverPickSource? _discoverPicks;
+    private DiscoverChoiceSource? _discoverPicks;
     private Cards.DeckDefinition? _wikiPrefetched;
     private (CardPoolCatalog Catalog, Cards.CardDb Cards, Constructed.ConstructedMeta? Meta)? _cardPoolInputs;
     private volatile bool _cardPoolEnabled = true;
@@ -59,8 +59,8 @@ public sealed partial class GameSession
         _dirty = true;
     }
 
-    /// <summary>The stats pool's pick totals for the pick hint of an open choice; the host passes it once at start-up.</summary>
-    public void SetDiscoverPicks(Pool.DiscoverPickSource? picks)
+    /// <summary>The Hearthpulse API's card choices for the pick hint of an open choice; the host passes it once at start-up.</summary>
+    public void SetDiscoverPicks(DiscoverChoiceSource? picks)
     {
         lock (_cardPoolGate)
         {
@@ -134,18 +134,19 @@ public sealed partial class GameSession
     }
 
     /// <summary>
-    /// The pick hint while the player's own choice is open and its pool is up: from the totals already in memory, so a
-    /// choice never waits on (or tells) the server. Null outside a choice, without a pool address or in other formats.
+    /// The pick hint while the player's own choice is open and its pool is up: from the card's choices in memory (the
+    /// first publish of a choice starts loading them, so a choice never waits on the server). Null outside a choice,
+    /// in other formats and for cards the API has no numbers for.
     /// </summary>
     private DiscoverPicksView? PicksOf(GameState game, CardPoolView? pool)
     {
         if (pool?.Trigger != PoolTrigger.Choice || _discoverPicks is not { } source || _cardPool.OpenChoice is not { } open
-            || DiscoverPicks.FormatOf(game.FormatType) is not { } format || source.TryGet(format) is not { } stats)
+            || DiscoverPicks.FormatOf(game.FormatType) is not { } format || source.TryGet(format, open.Source, _cards) is not { } choices)
         {
             return null;
         }
 
-        return DiscoverPicks.Build(stats, open.Source, open.Offered, _cards);
+        return DiscoverPicks.Build(choices, open.Source, open.Offered, _cards);
     }
 
     private CardPoolEngine? CardPoolEngineNow()

@@ -1,6 +1,8 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Api;
 using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Pool;
@@ -11,8 +13,8 @@ using Xunit;
 namespace Hearthpulse.Tests;
 
 /// <summary>
-/// The Discover pick hint built on the stats pool: what is recorded from the player's own choices, what a shared
-/// Constructed game holds, and how the pool's totals turn into the numbers on the card pool panel.
+/// The Discover pick hint: what is recorded from the player's own choices, what a shared Constructed game holds, and
+/// how the Hearthpulse API's card choices turn into the numbers on the card pool panel.
 /// </summary>
 public sealed class DiscoverPicksTests
 {
@@ -122,61 +124,124 @@ public sealed class DiscoverPicksTests
     }
 
     [Fact]
-    public void The_hint_shows_numbers_only_with_enough_offers_and_marks_a_clear_favourite()
+    public void A_card_choices_answer_turns_percents_into_shares_and_keeps_the_few_games_mark()
     {
         using var doc = JsonDocument.Parse("""
-            {"format":"standard","days":30,"games":900,"sources":[
-              {"source":"CORE_YOP_001","choices":300,"options":[["CARD_A",200,120,70],["CARD_B",180,40,15],["CARD_C",19,19,19],["BAD"],["CARD_D","x",1,1]]}
-            ]}
+            {"source":"hsreplay","card":{"card_id":"BE_555","dbf_id":129823,"name":"Reload"},"format":"standard","rank":"legend",
+             "stats":{"state":"ok","as_of":"2026-10-26T03:57:45Z","options_total":4},
+             "options":[
+               {"dbf_id":111365,"card_id":"CORE_CS2_024","name":"Frostbolt","popularity":80.0,"win_rate":50.0,"in_pool":false,"low_sample":false,"undervalued":false},
+               {"dbf_id":118554,"card_id":"DINO_414","popularity":46.66,"win_rate":0.0,"low_sample":true,"undervalued":false},
+               {"dbf_id":0,"card_id":"","popularity":10.0},
+               {"dbf_id":5,"popularity":"x","win_rate":120.0}
+             ],
+             "pool":{"kind":"discover","total":45,"cards":[]},"available":[{"format":"standard","rank":"legend"}],"premium_session":{"state":"ok"}}
             """);
-        var stats = DiscoverPickStats.Parse(doc.RootElement);
-        Assert.Equal(900, stats.Games);
-        Assert.Equal(3, stats.Sources["CORE_YOP_001"].Options.Count);
+        var choices = HearthpulseData.ParseCardChoices(doc.RootElement)!;
 
-        var view = DiscoverPicks.Build(stats, "CORE_YOP_001", ["CARD_C", "CARD_A", "CARD_B"], CardDb.Empty);
-        Assert.Equal(["CARD_C", "CARD_A", "CARD_B"], view.Rows.Select(r => r.CardId));
-        Assert.Equal(300, view.Choices);
-        // Under 20 offers: no number for CARD_C.
+        Assert.Equal(("BE_555", "standard", "legend"), (choices.CardId, choices.Format, choices.Rank));
+        Assert.Equal(new DateTime(2026, 10, 26, 3, 57, 45, DateTimeKind.Utc), choices.AsOf);
+        // The row without an id is dropped; a number that is not a percent becomes "unknown".
+        Assert.Equal(3, choices.Options.Count);
+        Assert.Equal(new CardChoiceOption("CORE_CS2_024", 111365, 0.8, 0.5, false), choices.Options[0]);
+        Assert.Equal(0.4666, choices.Options[1].PickRate!.Value, 6);
+        Assert.True(choices.Options[1].LowSample);
+        Assert.Equal(new CardChoiceOption(string.Empty, 5, null, null, false), choices.Options[2]);
+
+        // A card the server has not collected: no options, so no hint.
+        using var empty = JsonDocument.Parse("""{"card":{"card_id":"AV_107"},"format":"wild","rank":"legend","stats":{"state":"not_collected","as_of":null},"options":[]}""");
+        var none = HearthpulseData.ParseCardChoices(empty.RootElement)!;
+        Assert.Empty(none.Options);
+        Assert.Null(DiscoverPicks.Build(none, "AV_107", ["A", "B"], CardDb.Empty));
+    }
+
+    [Fact]
+    public void The_card_list_says_which_cards_have_numbers_in_which_formats()
+    {
+        using var doc = JsonDocument.Parse("""
+            [{"card_id":"AV_107","dbf_id":67192,"kind":"discover","formats":["wild"],"has_hsreplay_stats":true,"collected":[]},
+             {"card_id":"BE_555","dbf_id":129823,"formats":["standard","wild"],"has_hsreplay_stats":false},
+             {"dbf_id":1},"x"]
+            """);
+        var cards = HearthpulseData.ParseChoiceCards(doc.RootElement);
+
+        Assert.Equal(["AV_107", "BE_555"], cards.Select(c => c.CardId));
+        Assert.Equal(67192, cards[0].DbfId);
+        Assert.True(cards[0].HasStats);
+        Assert.Equal(["wild"], cards[0].Formats);
+        Assert.False(cards[1].HasStats);
+    }
+
+    [Fact]
+    public void Offered_cards_match_the_api_options_by_card_id_then_by_dbf_id()
+    {
+        // The log names a card the API lists under another id but the same dbfId.
+        var cards = CardDb.Parse("enUS", new MemoryStream(Encoding.UTF8.GetBytes("""
+            [{"id":"CARD_A","dbfId":101,"name":"Alpha"},{"id":"REPRINT_B","dbfId":102,"name":"Beta"},{"id":"CARD_C","dbfId":103,"name":"Gamma"}]
+            """)));
+        var choices = new CardChoices("SRC", "standard", "legend",
+        [
+            new CardChoiceOption("CARD_A", 101, 0.60, 0.58, false),
+            new CardChoiceOption("OTHER_ID_B", 102, 0.22, 0.38, false),
+            new CardChoiceOption("CARD_D", 104, 0.90, 0.70, false),
+        ], null);
+
+        var view = DiscoverPicks.Build(choices, "SRC", ["CARD_C", "CARD_A", "REPRINT_B"], cards)!;
+
+        Assert.Equal(["CARD_C", "CARD_A", "REPRINT_B"], view.Rows.Select(r => r.CardId));
+        Assert.Equal(["Gamma", "Alpha", "Beta"], view.Rows.Select(r => r.Name));
+        // Not among the API's options: no numbers.
         Assert.Null(view.Rows[0].PickRate);
-        Assert.Equal(0.6, view.Rows[1].PickRate!.Value, 6);
-        Assert.Equal(70.0 / 120, view.Rows[1].WinRate!.Value, 6);
-        Assert.Equal(15.0 / 40, view.Rows[2].WinRate!.Value, 6);
+        Assert.Equal(0.60, view.Rows[1].PickRate);
+        Assert.Equal(0.38, view.Rows[2].WinRate);
         Assert.Equal([false, true, false], view.Rows.Select(r => r.Top));
-
-        // A source the pool has not seen: the options without numbers, so the panel says there are too few games.
-        var unknown = DiscoverPicks.Build(stats, "OTHER", ["CARD_A", "CARD_B"], CardDb.Empty);
-        Assert.False(unknown.HasNumbers);
-        Assert.Equal(0, unknown.Choices);
+        Assert.Equal("legend", view.Rank);
+        Assert.False(view.HasLowSample);
     }
 
     [Fact]
-    public void Close_pick_rates_get_no_favourite_mark()
+    public void Few_games_and_close_pick_rates_get_no_favourite_mark()
     {
-        var options = new Dictionary<string, PickOption> { ["A"] = new(100, 40, 20), ["B"] = new(100, 37, 20) };
-        var stats = new DiscoverPickStats("standard", 50, new Dictionary<string, SourcePicks> { ["S"] = new(100, options) });
+        var low = new CardChoices("S", "standard", "legend", [new("A", 0, 0.70, 0.5, true), new("B", 0, 0.30, 0.5, false), new("C", 0, 0.28, 0.5, false)], null);
+        var view = DiscoverPicks.Build(low, "S", ["A", "B", "C"], CardDb.Empty)!;
+        Assert.All(view.Rows, r => Assert.False(r.Top));
+        Assert.True(view.HasLowSample);
 
-        Assert.All(DiscoverPicks.Build(stats, "S", ["A", "B"], CardDb.Empty).Rows, r => Assert.False(r.Top));
+        var close = new CardChoices("S", "standard", "legend", [new("A", 0, 0.40, 0.5, false), new("B", 0, 0.37, 0.5, false)], null);
+        Assert.All(DiscoverPicks.Build(close, "S", ["A", "B"], CardDb.Empty)!.Rows, r => Assert.False(r.Top));
     }
 
     [Fact]
-    public async Task Without_a_pool_address_the_totals_are_never_requested()
+    public async Task The_source_loads_the_list_once_then_one_card_when_its_choice_opens_and_keeps_it_on_disk()
     {
-        var handler = new CountingHandler();
-        var source = new DiscoverPickSource(new HttpClient(handler), () => string.Empty);
+        var cache = Path.Combine(TestDataFolder.Path, "card-choices-" + Guid.NewGuid().ToString("N"));
+        var server = new ChoicesServer();
+        var source = new DiscoverChoiceSource(new HearthpulseData(new HearthpulseApi(new HttpClient(server), "https://api.test/"), cache));
 
-        Assert.Null(source.TryGet("standard"));
-        await Task.Delay(50);
-        Assert.Equal(0, handler.Requests);
+        var changed = new SemaphoreSlim(0);
+        source.Changed += () => changed.Release();
+        Assert.Null(source.TryGet("standard", "BE_555", CardDb.Empty));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal(["https://api.test/v1/hsreplay/card-choices/cards"], server.Urls);
 
-        var loaded = new DiscoverPickSource(new HttpClient(handler), () => "https://pool.test");
-        var changed = new TaskCompletionSource();
-        loaded.Changed += () => changed.TrySetResult();
-        Assert.Null(loaded.TryGet("wild"));
-        await changed.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        Assert.Equal("https://pool.test/v1/choices?format=wild", handler.LastUrl);
-        Assert.Equal(12, loaded.TryGet("wild")!.Games);
-        // One load for the whole format: asking again does not reach the server.
-        Assert.Equal(1, handler.Requests);
+        // Cards the API has no numbers for (or not in this format) are never asked for.
+        Assert.Null(source.TryGet("standard", "NO_STATS", CardDb.Empty));
+        Assert.Null(source.TryGet("standard", "WILD_ONLY", CardDb.Empty));
+        Assert.Null(source.TryGet("standard", "UNKNOWN", CardDb.Empty));
+
+        Assert.Null(source.TryGet("standard", "BE_555", CardDb.Empty));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(5)));
+        var choices = source.TryGet("standard", "BE_555", CardDb.Empty);
+        Assert.Equal(0.8, Assert.Single(choices!.Options).PickRate);
+        // Every later publish answers from memory.
+        source.TryGet("standard", "BE_555", CardDb.Empty);
+        Assert.Equal(["https://api.test/v1/hsreplay/card-choices/cards", "https://api.test/v1/hsreplay/card-choices?card=BE_555&format=standard&rank=legend"], server.Urls);
+
+        // A new session reads both answers from the disk cache, without the network; only what is read is kept.
+        var offline = new HearthpulseData(new HearthpulseApi(new HttpClient(new ChoicesServer { Offline = true }), "https://api.test/"), cache);
+        Assert.Equal(4, (await offline.LoadChoiceCardsAsync()).Count);
+        Assert.Equal(0.5, Assert.Single((await offline.LoadCardChoicesAsync("BE_555", "standard"))!.Options).WinRate);
+        Assert.DoesNotContain("Frostbolt", File.ReadAllText(Path.Combine(cache, "card-choices-standard-legend-BE_555.json")));
     }
 
     private static GameOutcome Outcome(string gameType, string format, string result) =>
@@ -227,20 +292,29 @@ public sealed class DiscoverPicksTests
     private static string Ref(int id, string cardId, string zone, int player) =>
         $"[entityName=X id={id} zone={zone} zonePos=0 cardId={cardId} player={player}]";
 
-    private sealed class CountingHandler : HttpMessageHandler
+    private sealed class ChoicesServer : HttpMessageHandler
     {
-        public int Requests { get; private set; }
+        public List<string> Urls { get; } = [];
 
-        public string? LastUrl { get; private set; }
+        public bool Offline { get; init; }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Requests++;
-            LastUrl = request.RequestUri?.ToString();
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            if (Offline)
             {
-                Content = new StringContent("""{"format":"wild","days":30,"games":12,"sources":[]}"""),
-            });
+                throw new HttpRequestException("offline");
+            }
+
+            var url = request.RequestUri!.ToString();
+            lock (Urls)
+            {
+                Urls.Add(url);
+            }
+
+            var body = url.EndsWith("/cards", StringComparison.Ordinal)
+                ? """{"data":[{"card_id":"BE_555","dbf_id":129823,"name":"Reload","formats":["standard","wild"],"has_hsreplay_stats":true},{"card_id":"NO_STATS","dbf_id":2,"formats":["standard"],"has_hsreplay_stats":false},{"card_id":"WILD_ONLY","dbf_id":3,"formats":["wild"],"has_hsreplay_stats":true},{"card_id":"X","dbf_id":4,"formats":["standard"],"has_hsreplay_stats":true}],"meta":{"count":4}}"""
+                : """{"data":{"card":{"card_id":"BE_555","name":"Reload","text":"Discover a spell"},"format":"standard","rank":"legend","stats":{"state":"ok","as_of":"2026-10-26T03:57:45Z"},"options":[{"dbf_id":111365,"card_id":"CORE_CS2_024","name":"Frostbolt","popularity":80.0,"win_rate":50.0,"low_sample":false}],"pool":{"cards":[]}}}""";
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
         }
     }
 }
