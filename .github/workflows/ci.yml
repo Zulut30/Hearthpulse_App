@@ -101,3 +101,121 @@ jobs:
         run: dotnet build src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj -c Release
       - name: Tests
         run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj -c Release
+
+  # TEMPORARY dry run of release.yml build jobs; never merged.
+  dry-build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - name: Windows setup and portable
+            id: windows-app
+            os: ubuntu-latest
+            apt: nsis zip
+            build: installer/windows/build.sh "$V" app
+          - name: Windows preview
+            id: windows-preview
+            os: ubuntu-latest
+            apt: zip
+            build: installer/windows/build.sh "$V" preview
+          - name: Linux x64 packages
+            id: linux-x64
+            os: ubuntu-latest
+            apt: rpm
+            appimage: true
+            build: installer/linux/build.sh "$V" x64
+          - name: Linux arm64 packages
+            id: linux-arm64
+            os: ubuntu-latest
+            apt: rpm
+            appimage: true
+            build: installer/linux/build.sh "$V" arm64
+          - name: macOS installers
+            id: macos
+            os: macos-latest
+            build: installer/macos/build.sh "$V" arm64 x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Version
+        id: v
+        env:
+          INPUT_VERSION: "0.13.0"
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then v="$GITHUB_REF_NAME"; else v="$INPUT_VERSION"; fi
+          v="${v#v}"
+          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must look like 0.2.0 (got '$v')"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Packaging tools
+        if: matrix.apt
+        env:
+          APT: ${{ matrix.apt }}
+          APPIMAGE: ${{ matrix.appimage }}
+        run: |
+          sudo apt-get update -qq
+          # shellcheck disable=SC2086
+          sudo apt-get install -y -qq $APT
+          if [ "$APPIMAGE" = "true" ]; then
+            curl -fsSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+            chmod +x appimagetool
+            sudo mv appimagetool /usr/local/bin/appimagetool
+          fi
+      - name: Build
+        env:
+          V: ${{ steps.v.outputs.version }}
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: ${{ matrix.build }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dry-${{ matrix.id }}
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz
+            dist/*.AppImage
+            dist/*.dmg
+            dist/*.pkg
+
+  dry-release:
+    name: Release dry run (no publishing)
+    needs: dry-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        id: v
+        env:
+          INPUT_VERSION: "0.13.0"
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then v="$GITHUB_REF_NAME"; else v="$INPUT_VERSION"; fi
+          v="${v#v}"
+          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must look like 0.2.0 (got '$v')"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: dry-*
+          merge-multiple: true
+      # The build scripts skip a format they cannot make (useful locally); a release must not.
+      - name: Check every installer was built
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          for f in "Hearthpulse-Setup-$V-win-x64.exe" "Hearthpulse-Portable-$V-win-x64.zip" "Hearthpulse-Preview-$V-win-x64.zip"                    "hearthpulse_${V}_amd64.deb" "hearthpulse_${V}_arm64.deb"                    "hearthpulse-$V-1.x86_64.rpm" "hearthpulse-$V-1.aarch64.rpm"                    "Hearthpulse-$V-linux-x64.tar.gz" "Hearthpulse-$V-linux-arm64.tar.gz"                    "Hearthpulse-Portable-$V-linux-x64.tar.gz" "Hearthpulse-Portable-$V-linux-arm64.tar.gz"                    "Hearthpulse-$V-linux-x64.AppImage"; do
+            test -s "dist/$f" || { echo "::error::dist/$f was not built"; exit 1; }
+          done
+          for arch in arm64 x64; do
+            for ext in pkg dmg zip; do
+              f="Hearthpulse-$V-macOS-$arch.$ext"
+              test -s "dist/$f" || { echo "::error::dist/$f was not built"; exit 1; }
+            done
+            test -s "dist/Hearthpulse-Portable-$V-macOS-$arch.zip" || { echo "::error::macOS $arch portable zip was not built"; exit 1; }
+          done
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
