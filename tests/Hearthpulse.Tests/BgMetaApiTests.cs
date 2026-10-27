@@ -100,7 +100,7 @@ public sealed class BgMetaApiTests : IDisposable
         Assert.Equal(2.984, meta.Hero(Jaraxxus, 1)!.AveragePosition, 3);
         // "All ranks" does not exist for heroes: the widest slice answers, and the caption says which one.
         Assert.Equal(3.702, meta.Hero(Jaraxxus, 100)!.AveragePosition, 3);
-        Assert.Equal("top 50%", BattlegroundsMeta.BracketLabel(meta.WidestBracket));
+        Assert.Equal("top " + 0.5.ToString("P0", System.Globalization.CultureInfo.CurrentCulture), BattlegroundsMeta.BracketLabel(meta.WidestBracket));
         Assert.Null(meta.CardAtTurn("BG25_354", 5, 50));
         Assert.Equal(51583, meta.Card("BG25_354")!.DataPoints);
 
@@ -168,7 +168,7 @@ public sealed class BgMetaApiTests : IDisposable
         Assert.Equal(2, advice.DiscoverAdvice.Count);
         Assert.All(advice.DiscoverAdvice, p => Assert.Null(p.Placement));
         Assert.All(advice.ShopAdvice, p => Assert.Null(p.Placement));
-        Assert.Contains("Hearthpulse data · top 50% ·", advice.MetaSource, StringComparison.Ordinal);
+        Assert.Contains($"Hearthpulse data · top {0.5.ToString("P0", System.Globalization.CultureInfo.CurrentCulture)} ·", advice.MetaSource, StringComparison.Ordinal);
     }
 
     [Fact]

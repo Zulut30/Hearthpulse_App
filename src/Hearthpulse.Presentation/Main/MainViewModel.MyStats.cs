@@ -75,24 +75,32 @@ public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign)
 {
     public static VsGlobal None { get; } = new(false, string.Empty, string.Empty, 0);
 
-    /// <summary>Difference of <paramref name="mine"/> to <paramref name="global"/>; <paramref name="lowerIsBetter"/> for placements.</summary>
-    public static VsGlobal Of(double? mine, double? global, bool lowerIsBetter, string format, double scale = 1, string suffix = "")
+    /// <summary>
+    /// Difference of <paramref name="mine"/> to <paramref name="global"/>; <paramref name="lowerIsBetter"/> for placements.
+    /// Rates (<paramref name="percent"/>) are written in the culture's percent pattern, like every other percentage.
+    /// </summary>
+    public static VsGlobal Of(double? mine, double? global, bool lowerIsBetter, string format, bool percent = false)
     {
         if (mine is not { } m || global is not { } g)
         {
             return None;
         }
 
-        var diff = (m - g) * scale;
-        var rounded = Math.Round(diff, format == "0.00" ? 2 : 0);
+        var diff = m - g;
+        var rounded = percent ? Math.Round(diff * 100) : Math.Round(diff, format == "0.00" ? 2 : 0);
         var sign = rounded == 0 ? 0 : (rounded < 0) == lowerIsBetter ? 1 : -1;
         var glyph = rounded > 0 ? "\U000F0360" : rounded < 0 ? "\U000F035D" : "\U000F0374";
-        return new VsGlobal(true, Math.Abs(diff).ToString(format, CultureInfo.CurrentCulture) + suffix, glyph, sign);
+        var text = percent ? (Math.Abs(rounded) / 100).ToString("P0", CultureInfo.CurrentCulture) : Math.Abs(diff).ToString(format, CultureInfo.CurrentCulture);
+        return new VsGlobal(true, text, glyph, sign);
     }
 }
 
 /// <summary>A group in a My Stats table (class, opponent class, archetype, game length).</summary>
-public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs);
+public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs)
+{
+    /// <summary>The win rate's colour: +1 from 53 %, -1 up to 47 %, 0 between them and when there is no rate.</summary>
+    public int WinSign => WinRate == "—" ? 0 : WinFraction >= 0.53 ? 1 : WinFraction <= 0.47 ? -1 : 0;
+}
 
 /// <summary>One Arena run.</summary>
 /// <param name="DeckScore">"Deck score 41" (ArenaSmith average of the run's deck), or empty.</param>
@@ -318,7 +326,7 @@ public sealed partial class MainViewModel
             new StatTile(Loc.T("Stats.Bg.HighestMmr"), summary.HighestRating is { } top ? top.ToString("N0", CultureInfo.CurrentCulture) : "—",
                 summary.NetRating is { } net ? Loc.F("Stats.Bg.NetDetail", Signed(net)) : Loc.T("Stats.Bg.RatingNotRead"), Math.Sign(summary.NetRating ?? 0)),
             new StatTile(Loc.T("Stats.Bg.AvgPlacement"), summary.AveragePlacement is { } avg ? avg.ToString("0.00", CultureInfo.CurrentCulture) : "—", Loc.T("Stats.Bg.LowerIsBetter")),
-            new StatTile(Loc.T("Stats.TotalGames"), summary.Games.ToString("N0", CultureInfo.CurrentCulture), Loc.T(duos ? "Stats.Bg.Duos" : "Stats.Bg.Solo")),
+            new StatTile(Loc.T("Stats.TotalGames"), summary.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), summary.Games > 0 ? Loc.F("Stats.Bg.MinPerGame", summary.TimePlayed.TotalMinutes / timed) : "—"),
         ];
         var total = Math.Max(1, summary.PlacementCounts.Sum());
@@ -365,7 +373,7 @@ public sealed partial class MainViewModel
                     VsGlobal.Of(h.AveragePlacement, h.Global?.AveragePlacement, lowerIsBetter: true, "0.00"),
                     h.PickRate is { } pick ? pick.ToString("P0", CultureInfo.CurrentCulture) : "—",
                     (h.PickRate ?? 0) / maxPick,
-                    VsGlobal.Of(h.PickRate, h.Global?.PickRate, lowerIsBetter: false, "0", 100, "%"));
+                    VsGlobal.Of(h.PickRate, h.Global?.PickRate, lowerIsBetter: false, "0", percent: true));
             })
             .ToList();
         var note = duos
@@ -407,7 +415,7 @@ public sealed partial class MainViewModel
         IReadOnlyList<StatTile> tiles =
         [
             new StatTile(Loc.T("Stats.WinRate"), Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
-            new StatTile(Loc.T("Stats.TotalGames"), summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture), Loc.T(format == "FT_WILD" ? "Stats.Ct.Wild" : "Stats.Ct.Standard")),
+            new StatTile(Loc.T("Stats.TotalGames"), summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture), string.Empty),
             new StatTile(Loc.T("Stats.Ct.Rank"), summary.LatestRank ?? "—", summary.BestRank is { } best ? Loc.F("Stats.Ct.BestRank", best) : Loc.T("Stats.Ct.RankHidden")),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed),
                 summary.AverageDuration is { } avg ? Loc.F("Stats.Ct.AverageGame", avg.TotalMinutes, summary.AverageTurns) : "—"),
@@ -420,7 +428,7 @@ public sealed partial class MainViewModel
                 r.StarLevel + (r.LegendRank is { } l ? 1 - Math.Min(1, l / 10000.0) : 0),
                 r.Label,
                 r.Game.HeroCardId,
-                r.Game.DeckName is { Length: > 0 } deck ? deck : OverlayViewModel.ClassName(r.Game.PlayerClass),
+                r.Game.DeckName is { Length: > 0 } deck ? DeckName.Display(deck) : OverlayViewModel.ClassName(r.Game.PlayerClass),
                 r.Game.Result,
                 ResultText(r.Game.Result),
                 string.IsNullOrEmpty(r.Game.OpponentClass)
@@ -516,7 +524,7 @@ public sealed partial class MainViewModel
         $"{g.Record.Wins}–{g.Record.Losses}",
         Percent(g.Record.WinRate),
         g.Record.WinRate ?? 0,
-        VsGlobal.Of(g.Record.WinRate, g.GlobalWinRate, lowerIsBetter: false, "0", 100, "%"));
+        VsGlobal.Of(g.Record.WinRate, g.GlobalWinRate, lowerIsBetter: false, "0", percent: true));
 
     private static string Percent(double? value) => value is { } v ? v.ToString("P0", CultureInfo.CurrentCulture) : "—";
 

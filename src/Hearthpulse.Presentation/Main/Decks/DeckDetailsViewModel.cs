@@ -690,7 +690,9 @@ public sealed class DeckDetailsViewModel : Observable
 
     private static string Signed(double points)
     {
+        // In the culture's own percent pattern ("+3%", "+3 %"), like every other percentage on the page.
         var rounded = Math.Round(points);
-        return rounded > 0 ? $"+{rounded:0}%" : rounded < 0 ? $"−{-rounded:0}%" : "±0%";
+        var size = (Math.Abs(rounded) / 100).ToString("P0", CultureInfo.CurrentCulture);
+        return rounded > 0 ? "+" + size : rounded < 0 ? "−" + size : "±" + size;
     }
 }

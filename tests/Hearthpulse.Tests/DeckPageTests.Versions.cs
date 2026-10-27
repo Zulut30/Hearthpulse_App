@@ -84,7 +84,7 @@ public sealed partial class DeckPageTests
             Game("g2", "Рыцарь смерти3", Code(Deck(1000, 1014)), "Loss", 10),
             Game("g3", "Рыцарь смерти old", string.Empty, "Loss", 20),
         ]);
-        var (v2, v3, old) = (versions.Single(v => v.Name == "Рыцарь смерти2"), versions.Single(v => v.Name == "Рыцарь смерти3"),
+        var (v2, v3, old) = (versions.Single(v => v.Name == "Рыцарь смерти 2"), versions.Single(v => v.Name == "Рыцарь смерти 3"),
             versions.Single(v => v.DeckCode is null));
 
         Assert.Empty(DeckFamilies.Diff(v2, old));
@@ -159,12 +159,12 @@ public sealed partial class DeckPageTests
             Game("g7", "Wild DK", Code(Deck(1000, 1012)), "Win", 40, format: "FT_WILD"),
         };
         var families = DeckFamilies.Build(DeckFamilies.Versions(games), []);
-        var family = families.Single(f => f.Name == "Рыцарь смерти2");
+        var family = families.Single(f => f.Name == "Рыцарь смерти 2");
         var none = new HashSet<(string, string)>();
 
         // Most cards in common first; decks without a card list last, the most recently played of them first.
         var candidates = DeckFamilies.Candidates(family, families, none);
-        Assert.Equal(["Рыцарь смерти3", "Far list", "Old DK", "Older DK"], candidates.Select(c => c.Family.Name));
+        Assert.Equal(["Рыцарь смерти 3", "Far list", "Old DK", "Older DK"], candidates.Select(c => c.Family.Name));
         Assert.Equal(28.0 / 30, candidates[0].Overlap, 3);
         Assert.Equal(22.0 / 30, candidates[1].Overlap, 3);
         Assert.Equal(0, candidates[2].Overlap);
@@ -172,7 +172,7 @@ public sealed partial class DeckPageTests
 
         // Search: any part of the name, case ignored, spaces trimmed; nothing found is an empty list.
         Assert.Equal(["Old DK", "Older DK"], DeckFamilies.Candidates(family, families, none, " old ").Select(c => c.Family.Name));
-        Assert.Equal(["Рыцарь смерти3"], DeckFamilies.Candidates(family, families, none, "РЫЦАРЬ").Select(c => c.Family.Name));
+        Assert.Equal(["Рыцарь смерти 3"], DeckFamilies.Candidates(family, families, none, "РЫЦАРЬ").Select(c => c.Family.Name));
         Assert.Empty(DeckFamilies.Candidates(family, families, none, "zzzz"));
 
         // The texts the list and the suggestion show.

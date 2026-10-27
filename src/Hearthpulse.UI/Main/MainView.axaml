@@ -19,7 +19,7 @@
         <i:FractionWidth x:Key="Fraction" />
 
         <DataTemplate x:Key="StatTileTemplate" x:DataType="m:StatTile">
-            <Border Classes="card" Margin="0,0,14,0" Padding="20,16" ToolTip.Tip="{Binding Detail}">
+            <Border Classes="card tile" Margin="0,0,14,0" Padding="20,16" ToolTip.Tip="{Binding Detail}">
                 <StackPanel>
                     <TextBlock Text="{Binding Label}" Classes="label" />
                     <TextBlock Text="{Binding Value}" Classes="stat" Margin="0,8,0,2" TextTrimming="CharacterEllipsis"
@@ -63,6 +63,7 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/MainLook.axaml" />
         <!-- A History row is selected only when a deck page sends a game there -->
         <Style Selector="ListBox.history ListBoxItem:selected /template/ ContentPresenter#Presenter">
             <Setter Property="Background" Value="{StaticResource SelectedFill}" />
@@ -278,7 +279,8 @@
                 <!-- ===== Home ===== -->
                 <ScrollViewer Name="PageOverview" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Text="{i:Loc Main.Nav.Home}" Classes="display" Margin="0,0,0,20" />
+                        <TextBlock Text="{i:Loc Main.Nav.Home}" Classes="display pageTitle" />
+                        <c:Wave Classes="pageRule" />
 
                         <Border Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
                                 IsVisible="{Binding SetupWarning, Converter={StaticResource Truthy}}">
@@ -362,8 +364,8 @@
                                     <Button Content="{i:Loc Main.Home.ViewAll}" Classes="ghost" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
                                 </Grid>
                                 <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
-                                <TextBlock Text="{i:Loc Main.Home.NoGames}" Classes="caption" Margin="0,8"
-                                           IsVisible="{Binding Recent, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                                <ContentControl Classes="emptyState" Tag="&#xF02DA;" Content="{i:Loc Main.Home.NoGames}"
+                                                IsVisible="{Binding Recent, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -374,7 +376,8 @@
                     <StackPanel>
                         <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
                             <StackPanel>
-                                <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Classes="display" Margin="0,0,0,20" />
+                                <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Classes="display pageTitle" />
+                                <c:Wave Classes="pageRule" />
                             </StackPanel>
                             <Border Classes="segmentBar headFilter"
                                     ToolTip.Tip="{i:Loc Main.Bg.ModeTip}">
@@ -638,7 +641,8 @@
                 <!-- ===== Constructed ===== -->
                 <ScrollViewer Name="PageConstructed" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel>
-                        <TextBlock Text="{Binding ConstructedTitle}" Classes="display" Margin="0,0,0,20" />
+                        <TextBlock Text="{Binding ConstructedTitle}" Classes="display pageTitle" />
+                        <c:Wave Classes="pageRule" />
 
                         <!-- My stats (Main/Stats): Standard/Wild results; your decks follow below -->
                         <s:ConstructedStatsView Name="CtStats" />
@@ -734,7 +738,8 @@
                 <!-- ===== Arena ===== -->
                 <ScrollViewer Name="PageArena" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel>
-                        <TextBlock Text="{i:Loc Main.Mode.Arena}" Classes="display" Margin="0,0,0,20" />
+                        <TextBlock Text="{i:Loc Main.Mode.Arena}" Classes="display pageTitle" />
+                        <c:Wave Classes="pageRule" />
                         <s:ArenaStatsView Name="ArenaStats" />
                     </StackPanel>
                 </ScrollViewer>
@@ -743,7 +748,8 @@
                 <Grid Name="PageHistory" Grid.Row="1" IsVisible="False" RowDefinitions="Auto,*">
                     <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
                         <StackPanel>
-                            <TextBlock Text="{i:Loc Main.Nav.History}" Classes="display" />
+                            <TextBlock Text="{i:Loc Main.Nav.History}" Classes="display pageTitle" />
+                            <c:Wave Classes="pageRule" Margin="2,0,0,0" />
                             <StackPanel Classes="pageSubtitle">
                                 <Panel Width="26" Height="26">
                                     <c:Scallop Fill="{StaticResource AccentContainer}" Lobes="9" Depth="0.12" />
@@ -776,7 +782,8 @@
                 <!-- ===== Settings: tabs General / Overlay / Tracker / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                 <ScrollViewer Name="PageSettings" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel MaxWidth="780" HorizontalAlignment="Left">
-                        <TextBlock Text="{i:Loc Settings.Title}" Classes="display" Margin="0,0,0,20" />
+                        <TextBlock Text="{i:Loc Settings.Title}" Classes="display pageTitle" />
+                        <c:Wave Classes="pageRule" />
 
                         <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,20">
                             <WrapPanel>

@@ -66,8 +66,6 @@ public sealed partial class MainViewModel
 
     private int CountHistory(IReadOnlyList<GameRecord> recent) => _history.GameCount();
 
-    private static string TileLabel(string text) => text;
-
     partial void OnRecentChanged() => Raise(nameof(BannerHero));
 
     partial void OnHeroTiersChanged() => Raise(nameof(HasHeroTiers));

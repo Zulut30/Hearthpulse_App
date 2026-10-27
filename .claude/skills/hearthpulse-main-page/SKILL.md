@@ -43,6 +43,9 @@ Navigation is hand-written lists, not data binding - a new page must be added to
 2. Page in the content grid (Row 1), collapsed:
    `<ScrollViewer x:Name="PageFoo" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">`
    -> `<StackPanel Margin="40,0,40,120">` -> `TextBlock Style="{StaticResource Display}"` title ->
+   (since Oct 2026: `Style="{StaticResource PageTitle}"` followed by `<c:Wave Style="{StaticResource PageRule}" />`,
+   from `Main/MainLook.xaml`; Avalonia `Classes="display pageTitle"` + `<c:Wave Classes="pageRule" />` from
+   `Main/MainLook.axaml`, which also has `TileCard`/`tile` and the `EmptyState`/`emptyState` glyph + line) ->
    `StackPanel Style="{StaticResource PageSubtitle}"` caption -> `Border Style="{StaticResource Card}"` sections with
    `c:Ornament` headings, `Margin="0,0,0,24"` between cards. (History is the exception: a `Grid` with a virtualizing
    list.) A long list of equal-height rows inside such a page takes `ItemsPanel="{StaticResource PageRows}"`

@@ -466,7 +466,8 @@ public sealed partial class DeckPageTests
         var merged = DeckFamilies.Build(versions, [new DeckFamilyRecord(7, null, v2, [v2, v3])]);
         var family = merged.Single(f => f.Id == 7);
         Assert.Equal("family:7", family.Key);
-        Assert.Equal("Рыцарь смерти2", family.Name);
+        // Shown with the space Hearthstone leaves out before the copy number.
+        Assert.Equal("Рыцарь смерти 2", family.Name);
         Assert.Equal(new WinLoss(4, 3, 1), family.Record);
         Assert.Equal([v2, v3], family.Versions.Select(v => v.Key));
         Assert.Equal([new CardDelta(1514, 2), new CardDelta(1014, -2)], DeckFamilies.Diff(family.Versions[0], family.Versions[1]));

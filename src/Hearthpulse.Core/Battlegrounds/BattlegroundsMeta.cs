@@ -193,7 +193,7 @@ public sealed class BattlegroundsMeta
         : Loc.F("Core.BgMeta.PoolNotRunning", what);
 
     /// <summary>"all ranks" or "top X%", for captions.</summary>
-    public static string BracketLabel(int bracket) => bracket >= 100 ? Loc.T("Core.BgMeta.AllRanks") : Loc.F("Core.BgMeta.Top", bracket);
+    public static string BracketLabel(int bracket) => bracket >= 100 ? Loc.T("Core.BgMeta.AllRanks") : Loc.F("Core.BgMeta.Top", bracket / 100.0);
 
     /// <summary>MMR floor of each percentile; empty when the source does not publish them (the API does not).</summary>
     public IReadOnlyList<(int Percentile, int Mmr)> Percentiles { get; }

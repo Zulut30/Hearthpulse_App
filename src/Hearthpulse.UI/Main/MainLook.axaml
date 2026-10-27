@@ -1,0 +1,45 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Hearthpulse.UI.Controls">
+    <!-- Main-window look on top of the theme: page headers, tiles with depth, empty states. Theme tokens only;
+         the WPF twin is Main/MainLook.xaml. -->
+
+    <!-- Page header: the title, then a gold rule under it -->
+    <Style Selector="TextBlock.display.pageTitle">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="c|Wave.pageRule">
+        <Setter Property="Width" Value="168" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="2,0,0,22" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+
+    <!-- Stat tiles: a card lifted off the page (neutral black shadow, not themed); the edge warms on hover -->
+    <Style Selector="Border.card.tile">
+        <Setter Property="BoxShadow" Value="0 5 20 0 #4D000000" />
+    </Style>
+    <Style Selector="Border.card.tile:pointerover">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+    </Style>
+
+    <!-- An empty list: the section's glyph in a cookie over one short line, centred. Tag = glyph, Content = text. -->
+    <Style Selector="ContentControl.emptyState">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,14,0,8" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ContentControl">
+                <StackPanel>
+                    <Panel Width="48" Height="48" HorizontalAlignment="Center">
+                        <c:Scallop Fill="{StaticResource AccentContainer}" Lobes="9" Depth="0.12" />
+                        <TextBlock Name="Glyph" Text="{TemplateBinding Tag}" Classes="icon" FontSize="22"
+                                   Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Panel>
+                    <TextBlock Name="Text" Text="{TemplateBinding Content}" Classes="caption" TextAlignment="Center"
+                               TextWrapping="Wrap" MaxWidth="440" Margin="0,10,0,0" />
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

@@ -20,7 +20,11 @@ public sealed record MetaArchetypeRow(
     double Edge,
     double BarFraction,
     string First,
-    string Coin);
+    string Coin)
+{
+    /// <summary>Whether the source split this archetype's games by who went first.</summary>
+    public bool HasPlaySplit => First != "—" || Coin != "—";
+}
 
 public sealed record MetaDeckRow(string Name, string Class, string HeroId, string WinRate, double Edge, string Games, string Dust, string Code);
 
@@ -61,7 +65,20 @@ public sealed partial class MainViewModel
     /// <summary>"All classes" plus every class with an archetype in the current data.</summary>
     public IReadOnlyList<MetaChoice> MetaClasses { get => _metaClasses; private set => Set(ref _metaClasses, value); }
 
-    public IReadOnlyList<MetaArchetypeRow> MetaArchetypes { get => _metaArchetypes; private set => Set(ref _metaArchetypes, value); }
+    public IReadOnlyList<MetaArchetypeRow> MetaArchetypes
+    {
+        get => _metaArchetypes;
+        private set
+        {
+            if (Set(ref _metaArchetypes, value))
+            {
+                Raise(nameof(MetaHasPlaySplit));
+            }
+        }
+    }
+
+    /// <summary>The "1st"/"Coin" columns: shown only when the source has those numbers, not as a column of dashes.</summary>
+    public bool MetaHasPlaySplit => _metaArchetypes.Any(r => r.HasPlaySplit);
 
     /// <summary>Most played decklists, best first among those with enough games.</summary>
     public IReadOnlyList<MetaDeckRow> MetaDecks { get => _metaDecks; private set => Set(ref _metaDecks, value); }
@@ -276,7 +293,8 @@ public sealed partial class MainViewModel
             return;
         }
 
-        ArchetypeSummary = Loc.P("Main.Meta.Summary", archetype.Games, ConstructedMeta.ClassName(archetype.Class),
+        // A source without play-rate data reports a 0 % share: that is left out rather than shown as "0.0 % of the meta".
+        ArchetypeSummary = Loc.P(archetype.Share > 0 ? "Main.Meta.Summary" : "Main.Meta.SummaryNoShare", archetype.Games, ConstructedMeta.ClassName(archetype.Class),
             archetype.WinRate.ToString("P1", CultureInfo.CurrentCulture), archetype.Share.ToString("P1", CultureInfo.CurrentCulture));
 
         ArchetypeDecks = PageMeta!.Decks

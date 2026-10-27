@@ -17,6 +17,10 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="MainLook.xaml" />
+        </ResourceDictionary.MergedDictionaries>
         <i:VisibleWhen x:Key="Vis" />
         <i:KeyBrush x:Key="KeyBrush" />
         <i:SignBrush x:Key="SignBrush" />
@@ -53,16 +57,7 @@
         </Style>
 
         <DataTemplate x:Key="StatTileTemplate" DataType="{x:Type m:StatTile}">
-            <Border Margin="0,0,14,0" Padding="20,16" ToolTip="{Binding Detail}">
-                <Border.Style>
-                    <Style TargetType="Border" BasedOn="{StaticResource Card}">
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
+            <Border Style="{StaticResource TileCard}" Margin="0,0,14,0" Padding="20,16" ToolTip="{Binding Detail}">
                 <StackPanel>
                     <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" />
                     <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" Margin="0,8,0,2" TextTrimming="CharacterEllipsis" />
@@ -193,6 +188,7 @@
         <ItemsPanelTemplate x:Key="PageRows">
             <c:PageRowsPanel />
         </ItemsPanelTemplate>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Border x:Name="Frame">
@@ -240,6 +236,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{i:Loc Main.Nav.Modes}" Style="{StaticResource Label}" />
+                        <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                     </Grid>
                     <RadioButton x:Name="NavBattlegrounds" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="&#xF0787;" GroupName="Nav" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.BattlegroundsTip}" />
@@ -256,6 +253,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{i:Loc Main.Nav.Library}" Style="{StaticResource Label}" />
+                        <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                     </Grid>
                     <RadioButton x:Name="NavHistory" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.History}" Tag="&#xF02DA;" GroupName="Nav" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.HistoryTip}" />
@@ -327,7 +325,8 @@
                     <!-- ===== Home ===== -->
                     <ScrollViewer x:Name="PageOverview" Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource Display}" Margin="0,0,0,20" />
+                            <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource PageTitle}" />
+                            <c:Wave Style="{StaticResource PageRule}" />
 
                             <Border Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
                                     Visibility="{Binding SetupWarning, Converter={StaticResource Vis}}">
@@ -430,8 +429,8 @@
                                         <Button Content="{i:Loc Main.Home.ViewAll}" Style="{StaticResource GhostButton}" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
                                     </Grid>
                                     <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
-                                    <TextBlock Text="{i:Loc Main.Home.NoGames}" Style="{StaticResource Caption}" Margin="0,8"
-                                               Visibility="{Binding Recent, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                    <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF02DA;" Content="{i:Loc Main.Home.NoGames}"
+                                                    Visibility="{Binding Recent, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -442,7 +441,8 @@
                         <StackPanel Margin="40,0,40,120">
                             <Grid>
                                 <StackPanel>
-                                    <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Style="{StaticResource Display}" Margin="0,0,0,20" />
+                                    <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Style="{StaticResource PageTitle}" />
+                                    <c:Wave Style="{StaticResource PageRule}" />
                                 </StackPanel>
                                 <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}"
                                         ToolTip="{i:Loc Main.Bg.ModeTip}">
@@ -787,7 +787,8 @@
                     <!-- ===== Constructed ===== -->
                     <ScrollViewer x:Name="PageConstructed" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="{Binding ConstructedTitle}" Style="{StaticResource Display}" Margin="0,0,0,20" />
+                            <TextBlock Text="{Binding ConstructedTitle}" Style="{StaticResource PageTitle}" />
+                            <c:Wave Style="{StaticResource PageRule}" />
 
                             <Grid Margin="0,0,0,14">
                                 <Border HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource SegmentBar}">
@@ -972,14 +973,16 @@
                                                 <ColumnDefinition Width="44" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="140" />
-                                                <ColumnDefinition Width="46" />
-                                                <ColumnDefinition Width="46" />
-                                                        </Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
                                             <TextBlock Text="{i:Loc Main.Table.Tier}" Style="{StaticResource TableHead}" ToolTip="{i:Loc Main.Meta.TierTip}" />
                                             <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Archetype}" Style="{StaticResource TableHead}" />
                                             <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.WinRate}" Style="{StaticResource TableHead}" />
-                                            <TextBlock Grid.Column="4" Text="{i:Loc Main.Meta.First}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Meta.FirstTip}" />
-                                            <TextBlock Grid.Column="5" Text="{i:Loc Main.Meta.Coin}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Meta.CoinTip}" />
+                                            <!-- Shown only when the source splits games by who went first -->
+                                            <StackPanel Grid.Column="4" Orientation="Horizontal" Visibility="{Binding MetaHasPlaySplit, Converter={StaticResource Vis}}">
+                                                <TextBlock Width="66" Text="{i:Loc Main.Meta.First}" Style="{StaticResource TableHead}" TextAlignment="Right" ToolTip="{i:Loc Main.Meta.FirstTip}" />
+                                                <TextBlock Width="66" Text="{i:Loc Main.Meta.Coin}" Style="{StaticResource TableHead}" TextAlignment="Right" ToolTip="{i:Loc Main.Meta.CoinTip}" />
+                                            </StackPanel>
                                         </Grid>
                                         <ListBox ItemsSource="{Binding MetaArchetypes}" SelectedItem="{Binding SelectedArchetype}" ItemsPanel="{StaticResource PageRows}" Background="Transparent" BorderThickness="0">
                                             <ListBox.Template>
@@ -1037,8 +1040,7 @@
                                                             <ColumnDefinition Width="44" />
                                                             <ColumnDefinition Width="*" />
                                                             <ColumnDefinition Width="140" />
-                                                            <ColumnDefinition Width="46" />
-                                                            <ColumnDefinition Width="46" />
+                                                            <ColumnDefinition Width="Auto" />
                                                         </Grid.ColumnDefinitions>
                                                         <Border Style="{StaticResource TierBadge}" HorizontalAlignment="Left" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
                                                             <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
@@ -1057,8 +1059,11 @@
                                                                         Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=80}" />
                                                             </Border>
                                                         </StackPanel>
-                                                        <TextBlock Grid.Column="4" Text="{Binding First}" FontSize="12.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                        <TextBlock Grid.Column="5" Text="{Binding Coin}" FontSize="12.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center"
+                                                                    Visibility="{Binding DataContext.MetaHasPlaySplit, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource Vis}}">
+                                                            <TextBlock Width="66" Text="{Binding First}" FontSize="12.5" TextAlignment="Right" />
+                                                            <TextBlock Width="66" Text="{Binding Coin}" FontSize="12.5" TextAlignment="Right" />
+                                                        </StackPanel>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
@@ -1073,7 +1078,7 @@
                                         <TextBlock Text="{Binding SelectedArchetypeTitle}" FontSize="20" FontWeight="SemiBold"
                                                    FontFamily="{StaticResource DisplayFont}" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Text="{Binding ArchetypeSummary}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,16" Visibility="{Binding SelectedArchetype, Converter={StaticResource Vis}}">
+                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Visibility="{Binding SelectedArchetype.HasPlaySplit, Converter={StaticResource Vis}, FallbackValue=Collapsed}">
                                             <Border Style="{StaticResource SegmentBar}" Padding="12,6" Margin="0,0,8,0" ToolTip="{i:Loc Main.Meta.FirstTip}">
                                                 <TextBlock><Run Text="{i:Loc Main.Meta.GoingFirst}" Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.First, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
                                             </Border>
@@ -1082,7 +1087,7 @@
                                             </Border>
                                         </StackPanel>
 
-                                        <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,0,0,8"
+                                        <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,16,0,8"
                                                     ToolTip="{i:Loc Main.Meta.MulliganCaption}" />
                                         <ItemsControl ItemsSource="{Binding Mulligan}">
                                             <ItemsControl.ItemTemplate>
@@ -1092,14 +1097,14 @@
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="36" />
                                                                 <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="72" />
-                                                                <ColumnDefinition Width="48" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="52" />
                                                             </Grid.ColumnDefinitions>
                                                             <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                                                     i:CardArt.Portrait="{Binding CardId}" />
                                                             <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                             <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                       ToolTip="{i:Loc Main.Meta.KeepRateTip}" />
+                                                                       Margin="12,0,0,0" ToolTip="{i:Loc Main.Meta.KeepRateTip}" />
                                                             <TextBlock Grid.Column="3" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
                                                                        Foreground="{Binding Edge, Converter={StaticResource SignBrush}}">
                                                                 <TextBlock.ToolTip>
@@ -1225,7 +1230,8 @@
                     <!-- ===== Arena ===== -->
                     <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource Display}" Margin="0,0,0,20" />
+                            <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource PageTitle}" />
+                            <c:Wave Style="{StaticResource PageRule}" />
                             <s:ArenaStatsView />
                         </StackPanel>
                     </ScrollViewer>
@@ -1238,7 +1244,8 @@
                         </Grid.RowDefinitions>
                         <Grid>
                             <StackPanel>
-                                <TextBlock Text="{i:Loc Main.Nav.History}" Style="{StaticResource Display}" />
+                                <TextBlock Text="{i:Loc Main.Nav.History}" Style="{StaticResource PageTitle}" />
+                                <c:Wave Style="{StaticResource PageRule}" Margin="2,0,0,0" />
                                 <StackPanel Style="{StaticResource PageSubtitle}">
                                     <TextBlock Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center">
                                         <Run Text="{Binding HistorySubtitle, Mode=OneWay}" />
@@ -1292,7 +1299,8 @@
                     <!-- ===== Settings: tabs General / Overlay / Tracker / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                     <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left" ToggleButton.Checked="OnSettingChanged" ToggleButton.Unchecked="OnSettingChanged">
-                            <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource Display}" Margin="0,0,0,20" />
+                            <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource PageTitle}" />
+                            <c:Wave Style="{StaticResource PageRule}" />
 
                             <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,20">
                                 <WrapPanel>

@@ -22,13 +22,13 @@ public sealed record PoolBar(string Label, int Count, double Height, bool IsMedi
 /// <param name="Count">How many pool cards have this stat (spells have no Attack).</param>
 public sealed record PoolHistogram(string Title, IReadOnlyList<PoolBar> Bars, double Median, int Count)
 {
-    public string MedianText => Median.ToString(Median % 1 == 0 ? "0" : "0.0", System.Globalization.CultureInfo.InvariantCulture);
+    public string MedianText => Median.ToString(Median % 1 == 0 ? "0" : "0.0", System.Globalization.CultureInfo.CurrentCulture);
 }
 
 /// <summary>Share of pool cards with a mechanic.</summary>
 public sealed record PoolMechanic(string Tag, string Label, int Count, double Percent)
 {
-    public string PercentText => Percent.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "%";
+    public string PercentText => (Percent / 100).ToString("P1", System.Globalization.CultureInfo.CurrentCulture);
 }
 
 /// <summary>One card of the pool, for the full list.</summary>
