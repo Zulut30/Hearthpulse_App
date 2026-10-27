@@ -47,13 +47,13 @@ public sealed record MetaHeroRow(
     string PickRate,
     string DataPoints,
     string Personal,
-#if HEARTHPULSE_WPF
     double BarFraction,
     string Top4 = "",
-    string FirstPlace = "");
-#else
-    double BarFraction);
-#endif
+    string FirstPlace = "",
+    double Top4Value = 0,
+    double FirstValue = 0,
+    double PickValue = 0,
+    int Games = 0);
 
 public sealed record MetaCompRow(
     int Rank,
@@ -284,6 +284,7 @@ public sealed partial class MainViewModel : Observable
         {
             if (Set(ref _heroTiers, value))
             {
+                RebuildHeroGroups();
                 OnHeroTiersChanged();
             }
         }
@@ -313,7 +314,7 @@ public sealed partial class MainViewModel : Observable
     private IReadOnlyList<MetaCardRow> _cardTiers = Array.Empty<MetaCardRow>();
     private int _cardTier = 1;
 
-    public IReadOnlyList<MetaTrinketRow> TrinketTiers { get => _trinketTiers; private set { if (Set(ref _trinketTiers, value)) OnTrinketTiersChanged(); } }
+    public IReadOnlyList<MetaTrinketRow> TrinketTiers { get => _trinketTiers; private set { if (Set(ref _trinketTiers, value)) { RebuildTrinketGroups(); OnTrinketTiersChanged(); } } }
 
 
     public IReadOnlyList<MetaCardRow> CardTiers { get => _cardTiers; private set { if (Set(ref _cardTiers, value)) OnCardTiersChanged(); } }
@@ -520,13 +521,13 @@ public sealed partial class MainViewModel : Observable
                 h.PickRate.ToString("P0", CultureInfo.CurrentCulture),
                 h.DataPoints > 0 ? h.DataPoints.ToString("N0", CultureInfo.CurrentCulture) : "—",
                 personal.TryGetValue(h.HeroCardId, out var p) ? $"{p.Games} · {p.AveragePlace}" : string.Empty,
-#if HEARTHPULSE_WPF
                 worst - best < 0.01 ? 1 : 1 - ((h.AveragePosition - best) / (worst - best) * 0.85),
-                h.Top4Rate > 0 ? h.Top4Rate.ToString("P0", CultureInfo.CurrentCulture) : string.Empty,
-                h.FirstRate > 0 ? h.FirstRate.ToString("P0", CultureInfo.CurrentCulture) : string.Empty))
-#else
-                worst - best < 0.01 ? 1 : 1 - ((h.AveragePosition - best) / (worst - best) * 0.85)))
-#endif
+                h.Top4Rate > 0 ? h.Top4Rate.ToString("P0", CultureInfo.CurrentCulture) : "—",
+                h.FirstRate > 0 ? h.FirstRate.ToString("P0", CultureInfo.CurrentCulture) : "—",
+                h.Top4Rate,
+                h.FirstRate,
+                h.PickRate,
+                h.DataPoints))
             .ToList();
 
         var tribeRows = UseTribeRows(meta);

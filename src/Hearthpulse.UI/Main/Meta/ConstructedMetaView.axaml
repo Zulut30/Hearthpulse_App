@@ -1,0 +1,368 @@
+<UserControl x:Class="Hearthpulse.UI.Main.Meta.ConstructedMetaView"
+             x:DataType="m:MainViewModel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:mm="using:Hearthpulse.UI.Main.Meta"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- The Standard/Wild community tabs, as hearthpulse.net lays them out: filters, the tier list (tiers or one sortable
+         table) beside the chosen archetype's mulligan guide and lists, the top decks, and the matchup heat map. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Meta/MetaResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- One archetype: rank, portrait, name (English and class under it), tier, win rate, popularity, play split -->
+            <DataTemplate x:Key="ArchetypeRowTemplate" x:DataType="m:MetaArchetypeRow">
+                <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" CommandParameter="{Binding}"
+                        Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SelectArchetype}">
+                    <Border Classes="row archetype" Classes.selected="{Binding IsSelected}">
+                        <Grid ColumnDefinitions="30,42,*,44,116,100,Auto">
+                            <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
+                            <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                    ClipToBounds="True" i:CardArt.Portrait="{Binding HeroId}" />
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,10,0">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <Border Grid.Column="3" Classes="tierBadge" Background="{Binding Tier, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding WinRate}" Width="54" FontWeight="Bold" ToolTip.Tip="{Binding WinRateTip}"
+                                           Foreground="{Binding WinSign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
+                                <Border Width="54" Height="6" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                                            Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=54}" />
+                                </Border>
+                            </StackPanel>
+                            <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center" Classes="metaWide">
+                                <TextBlock Text="{Binding Popularity}" Width="48" Classes="caption" FontSize="12.5" />
+                                <Border Width="44" Height="6" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                    <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
+                                            Width="{Binding PopularityFraction, Converter={StaticResource Fraction}, ConverterParameter=44}" />
+                                </Border>
+                            </StackPanel>
+                            <!-- Shown only when the source splits games by who went first -->
+                            <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center"
+                                        IsVisible="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).MetaHasPlaySplit}">
+                                <TextBlock Width="56" Text="{Binding First}" FontSize="12.5" TextAlignment="Right" />
+                                <TextBlock Width="56" Text="{Binding Coin}" FontSize="12.5" TextAlignment="Right" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Button>
+            </DataTemplate>
+
+            <DataTemplate x:Key="MetaDeckTemplate" x:DataType="m:MetaDeckRow">
+                <Border Classes="row" Padding="10,7">
+                    <Grid ColumnDefinitions="40,*,64,64,64,Auto">
+                        <Border Width="30" Height="30" CornerRadius="15" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                ClipToBounds="True" i:CardArt.Portrait="{Binding HeroId}" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Class}" Classes="caption" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip.Tip="{i:Loc Main.Table.WinRate}" />
+                        <TextBlock Grid.Column="3" Text="{Binding Games}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   ToolTip.Tip="{i:Loc Main.Meta.ExactListTip}" />
+                        <TextBlock Grid.Column="4" Text="{Binding Dust}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   ToolTip.Tip="{i:Loc Main.Meta.DustTip}" />
+                        <Button Grid.Column="5" Classes="ghost" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" FontSize="12" Margin="12,0,0,0"
+                                Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).CopyDeck}" CommandParameter="{Binding}"
+                                ToolTip.Tip="{i:Loc Main.Meta.CopyTip}" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Meta/MetaStyles.axaml" />
+    </UserControl.Styles>
+
+    <StackPanel>
+        <!-- Filters: rank and period, then class and minimum games (hearthpulse.net's "Рейтинг", "Период", "Минимум игр") -->
+        <StackPanel Name="MetaFilters" Margin="0,0,0,14">
+            <WrapPanel Margin="0,0,0,10">
+                <Border Classes="segmentBar" Margin="0,0,12,8" ToolTip.Tip="{i:Loc Main.Ct.RankTip}">
+                    <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceRow}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:MetaChoice">
+                                <RadioButton Classes="segment" Content="{Binding Label}" GroupName="MetaRank" IsChecked="{Binding Selected, Mode=OneWay}"
+                                             Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SetMetaRank}" CommandParameter="{Binding Key}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+                <Border Classes="segmentBar" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Main.Ct.PeriodTip}">
+                    <ItemsControl ItemsSource="{Binding MetaPeriods}" ItemsPanel="{StaticResource ChoiceRow}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:MetaChoice">
+                                <RadioButton Classes="segment" Content="{Binding Label}" GroupName="MetaPeriod" IsChecked="{Binding Selected, Mode=OneWay}"
+                                             Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SetMetaPeriod}" CommandParameter="{Binding Key}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+            </WrapPanel>
+            <WrapPanel>
+                <Border Classes="segmentBar" Margin="0,0,12,8" ToolTip.Tip="{i:Loc Main.Ct.ClassTip}">
+                    <ItemsControl ItemsSource="{Binding MetaClasses}" ItemsPanel="{StaticResource ChoiceWrap}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:MetaChoice">
+                                <RadioButton Classes="segment" Content="{Binding Label}" GroupName="MetaClass" IsChecked="{Binding Selected, Mode=OneWay}"
+                                             Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SetMetaClass}" CommandParameter="{Binding Key}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+                <Border Name="MinGamesPicker" Classes="segmentBar" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Main.Meta.MinGamesTip}">
+                    <ItemsControl ItemsSource="{Binding MetaMinGames}" ItemsPanel="{StaticResource ChoiceRow}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:MetaChoice">
+                                <RadioButton Classes="segment" Content="{Binding Label}" GroupName="MetaMinGames" IsChecked="{Binding Selected, Mode=OneWay}"
+                                             Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SetMetaMinGames}" CommandParameter="{Binding Key}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+            </WrapPanel>
+        </StackPanel>
+
+        <!-- Meta tier list: archetypes on the left, the chosen one's mulligan guide and best lists on the right -->
+        <Grid Name="MetaTiersPanel" ColumnDefinitions="3*,16,2*">
+            <Border Classes="card" VerticalAlignment="Top">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto">
+                        <c:Ornament Text="{Binding ConstructedTitle}" Icon="&#xF11D0;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    ToolTip.Tip="{i:Loc Main.Meta.TierTip}" />
+                        <Border Grid.Column="1" Classes="segmentBar" ToolTip.Tip="{i:Loc Main.Meta.ViewTip}">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Classes="segment" Content="{i:Loc Main.Meta.ViewTiers}" GroupName="MetaView" IsChecked="{Binding MetaTierView, Mode=OneWay}"
+                                             Command="{Binding SetMetaView}" CommandParameter="Tiers" />
+                                <RadioButton Classes="segment" Content="{i:Loc Main.Meta.ViewTable}" GroupName="MetaView" IsChecked="{Binding MetaTableView, Mode=OneWay}"
+                                             Command="{Binding SetMetaView}" CommandParameter="Table" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Column heads: a click sorts by the column, again turns the order round -->
+                    <Grid Name="MetaHead" Margin="0,0,0,4" ColumnDefinitions="30,42,*,44,116,100,Auto" IsVisible="{Binding HasMetaArchetypes}">
+                        <TextBlock Text="#" Classes="tableHead" />
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Button Classes="sortHead" Command="{Binding SetMetaSort}" CommandParameter="Name" ToolTip.Tip="{i:Loc Main.Meta.SortHeadTip}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{i:Loc Main.Table.Archetype}" Classes="sortLabel" />
+                                    <TextBlock Text="{Binding MetaArrows.Name}" Classes="sortArrow" />
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Text=" · " Classes="tableHead" />
+                            <Button Classes="sortHead" Command="{Binding SetMetaSort}" CommandParameter="Games" ToolTip.Tip="{i:Loc Main.Meta.GamesTip}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{i:Loc Main.Table.Games}" Classes="sortLabel" />
+                                    <TextBlock Text="{Binding MetaArrows.Games}" Classes="sortArrow" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <Button Grid.Column="3" Classes="sortHead" Command="{Binding SetMetaSort}" CommandParameter="Tier" ToolTip.Tip="{i:Loc Main.Meta.TierTip}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{i:Loc Main.Table.Tier}" Classes="sortLabel" />
+                                <TextBlock Text="{Binding MetaArrows.Tier}" Classes="sortArrow" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="4" Classes="sortHead" Command="{Binding SetMetaSort}" CommandParameter="WinRate" ToolTip.Tip="{i:Loc Main.Meta.WinRateTip}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{i:Loc Main.Table.WinRate}" Classes="sortLabel" />
+                                <TextBlock Text="{Binding MetaArrows.WinRate}" Classes="sortArrow" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="5" Classes="sortHead metaWide" Command="{Binding SetMetaSort}" CommandParameter="Popularity" ToolTip.Tip="{i:Loc Main.Meta.PopularityTip}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{i:Loc Main.Table.Popularity}" Classes="sortLabel" />
+                                <TextBlock Text="{Binding MetaArrows.Popularity}" Classes="sortArrow" />
+                            </StackPanel>
+                        </Button>
+                        <StackPanel Grid.Column="6" Orientation="Horizontal" IsVisible="{Binding MetaHasPlaySplit}">
+                            <TextBlock Width="56" Text="{i:Loc Main.Meta.First}" Classes="tableHead" TextAlignment="Right" ToolTip.Tip="{i:Loc Main.Meta.FirstTip}" />
+                            <TextBlock Width="56" Text="{i:Loc Main.Meta.Coin}" Classes="tableHead" TextAlignment="Right" ToolTip.Tip="{i:Loc Main.Meta.CoinTip}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Tiers: S to D, each with its colour, bound and count; an empty tier says so (as on the site) -->
+                    <ItemsControl Name="MetaTierList" ItemsSource="{Binding MetaTierGroups}" IsVisible="{Binding MetaTierView}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:MetaTierGroup">
+                                <StackPanel>
+                                    <Border Classes="tierHead" BorderBrush="{Binding Tier, Converter={StaticResource KeyBrush}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Classes="tierLetter" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
+                                                <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="17" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                                <TextBlock Text="{Binding Caption}" Classes="caption" FontSize="11.5" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource ArchetypeRowTemplate}" />
+                                    <TextBlock Text="{i:Loc Main.Meta.TierEmpty}" Classes="caption" Margin="4,0,0,4" IsVisible="{Binding IsEmpty}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Table: one list in the chosen order -->
+                    <ItemsControl Name="MetaTable" ItemsSource="{Binding MetaArchetypes}" ItemTemplate="{StaticResource ArchetypeRowTemplate}"
+                                  IsVisible="{Binding MetaTableView}" />
+
+                    <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.LoadingShort}" IsVisible="{Binding MetaLoading}" />
+                    <ContentControl Classes="emptyState" Tag="&#xF0233;" Content="{i:Loc Main.Meta.Empty}" IsVisible="{Binding MetaEmpty}" />
+                    <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Name="ArchetypeCard" Grid.Column="2" Classes="card" VerticalAlignment="Top">
+                <StackPanel>
+                    <TextBlock Text="{Binding SelectedArchetypeTitle}" FontSize="20" FontWeight="SemiBold"
+                               FontFamily="{DynamicResource DisplayFont}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding ArchetypeSummary}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0" IsVisible="{Binding SelectedArchetype.HasPlaySplit, FallbackValue=False}">
+                        <Border Classes="segmentBar" Padding="12,6" Margin="0,0,8,0" ToolTip.Tip="{i:Loc Main.Meta.FirstTip}">
+                            <TextBlock><Run Text="{i:Loc Main.Meta.GoingFirst}" Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.First, Mode=OneWay, FallbackValue=''}" FontWeight="Bold" /></TextBlock>
+                        </Border>
+                        <Border Classes="segmentBar" Padding="12,6" ToolTip.Tip="{i:Loc Main.Meta.CoinTip}">
+                            <TextBlock><Run Text="{i:Loc Main.Meta.OnCoin}" Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.Coin, Mode=OneWay, FallbackValue=''}" FontWeight="Bold" /></TextBlock>
+                        </Border>
+                    </StackPanel>
+
+                    <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,16,0,8"
+                                ToolTip.Tip="{i:Loc Main.Meta.MulliganCaption}" />
+                    <ItemsControl ItemsSource="{Binding Mulligan}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:MulliganRow">
+                                <Border Classes="row" Padding="8,5">
+                                    <!-- Fixed "kept" column, so every row's "kept N%" and name trim line up -->
+                                    <Grid ColumnDefinitions="36,*,116,52">
+                                        <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                                ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Classes="caption" TextAlignment="Right" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" Margin="12,0,0,0" ToolTip.Tip="{i:Loc Main.Meta.KeepRateTip}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                   Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" ToolTip.Tip="{Binding Seen}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{i:Loc Main.Meta.MulliganEmpty}" Classes="caption" Margin="0,4"
+                               IsVisible="{Binding Mulligan, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+
+                    <c:Ornament Text="{i:Loc Main.Meta.BestLists}" Icon="&#xF0639;" Size="13" Margin="0,18,0,8" />
+                    <ItemsControl ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" />
+                    <TextBlock Text="{i:Loc Main.Meta.ListsEmpty}" Classes="caption" Margin="0,4"
+                               IsVisible="{Binding ArchetypeDecks, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               IsVisible="{Binding CopyNote, Converter={StaticResource Truthy}}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Top decks -->
+        <Border Name="MetaDecksPanel" Classes="card" IsVisible="False">
+            <StackPanel>
+                <Grid Margin="10,0,10,8" ColumnDefinitions="40,*,64,64,64,76">
+                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Deck}" Classes="tableHead" />
+                    <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.WinRate}" Classes="tableHead" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.Games}" Classes="tableHead" HorizontalAlignment="Right" />
+                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Dust}" Classes="tableHead" HorizontalAlignment="Right" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding MetaDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" />
+                <ContentControl Classes="emptyState" Tag="&#xF0639;" Content="{i:Loc Main.Meta.DecksEmpty}"
+                                IsVisible="{Binding MetaDecks, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
+                           IsVisible="{Binding CopyNote, Converter={StaticResource Truthy}}" />
+                <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <!-- Matchups: a heat map of the most played archetypes, the row's win rate against the column -->
+        <Border Name="MetaMatchupsPanel" Classes="card" IsVisible="False">
+            <StackPanel>
+                <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto">
+                    <c:Ornament Text="{i:Loc Main.Ct.MetaMatchups}" Icon="&#xF04E5;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <!-- Legend: red loses, plain is even, green wins -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="14" Height="14" CornerRadius="3" Background="{StaticResource Negative}" />
+                        <TextBlock Text="{i:Loc Main.Meta.LegendLose}" Classes="caption" Margin="6,0,14,0" VerticalAlignment="Center" />
+                        <Border Width="14" Height="14" CornerRadius="3" Background="{StaticResource Surface3}" />
+                        <TextBlock Text="{i:Loc Main.Meta.LegendEven}" Classes="caption" Margin="6,0,14,0" VerticalAlignment="Center" />
+                        <Border Width="14" Height="14" CornerRadius="3" Background="{StaticResource Positive}" />
+                        <TextBlock Text="{i:Loc Main.Meta.LegendWin}" Classes="caption" Margin="6,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+                <TextBlock Text="{i:Loc Main.Meta.MatchupsCaption}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,12" />
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" IsVisible="{Binding HasMatchupMatrix}">
+                    <StackPanel Name="MatchupGrid">
+                        <!-- Column heads: the opponent's portrait and short name, the full name on hover -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <Border Width="190" />
+                            <TextBlock Width="62" Text="{i:Loc Main.Meta.MatchupsOverall}" Classes="tableHead" TextAlignment="Center" VerticalAlignment="Bottom"
+                                       ToolTip.Tip="{i:Loc Main.Meta.MatchupsOverallTip}" />
+                            <ItemsControl ItemsSource="{Binding MatchupHeads}" ItemsPanel="{StaticResource ChoiceRow}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:MatchupHead">
+                                        <StackPanel Width="50" ToolTip.Tip="{Binding Tip}">
+                                            <Border Width="26" Height="26" CornerRadius="13" Background="{StaticResource Surface3}" HorizontalAlignment="Center"
+                                                    ClipToBounds="True" i:CardArt.Portrait="{Binding HeroId}" />
+                                            <TextBlock Text="{Binding Name}" Classes="caption" FontSize="10" TextAlignment="Center" TextWrapping="Wrap"
+                                                       Height="28" Margin="1,3,1,0" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding MatchupMatrix}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:MatchupMatrixRow">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                        <StackPanel Width="190" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="26" Height="26" CornerRadius="13" Background="{StaticResource Surface3}" Margin="0,0,8,0"
+                                                    ClipToBounds="True" i:CardArt.Portrait="{Binding HeroId}" />
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Width="150" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding Name}" />
+                                        </StackPanel>
+                                        <TextBlock Width="62" Text="{Binding WinRate}" FontWeight="Bold" TextAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{Binding Edge, Converter={StaticResource SignBrush}}" />
+                                        <ItemsControl ItemsSource="{Binding Cells}" ItemsPanel="{StaticResource ChoiceRow}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="m:MatchupCellView">
+                                                    <Panel Width="48" Height="32" Margin="1,0" ToolTip.Tip="{Binding Tip}">
+                                                        <Border CornerRadius="4" Background="{StaticResource Surface2}" />
+                                                        <Border CornerRadius="4" Background="{Binding Edge, Converter={StaticResource SignBrush}}" Opacity="{Binding Heat}" />
+                                                        <TextBlock Text="{Binding Text}" FontWeight="SemiBold" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Panel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+                <ContentControl Classes="emptyState" Tag="&#xF04E5;" Content="{i:Loc Main.Meta.MatchupsEmpty}"
+                                IsVisible="{Binding !HasMatchupMatrix}" />
+                <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

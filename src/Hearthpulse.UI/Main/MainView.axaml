@@ -5,6 +5,7 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              xmlns:core="using:Hearthpulse.Core"
              xmlns:s="using:Hearthpulse.UI.Main.Stats"
+             xmlns:mm="using:Hearthpulse.UI.Main.Meta"
              xmlns:dk="using:Hearthpulse.UI.Main.Decks"
              xmlns:mt="using:Hearthpulse.UI.Main.Match"
              xmlns:cs="using:Hearthpulse.Core.Stats"
@@ -480,213 +481,8 @@
                             </Panel>
                         </WrapPanel>
 
-                        <!-- Hero tier list -->
-                        <Border Name="HeroTierCard" Classes="card">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,8" ColumnDefinitions="40,50,*,56,230,80,90,100">
-                                    <TextBlock Text="#" Classes="tableHead" />
-                                    <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Hero}" Classes="tableHead" />
-                                    <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.Tier}" Classes="tableHead" ToolTip.Tip="{i:Loc Main.Table.TierTip}" />
-                                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.AvgPlacement}" Classes="tableHead" ToolTip.Tip="{i:Loc Main.Table.AvgPlacementTip}" />
-                                    <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.PickRate}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.PickRateTip}" />
-                                    <TextBlock Grid.Column="6" Text="{i:Loc Main.Table.Games}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.GamesTip}" />
-                                    <TextBlock Grid.Column="7" Text="{i:Loc Main.Table.You}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.YouTip}" />
-                                </Grid>
-                                <ItemsControl ItemsSource="{Binding HeroTiers}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="m:MetaHeroRow">
-                                            <Border Classes="row" Padding="10,6">
-                                                <Grid ColumnDefinitions="40,50,*,56,230,80,90,100">
-                                                    <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
-                                                    <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}"
-                                                            HorizontalAlignment="Left" i:CardArt.Portrait="{Binding CardId}" />
-                                                    <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                    <Border Grid.Column="3" Classes="tierBadge" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
-                                                        <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    </Border>
-                                                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding AveragePlace}" Width="44" FontWeight="Bold" />
-                                                        <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
-                                                                    Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
-                                                        </Border>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="5" Text="{Binding PickRate}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="6" Text="{Binding DataPoints}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="7" Text="{Binding Personal}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" />
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Comps -->
-                        <Border Name="CompTierCard" Classes="card" IsVisible="False">
-                            <StackPanel>
-                                <ItemsControl ItemsSource="{Binding CompTiers}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="m:MetaCompRow">
-                                            <Border Classes="row" Padding="10,10">
-                                                <Grid ColumnDefinitions="40,*,56,230">
-                                                    <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Top" Margin="0,2,0,0" />
-                                                    <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                                                        <TextBlock FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"><Run Text="{Binding Name, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding Tribes, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" FontSize="12" /></TextBlock>
-                                                        <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0"><Run Text="{i:Loc Main.Bg.Core}" Foreground="{StaticResource Faint}" /><Run Text="{Binding KeyCards, Mode=OneWay}" /></TextBlock>
-                                                        <TextBlock Text="{Binding Commit}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.85"
-                                                                   IsVisible="{Binding Commit, Converter={StaticResource Truthy}}" />
-                                                    </StackPanel>
-                                                    <Border Grid.Column="2" Classes="tierBadge" VerticalAlignment="Top" Background="{Binding Power, Converter={StaticResource KeyBrush}}"
-                                                            ToolTip.Tip="{i:Loc Main.Bg.PowerBestTip}">
-                                                        <TextBlock Text="{Binding Power}" FontWeight="Bold" FontSize="13" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    </Border>
-                                                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,4,0,0" ToolTip.Tip="{i:Loc Main.Bg.AvgPlacementTip}">
-                                                        <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
-                                                        <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
-                                                                    Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
-                                                        </Border>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Text="{Binding CompEmptyText}" Classes="caption" TextWrapping="Wrap" Margin="0,8"
-                                           IsVisible="{Binding CompTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Trinkets -->
-                        <Border Name="TrinketTierCard" Classes="card" IsVisible="False">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,8" ColumnDefinitions="40,*,56,230,80,90">
-                                    <TextBlock Text="#" Classes="tableHead" />
-                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Trinket}" Classes="tableHead" />
-                                    <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Tier}" Classes="tableHead" ToolTip.Tip="{i:Loc Main.Table.TierTipShort}" />
-                                    <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.AvgPlacement}" Classes="tableHead" ToolTip.Tip="{i:Loc Main.Table.TrinketPlacementTip}" />
-                                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.PickRate}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.TrinketPickTip}" />
-                                    <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.Games}" Classes="tableHead" HorizontalAlignment="Right" />
-                                </Grid>
-                                <ItemsControl ItemsSource="{Binding TrinketTiers}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="m:MetaTrinketRow">
-                                            <Border Classes="row" Padding="10,7">
-                                                <Grid ColumnDefinitions="40,*,56,230,80,90">
-                                                    <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                    <Border Grid.Column="2" Classes="tierBadge" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
-                                                        <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    </Border>
-                                                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
-                                                        <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
-                                                                    Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
-                                                        </Border>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="4" Text="{Binding PickRate}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="5" Text="{Binding DataPoints}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Text="{Binding TrinketEmptyText}" Classes="caption" TextWrapping="Wrap" Margin="0,8"
-                                           IsVisible="{Binding TrinketTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Cards -->
-                        <Border Name="CardStatsCard" Classes="card" IsVisible="False">
-                            <StackPanel>
-                                <Border HorizontalAlignment="Left" Classes="segmentBar" Margin="0,0,0,12" ToolTip.Tip="{i:Loc Main.Bg.CardTierTip}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <RadioButton Classes="segment" Content="1" GroupName="CardTier" IsChecked="True" Command="{Binding SetCardTier}" CommandParameter="1" />
-                                        <RadioButton Classes="segment" Content="2" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="2" />
-                                        <RadioButton Classes="segment" Content="3" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="3" />
-                                        <RadioButton Classes="segment" Content="4" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="4" />
-                                        <RadioButton Classes="segment" Content="5" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="5" />
-                                        <RadioButton Classes="segment" Content="6" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="6" />
-                                        <RadioButton Classes="segment" Content="7" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="7" />
-                                        <RadioButton Classes="segment" Content="{i:Loc Main.Bg.Spells}" GroupName="CardTier" Command="{Binding SetCardTier}" CommandParameter="0" />
-                                    </StackPanel>
-                                </Border>
-                                <ItemsControl ItemsSource="{Binding CardTiers}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="m:MetaCardRow">
-                                            <Border Classes="row" Padding="10,6">
-                                                <Grid ColumnDefinitions="40,64,*,230,100">
-                                                    <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
-                                                    <Border Grid.Column="1" Width="54" Height="38" CornerRadius="6" ClipToBounds="True" Background="{StaticResource Surface3}" HorizontalAlignment="Left">
-                                                        <Image i:CardArt.Tile="{Binding CardId}" Stretch="UniformToFill" />
-                                                    </Border>
-                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,12,0">
-                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{Binding Kind}" Classes="caption" FontSize="11.5" />
-                                                    </StackPanel>
-                                                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Main.Bg.AvgPlacementTip}">
-                                                        <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
-                                                        <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
-                                                                    Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
-                                                        </Border>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="4" Text="{Binding Games}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                               ToolTip.Tip="{i:Loc Main.Bg.TimesPlayedTip}" />
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Text="{Binding CardEmptyText}" Classes="caption" TextWrapping="Wrap" Margin="0,8"
-                                           IsVisible="{Binding CardTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- My heroes -->
-                        <Border Name="MyHeroesCard" Classes="card" IsVisible="False">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,8" ColumnDefinitions="50,*,80,100,80,80,90">
-                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Table.Hero}" Classes="tableHead" />
-                                    <TextBlock Grid.Column="2" Text="{i:Loc Main.Table.Games}" Classes="tableHead" HorizontalAlignment="Right" />
-                                    <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.AvgPlace}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.AvgPlaceTip}" />
-                                    <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Top4}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.Top4MineTip}" />
-                                    <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.Wins}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.WinsTip}" />
-                                    <TextBlock Grid.Column="6" Text="{i:Loc Main.Table.NetMmr}" Classes="tableHead" HorizontalAlignment="Right" ToolTip.Tip="{i:Loc Main.Table.NetMmrTip}" />
-                                </Grid>
-                                <ItemsControl ItemsSource="{Binding MyHeroes}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="m:HeroRow">
-                                            <Border Classes="row" Padding="10,6">
-                                                <Grid ColumnDefinitions="50,*,80,100,80,80,90">
-                                                    <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
-                                                            i:CardArt.Portrait="{Binding CardId}" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Grid.Column="2" Text="{Binding Games}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="3" Text="{Binding AveragePlace}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"
-                                                               Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
-                                                    <TextBlock Grid.Column="4" Text="{Binding Top4}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="5" Text="{Binding Wins}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="6" Text="{Binding Net}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"
-                                                               Foreground="{Binding NetValue, Converter={StaticResource SignBrush}}" />
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Text="{i:Loc Main.Bg.MyHeroesEmpty}" Classes="caption" Margin="0,8"
-                                           IsVisible="{Binding MyHeroes, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                            </StackPanel>
-                        </Border>
+                        <!-- Tier lists (Main/Meta): heroes and trinkets by tier, comps, cards, your heroes -->
+                        <mm:BattlegroundsTiersView Name="BgTiers" />
                     </StackPanel>
                 </ScrollViewer>
 
@@ -695,6 +491,22 @@
                     <StackPanel>
                         <TextBlock Text="{Binding ConstructedTitle}" Classes="display pageTitle" />
                         <c:Wave Classes="pageRule" />
+
+                        <Border HorizontalAlignment="Left" Classes="segmentBar" Margin="0,0,0,14">
+                            <WrapPanel>
+                                <RadioButton Name="TabMyDecks" Classes="segment" Content="{i:Loc Main.Ct.MyStats}" GroupName="CtTab" IsChecked="True"
+                                             ToolTip.Tip="{i:Loc Main.Ct.MyStatsTip}" />
+                                <RadioButton Name="TabMetaTiers" Classes="segment" Content="{i:Loc Main.Ct.MetaTiers}" GroupName="CtTab"
+                                             ToolTip.Tip="{i:Loc Main.Ct.MetaTiersTip}" />
+                                <RadioButton Name="TabMetaDecks" Classes="segment" Content="{i:Loc Main.Ct.TopDecks}" GroupName="CtTab"
+                                             ToolTip.Tip="{i:Loc Main.Ct.TopDecksTip}" />
+                                <RadioButton Name="TabMetaMatchups" Classes="segment" Content="{i:Loc Main.Ct.MetaMatchups}" GroupName="CtTab"
+                                             ToolTip.Tip="{i:Loc Main.Ct.MetaMatchupsTip}" />
+                            </WrapPanel>
+                        </Border>
+
+                        <!-- Community tabs (Main/Meta): tier list, top decks, matchup heat map -->
+                        <mm:ConstructedMetaView Name="CtMeta" IsVisible="False" />
 
                         <!-- My stats (Main/Stats): Standard/Wild results; your decks follow below -->
                         <s:ConstructedStatsView Name="CtStats" />

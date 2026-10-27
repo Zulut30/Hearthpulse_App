@@ -50,6 +50,17 @@ public sealed class BattlegroundsAdvisor
         _ => "D",
     };
 
+    /// <summary>
+    /// The average placement a <see cref="TierOf"/> tier stays under ("S" -> 3.75); for D, the one it starts at (4.65).
+    /// </summary>
+    public static double TierBound(string tier) => tier switch
+    {
+        "S" => 3.75,
+        "A" => 4.05,
+        "B" => 4.35,
+        _ => 4.65,
+    };
+
     public BattlegroundsView Enrich(BattlegroundsView view, int? rating, CardDb cards)
     {
         var meta = Meta;

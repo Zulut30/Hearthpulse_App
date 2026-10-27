@@ -66,18 +66,55 @@ public sealed class MainWindowLookTests
     [Fact]
     public void Meta_tier_rows_line_up_with_their_header_and_hide_the_empty_play_split_together()
     {
-        var wpf = Load("src/Hearthpulse.App/Main/MainWindow.xaml");
-        var list = wpf.Descendants().Single(e => e.Name.LocalName == "ListBox" && (string?)e.Attribute("ItemsSource") == "{Binding MetaArchetypes}");
-        var header = (XElement)list.PreviousNode!;
-        var row = list.Descendants().First(e => e.Name.LocalName == "DataTemplate").Elements().Single();
-        Assert.Equal(Columns(header), Columns(row));
+        foreach (var path in new[] { "src/Hearthpulse.App/Main/Meta/ConstructedMetaView.xaml", "src/Hearthpulse.UI/Main/Meta/ConstructedMetaView.axaml" })
+        {
+            var view = Load(path);
+            var header = view.Descendants().Single(e => e.Name.LocalName == "Grid" && Named(e) == "MetaHead");
+            var template = view.Descendants().Single(e => e.Name.LocalName == "DataTemplate" && (string?)e.Attribute(X + "Key") == "ArchetypeRowTemplate");
+            var row = template.Descendants().First(e => e.Name.LocalName == "Grid");
+            Assert.Equal(GridColumns(header), GridColumns(row));
 
-        var headSplit = header.Elements().Single(e => (string?)e.Attribute("Grid.Column") == "4");
-        var rowSplit = row.Elements().Single(e => (string?)e.Attribute("Grid.Column") == "4");
-        Assert.Contains("MetaHasPlaySplit", (string?)headSplit.Attribute("Visibility"));
-        Assert.Contains("MetaHasPlaySplit", (string?)rowSplit.Attribute("Visibility"));
-        // Fixed widths inside the split, so every row keeps the header's columns and the same height (PageRows).
-        Assert.Equal(headSplit.Elements().Select(e => (string?)e.Attribute("Width")), rowSplit.Elements().Select(e => (string?)e.Attribute("Width")));
+            var headSplit = header.Elements().Single(e => (string?)e.Attribute("Grid.Column") == "6");
+            var rowSplit = row.Elements().Single(e => (string?)e.Attribute("Grid.Column") == "6");
+            Assert.Contains("MetaHasPlaySplit", Shown(headSplit), StringComparison.Ordinal);
+            Assert.Contains("MetaHasPlaySplit", Shown(rowSplit), StringComparison.Ordinal);
+            // Fixed widths inside the split, so every row keeps the header's columns and the same height.
+            Assert.Equal(headSplit.Elements().Select(e => (string?)e.Attribute("Width")), rowSplit.Elements().Select(e => (string?)e.Attribute("Width")));
+
+            // Both views list the tiers and the flat table from the same row template, and sort from the heads.
+            Assert.Equal(2, view.Descendants().Count(e => ((string?)e.Attribute("ItemTemplate"))?.Contains("ArchetypeRowTemplate") == true));
+            Assert.Equal(["Name", "Games", "Tier", "WinRate", "Popularity"],
+                header.Descendants().Where(e => ((string?)e.Attribute("Command"))?.Contains("SetMetaSort") == true).Select(e => (string?)e.Attribute("CommandParameter")));
+        }
+    }
+
+    [Fact]
+    public void Battlegrounds_hero_tier_rows_line_up_with_their_sortable_heads_in_both_UIs()
+    {
+        foreach (var path in new[] { "src/Hearthpulse.App/Main/Meta/BattlegroundsTiersView.xaml", "src/Hearthpulse.UI/Main/Meta/BattlegroundsTiersView.axaml" })
+        {
+            var view = Load(path);
+            var card = view.Descendants().Single(e => Named(e) == "HeroTierCard");
+            var header = card.Descendants().First(e => e.Name.LocalName == "Grid");
+            var row = card.Descendants().Single(e => e.Name.LocalName == "DataTemplate" && ((string?)e.Attribute("DataType") ?? (string?)e.Attribute(X + "DataType"))!.Contains("MetaHeroRow"))
+                .Descendants().First(e => e.Name.LocalName == "Grid");
+            Assert.Equal(GridColumns(header), GridColumns(row));
+            Assert.Equal(["Name", "Placement", "Top4", "First", "Pick", "Games"],
+                header.Elements().Where(e => ((string?)e.Attribute("Command"))?.Contains("SetHeroSort") == true).Select(e => (string?)e.Attribute("CommandParameter")));
+            Assert.Contains(card.Descendants(), e => (string?)e.Attribute("ItemsSource") == "{Binding HeroTierGroups}");
+        }
+    }
+
+    [Fact]
+    public void Both_main_windows_have_the_same_constructed_tabs_and_meta_views()
+    {
+        var wpf = Load("src/Hearthpulse.App/Main/MainWindow.xaml");
+        var ava = Load("src/Hearthpulse.UI/Main/MainView.axaml");
+        foreach (var name in new[] { "TabMyDecks", "TabMetaTiers", "TabMetaDecks", "TabMetaMatchups", "CtMeta", "BgTiers" })
+        {
+            Assert.Single(wpf.Descendants(), e => Named(e) == name);
+            Assert.Single(ava.Descendants(), e => Named(e) == name);
+        }
     }
 
     [Fact]
@@ -96,8 +133,17 @@ public sealed class MainWindowLookTests
 
     private static XElement? Next(XElement element) => element.ElementsAfterSelf().FirstOrDefault();
 
-    private static IEnumerable<string?> Columns(XElement grid) =>
-        grid.Elements().Single(e => e.Name.LocalName == "Grid.ColumnDefinitions").Elements().Select(c => (string?)c.Attribute("Width"));
+    private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+    private static string? Named(XElement e) => (string?)e.Attribute(X + "Name") ?? (string?)e.Attribute("Name");
+
+    private static string Shown(XElement e) => (string?)e.Attribute("Visibility") ?? (string?)e.Attribute("IsVisible") ?? string.Empty;
+
+    /// <summary>A grid's column widths, written as WPF elements or as Avalonia's ColumnDefinitions="40,*" attribute.</summary>
+    private static IEnumerable<string?> GridColumns(XElement grid) =>
+        (string?)grid.Attribute("ColumnDefinitions") is { } list
+            ? list.Split(',').Select(w => (string?)w.Trim())
+            : grid.Elements().Single(e => e.Name.LocalName == "Grid.ColumnDefinitions").Elements().Select(c => (string?)c.Attribute("Width"));
 
     private static XElement Load(string relative) => XDocument.Load(Path.Combine(RepoRoot(), relative)).Root!;
 

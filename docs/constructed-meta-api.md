@@ -47,7 +47,7 @@ HSReplay does not have, are among the 20. In Wild, the 30 most played archetypes
 
 Mulligan deltas compare against the HSReplay sample's own baseline (`MetaArchetype.MulliganBaseline`), not against
 HSGuru's win rate, which comes from other games. The page's mulligan list does the same (one line in
-`MainViewModel.Constructed.cs`).
+`Presentation/Main/MainViewModel.Meta.cs`).
 
 ## 3. What is lost compared with Firestone
 

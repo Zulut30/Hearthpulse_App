@@ -21,7 +21,7 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof
 |---|---|---|
 | Sidebar + pages | `MainWindow.xaml` (Window 1260x840, min 1040x660) | `MainView.axaml` (UserControl; window in `src/Hearthpulse.Desktop/MainWindow.axaml`) |
 | Navigation code | `MainWindow.xaml.cs`: `ShowPage`, `CurrentPage`, `OnNavigate`, `PlacePill`, `Reveal`, `ShowConstructedTab`, tab handlers `OnBgTab`/`OnCtTab` | `MainView.axaml.cs`: `ShowPage`, `UpdatePages`, `UpdateTabs`, `ApplyWidth` (compact), `ApplyChoice` |
-| Platform VM partials | Small `MainViewModel*.cs` adapters; `.Constructed` and `.Theme` are WPF-only | Small `MainViewModel*.cs` adapters for framework/established platform differences |
+| Platform VM partials | Small `MainViewModel*.cs` adapters; `.Constructed` is the WPF clipboard copy of a deck code, `.Theme` is WPF-only | Small `MainViewModel*.cs` adapters for framework/established platform differences |
 | My Stats views | `Stats/BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView`, `StatsResources.xaml` | same names, `.axaml` |
 | Composition | `src/Hearthpulse.App/App.xaml.cs` (+ `App.CardPool.cs`) | `src/Hearthpulse.UI/AppHost.cs` (+ `AppHost.CardPool.cs`) |
 | Logic | `src/Hearthpulse.Core` (e.g. `Stats/BattlegroundsStats.cs`, `ConstructedStats.cs`, `ArenaStats.cs`) | same |
@@ -93,8 +93,13 @@ never writes `Settings.MetaFormat` (it only names the format loaded at start).
 - Tabs are `RadioButton`s with a shared `GroupName`: WPF `Style="{StaticResource Tab}"` + a handler
   (`OnBgTab`, `OnCtTab`) that toggles the cards; Avalonia `Classes="segment"` + `UpdateTabs()`.
 - Existing: Battlegrounds `TabHeroes`/`TabComps`/`TabTrinkets`/`TabCards`/`TabMine` (both UIs);
-  Constructed `TabMyDecks` "My stats" / `TabMetaTiers` "Meta tier list" / `TabMetaDecks` "Top decks" (**WPF only**,
-  `ShowConstructedTab("Tiers"|"Top")`).
+  Constructed `TabMyDecks` "My stats" / `TabMetaTiers` "Meta tier list" / `TabMetaDecks` "Top decks" /
+  `TabMetaMatchups` "Matchups" (both UIs, `ShowConstructedTab("Decks"|"Tiers"|"Top"|"Matchups")`).
+- Tier-list views live in `Main/Meta/` of each UI (`ConstructedMetaView`: filters, tiers S-D or one sortable table,
+  archetype card, top decks, matchup heat map; `BattlegroundsTiersView`: heroes/trinkets by tier, comps, cards, your
+  heroes) with `MetaResources`/`MetaStyles`; the shared VM is `Presentation/Main/MainViewModel.Meta.cs` (Constructed)
+  and `.BgTiers.cs` (tier groups, hero sort). Tiers follow hearthpulse.net (`Core/Constructed/MetaTiers.cs`: S from
+  53 %, A 51, B 49, C 47, D below); the matrix is `ConstructedMeta.Matchups` (`v1/hsguru/matchups`).
 - Filters are segment bars bound to VM commands (`SetBgPeriod`, `SetCtPeriod`, `SetHistoryFilter`...), placed top
   right of the page header.
 
@@ -122,8 +127,7 @@ card goes into the tab that fits. Content `MaxWidth="780"`, left aligned. Render
 Every user-facing page goes into both UIs. Known accepted gaps (check before "fixing" them, and do not add new
 ones silently - list them in [hearthpulse-design](../hearthpulse-design/SKILL.md)):
 
-- WPF only: Constructed meta tabs and filters (`MainViewModel.Constructed.cs`; Avalonia `AppHost.LoadMetaAsync`
-  loads meta only for the mulligan), theme picker (`MainViewModel.Theme.cs`), page reveal/nav pill animation, hero
+- WPF only: theme picker (`MainViewModel.Theme.cs`), page reveal/nav pill animation, hero
   banner, overlay tribe focus.
 - Avalonia only: compact layout, separate Hearthstone/memory status dots, an extra overlay switch in Settings.
 

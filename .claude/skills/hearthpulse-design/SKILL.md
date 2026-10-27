@@ -169,7 +169,7 @@ no hex literals outside the theme files, new tokens in both theme files, animati
 
 ## Known UI gaps (checked on main 2e8d9be, Oct 2026)
 
-- WPF only: Constructed meta tabs (`TabMyDecks`/`TabMetaTiers`/`TabMetaDecks`, `MainViewModel.Constructed.cs`), the
+- WPF only: the
   theme picker (`MainViewModel.Theme.cs`: `Themes`, `SelectTheme`, custom hue sliders), page reveal and nav pill
   animation, the faded hero banner, and the overlay tribe focus (`CompFocus`, `FocusChoices` in the WPF
   `OverlayViewModel`).

@@ -185,6 +185,66 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
         return doc is null ? [] : Read(() => ParseHsguruClassMatchups(Data(doc)), "HSGuru class matchups", new List<GuideMatchup>());
     }
 
+    /// <summary>The ranks <c>v1/hsguru/matchups</c> takes; the meta's narrower ones (top 500, top 100) read its top-Legend slice.</summary>
+    internal static string MatchupRank(string rank) => rank switch
+    {
+        "all" or "top_legend" or "top_5k" or "legend" or "diamond_to_legend" or "diamond_4to1" or "bronze_plat" => rank,
+        "top_500" or "top_100" => "top_legend",
+        _ => "all",
+    };
+
+    /// <summary>
+    /// HSGuru's matchup matrix of the <paramref name="limit"/> most played archetypes of a format, rank and period (an API
+    /// period such as "past_week" or "black_empire"). Null when neither the server nor the cache has it.
+    /// </summary>
+    public async Task<(IReadOnlyList<MatchupArchetype> Archetypes, IReadOnlyList<MatchupCell> Cells, int Games)?> LoadHsguruMatchupsAsync(
+        string format, string rank, string period, int limit = 12, CancellationToken cancellationToken = default)
+    {
+        var server = MatchupRank(rank);
+        if (!SafeKey.IsMatch(format) || !SafeKey.IsMatch(period) || limit is < 2 or > 40)
+        {
+            return null;
+        }
+
+        using var doc = await FetchAsync($"v1/hsguru/matchups?format={format}&rank={server}&period={Uri.EscapeDataString(period)}&limit={limit}",
+            $"hsguru-matchups-{format}-{server}-{period}-{limit}.json", cancellationToken).ConfigureAwait(false);
+        return doc is null ? null : Read(() => ParseHsguruMatchups(Data(doc)), "HSGuru matchups", ((IReadOnlyList<MatchupArchetype>, IReadOnlyList<MatchupCell>, int)?)null);
+    }
+
+    /// <summary>
+    /// <c>{"total_games", "archetypes": [{"archetype", "class", "games", "winrate", "popularity_pct"}], "matchups":
+    /// [{"archetype", "opponent", "winrate", "games"}]}</c>; rates as fractions, names as the API writes them.
+    /// </summary>
+    internal static (IReadOnlyList<MatchupArchetype>, IReadOnlyList<MatchupCell>, int)? ParseHsguruMatchups(JsonElement data)
+    {
+        if (data.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var archetypes = new List<MatchupArchetype>();
+        foreach (var a in Items(data.TryGetProperty("archetypes", out var list) ? list : default))
+        {
+            if (Str(a, "archetype") is { Length: > 0 } name && Num(a, "games") is { } games && games > 0)
+            {
+                archetypes.Add(new MatchupArchetype(name, name, (Str(a, "class") ?? string.Empty).ToUpperInvariant(), (int)games,
+                    (Num(a, "winrate") ?? 50) / 100, (Num(a, "popularity_pct") ?? 0) / 100));
+            }
+        }
+
+        var cells = new List<MatchupCell>();
+        foreach (var c in Items(data.TryGetProperty("matchups", out var rows) ? rows : default))
+        {
+            if (Str(c, "archetype") is { Length: > 0 } a && Str(c, "opponent") is { Length: > 0 } o && Num(c, "winrate") is { } winRate)
+            {
+                cells.Add(new MatchupCell(a, o, winRate / 100, (int)(Num(c, "games") ?? 0)));
+            }
+        }
+
+        var total = (int)(Num(data, "total_games") ?? archetypes.Sum(a => a.Games));
+        return (archetypes.OrderByDescending(a => a.Games).ToList(), cells, total);
+    }
+
     /// <summary>HSReplay publishes Legend and a few brackets; anything wider than Legend maps to its all-ranks view.</summary>
     internal static string RankRange(string rank) => rank switch
     {

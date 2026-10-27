@@ -1,0 +1,66 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:m="using:Hearthpulse.UI.Main">
+    <!-- Styles of the tier-list views (Main/Meta). Theme tokens only; the WPF twins are in Main/Meta/MetaResources.xaml. -->
+
+    <!-- A sortable column head: its label and the sort arrow; it brightens under the mouse -->
+    <Style Selector="Button.sortHead">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        <Setter Property="Padding" Value="0,2" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Background="{TemplateBinding Background}"
+                                  Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Foreground}" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.sortHead:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="Button.sortHead TextBlock.sortLabel">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.sortArrow">
+        <Setter Property="FontSize" Value="9" />
+        <Setter Property="Margin" Value="4,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+
+    <!-- A tier's head: the big letter on its colour, "Tier S" and its bound; the tier colour runs down the left edge -->
+    <Style Selector="Border.tierHead">
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="Margin" Value="-10,10,-10,6" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="Background" Value="{StaticResource Surface2}" />
+    </Style>
+    <Style Selector="Border.tierLetter">
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Margin" Value="0,0,12,0" />
+    </Style>
+
+    <!-- The chosen archetype keeps the selected plate -->
+    <Style Selector="Border.row.selected">
+        <Setter Property="Background" Value="{StaticResource SelectedFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+    </Style>
+    <Style Selector="Border.row.archetype">
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="Margin" Value="-10,0,-10,3" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <!-- Compact: the tier list drops the popularity column (the side card goes under it, MainView.ApplyWidth) -->
+    <Style Selector="m|MainView.compact :is(Control).metaWide">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+</Styles>
