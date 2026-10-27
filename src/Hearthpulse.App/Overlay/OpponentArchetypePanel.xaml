@@ -13,6 +13,7 @@
             </ResourceDictionary.MergedDictionaries>
         <i:VisibleWhen x:Key="Vis" />
         <i:FractionWidth x:Key="Fraction" />
+        <i:KeyBrush x:Key="KeyBrush" />
         </ResourceDictionary>
     </UserControl.Resources>
     <Border Style="{StaticResource OverlayCard}" Width="220">
@@ -29,6 +30,13 @@
                     <DockPanel Margin="0,2,0,0">
                         <TextBlock DockPanel.Dock="Right" Text="{Binding ArchetypeChance}" FontFamily="{StaticResource DisplayFont}" FontSize="17"
                                    Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <!-- Its meta tier, as on the site's meta page -->
+                        <Grid DockPanel.Dock="Left" Width="28" Height="28" Margin="0,0,8,0" VerticalAlignment="Center"
+                              Visibility="{Binding ArchetypeTier, Converter={StaticResource Vis}}">
+                            <c:Scallop Fill="{Binding ArchetypeTier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
+                            <TextBlock Text="{Binding ArchetypeTier}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
                         <TextBlock Text="{Binding ArchetypeName}" Style="{StaticResource OverlayHeaderTitle}" />
                     </DockPanel>
                 </StackPanel>
@@ -43,6 +51,8 @@
                         <DataTemplate DataType="{x:Type o:ArchetypeRow}">
                             <StackPanel Margin="0,0,0,5">
                                 <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Tier}" Style="{StaticResource TierLetter}" Width="16" Margin="4,0,0,0"
+                                               Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
                                     <TextBlock DockPanel.Dock="Right" Text="{Binding Chance}" FontSize="11.5" FontWeight="SemiBold" Margin="6,0,0,0" />
                                     <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                 </DockPanel>
@@ -86,6 +96,8 @@
                 </ItemsControl>
 
                 <TextBlock Text="{Binding ArchetypeNote}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                <TextBlock Text="{i:Loc Overlay.Tier.Meta}" FontSize="9.5" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,3,0,0"
+                           Visibility="{Binding ArchetypeTier, Converter={StaticResource Vis}}" />
             </StackPanel>
         </StackPanel>
     </Border>

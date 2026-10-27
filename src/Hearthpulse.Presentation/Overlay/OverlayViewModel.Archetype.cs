@@ -20,6 +20,7 @@ public sealed partial class OverlayViewModel
     private bool _showArchetype;
     private string _archetypeName = string.Empty;
     private string _archetypeChance = string.Empty;
+    private string _archetypeTier = string.Empty;
     private string _archetypeDetail = string.Empty;
     private string _archetypeNote = string.Empty;
     private IReadOnlyList<ArchetypeRow> _archetypeAlternatives = [];
@@ -36,6 +37,10 @@ public sealed partial class OverlayViewModel
 
     public string ArchetypeChance { get => _archetypeChance; private set => Set(ref _archetypeChance, value); }
 
+    /// <summary>The likely archetype's meta tier as on the site (<see cref="OverlayTiers.Meta"/>), or empty without games.</summary>
+    public string ArchetypeTier { get => _archetypeTier; private set => Set(ref _archetypeTier, value); }
+
+    /// <summary>"Tier S · Meta win rate 55.2%", or only the win rate without a tier.</summary>
     public string ArchetypeDetail { get => _archetypeDetail; private set => Set(ref _archetypeDetail, value); }
 
     public string ArchetypeNote { get => _archetypeNote; private set => Set(ref _archetypeNote, value); }
@@ -87,11 +92,13 @@ public sealed partial class OverlayViewModel
         var best = odds.Best;
         ArchetypeName = ArchetypeTranslations.Current.Display(best.Key);
         ArchetypeChance = SharePercent(best.Chance);
-        ArchetypeDetail = Loc.F("Widgets.Archetype.WinRate", best.WinRate);
+        ArchetypeTier = OverlayTiers.Meta(best.WinRate, best.Games) ?? string.Empty;
+        var winRate = Loc.F("Widgets.Archetype.WinRate", best.WinRate);
+        ArchetypeDetail = ArchetypeTier.Length > 0 ? Loc.F("Overlay.Tier.WithText", ArchetypeTier, winRate) : winRate;
         ArchetypeNote = Loc.P("Widgets.Archetype.Seen", odds.SeenCards, odds.Source);
-        Replace(nameof(ArchetypeAlternatives), odds.Archetypes, a => $"{a.Key}{a.Chance:0.00}", () => ArchetypeAlternatives = odds.Archetypes
+        Replace(nameof(ArchetypeAlternatives), odds.Archetypes, a => $"{a.Key}{a.Chance:0.00}{a.WinRate:0.000}{a.Games}", () => ArchetypeAlternatives = odds.Archetypes
             .Skip(1)
-            .Select(a => new ArchetypeRow(ArchetypeTranslations.Current.Display(a.Key), SharePercent(a.Chance), Math.Clamp(a.Chance, 0.02, 1)))
+            .Select(a => new ArchetypeRow(ArchetypeTranslations.Current.Display(a.Key), SharePercent(a.Chance), Math.Clamp(a.Chance, 0.02, 1), OverlayTiers.Meta(a.WinRate, a.Games) ?? string.Empty))
             .ToList());
         Replace(nameof(LikelyCards), odds.Cards, c => $"{c.CardId}{c.Chance:0.00}", () => LikelyCards = odds.Cards
             .Select(c => new LikelyTile(c.CardId, c.Name, c.Cost, SharePercent(c.Chance)))

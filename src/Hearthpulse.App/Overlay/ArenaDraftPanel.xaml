@@ -125,12 +125,14 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="18" />
                                     <ColumnDefinition Width="54" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock x:Name="Name" Text="{Binding Name}" FontSize="11.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Grid.Column="1" Text="{Binding WinRate}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"
                                            Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
-                                <TextBlock Grid.Column="2" Text="{Binding SevenPlus}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" TextAlignment="Right" />
+                                <TextBlock Grid.Column="2" Text="{Binding Tier}" Style="{StaticResource TierLetter}" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                <TextBlock Grid.Column="3" Text="{Binding SevenPlus}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" TextAlignment="Right" />
                             </Grid>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding Offered}" Value="True">
@@ -154,17 +156,19 @@
                                     <ColumnDefinition Width="25" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="18" />
                                 </Grid.ColumnDefinitions>
                                 <!-- A plate behind name, copies and score, lifted by a hairline -->
-                                <Border Grid.Column="1" Grid.ColumnSpan="3" Background="{StaticResource Row}" CornerRadius="4">
+                                <Border Grid.Column="1" Grid.ColumnSpan="4" Background="{StaticResource Row}" CornerRadius="4">
                                     <Border Style="{StaticResource OverlayRowSheen}" />
                                 </Border>
                                 <c:ManaCost Width="20" Height="20" Text="{Binding Cost}" HorizontalAlignment="Left" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5" Margin="7,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Grid.Column="2" Text="{Binding Copies}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="4,0,0,0" />
                                 <TextBlock Grid.Column="3" Text="{Binding Score}" FontFamily="{StaticResource DisplayFont}" FontSize="11.5" FontWeight="Bold" TextAlignment="Right"
-                                           Margin="0,0,7,0" VerticalAlignment="Center" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                           VerticalAlignment="Center" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                <TextBlock Grid.Column="4" Text="{Binding Tier}" Style="{StaticResource TierLetter}" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -173,6 +177,9 @@
 
             <TextBlock Text="{Binding ArenaNoData}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
                        Visibility="{Binding ArenaNoData, Converter={StaticResource Vis}}" />
+            <!-- What the letters mean: the class scale at the hero pick, the card scale after it -->
+            <TextBlock Text="{Binding ArenaTierLegend}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,8,0,0"
+                       Visibility="{Binding ArenaTierLegend, Converter={StaticResource Vis}}" />
             <TextBlock Text="{Binding ArenaSource}" Style="{StaticResource OverlayFooter}" Margin="0,9,0,0" />
         </StackPanel>
         </StackPanel>

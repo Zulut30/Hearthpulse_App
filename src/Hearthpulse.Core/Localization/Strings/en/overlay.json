@@ -194,5 +194,13 @@
   "Overlay.Ordinal.First": "1st",
   "Overlay.Ordinal.Second": "2nd",
   "Overlay.Ordinal.Third": "3rd",
-  "Overlay.Ordinal.Other": "{0}th"
+  "Overlay.Ordinal.Other": "{0}th",
+  "Overlay.Tier.Name": "Tier {0}",
+  "Overlay.Tier.WithText": "Tier {0} · {1}",
+  "Overlay.Tier.ArenaCards": "Card tiers: S 53+ · A 45+ · B 35+ · C 24+ · D 10+ · else E",
+  "Overlay.Tier.ArenaClasses": "Class tiers: S 54%+ · A 50%+ · B 46%+ · C 42%+ · D 38%+ · else E",
+  "Overlay.Tier.Heroes": "Tiers by average place: S under 3.75 · A under 4.05 · B under 4.35 · C under 4.65 · else D",
+  "Overlay.Tier.Meta": "Tier by the lower bound of the win rate, as on the Hearthpulse site: S 53%+ · A 51%+ · B 49%+ · C 47%+ · else D",
+  "Overlay.Tier.Keep": "Keep tier {0}",
+  "Overlay.Tier.KeepLegend": "Keep tier: S +3 pts or more · A +1.5 · B +0.5 · C close call · D replace"
 }

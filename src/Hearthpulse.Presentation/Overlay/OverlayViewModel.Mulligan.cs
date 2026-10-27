@@ -21,6 +21,7 @@ namespace Hearthpulse.UI.Overlay;
 /// </summary>
 /// <param name="Call">"Keep", "Replace" or "No data": what the guide recommends.</param>
 /// <param name="Number">What keeping is worth against replacing, in points ("+3.1"); empty without numbers.</param>
+/// <param name="Tier">The keep tier of that edge (<see cref="OverlayTiers.Keep"/>), S to D; empty without numbers.</param>
 /// <param name="Good">The edge is at least <see cref="MulliganGuide.CloseCall"/>; <paramref name="Bad"/> the same below 0.</param>
 /// <param name="FillLeft">Width of the gauge's fill left of its middle (a card to replace), in overlay units.</param>
 /// <param name="FillRight">Width of the fill right of the middle (a card to keep).</param>
@@ -35,6 +36,7 @@ public sealed record MulliganPlate(
     bool KeepCall,
     bool MulliganCall,
     string Number,
+    string Tier,
     bool Good,
     bool Bad,
     double FillLeft,
@@ -48,6 +50,9 @@ public sealed record MulliganPlate(
 {
     /// <summary>Neither keep nor replace: no numbers for the card.</summary>
     public bool NoCall => !KeepCall && !MulliganCall;
+
+    /// <summary>The bar leads with the keep tier letter instead of the call's icon.</summary>
+    public bool HasTier => Tier.Length > 0;
 
     /// <summary>A close call: the edge is within half a point either way (drawn neutral).</summary>
     public bool Close => !NoCall && !Good && !Bad;
@@ -223,6 +228,7 @@ public sealed partial class OverlayViewModel
                 Loc.F("Mulligan.YourKeeps", impact.Kept, view.Cards.Count, impact.Expected.ToString("P1", culture)),
                 Loc.F("Mulligan.FullMulligan", impact.FullMulligan.ToString("P1", culture), impact.Recommended.ToString("P1", culture)),
             }.Concat(notes).Append(view.HasPairData ? string.Empty : Loc.T("Mulligan.NoPairData"))
+             .Append(Loc.T("Overlay.Tier.KeepLegend"))
              .Where(s => s.Length > 0));
             MulliganImpactGood = impact.Expected >= impact.Recommended - 0.0005 && vsAverage > 0.0005;
             MulliganImpactBad = impact.Expected < impact.Recommended - 0.005;
@@ -241,7 +247,12 @@ public sealed partial class OverlayViewModel
                 c.KeepRate is { } keepRate ? Loc.F("Mulligan.KeepRateShort", keepRate.ToString("P0", culture)) : null,
                 c.DrawnDelta is { } drawn ? Loc.F("Mulligan.DrawnShort", Points(drawn)) : null,
             }.Where(s => s is not null));
+            var tier = OverlayTiers.Keep(c.Edge) ?? string.Empty;
             var lines = new List<string> { c.Name };
+            if (tier.Length > 0)
+            {
+                lines.Add(Loc.F("Overlay.Tier.Keep", tier));
+            }
             if (c.WinRate is { } rate && c.Delta is { } delta)
             {
                 if (c.Edge is not null)
@@ -304,6 +315,7 @@ public sealed partial class OverlayViewModel
                 c.Call == Core.Tracking.MulliganCall.Keep,
                 c.Call == Core.Tracking.MulliganCall.Mulligan,
                 c.Edge is null ? string.Empty : Points(edge),
+                tier,
                 c.Edge >= MulliganGuide.CloseCall,
                 c.Edge <= -MulliganGuide.CloseCall,
                 edge < 0 ? fill : 0,

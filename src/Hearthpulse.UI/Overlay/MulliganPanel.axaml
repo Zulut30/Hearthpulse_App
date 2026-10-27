@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="using:Hearthpulse.UI.Overlay"
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:c="using:Hearthpulse.UI.Controls"
              x:Class="Hearthpulse.UI.Overlay.MulliganPanel"
              x:DataType="o:OverlayViewModel">
     <!-- Mulligan bars: a bar over each offered card in the HSReplay style (Keep / Replace, a
@@ -10,6 +11,7 @@
          DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
+        <i:KeyBrush x:Key="KeyBrush" />
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -107,7 +109,13 @@
                                 <StackPanel>
                                     <!-- Call and flags -->
                                     <Grid ColumnDefinitions="Auto,*,Auto">
-                                        <Panel VerticalAlignment="Center">
+                                        <!-- The keep tier (S to D) leads when there are numbers; without them, the call's icon -->
+                                        <Panel Width="22" Height="22" VerticalAlignment="Center" IsVisible="{Binding HasTier}">
+                                            <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
+                                            <TextBlock Text="{Binding Tier}" FontFamily="{DynamicResource DisplayFont}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Panel>
+                                        <Panel VerticalAlignment="Center" IsVisible="{Binding !HasTier}">
                                             <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="15" Foreground="{StaticResource Positive}" IsVisible="{Binding KeepCall}" />
                                             <TextBlock Text="&#xF006A;" Classes="icon" FontSize="15" Foreground="{StaticResource Negative}" IsVisible="{Binding MulliganCall}" />
                                             <TextBlock Text="&#xF0625;" Classes="icon" FontSize="15" Foreground="{StaticResource Muted}" IsVisible="{Binding NoCall}" />

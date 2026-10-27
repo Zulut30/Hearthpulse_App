@@ -87,6 +87,7 @@ public sealed partial class OverlayViewModel
     private string _arenaMode = string.Empty;
     private string _arenaTypes = string.Empty;
     private string _arenaSliceNote = string.Empty;
+    private string _arenaTierLegend = string.Empty;
     private IReadOnlyList<ArenaStat> _arenaClassStats = [];
     private bool _arenaHasPicks;
     private string? _arenaPrint;
@@ -137,6 +138,9 @@ public sealed partial class OverlayViewModel
 
     /// <summary>"from Underground Arena games" when the run is the other mode, else empty; part of <see cref="ArenaSource"/>.</summary>
     public string ArenaSliceNote { get => _arenaSliceNote; private set => Set(ref _arenaSliceNote, value); }
+
+    /// <summary>What the tier letters on screen mean: the class scale at the hero pick, the card scale after it.</summary>
+    public string ArenaTierLegend { get => _arenaTierLegend; private set => Set(ref _arenaTierLegend, value); }
 
     /// <summary>
     /// The run's class results after the hero pick as three short stats (win rate, place, 7+ wins), so the line never
@@ -234,6 +238,9 @@ public sealed partial class OverlayViewModel
             }.OfType<ArenaStat>().ToList()
             : [];
         ArenaNoData = draft.HasData ? string.Empty : Loc.T("Arena.NoData");
+        ArenaTierLegend = !draft.HasData ? string.Empty
+            : draft.HeroPick ? Loc.T("Overlay.Tier.ArenaClasses")
+            : Loc.T("Overlay.Tier.ArenaCards");
         Raise(nameof(ArenaSource));
     }
 

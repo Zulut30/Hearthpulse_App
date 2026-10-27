@@ -20,7 +20,7 @@
             <Setter Property="BorderThickness" Value="1.5" />
             <Setter Property="CornerRadius" Value="14" />
             <Setter Property="Padding" Value="6,5,14,5" />
-            <Setter Property="MinWidth" Value="138" />
+            <Setter Property="MinWidth" Value="146" />
         </Style>
         <Style Selector="Border.arenaBadge.best">
             <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
@@ -48,9 +48,10 @@
                 <DataTemplate x:DataType="o:ArenaPickBadge">
                     <Border Classes="arenaBadge" Classes.best="{Binding IsBest}" HorizontalAlignment="Center">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Panel Width="34" Height="34" VerticalAlignment="Center">
+                            <!-- The tier letter is the badge's first read, as on the site's tier list -->
+                            <Panel Width="42" Height="42" VerticalAlignment="Center">
                                 <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
-                                <TextBlock Text="{Binding Tier}" FontFamily="{DynamicResource DisplayFont}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                <TextBlock Text="{Binding Tier}" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Ink}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Panel>
                             <StackPanel Margin="9,0,0,0" VerticalAlignment="Center">

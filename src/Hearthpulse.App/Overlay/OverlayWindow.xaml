@@ -422,9 +422,9 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Grid Width="38" Height="38" VerticalAlignment="Center">
+                        <Grid Width="44" Height="44" VerticalAlignment="Center">
                             <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
-                            <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="17" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                            <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Ink}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Grid>
                         <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
@@ -480,9 +480,9 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Grid Width="34" Height="34" VerticalAlignment="Center">
+                        <Grid Width="40" Height="40" VerticalAlignment="Center">
                             <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
-                            <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                            <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource Ink}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Grid>
                         <StackPanel Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center">
@@ -1160,7 +1160,11 @@
             <!-- ============ Battlegrounds: hero pick badges, one above each hero (HDT: pitch 340, +7 x) ============ -->
             <o:MovablePanel Id="hero-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.HeroPick}" MinWidth="1360" Shown="{Binding ShowHeroPick}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,212,0,0">
                 <StackPanel>
-                    <TextBlock Text="{Binding MetaSource}" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,0,0,2" />
+                    <!-- One line: where the numbers come from and what the tier letters mean -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                        <TextBlock Text="{Binding MetaSource}" FontSize="10" Foreground="{StaticResource Faint}" />
+                        <TextBlock Text="{i:Loc Overlay.Tier.Heroes}" FontSize="10" Foreground="{StaticResource Faint}" Margin="12,0,0,0" />
+                    </StackPanel>
                     <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
                 </StackPanel>
             </o:MovablePanel>
@@ -1168,7 +1172,10 @@
             <!-- ============ Battlegrounds: trinket pick badges (HDT: pitch 277, +10 x) ============ -->
             <o:MovablePanel Id="trinket-row" PlaceholderAlignment="Right" Title="{i:Loc Overlay.Panel.TrinketPick}" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
                 <StackPanel>
-                    <TextBlock Text="{i:Loc Overlay.Trinket.Source}" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,0,0,2" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                        <TextBlock Text="{i:Loc Overlay.Trinket.Source}" FontSize="10" Foreground="{StaticResource Faint}" />
+                        <TextBlock Text="{i:Loc Overlay.Tier.Heroes}" FontSize="10" Foreground="{StaticResource Faint}" Margin="12,0,0,0" />
+                    </StackPanel>
                     <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
                 </StackPanel>
             </o:MovablePanel>

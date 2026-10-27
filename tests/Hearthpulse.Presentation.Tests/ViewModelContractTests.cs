@@ -218,6 +218,8 @@ public sealed class ViewModelContractTests
         Assert.Equal((wpf.ArenaSource, "Scores: Hearthpulse data · from Underground Arena games"), (ava.ArenaSource, ava.ArenaSource));
         // A scored card that is not the best pick needs no caption under its number.
         Assert.Equal(string.Empty, ava.ArenaPicks[1].Caption);
+        // The letters are explained once, on the card scale while cards are offered.
+        Assert.Equal((wpf.ArenaTierLegend, "Card tiers: S 53+ · A 45+ · B 35+ · C 24+ · D 10+ · else E"), (ava.ArenaTierLegend, ava.ArenaTierLegend));
         Assert.Empty(ava.ArenaClassStats);
 
         // The run's class keeps its community numbers in the panel after the hero pick.
@@ -408,6 +410,39 @@ public sealed class ViewModelContractTests
         ((System.Windows.Input.ICommand)model.DismissArchetype).Execute(null);
         Show(snapshot with { Constructed = constructed with { Turn = 6, OpponentName = "Other#5678" } });
         Assert.True((bool)model.ShowArchetype);
+    }
+
+    [Fact]
+    public void Overlay_tiers_follow_the_site_scales_in_both_hosts()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        // Meta tiers by the lower bound of the 90% Wilson interval: a high win rate over few games ranks lower.
+        foreach (var meta in new Func<double, int, string?>[] { Hearthpulse.App.Overlay.OverlayTiers.Meta, Hearthpulse.UI.Overlay.OverlayTiers.Meta })
+        {
+            Assert.Equal(new string?[] { "S", "A", "D", "D", null }, new[] { meta(0.611, 320540), meta(0.55, 900), meta(0.5, 400), meta(0.6, 30), meta(0.6, 0) }.ToList());
+        }
+
+        foreach (var keep in new Func<double?, string?>[] { Hearthpulse.App.Overlay.OverlayTiers.Keep, Hearthpulse.UI.Overlay.OverlayTiers.Keep })
+        {
+            Assert.Equal(new string?[] { "S", "A", "B", "C", "D", null }, new[] { keep(0.031), keep(0.02), keep(0.006), keep(0), keep(-0.01), keep(null) }.ToList());
+        }
+
+        var odds = new Core.Constructed.OpponentArchetypeView(
+            [new("Aggro Warrior", "Aggro Warrior", 0.7, 0.55, 900), new("Control Warrior", "Control Warrior", 0.3, 0.5, 400)], [], 3, "Standard");
+        var constructed = new ConstructedView(5, null, false, "HERO_10", "DEMONHUNTER", "HERO_01", "WARRIOR", "Rival#1234", [], 0, 0, [], [], 0, 0, 0, null, null)
+        {
+            OpponentArchetype = odds,
+        };
+        var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
+        var settings = new AppSettings { ShowOpponentArchetype = true };
+        var wpf = new WpfOverlay();
+        var ava = new AvaOverlay();
+        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        Assert.Equal((wpf.ArchetypeTier, wpf.ArchetypeDetail), (ava.ArchetypeTier, ava.ArchetypeDetail));
+        Assert.Equal(("A", "Tier A · Meta win rate " + 0.55.ToString("P1", CultureInfo.CurrentCulture)), (ava.ArchetypeTier, ava.ArchetypeDetail));
+        Assert.Equal(["D"], ava.ArchetypeAlternatives.Select(a => a.Tier));
+        Assert.Equal(wpf.ArchetypeAlternatives.Select(a => a.Tier), ava.ArchetypeAlternatives.Select(a => a.Tier));
     }
 
     [Theory]

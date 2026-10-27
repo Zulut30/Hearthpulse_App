@@ -5,7 +5,8 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <summary>An alternative archetype of the opponent; <see cref="Fraction"/> is its chance for the bar.</summary>
-public sealed record ArchetypeRow(string Name, string Chance, double Fraction);
+/// <param name="Tier">Its meta tier as on the site (<see cref="OverlayTiers.Meta"/>), or empty.</param>
+public sealed record ArchetypeRow(string Name, string Chance, double Fraction, string Tier = "");
 
 /// <summary>A card the opponent's archetype usually runs and it has not shown yet.</summary>
 public sealed record LikelyTile(string CardId, string Name, int Cost, string Chance);

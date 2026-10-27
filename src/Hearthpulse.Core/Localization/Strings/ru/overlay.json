@@ -194,5 +194,13 @@
   "Overlay.Ordinal.First": "1-е",
   "Overlay.Ordinal.Second": "2-е",
   "Overlay.Ordinal.Third": "3-е",
-  "Overlay.Ordinal.Other": "{0}-е"
+  "Overlay.Ordinal.Other": "{0}-е",
+  "Overlay.Tier.Name": "Тир {0}",
+  "Overlay.Tier.WithText": "Тир {0} · {1}",
+  "Overlay.Tier.ArenaCards": "Тиры карт: S от 53 · A от 45 · B от 35 · C от 24 · D от 10 · ниже E",
+  "Overlay.Tier.ArenaClasses": "Тиры классов: S от 54% · A от 50% · B от 46% · C от 42% · D от 38% · ниже E",
+  "Overlay.Tier.Heroes": "Тиры по среднему месту: S до 3,75 · A до 4,05 · B до 4,35 · C до 4,65 · ниже D",
+  "Overlay.Tier.Meta": "Тир — по нижней границе винрейта, как на сайте Hearthpulse: S от 53% · A от 51% · B от 49% · C от 47% · ниже D",
+  "Overlay.Tier.Keep": "Тир оставления {0}",
+  "Overlay.Tier.KeepLegend": "Тир оставления: S от +3 п. · A от +1,5 · B от +0,5 · C — спорно · D — заменить"
 }

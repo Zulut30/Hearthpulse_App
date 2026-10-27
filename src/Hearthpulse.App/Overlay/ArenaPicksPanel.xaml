@@ -14,11 +14,12 @@
 
         <DataTemplate x:Key="BadgeTemplate" DataType="{x:Type o:ArenaPickBadge}">
             <Border x:Name="Badge" HorizontalAlignment="Center" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}"
-                    BorderThickness="1.5" CornerRadius="14" Padding="6,5,14,5" MinWidth="138">
+                    BorderThickness="1.5" CornerRadius="14" Padding="6,5,14,5" MinWidth="146">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Grid Width="34" Height="34" VerticalAlignment="Center">
+                    <!-- The tier letter is the badge's first read, as on the site's tier list -->
+                    <Grid Width="42" Height="42" VerticalAlignment="Center">
                         <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
-                        <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                        <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Ink}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
                     <StackPanel Margin="9,0,0,0" VerticalAlignment="Center">
