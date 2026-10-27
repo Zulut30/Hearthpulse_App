@@ -261,13 +261,22 @@ public partial class App : Application
         {
             PrepareOffscreenRender();
         }
-        else
+        else if (_settings.StartMinimized)
         {
             _overlay.Show();
-            if (!_settings.StartMinimized)
+        }
+        else
+        {
+            // The window shown first pays for the first frame of the whole app: the main window is on screen about
+            // 180 ms sooner when the overlay (with no game to cover yet) comes up after it.
+            void ShowOverlay(object? sender, EventArgs e)
             {
-                _main.Show();
+                ((Window)sender!).ContentRendered -= ShowOverlay;
+                _overlay.Show();
             }
+
+            _main.ContentRendered += ShowOverlay;
+            _main.Show();
         }
 
         _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _mainViewModel.RefreshAsync().Forget("History refresh"));
