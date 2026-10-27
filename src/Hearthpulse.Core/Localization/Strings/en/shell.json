@@ -1,0 +1,14 @@
+{
+  "Settings.Note.Language": "Menus, the overlay and card names.",
+  "Settings.Note.Theme": "Colours of the app and the overlay. Each tile shows the theme's own palette.",
+  "Settings.Note.App": "How Hearthpulse starts, updates and closes.",
+  "Settings.Note.Overlay": "What is drawn over the game, how big and how see-through.",
+  "Settings.Note.Layout": "Where each panel sits in game, and the leaderboard fallback boxes.",
+  "Settings.Note.Tracker": "Your deck, your opponent's cards and the summary after a game.",
+  "Settings.Note.Counters": "Numbers your cards care about, and the mulligan guide.",
+  "Settings.Note.Account": "Sign in to hearthpulse.net: your profile, subscription and games on the site.",
+  "Settings.Note.Data": "Game history on this computer and where it is kept.",
+  "Settings.Note.Sources": "Where the community numbers come from.",
+  "Settings.Theme.Presets": "Presets",
+  "Main.Busy.Tip": "Working in the background"
+}

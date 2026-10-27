@@ -81,6 +81,9 @@ public static partial class ThemeEngine
         return brush;
     }
 
+    /// <summary>A theme's backdrop line art (<c>Motif&lt;Name&gt;</c>), or null outside the app.</summary>
+    public static Geometry? Motif(string name) => Application.Current?.TryFindResource("Motif" + name) as Geometry;
+
     /// <summary>
     /// Freezes every brush, geometry and drawing of the theme: frozen resources are shared without change tracking,
     /// which keeps the overlay (redrawn over the game) cheap.

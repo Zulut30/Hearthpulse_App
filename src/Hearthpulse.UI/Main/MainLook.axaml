@@ -23,6 +23,31 @@
         <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
     </Style>
 
+    <!-- Settings cards: one muted line under the card's Ornament heading says what the card is for -->
+    <Style Selector="TextBlock.caption.cardNote">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,-6,0,18" />
+    </Style>
+    <!-- A setting's name on the left of a slider or a choice: the same size as a switch's text -->
+    <Style Selector="TextBlock.settingLabel">
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,16,0" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <!-- A group of rows inside a settings card: a small muted heading with space above it -->
+    <Style Selector="TextBlock.label.settingGroup">
+        <Setter Property="Margin" Value="0,10,0,10" />
+    </Style>
+
+    <!-- Theme picker tile (MainView ThemeTile): the app's accent frames the theme in use -->
+    <Style Selector="Border.themeTile">
+        <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+    </Style>
+    <Style Selector="Border.themeTile.selected">
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+
     <!-- An empty list: the section's glyph in a cookie over one short line, centred. Tag = glyph, Content = text. -->
     <Style Selector="ContentControl.emptyState">
         <Setter Property="Focusable" Value="False" />

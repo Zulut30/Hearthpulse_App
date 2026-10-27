@@ -596,7 +596,40 @@
         </Setter>
     </Style>
 
-    <!-- ===== Navigation: framed item with a gold bar on the left of the active one ===== -->
+    <!-- A picture as a button (the Settings theme tiles): it lifts a little under the mouse and gives under a press.
+         The page sets ContentTemplate. Same as the WPF ThemeSwatch. -->
+    <Style Selector="Button.themeSwatch">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="0,0,10,10" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FocusAdorner">
+            <FocusAdornerTemplate>
+                <Border CornerRadius="12" BorderThickness="1" BorderBrush="{StaticResource Accent}" />
+            </FocusAdornerTemplate>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Background="Transparent" RenderTransform="scale(1)">
+                    <ContentPresenter.Transitions>
+                        <Transitions>
+                            <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="CubicEaseOut" />
+                            <DoubleTransition Property="Opacity" Duration="0:0:0.08" />
+                        </Transitions>
+                    </ContentPresenter.Transitions>
+                </ContentPresenter>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.themeSwatch:pointerover /template/ ContentPresenter#Presenter">
+        <Setter Property="RenderTransform" Value="scale(1.03)" />
+    </Style>
+    <Style Selector="Button.themeSwatch:pressed /template/ ContentPresenter#Presenter">
+        <Setter Property="Opacity" Value="0.85" />
+    </Style>
+
+    <!-- ===== Navigation: the active item is a raised plate with a gold edge and a gold bar on the left (the WPF pill's
+         look); plate, bar and lit glyph fade in, hover fades, a press gives a little. ===== -->
     <Style Selector="RadioButton.nav">
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="FontWeight" Value="SemiBold" />
@@ -612,24 +645,45 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <Panel Background="Transparent">
-                    <Border Name="Bd" CornerRadius="8" Margin="10,2" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+                    <Border Name="Bd" CornerRadius="8" Margin="10,2" Background="Transparent">
                         <Border.Transitions>
                             <Transitions>
                                 <BrushTransition Property="Background" Duration="0:0:0.12" />
                             </Transitions>
                         </Border.Transitions>
-                        <Panel>
-                            <Border Name="Bar" Width="3" CornerRadius="2" Margin="0,8" HorizontalAlignment="Left"
-                                    Background="{StaticResource Accent}" IsVisible="False" />
-                            <StackPanel Orientation="Horizontal" Margin="15,0,0,0" VerticalAlignment="Center">
-                                <!-- No "icon" class here: a class style would outrank these template values in Avalonia. -->
-                                <TextBlock Name="Glyph" Text="{TemplateBinding Tag}" FontFamily="{DynamicResource IconFont}" FontSize="20"
-                                           FontWeight="Normal" Width="24" VerticalAlignment="Center"
-                                           Foreground="{TemplateBinding Foreground}" />
-                                <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Panel>
                     </Border>
+                    <Border Name="Selected" CornerRadius="8" Margin="10,2" Background="{StaticResource NavSelectedFill}"
+                            BorderBrush="{StaticResource NavSelectedEdge}" BorderThickness="1" Opacity="0">
+                        <Border.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Border.Transitions>
+                        <Border Name="Bar" Width="3" CornerRadius="2" Margin="0,8" HorizontalAlignment="Left" Background="{StaticResource Accent}" />
+                    </Border>
+                    <!-- Glyph and label share one column grid, so every item's text starts at the same x whatever its glyph -->
+                    <Grid Name="Face" ColumnDefinitions="24,*" Margin="26,0,0,0" VerticalAlignment="Center" RenderTransformOrigin="0%,50%"
+                          RenderTransform="scale(1)">
+                        <Grid.Transitions>
+                            <Transitions>
+                                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Grid.Transitions>
+                        <!-- No "icon" class here: a class style would outrank these template values in Avalonia. -->
+                        <TextBlock Name="Glyph" Text="{TemplateBinding Tag}" FontFamily="{DynamicResource IconFont}" FontSize="20"
+                                   FontWeight="Normal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{TemplateBinding Foreground}" />
+                        <TextBlock Name="GlyphLit" Text="{TemplateBinding Tag}" FontFamily="{DynamicResource IconFont}" FontSize="20"
+                                   FontWeight="Normal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{StaticResource Accent}" Opacity="0">
+                            <TextBlock.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut" />
+                                </Transitions>
+                            </TextBlock.Transitions>
+                        </TextBlock>
+                        <ContentPresenter Name="Presenter" Grid.Column="1" Content="{TemplateBinding Content}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                    </Grid>
                 </Panel>
             </ControlTemplate>
         </Setter>
@@ -640,18 +694,17 @@
     <Style Selector="RadioButton.nav:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{StaticResource Pressed}" />
     </Style>
+    <Style Selector="RadioButton.nav:pressed /template/ Grid#Face">
+        <Setter Property="RenderTransform" Value="scale(0.97)" />
+    </Style>
     <Style Selector="RadioButton.nav:pointerover">
         <Setter Property="Foreground" Value="{StaticResource Text}" />
     </Style>
-    <Style Selector="RadioButton.nav:checked /template/ Border#Bd">
-        <Setter Property="Background" Value="{StaticResource SelectedFill}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+    <Style Selector="RadioButton.nav:checked /template/ Border#Selected">
+        <Setter Property="Opacity" Value="1" />
     </Style>
-    <Style Selector="RadioButton.nav:checked /template/ Border#Bar">
-        <Setter Property="IsVisible" Value="True" />
-    </Style>
-    <Style Selector="RadioButton.nav:checked /template/ TextBlock#Glyph">
-        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    <Style Selector="RadioButton.nav:checked /template/ TextBlock#GlyphLit">
+        <Setter Property="Opacity" Value="1" />
     </Style>
     <Style Selector="RadioButton.nav:checked">
         <Setter Property="Foreground" Value="{StaticResource Text}" />

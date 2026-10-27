@@ -60,6 +60,56 @@
         <ItemsPanelTemplate x:Key="TilesPanel">
             <UniformGrid Rows="1" />
         </ItemsPanelTemplate>
+
+        <!-- Theme picker: each theme is a small window in its own colours - its backdrop and motif, a sidebar whose first
+             item is lit, a page plate with a title line, a button in its accent and a gem of its second accent.
+             Same as the WPF ThemeTile. -->
+        <DataTemplate x:Key="ThemeTile" x:DataType="m:ThemeChoice">
+            <Border Classes="themeTile" Classes.selected="{Binding Selected}" Width="132" CornerRadius="12" Background="{Binding Background}"
+                    BorderThickness="1.5" Padding="8">
+                <StackPanel>
+                    <Panel Height="66" ClipToBounds="True">
+                        <Path Data="{Binding Motif}" Stretch="Uniform" Width="70" Height="70" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                              Margin="0,0,-18,-20" Stroke="{Binding Accent}" StrokeThickness="1" Opacity="0.3" />
+                        <Grid ColumnDefinitions="26,*">
+                            <StackPanel Margin="0,2,6,0">
+                                <Border Height="9" CornerRadius="3" Background="{Binding Surface}">
+                                    <Border Width="2" CornerRadius="1" Margin="0,2" HorizontalAlignment="Left" Background="{Binding Accent}" />
+                                </Border>
+                                <Border Height="9" CornerRadius="3" Background="{Binding Surface}" Opacity="0.45" Margin="0,5,0,0" />
+                                <Border Height="9" CornerRadius="3" Background="{Binding Surface}" Opacity="0.45" Margin="0,5,0,0" />
+                            </StackPanel>
+                            <Border Grid.Column="1" CornerRadius="6" Background="{Binding Card}" BorderBrush="{Binding Surface}" BorderThickness="1" Padding="7"
+                                    VerticalAlignment="Top">
+                                <StackPanel>
+                                    <Border Width="44" Height="5" CornerRadius="2.5" HorizontalAlignment="Left" Background="{Binding Text}" />
+                                    <Border Width="60" Height="4" CornerRadius="2" HorizontalAlignment="Left" Background="{Binding Muted}" Opacity="0.7" Margin="0,5,0,0" />
+                                    <DockPanel Margin="0,9,0,0" LastChildFill="False">
+                                        <Border DockPanel.Dock="Left" Width="30" Height="11" CornerRadius="3" Background="{Binding Accent}" />
+                                        <Ellipse DockPanel.Dock="Right" Width="9" Height="9" Fill="{Binding Secondary}" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Panel>
+                    <DockPanel Margin="2,8,0,0">
+                        <TextBlock DockPanel.Dock="Right" Text="&#xF012C;" Classes="icon" FontSize="15" Foreground="{Binding Accent}" IsVisible="{Binding Selected}" />
+                        <TextBlock Text="{Binding Name}" Foreground="{Binding Text}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+        <!-- The colour wheel laid flat, under the hue sliders (a deliberate rainbow, not theme colours) -->
+        <LinearGradientBrush x:Key="HueStrip" StartPoint="0%,0%" EndPoint="100%,0%">
+            <GradientStop Color="#FF4D4D" Offset="0" />
+            <GradientStop Color="#FFD24D" Offset="0.167" />
+            <GradientStop Color="#7DFF4D" Offset="0.333" />
+            <GradientStop Color="#4DFFE0" Offset="0.5" />
+            <GradientStop Color="#4D7DFF" Offset="0.667" />
+            <GradientStop Color="#D24DFF" Offset="0.833" />
+            <GradientStop Color="#FF4D4D" Offset="1" />
+        </LinearGradientBrush>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -131,6 +181,17 @@
         </Style>
         <Style Selector="m|MainView.compact Grid.choiceRow RadioButton.segment /template/ Border#Bd">
             <Setter Property="Padding" Value="9,5" />
+        </Style>
+        <!-- Make your own theme: the preview left of the sliders; narrow, the sliders drop under it. -->
+        <Style Selector="Grid.themeCustom StackPanel.themeSliders">
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Margin" Value="20,0,0,0" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.themeCustom StackPanel.themeSliders">
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Margin" Value="0,14,0,0" />
         </Style>
         <!-- A page's header filter sits top right; narrow, it drops under the title instead of covering it. -->
         <Style Selector="Grid.pageHead Border.headFilter">
@@ -244,24 +305,22 @@
         </DockPanel>
 
         <!-- ================= Content ================= -->
-        <Border Grid.Column="1" Background="{StaticResource Surface}" BorderBrush="{StaticResource PanelEdge}" BorderThickness="1" CornerRadius="16"
+        <!-- The content plate: lamplight, a wash of the second accent and the theme's motif (same as the WPF window) -->
+        <Border Grid.Column="1" Background="{StaticResource ContentFill}" BorderBrush="{StaticResource ContentEdge}" BorderThickness="1" CornerRadius="16"
                 Margin="0,10,10,10" ClipToBounds="True">
             <Grid RowDefinitions="52,*">
 
-                <!-- Soft decorative shapes: a faint warm glow -->
-                <Canvas Grid.RowSpan="2" IsHitTestVisible="False">
-                    <c:Scallop Canvas.Right="70" Canvas.Top="70" Width="190" Height="190" Fill="{StaticResource Decor}" Lobes="9" Depth="0.12" Angle="12" />
-                    <c:Scallop Canvas.Right="250" Canvas.Top="20" Width="80" Height="80" Fill="{StaticResource Decor}" Lobes="4" Depth="0.3" Angle="20" />
-                    <c:Scallop Canvas.Left="420" Canvas.Top="330" Width="120" Height="120" Fill="{StaticResource Decor}" Lobes="12" Depth="0.08" />
-                </Canvas>
-
-                <!-- Top bar: status chips -->
-                <TextBlock Text="{Binding Busy}" Classes="caption" Margin="40,0,320,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
+                <StackPanel Orientation="Horizontal" Margin="40,0,320,0" VerticalAlignment="Center" IsVisible="{Binding Busy, Converter={StaticResource Truthy}}"
+                            ToolTip.Tip="{i:Loc Main.Busy.Tip}">
+                    <TextBlock Text="&#xF04E6;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent2}" Margin="0,0,8,0" />
+                    <TextBlock Text="{Binding Busy}" Classes="caption" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,22,0">
                     <Button Classes="ghost primary" Content="{i:Loc Main.Update.Ready}" Command="{Binding InstallUpdate}" IsVisible="{Binding UpdateReady}"
                             VerticalAlignment="Center" Margin="0,0,8,0" ToolTip.Tip="{Binding UpdateText}" />
-                    <Border Classes="pill" Background="{StaticResource Surface3}" Padding="12,5"
-                            ToolTip.Tip="{i:Loc Main.Status.Tip}">
+                    <Border Classes="pill" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
+                            CornerRadius="999" Padding="12,5" ToolTip.Tip="{i:Loc Main.Status.Tip}">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" />
                             <TextBlock Text="{Binding MemoryStatus}" FontSize="12" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="220" />
@@ -789,15 +848,15 @@
                             </WrapPanel>
                         </Border>
 
-                        <!-- ===== General: language, app ===== -->
+                        <!-- ===== General: language, theme, app ===== -->
                         <StackPanel Name="SettingsGeneral">
                             <Border Classes="card" Margin="0,0,0,16">
                                 <StackPanel>
                                     <c:Ornament Text="{i:Loc Settings.Language.Title}" Icon="&#xF05CA;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Note.Language}" Classes="caption cardNote" />
                                     <!-- Each radio's Tag is applied in MainView.axaml.cs (ApplyChoice) -->
                                     <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" DataContext="{Binding Settings}" x:DataType="core:AppSettings">
-                                        <TextBlock Text="{i:Loc Settings.Language.Label}" FontSize="13.5" VerticalAlignment="Center" Margin="0,0,16,0"
-                                                   Background="Transparent" ToolTip.Tip="{i:Loc Settings.Language.Caption}" />
+                                        <TextBlock Text="{i:Loc Settings.Language.Label}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Language.Caption}" />
                                         <Border Classes="segmentBar choice">
                                             <WrapPanel>
                                                 <RadioButton Classes="segment" Content="{i:Loc Settings.Language.System}" GroupName="Language"
@@ -814,9 +873,64 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- Theme: presets as tiles in their own colours, then your own accent and background (shared view model,
+                                 Presentation MainViewModel.Theme.cs; the app repaints in place, Infrastructure/ThemeEngine.cs) -->
+                            <Border Classes="card" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Settings.Theme.Title}" Icon="&#xF03D8;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Note.Theme}" Classes="caption cardNote" />
+                                    <TextBlock Text="{i:Loc Settings.Theme.Presets}" Classes="label settingGroup" Margin="0,0,0,10" />
+                                    <ItemsControl ItemsSource="{Binding Themes}" Margin="0,0,-10,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="m:ThemeChoice">
+                                                <!-- The preset's key, not its localized name: the settings keep the key -->
+                                                <Button Classes="themeSwatch" Content="{Binding}" ContentTemplate="{StaticResource ThemeTile}" ToolTip.Tip="{Binding Name}"
+                                                        AutomationProperties.Name="{Binding Name}" CommandParameter="{Binding Key}"
+                                                        Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SelectTheme}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="{i:Loc Settings.Theme.MakeOwn}" Classes="label settingGroup" />
+                                    <Grid Classes="themeCustom" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                                        <ContentControl Content="{Binding CustomPreview}" ContentTemplate="{StaticResource ThemeTile}" VerticalAlignment="Top" Focusable="False" />
+                                        <StackPanel Classes="themeSliders">
+                                            <Grid ColumnDefinitions="150,*" Margin="0,0,0,10">
+                                                <TextBlock Text="{i:Loc Settings.Theme.Accent}" Classes="settingLabel" />
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <Slider Minimum="0" Maximum="360" Value="{Binding AccentHue}" SmallChange="5" LargeChange="30"
+                                                            AutomationProperties.Name="{i:Loc Settings.Theme.Accent}" />
+                                                    <Border Height="4" CornerRadius="2" Margin="8,-6,8,0" Background="{StaticResource HueStrip}" IsHitTestVisible="False" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="150,*" Margin="0,0,0,10">
+                                                <TextBlock Text="{i:Loc Settings.Theme.Background}" Classes="settingLabel" />
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <Slider Minimum="0" Maximum="360" Value="{Binding BaseHue}" SmallChange="5" LargeChange="30"
+                                                            AutomationProperties.Name="{i:Loc Settings.Theme.Background}" />
+                                                    <Border Height="4" CornerRadius="2" Margin="8,-6,8,0" Background="{StaticResource HueStrip}" IsHitTestVisible="False" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="150,*" Margin="0,0,0,14">
+                                                <TextBlock Text="{i:Loc Settings.Theme.Tint}" Classes="settingLabel" />
+                                                <Slider Grid.Column="1" Minimum="0" Maximum="1.5" Value="{Binding BaseTint}" SmallChange="0.05" LargeChange="0.25"
+                                                        AutomationProperties.Name="{i:Loc Settings.Theme.Tint}" ToolTip.Tip="{i:Loc Settings.Theme.TintTip}" />
+                                            </Grid>
+                                            <Button Classes="ghost primary" Content="{i:Loc Settings.Theme.UseMine}" Command="{Binding ApplyCustomTheme}" HorizontalAlignment="Left" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
                             <Border Classes="card">
                                 <StackPanel>
                                     <c:Ornament Text="{i:Loc Settings.App.Title}" Icon="&#xF0614;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Note.App}" Classes="caption cardNote" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.App.Tray}" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.App.AutoUpdate}" IsChecked="{Binding Settings.AutoUpdate}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.App.AutoUpdateTip}" />
@@ -833,7 +947,7 @@
                                     <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
                                     <CheckBox Name="OverlaySetting" Classes="switch" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.EnabledTipWindows}" />
-                                    <TextBlock Text="{i:Loc Widgets.Settings.Section}" Classes="label" Margin="0,4,0,10" />
+                                    <TextBlock Text="{i:Loc Widgets.Settings.Section}" Classes="label settingGroup" />
                                     <CheckBox Classes="switch" Content="{i:Loc Widgets.Turn.Setting}" IsChecked="{Binding ShowTurnTimer}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Widgets.Turn.SettingTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Widgets.Archetype.Setting}" IsChecked="{Binding ShowOpponentArchetype}" Margin="0,0,0,14"
@@ -841,23 +955,23 @@
                                     <CheckBox Classes="switch" Content="{i:Loc Widgets.Ladder.Setting}" IsChecked="{Binding ShowLadderSession}" Margin="0,0,0,10"
                                               ToolTip.Tip="{i:Loc Widgets.Ladder.SettingTip}" />
                                     <Grid Margin="0,0,0,14" ColumnDefinitions="160,*,56">
-                                        <TextBlock Text="{i:Loc Widgets.Ladder.Break}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Widgets.Ladder.BreakTip}" />
+                                        <TextBlock Text="{i:Loc Widgets.Ladder.Break}" Classes="settingLabel" ToolTip.Tip="{i:Loc Widgets.Ladder.BreakTip}" />
                                         <Slider Grid.Column="1" Minimum="1" Maximum="12" Value="{Binding LadderSessionBreakHours}" SmallChange="1" LargeChange="2"
                                                 IsSnapToTickEnabled="True" TickFrequency="1" />
                                         <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption">
                                             <Run Text="{Binding LadderSessionBreakHours, Mode=OneWay}" /><Run Text=" " /><Run Text="{i:Loc Widgets.Ladder.HoursUnit}" />
                                         </TextBlock>
                                     </Grid>
-                                    <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Classes="label" Margin="0,4,0,10" />
+                                    <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Classes="label settingGroup" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Secrets}" IsChecked="{Binding ShowSecrets}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.SecretsTip}" />
-                                    <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Classes="label" Margin="0,4,0,10" />
+                                    <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Classes="label settingGroup" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.TopBar}" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.TopBarTip}" />
                                     <!-- Pick suggestions: badges over heroes, trinkets, tavern minions and every Discover. Each option explains itself
                                          in its tooltip (same texts as the Windows app). Each radio's Tag is applied in MainView.axaml.cs. -->
                                     <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14">
-                                        <TextBlock Text="{i:Loc Settings.Overlay.PickHints}" FontSize="13.5" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                        <TextBlock Text="{i:Loc Settings.Overlay.PickHints}" Classes="settingLabel" />
                                         <Border Classes="segmentBar choice">
                                             <WrapPanel>
                                                 <RadioButton Name="PickHintsHighlightOption" Classes="segment" Content="{i:Loc Settings.Overlay.PickHintsHighlight}" GroupName="PickHints"
@@ -876,7 +990,7 @@
                                          hides the game plan, so this choice has no effect then. -->
                                     <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14"
                                           IsEnabled="{Binding !#PickHintsOffOption.IsChecked}">
-                                        <TextBlock Text="{i:Loc Settings.Overlay.CompMode}" FontSize="13.5" VerticalAlignment="Center" Margin="0,0,16,0" />
+                                        <TextBlock Text="{i:Loc Settings.Overlay.CompMode}" Classes="settingLabel" />
                                         <Border Classes="segmentBar choice">
                                             <WrapPanel>
                                                 <RadioButton Name="CompModeManualOption" Classes="segment" Content="{i:Loc Settings.Overlay.CompModeManual}" GroupName="CompMode"
@@ -898,12 +1012,12 @@
                                               ToolTip.Tip="{i:Loc Settings.Overlay.SessionTip}" />
 
                                     <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
-                                        <TextBlock Text="{i:Loc Settings.Overlay.Size}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Size}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
                                         <Slider Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
                                         <TextBlock Grid.Column="2" Text="{Binding OverlayScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                                     </Grid>
                                     <Grid ColumnDefinitions="160,*,56">
-                                        <TextBlock Text="{i:Loc Settings.Overlay.Opacity}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Opacity}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
                                         <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
                                         <TextBlock Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                                     </Grid>
@@ -919,15 +1033,15 @@
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Leaderboard.Guides}" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Leaderboard.CaptionCrossPlatform}" />
                                     <Grid Margin="0,0,0,10" ColumnDefinitions="160,*">
-                                        <TextBlock Text="{i:Loc Settings.Leaderboard.Top}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{i:Loc Settings.Leaderboard.Top}" Classes="settingLabel" />
                                         <Slider Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" />
                                     </Grid>
                                     <Grid Margin="0,0,0,10" ColumnDefinitions="160,*">
-                                        <TextBlock Text="{i:Loc Settings.Leaderboard.SlotHeight}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{i:Loc Settings.Leaderboard.SlotHeight}" Classes="settingLabel" />
                                         <Slider Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" />
                                     </Grid>
                                     <Grid ColumnDefinitions="160,*">
-                                        <TextBlock Text="{i:Loc Settings.Leaderboard.Width}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{i:Loc Settings.Leaderboard.Width}" Classes="settingLabel" />
                                         <Slider Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" />
                                     </Grid>
                                 </StackPanel>
@@ -1008,7 +1122,7 @@
                         <!-- ===== Account: the hearthpulse.net sign-in ===== -->
                         <Border Name="SettingsAccount" Classes="card" IsVisible="False">
                             <StackPanel>
-                                <c:Ornament Text="{i:Loc Settings.Account.Title}" Icon="&#xF0004;" Size="13" Margin="0,0,0,6" />
+                                <c:Ornament Text="{i:Loc Settings.Account.Title}" Icon="&#xF0004;" Size="13" Margin="0,0,0,14" />
                                 <!-- Signed in -->
                                 <StackPanel IsVisible="{Binding AccountShowProfile}">
                                     <TextBlock Text="{i:Loc Settings.Account.SignedInAs}" Classes="caption" Margin="0,4,0,2" />
@@ -1112,7 +1226,7 @@
 
                             <Border Classes="card">
                                 <StackPanel>
-                                    <c:Ornament Text="{i:Loc Settings.Sources.Title}" Icon="&#xF0128;" Size="13" Margin="0,0,0,10" />
+                                    <c:Ornament Text="{i:Loc Settings.Sources.Title}" Icon="&#xF0128;" Size="13" Margin="0,0,0,14" />
                                     <TextBlock Text="{Binding Attribution}" Classes="caption" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>

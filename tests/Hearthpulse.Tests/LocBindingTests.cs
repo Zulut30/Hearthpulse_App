@@ -24,7 +24,7 @@ public sealed class GlobalLanguage;
 /// controls alive through the static <see cref="Loc.Instance"/> (overlay rows are rebuilt on every snapshot).
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
-public sealed class LocBindingTests
+public sealed partial class LocBindingTests
 {
     [Fact]
     public void Bare_history_button_renders_the_game_row_template_instead_of_record_text() => Headless.Run(HistoryButton);
