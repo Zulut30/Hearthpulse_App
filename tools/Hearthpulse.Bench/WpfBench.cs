@@ -280,6 +280,17 @@ internal static class WpfBench
                 {
                     toggle.IsChecked = true;
                     Pump();
+                    // HP_BENCH_TAB_RAM=1: memory after each tab, once its art has had time to load.
+                    if (Environment.GetEnvironmentVariable("HP_BENCH_TAB_RAM") == "1")
+                    {
+                        var tabSettle = Stopwatch.StartNew();
+                        while (tabSettle.ElapsedMilliseconds < 2000)
+                        {
+                            Pump(DispatcherPriority.Background);
+                        }
+
+                        Memory($"  {page}/{tab}");
+                    }
                 }
             }
         }
@@ -393,13 +404,34 @@ internal static class WpfBench
             else
             {
                 action();
-                Pump();
+                // Ready: everything above input priority is done (layout, render, bindings), so a click is handled now.
+                Pump(DispatcherPriority.Input);
             }
 
             var elapsed = sw.Elapsed.TotalMilliseconds;
+            // Then whatever the page still builds at background priority, and how long input waits meanwhile.
+            var clock = Stopwatch.StartNew();
+            var last = clock.Elapsed;
+            var worst = TimeSpan.Zero;
+            var input = new DispatcherTimer(TimeSpan.FromMilliseconds(16), DispatcherPriority.Input, (_, _) =>
+            {
+                worst = clock.Elapsed - last > worst ? clock.Elapsed - last : worst;
+                last = clock.Elapsed;
+            }, Dispatcher.CurrentDispatcher);
+            input.Start();
+            var lists = new List<System.Windows.Controls.Panel>();
+            RowPanels(main, lists);
+            while (lists.Any(RowsPending) && clock.ElapsedMilliseconds < 10_000)
+            {
+                Pump(DispatcherPriority.Background);
+            }
+
+            input.Stop();
+            Pump();
+            var built = sw.Elapsed.TotalMilliseconds;
             var now = Elements(main);
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                $"[pages] {what,-40} {elapsed,8:N0} ms  alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1048576.0,6:N1} MB (UI {(GC.GetAllocatedBytesForCurrentThread() - mine) / 1048576.0,5:N1})  gen0 {GC.CollectionCount(0) - gen0,2} gen2 {GC.CollectionCount(2) - gen2}  GC pause {(GC.GetTotalPauseDuration() - paused).TotalMilliseconds,4:N0} ms  visuals {now,6:N0} ({now - elements:+#,0;-#,0;0})  SettingsChanged {settingsChanged - changed}"));
+                $"[pages] {what,-40} {elapsed,8:N0} ms ready, all built {built,6:N0} ms (input waited ≤ {worst.TotalMilliseconds,3:N0} ms)  alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1048576.0,6:N1} MB (UI {(GC.GetAllocatedBytesForCurrentThread() - mine) / 1048576.0,5:N1})  gen0 {GC.CollectionCount(0) - gen0,2} gen2 {GC.CollectionCount(2) - gen2}  GC pause {(GC.GetTotalPauseDuration() - paused).TotalMilliseconds,4:N0} ms  visuals {now,6:N0} ({now - elements:+#,0;-#,0;0})  SettingsChanged {settingsChanged - changed}  extent {PageExtent(main)}"));
             elements = now;
             SettleArt(what);
         }
@@ -435,11 +467,86 @@ internal static class WpfBench
             }
         }
 
+        // The longest lists scrolled to their end and back: the rows a page builds on the way, and its full height.
+        foreach (var (page, tab, scroller) in new[] { ("Settings", "Tracker", "PageSettings"), ("Battlegrounds", "TabHeroes", "PageBattlegrounds"), ("Constructed", "TabMetaTiers", "PageConstructed") })
+        {
+            main.ShowPage(page);
+            if (page == "Settings")
+            {
+                main.ShowSettingsTab(tab);
+            }
+            else if (main.FindName(tab) is ToggleButton toggle)
+            {
+                toggle.IsChecked = true;
+            }
+
+            Pump();
+            // A moment on the page before scrolling, as a player would take: rows a list builds while idle land here.
+            // The worst lateness of a 16 ms input-priority timer is how long a click or key would wait meanwhile.
+            {
+                var before = Elements(main);
+                var clock = Stopwatch.StartNew();
+                var last = clock.Elapsed;
+                var worst = TimeSpan.Zero;
+                var timer = new DispatcherTimer(TimeSpan.FromMilliseconds(16), DispatcherPriority.Input, (_, _) =>
+                {
+                    worst = clock.Elapsed - last > worst ? clock.Elapsed - last : worst;
+                    last = clock.Elapsed;
+                }, Dispatcher.CurrentDispatcher);
+                timer.Start();
+                // One frame for the whole wait: posting work in a loop would keep idle-priority work from ever running.
+                var frame = new DispatcherFrame();
+                var stop = new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Normal, (_, _) => frame.Continue = false, Dispatcher.CurrentDispatcher);
+                stop.Start();
+                Dispatcher.PushFrame(frame);
+                stop.Stop();
+                timer.Stop();
+                Console.WriteLine($"[pages] {page}/{tab} 2 s on the page: visuals {Elements(main) - before:+#,0;-#,0;0}, input waited at most {worst.TotalMilliseconds:N0} ms");
+            }
+
+            var scroll = (System.Windows.Controls.ScrollViewer)main.FindName(scroller);
+            // Wheel notches (3 lines of 16 px each) through the whole page: the slowest one is what a stutter would be.
+            var notches = new List<double>();
+            var wheel = Stopwatch.StartNew();
+            while (scroll.VerticalOffset + scroll.ViewportHeight < scroll.ExtentHeight - 1 && notches.Count < 400)
+            {
+                // A notch is ready once everything above input priority is done; then the 30 ms a spinning wheel
+                // leaves between notches, in which background work (rows built ahead) may run.
+                var step = Stopwatch.StartNew();
+                scroll.ScrollToVerticalOffset(scroll.VerticalOffset + 48);
+                Pump(DispatcherPriority.Input);
+                notches.Add(step.Elapsed.TotalMilliseconds);
+                var gap = new DispatcherFrame();
+                var resume = new DispatcherTimer(TimeSpan.FromMilliseconds(30), DispatcherPriority.Normal, (sender, _) =>
+                {
+                    ((DispatcherTimer)sender!).Stop();
+                    gap.Continue = false;
+                }, Dispatcher.CurrentDispatcher);
+                resume.Start();
+                Dispatcher.PushFrame(gap);
+            }
+
+            Console.WriteLine($"[pages] {page}/{tab} wheeled to the end: {notches.Count} notches in {wheel.Elapsed.TotalMilliseconds:N0} ms, {Spread(notches)}");
+            scroll.ScrollToHome();
+            Pump();
+            Time($"{page}/{tab} scrolled to the end", scroll.ScrollToEnd);
+            Time($"{page}/{tab} scrolled to the top", scroll.ScrollToHome);
+        }
+
         main.ShowPage("Constructed");
         Pump();
         if (vm.Decks.FirstOrDefault() is { } deck)
         {
-            Time($"deck page ({vm.Decks.Count} decks)", () => vm.OpenDeck.Execute(deck));
+            Time($"deck page ({vm.Decks.Count} decks)", () =>
+            {
+                // The deck's statistics are built on a pool thread: wait for its card rows before the page counts as open.
+                vm.OpenDeck.Execute(deck);
+                var wait = Stopwatch.StartNew();
+                while (vm.DeckPage.CardRows.Count == 0 && wait.ElapsedMilliseconds < 5000)
+                {
+                    Pump(DispatcherPriority.Background);
+                }
+            });
             Time("back to Constructed", () => vm.GoBack(main.CurrentPage));
         }
 
@@ -578,6 +685,37 @@ internal static class WpfBench
         action();
         Pump();
     }
+
+    /// <summary>
+    /// Visible list panels that build their rows later (PageRowsPanel, found by name: the bench also builds against
+    /// commits without it).
+    /// </summary>
+    private static void RowPanels(System.Windows.Media.Visual root, List<System.Windows.Controls.Panel> found)
+    {
+        if (root is System.Windows.Controls.Panel { IsVisible: true } panel && panel.GetType().Name == "PageRowsPanel")
+        {
+            found.Add(panel);
+        }
+
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            if (System.Windows.Media.VisualTreeHelper.GetChild(root, i) is System.Windows.Media.Visual child)
+            {
+                RowPanels(child, found);
+            }
+        }
+    }
+
+    /// <summary>True while the panel still has rows queued to build around what the page shows.</summary>
+    private static bool RowsPending(System.Windows.Controls.Panel panel) =>
+        panel.GetType().GetField("_aheadQueued", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(panel) is true;
+
+    /// <summary>Content height of the scrolling page on screen: a list that builds fewer rows must keep it.</summary>
+    private static string PageExtent(MainWindow main) =>
+        new[] { "PageOverview", "PageBattlegrounds", "PageConstructed", "PageDeck", "PageArena", "PageMatch", "PageSettings" }
+            .Select(main.FindName).OfType<System.Windows.Controls.ScrollViewer>().FirstOrDefault(p => p.IsVisible) is { } page
+            ? page.ExtentHeight.ToString("N1", CultureInfo.InvariantCulture)
+            : "-";
 
     /// <summary>Visuals in the window's tree (templates that were never applied add none).</summary>
     private static int Elements(System.Windows.Media.Visual root)

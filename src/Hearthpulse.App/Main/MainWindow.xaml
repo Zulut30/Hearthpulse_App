@@ -189,6 +189,10 @@
         <ItemsPanelTemplate x:Key="TilesPanel">
             <UniformGrid Rows="1" />
         </ItemsPanelTemplate>
+        <!-- Long lists of equal-height rows inside a page: only the rows near the page's viewport are built -->
+        <ItemsPanelTemplate x:Key="PageRows">
+            <c:PageRowsPanel />
+        </ItemsPanelTemplate>
     </Window.Resources>
 
     <Border x:Name="Frame">
@@ -515,7 +519,7 @@
                                         <TextBlock Grid.Column="8" Text="{i:Loc Main.Table.Games}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.GamesTip}" />
                                         <TextBlock Grid.Column="9" Text="{i:Loc Main.Table.You}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.YouTip}" />
                                     </Grid>
-                                    <ItemsControl ItemsSource="{Binding HeroTiers}" VirtualizingPanel.IsVirtualizing="True">
+                                    <ItemsControl ItemsSource="{Binding HeroTiers}" ItemsPanel="{StaticResource PageRows}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type m:MetaHeroRow}">
                                                 <Border Style="{StaticResource RowBorder}" Padding="10,6">
@@ -628,7 +632,7 @@
                                         <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.PickRate}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.TrinketPickTip}" />
                                         <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.Games}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
                                     </Grid>
-                                    <ItemsControl ItemsSource="{Binding TrinketTiers}" VirtualizingPanel.IsVirtualizing="True">
+                                    <ItemsControl ItemsSource="{Binding TrinketTiers}" ItemsPanel="{StaticResource PageRows}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type m:MetaTrinketRow}">
                                                 <Border Style="{StaticResource RowBorder}" Padding="10,7">
@@ -684,7 +688,7 @@
                                             </StackPanel>
                                         </Border>
                                     </Grid>
-                                    <ItemsControl ItemsSource="{Binding CardTiers}" VirtualizingPanel.IsVirtualizing="True">
+                                    <ItemsControl ItemsSource="{Binding CardTiers}" ItemsPanel="{StaticResource PageRows}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type m:MetaCardRow}">
                                                 <Border Style="{StaticResource RowBorder}" Padding="10,6">
@@ -744,7 +748,7 @@
                                         <TextBlock Grid.Column="5" Text="{i:Loc Main.Table.Wins}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.WinsTip}" />
                                         <TextBlock Grid.Column="6" Text="{i:Loc Main.Table.NetMmr}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Table.NetMmrTip}" />
                                     </Grid>
-                                    <ItemsControl ItemsSource="{Binding MyHeroes}">
+                                    <ItemsControl ItemsSource="{Binding MyHeroes}" ItemsPanel="{StaticResource PageRows}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type m:HeroRow}">
                                                 <Border Style="{StaticResource RowBorder}" Padding="10,6">
@@ -977,7 +981,7 @@
                                             <TextBlock Grid.Column="4" Text="{i:Loc Main.Meta.First}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Meta.FirstTip}" />
                                             <TextBlock Grid.Column="5" Text="{i:Loc Main.Meta.Coin}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Main.Meta.CoinTip}" />
                                         </Grid>
-                                        <ListBox ItemsSource="{Binding MetaArchetypes}" SelectedItem="{Binding SelectedArchetype}" Background="Transparent" BorderThickness="0">
+                                        <ListBox ItemsSource="{Binding MetaArchetypes}" SelectedItem="{Binding SelectedArchetype}" ItemsPanel="{StaticResource PageRows}" Background="Transparent" BorderThickness="0">
                                             <ListBox.Template>
                                                 <ControlTemplate TargetType="ListBox">
                                                     <ItemsPresenter />
@@ -1169,7 +1173,7 @@
                                         <TextBlock Grid.Column="3" Text="{i:Loc Main.Table.Games}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
                                         <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Dust}" Style="{StaticResource TableHead}" HorizontalAlignment="Right" />
                                     </Grid>
-                                    <ItemsControl ItemsSource="{Binding MetaDecks}">
+                                    <ItemsControl ItemsSource="{Binding MetaDecks}" ItemsPanel="{StaticResource PageRows}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type m:MetaDeckRow}">
                                                     <Border Style="{StaticResource RowBorder}" Padding="10,7">
@@ -1569,7 +1573,7 @@
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Counters.Opponent}" IsChecked="{Binding Settings.ShowOpponentCounters}" Margin="0,0,0,14" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Counters.Mulligan}" IsChecked="{Binding Settings.ShowMulligan}" Margin="0,0,0,8"
                                                   ToolTip="{i:Loc Settings.Counters.MulliganTip}" />
-                                        <ItemsControl ItemsSource="{Binding CounterRows}" Margin="0,8,0,0" Focusable="False">
+                                        <ItemsControl ItemsSource="{Binding CounterRows}" ItemsPanel="{StaticResource PageRows}" Margin="0,8,0,0" Focusable="False">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type m:CounterSettingRow}">
                                                     <Grid Margin="0,0,0,8" ToolTip="{Binding Description}">
@@ -1599,7 +1603,7 @@
                                         <!-- Battlegrounds counters: same modes, ids start with "bg-" -->
                                         <TextBlock x:Name="BgCountersHeading" Text="{i:Loc Settings.Counters.Battlegrounds}" Style="{StaticResource H2}" Margin="0,14,0,10"
                                                    Background="Transparent" ToolTip="{i:Loc Settings.Counters.BgCaption}" />
-                                        <ItemsControl ItemsSource="{Binding BgCounterRows}" Focusable="False">
+                                        <ItemsControl ItemsSource="{Binding BgCounterRows}" ItemsPanel="{StaticResource PageRows}" Focusable="False">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type m:CounterSettingRow}">
                                                     <Grid Margin="0,0,0,8" ToolTip="{Binding Description}">
