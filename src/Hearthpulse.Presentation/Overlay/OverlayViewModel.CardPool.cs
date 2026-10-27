@@ -24,6 +24,9 @@ public sealed record PoolAverage(string Label, string Value);
 /// </summary>
 public sealed record PoolTopRow(string CardId, string Name, int Cost, string Rarity, string ShareText);
 
+/// <summary>One card of this game the hovered card looks back at, as a tracker row: cost gem, name, "×2" when it counts twice.</summary>
+public sealed record PoolListRow(string CardId, string Name, int Cost, string Rarity, string CountText);
+
 /// <summary>One mechanic of the pool: label and share.</summary>
 public sealed record PoolMechanicRow(string Label, string PercentText);
 
@@ -57,6 +60,9 @@ public sealed partial class OverlayViewModel
 
     private const int TopCardCount = 4;
 
+    /// <summary>Rows of the "this game" list at most; the rest is "+N more".</summary>
+    private const int ListRowCount = 8;
+
     private static readonly string[] CardPoolStats = ["Cost", "Attack", "Health"];
 
     /// <summary>
@@ -75,6 +81,11 @@ public sealed partial class OverlayViewModel
     private IReadOnlyList<PoolAverage> _cardPoolAverages = [];
     private IReadOnlyList<PoolMechanicRow> _cardPoolMechanicRows = [];
     private IReadOnlyList<PoolTopRow> _cardPoolTopCards = [];
+    private IReadOnlyList<PoolListRow> _cardPoolList = [];
+    private string _cardPoolListTitle = string.Empty;
+    private string _cardPoolListNote = string.Empty;
+    private bool _showCardPoolList;
+    private string _cardPoolListKey = string.Empty;
     private CardPoolAnchor? _cardPoolAnchor;
     private PoolEntry? _cardPoolFeatured;
     private string _cardPoolFeaturedNote = string.Empty;
@@ -173,6 +184,18 @@ public sealed partial class OverlayViewModel
 
     /// <summary>The pool cards played in the most meta-deck games, as tracker rows; empty without meta data.</summary>
     public IReadOnlyList<PoolTopRow> CardPoolTopCards { get => _cardPoolTopCards; private set => Set(ref _cardPoolTopCards, value); }
+
+    /// <summary>The hovered card's look back at this game ("Your minions that died · Deathrattle") is shown.</summary>
+    public bool ShowCardPoolList { get => _showCardPoolList; private set => Set(ref _showCardPoolList, value); }
+
+    /// <summary>The cards of this game the hovered card looks back at, by cost then name.</summary>
+    public IReadOnlyList<PoolListRow> CardPoolList { get => _cardPoolList; private set => Set(ref _cardPoolList, value); }
+
+    /// <summary>"Your minions that died · Deathrattle: 3" above the rows when the card's pool is shown too; empty when the header says it.</summary>
+    public string CardPoolListTitle { get => _cardPoolListTitle; private set => Set(ref _cardPoolListTitle, value); }
+
+    /// <summary>"None this game yet" or "+3 more"; empty otherwise.</summary>
+    public string CardPoolListNote { get => _cardPoolListNote; private set => Set(ref _cardPoolListNote, value); }
 
     /// <summary>The highlighted pool card (most played in meta decks), or null.</summary>
     public PoolEntry? CardPoolFeatured { get => _cardPoolFeatured; private set => Set(ref _cardPoolFeatured, value); }
@@ -391,22 +414,30 @@ public sealed partial class OverlayViewModel
         }
 
         var pool = settings.ShowCardPool ? view?.CardPool : null;
+        var list = settings.ShowCardPool ? view?.MatchList : null;
         UpdateCardPoolPicks(pool is null ? null : view?.DiscoverPicks);
-        if (pool is null && view is not null && settings.ShowCardPool && (CardPoolHeld || CardPoolBrowserOpen) && _cardPool is not null)
+        if (pool is null && list is null && view is not null && settings.ShowCardPool && (CardPoolHeld || CardPoolBrowserOpen)
+            && (_cardPool is not null || ShowCardPoolList))
         {
             // The player is reading a pool panel: the pool that triggered it has gone, keep it until they leave or close.
             return;
         }
 
         // The panel stands next to its card; it stays where it is while the player reads it (above).
-        CardPoolAnchor = pool is null ? null : view?.CardPoolAnchor;
+        CardPoolAnchor = pool is null && list is null ? null : view?.CardPoolAnchor;
+        UpdateMatchList(list, pool is not null);
         if (pool is null)
         {
             _cardPool = null;
             _lastRequestedPool = null;
-            ShowCardPool = false;
             CardPoolBrowserOpen = false;
             RebuildCardPoolBrowser();
+            if (list is not null)
+            {
+                ShowListOnly(list);
+            }
+
+            ShowCardPool = list is not null;
             return;
         }
 
@@ -498,6 +529,48 @@ public sealed partial class OverlayViewModel
     }
 
     private static string PickPercent(double share) => OverlayFormat.Percent(share);
+
+    /// <summary>The "this game" rows: rebuilt only when a card, a count or the language changed (a fresh view comes on every publish).</summary>
+    private void UpdateMatchList(MatchListView? list, bool withPool)
+    {
+        var key = list is null ? string.Empty
+            : $"{list.SourceCardId}|{list.Title}|{list.Total}|{withPool}|{string.Join(',', list.Rows.Select(r => $"{r.CardId}:{r.Count}"))}|{Loc.Instance.Language}";
+        if (key == _cardPoolListKey)
+        {
+            return;
+        }
+
+        _cardPoolListKey = key;
+        ShowCardPoolList = list is not null;
+        CardPoolList = list?.Rows.Take(ListRowCount)
+            .Select(r => new PoolListRow(r.CardId, r.Name, r.Cost, r.Rarity, r.Count > 1 ? "×" + r.Count.ToString(CultureInfo.CurrentCulture) : string.Empty))
+            .ToList() ?? [];
+        CardPoolListTitle = list is not null && withPool ? ListHeadline(list) : string.Empty;
+        CardPoolListNote = list is null ? string.Empty
+            : list.Rows.Count == 0 ? Loc.T("Pool.List.Empty")
+            : list.Rows.Count > ListRowCount ? Loc.F("Pool.List.More", list.Rows.Count - ListRowCount)
+            : string.Empty;
+    }
+
+    /// <summary>"Your minions that died · Deathrattle: 3".</summary>
+    private static string ListHeadline(MatchListView list) => $"{list.Title}: {list.Total.ToString(CultureInfo.CurrentCulture)}";
+
+    /// <summary>A card with a "this game" list and no pool: the header names the list and the card, the pool's parts stay empty.</summary>
+    private void ShowListOnly(MatchListView list)
+    {
+        CardPoolTitle = ListHeadline(list);
+        CardPoolSource = list.SourceName;
+        CardPoolPhrase = list.SourceName;
+        CardPoolDescription = string.Empty;
+        CardPoolMeta = string.Empty;
+        CardPoolHasCards = false;
+        CardPoolSections = [];
+        CardPoolAverages = [];
+        CardPoolMechanicRows = [];
+        CardPoolTopCards = [];
+        CardPoolFeatured = null;
+        CardPoolFeaturedNote = string.Empty;
+    }
 
     private void RebuildCardPoolBrowser()
     {

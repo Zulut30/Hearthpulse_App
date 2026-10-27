@@ -6,7 +6,8 @@
              x:Class="Hearthpulse.UI.Overlay.CardPoolPanel"
              x:DataType="o:OverlayViewModel">
     <!-- The compact card pool panel (300 wide): at its own spot (MovablePanel "card-pool") or next to its card (the card
-         pool layer). One line of averages, the most played cards as tracker rows; the full view is the pool browser
+         pool layer). The cards of this game a hovered card looks back at, one line of averages, the most played cards as
+         tracker rows; the full view is the pool browser
          (right-click). DataContext is the OverlayViewModel. -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
@@ -68,6 +69,37 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+            </StackPanel>
+
+            <!-- ===== This game: the cards the hovered card looks back at (died, cast, played), as tracker rows ===== -->
+            <StackPanel Margin="12,9,12,0" IsVisible="{Binding ShowCardPoolList}">
+                <TextBlock Classes="poolLabel" Text="{Binding CardPoolListTitle}" IsVisible="{Binding CardPoolListTitle, Converter={StaticResource Truthy}}" />
+                <ItemsControl ItemsSource="{Binding CardPoolList}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="o:PoolListRow">
+                            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*">
+                                <c:ManaCost Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+                                    <Panel>
+                                        <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                                        <Rectangle Fill="{StaticResource TileFade}" />
+                                        <Border Classes="rarityStrip" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                                        <DockPanel Margin="9,0,3,0">
+                                            <Border Classes="countBadge" DockPanel.Dock="Right" Height="16" IsVisible="{Binding CountText, Converter={StaticResource Truthy}}">
+                                                <TextBlock Text="{Binding CountText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                        <Border Classes="rowSheen" />
+                                    </Panel>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding CardPoolListNote}" FontSize="9.5" Foreground="{StaticResource Faint}" Margin="0,1,0,0"
+                           IsVisible="{Binding CardPoolListNote, Converter={StaticResource Truthy}}" />
             </StackPanel>
 
             <!-- ===== Your open choice: what players take from these options, Hearthpulse data (numbers only, no advice) ===== -->

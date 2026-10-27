@@ -221,6 +221,24 @@ hand: the leftmost. A pool whose card is not on screen (a request) and the layou
 panel `card-pool` (top left by default, 300 units wide, next to the opponent panel), clear of the Discover options. The
 panel next to its card is a second `CardPoolPanel` in a Canvas over the surface (`Anchored`), not a `MovablePanel`.
 
+## This game's cards (hovered card in hand)
+
+A card in hand whose text looks back at this game - "Trigger the Deathrattle of a random friendly minion that died this
+game" (Undeath Sentence), Resurrect, "spells you've cast this game", "minions you've summoned / played this game" -
+shows, when hovered, the cards of this game that fit, as tracker rows (cost gem, name over the art strip, "×2" for
+repeats; 8 rows at most, "+N more"; "None this game yet" when empty). It sits in the same popup beside the card: on its
+own (header "Your minions that died · Deathrattle: 3" and the card's name) or above the card's pool under that label.
+It never covers another card's pool (a Discover choice wins).
+
+`MatchLists.Parse` reads the rule from the English card text (the pool catalog's; the card data's in an English
+client): the clause before "died this game" / "you've cast|played|summoned this game", or after Resurrect, names the
+side (friendly/your, enemy, or both), a mechanic (Deathrattle, Taunt, Divine Shield, Rush, Lifesteal, Reborn,
+Battlecry), a minion type, a spell school and an "N-Cost". A clause that ends in a name ("each time Ysondre has died",
+"each friendly Treant") or adds a condition the list cannot check ("that didn't start in your deck") has no list.
+`MatchLists.Build` takes the cards from `CounterTracker` (deaths on the board for both players, the local player's
+plays and summons) and the card data (mechanics, types, cost, localized names): only what the player saw. Rules are
+cached per card id; a card with a rule in hand also turns on the hover reads.
+
 ## What players take (pick hint)
 
 While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the averages,

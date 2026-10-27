@@ -73,6 +73,12 @@ public sealed record ConstructedView(
     /// <summary>Where the card of <see cref="CardPool"/> sits (hand, board, Discover options), to show the pool beside it; null otherwise.</summary>
     public CardPool.CardPoolAnchor? CardPoolAnchor { get; init; }
 
+    /// <summary>
+    /// The cards of this game the hovered card in hand looks back at ("a friendly minion that died this game"), shown
+    /// beside it (at <see cref="CardPoolAnchor"/>) above its pool or on its own; null otherwise.
+    /// </summary>
+    public CardPool.MatchListView? MatchList { get; init; }
+
     /// <summary>While the player's own Discover-style choice is open: what pool players pick from its options; null otherwise.</summary>
     public CardPool.DiscoverPicksView? DiscoverPicks { get; init; }
 

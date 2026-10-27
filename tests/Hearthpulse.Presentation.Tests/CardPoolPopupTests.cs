@@ -149,18 +149,82 @@ public sealed class CardPoolPopupTests
         }
     }
 
+    [Fact]
+    public void A_this_game_list_shows_on_its_own_or_above_the_pool_in_both_view_models()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            var list = new MatchListView("JAIL_940", "Undeath Sentence", "Your minions that died · Deathrattle", 3,
+                [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 2), new MatchListRow("DR_2", "Abomination", 5, "RARE", 1)]);
+            foreach (var vm in Models())
+            {
+                // No pool: the popup is the list, its header names it and the card.
+                vm.Show(null, list);
+                Assert.True(vm.Popup, vm.Name);
+                Assert.Equal(("Your minions that died · Deathrattle: 3", "Undeath Sentence", ""), vm.ListHeader());
+                Assert.Equal([("DR_1", "×2"), ("DR_2", "")], vm.ListRows());
+
+                // With the card's own pool: the list sits above it under its own label.
+                vm.Show(Pool("JAIL_940", 12), list);
+                Assert.Equal(("Pool of 12 cards", "Generator JAIL_940", "Your minions that died · Deathrattle: 3"), vm.ListHeader());
+
+                // Nothing died yet: an empty list says so.
+                vm.Show(null, list with { Total = 0, Rows = [] });
+                Assert.Empty(vm.ListRows());
+                Assert.Equal("None this game yet", vm.ListNote());
+
+                // Held while the list is read, then gone with the pointer.
+                vm.Pointer(true, false, false, T0);
+                vm.Pointer(true, false, false, T0 + Rested);
+                vm.Show(null);
+                Assert.True(vm.Popup, vm.Name);
+                vm.Pointer(false, false, false, T0 + Rested * 2);
+                Assert.False(vm.Popup, vm.Name);
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    [Fact]
+    public void The_wpf_popup_lays_out_a_this_game_list() => OnSta(() =>
+    {
+        var vm = new OverlayViewModel();
+        var panel = new CardPoolPanel { Anchored = true, DataContext = vm };
+        panel.SetBinding(UIElement.VisibilityProperty, new Binding(nameof(OverlayViewModel.ShowCardPoolPopup)) { Converter = new BooleanToVisibilityConverter() });
+        var root = new Canvas { Width = 1920, Height = 1080 };
+        root.Children.Add(panel);
+        using var source = new HwndSource(new HwndSourceParameters("pool popup test", 1920, 1080) { WindowStyle = 0 }) { RootVisual = root };
+        var list = new MatchListView("JAIL_940", "Undeath Sentence", "Your minions that died · Deathrattle", 2, [new MatchListRow("DR_1", "Loot Hoarder", 2, "COMMON", 2)]);
+        vm.Update(Snapshot(null, list), CardDb.Empty, new AppSettings(), null, null);
+        root.UpdateLayout();
+
+        Assert.True(panel.IsVisible);
+        // Header, one row, the bottom space: a short tooltip.
+        Assert.InRange(panel.ActualHeight, 60, 160);
+    });
+
     /// <summary>The same calls on the WPF and the Avalonia build of the shared view model.</summary>
     private sealed class Model
     {
         public required string Name { get; init; }
-        public required Action<CardPoolView?> Show { get; init; }
+        public required Action<CardPoolView?, MatchListView?> ShowWith { get; init; }
         public required Action<bool, bool, bool, DateTime> Pointer { get; init; }
         public required Func<bool> HeldNow { get; init; }
         public required Func<bool> BrowserNow { get; init; }
         public required Func<bool> PopupNow { get; init; }
         public required Func<IReadOnlyList<(string, string)>> Averages { get; init; }
         public required Func<IReadOnlyList<(string, string, int, string)>> Top { get; init; }
+        public required Func<(string, string, string)> ListHeader { get; init; }
+        public required Func<IReadOnlyList<(string, string)>> ListRows { get; init; }
+        public required Func<string> ListNote { get; init; }
         public event Action<string?>? Changed;
+
+        public void Show(CardPoolView? pool, MatchListView? list = null) => ShowWith(pool, list);
 
         public bool Held => HeldNow();
         public bool BrowserOpen => BrowserNow();
@@ -175,13 +239,16 @@ public sealed class CardPoolPopupTests
         var a = new Model
         {
             Name = "WPF",
-            Show = pool => wpf.Update(Snapshot(pool), CardDb.Empty, new AppSettings(), null, null),
+            ShowWith = (pool, list) => wpf.Update(Snapshot(pool, list), CardDb.Empty, new AppSettings(), null, null),
             Pointer = wpf.UpdateCardPoolPointer,
             HeldNow = () => wpf.CardPoolHeld,
             BrowserNow = () => wpf.CardPoolBrowserOpen,
             PopupNow = () => wpf.ShowCardPoolPopup,
             Averages = () => wpf.CardPoolAverages.Select(x => (x.Label, x.Value)).ToList(),
             Top = () => wpf.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.ShareText)).ToList(),
+            ListHeader = () => (wpf.CardPoolTitle, wpf.CardPoolPhrase, wpf.CardPoolListTitle),
+            ListRows = () => wpf.CardPoolList.Select(x => (x.CardId, x.CountText)).ToList(),
+            ListNote = () => wpf.CardPoolListNote,
         };
         ((INotifyPropertyChanged)wpf).PropertyChanged += (_, e) => a.Raise(e.PropertyName);
         yield return a;
@@ -190,24 +257,28 @@ public sealed class CardPoolPopupTests
         var b = new Model
         {
             Name = "Avalonia",
-            Show = pool => ava.Update(Snapshot(pool), CardDb.Empty, new AppSettings(), null, null),
+            ShowWith = (pool, list) => ava.Update(Snapshot(pool, list), CardDb.Empty, new AppSettings(), null, null),
             Pointer = ava.UpdateCardPoolPointer,
             HeldNow = () => ava.CardPoolHeld,
             BrowserNow = () => ava.CardPoolBrowserOpen,
             PopupNow = () => ava.ShowCardPoolPopup,
             Averages = () => ava.CardPoolAverages.Select(x => (x.Label, x.Value)).ToList(),
             Top = () => ava.CardPoolTopCards.Select(x => (x.CardId, x.Name, x.Cost, x.ShareText)).ToList(),
+            ListHeader = () => (ava.CardPoolTitle, ava.CardPoolPhrase, ava.CardPoolListTitle),
+            ListRows = () => ava.CardPoolList.Select(x => (x.CardId, x.CountText)).ToList(),
+            ListNote = () => ava.CardPoolListNote,
         };
         ((INotifyPropertyChanged)ava).PropertyChanged += (_, e) => b.Raise(e.PropertyName);
         yield return b;
     }
 
-    private static LiveSnapshot Snapshot(CardPoolView? pool)
+    private static LiveSnapshot Snapshot(CardPoolView? pool, MatchListView? list = null)
     {
         var constructed = new ConstructedView(5, null, false, "HERO_03", "ROGUE", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
         {
             CardPool = pool,
-            CardPoolAnchor = pool is null ? null : new CardPoolAnchor(PoolAnchorZone.Hand, 1, 5),
+            MatchList = list,
+            CardPoolAnchor = pool is null && list is null ? null : new CardPoolAnchor(PoolAnchorZone.Hand, 1, 5),
         };
         return LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
     }
