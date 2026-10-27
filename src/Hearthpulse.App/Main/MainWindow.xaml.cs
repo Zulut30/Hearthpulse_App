@@ -413,7 +413,11 @@ public partial class MainWindow : Window
 
     private void OnSettingChanged(object sender, RoutedEventArgs e)
     {
-        if (IsLoaded)
+        // Only what the player changed. A toggle a list builds when its tab is first shown takes its value from a
+        // binding before it is loaded (the Tracker tab's counter rows raised 95 Checked at once, each re-applying and
+        // saving every setting), and the tab buttons' Unchecked is not a setting either.
+        if (IsLoaded && e.OriginalSource is FrameworkElement { IsLoaded: true } source
+                     && (source as RadioButton)?.GroupName != SettingsTabGeneral.GroupName)
         {
             Loc.Instance.SetLanguage(_viewModel.Settings.InterfaceLanguage());
             SyncOverlaySwitch();
