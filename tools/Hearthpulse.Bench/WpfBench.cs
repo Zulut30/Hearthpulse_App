@@ -153,11 +153,25 @@ internal static class WpfBench
         Step("new MainWindow");
         var overlay = new OverlayWindow(new OverlayViewModel(), settings);
         Step("new OverlayWindow");
+        // The app's order: the main window first, the overlay after its first frame (HP_BENCH_OVERLAY_FIRST=1: the order
+        // before stage 4, the overlay first).
+        var overlayAfter = Environment.GetEnvironmentVariable("HP_BENCH_OVERLAY_FIRST") != "1";
+        if (!overlayAfter)
+        {
+            overlay.Show();
+            Step("overlay.Show");
+        }
+
         var frame = new DispatcherFrame();
         main.ContentRendered += (_, _) => frame.Continue = false;
         main.Show();
         Dispatcher.PushFrame(frame);
         Step("Show -> ContentRendered");
+        if (overlayAfter)
+        {
+            overlay.Show();
+            Step("overlay.Show (after the first frame)");
+        }
         using var http = Http();
         var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
         Step("CardDb.LoadAsync on this thread");
@@ -293,6 +307,163 @@ internal static class WpfBench
     }
 
     /// <summary>
+    /// Decodes every portrait and deck tile in the data copy's image cache through CardArt, all asked for at once as a
+    /// page does: time, bytes allocated, GCs (the large object heap drives gen2) and their pauses. Nothing is downloaded.
+    /// </summary>
+    public static void Art(Options options)
+    {
+        var (app, _) = NewApplication();
+        foreach (var kind in new[] { ArtKind.Portrait, ArtKind.Tile })
+        {
+            var dir = Path.Combine(AppPaths.Images, kind.ToString().ToLowerInvariant());
+            var ids = Directory.Exists(dir) ? Directory.EnumerateFiles(dir).Select(Path.GetFileNameWithoutExtension).OfType<string>().Take(options.Games > 0 ? options.Games : 400).ToList() : [];
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            var allocated = GC.GetTotalAllocatedBytes(precise: true);
+            var gen0 = GC.CollectionCount(0);
+            var gen1 = GC.CollectionCount(1);
+            var gen2 = GC.CollectionCount(2);
+            var paused = GC.GetTotalPauseDuration();
+            var sw = Stopwatch.StartNew();
+            var images = Task.WhenAll(ids.Select(id => CardArt.GetAsync(kind, id))).GetAwaiter().GetResult();
+            sw.Stop();
+            var bytes = GC.GetTotalAllocatedBytes(precise: true) - allocated;
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"[art] {kind,-9} {images.Count(i => i is not null),4} of {ids.Count,4} decoded in {sw.Elapsed.TotalMilliseconds,6:N0} ms  alloc {bytes / 1048576.0,6:N1} MB ({bytes / 1024.0 / Math.Max(1, ids.Count),5:N0} KB/image)  gen0 {GC.CollectionCount(0) - gen0} gen1 {GC.CollectionCount(1) - gen1} gen2 {GC.CollectionCount(2) - gen2}  GC pause {(GC.GetTotalPauseDuration() - paused).TotalMilliseconds:N0} ms"));
+        }
+
+        GC.KeepAlive(app);
+    }
+
+    /// <summary>
+    /// How long each page, Settings tab and Battlegrounds/Constructed tab takes to open the first time and again (until
+    /// the dispatcher is idle), with the bytes allocated, then a deck page and a match page. Same data as <see cref="Ram"/>.
+    /// </summary>
+    public static void Pages(Options options)
+    {
+        var n = options.Games > 0 ? options.Games : 3000;
+        var (app, settings) = NewApplication();
+        using var http = Http();
+        var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
+        var api = new HearthpulseApi(http);
+        var bgMeta = BattlegroundsMeta.LoadAsync(new HearthpulseData(api)).GetAwaiter().GetResult();
+        var ctMeta = ConstructedMeta.LoadAsync(new HearthpulseData(api), cards, settings.MetaFormat, settings.MetaRank, settings.MetaPeriod, cards.Locale).GetAwaiter().GetResult();
+        var history = new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-bench-ram-{n}.db"));
+        if (history.GameCount() < n)
+        {
+            CoreBench.Fill(history, CoreBench.SeedGames(options.Logs, cards), n);
+        }
+
+        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
+        // Settings open on the tab saved last; start from General so every tab is measured on its own.
+        var savedTab = settings.SettingsTab;
+        settings.SettingsTab = "General";
+        var vm = new MainViewModel(history, settings);
+        var main = OffScreen(new MainWindow(vm));
+        main.Show();
+        Pump();
+        vm.SetCards(cards);
+        vm.SetMeta(bgMeta);
+        vm.SetConstructedMeta(ctMeta);
+        var refresh = vm.RefreshAsync();
+        while (!refresh.IsCompleted)
+        {
+            Pump(DispatcherPriority.Background);
+        }
+
+        Pump();
+        var sw = new Stopwatch();
+        var elements = Elements(main);
+        // The app saves and re-applies every setting on this event (App.OnSettingsChanged): opening a page must not raise it.
+        var settingsChanged = 0;
+        main.SettingsChanged += () => settingsChanged++;
+        void Time(string what, Action action)
+        {
+            var allocated = GC.GetTotalAllocatedBytes();
+            var mine = GC.GetAllocatedBytesForCurrentThread();
+            var gen0 = GC.CollectionCount(0);
+            var gen2 = GC.CollectionCount(2);
+            var paused = GC.GetTotalPauseDuration();
+            var changed = settingsChanged;
+            sw.Restart();
+            if (what.Contains(Environment.GetEnvironmentVariable("HP_BENCH_TRACE_STEP") ?? "\0", StringComparison.Ordinal))
+            {
+                TracedStep(action);
+            }
+            else
+            {
+                action();
+                Pump();
+            }
+
+            var elapsed = sw.Elapsed.TotalMilliseconds;
+            var now = Elements(main);
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"[pages] {what,-40} {elapsed,8:N0} ms  alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1048576.0,6:N1} MB (UI {(GC.GetAllocatedBytesForCurrentThread() - mine) / 1048576.0,5:N1})  gen0 {GC.CollectionCount(0) - gen0,2} gen2 {GC.CollectionCount(2) - gen2}  GC pause {(GC.GetTotalPauseDuration() - paused).TotalMilliseconds,4:N0} ms  visuals {now,6:N0} ({now - elements:+#,0;-#,0;0})  SettingsChanged {settingsChanged - changed}"));
+            elements = now;
+            SettleArt(what);
+        }
+
+        foreach (var round in new[] { "first", "again" })
+        {
+            foreach (var page in new[] { "Battlegrounds", "Constructed", "Arena", "History", "Settings", "Overview" })
+            {
+                Time($"{round} {page}", () => main.ShowPage(page));
+            }
+        }
+
+        main.ShowPage("Settings");
+        Pump();
+        foreach (var round in new[] { "first", "again" })
+        {
+            foreach (var tab in new[] { "Overlay", "Tracker", "Account", "Data", "About", "General" })
+            {
+                Time($"{round} Settings/{tab}", () => main.ShowSettingsTab(tab));
+            }
+        }
+
+        foreach (var (page, tabs) in new[] { ("Battlegrounds", new[] { "TabComps", "TabTrinkets", "TabCards", "TabMine", "TabHeroes" }), ("Constructed", new[] { "TabMetaTiers", "TabMetaDecks", "TabMine" }) })
+        {
+            main.ShowPage(page);
+            Pump();
+            foreach (var tab in tabs)
+            {
+                if (main.FindName(tab) is ToggleButton { IsVisible: true } toggle)
+                {
+                    Time($"{page}/{tab}", () => toggle.IsChecked = true);
+                }
+            }
+        }
+
+        main.ShowPage("Constructed");
+        Pump();
+        if (vm.Decks.FirstOrDefault() is { } deck)
+        {
+            Time($"deck page ({vm.Decks.Count} decks)", () => vm.OpenDeck.Execute(deck));
+            Time("back to Constructed", () => vm.GoBack(main.CurrentPage));
+        }
+
+        main.ShowPage("History");
+        Pump();
+        if (vm.HistoryRows.FirstOrDefault() is { } game)
+        {
+            Time("match page", () =>
+            {
+                var open = vm.OpenMatchPageAsync(game.Key);
+                while (!open.IsCompleted)
+                {
+                    Pump(DispatcherPriority.Background);
+                }
+            });
+            Time("back to History", () => vm.GoBack(main.CurrentPage));
+        }
+
+        settings.SettingsTab = savedTab;
+        Close(main, settings);
+        GC.KeepAlive(app);
+    }
+
+    /// <summary>
     /// The overlay window with no Hearthstone window to follow (the app idling in the tray): CPU time of this process
     /// over 20 s. Run it while Hearthstone is closed.
     /// </summary>
@@ -331,7 +502,11 @@ internal static class WpfBench
         typeof(Application).GetField("_resourceAssembly", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, typeof(Hearthpulse.App.App).Assembly);
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         var settings = AppSettings.Load();
+        // As the app does before any window: the language decides every text (and a later switch rebuilds pages).
+        Core.Localization.Loc.Instance.SetLanguage(settings.InterfaceLanguage());
+        var theme = Stopwatch.StartNew();
         ThemeEngine.Apply(app, ThemePalette.Resolve(settings.Theme, settings.ThemeAccentHue, settings.ThemeBaseHue, settings.ThemeBaseTint));
+        Console.WriteLine($"[start] theme \"{settings.Theme}\" applied in {theme.Elapsed.TotalMilliseconds:N0} ms");
         return (app, settings);
     }
 
@@ -353,6 +528,70 @@ internal static class WpfBench
         settings.MinimizeToTray = false;
         window.Close();
         settings.MinimizeToTray = tray;
+    }
+
+    /// <summary>
+    /// Waits for the card art a step asked for (downloads and background decodes) so it does not bleed into the next
+    /// step, and reports what the burst cost the UI thread: the longest stall of a 16 ms timer, GCs and their pauses.
+    /// </summary>
+    private static void SettleArt(string what)
+    {
+        var pending = (System.Collections.ICollection)typeof(CardArt).GetField("Pending", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+        if (pending.Count == 0)
+        {
+            return;
+        }
+
+        var gen0 = GC.CollectionCount(0);
+        var gen2 = GC.CollectionCount(2);
+        var paused = GC.GetTotalPauseDuration();
+        var allocated = GC.GetTotalAllocatedBytes();
+        var sw = Stopwatch.StartNew();
+        var last = sw.Elapsed;
+        var worst = TimeSpan.Zero;
+        var ticks = 0;
+        var timer = new DispatcherTimer(TimeSpan.FromMilliseconds(16), DispatcherPriority.Input, (_, _) =>
+        {
+            var at = sw.Elapsed;
+            worst = at - last > worst ? at - last : worst;
+            last = at;
+            ticks++;
+        }, Dispatcher.CurrentDispatcher);
+        timer.Start();
+        var count = pending.Count;
+        while ((pending.Count > 0 || sw.ElapsedMilliseconds < 200) && sw.ElapsedMilliseconds < 15_000)
+        {
+            Pump(DispatcherPriority.Background);
+            count = Math.Max(count, pending.Count);
+        }
+
+        Pump();
+        timer.Stop();
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"[art]   {what,-40} {sw.Elapsed.TotalMilliseconds,8:N0} ms to load {count} images  alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1048576.0,6:N1} MB  gen0 {GC.CollectionCount(0) - gen0} gen2 {GC.CollectionCount(2) - gen2}  GC pause {(GC.GetTotalPauseDuration() - paused).TotalMilliseconds:N0} ms  UI stall max {worst.TotalMilliseconds:N0} ms"));
+    }
+
+    /// <summary>A step named by HP_BENCH_TRACE_STEP: its own frame, so a trace can be cut to it.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void TracedStep(Action action)
+    {
+        action();
+        Pump();
+    }
+
+    /// <summary>Visuals in the window's tree (templates that were never applied add none).</summary>
+    private static int Elements(System.Windows.Media.Visual root)
+    {
+        var count = 1;
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            if (System.Windows.Media.VisualTreeHelper.GetChild(root, i) is System.Windows.Media.Visual child)
+            {
+                count += Elements(child);
+            }
+        }
+
+        return count;
     }
 
     private static void Pump(DispatcherPriority until = DispatcherPriority.ApplicationIdle)

@@ -267,6 +267,10 @@ internal static class TickBench
             var namesProperty = game.GetProperty("Names", BindingFlags.NonPublic | BindingFlags.Static)!;
             var names = namesProperty.GetValue(null);
             namesProperty.SetValue(null, new[] { self });
+            // The stand-in has no Unity window: without this the closed-game lookups above hold off the next snapshot.
+            var mayBeRunning = game.GetProperty("MayBeRunning", BindingFlags.NonPublic | BindingFlags.Static);
+            var probe = mayBeRunning?.GetValue(null);
+            mayBeRunning?.SetValue(null, new Func<bool>(() => true));
             var mainWindow = game.GetMethod("MainWindow")!;
             var isRunning = game.GetMethod("IsRunning")!;
             Lookup("window, game running: GameProcess.MainWindow", () =>
@@ -278,6 +282,7 @@ internal static class TickBench
             });
             Lookup("running?, game running: GameProcess.IsRunning", () => isRunning.Invoke(null, null));
             namesProperty.SetValue(null, names);
+            mayBeRunning?.SetValue(null, probe);
         }
 
         stand.Close();

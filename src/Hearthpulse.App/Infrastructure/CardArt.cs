@@ -1,6 +1,8 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -54,6 +56,13 @@ public static class CardArt
     /// asks for dozens of cards at once) must not eat the whole machine.
     /// </summary>
     private static readonly SemaphoreSlim Decodes = new(4);
+
+    /// <summary>
+    /// Pixel buffers for trimming art. A portrait needed two fresh 160 KB arrays, both on the large object heap; a bitmap
+    /// copies its pixels, so the buffer is handed back right after. Kept: one per running decode and size up to 256 KB
+    /// (about 1.3 MB with portraits and tiles); splash art (1 MB) is rare and not kept.
+    /// </summary>
+    private static readonly ArrayPool<byte> PixelBuffers = ArrayPool<byte>.Create(256 * 1024, 4);
 
     public static HttpClient? Http { get; set; }
 
@@ -370,25 +379,32 @@ public static class CardArt
     private static BitmapSource FadeTileMargin(BitmapSource bitmap)
     {
         // A failure here keeps the art as it is: the caller would delete the cached file as unreadable.
+        byte[]? buffer = null;
         try
         {
             var pixels = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
             var stride = pixels.PixelWidth * 4;
-            var buffer = new byte[stride * pixels.PixelHeight];
-            pixels.CopyPixels(buffer, stride, 0);
-            if (!ArtTrim.CleanTile(buffer, pixels.PixelWidth, pixels.PixelHeight, stride, premultiplied: false))
+            var size = stride * pixels.PixelHeight;
+            buffer = PixelBuffers.Rent(size);
+            pixels.CopyPixels(Int32Rect.Empty, buffer, stride, 0);
+            if (!ArtTrim.CleanTile(buffer.AsSpan(0, size), pixels.PixelWidth, pixels.PixelHeight, stride, premultiplied: false))
             {
                 return bitmap;
             }
 
-            var faded = BitmapSource.Create(pixels.PixelWidth, pixels.PixelHeight, bitmap.DpiX, bitmap.DpiY, PixelFormats.Bgra32, null, buffer, stride);
-            faded.Freeze();
-            return faded;
+            return Bitmap(bitmap, pixels.PixelWidth, pixels.PixelHeight, buffer, stride);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             Diag.Error("Tile margin was not faded", ex);
             return bitmap;
+        }
+        finally
+        {
+            if (buffer is not null)
+            {
+                PixelBuffers.Return(buffer);
+            }
         }
     }
 
@@ -396,33 +412,60 @@ public static class CardArt
     private static BitmapSource TrimMargins(BitmapSource bitmap)
     {
         // A failure here keeps the art as it is: the caller would delete the cached file as unreadable.
+        byte[]? buffer = null;
         try
         {
             var pixels = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
             var stride = pixels.PixelWidth * 4;
-            var buffer = new byte[stride * pixels.PixelHeight];
-            pixels.CopyPixels(buffer, stride, 0);
-            if (ArtTrim.FindSquare(buffer, pixels.PixelWidth, pixels.PixelHeight, stride) is not { } crop)
+            var size = stride * pixels.PixelHeight;
+            buffer = PixelBuffers.Rent(size);
+            pixels.CopyPixels(Int32Rect.Empty, buffer, stride, 0);
+            if (ArtTrim.FindSquare(buffer.AsSpan(0, size), pixels.PixelWidth, pixels.PixelHeight, stride) is not { } crop)
             {
                 return bitmap;
             }
 
-            // A copy of the square only: a CroppedBitmap would keep the whole decoded source alive in the cache.
+            // A copy of the square only: a CroppedBitmap would keep the whole decoded source alive in the cache. The
+            // square's rows move to the front of the same buffer: each lands at or before where it was read, and past
+            // every row still to be read, so no second buffer is needed.
             var squareStride = crop.Size * 4;
-            var square = new byte[squareStride * crop.Size];
             for (var row = 0; row < crop.Size; row++)
             {
-                Buffer.BlockCopy(buffer, ((crop.Y + row) * stride) + (crop.X * 4), square, row * squareStride, squareStride);
+                Buffer.BlockCopy(buffer, ((crop.Y + row) * stride) + (crop.X * 4), buffer, row * squareStride, squareStride);
             }
 
-            var cropped = BitmapSource.Create(crop.Size, crop.Size, bitmap.DpiX, bitmap.DpiY, PixelFormats.Bgra32, null, square, squareStride);
-            cropped.Freeze();
-            return cropped;
+            return Bitmap(bitmap, crop.Size, crop.Size, buffer, squareStride);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             Diag.Error("Art margins were not trimmed", ex);
             return bitmap;
+        }
+        finally
+        {
+            if (buffer is not null)
+            {
+                PixelBuffers.Return(buffer);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A frozen BGRA bitmap of the first <paramref name="height"/> rows of a pooled buffer. Given the array, WPF sizes its
+    /// copy by the array's length, which a pooled buffer exceeds: every cached portrait kept up to 100 KB more.
+    /// </summary>
+    private static BitmapSource Bitmap(BitmapSource like, int width, int height, byte[] pixels, int stride)
+    {
+        var pinned = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+        try
+        {
+            var bitmap = BitmapSource.Create(width, height, like.DpiX, like.DpiY, PixelFormats.Bgra32, null, pinned.AddrOfPinnedObject(), stride * height, stride);
+            bitmap.Freeze();
+            return bitmap;
+        }
+        finally
+        {
+            pinned.Free();
         }
     }
 }

@@ -7,6 +7,7 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Stats;
 using Hearthpulse.Core.Tracking;
 using static Hearthpulse.Bench.Measure;
@@ -137,6 +138,124 @@ internal static class CoreBench
     }
 
     /// <summary>Runs <see cref="CacheCleanup"/> on the data copy's cache and prints its size per folder before and after.</summary>
+    /// <summary>
+    /// The log pipeline the app runs all day: a LogWatcher on the installed game's logs feeding a GameSession that asks
+    /// whether Hearthstone runs, as in the app (memory is not read). CPU time of this process over 20 s after it caught
+    /// up; run it while Hearthstone is closed (idle) or open in the menu.
+    /// </summary>
+    public static void Watch()
+    {
+        using var http = Http();
+        var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
+        var install = HearthstoneInstall.FindInstallDirectory(null);
+        var db = Path.Combine(Path.GetTempPath(), $"hp-bench-{Guid.NewGuid():N}.db");
+        var session = new GameSession(new HistoryStore(db), new Core.Memory.HearthstoneMemory()) { ReadsMemory = false, Cards = cards };
+        var snapshots = 0;
+        session.SnapshotChanged += _ => snapshots++;
+        using (var watcher = new Core.Logs.LogWatcher(session, () => install))
+        {
+            watcher.Start();
+            Thread.Sleep(5000);
+            using var process = Process.GetCurrentProcess();
+            void Window(string what)
+            {
+                process.Refresh();
+                var cpu = process.TotalProcessorTime;
+                var user = process.UserProcessorTime;
+                var published = snapshots;
+                var gen0 = GC.CollectionCount(0);
+                var allocated = GC.GetTotalAllocatedBytes();
+                Thread.Sleep(20_000);
+                process.Refresh();
+                var used = process.TotalProcessorTime - cpu;
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                    $"[watch] {what}: CPU {used.TotalMilliseconds:N0} ms in 20 s ({used.TotalMilliseconds / 20:N1} ms/s, user {(process.UserProcessorTime - user).TotalMilliseconds:N0} ms), "
+                    + $"alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1024.0 / 20:N1} KB/s, gen0 {GC.CollectionCount(0) - gen0}, snapshots {snapshots - published}"));
+            }
+
+            Window($"install {install ?? "none"}, game running {HearthstoneInstall.IsRunning()}");
+            // The same without the "is Hearthstone running" check: what the log files alone cost.
+            session.IsHearthstoneRunning = () => false;
+            Window("without the process check");
+        }
+
+        LogReplay.Delete(db);
+    }
+
+    /// <summary>
+    /// What one idle pass of the log watcher costs (the four tails read with nothing new, the unread bytes and the
+    /// Power.log size it reports) and one "is Hearthstone running" with the game closed, on this thread's CPU clock.
+    /// Builds against the commit before stage 4 too (the sizes the read saw are looked up by name).
+    /// </summary>
+    public static void Poll()
+    {
+        var install = HearthstoneInstall.FindInstallDirectory(null);
+        var latest = install is null ? null : HearthstoneInstall.LatestLogSession(install);
+        if (latest is null)
+        {
+            Console.WriteLine("[poll] no Hearthstone log session found");
+            return;
+        }
+
+        var tails = new[] { "LoadingScreen.log", "Decks.log", "Power.log", "Arena.log" }.Select(n => new Core.Logs.LogTail(n)).ToArray();
+        foreach (var tail in tails)
+        {
+            tail.Reset(latest, Core.Logs.TailStart.End);
+        }
+
+        var type = typeof(Core.Logs.LogTail);
+        var pending = type.GetProperty("SeenPendingBytes") ?? type.GetProperty(nameof(Core.Logs.LogTail.PendingBytes))!;
+        var size = type.GetProperty("SeenLength") ?? type.GetProperty(nameof(Core.Logs.LogTail.FileLength))!;
+        long sink = 0;
+        void Pass()
+        {
+            foreach (var tail in tails)
+            {
+                sink += tail.ReadNewLines().Count;
+            }
+
+            foreach (var tail in tails)
+            {
+                sink += (long)pending.GetValue(tail)!;
+            }
+
+            sink += (long)size.GetValue(tails[2])!;
+        }
+
+        Console.WriteLine($"[poll] {Path.GetFileName(latest)}: {string.Join(", ", tails.Select(t => $"{t.FileName} {(File.Exists(Path.Combine(latest, t.FileName)) ? "present" : "missing")}"))}; reads {pending.Name}/{size.Name}");
+        CpuTimed("idle watcher pass", 2000, Pass);
+        CpuTimed($"IsRunning, game {(Process.GetProcessesByName("Hearthstone").Length > 0 ? "RUNNING" : "closed")}", 50, () => sink += HearthstoneInstall.IsRunning() ? 1 : 0);
+        GC.KeepAlive(sink);
+    }
+
+    /// <summary>Wall time and this thread's kernel and user time per call.</summary>
+    private static void CpuTimed(string what, int calls, Action action)
+    {
+        action();
+        ThreadTimes(out var kernel, out var user);
+        var sw = Stopwatch.StartNew();
+        for (var i = 0; i < calls; i++)
+        {
+            action();
+        }
+
+        sw.Stop();
+        ThreadTimes(out var kernel2, out var user2);
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"[poll] {what,-32} wall {sw.Elapsed.TotalMilliseconds * 1000 / calls,8:N1} us  kernel {(kernel2 - kernel) / 10.0 / calls,8:N1} us  user {(user2 - user) / 10.0 / calls,8:N1} us per call ({calls} calls)"));
+    }
+
+    private static void ThreadTimes(out long kernel, out long user)
+    {
+        GetThreadTimes(GetCurrentThread(), out _, out _, out kernel, out user);
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentThread();
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern bool GetThreadTimes(IntPtr thread, out long creation, out long exit, out long kernel, out long user);
+
     public static void Cleanup()
     {
         void Sizes(string when)

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Hearthpulse.Core.Hearthstone;
 
@@ -12,6 +13,24 @@ public static class GameProcess
 {
     private static readonly object Gate = new();
     private static Process? _held;
+
+    /// <summary>
+    /// With the game closed a snapshot found nothing, at 11 ms of kernel time with about 470 processes, and the overlay
+    /// and the session asked for one more than once a second all day. Now a snapshot runs at most this often, or at once
+    /// when a Unity window appears (the game's window comes up seconds after its process).
+    /// </summary>
+    private const long SnapshotGapMs = 10_000;
+
+    private static long _nextSnapshot;
+
+    /// <summary>
+    /// False only when the game cannot be running with a window: on Windows, no top-level Unity window exists. A few
+    /// microseconds instead of a snapshot; elsewhere always true. Tests and the bench replace it.
+    /// </summary>
+    internal static Func<bool> MayBeRunning { get; set; } = () => !OperatingSystem.IsWindows() || FindWindowW("UnityWndClass", null) != IntPtr.Zero;
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindowW(string? className, string? windowName);
 
     /// <summary>
     /// Process names that count as the game (the bench points it at itself). Windows drops ".exe" from process names, so
@@ -71,6 +90,17 @@ public static class GameProcess
         }
     }
 
+    /// <summary>Drops the held process and the snapshot gap (tests).</summary>
+    internal static void Forget()
+    {
+        lock (Gate)
+        {
+            _held?.Dispose();
+            _held = null;
+            _nextSnapshot = 0;
+        }
+    }
+
     /// <summary>When the running game started, or null.</summary>
     public static DateTime? StartTime()
     {
@@ -87,7 +117,10 @@ public static class GameProcess
         }
     }
 
-    /// <summary>The held process while it runs, else a snapshot by name (the first match is kept). Under <see cref="Gate"/>.</summary>
+    /// <summary>
+    /// The held process while it runs, else a snapshot by name (the first match is kept), at most every
+    /// <see cref="SnapshotGapMs"/> while no Unity window exists. Under <see cref="Gate"/>.
+    /// </summary>
     private static Process? Held()
     {
         if (_held is { } held)
@@ -106,8 +139,17 @@ public static class GameProcess
 
             held.Dispose();
             _held = null;
+            // The game just closed (or cannot be checked by handle): look again at once.
+            _nextSnapshot = 0;
         }
 
+        var now = Environment.TickCount64;
+        if (now < _nextSnapshot && !MayBeRunning())
+        {
+            return null;
+        }
+
+        _nextSnapshot = now + SnapshotGapMs;
         foreach (var name in Names)
         {
             Process? found = null;
