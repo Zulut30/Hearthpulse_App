@@ -46,6 +46,21 @@ public sealed class ArenaDraftTests : IDisposable
     }
 
     [Fact]
+    public void A_null_where_the_api_sends_an_object_reads_as_missing()
+    {
+        var data = JsonSerializer.Deserialize<JsonElement>("""
+            {"structured":{"upstream_freshness":null,"cards":[{"card_id":"CS2_087","score":61.5}]}}
+            """);
+
+        var small = JsonSerializer.SerializeToElement(HearthpulseData.ShrinkArenaCards(data));
+        var (cards, fetchedAt) = HearthpulseData.ParseArenaCards(data);
+
+        Assert.Equal("CS2_087", Assert.Single(cards).CardId);
+        Assert.Null(fetchedAt);
+        Assert.Single(HearthpulseData.ParseArenaCards(small).Cards);
+    }
+
+    [Fact]
     public void The_cache_keeps_a_small_copy_that_parses_the_same()
     {
         var data = Data("arena-cards.json");

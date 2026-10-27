@@ -634,11 +634,12 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     private static IEnumerable<JsonElement> Items(JsonElement list, JsonValueKind kind = JsonValueKind.Object) =>
         list.ValueKind == JsonValueKind.Array ? list.EnumerateArray().Where(e => e.ValueKind == kind) : [];
 
+    // A field of another shape (null where an object was expected) reads as missing instead of throwing.
     private static string? Str(JsonElement e, string name) =>
-        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+        e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
     private static double? Num(JsonElement e, string name) =>
-        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
+        e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
 
     /// <summary>"22.00%" or 22.0.</summary>
     private static double Percent(JsonElement e) => e.ValueKind switch
