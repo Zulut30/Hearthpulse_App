@@ -43,3 +43,9 @@ Ground rules: restore with `--source https://api.nuget.org/v3/index.json`; run t
 player can see; after the match the review may show everything the log revealed by the end of the game (the match
 page only, `docs/match-replay.md`); every user-facing feature goes into both UIs.
 
+**Default workflow (owner's standing permission, 2026-10-27).** The coordinating session (the one the owner talks to
+in `D:\HeartLens-main`) carries every feature or fix task end to end with `hearthpulse-ship`: sessions in worktrees,
+verify, merge into `main`, push, rebuild and restart the app, delete the finished sessions, with no "commit? merge?
+push?" questions. A session started in a `wt-*` worktree commits to its own `claude/*` branch only and never merges
+or pushes. Releases (version bump, tag) still wait for the owner's word.
+

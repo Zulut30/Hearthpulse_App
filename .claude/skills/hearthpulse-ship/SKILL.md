@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-ship
-description: Use when the user hands over a Hearthpulse task and wants it carried from request to a working feature in the app without confirmations - split into sessions, verify, merge into main, push, build, restart the app, delete the finished sessions. Triggers - "/hearthpulse-ship", "доведи до приложения", "от задачи до готовой функции", "сделай и залей", "без подтверждений", or any feature/fix request while this flow is the agreed default.
+description: Use when the user hands over a Hearthpulse task and wants it carried from request to a working feature in the app without confirmations - split into sessions, verify, merge into main, push, build, restart the app, delete the finished sessions. Triggers - "/hearthpulse-ship", "доведи до приложения", "от задачи до готовой функции", "сделай и залей", "без подтверждений". On by default - any feature or fix request in the coordinating session.
 ---
 
 # From a task to a working feature in the app
