@@ -173,6 +173,53 @@ public sealed class OpponentHandTests
     }
 
     [Fact]
+    public void The_opening_hand_and_a_skinned_coin_are_marked_in_the_real_order()
+    {
+        // Real logs set TURN=1 before the deal; the Coin is a skin (EDR_COIN1) marked COIN_CARD=1 and dealt with the hand.
+        var hand = Hand(
+        [
+            "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=1 ",
+            .. Card(40, "", "DECK", 2, "tag=CARDTYPE value=MINION"),
+            .. Card(41, "", "DECK", 2, "tag=CARDTYPE value=MINION"),
+            ToHand(40, "DECK"),
+            .. Card(77, "EDR_COIN1", "HAND", 2, "tag=CARDTYPE value=SPELL", "tag=COIN_CARD value=1"),
+            "DebugPrintPower() - TAG_CHANGE Entity=3 tag=MULLIGAN_STATE value=INPUT ",
+            "DebugPrintPower() - TAG_CHANGE Entity=3 tag=MULLIGAN_STATE value=DONE ",
+        ],
+        ToHand(41, "DECK"));
+
+        var dealt = hand.Single(h => h.EntityId == 40);
+        Assert.Equal(HandCardOrigin.Mulligan, dealt.Origin);
+        Assert.True(dealt.FromMulligan);
+        var coin = hand.Single(h => h.EntityId == 77);
+        Assert.True(coin.IsCoin);
+        Assert.Equal(HandCardOrigin.Coin, coin.Origin);
+        var drawn = hand.Single(h => h.EntityId == 41);
+        Assert.Equal(HandCardOrigin.Drawn, drawn.Origin);
+        Assert.False(drawn.FromMulligan);
+        Assert.Equal(3, drawn.Turn);
+    }
+
+    [Fact]
+    public void A_deck_card_that_transformed_in_hand_still_left_the_deck()
+    {
+        // Real log 2026-10-23 18:29: BE_781 drawn, then CHANGE_ENTITY to BE_781t4 in hand.
+        var deck = new DeckDefinition("Priest", 1, "code", "FT_STANDARD", [813], new Dictionary<int, int> { [120003] = 2 });
+        var view = View(new ConstructedTracker { Deck = deck }, "FT_STANDARD",
+        [
+            .. Card(30, "", "DECK", 1, "tag=CARDTYPE value=MINION"),
+            .. Card(31, "", "DECK", 1, "tag=CARDTYPE value=MINION"),
+        ],
+        "DebugPrintPower() - SHOW_ENTITY - Updating Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=30 zone=DECK zonePos=0 cardId= player=1] CardID=BE_012",
+        "DebugPrintPower() -     tag=ZONE value=HAND",
+        "DebugPrintPower() - CHANGE_ENTITY - Updating Entity=[entityName=Dark Deacon id=30 zone=HAND zonePos=2 cardId=BE_012 player=1] CardID=BE_014",
+        "DebugPrintPower() -     tag=CARDTYPE value=MINION");
+
+        var row = view.Deck.Single(r => r.CardId == "BE_012");
+        Assert.Equal(1, row.Remaining);
+    }
+
+    [Fact]
     public void A_coin_made_mid_game_is_a_created_card()
     {
         var slot = Assert.Single(Hand([], Card(6, "GAME_005", "HAND", 2, "tag=CARDTYPE value=SPELL")));

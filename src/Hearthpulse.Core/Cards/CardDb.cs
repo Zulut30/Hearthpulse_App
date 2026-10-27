@@ -118,7 +118,7 @@ public sealed class CardDb
                 File.Move(temp, path, overwrite: true);
                 Diag.Info($"Card data refreshed ({locale}, {bytes.Length:N0} bytes)");
             }
-            catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException or JsonException)
+            catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException or TaskCanceledException or JsonException)
             {
                 Diag.Error("Card data download failed", ex);
             }
@@ -134,7 +134,7 @@ public sealed class CardDb
             await using var stream = File.OpenRead(path);
             return ParseList(stream);
         }
-        catch (Exception ex) when (ex is JsonException or IOException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             Diag.Error("Card data unreadable", ex);
             return [];

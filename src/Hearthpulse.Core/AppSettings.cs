@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Hearthpulse.Core;
@@ -306,11 +307,52 @@ public sealed class AppSettings
             {
                 unpreserved = path;
             }
+            else if (ex is JsonException && Salvage(path) is { } salvaged)
+            {
+                return salvaged;
+            }
         }
 
         var fresh = new AppSettings { _unpreservedFile = unpreserved };
         fresh.Migrate();
         return fresh;
+    }
+
+    /// <summary>
+    /// Keeps every setting of a file that failed to load except the values that cannot be read (a null number, an enum
+    /// name from another version...): one bad value must not reset the overlay layout, the pool id and the rest. Null
+    /// when the file is not a JSON object at all.
+    /// </summary>
+    private static AppSettings? Salvage(string path)
+    {
+        try
+        {
+            if (JsonNode.Parse(File.ReadAllText(path)) is not JsonObject file)
+            {
+                return null;
+            }
+
+            var kept = new JsonObject();
+            foreach (var (name, value) in file)
+            {
+                var one = new JsonObject { [name] = value?.DeepClone() };
+                try
+                {
+                    JsonSerializer.Deserialize<AppSettings>(one.ToJsonString(), Json);
+                    kept[name] = value?.DeepClone();
+                }
+                catch (JsonException)
+                {
+                    Diag.Info($"Setting {name} unreadable, using its default");
+                }
+            }
+
+            return FromJson(kept.ToJsonString());
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Reads settings saved by this or an older version and brings them up to date.</summary>

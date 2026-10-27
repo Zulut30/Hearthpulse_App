@@ -39,7 +39,7 @@ public static class LogBackfill
 
                 sessions++;
                 progress?.Report($"Reading {Path.GetFileName(session)}");
-                foreach (var record in Parse(path, DateOnly.FromDateTime(start.Value), cards, cancellationToken, replays))
+                foreach (var record in Parse(path, start.Value, cards, cancellationToken, replays))
                 {
                     found++;
                     if (history.Add(record))
@@ -97,11 +97,11 @@ public static class LogBackfill
     /// The finished games of one Power log. With <paramref name="replays"/>, each game's match replay is saved there
     /// (a replay already saved for the game is kept).
     /// </summary>
-    public static IReadOnlyList<GameRecord> Parse(string powerLogPath, DateOnly date, CardDb cards, CancellationToken cancellationToken = default,
+    public static IReadOnlyList<GameRecord> Parse(string powerLogPath, DateTime sessionStart, CardDb cards, CancellationToken cancellationToken = default,
         Replay.ReplayStore? replays = null)
     {
         var records = new List<GameRecord>();
-        var parser = new PowerParser(date);
+        var parser = new PowerParser(sessionStart);
         var constructed = new ConstructedTracker();
         var battlegrounds = new BattlegroundsTracker { Cards = cards };
         var facts = new GameFactsTracker();

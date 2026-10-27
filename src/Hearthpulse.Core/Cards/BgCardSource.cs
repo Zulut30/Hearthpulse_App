@@ -119,7 +119,7 @@ public sealed class BgCardDb
             await using var stream = File.OpenRead(path);
             return Parse(stream);
         }
-        catch (Exception ex) when (ex is JsonException or IOException)
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             Diag.Error("BG card supplement unreadable", ex);
             return Empty;
@@ -136,7 +136,9 @@ public sealed class BgCardDb
         {
             var url = string.Format(ListUrl, PageSize, offset);
             using var doc = await GetJsonAsync(http, url, cancellationToken).ConfigureAwait(false);
-            if (doc is null || !doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+            // A third-party answer of another shape ends the download; it must not escape from a "never throws" load.
+            if (doc is null || doc.RootElement.ValueKind != JsonValueKind.Object
+                || !doc.RootElement.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
             {
                 break;
             }
@@ -148,16 +150,17 @@ public sealed class BgCardDb
                 count++;
             }
 
-            if (doc.RootElement.TryGetProperty("pagination", out var pagination))
+            if (doc.RootElement.TryGetProperty("pagination", out var pagination) && pagination.ValueKind == JsonValueKind.Object)
             {
-                if (pagination.TryGetProperty("total", out var t) && t.ValueKind == JsonValueKind.Number)
+                if (pagination.TryGetProperty("total", out var t) && t.ValueKind == JsonValueKind.Number && t.TryGetInt32(out var totalValue))
                 {
-                    total = t.GetInt32();
+                    total = totalValue;
                 }
 
-                if (pagination.TryGetProperty("nextOffset", out var next) && next.ValueKind == JsonValueKind.Number)
+                if (pagination.TryGetProperty("nextOffset", out var next) && next.ValueKind == JsonValueKind.Number
+                    && next.TryGetInt32(out var nextOffset) && nextOffset > offset)
                 {
-                    offset = next.GetInt32();
+                    offset = nextOffset;
                 }
                 else
                 {
@@ -189,7 +192,7 @@ public sealed class BgCardDb
             File.Move(path + ".tmp", path, overwrite: true);
             Diag.Info($"BG card supplement refreshed ({items.Count} cards)");
         }
-        catch (Exception ex) when (ex is IOException or TaskCanceledException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TaskCanceledException)
         {
             Diag.Error("BG card supplement not saved", ex);
         }

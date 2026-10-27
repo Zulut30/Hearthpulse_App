@@ -41,6 +41,7 @@ public sealed partial class PowerParser
     private readonly List<IPowerListener> _listeners = new();
     private DateOnly _date;
     private TimeSpan _lastTime = TimeSpan.MinValue;
+    private (DateOnly Date, TimeSpan Time)? _gameClock;
 
     private Entity? _tagTarget;
     private bool _tagTargetIsNew;
@@ -55,6 +56,17 @@ public sealed partial class PowerParser
     public PowerParser(DateOnly date)
     {
         _date = date;
+    }
+
+    /// <summary>
+    /// A parser for a log session started at <paramref name="sessionStart"/> (local time, as the log writes it). The
+    /// first line is compared with that time too: joining a session at a game that began after midnight dates it the
+    /// next day.
+    /// </summary>
+    public PowerParser(DateTime sessionStart)
+    {
+        _date = DateOnly.FromDateTime(sessionStart);
+        _lastTime = sessionStart.TimeOfDay;
     }
 
     public GameState? Game { get; private set; }
@@ -126,6 +138,13 @@ public sealed partial class PowerParser
     public void ResetGame()
     {
         Flush();
+        // The replay starts again at the game's CREATE_GAME line: rewind the clock to it, or a game that crossed
+        // midnight would be replayed a day late.
+        if (Game is not null && _gameClock is { } clock)
+        {
+            (_date, _lastTime) = clock;
+        }
+
         Game = null;
         _tagTarget = null;
         _choiceType = null;
@@ -396,6 +415,7 @@ public sealed partial class PowerParser
             if (entity.InHand)
             {
                 entity.EnteredHandTurn = game.Turn;
+                entity.EnteredOpeningHand = game.InOpeningHand(entity.Controller);
             }
 
             game.TryResolveLocalPlayer();
@@ -422,6 +442,7 @@ public sealed partial class PowerParser
             if (value == "HAND")
             {
                 entity.EnteredHandTurn = game.Turn;
+                entity.EnteredOpeningHand = game.InOpeningHand(entity.Controller);
             }
             else if (previous == "HAND")
             {
@@ -450,6 +471,7 @@ public sealed partial class PowerParser
             AbandonCurrentGame();
         }
 
+        _gameClock = (_date, _lastTime);
         Game = new GameState { StartedAt = LastTimestamp, LastActivity = LastTimestamp };
         foreach (var listener in _listeners) listener.OnGameStarted(Game);
     }

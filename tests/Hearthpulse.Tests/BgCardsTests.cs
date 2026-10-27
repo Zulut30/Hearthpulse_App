@@ -1,4 +1,6 @@
+using System.Net;
 using System.Text;
+using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
 using Xunit;
 
@@ -97,5 +99,26 @@ public sealed class BgCardsTests
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
         return CardDb.ParseList(stream);
+    }
+
+    // The only test that loads the cached supplement file; the answers it gets are ones hsbg.cards could send.
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("""{"data":[{"id":3,"externalId":"SPELL_1","name":"A Spell","tier":2,"cardType":"spell","categories":["tavern"]}],"pagination":null}""")]
+    [InlineData("""{"data":[{"id":3,"externalId":"SPELL_1","name":"A Spell","tier":2,"cardType":"spell","categories":["tavern"]}],"pagination":{"total":1.5,"nextOffset":1e12}}""")]
+    public async Task An_odd_answer_from_hsbg_cards_does_not_throw(string answer)
+    {
+        File.Delete(Path.Combine(AppPaths.Cache, "bgcards.hsbg.json"));
+        using var http = new HttpClient(new Answer(answer));
+
+        var db = await BgCardDb.LoadAsync(http);
+
+        Assert.NotNull(db);
+    }
+
+    private sealed class Answer(string body) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
     }
 }

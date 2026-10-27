@@ -84,4 +84,13 @@ public sealed class HistoryAggregateTests : IDisposable
             Assert.Equal(distribution, store.PlacementDistribution(mode));
         }
     }
+
+    [Fact]
+    public void A_class_win_rate_leaves_ties_out_like_the_deck_and_matchup_rates()
+    {
+        var mage = new ClassAggregate("MAGE", "Ranked", Games: 3, Wins: 1, Losses: 1);
+
+        Assert.Equal(0.5, mage.WinRate);
+        Assert.Equal(new DeckAggregate("Mage", null, "MAGE", 3, 1, 1, DateTime.Today).WinRate, mage.WinRate);
+    }
 }

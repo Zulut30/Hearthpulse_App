@@ -234,7 +234,17 @@ public sealed class CardPoolCatalog
                 try
                 {
                     var bytes = await http.GetByteArrayAsync("https://api.hearthstonejson.com/v1/latest/enUS/cards.collectible.json", cancellationToken).ConfigureAwait(false);
-                    await File.WriteAllBytesAsync(path, bytes, cancellationToken).ConfigureAwait(false);
+                    // Only a card list replaces the file: a page from a captive portal or a cut-off body would be kept
+                    // for two days and leave the pool empty. Written through a temp file, so a crash leaves the old one.
+                    if (ParseHearthstoneJson(new MemoryStream(bytes)).Count > 0)
+                    {
+                        await File.WriteAllBytesAsync(path + ".tmp", bytes, cancellationToken).ConfigureAwait(false);
+                        File.Move(path + ".tmp", path, overwrite: true);
+                    }
+                }
+                catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+                {
+                    Diag.Info($"Card pool: HearthstoneJSON answer unreadable ({ex.Message})");
                 }
                 catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
                 {
@@ -253,7 +263,7 @@ public sealed class CardPoolCatalog
             Diag.Info($"Card pool: {cards.Count} cards from HearthstoneJSON (API unavailable)");
             return new CardPoolCatalog(cards, HearthstoneJsonSource, File.GetLastWriteTimeUtc(path));
         }
-        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException or InvalidOperationException)
         {
             Diag.Error("Card pool: HearthstoneJSON fallback failed", ex);
             return Empty;

@@ -37,7 +37,7 @@ public sealed class RealLogTests(ITestOutputHelper output)
         }
     }
 
-    private static IEnumerable<(string Path, DateOnly Date)> PowerLogs()
+    private static IEnumerable<(string Path, DateTime Start)> PowerLogs()
     {
         if (!Directory.Exists(LogRoot))
         {
@@ -52,7 +52,7 @@ public sealed class RealLogTests(ITestOutputHelper output)
                 var file = Path.Combine(dir, name);
                 if (start is not null && File.Exists(file))
                 {
-                    yield return (file, DateOnly.FromDateTime(start.Value));
+                    yield return (file, start.Value);
                 }
             }
         }
@@ -62,9 +62,9 @@ public sealed class RealLogTests(ITestOutputHelper output)
     public void Backfill_parses_every_kept_log_into_sane_records()
     {
         var total = 0;
-        foreach (var (path, date) in PowerLogs())
+        foreach (var (path, start) in PowerLogs())
         {
-            var records = LogBackfill.Parse(path, date, Cards);
+            var records = LogBackfill.Parse(path, start, Cards);
             foreach (var r in records)
             {
                 output.WriteLine($"{r.StartedAt:g} {r.Mode,-13} {r.PlayerName,-14} hero={Cards.NameOf(r.HeroCardId),-22} place={r.Placement} result={r.Result} turns={r.Turns} tier={r.TavernTier} vs={r.OpponentClass}");
@@ -96,7 +96,7 @@ public sealed class RealLogTests(ITestOutputHelper output)
             return;
         }
 
-        var replay = BattlegroundsReplay.Run(SharedLines(log.Path), log.Date, Cards, every: 10);
+        var replay = BattlegroundsReplay.Run(SharedLines(log.Path), DateOnly.FromDateTime(log.Start), Cards, every: 10);
         Assert.NotNull(replay.HeroPick);
         Assert.InRange(replay.HeroPick!.HeroOptions.Count, 2, 4);
         Assert.NotNull(replay.Best);
