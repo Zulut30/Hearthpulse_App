@@ -10,6 +10,12 @@ public sealed record ArenaCardScore(string CardId, int DbfId, double? Score, dou
 {
     /// <summary>Tier letter of <see cref="Score"/>, or null without a score.</summary>
     public string? Tier => ArenaMeta.TierOf(Score);
+
+    /// <summary>Win rate of the games the card was drawn in (any turn), 0..1; null when the server did not send it.</summary>
+    public double? DrawnWinRate { get; init; }
+
+    /// <summary>Win rate of the games the card was played in, 0..1; null when the server did not send it.</summary>
+    public double? PlayedWinRate { get; init; }
 }
 
 /// <summary>Community results of one Arena class.</summary>

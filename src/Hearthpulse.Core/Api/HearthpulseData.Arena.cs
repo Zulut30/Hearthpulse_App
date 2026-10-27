@@ -55,7 +55,7 @@ public sealed partial class HearthpulseData
 
     /// <summary>
     /// The card dataset is about 1.7 MB, most of it repeated (the list is published twice) or unused by the app: the
-    /// cache keeps the fetch time and, per card, the id, dbf id, score, win rate, pick rate and games.
+    /// cache keeps the fetch time and, per card, the id, dbf id, score, win rates (deck, drawn, played), pick rate and games.
     /// </summary>
     internal static object ShrinkArenaCards(JsonElement data)
     {
@@ -74,6 +74,8 @@ public sealed partial class HearthpulseData
                 ["win_rate"] = Num(c, "win_rate"),
                 ["pick_rate"] = Num(c, "pick_rate"),
                 ["times_played"] = Num(c, "times_played"),
+                ["winrate_when_drawn"] = PercentOrNull(c, "winrate_when_drawn"),
+                ["winrate_when_played"] = PercentOrNull(c, "winrate_when_played"),
             })
             .ToList();
         var observed = structured.TryGetProperty("upstream_freshness", out var fresh) ? Str(fresh, "observed_at") : null;
@@ -82,7 +84,7 @@ public sealed partial class HearthpulseData
 
     /// <summary>
     /// Parses the card answer, whole (<c>structured.cards</c>) or as the cache keeps it (<c>cards</c>). Percentages
-    /// arrive as 0-100; a card without an id is skipped.
+    /// arrive as 0-100 (the drawn / played win rates as "64.40%" text); a card without an id is skipped.
     /// </summary>
     internal static (IReadOnlyList<ArenaCardScore> Cards, DateTime? FetchedAt) ParseArenaCards(JsonElement data)
     {
@@ -109,7 +111,11 @@ public sealed partial class HearthpulseData
                 Num(c, "score") is { } score && double.IsFinite(score) ? score : null,
                 Num(c, "win_rate") / 100,
                 Num(c, "pick_rate") / 100,
-                (int)(Num(c, "times_played") ?? 0)));
+                (int)(Num(c, "times_played") ?? 0))
+            {
+                DrawnWinRate = PercentOrNull(c, "winrate_when_drawn") / 100,
+                PlayedWinRate = PercentOrNull(c, "winrate_when_played") / 100,
+            });
         }
 
         return (cards, ParseTime(fetchedAt));
@@ -159,6 +165,13 @@ public sealed partial class HearthpulseData
         var match = url is null ? null : System.Text.RegularExpressions.Regex.Match(url, @"ArenaGameTypeFilter=(BGT_[A-Z_]+)");
         return match is { Success: true } ? match.Groups[1].Value : null;
     }
+
+    /// <summary>"64.40%" or 64.4 as 64.4; null when the field is missing or not a number.</summary>
+    private static double? PercentOrNull(JsonElement e, string name) =>
+        e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind is JsonValueKind.Number or JsonValueKind.String
+        && (v.ValueKind == JsonValueKind.Number || double.TryParse(v.GetString()!.TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+            ? Percent(v)
+            : null;
 
     private static JsonElement Structured(JsonElement data) =>
         data.ValueKind == JsonValueKind.Object && data.TryGetProperty("structured", out var s) && s.ValueKind == JsonValueKind.Object ? s : data;

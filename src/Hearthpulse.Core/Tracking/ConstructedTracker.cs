@@ -60,6 +60,9 @@ public sealed class ConstructedTracker : IPowerListener
     /// <summary>The Hearthpulse API mulligan guide (preferred over <see cref="Meta"/> when it knows the deck).</summary>
     public MulliganGuideSource? Guide { get; set; }
 
+    /// <summary>Arena card results: the mulligan numbers of an Arena game (<see cref="MulliganArena"/>).</summary>
+    public Arena.ArenaMeta? Arena { get; set; }
+
     /// <summary>What each player did this game, for the counters; registered as a Power.log listener by the session.</summary>
     public Counters.CounterTracker Counters { get; } = new();
 
@@ -154,7 +157,7 @@ public sealed class ConstructedTracker : IPowerListener
         // Asked on every update so the lookup starts as soon as the deck is known, before the mulligan begins.
         // During the mulligan the coin and the opponent's class are known: their slices load then.
         var mulligan = Mulligan.InProgress(game);
-        var guide = Deck is not null && game.IsConstructedLike
+        var guide = Deck is not null && game.IsConstructedLike && !MulliganArena.IsArena(game)
             ? Guide?.For(playerClass, Deck, game.FormatType, cards, mulligan ? cards.Get(game.OpponentHero?.CardId)?.CardClass : null, mulligan ? Mulligan.GoingFirst(game, cards) : null)
             : null;
         return new ConstructedView(
@@ -177,7 +180,7 @@ public sealed class ConstructedTracker : IPowerListener
             LocalRank,
             OpponentRank)
         {
-            Mulligan = NoteMulligan(game, meta, Mulligan.Build(game, cards, Deck, meta, playerClass, guide), guide is not null),
+            Mulligan = NoteMulligan(game, meta, Mulligan.Build(game, cards, Deck, meta, playerClass, guide, Arena), guide is not null),
             Counters = Tracking.Counters.Counters.Build(game, Counters, cards, Deck),
             DeckId = Deck?.DeckId ?? 0,
             DeckCode = Deck?.Code,

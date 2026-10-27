@@ -37,6 +37,43 @@
         <Style Selector="Border.bar.toss">
             <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
         </Style>
+        <Style Selector="TextBlock.callIcon">
+            <Setter Property="Foreground" Value="{StaticResource Positive}" />
+        </Style>
+        <Style Selector="TextBlock.callIcon.toss">
+            <Setter Property="Foreground" Value="{StaticResource Negative}" />
+        </Style>
+        <!-- Advice from the cards' general results (Arena): "keep" in the accent colour, "replace" muted -->
+        <Style Selector="Border.bar.keep.soft">
+            <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="Border.bar.toss.soft">
+            <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+        </Style>
+        <Style Selector="TextBlock.call.keep.soft">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="TextBlock.call.toss.soft">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="TextBlock.callIcon.soft">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="TextBlock.callIcon.toss.soft">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="TextBlock.edge.good.soft">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="TextBlock.edge.bad.soft">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="Border.fill.good.soft">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="Border.fill.bad.soft">
+            <Setter Property="Background" Value="{StaticResource Muted}" />
+        </Style>
         <!-- The player replaces it (a click on the bar): dimmed until they keep it again -->
         <Style Selector="Border.bar.replaced">
             <Setter Property="Opacity" Value="0.55" />
@@ -105,7 +142,7 @@
                     <Button Classes="bare barButton" HorizontalAlignment="Center" VerticalAlignment="Bottom" Focusable="False" Cursor="Hand" ToolTip.Tip="{Binding Tooltip}" o:OverlayHit.Interactive="True"
                             Command="{Binding $parent[o:MulliganPanel].((o:OverlayViewModel)DataContext).ToggleMulliganCard}" CommandParameter="{Binding EntityId}">
                         <Panel>
-                            <Border Classes="bar" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Classes.replaced="{Binding !Kept}">
+                            <Border Classes="bar" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Classes.soft="{Binding Soft}" Classes.replaced="{Binding !Kept}">
                                 <StackPanel>
                                     <!-- Call and flags -->
                                     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -116,11 +153,11 @@
                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Panel>
                                         <Panel VerticalAlignment="Center" IsVisible="{Binding !HasTier}">
-                                            <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="15" Foreground="{StaticResource Positive}" IsVisible="{Binding KeepCall}" />
-                                            <TextBlock Text="&#xF006A;" Classes="icon" FontSize="15" Foreground="{StaticResource Negative}" IsVisible="{Binding MulliganCall}" />
+                                            <TextBlock Text="&#xF05E0;" Classes="icon callIcon" Classes.soft="{Binding Soft}" FontSize="15" IsVisible="{Binding KeepCall}" />
+                                            <TextBlock Text="&#xF006A;" Classes="icon callIcon toss" Classes.soft="{Binding Soft}" FontSize="15" IsVisible="{Binding MulliganCall}" />
                                             <TextBlock Text="&#xF0625;" Classes="icon" FontSize="15" Foreground="{StaticResource Muted}" IsVisible="{Binding NoCall}" />
                                         </Panel>
-                                        <TextBlock Grid.Column="1" Text="{Binding Call}" Classes="call" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Margin="5,0,0,0" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Call}" Classes="call" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Classes.soft="{Binding Soft}" Margin="5,0,0,0" />
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock Text="&#xF0339;" Classes="icon flag" IsVisible="{Binding Synergy}" />
                                             <TextBlock Text="×2" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
@@ -133,16 +170,21 @@
                                         <Panel Width="78" Height="8" VerticalAlignment="Center">
                                             <Border Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
                                             <Grid ColumnDefinitions="*,*" Margin="1">
-                                                <Border Classes="fill" Classes.bad="{Binding Bad}" HorizontalAlignment="Right" Width="{Binding FillLeft}" CornerRadius="3,0,0,3" />
-                                                <Border Grid.Column="1" Classes="fill" Classes.good="{Binding Good}" HorizontalAlignment="Left" Width="{Binding FillRight}" CornerRadius="0,3,3,0" />
+                                                <Border Classes="fill" Classes.bad="{Binding Bad}" Classes.soft="{Binding Soft}" HorizontalAlignment="Right" Width="{Binding FillLeft}" CornerRadius="3,0,0,3" />
+                                                <Border Grid.Column="1" Classes="fill" Classes.good="{Binding Good}" Classes.soft="{Binding Soft}" HorizontalAlignment="Left" Width="{Binding FillRight}" CornerRadius="0,3,3,0" />
                                             </Grid>
                                             <Rectangle Width="2" Height="12" Margin="0,-2" HorizontalAlignment="Center" Fill="{StaticResource Muted}" />
                                         </Panel>
-                                        <TextBlock Grid.Column="1" Text="{Binding Number}" Classes="edge" Classes.good="{Binding Good}" Classes.bad="{Binding Bad}" Classes.close="{Binding Close}"
+                                        <TextBlock Grid.Column="1" Text="{Binding Number}" Classes="edge" Classes.good="{Binding Good}" Classes.bad="{Binding Bad}" Classes.close="{Binding Close}" Classes.soft="{Binding Soft}"
                                                    HorizontalAlignment="Right" Margin="8,0,0,0" IsVisible="{Binding Number, Converter={StaticResource Truthy}}" />
                                     </Grid>
-                                    <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,5,0,0"
-                                               TextTrimming="CharacterEllipsis" IsVisible="{Binding Details, Converter={StaticResource Truthy}}" />
+                                    <!-- Keep rate and drawn win rate; in Arena the draft tier letter (coloured as on the draft screen) and the card's win rate -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0" IsVisible="{Binding HasSecondLine}">
+                                        <TextBlock Text="{Binding PickTier}" FontFamily="{DynamicResource DisplayFont}" FontSize="11" FontWeight="Bold" Foreground="{Binding PickTier, Converter={StaticResource KeyBrush}}"
+                                                   VerticalAlignment="Center" Margin="0,0,5,0" IsVisible="{Binding PickTier, Converter={StaticResource Truthy}}" />
+                                        <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" IsVisible="{Binding Details, Converter={StaticResource Truthy}}" />
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                             <!-- Hover wash over the solid plate, so the card art never shows through the numbers -->

@@ -125,6 +125,19 @@ Observations on the real data (Quest Priest, archetype 56, 250 rows):
 - The counts do not say whether two copies count once or twice. 3.46 < 3.5 hints at "once per game", but this is not
   proven. The app treats each stat as "at least one copy in hand".
 
+### 2.3 Arena: card results instead of deck stats (2026-10-28)
+
+Every Arena deck is unique, so no source has mulligan stats for it. `datasets/hsreplay_arena_cards_advanced` (already
+loaded for the draft helper, one all-classes slice) has per card `winrate_when_drawn`, `winrate_when_played` ("64.40%")
+and the deck win rate. `Core/Tracking/MulliganArena.cs` puts the drawn win rate (weighted by cost it is nearly flat,
+52.8-54.6%; the played one leans to expensive cards) in the guide's place of the opening-hand win rate, for the class's
+and neutral cards with 30+ games: the baseline is their games-weighted mean, the call is against the average card left
+in the deck, and the same maths (section 3) runs. Order: an Arena game uses only these numbers (never Constructed
+ones); a Constructed game keeps deck guide → meta archetype → class pool. An older cache without the drawn win rates
+falls back to the played, then the deck win rate (the source line says which). The data has no coin or opponent split,
+so the strip claims none; the overlay draws these calls softer (keep in accent, replace muted) and shows the draft tier.
+The per-class Arena card endpoint of hearthpulse.net (`/api/v1/arena/statistics/cards`) needs an API key and is not used.
+
 ## 3. What Hearthpulse computes, and how honest each part is
 
 Code: `src/Hearthpulse.Core/Tracking/MulliganGuide.cs` (maths), `MulliganGuideSource.cs` (background loading; disk cache
