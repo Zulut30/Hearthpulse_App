@@ -33,7 +33,8 @@ DATA AND CREDITS
 - Community statistics: Hearthpulse data (api.kolodahearthstone.com), and the
   Hearthpulse stats pool when it is set up. Russian archetype names: the
   Hearthpulse archetype dictionary (api.blizzcore.ru).
-- Card data and art: HearthstoneJSON.
+- Card data and art: HearthstoneJSON. The mana gem picture is cut from a
+  HearthstoneJSON card render; it is (c) Blizzard Entertainment, Inc.
 - Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font
   License 1.1), Material Design Icons (Pictogrammers, Apache 2.0).
 

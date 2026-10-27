@@ -1,22 +1,22 @@
-## Hearthpulse 0.12.0
+## Hearthpulse 0.13.0
 
 ### Что нового
-- **Разбор матча в истории.** Нажмите на игру и откроется реплей по ходам. В нём доска, руки и герои обеих сторон, обе колоды (у соперника только показанные карты), ранги, муллиган, графики здоровья и маны, ключевые карты и сравнение с метой архетипа. Для Полей сражений показываются доски по раундам. Скрытая информация соперника не показывается.
-- **Профиль на hearthpulse.net.** После входа в аккаунт сыгранные игры отправляются в раздел «Моя статистика» на сайте. Имена, BattleTag и скрытая информация не отправляются. Выключить отправку можно в настройках, на вкладке «Аккаунт».
-- **Русский и английский интерфейс.** Язык переключается в настройках. Есть русские названия архетипов.
-- **Настройки разделены на вкладки:** «Общие», «Оверлей», «Трекер», «Аккаунт», «Данные», «О программе».
-- **Колоды.** Переделан блок версий: понятное слияние версий, отмена слияния и разница карт между версиями.
-- **Муллиган.** Тонкая полоса с советами под картами стартовой руки. Она остаётся на своём месте при любом масштабе оверлея.
-- **Пул Discover.** Пулы теперь берутся из Hearthstone Wiki, учтены руны Рыцаря смерти.
-- Вся статистика подписана «Hearthpulse data».
+- **Подсказка при раскопке.** На панели пула у каждого варианта раскопки видно, как часто его берут и какой у него винрейт (Hearthpulse data). Пул показывается только для карт в руке, компактно и с плавным появлением.
+- **Помощник драфта Арены.** Оценки карт ArenaSmith для трёх вариантов с выделением лучшего, винрейт классов и доля забегов на 7+ побед при выборе героя и для класса текущего забега.
+- **Муллиган.** Полосы над картами стартовой руки, срезы по монете, классу и рангу; результаты против класса соперника берутся из HSGuru, когда других нет.
+- **Архетип соперника.** Панель можно закрыть, при наведении показываются его карты.
+- **Новый вид оверлея.** Чище и компактнее: меньше лишнего текста, пояснения перенесены во всплывающие подсказки, значки стоимости — настоящий кристалл маны.
+- **Расстановка панелей.** Панели прилипают к краям и центру экрана, при изменении размера видно его значение, панели по умолчанию больше не перекрывают друг друга.
+- **Главное окно.** Ctrl+1–7 открывают разделы; Esc, Alt+← и боковая кнопка мыши «назад» возвращают со страницы колоды или матча. Короткие подписи в настройках, ползунки масштаба и прозрачности меняются шагом 5 %.
 
 ### Быстрее и легче
-- База карт занимает примерно на 30 МБ меньше памяти, кэш картинок ограничен по объёму.
-- Оверлей перерисовывается реже, а история и статистика считаются быстрее.
-- Старый кэш на диске очищается автоматически.
+- Приложение в простое без игры нагружает процессор примерно вдвое меньше; главное окно на старте появляется раньше.
+- Оверлей обновляет только изменившиеся строки, а игра ищется без перебора всех процессов каждую секунду.
+- Картинки карт обрабатываются с меньшим расходом памяти.
 
 ### Исправления
-- Ряд исправлений трекера, счётчиков и истории.
+- Колода в оверлее Avalonia больше не встаёт по центру над рукой соперника; счётчики не наезжают на подвал колоды.
+- Ползунки в настройках: круглый бегунок, заливка доходит до него.
 
 ### Прочее
 - Hearthpulse — закрытое ПО (All rights reserved). Лицензии сторонних компонентов перечислены в THIRD-PARTY-NOTICES.txt рядом с программой.
@@ -25,8 +25,9 @@
 ---
 
 ### What's new
-- **Match breakdown in History:** a turn-by-turn replay from both sides (only cards the opponent revealed), both decks, ranks, mulligan, charts and a meta comparison. Battlegrounds shows boards by round.
-- **hearthpulse.net profile:** once you are signed in, games are sent to "My statistics". Names, BattleTag and hidden information are never sent. You can turn this off in Settings → Account.
-- **Russian and English interface**, with Russian archetype names.
-- **Settings tabs.** **Deck versions:** merge, undo and card diffs. **Mulligan strip** under the opening cards. **Discover pools** from Hearthstone Wiki, with Death Knight runes.
-- **Lighter and faster:** about 30 MB less memory for cards, a byte-limited art cache, a faster history.
+- **Discover pick hint:** the card pool panel shows how often each Discover option is picked and its win rate (Hearthpulse data). The pool shows for cards in hand only, compact, with a smooth fade-in.
+- **Arena draft helper:** ArenaSmith card scores for the three options with the best one marked, class win rates and 7+ share when picking a hero and for the run's class.
+- **Mulligan** bars over the opening cards with coin / class / rank slices; results against the opponent's class come from HSGuru when nothing else has them. **Opponent archetype** panel can be closed and previews its cards on hover.
+- **Cleaner overlay:** less text, hints moved into tooltips, real mana gems on cost badges. **Layout mode:** panels snap to edges and the centre; default spots no longer overlap.
+- **Main window:** Ctrl+1–7 open the pages; Esc, Alt+Left and the mouse Back button leave a deck or match. Short settings labels; scale and opacity sliders step in 5 %.
+- **Lighter:** about half the idle CPU without the game, a faster start, leaner card art and overlay updates.
