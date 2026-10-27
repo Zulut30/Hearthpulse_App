@@ -19,9 +19,7 @@
         <DataTemplate x:Key="DeckTileTemplate" x:DataType="o:DeckTile">
             <Grid Classes="tileRow" Classes.empty="{Binding Empty}" Height="24" Margin="0,0,0,2" ColumnDefinitions="26,*,Auto" Background="Transparent"
                   c:CardPreview.CardId="{Binding CardId}">
-                <Border Classes="cost" HorizontalAlignment="Left">
-                    <TextBlock Text="{Binding Cost}" FontSize="12.5" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
+                <c:ManaCost Classes="cost" Text="{Binding Cost}" HorizontalAlignment="Left" />
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
                     <Panel>
                         <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
@@ -47,9 +45,7 @@
 
         <DataTemplate x:Key="PlayedTemplate" x:DataType="o:PlayedTile">
             <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*">
-                <Border Classes="cost" Width="21" Height="21" HorizontalAlignment="Left">
-                    <TextBlock Text="{Binding Cost}" FontSize="12" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
+                <c:ManaCost Classes="cost" Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" />
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
                     <Panel>
                         <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
@@ -513,11 +509,9 @@
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
             <Setter Property="Margin" Value="0,0,0,6" />
         </Style>
-        <Style Selector="Border.cost">
+        <Style Selector="c|ManaCost.cost">
             <Setter Property="Width" Value="22" />
             <Setter Property="Height" Value="22" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Background" Value="{StaticResource ManaGem}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style Selector="Grid.tileRow.empty">

@@ -184,7 +184,7 @@
                             <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
                             <Border Style="{StaticResource Pill}" Background="{StaticResource SecondaryContainer}" Margin="8,0,0,0" ToolTip="{i:Loc Match.View.ManaTip}">
                                 <StackPanel Orientation="Horizontal">
-                                    <Ellipse Width="9" Height="9" Fill="{StaticResource ManaGem}" Margin="0,0,5,0" VerticalAlignment="Center" />
+                                    <c:ManaCost Width="11" Height="11" Margin="0,0,5,0" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding Mana}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
                                 </StackPanel>
                             </Border>
@@ -266,10 +266,7 @@
                             <ColumnDefinition Width="31" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Border Width="25" Height="25" CornerRadius="5" Background="{StaticResource ManaGem}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Cost}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource Text}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
+                        <c:ManaCost Width="25" Height="25" Text="{Binding Cost}" HorizontalAlignment="Left" VerticalAlignment="Center" />
                         <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
                             <Grid>
                                 <Image i:CardArt.Tile="{Binding CardId}" Width="140" HorizontalAlignment="Right" Stretch="UniformToFill" />

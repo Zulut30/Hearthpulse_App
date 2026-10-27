@@ -19,10 +19,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <Border Width="22" Height="22" CornerRadius="11" Background="{StaticResource ManaGem}" VerticalAlignment="Center" Margin="0,0,8,0">
-                        <TextBlock Text="{Binding Cost}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="11.5" Foreground="{StaticResource Text}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
+                    <c:ManaCost Width="22" Height="22" Text="{Binding Cost}" VerticalAlignment="Center" Margin="0,0,8,0" />
                     <Border Grid.Column="1" Width="28" Height="28" Margin="0,0,10,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding CardId}" />
                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />

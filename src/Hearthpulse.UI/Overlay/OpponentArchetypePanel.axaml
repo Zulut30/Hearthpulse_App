@@ -52,9 +52,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="o:LikelyTile">
                         <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
-                            <Border Width="21" Height="21" CornerRadius="5" Background="{StaticResource ManaGem}" HorizontalAlignment="Left">
-                                <TextBlock Text="{Binding Cost}" FontSize="12" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
+                            <c:ManaCost Width="21" Height="21" Text="{Binding Cost}" HorizontalAlignment="Left" />
                             <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
                                 <Panel>
                                     <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />

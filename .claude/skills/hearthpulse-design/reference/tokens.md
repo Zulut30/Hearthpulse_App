@@ -49,7 +49,7 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 | GoldTrim | #8A6533 | ornament/frame trim, Wave default stroke |
 | SelectedEdge | WPF #A27839, Avalonia #8A6533 | selected plate edge |
 | SelectedFill, PrimaryFill, PrimaryFillHover | gradients | selected plate, gold button |
-| ManaGem | #3D7BE0 | mana cost gem (fixed) |
+| ManaGem | #3D7BE0 | the gem's flat blue (fixed); cost badges draw the `ManaCost` control (`Assets/mana-gem.png`), not this brush |
 | RarityCommon/Rare/Epic/Legendary | #D8CDB8 / #5B9BFF / #B98AF5 / #FFB547 | rarity (fixed) |
 | TierS/A/B/C/D | #FFC857 / #8CCF63 / #7CC0FF / Muted / Negative | tier letters (fixed) |
 

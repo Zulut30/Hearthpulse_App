@@ -55,9 +55,7 @@
                                 <ColumnDefinition Width="25" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Border Width="21" Height="21" CornerRadius="5" Background="{StaticResource ManaGem}" HorizontalAlignment="Left">
-                                <TextBlock Text="{Binding Cost}" FontSize="12" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
+                            <c:ManaCost Width="21" Height="21" Text="{Binding Cost}" HorizontalAlignment="Left" />
                             <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
                                 <Grid>
                                     <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />

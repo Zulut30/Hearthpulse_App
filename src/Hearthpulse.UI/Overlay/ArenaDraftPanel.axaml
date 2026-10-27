@@ -115,9 +115,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="o:ArenaDeckRow">
                             <Grid Height="19" Margin="0,0,0,1" ColumnDefinitions="22,*,Auto,28">
-                                <Border Width="18" Height="17" CornerRadius="4" Background="{StaticResource ManaGem}" HorizontalAlignment="Left">
-                                    <TextBlock Text="{Binding Cost}" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
+                                <c:ManaCost Width="18" Height="17" Text="{Binding Cost}" HorizontalAlignment="Left" />
                                 <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Grid.Column="2" Text="{Binding Copies}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="4,0,0,0" />
                                 <TextBlock Grid.Column="3" Text="{Binding Score}" FontFamily="{DynamicResource DisplayFont}" FontSize="11.5" FontWeight="Bold" TextAlignment="Right"

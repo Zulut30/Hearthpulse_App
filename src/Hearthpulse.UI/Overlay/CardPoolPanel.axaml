@@ -3,6 +3,7 @@
              xmlns:o="using:Hearthpulse.UI.Overlay"
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              xmlns:p="using:Hearthpulse.Core.CardPool"
+             xmlns:c="using:Hearthpulse.UI.Controls"
              x:Class="Hearthpulse.UI.Overlay.CardPoolPanel"
              x:DataType="o:OverlayViewModel">
     <!-- The compact card pool panel (300 wide): at its own spot (MovablePanel "card-pool") or next to its card (the card
@@ -12,11 +13,7 @@
 
         <!-- A small mana gem with a number (bucket list, top cards) -->
         <DataTemplate x:Key="CostGem" x:DataType="p:PoolEntry">
-            <Panel Width="15" Height="15">
-                <Path Data="M9,0 L17,6.5 L14,17.5 L4,17.5 L1,6.5 Z" Fill="{StaticResource PoolStatCostBar}" Stroke="{StaticResource Bg}" StrokeThickness="1" Stretch="Fill" />
-                <TextBlock Text="{Binding Cost}" FontFamily="{StaticResource DisplayFont}" FontSize="8.5" FontWeight="Bold" Foreground="White"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0" />
-            </Panel>
+            <c:ManaCost Width="15" Height="15" Text="{Binding Cost}" />
         </DataTemplate>
     </UserControl.Resources>
 

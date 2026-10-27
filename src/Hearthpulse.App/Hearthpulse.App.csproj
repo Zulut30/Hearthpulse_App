@@ -37,6 +37,8 @@
   <ItemGroup>
     <Resource Include="Assets\hearthpulse.ico" />
     <Resource Include="Assets\hearthpulse.png" />
+    <!-- Original artwork, drawn by tools/mana/draw_mana_gem.py -->
+    <Resource Include="Assets\mana-gem.png" />
     <!-- Montserrat: SIL Open Font License 1.1. Material Design Icons: Pictogrammers (Apache 2.0). -->
     <Resource Include="Assets\Fonts\*.ttf" />
     <!-- The theme source is also kept as text so other colour themes can be built from it at runtime. -->

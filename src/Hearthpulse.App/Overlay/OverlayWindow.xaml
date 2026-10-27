@@ -32,12 +32,10 @@
             <Setter Property="FontSize" Value="15" />
         </Style>
 
-        <!-- Small square cost badge for card rows -->
-        <Style x:Key="CostChip" TargetType="Border">
+        <!-- Mana gem cost badge for card rows -->
+        <Style x:Key="CostChip" TargetType="c:ManaCost">
             <Setter Property="Width" Value="22" />
             <Setter Property="Height" Value="22" />
-            <Setter Property="CornerRadius" Value="5" />
-            <Setter Property="Background" Value="{StaticResource ManaGem}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
@@ -50,9 +48,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Border Style="{StaticResource CostChip}" HorizontalAlignment="Left">
-                    <TextBlock Text="{Binding Cost}" FontSize="12.5" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
+                <c:ManaCost Style="{StaticResource CostChip}" Text="{Binding Cost}" HorizontalAlignment="Left" />
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
                     <Grid>
                         <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
@@ -87,9 +83,7 @@
                     <ColumnDefinition Width="25" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Border Style="{StaticResource CostChip}" Width="21" Height="21" HorizontalAlignment="Left">
-                    <TextBlock Text="{Binding Cost}" FontSize="12" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
+                <c:ManaCost Style="{StaticResource CostChip}" Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" />
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
                     <Grid>
                         <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
