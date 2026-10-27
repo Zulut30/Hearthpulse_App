@@ -51,6 +51,7 @@ public partial class App : Application
     private Forms.ToolStripMenuItem? _trayOverlayItem;
     private HwndSource? _hotkeySource;
     private string? _installDir;
+    private StartupPrefetch _prefetch = null!;
     private CardDb _cards = CardDb.Empty;
     private LiveSnapshot? _pending;
     private LiveSnapshot _last = LiveSnapshot.Empty;
@@ -186,6 +187,8 @@ public partial class App : Application
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + (typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1"));
         CardArt.Http = _http;
         _api = new HearthpulseApi(_http);
+        // The game and the cards are looked up while the windows below are built, not after their first frame.
+        _prefetch = StartupPrefetch.Start(_settings, _http);
 
         _history = new HistoryStore(AppPaths.Database) { Replays = Core.Replay.ReplayStore.Default };
         _memory = new HearthstoneMemory();
@@ -349,7 +352,7 @@ public partial class App : Application
         {
             SetBusy(() => Loc.T("Host.Busy.LookingForGame"));
             Task.Run(CacheCleanup.Run).Forget("Cache clean-up");
-            _installDir = await Task.Run(() => HearthstoneInstall.FindInstallDirectory(_settings.HearthstonePath));
+            (_installDir, var clientLocale) = await _prefetch.Game;
             if (_installDir is not null && _settings.HearthstonePath != _installDir)
             {
                 _settings.HearthstonePath = _installDir;
@@ -359,7 +362,7 @@ public partial class App : Application
             _session.InstallDirectory = _installDir;
 
             // "auto" language and cards follow the installed client (a Russian client shows Russian cards and interface).
-            _settings.ClientLocale = HearthstoneInstall.DetectLocale(_installDir);
+            _settings.ClientLocale = clientLocale;
             Loc.Instance.SetLanguage(_settings.InterfaceLanguage());
             var locale = _settings.CardLocale();
             CardArt.Locale = locale;
@@ -379,7 +382,7 @@ public partial class App : Application
             });
 
             SetBusy(() => Loc.T("Host.Busy.LoadingCards"));
-            _cards = await CardDb.LoadAsync(locale, _http);
+            _cards = await _prefetch.CardsAsync(locale);
             CardArt.FallbackUrl = id => _cards.BgCards.ImageUrl(id);
             if (_cards.Count == 0 && locale != "enUS")
             {

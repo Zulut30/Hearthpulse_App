@@ -42,6 +42,7 @@ public sealed partial class AppHost : IDisposable
     private Func<string>? _busy;
     private Task? _archetypeNames;
     private Func<string>? _updateStatus;
+    private readonly StartupPrefetch _prefetch;
 
     /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
     public AppHost(AppSettings settings, bool rendering = false)
@@ -60,6 +61,8 @@ public sealed partial class AppHost : IDisposable
         Http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + Version);
         CardArt.Http = Http;
         Api = new HearthpulseApi(Http);
+        // The game and the cards are looked up while the shell builds its windows, not after.
+        _prefetch = StartupPrefetch.Start(settings, Http);
         var accountClient = new AccountClient(Http);
         Account = new AccountService(accountClient);
 
@@ -179,7 +182,7 @@ public sealed partial class AppHost : IDisposable
         {
             SetBusy(() => Loc.T("Host.Busy.LookingForGame"));
             Task.Run(CacheCleanup.Run).Forget("Cache clean-up");
-            InstallDirectory = await Task.Run(() => HearthstoneInstall.FindInstallDirectory(Settings.HearthstonePath));
+            (InstallDirectory, var clientLocale) = await _prefetch.Game;
             if (InstallDirectory is not null && Settings.HearthstonePath != InstallDirectory)
             {
                 Settings.HearthstonePath = InstallDirectory;
@@ -188,7 +191,7 @@ public sealed partial class AppHost : IDisposable
 
             Session.InstallDirectory = InstallDirectory;
             // "auto" language and cards follow the installed client (a Russian client shows Russian cards and interface).
-            Settings.ClientLocale = HearthstoneInstall.DetectLocale(InstallDirectory);
+            Settings.ClientLocale = clientLocale;
             Loc.Instance.SetLanguage(Settings.InterfaceLanguage());
             var locale = Settings.CardLocale();
             CardArt.Locale = locale;
@@ -208,7 +211,7 @@ public sealed partial class AppHost : IDisposable
             });
 
             SetBusy(() => Loc.T("Host.Busy.LoadingCards"));
-            Cards = await CardDb.LoadAsync(locale, Http);
+            Cards = await _prefetch.CardsAsync(locale);
             CardArt.FallbackUrl = id => Cards.BgCards.ImageUrl(id);
             if (Cards.Count == 0 && locale != "enUS")
             {
