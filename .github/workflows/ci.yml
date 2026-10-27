@@ -69,9 +69,11 @@ jobs:
         run: dotnet restore Hearthpulse.slnx --source https://api.nuget.org/v3/index.json
       - name: Build
         run: dotnet build Hearthpulse.slnx --no-restore -c Release
-      # Both test projects in one run: their test hosts work at the same time instead of one after the other.
-      - name: Tests (Core/Avalonia suite and WPF/Avalonia presentation contracts)
-        run: dotnet test Hearthpulse.slnx --no-build -c Release --logger trx --results-directory TestResults
+      # One after the other: run together on the 2-core runner, the presentation tests' 10 s waits timed out.
+      - name: Tests
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --logger "trx;LogFileName=tests.trx" --results-directory TestResults
+      - name: WPF and Avalonia presentation contracts
+        run: dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-build -c Release --logger "trx;LogFileName=presentation.trx" --results-directory TestResults
       - name: Test results
         if: always()
         uses: actions/upload-artifact@v4
