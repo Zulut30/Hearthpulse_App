@@ -23,51 +23,56 @@
                     ToolTipService.InitialShowDelay="200">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bar" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1.5"
-                                CornerRadius="10" Padding="10,6,10,7" Width="148">
-                            <StackPanel>
-                                <!-- Call and flags -->
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="CallIcon" Text="&#xF0625;" Style="{StaticResource Icon}" FontSize="15" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="CallText" Grid.Column="1" Text="{Binding Call}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
-                                               Margin="5,0,0,0" TextTrimming="CharacterEllipsis" />
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="&#xF0339;" Style="{StaticResource Flag}" Visibility="{Binding Synergy, Converter={StaticResource Vis}}" />
-                                        <TextBlock Text="×2" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
-                                                   Visibility="{Binding Duplicate, Converter={StaticResource Vis}}" />
-                                        <TextBlock Text="&#xF0150;" Style="{StaticResource Flag}" Visibility="{Binding Late, Converter={StaticResource Vis}}" />
-                                    </StackPanel>
-                                </Grid>
-                                <!-- Gauge (replace on the left, keep on the right, the fill grows from the middle) and the edge -->
-                                <Grid Margin="0,4,0,0" Height="20">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid Width="78" Height="8" VerticalAlignment="Center">
-                                        <Border Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
-                                        <Grid Margin="1">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Border x:Name="FillLeft" HorizontalAlignment="Right" Width="{Binding FillLeft}" CornerRadius="3,0,0,3" Background="{StaticResource Accent}" />
-                                            <Border x:Name="FillRight" Grid.Column="1" HorizontalAlignment="Left" Width="{Binding FillRight}" CornerRadius="0,3,3,0" Background="{StaticResource Accent}" />
-                                        </Grid>
-                                        <Rectangle Width="2" Height="12" Margin="0,-2" HorizontalAlignment="Center" Fill="{StaticResource Muted}" />
+                        <!-- 156 wide: the edge number keeps a gap after the gauge at "+10,4"; four bars still fit the row at overlay scale 1.6 -->
+                        <Grid>
+                            <Border x:Name="Bar" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1.5"
+                                    CornerRadius="10" Padding="10,6,10,7" Width="156">
+                                <StackPanel>
+                                    <!-- Call and flags -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="CallIcon" Text="&#xF0625;" Style="{StaticResource Icon}" FontSize="15" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="CallText" Grid.Column="1" Text="{Binding Call}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
+                                                   Margin="5,0,0,0" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xF0339;" Style="{StaticResource Flag}" Visibility="{Binding Synergy, Converter={StaticResource Vis}}" />
+                                            <TextBlock Text="×2" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
+                                                       Visibility="{Binding Duplicate, Converter={StaticResource Vis}}" />
+                                            <TextBlock Text="&#xF0150;" Style="{StaticResource Flag}" Visibility="{Binding Late, Converter={StaticResource Vis}}" />
+                                        </StackPanel>
                                     </Grid>
-                                    <TextBlock x:Name="Number" Grid.Column="1" Text="{Binding Number}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold"
-                                               Foreground="{StaticResource Text}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="4,0,0,0" Visibility="{Binding Number, Converter={StaticResource Vis}}" />
-                                </Grid>
-                                <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,5,0,0"
-                                           TextTrimming="CharacterEllipsis" Visibility="{Binding Details, Converter={StaticResource Vis}}" />
-                            </StackPanel>
-                        </Border>
+                                    <!-- Gauge (replace on the left, keep on the right, the fill grows from the middle) and the edge -->
+                                    <Grid Margin="0,4,0,0" Height="20">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid Width="78" Height="8" VerticalAlignment="Center">
+                                            <Border Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
+                                            <Grid Margin="1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border x:Name="FillLeft" HorizontalAlignment="Right" Width="{Binding FillLeft}" CornerRadius="3,0,0,3" Background="{StaticResource Accent}" />
+                                                <Border x:Name="FillRight" Grid.Column="1" HorizontalAlignment="Left" Width="{Binding FillRight}" CornerRadius="0,3,3,0" Background="{StaticResource Accent}" />
+                                            </Grid>
+                                            <Rectangle Width="2" Height="12" Margin="0,-2" HorizontalAlignment="Center" Fill="{StaticResource Muted}" />
+                                        </Grid>
+                                        <TextBlock x:Name="Number" Grid.Column="1" Text="{Binding Number}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold"
+                                                   Foreground="{StaticResource Text}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,0,0" Visibility="{Binding Number, Converter={StaticResource Vis}}" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,5,0,0"
+                                               TextTrimming="CharacterEllipsis" Visibility="{Binding Details, Converter={StaticResource Vis}}" />
+                                </StackPanel>
+                            </Border>
+                            <!-- Hover wash over the solid plate, so the card art never shows through the numbers -->
+                            <Border x:Name="HoverLayer" Background="{StaticResource Hover}" CornerRadius="10" Visibility="Collapsed" IsHitTestVisible="False" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <DataTrigger Binding="{Binding KeepCall}" Value="True">
                                 <Setter TargetName="CallIcon" Property="Text" Value="&#xF05E0;" />
@@ -98,7 +103,7 @@
                                 <Setter TargetName="Bar" Property="Opacity" Value="0.55" />
                             </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bar" Property="Background" Value="{StaticResource Hover}" />
+                                <Setter TargetName="HoverLayer" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Bar" Property="Opacity" Value="1" />
                             </Trigger>
                         </ControlTemplate.Triggers>

@@ -19,7 +19,15 @@
             <Setter Property="BorderThickness" Value="1.5" />
             <Setter Property="CornerRadius" Value="10" />
             <Setter Property="Padding" Value="10,6,10,7" />
-            <Setter Property="Width" Value="148" />
+            <!-- 156 wide: the edge number keeps a gap after the gauge at "+10,4"; four bars still fit the row at overlay scale 1.6 -->
+            <Setter Property="Width" Value="156" />
+        </Style>
+        <Style Selector="Border.barHover">
+            <Setter Property="Background" Value="{StaticResource Hover}" />
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Button.barButton:pointerover Border.barHover">
+            <Setter Property="IsVisible" Value="True" />
         </Style>
         <Style Selector="Border.bar.keep">
             <Setter Property="BorderBrush" Value="{StaticResource Positive}" />
@@ -32,7 +40,6 @@
             <Setter Property="Opacity" Value="0.55" />
         </Style>
         <Style Selector="Button.barButton:pointerover Border.bar">
-            <Setter Property="Background" Value="{StaticResource Hover}" />
             <Setter Property="Opacity" Value="1" />
         </Style>
         <Style Selector="TextBlock.call">
@@ -95,40 +102,44 @@
                 <DataTemplate x:DataType="o:MulliganPlate">
                     <Button Classes="bare barButton" HorizontalAlignment="Center" VerticalAlignment="Bottom" Focusable="False" Cursor="Hand" ToolTip.Tip="{Binding Tooltip}" o:OverlayHit.Interactive="True"
                             Command="{Binding $parent[o:MulliganPanel].((o:OverlayViewModel)DataContext).ToggleMulliganCard}" CommandParameter="{Binding EntityId}">
-                        <Border Classes="bar" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Classes.replaced="{Binding !Kept}">
-                            <StackPanel>
-                                <!-- Call and flags -->
-                                <Grid ColumnDefinitions="Auto,*,Auto">
-                                    <Panel VerticalAlignment="Center">
-                                        <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="15" Foreground="{StaticResource Positive}" IsVisible="{Binding KeepCall}" />
-                                        <TextBlock Text="&#xF006A;" Classes="icon" FontSize="15" Foreground="{StaticResource Negative}" IsVisible="{Binding MulliganCall}" />
-                                        <TextBlock Text="&#xF0625;" Classes="icon" FontSize="15" Foreground="{StaticResource Muted}" IsVisible="{Binding NoCall}" />
-                                    </Panel>
-                                    <TextBlock Grid.Column="1" Text="{Binding Call}" Classes="call" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Margin="5,0,0,0" />
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="&#xF0339;" Classes="icon flag" IsVisible="{Binding Synergy}" />
-                                        <TextBlock Text="×2" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
-                                                   IsVisible="{Binding Duplicate}" />
-                                        <TextBlock Text="&#xF0150;" Classes="icon flag" IsVisible="{Binding Late}" />
-                                    </StackPanel>
-                                </Grid>
-                                <!-- Gauge (replace on the left, keep on the right, the fill grows from the middle) and the edge -->
-                                <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0" Height="20">
-                                    <Panel Width="78" Height="8" VerticalAlignment="Center">
-                                        <Border Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
-                                        <Grid ColumnDefinitions="*,*" Margin="1">
-                                            <Border Classes="fill" Classes.bad="{Binding Bad}" HorizontalAlignment="Right" Width="{Binding FillLeft}" CornerRadius="3,0,0,3" />
-                                            <Border Grid.Column="1" Classes="fill" Classes.good="{Binding Good}" HorizontalAlignment="Left" Width="{Binding FillRight}" CornerRadius="0,3,3,0" />
-                                        </Grid>
-                                        <Rectangle Width="2" Height="12" Margin="0,-2" HorizontalAlignment="Center" Fill="{StaticResource Muted}" />
-                                    </Panel>
-                                    <TextBlock Grid.Column="1" Text="{Binding Number}" Classes="edge" Classes.good="{Binding Good}" Classes.bad="{Binding Bad}" Classes.close="{Binding Close}"
-                                               HorizontalAlignment="Right" Margin="4,0,0,0" IsVisible="{Binding Number, Converter={StaticResource Truthy}}" />
-                                </Grid>
-                                <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,5,0,0"
-                                           TextTrimming="CharacterEllipsis" IsVisible="{Binding Details, Converter={StaticResource Truthy}}" />
-                            </StackPanel>
-                        </Border>
+                        <Panel>
+                            <Border Classes="bar" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Classes.replaced="{Binding !Kept}">
+                                <StackPanel>
+                                    <!-- Call and flags -->
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Panel VerticalAlignment="Center">
+                                            <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="15" Foreground="{StaticResource Positive}" IsVisible="{Binding KeepCall}" />
+                                            <TextBlock Text="&#xF006A;" Classes="icon" FontSize="15" Foreground="{StaticResource Negative}" IsVisible="{Binding MulliganCall}" />
+                                            <TextBlock Text="&#xF0625;" Classes="icon" FontSize="15" Foreground="{StaticResource Muted}" IsVisible="{Binding NoCall}" />
+                                        </Panel>
+                                        <TextBlock Grid.Column="1" Text="{Binding Call}" Classes="call" Classes.keep="{Binding KeepCall}" Classes.toss="{Binding MulliganCall}" Margin="5,0,0,0" />
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xF0339;" Classes="icon flag" IsVisible="{Binding Synergy}" />
+                                            <TextBlock Text="×2" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
+                                                       IsVisible="{Binding Duplicate}" />
+                                            <TextBlock Text="&#xF0150;" Classes="icon flag" IsVisible="{Binding Late}" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <!-- Gauge (replace on the left, keep on the right, the fill grows from the middle) and the edge -->
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0" Height="20">
+                                        <Panel Width="78" Height="8" VerticalAlignment="Center">
+                                            <Border Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
+                                            <Grid ColumnDefinitions="*,*" Margin="1">
+                                                <Border Classes="fill" Classes.bad="{Binding Bad}" HorizontalAlignment="Right" Width="{Binding FillLeft}" CornerRadius="3,0,0,3" />
+                                                <Border Grid.Column="1" Classes="fill" Classes.good="{Binding Good}" HorizontalAlignment="Left" Width="{Binding FillRight}" CornerRadius="0,3,3,0" />
+                                            </Grid>
+                                            <Rectangle Width="2" Height="12" Margin="0,-2" HorizontalAlignment="Center" Fill="{StaticResource Muted}" />
+                                        </Panel>
+                                        <TextBlock Grid.Column="1" Text="{Binding Number}" Classes="edge" Classes.good="{Binding Good}" Classes.bad="{Binding Bad}" Classes.close="{Binding Close}"
+                                                   HorizontalAlignment="Right" Margin="8,0,0,0" IsVisible="{Binding Number, Converter={StaticResource Truthy}}" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,5,0,0"
+                                               TextTrimming="CharacterEllipsis" IsVisible="{Binding Details, Converter={StaticResource Truthy}}" />
+                                </StackPanel>
+                            </Border>
+                            <!-- Hover wash over the solid plate, so the card art never shows through the numbers -->
+                            <Border Classes="barHover" CornerRadius="10" IsHitTestVisible="False" />
+                        </Panel>
                     </Button>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
