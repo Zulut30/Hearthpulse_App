@@ -43,13 +43,33 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      # C: on the hosted Windows runners is slow and scanned by Defender on every write: the SQLite-heavy tests took
+      # 1.5-2.5 min there against 15 s on Linux. Temp files and NuGet packages go to D: and are left out of scanning.
+      # (No NuGet cache: unpacking it took as long as restoring from nuget.org.)
+      - name: Fast temp and package folders
+        shell: pwsh
+        run: |
+          $temp = Join-Path $env:RUNNER_TEMP 'tmp'
+          $nuget = Join-Path $env:RUNNER_TEMP 'nuget'
+          New-Item -ItemType Directory -Force $temp, $nuget | Out-Null
+          Add-MpPreference -ExclusionPath $env:GITHUB_WORKSPACE, $env:RUNNER_TEMP, 'C:\Program Files\dotnet' -ErrorAction SilentlyContinue
+          "TEMP=$temp", "TMP=$temp", "NUGET_PACKAGES=$nuget" | Add-Content $env:GITHUB_ENV
+      # The image already has a .NET 10 SDK; downloading another one cost ~40 s. Install only when it is missing.
+      - name: Installed .NET SDK
+        id: sdk
+        shell: bash
+        run: |
+          dotnet --list-sdks || true
+          if dotnet --list-sdks 2>/dev/null | grep -q '^10\.'; then echo "have10=true" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/setup-dotnet@v4
+        if: steps.sdk.outputs.have10 != 'true'
         with:
           dotnet-version: 10.0.x
       - name: Restore
         run: dotnet restore Hearthpulse.slnx --source https://api.nuget.org/v3/index.json
       - name: Build
         run: dotnet build Hearthpulse.slnx --no-restore -c Release
+      # One after the other: run together on the 2-core runner, the presentation tests' 10 s waits timed out.
       - name: Tests
         run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --logger "trx;LogFileName=tests.trx" --results-directory TestResults
       - name: WPF and Avalonia presentation contracts

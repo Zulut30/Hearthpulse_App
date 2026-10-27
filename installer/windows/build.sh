@@ -3,15 +3,20 @@
 #   dist/Hearthpulse-Setup-<version>-win-x64.exe        setup wizard for the Windows app
 #   dist/Hearthpulse-Portable-<version>-win-x64.zip     the Windows app as a zip: no setup, data kept next to it
 #   dist/Hearthpulse-Preview-<version>-win-x64.zip      portable build of the cross-platform app, to try on Windows
+# Usage: build.sh [version] [all|app|preview]; app is the setup and portable zip, preview the cross-platform zip
+# (the release workflow builds the two on separate runners at the same time).
 set -euo pipefail
 
 VERSION="${1:-0.13.0}"
+PART="${2:-all}"
+case "$PART" in all|app|preview) ;; *) echo "unknown part '$PART' (all, app or preview)" >&2; exit 2 ;; esac
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 DIST="$ROOT/dist"
 WORK="$DIST/work/windows"
 rm -rf "$WORK"
 mkdir -p "$WORK" "$DIST"
 
+if [ "$PART" != preview ]; then
 echo "== Publishing the Windows app (win-x64, self-contained)"
 dotnet publish "$ROOT/src/Hearthpulse.App/Hearthpulse.App.csproj" -c Release -r win-x64 --self-contained true \
   -p:EnableWindowsTargeting=true -p:Version="$VERSION" -o "$WORK/app" -nologo -v q
@@ -52,7 +57,9 @@ PORTABLE="$DIST/Hearthpulse-Portable-$VERSION-win-x64.zip"
 rm -f "$PORTABLE"
 (cd "$WORK/portable" && zip -qr -9 "$PORTABLE" Hearthpulse)
 echo "wrote $PORTABLE"
+fi
 
+if [ "$PART" != app ]; then
 echo "== Publishing the cross-platform app preview (win-x64)"
 dotnet publish "$ROOT/src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj" -c Release -r win-x64 --self-contained true \
   -p:Version="$VERSION" -o "$WORK/preview/Hearthpulse" -nologo -v q
@@ -61,3 +68,4 @@ PREVIEW="$DIST/Hearthpulse-Preview-$VERSION-win-x64.zip"
 rm -f "$PREVIEW"
 (cd "$WORK/preview" && zip -qr -9 "$PREVIEW" Hearthpulse)
 echo "wrote $PREVIEW"
+fi

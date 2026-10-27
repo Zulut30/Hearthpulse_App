@@ -14,15 +14,70 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 env:
   DOTNET_NOLOGO: "true"
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
 
 jobs:
-  windows-linux:
-    name: Windows and Linux installers
+  # Runs next to the installer builds, not before them; the release still waits for it.
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
+    steps:
+      # CI runs the same suite on every push to main; when it has already passed on this commit, it is not run again.
+      - name: CI already passed on this commit?
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&status=success" --jq '.total_count' || echo 0)
+          echo "CI successful runs on $GITHUB_SHA: $n"
+          if [ "${n:-0}" -gt 0 ]; then echo "passed=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.ci.outputs.passed != 'true'
+      - uses: actions/setup-dotnet@v4
+        if: steps.ci.outputs.passed != 'true'
+        with:
+          dotnet-version: 10.0.x
+      - name: Tests
+        if: steps.ci.outputs.passed != 'true'
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj
+
+  # Every installer family on its own runner at the same time (they used to run one after another in one job).
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - name: Windows setup and portable
+            id: windows-app
+            os: ubuntu-latest
+            apt: nsis zip
+            build: installer/windows/build.sh "$V" app
+          - name: Windows preview
+            id: windows-preview
+            os: ubuntu-latest
+            apt: zip
+            build: installer/windows/build.sh "$V" preview
+          - name: Linux x64 packages
+            id: linux-x64
+            os: ubuntu-latest
+            apt: rpm
+            appimage: true
+            build: installer/linux/build.sh "$V" x64
+          - name: Linux arm64 packages
+            id: linux-arm64
+            os: ubuntu-latest
+            apt: rpm
+            appimage: true
+            build: installer/linux/build.sh "$V" arm64
+          - name: macOS installers
+            id: macos
+            os: macos-latest
+            build: installer/macos/build.sh "$V" arm64 x64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -38,40 +93,27 @@ jobs:
           [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must look like 0.2.0 (got '$v')"; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
       - name: Packaging tools
+        if: matrix.apt
+        env:
+          APT: ${{ matrix.apt }}
+          APPIMAGE: ${{ matrix.appimage }}
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq nsis rpm zip
-          curl -fsSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x appimagetool
-          sudo mv appimagetool /usr/local/bin/appimagetool
-      - name: Tests
-        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj
-      - name: Windows setup wizard and preview
-        run: installer/windows/build.sh "${{ steps.v.outputs.version }}"
-      - name: Linux x64 packages
-        env:
-          APPIMAGE_EXTRACT_AND_RUN: "1"
-        run: installer/linux/build.sh "${{ steps.v.outputs.version }}" x64
-      - name: Linux arm64 packages
-        env:
-          APPIMAGE_EXTRACT_AND_RUN: "1"
-        run: installer/linux/build.sh "${{ steps.v.outputs.version }}" arm64
-      # The build scripts skip a format they cannot make (useful locally); a release must not.
-      - name: Check every installer was built
+          # The image's package lists usually still resolve; refreshing them first cost up to ~35 s. Refresh only on failure.
+          # shellcheck disable=SC2086
+          sudo apt-get install -y -qq $APT || { sudo apt-get update -qq && sudo apt-get install -y -qq $APT; }
+          if [ "$APPIMAGE" = "true" ]; then
+            curl -fsSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+            chmod +x appimagetool
+            sudo mv appimagetool /usr/local/bin/appimagetool
+          fi
+      - name: Build
         env:
           V: ${{ steps.v.outputs.version }}
-        run: |
-          for f in "Hearthpulse-Setup-$V-win-x64.exe" "Hearthpulse-Portable-$V-win-x64.zip" "Hearthpulse-Preview-$V-win-x64.zip" \
-                   "hearthpulse_${V}_amd64.deb" "hearthpulse_${V}_arm64.deb" \
-                   "hearthpulse-$V-1.x86_64.rpm" "hearthpulse-$V-1.aarch64.rpm" \
-                   "Hearthpulse-$V-linux-x64.tar.gz" "Hearthpulse-$V-linux-arm64.tar.gz" \
-                   "Hearthpulse-Portable-$V-linux-x64.tar.gz" "Hearthpulse-Portable-$V-linux-arm64.tar.gz" \
-                   "Hearthpulse-$V-linux-x64.AppImage"; do
-            test -s "dist/$f" || { echo "::error::dist/$f was not built"; exit 1; }
-          done
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: ${{ matrix.build }}
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-linux
+          name: ${{ matrix.id }}
           if-no-files-found: error
           path: |
             dist/*.exe
@@ -80,49 +122,12 @@ jobs:
             dist/*.rpm
             dist/*.tar.gz
             dist/*.AppImage
-
-  macos:
-    name: macOS installers
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-      - name: Version
-        id: v
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-        run: |
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then v="$GITHUB_REF_NAME"; else v="$INPUT_VERSION"; fi
-          v="${v#v}"
-          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must look like 0.2.0 (got '$v')"; exit 1; }
-          echo "version=$v" >> "$GITHUB_OUTPUT"
-      - name: Apple silicon and Intel (.dmg, .pkg, .zip)
-        run: installer/macos/build.sh "${{ steps.v.outputs.version }}" arm64 x64
-      - name: Check every installer was built
-        env:
-          V: ${{ steps.v.outputs.version }}
-        run: |
-          for arch in arm64 x64; do
-            for ext in pkg dmg zip; do
-              f="Hearthpulse-$V-macOS-$arch.$ext"
-              test -s "dist/$f" || { echo "::error::dist/$f was not built"; exit 1; }
-            done
-            test -s "dist/Hearthpulse-Portable-$V-macOS-$arch.zip" || { echo "::error::macOS $arch portable zip was not built"; exit 1; }
-          done
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos
-          if-no-files-found: error
-          path: |
             dist/*.dmg
             dist/*.pkg
-            dist/*.zip
 
   release:
     name: Publish the release
-    needs: [windows-linux, macos]
+    needs: [tests, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -139,6 +144,21 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      # The build scripts skip a format they cannot make (useful locally); a release must not.
+      - name: Check every installer was built
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          for f in "Hearthpulse-Setup-$V-win-x64.exe" "Hearthpulse-Portable-$V-win-x64.zip" "Hearthpulse-Preview-$V-win-x64.zip"                    "hearthpulse_${V}_amd64.deb" "hearthpulse_${V}_arm64.deb"                    "hearthpulse-$V-1.x86_64.rpm" "hearthpulse-$V-1.aarch64.rpm"                    "Hearthpulse-$V-linux-x64.tar.gz" "Hearthpulse-$V-linux-arm64.tar.gz"                    "Hearthpulse-Portable-$V-linux-x64.tar.gz" "Hearthpulse-Portable-$V-linux-arm64.tar.gz"                    "Hearthpulse-$V-linux-x64.AppImage"; do
+            test -s "dist/$f" || { echo "::error::dist/$f was not built"; exit 1; }
+          done
+          for arch in arm64 x64; do
+            for ext in pkg dmg zip; do
+              f="Hearthpulse-$V-macOS-$arch.$ext"
+              test -s "dist/$f" || { echo "::error::dist/$f was not built"; exit 1; }
+            done
+            test -s "dist/Hearthpulse-Portable-$V-macOS-$arch.zip" || { echo "::error::macOS $arch portable zip was not built"; exit 1; }
+          done
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
