@@ -20,8 +20,10 @@ public sealed class CardDb
     {
         Locale = locale;
         BgCards = supplement ?? BgCardDb.Empty;
-        _byId = new Dictionary<string, Card>(StringComparer.OrdinalIgnoreCase);
-        _byDbf = new Dictionary<int, Card>();
+        // Sized up front: growing to 36 000 cards re-allocated the tables on the large object heap at every doubling,
+        // and each of those allocations counts toward a gen2 collection (three of them during start-up).
+        _byId = new Dictionary<string, Card>(cards.Count, StringComparer.OrdinalIgnoreCase);
+        _byDbf = new Dictionary<int, Card>(cards.Count);
         foreach (var card in cards)
         {
             _byId[card.Id] = card;
@@ -496,8 +498,8 @@ public sealed class CardDb
             return cards;
         }
 
-        var byId = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var byDbf = new Dictionary<int, int>();
+        var byId = new Dictionary<string, int>(cards.Count + supplement.Count, StringComparer.OrdinalIgnoreCase);
+        var byDbf = new Dictionary<int, int>(cards.Count + supplement.Count);
         for (var i = 0; i < cards.Count; i++)
         {
             byId[cards[i].Id] = i;
