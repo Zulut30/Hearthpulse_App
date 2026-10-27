@@ -114,8 +114,8 @@
                 <ItemsControl ItemsSource="{Binding ArenaDeck}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="o:ArenaDeckRow">
-                            <Grid Height="19" Margin="0,0,0,1" ColumnDefinitions="22,*,Auto,28">
-                                <c:ManaCost Width="18" Height="17" Text="{Binding Cost}" HorizontalAlignment="Left" />
+                            <Grid Height="21" Margin="0,0,0,1" ColumnDefinitions="25,*,Auto,28">
+                                <c:ManaCost Width="20" Height="20" Text="{Binding Cost}" HorizontalAlignment="Left" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Grid.Column="2" Text="{Binding Copies}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="4,0,0,0" />
                                 <TextBlock Grid.Column="3" Text="{Binding Score}" FontFamily="{DynamicResource DisplayFont}" FontSize="11.5" FontWeight="Bold" TextAlignment="Right"
