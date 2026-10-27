@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Hearthpulse.App.Infrastructure;
@@ -88,6 +89,39 @@ public partial class MainWindow : Window
     {
         base.OnSourceInitialized(e);
         Native.UseDarkChrome(new WindowInteropHelper(this).Handle);
+    }
+
+    /// <summary>Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page (not while typing).</summary>
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Handled)
+        {
+            return;
+        }
+
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (Keyboard.Modifiers == ModifierKeys.Control
+            && MainViewModel.NavPageForDigit(key is >= Key.D1 and <= Key.D9 ? key - Key.D0 : key is >= Key.NumPad1 and <= Key.NumPad9 ? key - Key.NumPad0 : 0) is { } page)
+        {
+            ShowPage(page);
+            e.Handled = true;
+        }
+        else if (((key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None) || (key == Key.Left && Keyboard.Modifiers == ModifierKeys.Alt))
+                 && e.OriginalSource is not TextBox)
+        {
+            e.Handled = _viewModel.GoBack(CurrentPage);
+        }
+    }
+
+    /// <summary>The mouse's Back button leaves a deck or match page.</summary>
+    protected override void OnMouseUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseUp(e);
+        if (!e.Handled && e.ChangedButton == MouseButton.XButton1)
+        {
+            e.Handled = _viewModel.GoBack(CurrentPage);
+        }
     }
 
     protected override void OnClosing(CancelEventArgs e)

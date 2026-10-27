@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Hearthpulse.Core;
@@ -81,6 +82,64 @@ public partial class MainView : UserControl
             }
 
             viewModel.AccountCodeCopied(false);
+        }
+    }
+
+    /// <summary>The open page, as <see cref="ShowPage"/> takes it.</summary>
+    private string CurrentPage =>
+        NavBattlegrounds.IsChecked == true ? "Battlegrounds"
+        : NavStandard.IsChecked == true ? ConstructedPage.Standard
+        : NavWild.IsChecked == true ? ConstructedPage.Wild
+        : NavArena.IsChecked == true ? "Arena"
+        : NavHistory.IsChecked == true ? "History"
+        : NavSettings.IsChecked == true ? "Settings"
+        : "Overview";
+
+    // Keys are taken from the window: with nothing focused yet they never reach the view itself.
+    private TopLevel? _keyHost;
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _keyHost = TopLevel.GetTopLevel(this);
+        _keyHost?.AddHandler(KeyDownEvent, OnWindowKeyDown);
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _keyHost?.RemoveHandler(KeyDownEvent, OnWindowKeyDown);
+        _keyHost = null;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    /// <summary>Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page (not while typing).</summary>
+    private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Handled || _viewModel is null)
+        {
+            return;
+        }
+
+        var digit = e.Key is >= Key.D1 and <= Key.D9 ? e.Key - Key.D0 : e.Key is >= Key.NumPad1 and <= Key.NumPad9 ? e.Key - Key.NumPad0 : 0;
+        if (e.KeyModifiers == KeyModifiers.Control && MainViewModel.NavPageForDigit(digit) is { } page)
+        {
+            ShowPage(page);
+            e.Handled = true;
+        }
+        else if (((e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None) || (e.Key == Key.Left && e.KeyModifiers == KeyModifiers.Alt))
+                 && e.Source is not TextBox)
+        {
+            e.Handled = _viewModel.GoBack(CurrentPage);
+        }
+    }
+
+    /// <summary>The mouse's Back button leaves a deck or match page.</summary>
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        if (!e.Handled && _viewModel is not null && e.InitialPressMouseButton == MouseButton.XButton1)
+        {
+            e.Handled = _viewModel.GoBack(CurrentPage);
         }
     }
 
