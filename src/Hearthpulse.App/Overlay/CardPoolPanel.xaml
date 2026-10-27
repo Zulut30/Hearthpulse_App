@@ -53,7 +53,7 @@
             <TranslateTransform x:Name="CardShift" />
         </Border.RenderTransform>
         <StackPanel>
-            <!-- ===== Summary: pool size, the generator's words, classes · format · source, sections ===== -->
+            <!-- ===== Summary: pool size, the generator card, classes · format, sections ===== -->
             <StackPanel Margin="12,9,12,0">
                 <TextBlock Text="{Binding CardPoolTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
                 <TextBlock Text="{Binding CardPoolPhrase}" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
@@ -83,27 +83,28 @@
                     <ItemsControl ItemsSource="{Binding CardPoolPicks}" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type o:PoolPickRowModel}">
-                                <!-- One line: name (gold with a star when clearly the most taken), pick bar, share, win rate; faded on few games. -->
-                                <Grid Height="18">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="72" />
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="52" />
-                                    </Grid.ColumnDefinitions>
-                                    <DockPanel Margin="0,0,6,0">
+                                <!-- Two lines: the name (gold with a star when clearly the most taken), then pick bar, share and win rate; faded on few games. -->
+                                <StackPanel Margin="0,0,0,3">
+                                    <DockPanel>
                                         <TextBlock x:Name="TopMark" DockPanel.Dock="Left" Text="&#xF04CE;" FontFamily="{StaticResource IconFont}" FontSize="10" Foreground="{StaticResource Accent}"
                                                    VerticalAlignment="Center" Margin="0,0,3,0" Visibility="Collapsed" />
                                         <TextBlock x:Name="PickName" Text="{Binding Name}" FontSize="10.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                     </DockPanel>
-                                    <Border x:Name="PickBar" Grid.Column="1" Height="6" CornerRadius="3" Background="{StaticResource Hover}" VerticalAlignment="Center">
-                                        <Border Width="{Binding FillWidth}" HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource PoolMechanicFill}" />
-                                    </Border>
-                                    <TextBlock x:Name="PickShare" Grid.Column="2" Text="{Binding PickText}" FontFamily="{StaticResource DisplayFont}" FontSize="10.5" FontWeight="Bold"
-                                               HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="PickWin" Grid.Column="3" Text="{Binding WinText}" FontSize="9.5" Foreground="{StaticResource Muted}"
-                                               HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                </Grid>
+                                    <Grid Height="15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="40" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border x:Name="PickBar" Height="6" CornerRadius="3" Background="{StaticResource Hover}" VerticalAlignment="Center">
+                                            <Border Width="{Binding FillWidth}" HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource PoolMechanicFill}" />
+                                        </Border>
+                                        <TextBlock x:Name="PickShare" Grid.Column="1" Text="{Binding PickText}" FontFamily="{StaticResource DisplayFont}" FontSize="10.5" FontWeight="Bold"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        <TextBlock x:Name="PickWin" Grid.Column="2" Text="{Binding WinText}" FontSize="9.5" Foreground="{StaticResource Muted}"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding Top}" Value="True">
                                         <Setter TargetName="TopMark" Property="Visibility" Value="Visible" />
@@ -178,17 +179,16 @@
                                                 <Border x:Name="Shine" CornerRadius="3,3,1,1" Background="{StaticResource PoolStatShine}" BorderBrush="{StaticResource Text}" BorderThickness="1" Visibility="Collapsed" />
                                             </Grid>
                                         </StackPanel>
-                                        <!-- Axis: a mana gem (Cost), a round attack token or a health drop, with the value -->
+                                        <!-- Axis: the mana gem with its digit (Cost), or a round attack token or a health drop with the value -->
                                         <Grid Grid.Row="1" Width="16" Height="16" Margin="0,3,0,0">
-                                            <Path x:Name="CostGem" Data="M11,0 L21,8 L17.5,21 L4.5,21 L1,8 Z" Stretch="Fill"
-                                                  Fill="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Stroke="{StaticResource Bg}" StrokeThickness="1" />
+                                            <c:ManaCost x:Name="CostGem" Text="{Binding Label}" />
                                             <Ellipse x:Name="AttackGem" Visibility="Collapsed"
                                                      Fill="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Stroke="{StaticResource Bg}" StrokeThickness="1" />
                                             <Path x:Name="HealthGem" Visibility="Collapsed" Stretch="Fill"
                                                   Data="M11,0 C14,5 21,9 21,14 C21,18.5 16.5,22 11,22 C5.5,22 1,18.5 1,14 C1,9 8,5 11,0 Z"
                                                   Fill="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Stroke="{StaticResource Bg}" StrokeThickness="1" />
-                                            <TextBlock Text="{Binding Label}" FontFamily="{StaticResource DisplayFont}" FontSize="8.5" FontWeight="Bold" Foreground="White"
-                                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0" />
+                                            <TextBlock x:Name="GemLabel" Text="{Binding Label}" FontFamily="{StaticResource DisplayFont}" FontSize="8.5" FontWeight="Bold" Foreground="White"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0" Visibility="Collapsed" />
                                         </Grid>
                                     </Grid>
                                 </Border>
@@ -207,10 +207,12 @@
                                     <DataTrigger Binding="{Binding DataContext.CardPoolStat, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="Attack">
                                         <Setter TargetName="CostGem" Property="Visibility" Value="Collapsed" />
                                         <Setter TargetName="AttackGem" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="GemLabel" Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding DataContext.CardPoolStat, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="Health">
                                         <Setter TargetName="CostGem" Property="Visibility" Value="Collapsed" />
                                         <Setter TargetName="HealthGem" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="GemLabel" Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>
@@ -223,7 +225,6 @@
             <Grid Visibility="{Binding CardPoolHasCards, Converter={StaticResource Vis}}">
                 <StackPanel>
                     <StackPanel Margin="12,8,12,0" Visibility="{Binding CardPoolMechanicRows, Converter={StaticResource Vis}}">
-                        <TextBlock Text="{i:Loc Pool.Mechanics}" Style="{StaticResource PoolLabel}" />
                         <ItemsControl ItemsSource="{Binding CardPoolMechanicRows}" Focusable="False" Margin="0,0,0,-4">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>

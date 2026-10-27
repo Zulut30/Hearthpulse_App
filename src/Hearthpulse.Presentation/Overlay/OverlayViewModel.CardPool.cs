@@ -60,7 +60,7 @@ public sealed partial class OverlayViewModel
     private const int MechanicChipCount = 6;
 
     /// <summary>Width of a pick bar's track; an option taken every time it is offered fills it.</summary>
-    private const double PickTrack = 72;
+    private const double PickTrack = 150;
 
     private const int TopCardCount = 4;
 
@@ -506,11 +506,11 @@ public sealed partial class OverlayViewModel
         _cardPoolLanguage = Loc.Instance.Language;
         CardPoolTitle = pool.Uncomputed is null ? Loc.P("Pool.Title", pool.Count, CardCount(pool.Count)) : Loc.T("Pool.NotComputed");
         CardPoolSource = pool.SourceName;
-        CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {PoolDisplay.Reason(reason)}" : $"{pool.Phrase} · {pool.Description}";
+        CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {PoolDisplay.Reason(reason)}" : pool.Description;
         CardPoolHasCards = pool.Uncomputed is null;
-        CardPoolPhrase = pool.Uncomputed is { } why ? $"{pool.SourceName}: {PoolDisplay.Reason(why)}" : pool.Phrase;
-        // Description is "classes · format"; the source follows it.
-        CardPoolMeta = pool.Uncomputed is null ? $"{pool.Description} · {Loc.F("Pool.SourceNote", PoolDisplay.Source(pool.Source))}" : string.Empty;
+        // The generator's name in the player's language (the parsed phrase is English card text), then "classes · format".
+        CardPoolPhrase = pool.Uncomputed is { } why ? $"{pool.SourceName}: {PoolDisplay.Reason(why)}" : pool.SourceName;
+        CardPoolMeta = pool.Uncomputed is null ? pool.Description : string.Empty;
         UpdateSectionChips();
         _cardPoolChartStat = "Cost";
         _cardPoolBar = null;

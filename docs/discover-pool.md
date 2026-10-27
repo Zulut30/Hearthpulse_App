@@ -44,8 +44,8 @@ queries for one class (`query_url` `options_format`, `options_heroClasses`): not
 stolen generator). Several pools (Scion of Insight: Blood 29, Frost 21, Unholy 33) become sections: chips on the
 compact panel, clickable in the browser (one section's cards); the stats count every card once. The page is read now
 and then, so a wiki list that the card text finds whole and more of is older (Hematurge: 23 of 29 on 2026-10-12, the
-newest set missing): the text pool is shown, with that note as the source. The panel names its source ("pool:
-Hearthstone Wiki" / "pool: card text").
+newest set missing): the text pool is shown. Since 2026-10-27 the compact panel no longer prints the source or the
+parsed English phrase: under the title it names the generator card (in the player's language) and "classes · format".
 
 The panel's highlighted card is the pool card played in the most meta-deck games (`ConstructedMeta.Decks`, sum of
 `Games` over decks that run it). No per-card win rate is public on the API (`/v1/meta-intelligence/cards` needs a
@@ -161,8 +161,8 @@ median is the usual median of the cards that have the stat (halves shown as 3.5)
 The panel draws one stat at a time as a low chart (bars at most 34 units, `OverlayViewModel.BarMaxHeight`): tabs
 Cost / Attack / Health (only stats some pool card has), rounded bars with a gradient per stat (tokens `PoolStatCostBar`,
 `PoolStatAttackBar`, `PoolStatHealthBar`; keys starting with `PoolStat` are never recoloured by a theme), the count above
-each bar, the median bar with a sheen and an outline, and an axis of small mana gems (Cost), round tokens (Attack) or
-drops (Health). The panel lets clicks through, so it reacts to hover only: the pointer on a tab switches the chart, on a
+each bar, the median bar with a sheen and an outline, and an axis of Hearthstone mana gems (`ManaCost`, Cost), round
+tokens (Attack) or drops (Health). The panel lets clicks through, so it reacts to hover only: the pointer on a tab switches the chart, on a
 column lists that column's cards over the lower part of the panel (`PoolStats.CardsIn`: the most played in meta decks
 first, 8 at most, "+N more"). Below the chart: the mechanic chips and the four most played pool cards as small art tiles
 with cost and name (`PoolStats.TopCards`; hidden without meta data). The full lists are in the pool browser.
@@ -220,8 +220,8 @@ panel next to its card is a second `CardPoolPanel` in a Canvas over the surface 
 ## What players take (pick hint)
 
 While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the chart,
-one line per offered card: its name, the share of offers in which players took it (bar and percent), the share of
-games they won after taking it, the name in gold with a star when one option leads the next by 5 points or more; then
+two lines per offered card: its name on its own line, then the share of offers in which players took it (bar and
+percent) and the share of games they won after taking it; the name in gold with a star when one option leads the next by 5 points or more; then
 a line naming the rank and the source, "Legend · Hearthpulse data". Numbers only, never advice or a click for the player.
 
 - **Data: the Hearthpulse data API** (`api.kolodahearthstone.com/v1/hsreplay/card-choices`, Legend). The legal check

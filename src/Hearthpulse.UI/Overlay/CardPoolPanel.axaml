@@ -79,10 +79,17 @@
         <Style Selector="ItemsControl.chart :is(Shape).attackGem, ItemsControl.chart :is(Shape).healthGem">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <Style Selector="ItemsControl.chart.attack :is(Shape).costGem, ItemsControl.chart.health :is(Shape).costGem">
+        <!-- Cost: the mana gem draws its own digit; attack and health shapes carry the label -->
+        <Style Selector="ItemsControl.chart TextBlock.gemLabel">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="ItemsControl.chart.attack c|ManaCost.costGem, ItemsControl.chart.health c|ManaCost.costGem">
             <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="ItemsControl.chart.attack :is(Shape).attackGem, ItemsControl.chart.health :is(Shape).healthGem">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="ItemsControl.chart.attack TextBlock.gemLabel, ItemsControl.chart.health TextBlock.gemLabel">
             <Setter Property="IsVisible" Value="True" />
         </Style>
         <Style Selector="Border.column">
@@ -136,22 +143,24 @@
                     <ItemsControl ItemsSource="{Binding CardPoolPicks}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="o:PoolPickRowModel">
-                                <!-- One line: name (gold with a star when clearly the most taken), pick bar, share, win rate; faded on few games. -->
-                                <Grid Height="18" ColumnDefinitions="*,72,34,52" Classes.lowSample="{Binding LowSample}">
-                                    <DockPanel Margin="0,0,6,0">
+                                <!-- Two lines: the name (gold with a star when clearly the most taken), then pick bar, share and win rate; faded on few games. -->
+                                <StackPanel Margin="0,0,0,3">
+                                    <DockPanel>
                                         <TextBlock DockPanel.Dock="Left" Text="&#xF04CE;" FontFamily="{StaticResource IconFont}" FontSize="10" Foreground="{StaticResource Accent}"
                                                    VerticalAlignment="Center" Margin="0,0,3,0" IsVisible="{Binding Top}" />
                                         <TextBlock Classes="pickName" Classes.top="{Binding Top}" Text="{Binding Name}" FontSize="10.5" FontWeight="SemiBold"
                                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                     </DockPanel>
-                                    <Border Grid.Column="1" Height="6" CornerRadius="3" Background="{StaticResource Hover}" VerticalAlignment="Center">
-                                        <Border Width="{Binding FillWidth}" HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource PoolMechanicFill}" />
-                                    </Border>
-                                    <TextBlock Grid.Column="2" Text="{Binding PickText}" FontFamily="{StaticResource DisplayFont}" FontSize="10.5" FontWeight="Bold"
-                                               HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="3" Text="{Binding WinText}" FontSize="9.5" Foreground="{StaticResource Muted}"
-                                               HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                </Grid>
+                                    <Grid Height="15" ColumnDefinitions="150,40,*" Classes.lowSample="{Binding LowSample}">
+                                        <Border Height="6" CornerRadius="3" Background="{StaticResource Hover}" VerticalAlignment="Center">
+                                            <Border Width="{Binding FillWidth}" HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource PoolMechanicFill}" />
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="{Binding PickText}" FontFamily="{StaticResource DisplayFont}" FontSize="10.5" FontWeight="Bold"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="{Binding WinText}" FontSize="9.5" Foreground="{StaticResource Muted}"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -205,13 +214,13 @@
                                                         IsVisible="{Binding IsMedian}" />
                                             </Panel>
                                         </StackPanel>
-                                        <!-- Axis: a mana gem (Cost), a round attack token or a health drop, with the value -->
+                                        <!-- Axis: the mana gem with its digit (Cost), or a round attack token or a health drop with the value -->
                                         <Panel Grid.Row="1" Width="16" Height="16" Margin="0,3,0,0">
-                                            <Path Classes="gem costGem" Data="M11,0 L21,8 L17.5,21 L4.5,21 L1,8 Z" Stretch="Fill" Stroke="{StaticResource Bg}" StrokeThickness="1" />
+                                            <c:ManaCost Classes="costGem" Text="{Binding Label}" />
                                             <Ellipse Classes="gem attackGem" Stroke="{StaticResource Bg}" StrokeThickness="1" />
                                             <Path Classes="gem healthGem" Stretch="Fill" Stroke="{StaticResource Bg}" StrokeThickness="1"
                                                   Data="M11,0 C14,5 21,9 21,14 C21,18.5 16.5,22 11,22 C5.5,22 1,18.5 1,14 C1,9 8,5 11,0 Z" />
-                                            <TextBlock Text="{Binding Label}" FontFamily="{StaticResource DisplayFont}" FontSize="8.5" FontWeight="Bold" Foreground="White"
+                                            <TextBlock Classes="gemLabel" Text="{Binding Label}" FontFamily="{StaticResource DisplayFont}" FontSize="8.5" FontWeight="Bold" Foreground="White"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,0,0" />
                                         </Panel>
                                     </Grid>
@@ -226,7 +235,6 @@
             <Panel IsVisible="{Binding CardPoolHasCards}">
                 <StackPanel>
                     <StackPanel Margin="12,8,12,0" IsVisible="{Binding CardPoolMechanicRows, Converter={StaticResource Truthy}}">
-                        <TextBlock Classes="poolLabel" Text="{i:Loc Pool.Mechanics}" />
                         <ItemsControl ItemsSource="{Binding CardPoolMechanicRows}" Margin="0,0,0,-4">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>

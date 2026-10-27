@@ -3,11 +3,9 @@
 
   "Pool.Title": "Пул: {1} карта|Пул: {1} карты|Пул: {1} карт",
   "Pool.NotComputed": "Пул не рассчитан",
-  "Pool.SourceNote": "пул: {0}",
   "Pool.BrowserTitle": "Пул «{2}»: {1} карта|Пул «{2}»: {1} карты|Пул «{2}»: {1} карт",
   "Pool.Match": "Подходит {1} карта|Подходят {1} карты|Подходят {1} карт",
   "Pool.MedianValue": "медиана {0}",
-  "Pool.Mechanics": "Механики",
   "Pool.Bucket": "{2} {3}: {1} карта|{2} {3}: {1} карты|{2} {3}: {1} карт",
   "Pool.More": "и ещё {0}",
   "Pool.RightClickHint": "Правый клик — все варианты",
@@ -24,7 +22,6 @@
   "Pool.Stat.Attack": "Атака",
   "Pool.Stat.Health": "Здоровье",
 
-  "Pool.Source.CardText": "текст карты",
   "Pool.Source.TextOverWiki": "текст карты (список Hearthstone Wiki устарел: {0} из {1})",
 
   "Pool.Reason.NamedGroup": "именованная группа карт, которую каталог не отмечает",
