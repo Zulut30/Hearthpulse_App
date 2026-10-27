@@ -280,7 +280,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _endingLeftGame = false;
         }
 
-        _parser = new PowerParser(DateOnly.FromDateTime(sessionStart));
+        _parser = new PowerParser(sessionStart);
         OnLadderLogSession(sessionStart);
         _parser.AddListener(_constructed);
         _parser.AddListener(_constructed.Counters);

@@ -329,7 +329,7 @@ internal static class CoreBench
         var seed = File.Exists(AppPaths.Database) ? new HistoryStore(AppPaths.Database).Recent(int.MaxValue).ToList() : [];
         foreach (var (_, path, start) in LogReplay.Logs(logs))
         {
-            seed.AddRange(LogBackfill.Parse(path, DateOnly.FromDateTime(start), cards));
+            seed.AddRange(LogBackfill.Parse(path, start, cards));
         }
 
         return seed;

@@ -68,7 +68,7 @@ public sealed class ReplayLogTests(ITestOutputHelper output) : IDisposable
                     continue;
                 }
 
-                foreach (var record in LogBackfill.Parse(file, DateOnly.FromDateTime(start.Value), cards, replays: store))
+                foreach (var record in LogBackfill.Parse(file, start.Value, cards, replays: store))
                 {
                     var text = store.Load(record.Replay);
                     Assert.NotNull(text);

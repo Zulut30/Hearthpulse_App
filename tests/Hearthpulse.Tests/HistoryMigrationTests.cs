@@ -163,7 +163,7 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
                     continue;
                 }
 
-                foreach (var record in LogBackfill.Parse(file, DateOnly.FromDateTime(start.Value), CardDb.Empty).Where(r => !r.IsBattlegrounds))
+                foreach (var record in LogBackfill.Parse(file, start.Value, CardDb.Empty).Where(r => !r.IsBattlegrounds))
                 {
                     output.WriteLine($"{record.StartedAt:g} {record.Mode} {record.Result} first={record.WentFirst}");
                     Assert.NotNull(record.WentFirst);
