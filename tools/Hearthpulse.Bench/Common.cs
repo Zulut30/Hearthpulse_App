@@ -33,6 +33,13 @@ internal static class Measure
     /// <summary>Working set, private bytes, live managed heap (after a full GC), LOH and GC committed memory.</summary>
     public static void Memory(string label)
     {
+        // HP_BENCH_FINALIZE=1: also run the finalizers first, which hand back native memory (WPF bitmaps) the GC found dead.
+        if (Environment.GetEnvironmentVariable("HP_BENCH_FINALIZE") == "1")
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
         var live = GC.GetTotalMemory(forceFullCollection: true);
         var info = GC.GetGCMemoryInfo(GCKind.Any);
         using var process = Process.GetCurrentProcess();
