@@ -15,7 +15,7 @@
   "Arena.Panel.Curve": "Mana curve",
   "Arena.Panel.Classes": "Class win rates",
   "Arena.Panel.Deck": "Cards picked",
-  "Arena.Settings.Show": "Arena draft helper (beta): a score over each card and the draft panel",
+  "Arena.Settings.Show": "Arena draft helper (beta)",
   "Arena.Settings.ShowTip": "Beta, off by default: not yet checked on a real draft. On the Arena draft screen: a score badge over each offered card (class win rate over each hero), the best one in gold, and a panel with your picks, mana curve and average score.",
   "Arena.Page.DeckTitle": "Deck score",
   "Arena.Page.DeckNote": "Average score over {0} of {1} cards",

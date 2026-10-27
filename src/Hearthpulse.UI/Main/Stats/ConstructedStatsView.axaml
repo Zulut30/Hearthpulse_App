@@ -34,8 +34,7 @@
         <Border Classes="card" Margin="0,0,0,16">
             <DockPanel>
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <c:Ornament Text="{i:Loc Stats.Ct.RankTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
-                    <TextBlock Text="{i:Loc Stats.Ct.RankHint}" Classes="caption wide" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    <c:Ornament Text="{i:Loc Stats.Ct.RankTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" ToolTip.Tip="{i:Loc Stats.Ct.RankHint}" />
                 </Grid>
                 <c:StatsLineChart x:Name="RankChart" Height="210" Points="{Binding CtRankChart}" HoverTemplate="{StaticResource CtHoverCard}"
                                   EmptyText="{i:Loc Stats.Ct.RankEmpty}" />

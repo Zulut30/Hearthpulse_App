@@ -21,6 +21,8 @@ public partial class App
 {
     private void PrepareOffscreenRender()
     {
+        // The default panel spots, not the layout saved in the copied data folder: renders compare across runs and PCs.
+        _settings.Panels.Clear();
         _overlay.Offscreen = true;
         _overlay.Left = -20000;
         _overlay.Top = -20000;

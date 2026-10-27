@@ -876,7 +876,7 @@
             </Grid.LayoutTransform>
 
             <!-- ============ Constructed: your deck (right) ============ -->
-            <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,64,12,0">
+            <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,12,0">
                 <Border Style="{StaticResource OverlayCard}" Width="252">
                     <StackPanel>
                         <StackPanel Margin="12,10,12,8">
@@ -897,7 +897,7 @@
             </o:MovablePanel>
 
             <!-- ============ Constructed: opponent (left) ============ -->
-            <o:MovablePanel Id="opponent" Title="{i:Loc Overlay.Common.Opponent}" Shown="{Binding ShowOpponent}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,64,0,0">
+            <o:MovablePanel Id="opponent" Title="{i:Loc Overlay.Common.Opponent}" Shown="{Binding ShowOpponent}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,76,0,0">
                 <Border Style="{StaticResource OverlayCard}" Width="214">
                     <StackPanel Margin="12,10,12,10">
                         <Grid>
@@ -968,7 +968,7 @@
             </o:MovablePanel>
 
             <!-- ============ Constructed: counters (bottom-left) ============ -->
-            <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,170">
+            <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,110">
                 <Border x:Name="CountersCard" Style="{StaticResource OverlayCard}" Width="214" o:OverlayHit.Interactive="True">
                     <!-- One value column for every row, so the progress under each title ends at the same place -->
                     <StackPanel Margin="9,8,9,7" Grid.IsSharedSizeScope="True">
@@ -1012,13 +1012,13 @@
             </o:MovablePanel>
 
             <!-- ============ Constructed: card pool of a Discover / random generator ============ -->
-            <o:MovablePanel Id="card-pool" Title="{i:Loc Overlay.Panel.CardPool}" Shown="{Binding ShowCardPoolPanel}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,64,0,0">
+            <o:MovablePanel Id="card-pool" Title="{i:Loc Overlay.Panel.CardPool}" Shown="{Binding ShowCardPoolPanel}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,76,0,0">
                 <o:CardPoolPanel />
             </o:MovablePanel>
 
             <!-- ============ Constructed: card pool browser (every card; right-click on the pool panel) ============ -->
             <!-- Left edge by default: on the right it would cover the End Turn button. -->
-            <o:MovablePanel Id="card-pool-browser" Title="{i:Loc Overlay.Panel.CardPoolBrowser}" Shown="{Binding CardPoolBrowserOpen}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,8,0,0">
+            <o:MovablePanel Id="card-pool-browser" Title="{i:Loc Overlay.Panel.CardPoolBrowser}" Shown="{Binding CardPoolBrowserOpen}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,148,0,0">
                 <o:CardPoolBrowser />
             </o:MovablePanel>
 
@@ -1215,7 +1215,7 @@
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: game plan (right) ============ -->
-            <o:MovablePanel Id="plan" Title="{i:Loc Overlay.Plan.Title}" Shown="{Binding ShowComp}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,66,12,0">
+            <o:MovablePanel Id="plan" Title="{i:Loc Overlay.Plan.Title}" Shown="{Binding ShowComp}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,148,12,0">
                 <Border Style="{StaticResource OverlayCard}" Width="252" o:OverlayHit.Interactive="True">
                     <DockPanel>
                         <Grid DockPanel.Dock="Top" Margin="12,9,6,0">
@@ -1485,7 +1485,7 @@
             </o:MovablePanel>
 
             <!-- ============ Arena draft: deck so far, curve, average score, class win rates (left) ============ -->
-            <o:MovablePanel Id="arena-draft" Title="{i:Loc Arena.Panel.Title}" Hint="{i:Loc Overlay.Layout.AppearsInArenaDraft}" Shown="{Binding ShowArenaDraft}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,64,0,0">
+            <o:MovablePanel Id="arena-draft" Title="{i:Loc Arena.Panel.Title}" Hint="{i:Loc Overlay.Layout.AppearsInArenaDraft}" Shown="{Binding ShowArenaDraft}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,148,0,0">
                 <o:ArenaDraftPanel />
             </o:MovablePanel>
 
@@ -1538,10 +1538,10 @@
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{i:Loc Overlay.Layout.Title}" FontSize="14" FontWeight="SemiBold" />
                         <TextBlock Text="{i:Loc Overlay.Layout.Hint}" FontSize="11.5" Foreground="{StaticResource Muted}" />
-                        <TextBlock Text="{i:Loc Overlay.Layout.Shortcuts}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,2,0,0" />
                     </StackPanel>
                     <Button Style="{StaticResource GhostButton}" Content="{i:Loc Overlay.Layout.ResetAll}" Margin="18,0,8,0" Command="{Binding ResetLayout}" Focusable="False" />
-                    <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Overlay.Layout.Done}" Command="{Binding FinishLayout}" Focusable="False" />
+                    <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Overlay.Layout.Done}" Command="{Binding FinishLayout}" Focusable="False"
+                            ToolTip="{i:Loc Overlay.Layout.Shortcuts}" />
                 </StackPanel>
             </Border>
 

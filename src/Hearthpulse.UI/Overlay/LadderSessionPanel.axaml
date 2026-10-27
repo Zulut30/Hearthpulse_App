@@ -37,7 +37,6 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Text="{i:Loc Widgets.Ladder.RankNote}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,4,0,0" />
         </StackPanel>
     </Border>
 </UserControl>

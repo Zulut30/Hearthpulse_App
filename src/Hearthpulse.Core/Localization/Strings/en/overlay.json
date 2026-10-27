@@ -167,8 +167,8 @@
   "Overlay.Plan.LobbyChoose": "Comps for this lobby  ·  click to choose",
   "Overlay.Plan.LobbyLock": "Comps for this lobby  ·  click to lock one",
   "Overlay.Plan.HintLock": "Click a comp below to lock your plan on it.",
-  "Overlay.Plan.HintUnavailable": "Your chosen comp is not available in this lobby. Choose another below, or keep it for the next game.",
-  "Overlay.Plan.HintChoose": "Choose a comp below to plan around it. Tavern and Discover hints then count its cards.",
+  "Overlay.Plan.HintUnavailable": "Your comp is not in this lobby. Choose another below.",
+  "Overlay.Plan.HintChoose": "Choose a comp below.",
   "Overlay.Comp.CoreOwned": "{0}/{1} core owned",
   "Overlay.Comp.CoreOwnedSuffix": " core owned",
 
