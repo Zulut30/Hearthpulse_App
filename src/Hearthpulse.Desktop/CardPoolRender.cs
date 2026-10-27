@@ -39,14 +39,11 @@ internal static class CardPoolRender
         Show(pool, new CardPoolAnchor(PoolAnchorZone.Choice, 0, 3), DiscoverPicks.RenderSample(pool, host.Cards));
         await save(Path.Combine(folder, "overlay-card-pool-picks.png"));
 
-        // Hovered in hand (fifth of six cards): the chart on Attack, the pointer on the 3-Attack column.
+        // Hovered in hand (fifth of six cards): the popup beside the card's preview.
         if (engine.Build("CORE_GIL_836", new PoolContext("FT_STANDARD", "SHAMAN", "WARRIOR"), PoolTrigger.Hover) is { } hovered)
         {
             Show(hovered, new CardPoolAnchor(PoolAnchorZone.Hand, 4, 6));
-            host.Overlay.HoverCardPoolChart("Attack", null);
-            host.Overlay.HoverCardPoolChart(null, 3);
             await save(Path.Combine(folder, "overlay-card-pool-hover.png"));
-            host.Overlay.HoverCardPoolChart(null, null);
         }
 
         // A large pool (Swashburglar, a card from another class) hovered as the leftmost card in hand; Death Knight runes

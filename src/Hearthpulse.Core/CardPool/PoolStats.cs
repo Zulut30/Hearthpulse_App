@@ -61,6 +61,22 @@ public static partial class PoolStats
         _ => null,
     };
 
+    /// <summary>
+    /// The average <paramref name="stat"/> ("Cost", "Attack", "Health") of the pool cards that have it, by the same rules
+    /// as <see cref="Histograms"/> but unclamped (a 12-cost card counts 12); null when no card has it.
+    /// </summary>
+    public static double? Average(IEnumerable<PoolEntry> cards, string stat)
+    {
+        var values = cards.Select(c => stat switch
+        {
+            "Cost" => c.Cost,
+            "Attack" when c.Type is "MINION" or "WEAPON" => c.Attack,
+            "Health" when c.Type == "MINION" => c.Health,
+            _ => null,
+        }).OfType<int>().ToList();
+        return values.Count > 0 ? values.Average() : null;
+    }
+
     /// <summary>The pool cards of one histogram bar, most played in meta decks first, then by cost and name.</summary>
     public static IReadOnlyList<PoolEntry> CardsIn(CardPoolView view, string stat, int bar) =>
         view.Cards.Where(c => Bucket(c, stat) == bar)

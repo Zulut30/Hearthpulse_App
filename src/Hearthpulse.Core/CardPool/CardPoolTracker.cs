@@ -11,8 +11,11 @@ namespace Hearthpulse.Core.CardPool;
 /// </summary>
 public sealed class CardPoolTracker : IPowerListener
 {
-    /// <summary>How long a hovered card's pool stays after the mouse leaves it, so the panel can be reached.</summary>
-    public static readonly TimeSpan HoverLinger = TimeSpan.FromSeconds(1.5);
+    /// <summary>
+    /// How long a hovered card's pool stays after the mouse leaves it: long enough to reach the panel beside the card
+    /// (resting on it holds the pool), short enough that it does not hang over the board after the card is left.
+    /// </summary>
+    public static readonly TimeSpan HoverLinger = TimeSpan.FromSeconds(0.8);
 
     private readonly object _gate = new();
     private string? _choiceSource;
