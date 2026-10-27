@@ -731,8 +731,9 @@
             <Setter Property="Background" Value="{StaticResource Surface2}" />
             <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
         </Style>
+        <!-- Raised plate on hover (the Hover wash would make the chip see-through against the panel) -->
         <Style Selector="Border.bgCounterChip:pointerover">
-            <Setter Property="Background" Value="{StaticResource Hover}" />
+            <Setter Property="Background" Value="{StaticResource Surface3}" />
         </Style>
         <Style Selector="Border.bgCounterChip.open">
             <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />

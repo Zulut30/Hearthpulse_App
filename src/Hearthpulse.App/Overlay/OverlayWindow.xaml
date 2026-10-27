@@ -337,8 +337,9 @@
                 <DataTrigger Binding="{Binding Expanded}" Value="True">
                     <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource AccentLine}" />
                 </DataTrigger>
+                <!-- Raised plate on hover (the Hover wash would make the chip see-through against the panel) -->
                 <Trigger SourceName="Chip" Property="IsMouseOver" Value="True">
-                    <Setter TargetName="Chip" Property="Background" Value="{StaticResource Hover}" />
+                    <Setter TargetName="Chip" Property="Background" Value="{StaticResource Surface3}" />
                     <Setter TargetName="HideButton" Property="Visibility" Value="Visible" />
                 </Trigger>
             </DataTemplate.Triggers>
