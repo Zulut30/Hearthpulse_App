@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -24,6 +26,7 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelChanged;
         viewModel.HistoryRequested += ShowHistoryGame;
+        viewModel.PanelToggled += OnPanelToggled;
         ShowSettingsTab(viewModel.Settings.SettingsTab);
         SyncStatus();
         StateChanged += (_, _) =>
@@ -418,11 +421,12 @@ public partial class MainWindow : Window
         // Only what the player changed. A toggle a list builds when its tab is first shown takes its value from a
         // binding before it is loaded (the Tracker tab's counter rows raised 95 Checked at once, each re-applying and
         // saving every setting), and the tab buttons' Unchecked is not a setting either.
-        if (IsLoaded && e.OriginalSource is FrameworkElement { IsLoaded: true } source
+        if (IsLoaded && !_syncingSettings && e.OriginalSource is FrameworkElement { IsLoaded: true } source
                      && (source as RadioButton)?.GroupName != SettingsTabGeneral.GroupName)
         {
             Loc.Instance.SetLanguage(_viewModel.Settings.InterfaceLanguage());
             SyncOverlaySwitch();
+            _viewModel.RefreshPanelToggles();
             SettingsChanged?.Invoke();
         }
     }
@@ -438,6 +442,60 @@ public partial class MainWindow : Window
     private void OnReimport(object sender, RoutedEventArgs e) => ReimportRequested?.Invoke();
 
     private void OnArrangeOverlay(object sender, RoutedEventArgs e) => ArrangeOverlayRequested?.Invoke();
+
+    private bool _syncingSettings;
+
+    /// <summary>A live-bar button switched a panel: the settings page shows it too (its switches bind to AppSettings, which does not notify), then save and apply.</summary>
+    private void OnPanelToggled(PanelToggle toggle)
+    {
+        _syncingSettings = true;
+        try
+        {
+            foreach (var box in LogicalDescendants<ToggleButton>(PageSettings))
+            {
+                BindingOperations.GetBindingExpression(box, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+            }
+        }
+        finally
+        {
+            _syncingSettings = false;
+        }
+
+        SettingsChanged?.Invoke();
+    }
+
+    private static IEnumerable<T> LogicalDescendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var nested in LogicalDescendants<T>(child))
+            {
+                yield return nested;
+            }
+        }
+    }
+
+    /// <summary>The live bar's ⋯: every overlay panel with its state, opened above the bar.</summary>
+    private void OnPanelsMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } menu } button)
+        {
+            menu.PlacementTarget = button;
+            menu.Placement = PlacementMode.Top;
+            menu.IsOpen = true;
+        }
+    }
+
+    /// <summary>A narrow bar gives the panel buttons' room to the status text; the ⋯ menu still has every panel.</summary>
+    private void OnLiveBarSizeChanged(object sender, SizeChangedEventArgs e) =>
+        QuickPanels.Visibility = e.NewSize.Width < LiveBarNarrowWidth ? Visibility.Collapsed : Visibility.Visible;
+
+    private const double LiveBarNarrowWidth = 780;
 
     private void OnOpenData(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo("explorer.exe", $"\"{_viewModel.DataFolder}\"") { UseShellExecute = true })?.Dispose();

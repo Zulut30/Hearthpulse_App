@@ -3,6 +3,8 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Input;
@@ -156,6 +158,7 @@ public partial class MainView : UserControl
             _viewModel.PropertyChanged -= OnViewModelChanged;
             _viewModel.HistoryRequested -= ShowHistoryGame;
             _viewModel.ThemeChanged -= OnThemeChanged;
+            _viewModel.PanelToggled -= OnPanelToggled;
         }
 
         _viewModel = DataContext as MainViewModel;
@@ -167,6 +170,8 @@ public partial class MainView : UserControl
         _viewModel.PropertyChanged += OnViewModelChanged;
         _viewModel.HistoryRequested += ShowHistoryGame;
         _viewModel.ThemeChanged += OnThemeChanged;
+        _viewModel.PanelToggled += OnPanelToggled;
+        BuildPanelsMenu(_viewModel);
         ApplyTheme();
         SyncOverlaySwitch();
         ShowSettingsTab(_viewModel.Settings.SettingsTab);
@@ -461,10 +466,13 @@ public partial class MainView : UserControl
 
     private void OnSettingChanged(CheckBox box)
     {
-        if (_viewModel is null || box == OverlaySwitch)
+        if (_viewModel is null || box == OverlaySwitch || _syncingSettings)
         {
             return;
         }
+
+        // Avalonia writes the switch back to AppSettings only after IsCheckedChanged: the bar re-reads it once it has.
+        Dispatcher.UIThread.Post(_viewModel.RefreshPanelToggles);
 
         if (box == OverlaySetting)
         {
@@ -525,6 +533,61 @@ public partial class MainView : UserControl
     private void OnReimport(object? sender, RoutedEventArgs e) => ReimportRequested?.Invoke();
 
     private void OnArrangeOverlay(object? sender, RoutedEventArgs e) => ArrangeOverlayRequested?.Invoke();
+
+    private bool _syncingSettings;
+
+    /// <summary>
+    /// The live bar's ⋯ menu: every overlay panel, its glyph and name dimmed while it is off. Built here rather than
+    /// through an item theme, which would have to name the platform's MenuItem theme.
+    /// </summary>
+    private void BuildPanelsMenu(MainViewModel viewModel)
+    {
+        if (PanelsMenuButton.Flyout is not MenuFlyout menu)
+        {
+            return;
+        }
+
+        menu.Items.Clear();
+        foreach (var toggle in viewModel.PanelToggles)
+        {
+            var name = new TextBlock { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
+            name.Classes.Add("panelName");
+            var glyph = new TextBlock { Text = toggle.Icon, FontSize = 15, Width = 26, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
+            glyph.Classes.Add("icon");
+            var header = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Children = { glyph, name } };
+            header.Classes.Add("panelItem");
+            var item = new MenuItem { Header = header, Command = toggle.Toggle, StaysOpenOnClick = true };
+            void Show()
+            {
+                name.Text = toggle.Name;
+                header.Classes.Set("off", !toggle.IsOn);
+                ToolTip.SetTip(item, toggle.Tip);
+            }
+
+            Show();
+            toggle.PropertyChanged += (_, _) => Show();
+            menu.Items.Add(item);
+        }
+    }
+
+    /// <summary>A live-bar button switched a panel: the settings page shows it too (its switches bind to AppSettings, which does not notify), then save and apply.</summary>
+    private void OnPanelToggled(PanelToggle toggle)
+    {
+        _syncingSettings = true;
+        try
+        {
+            foreach (var box in PageSettings.GetLogicalDescendants().OfType<ToggleButton>())
+            {
+                BindingOperations.GetBindingExpressionBase(box, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+            }
+        }
+        finally
+        {
+            _syncingSettings = false;
+        }
+
+        SettingsChanged?.Invoke();
+    }
 
     private void OnOpenData(object? sender, RoutedEventArgs e)
     {

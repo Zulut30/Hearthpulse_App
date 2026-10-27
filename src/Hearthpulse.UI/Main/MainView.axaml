@@ -169,6 +169,47 @@
         <Style Selector="m|MainView.compact :is(Control).wide">
             <Setter Property="IsVisible" Value="False" />
         </Style>
+
+        <!-- Live bar: an overlay panel's show/hide button, the glyph in Accent while the panel is on, Faint while it is off -->
+        <Style Selector="ToggleButton.panelToggle">
+            <Setter Property="Foreground" Value="{StaticResource Faint}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Margin" Value="1,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontFamily" Value="{DynamicResource IconFont}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusAdorner">
+                <FocusAdornerTemplate>
+                    <Border CornerRadius="999" BorderThickness="1" BorderBrush="{StaticResource Accent}" />
+                </FocusAdornerTemplate>
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="999">
+                        <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ToggleButton.panelToggle:checked">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="ToggleButton.panelToggle:pointerover /template/ Border#Bd">
+            <Setter Property="Background" Value="{StaticResource Hover}" />
+        </Style>
+        <Style Selector="ToggleButton.panelToggle:pointerover:unchecked">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <!-- The ⋯ menu: every panel, its glyph and name dimmed while it is off -->
+        <Style Selector="StackPanel.panelItem.off TextBlock.icon">
+            <Setter Property="Foreground" Value="{StaticResource Faint}" />
+        </Style>
+        <Style Selector="StackPanel.panelItem.off TextBlock.panelName">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
         <Style Selector="m|MainView.compact ScrollViewer.page">
             <Setter Property="Padding" Value="16,0,16,120" />
         </Style>
@@ -1061,7 +1102,7 @@
                 </ScrollViewer>
 
                 <!-- ===== Floating live bar (like a now-playing bar) ===== -->
-                <Border Grid.Row="1" VerticalAlignment="Bottom" Margin="23,0,23,17" CornerRadius="12" Background="{StaticResource Surface3}"
+                <Border Name="LiveBar" Grid.Row="1" VerticalAlignment="Bottom" Margin="23,0,23,17" CornerRadius="12" Background="{StaticResource Surface3}"
                         BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="9,9,15,9"
                         BoxShadow="0 4 24 0 #59000000">
                     <Grid ColumnDefinitions="Auto,*,Auto,Auto">
@@ -1080,8 +1121,30 @@
                                        Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}" />
                         </StackPanel>
                         <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Classes="icon wide" Content="&#xF01BE;" Width="38" Height="38" Background="{StaticResource Surface4}" Margin="0,0,14,0"
-                                    Click="OnArrangeOverlay" ToolTip.Tip="{i:Loc Main.Live.ArrangeTipShort}" />
+                            <!-- Overlay panels: the main ones as buttons (not in compact), every panel in the ⋯ menu; the same settings as Settings -> Overlay / Tracker -->
+                            <ItemsControl Name="QuickPanels" Classes="wide" ItemsSource="{Binding QuickPanelToggles}" VerticalAlignment="Center">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:PanelToggle">
+                                        <ToggleButton Classes="panelToggle" Content="{Binding Icon}" IsChecked="{Binding IsOn}" ToolTip.Tip="{Binding Tip}"
+                                                      AutomationProperties.Name="{Binding Name}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Name="PanelsMenuButton" Classes="icon" Content="&#xF01D8;" Width="30" Height="30" FontSize="16" Margin="1,0"
+                                    ToolTip.Tip="{i:Loc Main.Live.PanelsTip}" AutomationProperties.Name="{i:Loc Main.Live.Panels}">
+                                <Button.Flyout>
+                                    <!-- Filled from PanelToggles in code: one MenuItem per panel, its glyph and name dimmed while it is off -->
+                                    <MenuFlyout Placement="TopEdgeAlignedRight" />
+                                </Button.Flyout>
+                            </Button>
+                            <Border Classes="wide" Width="1" Height="18" Background="{StaticResource Outline}" Margin="6,0" VerticalAlignment="Center" />
+                            <Button Classes="icon wide" Content="&#xF01BE;" Width="30" Height="30" FontSize="16" Margin="1,0,14,0"
+                                    Click="OnArrangeOverlay" ToolTip.Tip="{i:Loc Main.Live.ArrangeTipShort}" AutomationProperties.Name="{i:Loc Main.Live.ArrangeTipShort}" />
                             <CheckBox Name="OverlaySwitch" Classes="switch" Content="{i:Loc Main.Live.Overlay}" HorizontalAlignment="Right"
                                       Click="OnOverlaySwitch" ToolTip.Tip="{i:Loc Main.Live.OverlayTipShort}" />
                         </StackPanel>

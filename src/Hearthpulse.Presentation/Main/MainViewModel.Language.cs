@@ -47,6 +47,7 @@ public sealed partial class MainViewModel
         }
 
         ClearLanguagePlatformCache();
+        RefreshPanelToggles();
         Raise(string.Empty);
     }
 
