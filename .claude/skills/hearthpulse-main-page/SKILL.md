@@ -45,7 +45,9 @@ Navigation is hand-written lists, not data binding - a new page must be added to
    -> `<StackPanel Margin="40,0,40,120">` -> `TextBlock Style="{StaticResource Display}"` title ->
    `StackPanel Style="{StaticResource PageSubtitle}"` caption -> `Border Style="{StaticResource Card}"` sections with
    `c:Ornament` headings, `Margin="0,0,0,24"` between cards. (History is the exception: a `Grid` with a virtualizing
-   list.)
+   list.) A long list of equal-height rows inside such a page takes `ItemsPanel="{StaticResource PageRows}"`
+   (`Controls/PageRowsPanel`: builds only the rows near the page's viewport; a plain or virtualizing StackPanel there
+   builds every row). Rows of different heights (wrapping text, hidden lines) stay on a StackPanel.
 3. Code-behind: add `"Foo"` to the `ShowPage` switch and to `CurrentPage`; add `PageFoo.Visibility = ...` and
    `PageFoo` to the `Reveal` array in `OnNavigate`; add `NavFoo` to the `PlacePill` array. Unknown names fall back to
    Home silently - test `ShowPage("Foo")`.
