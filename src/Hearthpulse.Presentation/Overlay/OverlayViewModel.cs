@@ -143,6 +143,9 @@ public sealed partial class OverlayViewModel : Observable
     private int _opponentDeck;
     private int _opponentSecrets;
     private string _opponentMatchup = string.Empty;
+    private string _opponentMatchupRate = string.Empty;
+    private double _opponentMatchupEdge;
+    private string _opponentMatchupTip = string.Empty;
     private SyncList<PlayedTile> _played = new();
     private SyncList<HandTile> _hand = new();
 
@@ -152,7 +155,17 @@ public sealed partial class OverlayViewModel : Observable
     public int OpponentHand { get => _opponentHand; private set => Set(ref _opponentHand, value); }
     public int OpponentDeck { get => _opponentDeck; private set => Set(ref _opponentDeck, value); }
     public int OpponentSecrets { get => _opponentSecrets; private set => Set(ref _opponentSecrets, value); }
+    /// <summary>Your record with this deck against the opponent's class, short ("2–1"); empty before the first game.</summary>
     public string OpponentMatchup { get => _opponentMatchup; private set => Set(ref _opponentMatchup, value); }
+
+    /// <summary>The win rate of <see cref="OpponentMatchup"/> ("67 %"), coloured by <see cref="OpponentMatchupEdge"/>.</summary>
+    public string OpponentMatchupRate { get => _opponentMatchupRate; private set => Set(ref _opponentMatchupRate, value); }
+
+    /// <summary>The win rate above or below an even split: its sign colours the rate.</summary>
+    public double OpponentMatchupEdge { get => _opponentMatchupEdge; private set => Set(ref _opponentMatchupEdge, value); }
+
+    /// <summary>Whose score it is and against what, for the tooltip of the short line.</summary>
+    public string OpponentMatchupTip { get => _opponentMatchupTip; private set => Set(ref _opponentMatchupTip, value); }
     public IReadOnlyList<PlayedTile> Played => _played;
     public IReadOnlyList<HandTile> Hand => _hand;
 
@@ -475,18 +488,27 @@ public sealed partial class OverlayViewModel : Observable
         OpponentHand = view.OpponentHandCount;
         OpponentDeck = view.OpponentDeckCount;
         OpponentSecrets = view.OpponentSecrets;
-        OpponentMatchup = matchup is { Games: > 0 } m ? Loc.F("Overlay.Opponent.Matchup", ClassName(view.OpponentClass), m.Wins, m.Losses, m.WinRate) : string.Empty;
+        // Short on the panel ("2–1 · 67 %"); whose games these are goes to the tooltip.
+        var hasMatchup = matchup is { Games: > 0 };
+        OpponentMatchup = hasMatchup ? Loc.F("Overlay.Opponent.Matchup", matchup!.Wins, matchup.Losses) : string.Empty;
+        OpponentMatchupRate = hasMatchup && matchup!.Wins + matchup.Losses > 0 ? matchup.WinRate.ToString("P0", CultureInfo.CurrentCulture) : string.Empty;
+        OpponentMatchupEdge = hasMatchup && matchup!.Wins + matchup.Losses > 0 ? matchup.WinRate - 0.5 : 0;
+        OpponentMatchupTip = hasMatchup ? Loc.P("Overlay.Opponent.MatchupTip", matchup!.Games, ClassName(view.OpponentClass)) : string.Empty;
         Replace(nameof(Played), view.OpponentPlayed, p => $"{p.CardId}{p.Count}", () => Sync(ref _played, nameof(Played), view.OpponentPlayed
             .Select(p => new PlayedTile(p.CardId, p.Name, p.Cost, p.Count > 1 ? $"×{p.Count}" : string.Empty, Loc.F("Overlay.Turn.Short", p.FirstTurn), p.IsCreated))
             .ToList()));
-        Replace(nameof(Hand), view.OpponentHand, h => $"{h.Position}{h.Turn}{h.CardId}{h.CreatedBy}{h.FromMulligan}", () => Sync(ref _hand, nameof(Hand), view.OpponentHand
+        Replace(nameof(Hand), view.OpponentHand, h => $"{h.Position}{h.Turn}{h.CardId}{h.CreatedBy}{h.CreatedById}{h.FromMulligan}", () => Sync(ref _hand, nameof(Hand), view.OpponentHand
             .Select(h => new HandTile(
                 h.Position.ToString(CultureInfo.InvariantCulture),
                 h.Turn > 0 ? Loc.F("Overlay.Turn.Short", h.Turn) : Loc.T("Overlay.Hand.MulliganShort"),
-                // A card nothing is known about shows only its slot and turn: ten rows of "Unknown" said nothing.
-                h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : h.FromMulligan ? Loc.T("Overlay.Hand.KeptInMulligan") : string.Empty),
+                // A card nothing is known about shows only its slot and turn: ten rows of "Unknown" said nothing. A card
+                // kept in the mulligan says so in the turn column already.
+                h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : string.Empty),
                 h.CardName is not null || h.IsCoin,
-                h.CardName is null && !h.IsCoin && h.CreatedBy is null && !h.FromMulligan))
+                h.CardName is null && !h.IsCoin && h.CreatedBy is null && !h.FromMulligan)
+            {
+                PreviewCardId = h.CardId is { } id && !h.IsCoin ? id : h.CreatedById,
+            })
             .ToList()));
     }
 

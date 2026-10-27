@@ -45,8 +45,9 @@
             </Grid>
         </DataTemplate>
 
+        <!-- Opponent's played card: hover shows the whole card beside the panel, as in the deck tracker (the full name too) -->
         <DataTemplate x:Key="PlayedTemplate" x:DataType="o:PlayedTile">
-            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*">
+            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
                 <c:ManaCost Classes="cost" Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" />
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
                     <Panel>
@@ -54,15 +55,15 @@
                         <Rectangle Fill="{StaticResource TileFade}" />
                         <DockPanel Margin="8,0,3,0">
                             <!-- Copies and turn on a dark plate, like the deck's copy count, so they stay readable over bright art -->
-                            <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" Height="16" Padding="5,0"
+                            <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" Height="16" Padding="4,0"
                                     Margin="4,0,0,0" VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,0,5,0"
+                                    <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
                                                VerticalAlignment="Center" IsVisible="{Binding Count, Converter={StaticResource Truthy}}" />
-                                    <TextBlock Text="{Binding Turn}" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Turn}" FontSize="10" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Border>
-                            <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Name}" FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </DockPanel>
                         <Border Classes="rowSheen" />
                     </Panel>
@@ -70,12 +71,13 @@
             </Grid>
         </DataTemplate>
 
+        <!-- Opponent's hand row: hover shows the card once revealed, else the card that created it -->
         <DataTemplate x:Key="HandTemplate" x:DataType="o:HandTile">
-            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="22,62,*">
+            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="22,64,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding PreviewCardId}">
                 <Border Background="{StaticResource Surface3}" CornerRadius="5">
                     <TextBlock Text="{Binding Slot}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
-                <TextBlock Grid.Column="1" Text="{Binding Turn}" FontSize="11" Foreground="{StaticResource Muted}" Margin="7,0,4,0" VerticalAlignment="Center"
+                <TextBlock Grid.Column="1" Text="{Binding Turn}" FontSize="11" Foreground="{StaticResource Muted}" Margin="6,0,2,0" VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis" />
                 <TextBlock Grid.Column="2" Classes="handDetail" Classes.known="{Binding Highlight}" Classes.unknown="{Binding Unknown}" Text="{Binding Detail}" FontSize="11.5"
                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
@@ -907,8 +909,15 @@
                                     </StackPanel>
                                 </UniformGrid>
                             </Border>
-                            <TextBlock Text="{Binding OpponentMatchup}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
-                                       IsVisible="{Binding OpponentMatchup, Converter={StaticResource Truthy}}" />
+                            <!-- Your record with this deck against their class, short ("2–1 · 67 %"); whose games these are is in the tooltip -->
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left" Background="Transparent"
+                                        ToolTip.Tip="{Binding OpponentMatchupTip}" o:OverlayHit.Interactive="True"
+                                        IsVisible="{Binding OpponentMatchup, Converter={StaticResource Truthy}}">
+                                <TextBlock Text="{Binding OpponentMatchup}" FontSize="11" FontWeight="SemiBold" />
+                                <TextBlock Text=" · " FontSize="11" Foreground="{StaticResource Faint}" IsVisible="{Binding OpponentMatchupRate, Converter={StaticResource Truthy}}" />
+                                <TextBlock Text="{Binding OpponentMatchupRate}" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{Binding OpponentMatchupEdge, Converter={StaticResource SignBrush}}" />
+                            </StackPanel>
 
                             <c:Ornament Text="{i:Loc Overlay.Opponent.Played}" Size="10.5" Margin="0,12,0,6" IsVisible="{Binding Played, Converter={StaticResource Truthy}}" />
                             <ItemsControl ItemsSource="{Binding Played}" ItemTemplate="{StaticResource PlayedTemplate}" />

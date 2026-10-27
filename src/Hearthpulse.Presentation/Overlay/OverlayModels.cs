@@ -11,7 +11,11 @@ public sealed record PlayedTile(string CardId, string Name, int Cost, string Cou
 
 /// <param name="Highlight">The card is known (or the Coin): drawn in full text colour.</param>
 /// <param name="Unknown">Nothing is known about the card: drawn faint so the cards with a hint stand out.</param>
-public sealed record HandTile(string Slot, string Turn, string Detail, bool Highlight, bool Unknown);
+public sealed record HandTile(string Slot, string Turn, string Detail, bool Highlight, bool Unknown)
+{
+    /// <summary>The card shown on hover: the card itself once revealed, else the card that created it; null when neither is known.</summary>
+    public string? PreviewCardId { get; init; }
+}
 
 public sealed record TierButton(int Tier, bool IsCurrent, bool IsSelected, bool Locked);
 
