@@ -82,7 +82,7 @@ public static class DeckDetails
     public static string? OpponentArchetype(GameRecord game, ConstructedMeta? meta) =>
         ArchetypeGuess.FitsFormat(meta, game.Format) && game.OpponentCards is not null
             ? ArchetypeGuess.FromSeenCards(meta, game.OpponentClass, GameCards.Turns(game.OpponentCards).Select(c => c.CardId))?.Name
-            : game.OpponentArchetype is { Length: > 0 } saved ? saved : null;
+            : game.OpponentArchetype is { Length: > 0 } saved ? ArchetypeTranslations.Current.Display(saved) : null;
 
     /// <summary>Results per opponent class, most played first.</summary>
     public static IReadOnlyList<DeckMatchup> ByOpponentClass(IReadOnlyList<GameRecord> games) =>

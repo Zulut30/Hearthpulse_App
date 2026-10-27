@@ -260,3 +260,49 @@ public sealed class MetaTierListTests : IDisposable
         return new ConstructedMeta(format, "legend", "past_week", new DateTime(2026, 10, 27, 12, 0, 0, DateTimeKind.Utc), 12100, archetypes, []) { Matchups = matchups };
     }
 }
+
+/// <summary>Archetype names in Russian are the ones hearthpulse.net shows, for every archetype its catalogues list.</summary>
+public sealed class SiteArchetypeLabelTests
+{
+    [Theory]
+    [InlineData("Zee C'Thun Shaman", "Граб'Зи К'тун Шаман")]
+    [InlineData("C'Thun Warlock", "К'тун Чернокнижник")]
+    [InlineData("C’Thun DH", "К'тун Охотник на демонов")]
+    [InlineData("zoolock", "Зоолок")]
+    [InlineData("Thief Priest", "Жрец на воровстве")]
+    public void Known_archetypes_take_the_site_label(string english, string russian)
+    {
+        Assert.Equal(russian, ArchetypeNames.SiteLabel(english));
+        Assert.Equal(russian, ArchetypeTranslations.Empty.RussianLabel(english));
+    }
+
+    [Fact]
+    public void The_site_label_wins_over_the_dictionary_and_the_built_in_one()
+    {
+        // The dictionary and the old built-in list call it "Зи Шаман"; the site shows "Граб'Зи Шаман".
+        var names = ArchetypeTranslations.Parse("""[{"name_en": "Zee Shaman", "name_ru": "Зи Шаман"}]""");
+        Assert.Equal(ArchetypeNames.SiteLabel("Zee Shaman"), names.RussianLabel("Zee Shaman"));
+        Assert.NotEqual("Зи Шаман", names.RussianLabel("Zee Shaman"));
+        Assert.Equal(ArchetypeNames.SiteLabel("Zee Shaman"), ArchetypeNames.RussianLabel("Zee Shaman"));
+    }
+
+    [Fact]
+    public void No_archetype_the_site_knows_keeps_its_English_name_in_Russian()
+    {
+        var english = new[]
+        {
+            "Zoolock", "C'Thun DH", "C'Thun Warlock", "Zee C'Thun Shaman", "Zee Shaman", "Handbuff DK", "Thief Priest", "Quest DH",
+            "Aggro Paladin", "Harold DH",
+        };
+        foreach (var name in english)
+        {
+            var label = ArchetypeTranslations.Empty.RussianLabel(name);
+            Assert.True(label.Any(c => c is >= 'А' and <= 'я' or 'ё' or 'Ё'), $"{name} -> {label}");
+            Assert.DoesNotContain(name, label, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Every site label is Russian text, not an English name passed through.
+        var site = english.Select(ArchetypeNames.SiteLabel).ToList();
+        Assert.All(site, Assert.NotNull);
+    }
+}

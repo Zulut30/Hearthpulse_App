@@ -70,7 +70,7 @@ public sealed class ConstructedApiMetaTests
     [InlineData("Quest DH", "Квест Охотник на демонов")]
     [InlineData("hand  warlock", "Хендлок")]
     [InlineData("Pirate Quest Hunter", "Квест Охотник (Pirate)")]
-    [InlineData("Zoolock", "Zoolock")]
+    [InlineData("Zoolock", "Зоолок")]
     public void Russian_labels_follow_the_site(string name, string label) =>
         Assert.Equal(label, ArchetypeNames.RussianLabel(name));
 

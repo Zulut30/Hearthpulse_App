@@ -9,8 +9,9 @@ namespace Hearthpulse.Core.Constructed;
 /// Russian archetype names from Hearthpulse's archetype dictionary <c>api.blizzcore.ru/archetypes</c> (our service, next
 /// to the data API): <c>{count, items: [{id, name_en, name_ru, ...}]}</c>, matched to the API's archetype names by
 /// <c>name_en</c> (case and apostrophe style ignored). Cached on disk for <see cref="MaxAge"/>; offline the last list is
-/// used, and a failed fetch is not retried for a while (<see cref="RetryAfter"/>). Names it lacks fall back to the
-/// built-in labels (<see cref="ArchetypeNames.RussianLabel"/>), which keep the English name when they have none either.
+/// used, and a failed fetch is not retried for a while (<see cref="RetryAfter"/>). The labels the site itself shows come
+/// first; names neither has fall back to the built-in labels (<see cref="ArchetypeNames.RussianLabel"/>), which keep the
+/// English name when they have none either.
 /// </summary>
 public sealed class ArchetypeTranslations
 {
@@ -59,8 +60,11 @@ public sealed class ArchetypeTranslations
     public string? Russian(string english) =>
         _russian.TryGetValue(Key(english), out var russian) ? russian : null;
 
-    /// <summary>The Russian label: the list's name, else the built-in label, else the English name.</summary>
-    public string RussianLabel(string english) => Russian(english) ?? ArchetypeNames.RussianLabel(english);
+    /// <summary>
+    /// The Russian label: the one hearthpulse.net shows (<see cref="ArchetypeNames.SiteLabel"/>), else the list's name,
+    /// else the built-in label, else the English name.
+    /// </summary>
+    public string RussianLabel(string english) => ArchetypeNames.SiteLabel(english) ?? Russian(english) ?? ArchetypeNames.RussianLabel(english);
 
     /// <summary>An archetype name in the interface language: <see cref="RussianLabel"/> in Russian, the English name otherwise.</summary>
     public string Display(string english) => Loc.IsRussian ? RussianLabel(english) : english;

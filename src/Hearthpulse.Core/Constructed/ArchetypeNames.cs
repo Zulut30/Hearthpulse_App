@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 
 namespace Hearthpulse.Core.Constructed;
 
@@ -16,6 +17,13 @@ public static class ArchetypeNames
         ("mage", "MAGE"), ("paladin", "PALADIN"), ("priest", "PRIEST"), ("rogue", "ROGUE"), ("shaman", "SHAMAN"),
         ("warlock", "WARLOCK"), ("warrior", "WARRIOR"),
     ];
+
+    /// <summary>
+    /// The labels hearthpulse.net shows, every archetype of its Standard and Wild catalogues (<c>archetype</c> ->
+    /// <c>archetypeLabel</c>, translated ones only), embedded from <c>SiteArchetypeLabels.json</c>. They come first, so the
+    /// app names an archetype as the site does; <c>tools/archetypes/site_labels.py</c> refreshes the file.
+    /// </summary>
+    private static readonly Lazy<Dictionary<string, string>> SiteLabels = new(LoadSiteLabels);
 
     /// <summary>Built-in Russian labels of HSGuru names (HeartPulse <c>ARCHETYPE_FALLBACK_LABELS</c>).</summary>
     private static readonly Dictionary<string, string> Labels = new Dictionary<string, string>
@@ -153,9 +161,13 @@ public static class ArchetypeNames
     public static bool SameArchetype(string a, string b) =>
         new HashSet<string>(Normalize(a).Split(' ')).SetEquals(Normalize(b).Split(' '));
 
+    /// <summary>The label hearthpulse.net shows for an archetype (any case or apostrophe style), or null when it has none.</summary>
+    public static string? SiteLabel(string name) =>
+        SiteLabels.Value.TryGetValue(TranslationKey(name), out var label) ? label : null;
+
     /// <summary>
-    /// The Russian label: the exact translation, else the longest translated name inside it with the other words in
-    /// brackets ("Harold C'Thun Warlock" → its own label or "… (C'Thun)"), else the English name unchanged.
+    /// The Russian label: the site's, else the built-in one, else the longest translated name inside it with the other
+    /// words in brackets ("Harold C'Thun Warlock" → its own label or "… (C'Thun)"), else the English name unchanged.
     /// </summary>
     public static string RussianLabel(string name)
     {
@@ -165,12 +177,17 @@ public static class ArchetypeNames
             return name;
         }
 
+        if (SiteLabels.Value.TryGetValue(key, out var site))
+        {
+            return site;
+        }
+
         if (Labels.TryGetValue(key, out var exact))
         {
             return exact;
         }
 
-        var best = Labels.Keys.Where(k => key.Contains(k, StringComparison.Ordinal)).MaxBy(k => k.Length);
+        var best = Labels.Keys.Concat(SiteLabels.Value.Keys).Where(k => key.Contains(k, StringComparison.Ordinal)).MaxBy(k => k.Length);
         if (best is null)
         {
             return name;
@@ -180,7 +197,8 @@ public static class ArchetypeNames
         var start = key.IndexOf(best, StringComparison.Ordinal);
         var qualifier = (trimmed[..start] + " " + trimmed[(start + best.Length)..]).Trim(' ', '-', '–', '—', ':', '·', ',');
         qualifier = string.Join(' ', qualifier.Split(' ', StringSplitOptions.RemoveEmptyEntries));
-        return qualifier.Length > 0 ? $"{Labels[best]} ({qualifier})" : Labels[best];
+        var label = SiteLabels.Value.TryGetValue(best, out var fromSite) ? fromSite : Labels[best];
+        return qualifier.Length > 0 ? $"{label} ({qualifier})" : label;
     }
 
     /// <summary>
@@ -205,9 +223,30 @@ public static class ArchetypeNames
         return result;
     }
 
-    /// <summary>Trimmed, single-spaced, lower case (the site's <c>archetypeTranslationKey</c>).</summary>
+    /// <summary>Trimmed, single-spaced, lower case, one apostrophe style (the site's <c>archetypeTranslationKey</c>).</summary>
     private static string TranslationKey(string name) =>
-        string.Join(' ', name.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToLower(CultureInfo.InvariantCulture);
+        string.Join(' ', name.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToLower(CultureInfo.InvariantCulture).Replace('\u2019', '\'');
+
+    private static Dictionary<string, string> LoadSiteLabels()
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        using var stream = typeof(ArchetypeNames).Assembly.GetManifestResourceStream("Hearthpulse.SiteArchetypeLabels.json");
+        if (stream is null)
+        {
+            return result;
+        }
+
+        using var doc = JsonDocument.Parse(stream);
+        foreach (var label in doc.RootElement.GetProperty("labels").EnumerateObject())
+        {
+            if (label.Value.GetString() is { Length: > 0 } russian)
+            {
+                result.TryAdd(TranslationKey(label.Name), russian);
+            }
+        }
+
+        return result;
+    }
 
     private static IEnumerable<string> Words(string name)
     {
