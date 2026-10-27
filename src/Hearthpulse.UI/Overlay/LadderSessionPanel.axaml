@@ -12,12 +12,15 @@
         <i:SignBrush x:Key="SignBrush" />
     </UserControl.Resources>
     <Border Classes="overlayCard" Width="260">
-        <StackPanel Margin="12,9,12,9">
-            <DockPanel Margin="0,0,0,4">
-                <TextBlock DockPanel.Dock="Right" Text="{Binding LadderSince}" FontSize="10.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
-                <TextBlock Text="{i:Loc Widgets.Ladder.Title}" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-            </DockPanel>
-            <ItemsControl ItemsSource="{Binding LadderLines}">
+        <StackPanel>
+            <Border Classes="overlayHeader">
+                <DockPanel>
+                    <TextBlock Text="&#xF0538;" Classes="icon headerIcon" />
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding LadderSince}" Classes="headerNote" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{i:Loc Widgets.Ladder.Title}" Classes="headerTitle" />
+                </DockPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding LadderLines}" Margin="12,4,12,9">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="s:LadderSessionLine">
                         <StackPanel Margin="0,4,0,2">

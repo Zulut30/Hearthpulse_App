@@ -1,7 +1,7 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Overlay-only look shared by the overlay view and its panels (WPF: Overlay/OverlayLook.xaml, same names as keys).
-         Theme tokens only, no hex. Nothing here animates, blurs or casts a shadow: the overlay draws over the game. -->
+         Theme tokens only, no hex. Nothing here loops, blurs or casts a shadow: the overlay draws over the game. The one motion is the row flash below. -->
 
     <!-- Panel header: a warm gold band with a hairline under it, flush with the card's rounded top (card radius 8 - 1px edge) -->
     <Style Selector="Border.overlayHeader">
@@ -10,6 +10,27 @@
         <Setter Property="BorderThickness" Value="0,0,0,1" />
         <Setter Property="CornerRadius" Value="7,7,0,0" />
         <Setter Property="Padding" Value="12,8,12,7" />
+    </Style>
+
+    <!-- Header content, the same in every panel: an optional gold glyph (with the icon class), the title, one muted line -->
+    <Style Selector="TextBlock.headerIcon">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,7,0" />
+    </Style>
+    <Style Selector="TextBlock.headerTitle">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.headerNote">
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="0,1,0,0" />
     </Style>
 
     <!-- Dark plate for a few key figures under a header -->
@@ -40,6 +61,47 @@
         <Setter Property="Margin" Value="4,0" />
         <Setter Property="Background" Value="{StaticResource OverlayBorder}" />
         <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+
+    <!-- Rarity colour along the left edge of a card row (the brush comes from the row) -->
+    <Style Selector="Border.rarityStrip">
+        <Setter Property="Width" Value="3" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+
+    <!-- Copy count on a dark plate at the right end of a card row, readable over bright art -->
+    <Style Selector="Border.countBadge">
+        <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="MinWidth" Value="20" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Padding" Value="5,0" />
+        <Setter Property="Margin" Value="4,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Gold wash over a card row whose count just moved: fades out once (1.4 s) when the row gets the class, nothing loops;
+         only under "motion", which the overlay view sets when the system allows animations -->
+    <Style Selector="Border.rowFlash">
+        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+    <Style Selector=".motion Grid.tileRow.changed Border.rowFlash">
+        <Style.Animations>
+            <Animation Duration="0:0:1.4" Easing="CubicEaseIn" FillMode="Forward">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="1" />
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="0" />
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
     </Style>
 
     <!-- One small source line at the bottom of a panel -->

@@ -33,6 +33,8 @@ public partial class OverlayView : UserControl
     public OverlayView()
     {
         InitializeComponent();
+        // The deck row flash (OverlayLook.axaml) runs only when the system allows animations, like the panel fades.
+        Classes.Set("motion", PoolInput.AnimationsOn());
         _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(9) };
         _toastTimer.Tick += (_, _) =>
         {

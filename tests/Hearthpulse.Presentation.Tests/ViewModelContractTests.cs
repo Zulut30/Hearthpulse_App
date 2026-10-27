@@ -330,6 +330,39 @@ public sealed class ViewModelContractTests
         Assert.Equal("Secrets · 3", wpf.SecretsTitle);
     }
 
+    [Fact]
+    public void Both_overlays_flash_only_the_deck_row_that_moved_and_spell_out_turns()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        DeckCardRow Row(string id, int left) => new(id, id, 1, left, 2, "COMMON", left / 20.0, false);
+        var constructed = new ConstructedView(3, "Deck", true, "HERO_10", "DEMONHUNTER", "HERO_08", "MAGE", null, [Row("A", 2), Row("B", 2)], 20, 4,
+            [new("C", "C", 2, 1, 3, false)], [new(1, 2, null, null, false, false, null), new(2, 0, null, null, true, false, null)], 18, 2, 0, null, null);
+        var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = constructed };
+        var drawn = snapshot with { Constructed = constructed with { Deck = [Row("A", 2), Row("B", 1)], DeckCount = 19 } };
+        var wpf = new WpfOverlay();
+        var ava = new AvaOverlay();
+        var settings = new AppSettings();
+
+        // The first deck of a game marks nothing; after a draw only the drawn card's row does.
+        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+        Assert.DoesNotContain(wpf.Deck, t => t.Changed);
+        Assert.DoesNotContain(ava.Deck, t => t.Changed);
+        wpf.Update(drawn, CardDb.Empty, settings, null, null);
+        ava.Update(drawn, CardDb.Empty, settings, null, null);
+        Assert.Equal([false, true], wpf.Deck.Select(t => t.Changed));
+        Assert.Equal([false, true], ava.Deck.Select(t => t.Changed));
+
+        // Leaving the game forgets the counts: the next game's first deck flashes nothing.
+        wpf.Update(snapshot with { InGame = false, Constructed = null }, CardDb.Empty, settings, null, null);
+        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
+        Assert.DoesNotContain(wpf.Deck, t => t.Changed);
+
+        // Turns are spelled out on the opponent's played cards and hand.
+        Assert.Equal("Turn 3", wpf.Played[0].Turn);
+        Assert.Equal(["Turn 2", "Mulligan"], ava.Hand.Select(h => h.Turn));
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

@@ -8,6 +8,10 @@
     <!-- The compact card pool panel (300 wide): at its own spot (MovablePanel "card-pool") or next to its card (the card
          pool layer). The full view is the pool browser (right-click). DataContext is the OverlayViewModel. -->
     <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="OverlayLook.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <i:VisibleWhen x:Key="Vis" />
 
         <!-- The colour of the chart's stat, handed down to bars and axis gems through Tag. -->
@@ -44,6 +48,7 @@
         <DataTemplate x:Key="CostGem" DataType="{x:Type p:PoolEntry}">
             <c:ManaCost Width="15" Height="15" Text="{Binding Cost}" />
         </DataTemplate>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <!-- Not interactive: clicks reach the board and the Discover options under it; hover and right-click are polled.
@@ -54,10 +59,14 @@
         </Border.RenderTransform>
         <StackPanel>
             <!-- ===== Summary: pool size, the generator card, classes · format, sections ===== -->
-            <StackPanel Margin="12,9,12,0">
-                <TextBlock Text="{Binding CardPoolTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{Binding CardPoolPhrase}" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding CardPoolMeta}" FontSize="10" Foreground="{StaticResource Faint}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"
+            <Border Style="{StaticResource OverlayHeader}">
+                <StackPanel>
+                    <TextBlock Text="{Binding CardPoolTitle}" Style="{StaticResource OverlayHeaderTitle}" />
+                    <TextBlock Text="{Binding CardPoolPhrase}" Style="{StaticResource OverlayHeaderNote}" TextTrimming="None" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+            <StackPanel Margin="12,5,12,0">
+                <TextBlock Text="{Binding CardPoolMeta}" FontSize="10" Foreground="{StaticResource Faint}" TextTrimming="CharacterEllipsis"
                            Visibility="{Binding CardPoolMeta, Converter={StaticResource Vis}}" />
                 <ItemsControl ItemsSource="{Binding CardPoolSections}" Focusable="False" Margin="0,5,0,-4" Visibility="{Binding CardPoolSections, Converter={StaticResource Vis}}">
                     <ItemsControl.ItemsPanel>

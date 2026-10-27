@@ -6,6 +6,10 @@
              xmlns:p="clr-namespace:Hearthpulse.Core.CardPool;assembly=Hearthpulse.Core">
     <!-- The pool browser (MovablePanel "card-pool-browser"): every card of the pool. DataContext is the OverlayViewModel. -->
     <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="OverlayLook.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <i:VisibleWhen x:Key="Vis" />
 
         <DataTemplate x:Key="FilterChipTemplate" DataType="{x:Type o:PoolChipModel}">
@@ -43,6 +47,7 @@
                 </ItemsControl.ItemsPanel>
             </ItemsControl>
         </DataTemplate>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Border Style="{StaticResource OverlayCard}" Background="{StaticResource OverlayPanelSolid}" Height="1064"
@@ -56,14 +61,16 @@
             </Grid.RowDefinitions>
 
             <!-- Header: "<Card> Pool: N cards" and the close button -->
-            <DockPanel Margin="14,10,8,8">
-                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0156;" VerticalAlignment="Top" Focusable="False"
-                        Command="{Binding CloseCardPoolBrowser}" ToolTip="{i:Loc Pool.CloseEsc}" />
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="{Binding CardPoolBrowserTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding CardPoolDescription}" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,0" />
-                </StackPanel>
-            </DockPanel>
+            <Border Style="{StaticResource OverlayHeader}" Padding="14,8,8,7">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0156;" VerticalAlignment="Top" Focusable="False"
+                            Command="{Binding CloseCardPoolBrowser}" ToolTip="{i:Loc Pool.CloseEsc}" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CardPoolBrowserTitle}" Style="{StaticResource OverlayHeaderTitle}" TextTrimming="None" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding CardPoolDescription}" Style="{StaticResource OverlayHeaderNote}" TextTrimming="None" TextWrapping="Wrap" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
 
             <!-- Highlighted card, as on the compact panel -->
             <Border Grid.Row="1" Height="30" Background="{StaticResource Row}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="0,1"

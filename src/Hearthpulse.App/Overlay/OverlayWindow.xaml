@@ -43,32 +43,33 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
-        <!-- Deck row: cost, name over card art with the copy count, then the draw chance in its own column so it never
-             runs into the name -->
+        <!-- Deck row: cost gem, name over card art with a rarity strip and the copy count, then the draw chance in its own
+             column so it never runs into the name. A card with no copies left dims (art, gem and name sink back, the plate
+             stays so the row keeps its place); the row whose count just moved flashes once. -->
         <DataTemplate x:Key="DeckTileTemplate" DataType="{x:Type o:DeckTile}">
-            <Grid x:Name="RowRoot" Height="24" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+            <Grid Height="24" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="26" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <c:ManaCost Style="{StaticResource CostChip}" Text="{Binding Cost}" HorizontalAlignment="Left" />
+                <c:ManaCost x:Name="Gem" Style="{StaticResource CostChip}" Text="{Binding Cost}" HorizontalAlignment="Left" />
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
                     <Grid>
-                        <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                        <Image x:Name="Art" i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                         <Rectangle Fill="{StaticResource TileFade}" />
-                        <Border Width="2" HorizontalAlignment="Left" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                        <Border x:Name="Strip" Style="{StaticResource OverlayRarityStrip}" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
                         <DockPanel Margin="9,0,3,0">
-                            <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" MinWidth="20" Height="18" Padding="5,0"
-                                    Margin="4,0,0,0" VerticalAlignment="Center" Visibility="{Binding ShowCount, Converter={StaticResource Vis}}">
+                            <Border x:Name="Copies" Style="{StaticResource OverlayCountBadge}" DockPanel.Dock="Right" Visibility="{Binding ShowCount, Converter={StaticResource Vis}}">
                                 <TextBlock Text="{Binding Count}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <TextBlock DockPanel.Dock="Left" Text="&#xF0674;" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
                                        VerticalAlignment="Center" Visibility="{Binding Created, Converter={StaticResource Vis}}" />
-                            <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </DockPanel>
                         <Border Style="{StaticResource OverlayRowSheen}" />
+                        <Border x:Name="Flash" Style="{StaticResource OverlayRowFlash}" />
                     </Grid>
                 </Border>
                 <TextBlock Grid.Column="2" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"
@@ -77,8 +78,30 @@
             </Grid>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding Empty}" Value="True">
-                    <Setter TargetName="RowRoot" Property="Opacity" Value="0.32" />
+                    <Setter TargetName="Art" Property="Opacity" Value="0.22" />
+                    <Setter TargetName="Gem" Property="Opacity" Value="0.45" />
+                    <Setter TargetName="Strip" Property="Opacity" Value="0.35" />
+                    <Setter TargetName="Copies" Property="Opacity" Value="0.55" />
+                    <Setter TargetName="CardName" Property="Foreground" Value="{StaticResource Faint}" />
                 </DataTrigger>
+                <!-- One short fade, only when Windows animations are on -->
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Changed}" Value="True" />
+                        <Condition Binding="{Binding Source={x:Static SystemParameters.ClientAreaAnimation}}" Value="True" />
+                    </MultiDataTrigger.Conditions>
+                    <MultiDataTrigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="Flash" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1.4">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseIn" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </MultiDataTrigger.EnterActions>
+                </MultiDataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
 
@@ -115,13 +138,14 @@
             <Grid Height="22" Margin="0,0,0,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="22" />
-                    <ColumnDefinition Width="34" />
+                    <ColumnDefinition Width="62" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Border Background="{StaticResource Surface3}" CornerRadius="5">
                     <TextBlock Text="{Binding Slot}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
-                <TextBlock Grid.Column="1" Text="{Binding Turn}" FontSize="11" Foreground="{StaticResource Muted}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{Binding Turn}" FontSize="11" Foreground="{StaticResource Muted}" Margin="7,0,4,0" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" />
                 <TextBlock x:Name="Detail" Grid.Column="2" Text="{Binding Detail}" FontSize="11.5" Foreground="{StaticResource Muted}"
                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
             </Grid>

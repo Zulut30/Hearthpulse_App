@@ -6,16 +6,24 @@
     <!-- The ranked session in the game's menus: per format the rank at its start and now, the change, record, win rate
          and streak. Shown outside games only. -->
     <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="OverlayLook.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <i:VisibleWhen x:Key="Vis" />
         <i:SignBrush x:Key="SignBrush" />
+        </ResourceDictionary>
     </UserControl.Resources>
     <Border Style="{StaticResource OverlayCard}" Width="260">
-        <StackPanel Margin="12,9,12,9">
-            <DockPanel Margin="0,0,0,4">
-                <TextBlock DockPanel.Dock="Right" Text="{Binding LadderSince}" FontSize="10.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
-                <TextBlock Text="{i:Loc Widgets.Ladder.Title}" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-            </DockPanel>
-            <ItemsControl ItemsSource="{Binding LadderLines}">
+        <StackPanel>
+            <Border Style="{StaticResource OverlayHeader}">
+                <DockPanel>
+                    <TextBlock Text="&#xF0538;" Style="{StaticResource OverlayHeaderIcon}" />
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding LadderSince}" Style="{StaticResource OverlayHeaderNote}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{i:Loc Widgets.Ladder.Title}" Style="{StaticResource OverlayHeaderTitle}" />
+                </DockPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding LadderLines}" Margin="12,4,12,9">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type s:LadderSessionLine}">
                         <StackPanel Margin="0,4,0,2">

@@ -375,6 +375,10 @@ public sealed partial class OverlayViewModel : Observable
         {
             UpdateConstructed(constructed, deck, matchup);
         }
+        else
+        {
+            _deckLeft.Clear();
+        }
 
         UpdateLive(constructed, settings);
         UpdateHandMarks(constructed, settings);
@@ -447,7 +451,10 @@ public sealed partial class OverlayViewModel : Observable
         var best = view.Deck.Where(r => r.Remaining > 0).MaxBy(r => r.DrawChance);
         NextDraw = best is null || view.DeckCount == 0 ? string.Empty : Loc.F("Overlay.Deck.NextDraw", best.Name, best.DrawChance);
         CompactDeck = view.Deck.Count > 24;
-        Replace(nameof(Deck), view.Deck, r => $"{r.CardId}{r.Remaining}{r.Total}{r.DrawChance:0.00}", () => Sync(ref _deck, nameof(Deck), view.Deck
+        Replace(nameof(Deck), view.Deck, r => $"{r.CardId}{r.Remaining}{r.Total}{r.DrawChance:0.00}", () =>
+        {
+            var changed = DeckChanges(view.Deck);
+            Sync(ref _deck, nameof(Deck), view.Deck
             .Select(r => new DeckTile(
                 r.CardId,
                 r.Name,
@@ -457,8 +464,10 @@ public sealed partial class OverlayViewModel : Observable
                 r.Remaining == 0,
                 r.Rarity,
                 r.Remaining > 0 && view.DeckCount > 0 ? OverlayFormat.Percent(r.DrawChance) : string.Empty,
-                r.IsAdded))
-            .ToList()));
+                r.IsAdded,
+                changed.Contains(DeckKey(r))))
+            .ToList());
+        });
 
         OpponentHeroId = view.OpponentHeroCardId;
         OpponentTitle = string.IsNullOrEmpty(view.OpponentName) ? ClassName(view.OpponentClass) : view.OpponentName!;

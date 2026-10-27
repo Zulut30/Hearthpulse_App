@@ -15,6 +15,9 @@
         </Style>
         <Style Selector="Border.overlayCard.rope">
             <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
+        </Style>
+        <!-- The card keeps its solid fill; the rope's red wash goes on the inner plate so the time stays readable over the board -->
+        <Style Selector="Border.ropeWash.rope">
             <Setter Property="Background" Value="{StaticResource NegativeSoft}" />
         </Style>
         <Style Selector="TextBlock.time">
@@ -33,15 +36,17 @@
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
     </UserControl.Styles>
-    <Border Classes="overlayCard" Classes.active="{Binding Active}" Classes.rope="{Binding Rope}" MinWidth="150" Padding="11,6,11,7">
-        <StackPanel>
-            <TextBlock Text="{Binding Label}" FontSize="10.5" Foreground="{StaticResource Muted}" />
-            <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                <TextBlock Classes="time" Classes.active="{Binding Active}" Classes.rope="{Binding Rope}" Text="{Binding Time}"
-                           FontFamily="{StaticResource DisplayFont}" FontSize="20" VerticalAlignment="Bottom" />
-                <TextBlock Classes="detail" Classes.rope="{Binding Rope}" Text="{Binding Detail}" FontSize="11" VerticalAlignment="Bottom" Margin="7,0,0,3" />
+    <Border Classes="overlayCard" Classes.active="{Binding Active}" Classes.rope="{Binding Rope}" MinWidth="150">
+        <Border Classes="ropeWash" Classes.rope="{Binding Rope}" CornerRadius="7" Padding="11,6,11,7">
+            <StackPanel>
+                <TextBlock Text="{Binding Label}" FontSize="10.5" Foreground="{StaticResource Muted}" />
+                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                    <TextBlock Classes="time" Classes.active="{Binding Active}" Classes.rope="{Binding Rope}" Text="{Binding Time}"
+                               FontFamily="{StaticResource DisplayFont}" FontSize="20" VerticalAlignment="Bottom" />
+                    <TextBlock Classes="detail" Classes.rope="{Binding Rope}" Text="{Binding Detail}" FontSize="11" VerticalAlignment="Bottom" Margin="7,0,0,3" />
+                </StackPanel>
+                <TextBlock Text="{Binding Average}" FontSize="10.5" Foreground="{StaticResource Faint}" IsVisible="{Binding Average, Converter={StaticResource Truthy}}" />
             </StackPanel>
-            <TextBlock Text="{Binding Average}" FontSize="10.5" Foreground="{StaticResource Faint}" IsVisible="{Binding Average, Converter={StaticResource Truthy}}" />
-        </StackPanel>
+        </Border>
     </Border>
 </UserControl>

@@ -91,6 +91,26 @@ public sealed class OverlayXamlLoadTests
         var arena = new ArenaDraftPanel { DataContext = model };
         arena.Measure(new Size(400, 1000));
         Assert.True(arena.DesiredSize.Height > 0);
+
+        // Panels that merge OverlayLook for their headers, built on their own (outside the window's resources).
+        foreach (var panel in new FrameworkElement[] { new SecretsPanel(), new OpponentArchetypePanel(), new LadderSessionPanel(), new CardPoolPanel(), new CardPoolBrowser() })
+        {
+            panel.DataContext = model;
+            panel.Measure(new Size(400, 1080));
+            Assert.True(panel.DesiredSize.Height > 0, panel.GetType().Name);
+        }
+
+        // A deck row with no copies left whose count just moved: the dimming setters and the flash storyboard resolve.
+        var row = new System.Windows.Controls.ContentPresenter
+        {
+            Content = new DeckTile("CS2_029", "Fireball", 4, "0", true, true, "COMMON", string.Empty, false, Changed: true),
+            ContentTemplate = (DataTemplate)window.FindResource("DeckTileTemplate"),
+        };
+        ((System.Windows.Controls.Panel)root).Children.Add(row);
+        row.Measure(new Size(240, 30));
+        row.Arrange(new Rect(0, 0, 240, 30));
+        row.UpdateLayout();
+        Assert.True(row.ActualHeight > 0);
         window.Close();
     }
 

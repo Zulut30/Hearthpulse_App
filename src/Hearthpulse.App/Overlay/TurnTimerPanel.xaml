@@ -7,7 +7,8 @@
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
     </UserControl.Resources>
-    <Border MinWidth="150" Padding="11,6,11,7">
+    <!-- The card keeps its solid fill; the rope's red wash goes on an inner plate so the time stays readable over the board -->
+    <Border MinWidth="150">
         <Border.Style>
             <Style TargetType="Border" BasedOn="{StaticResource OverlayCard}">
                 <Style.Triggers>
@@ -16,44 +17,55 @@
                     </DataTrigger>
                     <DataTrigger Binding="{Binding Rope}" Value="True">
                         <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
-                        <Setter Property="Background" Value="{StaticResource NegativeSoft}" />
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
         </Border.Style>
-        <StackPanel>
-            <TextBlock Text="{Binding Label}" FontSize="10.5" Foreground="{StaticResource Muted}" />
-            <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                <TextBlock Text="{Binding Time}" FontFamily="{StaticResource DisplayFont}" FontSize="20" VerticalAlignment="Bottom">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="{StaticResource Muted}" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Active}" Value="True">
-                                    <Setter Property="Foreground" Value="{StaticResource Text}" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Rope}" Value="True">
-                                    <Setter Property="Foreground" Value="{StaticResource Negative}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-                <TextBlock Text="{Binding Detail}" FontSize="11" VerticalAlignment="Bottom" Margin="7,0,0,3">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="{StaticResource Faint}" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Rope}" Value="True">
-                                    <Setter Property="Foreground" Value="{StaticResource Negative}" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+        <Border CornerRadius="7" Padding="11,6,11,7">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Rope}" Value="True">
+                            <Setter Property="Background" Value="{StaticResource NegativeSoft}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel>
+                <TextBlock Text="{Binding Label}" FontSize="10.5" Foreground="{StaticResource Muted}" />
+                <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                    <TextBlock Text="{Binding Time}" FontFamily="{StaticResource DisplayFont}" FontSize="20" VerticalAlignment="Bottom">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource Muted}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Active}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Rope}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource Negative}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding Detail}" FontSize="11" VerticalAlignment="Bottom" Margin="7,0,0,3">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource Faint}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Rope}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource Negative}" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+                <TextBlock Text="{Binding Average}" FontSize="10.5" Foreground="{StaticResource Faint}" Visibility="{Binding Average, Converter={StaticResource Vis}}" />
             </StackPanel>
-            <TextBlock Text="{Binding Average}" FontSize="10.5" Foreground="{StaticResource Faint}" Visibility="{Binding Average, Converter={StaticResource Vis}}" />
-        </StackPanel>
+        </Border>
     </Border>
 </UserControl>

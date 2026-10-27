@@ -12,67 +12,73 @@
         <i:FractionWidth x:Key="Fraction" />
     </UserControl.Resources>
     <Border Classes="overlayCard" Width="220">
-        <StackPanel Margin="12,10,12,10">
+        <StackPanel>
             <!-- The close button and the card rows (hover shows the card) take the pointer; the rest passes clicks to the game. -->
-            <DockPanel>
-                <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0156;" Width="22" Height="22" FontSize="14" Margin="0,-5,-6,-3"
-                        VerticalAlignment="Top" Focusable="False" Command="{Binding DismissArchetype}" ToolTip.Tip="{i:Loc Widgets.Archetype.Hide}"
-                        o:OverlayHit.Interactive="True" />
-                <TextBlock Text="{i:Loc Widgets.Archetype.Title}" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-            </DockPanel>
-            <DockPanel Margin="0,2,0,0">
-                <TextBlock DockPanel.Dock="Right" Text="{Binding ArchetypeChance}" FontFamily="{StaticResource DisplayFont}" FontSize="17"
-                           Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="8,0,0,0" />
-                <TextBlock Text="{Binding ArchetypeName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-            </DockPanel>
-            <TextBlock Text="{Binding ArchetypeDetail}" FontSize="11" Foreground="{StaticResource Muted}" />
+            <Border Classes="overlayHeader">
+                <StackPanel>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0156;" Width="22" Height="22" FontSize="14" Margin="0,-5,-6,-3"
+                                VerticalAlignment="Top" Focusable="False" Command="{Binding DismissArchetype}" ToolTip.Tip="{i:Loc Widgets.Archetype.Hide}"
+                                o:OverlayHit.Interactive="True" />
+                        <TextBlock Text="{i:Loc Widgets.Archetype.Title}" Classes="headerNote" Margin="0" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <DockPanel Margin="0,2,0,0">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding ArchetypeChance}" FontFamily="{StaticResource DisplayFont}" FontSize="17"
+                                   Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <TextBlock Text="{Binding ArchetypeName}" Classes="headerTitle" />
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+            <StackPanel Margin="12,7,12,10">
+                <TextBlock Text="{Binding ArchetypeDetail}" FontSize="11" Foreground="{StaticResource Muted}" />
 
-            <c:Ornament Text="{i:Loc Widgets.Archetype.Alternatives}" Size="10.5" Margin="0,10,0,6"
-                        IsVisible="{Binding ArchetypeAlternatives, Converter={StaticResource Truthy}}" />
-            <ItemsControl ItemsSource="{Binding ArchetypeAlternatives}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="o:ArchetypeRow">
-                        <StackPanel Margin="0,0,0,5">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding Chance}" FontSize="11.5" FontWeight="SemiBold" Margin="6,0,0,0" />
-                                <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                            </DockPanel>
-                            <Border Height="3" CornerRadius="1.5" Background="{StaticResource Surface3}" Margin="0,3,0,0">
-                                <Border HorizontalAlignment="Left" CornerRadius="1.5" Background="{StaticResource AccentLine}"
-                                        Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=196}" />
-                            </Border>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                <c:Ornament Text="{i:Loc Widgets.Archetype.Alternatives}" Size="10.5" Margin="0,10,0,6"
+                            IsVisible="{Binding ArchetypeAlternatives, Converter={StaticResource Truthy}}" />
+                <ItemsControl ItemsSource="{Binding ArchetypeAlternatives}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="o:ArchetypeRow">
+                            <StackPanel Margin="0,0,0,5">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Chance}" FontSize="11.5" FontWeight="SemiBold" Margin="6,0,0,0" />
+                                    <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                                <Border Height="3" CornerRadius="1.5" Background="{StaticResource Surface3}" Margin="0,3,0,0">
+                                    <Border HorizontalAlignment="Left" CornerRadius="1.5" Background="{StaticResource AccentLine}"
+                                            Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=196}" />
+                                </Border>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
-            <c:Ornament Text="{i:Loc Widgets.Archetype.MayHold}" Size="10.5" Margin="0,8,0,6"
-                        IsVisible="{Binding LikelyCards, Converter={StaticResource Truthy}}" />
-            <ItemsControl ItemsSource="{Binding LikelyCards}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="o:LikelyTile">
-                        <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
-                            <c:ManaCost Width="21" Height="21" Text="{Binding Cost}" HorizontalAlignment="Left" />
-                            <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
-                                <Panel>
-                                    <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                                    <Rectangle Fill="{StaticResource TileFade}" />
-                                    <DockPanel Margin="8,0,3,0">
-                                        <!-- The chance on a dark plate, like the copy counts of the deck and the played cards -->
-                                        <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" Height="16" Padding="5,0"
-                                                Margin="4,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Chance}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                                        </Border>
-                                        <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                    </DockPanel>
-                                </Panel>
-                            </Border>
-                        </Grid>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                <c:Ornament Text="{i:Loc Widgets.Archetype.MayHold}" Size="10.5" Margin="0,8,0,6"
+                            IsVisible="{Binding LikelyCards, Converter={StaticResource Truthy}}" />
+                <ItemsControl ItemsSource="{Binding LikelyCards}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="o:LikelyTile">
+                            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
+                                <c:ManaCost Width="21" Height="21" Text="{Binding Cost}" HorizontalAlignment="Left" />
+                                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+                                    <Panel>
+                                        <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                                        <Rectangle Fill="{StaticResource TileFade}" />
+                                        <DockPanel Margin="8,0,3,0">
+                                            <!-- The chance on a dark plate, like the copy counts of the deck and the played cards -->
+                                            <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" Height="16" Padding="5,0"
+                                                    Margin="4,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Chance}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Panel>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
-            <TextBlock Text="{Binding ArchetypeNote}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                <TextBlock Text="{Binding ArchetypeNote}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
         </StackPanel>
     </Border>
 </UserControl>

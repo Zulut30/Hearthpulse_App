@@ -114,10 +114,14 @@
     <Border x:Name="Card" Classes="overlayCard" Width="300" Background="{StaticResource OverlayPanelSolid}">
         <StackPanel>
             <!-- ===== Summary: pool size, the generator's words, classes · format · source, sections ===== -->
-            <StackPanel Margin="12,9,12,0">
-                <TextBlock Text="{Binding CardPoolTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{Binding CardPoolPhrase}" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding CardPoolMeta}" FontSize="10" Foreground="{StaticResource Faint}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"
+            <Border Classes="overlayHeader">
+                <StackPanel>
+                    <TextBlock Text="{Binding CardPoolTitle}" Classes="headerTitle" />
+                    <TextBlock Text="{Binding CardPoolPhrase}" Classes="headerNote" TextTrimming="None" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+            <StackPanel Margin="12,5,12,0">
+                <TextBlock Text="{Binding CardPoolMeta}" FontSize="10" Foreground="{StaticResource Faint}" TextTrimming="CharacterEllipsis"
                            IsVisible="{Binding CardPoolMeta, Converter={StaticResource Truthy}}" />
                 <ItemsControl ItemsSource="{Binding CardPoolSections}" Margin="0,5,0,-4" IsVisible="{Binding CardPoolHasSections}">
                     <ItemsControl.ItemsPanel>
