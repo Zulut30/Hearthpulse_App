@@ -160,6 +160,19 @@ public sealed class CountersTests
     }
 
     [Fact]
+    public void A_card_played_for_zero_counts_at_zero_after_its_cost_goes_back_up()
+    {
+        // Real log 2026-10-23 18:28: JAIL_720 played with TAG_LAST_KNOWN_COST_IN_HAND=0, then its COST went back to 2.
+        var view = View(Play([
+            .. Cast(41, "CS2_087", 1, "SPELL", "tag=TAG_LAST_KNOWN_COST_IN_HAND value=2"),
+            .. Cast(42, "CS2_087", 1, "SPELL", "tag=TAG_LAST_KNOWN_COST_IN_HAND value=0", "tag=COST value=0"),
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=42 zone=PLAY zonePos=1 cardId=CS2_087 player=1] tag=COST value=2 ",
+        ]));
+
+        Assert.Equal("1", Value(view, "cards-2-mana"));
+    }
+
+    [Fact]
     public void Improving_cards_count_earlier_copies()
     {
         var view = View(Play([

@@ -13,7 +13,8 @@ public sealed record PlayedCardInfo(Entity Entity, int Turn)
 
     public string CardType => Entity.CardType;
 
-    public int Cost => Entity.GetInt("TAG_LAST_KNOWN_COST_IN_HAND") is > 0 and var known ? known : Entity.GetInt(GameTag.Cost);
+    // The cost it was played for. A card played for 0 has the tag at 0, and its COST may go back up after the play.
+    public int Cost => Entity.Tags.ContainsKey("TAG_LAST_KNOWN_COST_IN_HAND") ? Entity.GetInt("TAG_LAST_KNOWN_COST_IN_HAND") : Entity.GetInt(GameTag.Cost);
 
     public int SpellSchool => Entity.GetInt("SPELL_SCHOOL");
 
