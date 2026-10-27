@@ -39,6 +39,7 @@ public sealed partial class PowerParser
     private const int MaxBlockDepth = 64;
 
     private readonly List<IPowerListener> _listeners = new();
+    private readonly TagStrings _strings = new();
     private DateOnly _date;
     private TimeSpan _lastTime = TimeSpan.MinValue;
     private (DateOnly Date, TimeSpan Time)? _gameClock;
@@ -77,18 +78,17 @@ public sealed partial class PowerParser
 
     public void Feed(string line)
     {
-        var match = LineRegex().Match(line);
-        if (!match.Success)
+        if (!PowerLine.TrySplit(line, out var time, out var methodRange, out var bodyRange))
         {
             TrackCombatOnScreen(line);
             return;
         }
 
-        UpdateClock(match.Groups["time"].ValueSpan);
-        var method = match.Groups["method"].Value;
-        var body = match.Groups["body"].Value.Trim();
+        UpdateClock(line.AsSpan(time));
+        var method = line.AsSpan(methodRange);
+        var body = line.AsSpan(bodyRange).Trim().ToString();
 
-        if (method != "DebugPrintEntityChoices")
+        if (method is not "DebugPrintEntityChoices")
         {
             FlushChoices();
         }
@@ -208,10 +208,9 @@ public sealed partial class PowerParser
     {
         if (body.StartsWith("tag=", StringComparison.Ordinal))
         {
-            var tag = TagValueRegex().Match(body);
-            if (tag.Success && _tagTarget is not null)
+            if (PowerLine.TryTagValue(body, out var tag, out var value) && _tagTarget is not null)
             {
-                ApplyTag(_tagTarget, tag.Groups["tag"].Value, tag.Groups["value"].Value, silent: _tagTargetIsNew);
+                ApplyTag(_tagTarget, _strings.Get(body.AsSpan(tag)), _strings.Get(body.AsSpan(value)), silent: _tagTargetIsNew);
             }
 
             return;
@@ -221,13 +220,12 @@ public sealed partial class PowerParser
 
         if (body.StartsWith("TAG_CHANGE ", StringComparison.Ordinal))
         {
-            var m = TagChangeRegex().Match(body);
-            if (m.Success && Game is not null)
+            if (PowerLine.TryTagChange(body, out var target, out var tag, out var value) && Game is not null)
             {
-                var entity = Resolve(m.Groups["entity"].Value);
+                var entity = Resolve(body[target]);
                 if (entity is not null)
                 {
-                    ApplyTag(entity, m.Groups["tag"].Value, m.Groups["value"].Value, silent: false);
+                    ApplyTag(entity, _strings.Get(body.AsSpan(tag)), _strings.Get(body.AsSpan(value)), silent: false);
                 }
             }
 
@@ -281,7 +279,7 @@ public sealed partial class PowerParser
             var m = ShowEntityRegex().Match(body);
             if (m.Success && Game is not null && Resolve(m.Groups["entity"].Value) is { } entity)
             {
-                entity.CardId = m.Groups["card"].Value;
+                entity.CardId = _strings.Get(m.Groups["card"].ValueSpan);
                 entity.WasRevealed = true;
                 _tagTarget = entity;
                 _tagTargetIsNew = false;
@@ -296,7 +294,7 @@ public sealed partial class PowerParser
             var m = HideEntityRegex().Match(body);
             if (m.Success && Game is not null && Resolve(m.Groups["entity"].Value) is { } entity)
             {
-                ApplyTag(entity, m.Groups["tag"].Value, m.Groups["value"].Value, silent: false);
+                ApplyTag(entity, _strings.Get(m.Groups["tag"].ValueSpan), _strings.Get(m.Groups["value"].ValueSpan), silent: false);
             }
 
             return;
@@ -362,7 +360,7 @@ public sealed partial class PowerParser
             var id = int.Parse(creating.Groups["id"].Value, CultureInfo.InvariantCulture);
             var isNew = !game.Entities.ContainsKey(id);
             var entity = game.GetOrCreate(id);
-            entity.CardId = creating.Groups["card"].Value;
+            entity.CardId = _strings.Get(creating.Groups["card"].ValueSpan);
             if (isNew)
             {
                 BeginCreation(entity);
@@ -379,7 +377,7 @@ public sealed partial class PowerParser
         var updating = ShowEntityRegex().Match(body);
         if (updating.Success && Resolve(updating.Groups["entity"].Value) is { } existing)
         {
-            existing.CardId = updating.Groups["card"].Value;
+            existing.CardId = _strings.Get(updating.Groups["card"].ValueSpan);
             _tagTarget = existing;
             _tagTargetIsNew = false;
         }
@@ -621,16 +619,16 @@ public sealed partial class PowerParser
             }
 
             var entity = game.GetOrCreate(ParseInt(m.Groups["id"].Value));
-            var cardId = m.Groups["card"].Value;
+            var cardId = m.Groups["card"].ValueSpan;
             if (cardId.Length > 0 && entity.CardId.Length == 0)
             {
-                entity.CardId = cardId;
+                entity.CardId = _strings.Get(cardId);
             }
 
-            var name = m.Groups["name"].Value;
+            var name = m.Groups["name"].ValueSpan;
             if (name.Length > 0 && !name.StartsWith("UNKNOWN ENTITY", StringComparison.Ordinal))
             {
-                entity.Name = name;
+                entity.Name = _strings.Get(name);
             }
 
             return entity;
@@ -664,14 +662,7 @@ public sealed partial class PowerParser
     private static int ParseInt(string value) =>
         int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : 0;
 
-    [GeneratedRegex(@"^[DWEI] (?<time>\d{2}:\d{2}:\d{2}\.\d+) GameState\.(?<method>DebugPrint\w+)\(\) - (?<body>.*)$")]
-    private static partial Regex LineRegex();
-
-    [GeneratedRegex(@"^tag=(?<tag>\S+) value=(?<value>\S*)")]
-    private static partial Regex TagValueRegex();
-
-    [GeneratedRegex(@"^TAG_CHANGE Entity=(?<entity>.+?) tag=(?<tag>\S+) value=(?<value>\S*)")]
-    private static partial Regex TagChangeRegex();
+    // GameState lines, "tag=" lines and TAG_CHANGE are split by PowerLine, which documents their patterns.
 
     [GeneratedRegex(@"^BLOCK_START BlockType=(?<type>\w+) Entity=(?<entity>.+?) EffectCardId=")]
     private static partial Regex BlockStartRegex();

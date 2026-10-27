@@ -225,7 +225,9 @@ public sealed class BgCardDb
     /// </summary>
     public static BgCardDb Parse(Stream json)
     {
-        using var doc = JsonDocument.Parse(json);
+        // A file is read into an array of its exact size: JsonDocument.Parse(Stream) rents a power-of-two buffer from
+        // the shared pool (2 MB for the 1 MB cache file) on the large object heap, which then stays pooled.
+        using var doc = json.CanSeek ? JsonDocument.Parse(ReadToEnd(json)) : JsonDocument.Parse(json);
         var root = doc.RootElement;
         var result = new List<BgCard>();
         switch (root.ValueKind)
@@ -247,6 +249,14 @@ public sealed class BgCardDb
         }
 
         return result.Count == 0 ? Empty : new BgCardDb(result);
+    }
+
+    private static ReadOnlyMemory<byte> ReadToEnd(Stream json)
+    {
+        var bytes = new byte[json.Length - json.Position];
+        json.ReadExactly(bytes);
+        // Parse(Stream) skips a byte order mark; Parse(ReadOnlyMemory) does not.
+        return bytes.AsSpan().StartsWith((ReadOnlySpan<byte>)[0xEF, 0xBB, 0xBF]) ? bytes.AsMemory(3) : bytes;
     }
 
     private static void ParseItems(JsonElement array, List<BgCard> result)

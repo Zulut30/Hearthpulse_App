@@ -159,3 +159,58 @@ internal static class LogReplay
         }
     }
 }
+
+/// <summary>
+/// HP_BENCH_LOH=1: totals large-object-heap allocations by type from the runtime's allocation ticks (one event per
+/// ~100 KB allocated, so the bytes are a sample, not an exact count).
+/// </summary>
+internal sealed class LargeAllocations : System.Diagnostics.Tracing.EventListener
+{
+    private readonly Dictionary<string, long> _bytes = new(StringComparer.Ordinal);
+
+    public static LargeAllocations? StartIfAsked() =>
+        Environment.GetEnvironmentVariable("HP_BENCH_LOH") == "1" ? new LargeAllocations() : null;
+
+    protected override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource source)
+    {
+        if (source.Name == "Microsoft-Windows-DotNETRuntime")
+        {
+            // GC keyword, verbose level: GCAllocationTick.
+            EnableEvents(source, System.Diagnostics.Tracing.EventLevel.Verbose, (System.Diagnostics.Tracing.EventKeywords)0x1);
+        }
+    }
+
+    protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs e)
+    {
+        if (e.EventName?.StartsWith("GCAllocationTick", StringComparison.Ordinal) != true || e.Payload is null)
+        {
+            return;
+        }
+
+        var kind = Convert.ToInt32(e.Payload[e.PayloadNames!.IndexOf("AllocationKind")], CultureInfo.InvariantCulture);
+        if (kind != 1)
+        {
+            return;
+        }
+
+        var type = e.Payload[e.PayloadNames.IndexOf("TypeName")] as string ?? "?";
+        var amount = Convert.ToInt64(e.Payload[e.PayloadNames.IndexOf("AllocationAmount64")], CultureInfo.InvariantCulture);
+        lock (_bytes)
+        {
+            _bytes[type] = _bytes.GetValueOrDefault(type) + amount;
+        }
+    }
+
+    public void Report(string label)
+    {
+        lock (_bytes)
+        {
+            foreach (var (type, bytes) in _bytes.OrderByDescending(p => p.Value).Take(12))
+            {
+                Console.WriteLine($"[loh] {label}: {Measure.Mb(bytes),9}  {type}");
+            }
+
+            _bytes.Clear();
+        }
+    }
+}
