@@ -1,0 +1,32 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:m="using:Hearthpulse.UI.Main">
+    <!-- Styles of the My Stats views and the deck page (StatsResources.axaml holds their templates). Theme tokens only;
+         the WPF twins are in Main/Stats/StatsResources.xaml. -->
+
+    <!-- A row of KPI cards (StatsKpiPanel): one row, two columns in compact -->
+    <Style Selector="UniformGrid.kpis">
+        <Setter Property="Rows" Value="1" />
+    </Style>
+    <Style Selector="m|MainView.compact UniformGrid.kpis">
+        <Setter Property="Rows" Value="0" />
+        <Setter Property="Columns" Value="2" />
+    </Style>
+
+    <!-- A share as a flat rounded bar (0..1) on a dark track: red, green for a top finish -->
+    <Style Selector="ProgressBar.shareBar">
+        <Setter Property="Minimum" Value="0" />
+        <Setter Property="Maximum" Value="1" />
+        <Setter Property="Height" Value="10" />
+        <Setter Property="MinHeight" Value="10" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="Foreground" Value="{StaticResource Negative}" />
+        <Setter Property="Opacity" Value="0.75" />
+    </Style>
+    <Style Selector="ProgressBar.shareBar.top">
+        <Setter Property="Foreground" Value="{StaticResource Positive}" />
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+</Styles>

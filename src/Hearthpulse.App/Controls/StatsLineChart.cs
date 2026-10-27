@@ -41,7 +41,7 @@ public sealed class StatsLineChart : FrameworkElement
 
     private const double Right = 14;
     private const double Top = 16;
-    private const double Bottom = 14;
+    private const double Bottom = 26;
 
     private (IReadOnlyList<IChartValue>? Points, double Width, double Height, Point[] At, double Left, int Lowest, int Highest) _layout = (null, 0, 0, [], 10, 0, 0);
 
@@ -168,6 +168,7 @@ public sealed class StatsLineChart : FrameworkElement
         var left = _layout.Left;
         var grid = new Pen(Brush("Border"), 1) { DashStyle = new DashStyle([3, 4], 0) };
         var (lowest, highest) = (_layout.Lowest, _layout.Highest);
+        DrawFrame(dc, points, at, left, w, h, dpi);
         foreach (var index in points[highest].ChartValue == points[lowest].ChartValue ? new[] { highest } : new[] { highest, lowest })
         {
             var guide = points[index];
@@ -280,6 +281,36 @@ public sealed class StatsLineChart : FrameworkElement
 
         _layout = (points, w, h, at, left, lowest, highest);
         return at;
+    }
+
+    /// <summary>
+    /// The plot's frame: faint grid lines in quarters, the y axis, the x axis and the game numbers under it (first,
+    /// middle and last game).
+    /// </summary>
+    private void DrawFrame(DrawingContext dc, IReadOnlyList<IChartValue> points, Point[] at, double left, double w, double h, double dpi)
+    {
+        var bottom = Math.Round(h - Bottom) + 0.5;
+        var faint = new Pen(Brush("Border"), 1);
+        dc.PushOpacity(0.35);
+        for (var q = 0; q < 4; q++)
+        {
+            var y = Math.Round(Top + ((bottom - Top) * q / 4)) + 0.5;
+            dc.DrawLine(faint, new Point(left, y), new Point(w - Right, y));
+        }
+
+        dc.Pop();
+        var axis = new Pen(Brush("Outline"), 1);
+        dc.DrawLine(axis, new Point(Math.Round(left) + 0.5, Top), new Point(Math.Round(left) + 0.5, bottom));
+        dc.DrawLine(axis, new Point(left, bottom), new Point(w - Right, bottom));
+        var faintText = Brush("Faint");
+        foreach (var i in points.Count < 3 ? Enumerable.Range(0, points.Count) : new[] { 0, (points.Count - 1) / 2, points.Count - 1 })
+        {
+            var x = Math.Round(at[i].X) + 0.5;
+            dc.DrawLine(axis, new Point(x, bottom), new Point(x, bottom + 4));
+            var label = Text((i + 1).ToString("N0", CultureInfo.CurrentCulture), 10.5, faintText, dpi);
+            var lx = Math.Max(left - (label.Width / 2), Math.Min(x - (label.Width / 2), w - label.Width));
+            dc.DrawText(label, new Point(lx, bottom + 6));
+        }
     }
 
     private Brush Brush(string key) => TryFindResource(key) as Brush ?? Brushes.Gray;

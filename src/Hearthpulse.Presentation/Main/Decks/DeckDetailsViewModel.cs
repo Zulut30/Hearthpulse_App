@@ -47,7 +47,28 @@ public sealed record DeckMatchupRow(
     double WinFraction,
     bool IsArchetype,
     bool Selected,
-    bool Few);
+    bool Few)
+{
+    /// <summary>The win rate's colour: +1 from 53 %, -1 up to 47 %, 0 between them and when there is no rate.</summary>
+    public int WinSign => WinRate == "—" ? 0 : WinFraction >= 0.53 ? 1 : WinFraction <= 0.47 ? -1 : 0;
+}
+
+/// <summary>One cost of the main version's mana curve ("0" … "7+"): cards at that cost and the bar's share of the tallest.</summary>
+public sealed record ManaCurveBar(string Label, int Count, double Fraction)
+{
+    /// <summary>No card at this cost: the stub and its count are dimmed.</summary>
+    public bool Empty => Count == 0;
+}
+
+/// <summary>
+/// A card of the main version as the deck tracker lists it: cost gem, name over its art, rarity edge and the copies
+/// ("2", "★" for a legendary, empty for one copy).
+/// </summary>
+public sealed record DeckListRow(string CardId, string Name, int Cost, string Rarity, string Count)
+{
+    /// <summary>The star then takes the legendary colour.</summary>
+    public bool Legendary => Rarity == "LEGENDARY";
+}
 
 /// <summary>One card in the mulligan and card tables. Signs colour a win rate against the deck's own (+1 above, -1 below).</summary>
 public sealed record DeckCardStatRow(
@@ -136,6 +157,9 @@ public sealed record DeckGameRow(string Key, string When, string Result, string 
 /// </summary>
 public sealed class DeckDetailsViewModel : Observable
 {
+    /// <summary>Bars of the mana curve: 0 … 6 and 7+.</summary>
+    private const int CurveBuckets = 8;
+
     private readonly MainViewModel _owner;
     private DeckFamily? _family;
     private IReadOnlyList<DeckFamily> _families = [];
@@ -151,7 +175,15 @@ public sealed class DeckDetailsViewModel : Observable
     private string _name = string.Empty;
     private string _editName = string.Empty;
     private string _heroCardId = string.Empty;
-    private string _subtitle = string.Empty;
+    private IReadOnlyList<string> _facts = [];
+    private string _lastPlayed = string.Empty;
+    private string _winRateText = "—";
+    private string _winRecord = string.Empty;
+    private int _winSign;
+    private double _winScale = -1;
+    private IReadOnlyList<ManaCurveBar> _curve = [];
+    private IReadOnlyList<DeckListRow> _deckList = [];
+    private string _deckListNote = string.Empty;
     private string _archetypeLine = string.Empty;
     private string _filterText = string.Empty;
     private IReadOnlyList<StatTile> _tiles = [];
@@ -303,7 +335,42 @@ public sealed class DeckDetailsViewModel : Observable
 
     public string HeroCardId { get => _heroCardId; private set => Set(ref _heroCardId, value); }
 
-    public string Subtitle { get => _subtitle; private set => Set(ref _subtitle, value); }
+    /// <summary>The header chips: class, format and "3 versions" when there are more than one.</summary>
+    public IReadOnlyList<string> Facts { get => _facts; private set => Set(ref _facts, value); }
+
+    /// <summary>"Last played 2 h ago".</summary>
+    public string LastPlayed { get => _lastPlayed; private set => Set(ref _lastPlayed, value); }
+
+    /// <summary>The big win rate of the header (the games shown, so a matchup filter applies), "—" without games.</summary>
+    public string WinRateText { get => _winRateText; private set => Set(ref _winRateText, value); }
+
+    /// <summary>"12–8 · 20 games" under the big win rate.</summary>
+    public string WinRecord { get => _winRecord; private set => Set(ref _winRecord, value); }
+
+    /// <summary>The big win rate's colour: +1 from 53 %, -1 up to 47 %, else 0.</summary>
+    public int WinSign { get => _winSign; private set => Set(ref _winSign, value); }
+
+    /// <summary>
+    /// Where the win rate sits on the header scale, 0..1 over <see cref="ScaleLow"/>..<see cref="ScaleHigh"/> (clamped);
+    /// -1 without games (no marker).
+    /// </summary>
+    public double WinScale { get => _winScale; private set { if (Set(ref _winScale, value)) { Raise(nameof(HasWinScale)); } } }
+
+    public bool HasWinScale => _winScale >= 0;
+
+    /// <summary>The header scale runs from 30 % to 70 %: a deck rarely leaves it, and 47–53 % sits in its middle.</summary>
+    public const double ScaleLow = 0.30;
+
+    public const double ScaleHigh = 0.70;
+
+    /// <summary>The main version's mana curve, 0 to 7+.</summary>
+    public IReadOnlyList<ManaCurveBar> Curve { get => _curve; private set => Set(ref _curve, value); }
+
+    /// <summary>The main version's cards by cost, then name.</summary>
+    public IReadOnlyList<DeckListRow> DeckList { get => _deckList; private set => Set(ref _deckList, value); }
+
+    /// <summary>"30 cards · average cost 3.4", empty without a list.</summary>
+    public string DeckListNote { get => _deckListNote; private set => Set(ref _deckListNote, value); }
 
     /// <summary>"Blood DK · 54% in the meta", empty when the deck matches no archetype.</summary>
     public string ArchetypeLine { get => _archetypeLine; private set => Set(ref _archetypeLine, value); }
@@ -464,18 +531,22 @@ public sealed class DeckDetailsViewModel : Observable
         var metaFits = ArchetypeGuess.FitsFormat(meta, family.Format) ? meta : null;
         var archetype = ConstructedStats.ArchetypeOf(family.Main.DeckCode, family.PlayerClass, metaFits, cards);
 
-        var subtitle = string.Join(" · ", new[]
+        var archetypeLine = archetype is null ? string.Empty : Loc.F("Main.Meta.DeckInMeta", archetype.Name, Percent(archetype.WinRate));
+        IReadOnlyList<string> facts = new[]
         {
             OverlayViewModel.ClassName(family.PlayerClass),
             format,
             family.Versions.Count > 1 ? Loc.P("Deck.VersionCount", family.Versions.Count) : null,
-            Loc.F("Deck.LastPlayed", MainViewModel.When(family.LastPlayed)),
-        }.Where(s => !string.IsNullOrEmpty(s)));
-        var archetypeLine = archetype is null ? string.Empty : Loc.F("Main.Meta.DeckInMeta", archetype.Name, Percent(archetype.WinRate));
+        }.Where(s => !string.IsNullOrEmpty(s)).Select(s => s!).ToList();
+        var lastPlayed = Loc.F("Deck.LastPlayed", MainViewModel.When(family.LastPlayed));
+        var winRecord = summary.Record.Games == 0
+            ? Loc.T("Deck.WinRate.NoGames")
+            : $"{summary.Record.Wins}–{summary.Record.Losses} · {Loc.P("Deck.Games", summary.Record.Games)}";
+        var winSign = deckRate is { } dr ? (dr >= 0.53 ? 1 : dr <= 0.47 ? -1 : 0) : 0;
+        var winScale = deckRate is { } sr ? Math.Clamp((sr - ScaleLow) / (ScaleHigh - ScaleLow), 0, 1) : -1;
 
         IReadOnlyList<StatTile> tiles =
         [
-            new StatTile(Loc.T("Deck.Tile.WinRate"), Percent(deckRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
             new StatTile(Loc.T("Deck.Tile.Games"), summary.Record.Games.ToString("N0", CultureInfo.CurrentCulture),
                 all.Count != games.Count ? Loc.F("Deck.Tile.GamesOf", all.Count) : Loc.T("Deck.Tile.WithDeck")),
             new StatTile(Loc.T("Deck.Tile.AvgGame"), summary.AverageDuration is { } avg ? Loc.F("Deck.Minutes", avg.TotalMinutes) : "—",
@@ -550,6 +621,33 @@ public sealed class DeckDetailsViewModel : Observable
                     c.AveragePlayTurn is { } t ? t.ToString("0.0", CultureInfo.CurrentCulture) : "—");
             })
             .ToList();
+        // The main version's list, as the tracker shows it, and its curve (cost 7 and up share the last bar).
+        var deckList = cardStats.Where(c => c.Copies > 0)
+            .Select(c => (Stat: c, Card: cards.Get(c.DbfId)))
+            .OrderBy(c => c.Card?.Cost ?? 0)
+            .ThenBy(c => c.Card?.Name ?? c.Stat.CardId, StringComparer.CurrentCulture)
+            .Select(c => new DeckListRow(
+                c.Stat.CardId,
+                c.Card?.Name ?? c.Stat.CardId,
+                c.Card?.Cost ?? 0,
+                c.Card?.Rarity ?? string.Empty,
+                c.Card?.IsLegendary == true ? "★" : c.Stat.Copies > 1 ? c.Stat.Copies.ToString(CultureInfo.CurrentCulture) : string.Empty))
+            .ToList();
+        var copies = cardStats.Where(c => c.Copies > 0).Select(c => (Cost: cards.Get(c.DbfId)?.Cost ?? 0, c.Copies)).ToList();
+        var perCost = Enumerable.Range(0, CurveBuckets).Select(b => copies.Where(c => Math.Min(c.Cost, CurveBuckets - 1) == b).Sum(c => c.Copies)).ToList();
+        var tallest = Math.Max(1, perCost.Max());
+        List<ManaCurveBar> curve = deckList.Count == 0
+            ? []
+            : perCost.Select((count, cost) => new ManaCurveBar(
+                    cost == CurveBuckets - 1 ? $"{cost}+" : cost.ToString(CultureInfo.CurrentCulture),
+                    count,
+                    (double)count / tallest))
+                .ToList();
+        var total = copies.Sum(c => c.Copies);
+        var deckListNote = total == 0
+            ? string.Empty
+            : Loc.F("Deck.List.Note", total, (copies.Sum(c => c.Cost * c.Copies) / (double)total).ToString("0.0", CultureInfo.CurrentCulture));
+
         var dataGames = DeckDetails.CardDataGames(games);
         var mulliganNote = (dataGames == 0
                 ? Loc.T("Deck.Mulligan.NoData")
@@ -611,7 +709,15 @@ public sealed class DeckDetailsViewModel : Observable
         {
             Name = family.Name;
             HeroCardId = MainViewModel.ClassHero(family.PlayerClass);
-            Subtitle = subtitle;
+            Facts = facts;
+            LastPlayed = lastPlayed;
+            WinRateText = Percent(deckRate);
+            WinRecord = winRecord;
+            WinSign = winSign;
+            WinScale = winScale;
+            Curve = curve;
+            DeckList = deckList;
+            DeckListNote = deckListNote;
             ArchetypeLine = archetypeLine;
             FilterText = filterText;
             Tiles = tiles;

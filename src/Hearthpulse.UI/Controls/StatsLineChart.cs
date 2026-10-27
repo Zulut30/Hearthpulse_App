@@ -38,7 +38,7 @@ public sealed class StatsLineChart : Control
 
     private const double Right = 14;
     private const double Top = 16;
-    private const double Bottom = 14;
+    private const double Bottom = 26;
 
     private (IReadOnlyList<IChartValue>? Points, double Width, double Height, Point[] At, double Left, int Lowest, int Highest) _layout = (null, 0, 0, [], 10, 0, 0);
 
@@ -177,6 +177,7 @@ public sealed class StatsLineChart : Control
         var left = _layout.Left;
         var grid = new Pen(ThemeBrushes.Get("Border"), 1, new DashStyle([3, 4], 0));
         var (lowest, highest) = (_layout.Lowest, _layout.Highest);
+        DrawFrame(context, points, at, left, w, h);
         foreach (var index in points[highest].ChartValue == points[lowest].ChartValue ? new[] { highest } : new[] { highest, lowest })
         {
             var guide = points[index];
@@ -294,6 +295,37 @@ public sealed class StatsLineChart : Control
 
         _layout = (points, w, h, at, left, lowest, highest);
         return at;
+    }
+
+    /// <summary>
+    /// The plot's frame: faint grid lines in quarters, the y axis, the x axis and the game numbers under it (first,
+    /// middle and last game).
+    /// </summary>
+    private void DrawFrame(DrawingContext context, IReadOnlyList<IChartValue> points, Point[] at, double left, double w, double h)
+    {
+        var bottom = Math.Round(h - Bottom) + 0.5;
+        var faint = new Pen(ThemeBrushes.Get("Border"), 1);
+        using (context.PushOpacity(0.35))
+        {
+            for (var q = 0; q < 4; q++)
+            {
+                var y = Math.Round(Top + ((bottom - Top) * q / 4)) + 0.5;
+                context.DrawLine(faint, new Point(left, y), new Point(w - Right, y));
+            }
+        }
+
+        var axis = new Pen(ThemeBrushes.Get("Outline"), 1);
+        context.DrawLine(axis, new Point(Math.Round(left) + 0.5, Top), new Point(Math.Round(left) + 0.5, bottom));
+        context.DrawLine(axis, new Point(left, bottom), new Point(w - Right, bottom));
+        var faintText = ThemeBrushes.Get("Faint");
+        foreach (var i in points.Count < 3 ? Enumerable.Range(0, points.Count) : new[] { 0, (points.Count - 1) / 2, points.Count - 1 })
+        {
+            var x = Math.Round(at[i].X) + 0.5;
+            context.DrawLine(axis, new Point(x, bottom), new Point(x, bottom + 4));
+            var label = Text((i + 1).ToString("N0", CultureInfo.CurrentCulture), 10.5, faintText);
+            var lx = Math.Max(left - (label.Width / 2), Math.Min(x - (label.Width / 2), w - label.Width));
+            context.DrawText(label, new Point(lx, bottom + 6));
+        }
     }
 
     private FormattedText Text(string text, double size, IBrush brush, FontWeight weight = FontWeight.Normal)

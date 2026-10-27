@@ -13,6 +13,9 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+    </UserControl.Styles>
     <StackPanel>
         <Grid Classes="statsHead" Margin="0,0,0,14" RowDefinitions="Auto,Auto">
             <c:Ornament Text="{i:Loc Stats.Title}" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
@@ -27,37 +30,39 @@
             </Border>
         </Grid>
 
-        <!-- Highest MMR, average placement, games, time played, and where you finish; the combat simulator's accuracy -->
-        <Border Classes="card" Margin="0,0,0,16">
-            <StackPanel>
-                <Grid RowDefinitions="Auto,Auto">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <ItemsControl Classes="statsLeft" ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel}" Margin="0,0,0,-14" />
-                    <StackPanel Classes="statsSide" Margin="10,0,0,0" ToolTip.Tip="{i:Loc Stats.Bg.PlacementsTip}">
-                        <TextBlock Text="{i:Loc Stats.Bg.Placements}" Classes="label" />
-                        <c:MiniBars Width="190" Height="62" Margin="0,10,0,0" Values="{Binding BgPlaceShares}" Marker="{Binding BgAveragePlace}" ShowLabels="True" />
-                    </StackPanel>
-                </Grid>
-                <TextBlock Text="{Binding BgSimAccuracy}" ToolTip.Tip="{i:Loc Stats.Bg.SimAccuracyTip}" Classes="caption" FontSize="11.5" Margin="0,12,0,0"
-                           TextWrapping="Wrap" IsVisible="{Binding BgSimAccuracy, Converter={StaticResource Truthy}}" />
-            </StackPanel>
-        </Border>
+        <!-- Highest MMR, average placement, games, time played; the combat simulator's accuracy -->
+        <ItemsControl ItemsSource="{Binding BgStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
+        <TextBlock Text="{Binding BgSimAccuracy}" ToolTip.Tip="{i:Loc Stats.Bg.SimAccuracyTip}" Classes="caption" FontSize="11.5" Margin="2,0,0,14"
+                   TextWrapping="Wrap" IsVisible="{Binding BgSimAccuracy, Converter={StaticResource Truthy}}" />
 
-        <Border Classes="card" Margin="0,0,0,16">
-            <DockPanel>
-                <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
-                    <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
-                </Grid>
-                <!-- No games in the period: one line instead of a tall empty chart, so the tier lists stay in view -->
-                <TextBlock DockPanel.Dock="Top" Text="{i:Loc Stats.Bg.RatingEmpty}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,4"
-                           IsVisible="{Binding BgRatingChart, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}"
-                                  EmptyText="{i:Loc Stats.Bg.RatingEmpty}" IsVisible="{Binding BgRatingChart, Converter={StaticResource Truthy}}" />
-            </DockPanel>
-        </Border>
+        <!-- Rating over time beside where you finish -->
+        <Grid Margin="0,0,0,16" RowDefinitions="Auto,Auto">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" MinWidth="250" />
+            </Grid.ColumnDefinitions>
+            <Border Classes="card statsLeft">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
+                    </Grid>
+                    <!-- No games in the period: one line instead of a tall empty chart, so the tier lists stay in view -->
+                    <ContentControl DockPanel.Dock="Top" Classes="emptyState" Tag="&#xF012A;" Content="{i:Loc Stats.Bg.RatingEmpty}"
+                                    IsVisible="{Binding BgRatingChart, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    <c:StatsLineChart x:Name="RatingChart" Height="250" Points="{Binding BgRatingChart}" HoverTemplate="{StaticResource BgHoverCard}"
+                                      EmptyText="{i:Loc Stats.Bg.RatingEmpty}" IsVisible="{Binding BgRatingChart, Converter={StaticResource Truthy}}" />
+                </DockPanel>
+            </Border>
+            <Border Classes="card statsRight">
+                <StackPanel ToolTip.Tip="{i:Loc Stats.Bg.PlacementsTip}">
+                    <c:Ornament Text="{i:Loc Stats.Bg.PlacesTitle}" Icon="&#xF0128;" Size="13" Margin="0,0,0,14" />
+                    <ItemsControl ItemsSource="{Binding BgPlaces}" ItemTemplate="{StaticResource BgPlaceRowTemplate}" />
+                    <ContentControl Classes="emptyState" Tag="&#xF0128;" Content="{i:Loc Stats.Bg.PlacesEmpty}"
+                                    IsVisible="{Binding BgPlaces, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <Border Classes="card" Margin="0,0,0,24">
             <StackPanel>

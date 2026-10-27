@@ -1,7 +1,8 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:m="using:Hearthpulse.UI.Main"
-                    xmlns:i="using:Hearthpulse.UI.Infrastructure">
+                    xmlns:i="using:Hearthpulse.UI.Infrastructure"
+                    xmlns:sys="using:System">
     <!-- Shared by the My Stats views (Battlegrounds, Constructed, Arena). Colours are theme tokens only. -->
     <i:Truthy x:Key="Truthy" />
     <i:KeyBrush x:Key="KeyBrush" />
@@ -11,18 +12,47 @@
     <ItemsPanelTemplate x:Key="StatsTilesPanel">
         <UniformGrid Rows="1" />
     </ItemsPanelTemplate>
+    <!-- KPI cards in one row, two columns in compact (Main/Stats/StatsStyles.axaml) -->
+    <ItemsPanelTemplate x:Key="StatsKpiPanel">
+        <UniformGrid Classes="kpis" />
+    </ItemsPanelTemplate>
     <ItemsPanelTemplate x:Key="StatsTilesPanel3">
         <UniformGrid Classes="fixed tiles3" />
     </ItemsPanelTemplate>
 
-    <!-- A header number: label, big value, caption -->
+    <!-- A KPI card: label, a short gold rule, big value (green or red with its sign), caption. The page's tile look
+         (Main/MainLook card tile), tighter. Placed in a row with 12 between cards: the ItemsControl takes Margin="0,0,-12,4". -->
     <DataTemplate x:Key="StatsTile" x:DataType="m:StatTile">
-        <StackPanel Margin="0,0,18,14" ToolTip.Tip="{Binding Detail}">
-            <TextBlock Text="{Binding Label}" Classes="label" />
-            <TextBlock Text="{Binding Value}" Classes="stat statsValue" Margin="0,6,0,2" TextTrimming="CharacterEllipsis"
-                       Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
-            <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" />
-        </StackPanel>
+        <Border Classes="card tile" Padding="18,14,16,14" Margin="0,0,12,12" ToolTip.Tip="{Binding Detail}">
+            <StackPanel>
+                <TextBlock Text="{Binding Label}" Classes="label" TextTrimming="CharacterEllipsis" />
+                <Border Width="22" Height="2" CornerRadius="1" Background="{StaticResource AccentLine}" HorizontalAlignment="Left" Margin="0,6,0,0" />
+                <TextBlock Text="{Binding Value}" Classes="stat statsValue" Margin="0,6,0,2" TextTrimming="CharacterEllipsis"
+                           Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
+                <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <!-- Column heads over a StatGroupRowTemplate table (ContentControl.Content names the first column); a hairline under them -->
+    <DataTemplate x:Key="StatsTableHead" x:DataType="sys:String">
+        <Border BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="0,0,0,6" Margin="0,0,0,4">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Text="{Binding}" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{i:Loc Stats.Table.Record}" Classes="label wide" FontSize="11.5" Width="64" TextAlignment="Right"
+                           ToolTip.Tip="{i:Loc Stats.RecordTip}" />
+                <TextBlock Grid.Column="2" Text="{i:Loc Stats.Table.WinRate}" Classes="label" FontSize="11.5" Width="132" TextAlignment="Right" />
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <!-- A final place in "Where you finish": place, a bar against the most common place (green in the top), share -->
+    <DataTemplate x:Key="BgPlaceRowTemplate" x:DataType="m:BgPlaceRow">
+        <Grid ColumnDefinitions="44,*,52" Margin="0,0,0,7" Background="Transparent" ToolTip.Tip="{Binding Tip}">
+            <TextBlock Text="{Binding Place}" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <ProgressBar Grid.Column="1" Classes="shareBar" Classes.top="{Binding Top}" Value="{Binding Fraction, Mode=OneWay}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding Share}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+        </Grid>
     </DataTemplate>
 
     <!-- "vs Global": arrow and difference, green when it favours you -->

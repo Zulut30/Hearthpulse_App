@@ -102,6 +102,12 @@ public sealed record StatGroupRow(string Label, string CardId, string Games, str
     public int WinSign => WinRate == "—" ? 0 : WinFraction >= 0.53 ? 1 : WinFraction <= 0.47 ? -1 : 0;
 }
 
+/// <summary>
+/// A final place in "Where you finish": "1st", its share of the games, the bar against the most common place and
+/// whether it counts as a top finish (top 4, top 2 in Duos) for the bar's colour.
+/// </summary>
+public sealed record BgPlaceRow(string Place, string Share, double Fraction, bool Top, string Tip);
+
 /// <summary>One Arena run.</summary>
 /// <param name="DeckScore">"Deck score 41" (ArenaSmith average of the run's deck), or empty.</param>
 public sealed record ArenaRunRow(string ClassName, string HeroCardId, string Record, double WinFraction, string When, string Status, bool Finished, string DeckScore = "", string DeckTier = "");
@@ -113,8 +119,7 @@ public sealed partial class MainViewModel
     private BgHeroSort _bgSort = BgHeroSort.Games;
     private int _bgMinGames = 1;
     private IReadOnlyList<StatTile> _bgStatTiles = [];
-    private IReadOnlyList<double> _bgPlaceShares = [];
-    private double _bgAveragePlace = double.NaN;
+    private IReadOnlyList<BgPlaceRow> _bgPlaces = [];
     private IReadOnlyList<IChartValue> _bgRatingChart = [];
     private IReadOnlyList<BgHeroPerfRow> _bgHeroPerf = [];
     private bool _bgHasGlobal;
@@ -195,11 +200,8 @@ public sealed partial class MainViewModel
 
     public IReadOnlyList<StatTile> BgStatTiles { get => _bgStatTiles; private set => Set(ref _bgStatTiles, value); }
 
-    /// <summary>Share of games per final place (index 0 = 1st), for the header histogram.</summary>
-    public IReadOnlyList<double> BgPlaceShares { get => _bgPlaceShares; private set => Set(ref _bgPlaceShares, value); }
-
-    /// <summary>Average place for the histogram marker, NaN without games.</summary>
-    public double BgAveragePlace { get => _bgAveragePlace; private set => Set(ref _bgAveragePlace, value); }
+    /// <summary>Share of games per final place (index 0 = 1st) as one bar per place, empty without games.</summary>
+    public IReadOnlyList<BgPlaceRow> BgPlaces { get => _bgPlaces; private set => Set(ref _bgPlaces, value); }
 
     public IReadOnlyList<IChartValue> BgRatingChart { get => _bgRatingChart; private set => Set(ref _bgRatingChart, value); }
 
@@ -331,6 +333,17 @@ public sealed partial class MainViewModel
         ];
         var total = Math.Max(1, summary.PlacementCounts.Sum());
         var shares = summary.PlacementCounts.Select(c => c / (double)total).ToList();
+        var common = Math.Max(1, summary.PlacementCounts.DefaultIfEmpty(0).Max());
+        var topPlaces = duos ? 2 : 4;
+        List<BgPlaceRow> placeRows = summary.Games == 0
+            ? []
+            : summary.PlacementCounts.Select((count, i) => new BgPlaceRow(
+                    Ordinal(i + 1),
+                    shares[i].ToString("P0", CultureInfo.CurrentCulture),
+                    count / (double)common,
+                    i < topPlaces,
+                    Loc.F("Stats.Bg.PlaceTip", Ordinal(i + 1), shares[i].ToString("P0", CultureInfo.CurrentCulture), count)))
+                .ToList();
 
         var chart = BattlegroundsStats.RatingTimeline(games)
             .Select(p => (IChartValue)new BgGamePoint(
@@ -391,8 +404,7 @@ public sealed partial class MainViewModel
         {
             BgStatTiles = tiles;
             BgSimAccuracy = accuracyText;
-            BgPlaceShares = shares;
-            BgAveragePlace = summary.AveragePlacement ?? double.NaN;
+            BgPlaces = placeRows;
             BgRatingChart = chart;
             BgHeroPerf = rows;
             BgHasGlobal = !duos && meta is not null;
