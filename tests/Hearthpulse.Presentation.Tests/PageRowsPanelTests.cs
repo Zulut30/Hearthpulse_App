@@ -74,6 +74,22 @@ public sealed class PageRowsPanelTests
 
             Assert.Equal(reference.ExtentHeight, page.ExtentHeight);
 
+            // A whole-page shot first scrolls the page through: every row is there and the page is back where it was.
+            var fresh = List(items, new ItemsPanelTemplate(new FrameworkElementFactory(typeof(PageRowsPanel))));
+            var shot = Page(fresh, out var shotWindow);
+            try
+            {
+                Pump(DispatcherPriority.Input);
+                Assert.Null(fresh.ItemContainerGenerator.ContainerFromIndex(99));
+                PageRowsPanel.BuildAllRows(shot);
+                Assert.All(Enumerable.Range(0, 100), i => Assert.NotNull(fresh.ItemContainerGenerator.ContainerFromIndex(i)));
+                Assert.Equal(0, shot.VerticalOffset);
+            }
+            finally
+            {
+                shotWindow.Close();
+            }
+
             // A new list starts over: its rows only, and the height of its rows.
             rows.ItemsSource = items.Take(10).ToList();
             Pump(DispatcherPriority.ApplicationIdle);

@@ -37,6 +37,29 @@ public sealed class PageRowsPanel : VirtualizingPanel
         Unloaded += (_, _) => Detach();
     }
 
+    /// <summary>
+    /// Scrolls <paramref name="page"/> through once and back, so every panel of this kind on it builds all its rows. For
+    /// whole-page shots (UI render check): without it the room of the rows nobody scrolled to shows as empty space.
+    /// </summary>
+    public static void BuildAllRows(ScrollViewer page)
+    {
+        var start = page.VerticalOffset;
+        for (var y = 0.0; ; y += Math.Max(100, page.ViewportHeight))
+        {
+            page.ScrollToVerticalOffset(y);
+            // The first pass moves the page and raises ScrollChanged; the second builds the rows it asked for.
+            page.UpdateLayout();
+            page.UpdateLayout();
+            if (y >= page.ScrollableHeight)
+            {
+                break;
+            }
+        }
+
+        page.ScrollToVerticalOffset(start);
+        page.UpdateLayout();
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         var children = InternalChildren; // creates the generator

@@ -87,7 +87,35 @@ public sealed class StatsXamlLoadTests
             }
         }
 
-        Lay(new DeckDetailsView(), deck);
+        var page = new DeckDetailsView();
+        Lay(page, deck);
+
+        // The mulligan and card tables take their rows' height, not the room left on the page (a few rows, no gap).
+        Assert.NotEmpty(deck.MulliganRows);
+        foreach (var list in Descendants<ItemsControl>(page).Where(l => l.ItemsSource == deck.MulliganRows || l.ItemsSource == deck.PerformanceRows))
+        {
+            var rows = Descendants<Border>(list).Where(b => b.DataContext is DeckCardStatRow && b.TemplatedParent is ContentPresenter).ToList();
+            Assert.NotEmpty(rows);
+            Assert.True(list.ActualHeight <= rows.Sum(r => r.ActualHeight + r.Margin.Bottom) + 1,
+                $"{list.ActualHeight} for {rows.Count} rows of {rows[0].ActualHeight}");
+        }
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject node) where T : DependencyObject
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(node); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(node, i);
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var deeper in Descendants<T>(child))
+            {
+                yield return deeper;
+            }
+        }
     }
 
     private static void Lay(FrameworkElement view, object model)
