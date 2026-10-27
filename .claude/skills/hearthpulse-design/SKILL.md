@@ -103,17 +103,16 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
 - `Scallop` - Material 3 "cookie" (`Fill`, `Lobes` 9 cookie/4 clover/12 sunny, `Depth`, `Angle`), behind icons and as
   decoration.
 - `Ornament` - section heading (`Text`, `Size`, `Centered`, `Icon`).
-- `ManaCost` - every card cost badge: the mana gem picture `Assets/mana-gem.png` (`Resource` in App,
-  `AvaloniaResource` in UI) with `Text` as a white digit outlined in dark; empty `Text` = the gem alone (Match page
+- `ManaCost` - every card cost badge: Hearthstone's mana gem `Assets/mana-gem.png` (`Resource` in App,
+  `AvaloniaResource` in UI) with `Text` as a white digit in a thick dark outline, as in the game; empty `Text` = the gem alone (Match page
   mana pill). Set only `Width`/`Height` (gem fills the smaller side, digit scales with it); no Border, CornerRadius or
   FontSize around it. Overlay deck rows style it with `CostChip` (WPF) / `c|ManaCost.cost` (Avalonia). The chart axis
   tokens in `CardPoolPanel` (cost/attack/health in the stat's colour) are chart markers, not cost badges, and stay
-  `Path`s. The PNG is original artwork drawn by `tools/mana/draw_mana_gem.py` (edit the script and re-run it; it
-  writes both copies) - never Blizzard's mana crystal: game files (EULA), HearthstoneJSON renders (All Rights Reserved)
-  and HDT `mana.png` (a game texture) are all Blockers (`reference/reviews/LEGAL-HeartLens-claude-mana-assets.md`).
-  Keep it recognisably our own: regular hexagon cut, `ManaGem`-token blues, Montserrat digit with a thin edge (no
-  thick game-style outline, no Belwe, no game glows), no tracing over screenshots, not named "Hearthstone mana
-  crystal", never behind the paywall.
+  `Path`s. The PNG is Blizzard's gem, cut from the HearthstoneJSON render of Wisp (cost 0) by
+  `tools/mana/extract_mana_gem.py` (colour mask + convex hull, the "0" inpainted; it writes both copies). The game
+  files hold no flat gem (on cards it is a lit 3D mesh, `GenFX_Gem_Mana_D` is only its dark diffuse). Shipping
+  Blizzard art is a Blocker in `reference/reviews/LEGAL-HeartLens-claude-mana-assets.md`; the owner accepted that risk
+  on 2026-10-27. Do not put the gem behind the paywall.
 - `Wave` - gold rule: diamond + fading hairline (`Stroke` defaults to `GoldTrim`; Amplitude/Wavelength/Thickness are
   kept only for compatibility).
 - `RatingChart` - rating curve (`Points`), min/max guides, latest value tag.

@@ -85,6 +85,8 @@ python-hearthstone (game tag names)
 
 Card data and card images are loaded at run time from HearthstoneJSON (https://hearthstonejson.com).
 Card names, texts and art are (c) Blizzard Entertainment, Inc.
+The mana gem picture (Assets/mana-gem.png) is cut from a HearthstoneJSON card render and is (c) Blizzard
+Entertainment, Inc.
 
 ==============================================================================
 MIT License - Avalonia

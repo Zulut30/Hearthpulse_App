@@ -9,15 +9,15 @@ using Avalonia.Platform;
 namespace Hearthpulse.UI.Controls;
 
 /// <summary>
-/// Card cost badge: the mana gem picture (Assets/mana-gem.png, original artwork from tools/mana/draw_mana_gem.py)
-/// with the cost as a white Montserrat digit and a thin dark edge so it reads on the blue. An empty <see cref="Text"/>
-/// draws the gem alone.
+/// Card cost badge: Hearthstone's mana gem (Assets/mana-gem.png, cut from a card render by
+/// tools/mana/extract_mana_gem.py) with the cost as a white digit in a thick dark outline, as on a card. An empty
+/// <see cref="Text"/> draws the gem alone.
 /// The gem fills the smaller side of the control and the digit scales with it.
 /// </summary>
 public sealed class ManaCost : Control
 {
     private static readonly Lazy<Bitmap> Gem = new(() => new Bitmap(AssetLoader.Open(new Uri("avares://Hearthpulse.UI/Assets/mana-gem.png"))));
-    private static readonly IBrush Outline = new ImmutableSolidColorBrush(Color.FromRgb(0x0A, 0x14, 0x30));
+    private static readonly IBrush Outline = new ImmutableSolidColorBrush(Color.FromRgb(0x05, 0x05, 0x08));
 
     public static readonly StyledProperty<string> TextProperty = AvaloniaProperty.Register<ManaCost, string>(nameof(Text), string.Empty);
 
@@ -58,7 +58,7 @@ public sealed class ManaCost : Control
         }
 
         // Stroke first, then fill on top, so the outline sits outside the glyph instead of eating into it.
-        context.DrawGeometry(null, new Pen(Outline, Math.Max(1, d * 0.08), lineJoin: PenLineJoin.Round), glyphs);
+        context.DrawGeometry(null, new Pen(Outline, Math.Max(2, d * 0.2), lineJoin: PenLineJoin.Round), glyphs);
         context.DrawGeometry(Brushes.White, null, glyphs);
     }
 }

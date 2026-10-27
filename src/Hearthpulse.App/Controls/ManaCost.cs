@@ -6,16 +6,16 @@ using System.Windows.Media.Imaging;
 namespace Hearthpulse.App.Controls;
 
 /// <summary>
-/// Card cost badge: the mana gem picture (Assets/mana-gem.png, original artwork from tools/mana/draw_mana_gem.py)
-/// with the cost as a white Montserrat digit and a thin dark edge so it reads on the blue. An empty <see cref="Text"/>
-/// draws the gem alone.
+/// Card cost badge: Hearthstone's mana gem (Assets/mana-gem.png, cut from a card render by
+/// tools/mana/extract_mana_gem.py) with the cost as a white digit in a thick dark outline, as on a card. An empty
+/// <see cref="Text"/> draws the gem alone.
 /// The gem fills the smaller side of the control and the digit scales with it.
 /// </summary>
 public sealed class ManaCost : FrameworkElement
 {
     private static readonly ImageSource Gem = LoadGem();
     private static readonly FontFamily FallbackFont = new("Segoe UI Variable Text, Segoe UI");
-    private static readonly Brush Outline = Frozen(new SolidColorBrush(Color.FromRgb(0x0A, 0x14, 0x30)));
+    private static readonly Brush Outline = Frozen(new SolidColorBrush(Color.FromRgb(0x05, 0x05, 0x08)));
 
     public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
         nameof(Text), typeof(string), typeof(ManaCost),
@@ -61,7 +61,7 @@ public sealed class ManaCost : FrameworkElement
         var glyphs = digit.BuildGeometry(new Point(x + ((d - digit.Width) / 2), y + ((d - digit.Height) / 2)));
 
         // Stroke first, then fill on top, so the outline sits outside the glyph instead of eating into it.
-        var pen = new Pen(Outline, Math.Max(1, d * 0.08)) { LineJoin = PenLineJoin.Round };
+        var pen = new Pen(Outline, Math.Max(2, d * 0.2)) { LineJoin = PenLineJoin.Round };
         pen.Freeze();
         dc.DrawGeometry(null, pen, glyphs);
         dc.DrawGeometry(Brushes.White, null, glyphs);
