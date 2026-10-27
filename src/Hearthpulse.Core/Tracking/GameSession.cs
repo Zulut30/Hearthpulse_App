@@ -58,6 +58,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private string _scene = "UNKNOWN";
 
     private DeckDefinition? _queuedDeck;
+    private string? _sessionDir;
     private DeckDefinition? _gameDeck;
 
     /// <summary>The game being tracked; internal for tests.</summary>
@@ -269,6 +270,15 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private void OnSessionStartedCore(string sessionDir, DateTime sessionStart, bool attachedMidSession)
     {
         _gameGeneration++;
+        // The same folder again is a restarted watcher joining the session at its last game: the game goes on and is
+        // replayed from its start, as in a resync.
+        var sameSession = _parser is not null && string.Equals(sessionDir, _sessionDir, StringComparison.OrdinalIgnoreCase);
+        _sessionDir = sessionDir;
+        if (sameSession)
+        {
+            _parser!.ResetGame();
+        }
+
         // A new client session: a game the old one never finished was left (client closed or crashed).
         _endingLeftGame = true;
         try

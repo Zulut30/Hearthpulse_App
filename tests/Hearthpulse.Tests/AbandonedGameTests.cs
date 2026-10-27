@@ -52,6 +52,20 @@ public sealed class AbandonedGameTests : IDisposable
     }
 
     [Fact]
+    public void A_restarted_watcher_joining_the_same_session_does_not_end_the_live_game()
+    {
+        // The host restarts a stuck watcher; the new one joins the same session folder at its last game.
+        _running = true;
+        Feed(BattlegroundsFixtureTests.Lines());
+        TickAt(TimeSpan.Zero);
+
+        _session.OnSessionStarted("Hearthstone_2026_10_23_02_01_43", new DateTime(2026, 10, 23, 2, 1, 43), attachedMidSession: true);
+        TickAt(TimeSpan.FromSeconds(1));
+
+        Assert.Empty(_history.Recent());
+    }
+
+    [Fact]
     public void A_game_the_client_left_is_saved_as_abandoned_after_the_grace_time()
     {
         Feed(BattlegroundsFixtureTests.Lines());
