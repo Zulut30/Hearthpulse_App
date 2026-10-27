@@ -30,6 +30,9 @@ dotnet restore tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tes
 dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj -c Release --no-restore
 ```
 
+Both suites at once (their test hosts run in parallel, ~30 s instead of ~45 s; this is what Windows CI runs):
+`dotnet build Hearthpulse.slnx -c Release --no-restore`, then `dotnet test Hearthpulse.slnx -c Release --no-build`.
+
 Build both UI hosts as well: the shared import selects `HEARTHPULSE_WPF` / `HEARTHPULSE_AVALONIA` from
 `HearthpulsePresentationFlavor`. Tests against Avalonia alone cannot validate the WPF compile branch. Linux CI
 runs the cross-platform suite; Windows also runs the presentation suite. Keep their results and skips separate.
