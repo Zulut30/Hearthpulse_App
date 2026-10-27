@@ -66,8 +66,9 @@ dotnet test tests\Hearthpulse.Presentation.Tests -c Release --no-build
 
 ## 4. Push and check CI
 
-`git push origin main`, then `gh run list --branch main -L 3` once the run finishes (`gh run watch <id>` in the
-background). Red CI -> find the cause, fix, push again; a CI-only flake is still a bug to fix.
+`git push origin main`, then `gh run list --repo Zulut30/Hearthpulse_App --branch main -L 3` and
+`gh run watch <id> --repo Zulut30/Hearthpulse_App --exit-status` in the background. Always pass `--repo`: without it
+`gh` picks the `upstream` remote (Dev-NotAqua/HeartLens). Red CI -> find the cause, fix, push again; a CI-only flake is still a bug to fix.
 
 ## 5. Restart the app
 
