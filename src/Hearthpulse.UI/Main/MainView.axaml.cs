@@ -35,6 +35,11 @@ public partial class MainView : UserControl
             tab.IsCheckedChanged += (_, _) => UpdateTabs();
         }
 
+        foreach (var tab in new[] { TabMyDecks, TabMetaTiers, TabMetaDecks, TabMetaMatchups })
+        {
+            tab.IsCheckedChanged += (_, _) => UpdateConstructedTabs();
+        }
+
         foreach (var tab in SettingsTabs)
         {
             tab.IsCheckedChanged += (_, _) => UpdateSettingsTab();
@@ -313,6 +318,8 @@ public partial class MainView : UserControl
             Grid.SetColumn(right, compact ? 0 : 2);
             Grid.SetRow(right, compact ? 2 : 0);
         }
+
+        CtMeta.Stack(compact);
     }
 
     /// <summary>Stat tiles sit in one row on wide screens and two columns on narrow ones (grids classed "fixed" keep theirs).</summary>
@@ -420,12 +427,36 @@ public partial class MainView : UserControl
 
     private void UpdateTabs()
     {
-        HeroTierCard.IsVisible = TabHeroes.IsChecked == true;
-        CompTierCard.IsVisible = TabComps.IsChecked == true;
-        TrinketTierCard.IsVisible = TabTrinkets.IsChecked == true;
-        CardStatsCard.IsVisible = TabCards.IsChecked == true;
-        MyHeroesCard.IsVisible = TabMine.IsChecked == true;
+        BgTiers.ShowTab(TabComps.IsChecked == true ? "Comps"
+            : TabTrinkets.IsChecked == true ? "Trinkets"
+            : TabCards.IsChecked == true ? "Cards"
+            : TabMine.IsChecked == true ? "Mine"
+            : "Heroes");
         BracketPicker.IsVisible = TabMine.IsChecked != true;
+    }
+
+    /// <summary>Opens a Constructed tab: "Decks", "Tiers", "Top" or "Matchups" (used by the UI render check).</summary>
+    public void ShowConstructedTab(string tab)
+    {
+        (tab switch
+        {
+            "Tiers" => TabMetaTiers,
+            "Top" => TabMetaDecks,
+            "Matchups" => TabMetaMatchups,
+            _ => TabMyDecks,
+        }).IsChecked = true;
+        UpdateConstructedTabs();
+    }
+
+    private void UpdateConstructedTabs()
+    {
+        var mine = TabMyDecks.IsChecked == true;
+        CtStats.IsVisible = mine;
+        DeckColumns.IsVisible = mine;
+        CtMeta.ShowTab(TabMetaTiers.IsChecked == true ? "Tiers"
+            : TabMetaDecks.IsChecked == true ? "Top"
+            : TabMetaMatchups.IsChecked == true ? "Matchups"
+            : null);
     }
 
     private void OnSettingChanged(CheckBox box)

@@ -110,7 +110,23 @@ public sealed partial class AppHost : IDisposable
 
         Session.SnapshotChanged += OnSnapshot;
         Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => EnsureConstructedMeta(format));
-        Main.ConstructedMetaRequested += EnsureConstructedMeta;
+        Main.ConstructedMetaRequested += format =>
+        {
+            if (format is not null)
+            {
+                EnsureConstructedMeta(format);
+                return;
+            }
+
+            // A meta filter changed: it is saved, and every format in use loads again for it.
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+            _constructedFormats.Add(ConstructedMeta.Key(ConstructedMeta.Formats, Settings.MetaFormat));
+            foreach (var key in _constructedFormats.ToList())
+            {
+                LoadConstructedMetaAsync(key, restart: true).Forget("Constructed meta load");
+            }
+        };
         Session.GameFinished += outcome => Dispatcher.UIThread.Post(() => OnGameFinished(outcome));
         History.Changed += () => Dispatcher.UIThread.Post(() =>
         {
@@ -156,8 +172,10 @@ public sealed partial class AppHost : IDisposable
     /// <summary>Formats kept fresh: the one loaded at start, the pages opened and the formats played.</summary>
     private readonly HashSet<string> _constructedFormats = new(StringComparer.Ordinal);
 
-    /// <summary>Formats whose download runs now.</summary>
-    private readonly HashSet<string> _constructedLoading = new(StringComparer.Ordinal);
+    /// <summary>Formats whose download runs now, with the number of the latest request (only that one passes its stats on).</summary>
+    private readonly Dictionary<string, int> _constructedLoading = new(StringComparer.Ordinal);
+
+    private int _constructedRequest;
 
     public CardDb Cards { get; private set; } = CardDb.Empty;
 
@@ -408,7 +426,7 @@ public sealed partial class AppHost : IDisposable
 
         try
         {
-            // This app has no Constructed meta page yet; the stats still feed the in-game mulligan panel.
+            // The Standard and Wild pages show these stats; they also feed the in-game mulligan panel.
             if (Loc.IsRussian && _archetypeNames is null)
             {
                 _archetypeNames = LoadArchetypeNamesAsync();
@@ -442,17 +460,47 @@ public sealed partial class AppHost : IDisposable
         }
     }
 
-    private async Task LoadConstructedMetaAsync(string format)
+    private async Task LoadConstructedMetaAsync(string format) => await LoadConstructedMetaAsync(format, restart: false);
+
+    /// <param name="format">The format key ("standard", "wild").</param>
+    /// <param name="restart">The filters changed: a download already running is overtaken instead of waited for.</param>
+    private async Task LoadConstructedMetaAsync(string format, bool restart)
     {
-        if (!_constructedLoading.Add(format))
+        if (_constructedLoading.ContainsKey(format) && !restart)
         {
             return;
         }
 
+        var request = ++_constructedRequest;
+        _constructedLoading[format] = request;
+        bool Latest() => _constructedLoading.TryGetValue(format, out var latest) && latest == request;
+        var done = false;
+
+        // The tier list shows as soon as it is in; the mulligan numbers and matchups follow with the full answer.
+        var tierList = new Progress<ConstructedMeta>(m =>
+        {
+            if (!done && Latest())
+            {
+                Main.SetConstructedMeta(m);
+            }
+        });
         try
         {
-            var constructed = await Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale);
-            if (constructed is not null)
+            var constructed = await Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale, tierList);
+            done = true;
+            if (!Latest())
+            {
+                return;
+            }
+
+            if (constructed is null)
+            {
+                if (ConstructedMeta.FormatKeyOf(Main.ConstructedFormat) == format)
+                {
+                    Main.SetConstructedMeta(null);
+                }
+            }
+            else
             {
                 _constructedMetas[format] = constructed;
                 if (format == Core.Constructed.ConstructedMeta.Key(Core.Constructed.ConstructedMeta.Formats, Settings.MetaFormat))
@@ -470,7 +518,10 @@ public sealed partial class AppHost : IDisposable
         }
         finally
         {
-            _constructedLoading.Remove(format);
+            if (Latest())
+            {
+                _constructedLoading.Remove(format);
+            }
         }
     }
 

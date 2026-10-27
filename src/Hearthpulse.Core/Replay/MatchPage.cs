@@ -241,7 +241,8 @@ public sealed class MatchPage
             : replay.OpponentPlayed.Select(c => c.CardId).ToList();
         var fits = ArchetypeGuess.FitsFormat(meta, game.Format);
         var guessed = fits ? ArchetypeGuess.FromSeenCards(meta, game.OpponentClass, shown) : null;
-        var archetype = game.OpponentArchetype ?? guessed?.Name;
+        // A game keeps the name its meta had when it was saved, maybe the English one: it is shown in the interface language.
+        var archetype = (game.OpponentArchetype is { Length: > 0 } saved ? ArchetypeTranslations.Current.Display(saved) : null) ?? guessed?.Name;
         var metaArchetype = fits && archetype is not null
             ? meta!.ForClass(game.OpponentClass).FirstOrDefault(a => string.Equals(a.Name, archetype, StringComparison.OrdinalIgnoreCase)) ?? guessed
             : null;
@@ -752,7 +753,7 @@ public sealed class MatchPage
 
             if (game.OpponentArchetype is { Length: > 0 } archetype)
             {
-                facts.Add(new MatchFact(Loc.T("Match.Fact.OpponentDeck"), archetype));
+                facts.Add(new MatchFact(Loc.T("Match.Fact.OpponentDeck"), ArchetypeTranslations.Current.Display(archetype)));
             }
         }
         else

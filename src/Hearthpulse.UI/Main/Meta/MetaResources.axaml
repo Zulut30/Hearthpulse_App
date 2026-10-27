@@ -1,0 +1,17 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- Shared by the tier-list views (Main/Meta): Constructed meta, matchups, Battlegrounds tiers. Theme tokens only;
+         the WPF twins are in Main/Meta/MetaResources.xaml. -->
+    <i:Truthy x:Key="Truthy" />
+    <i:KeyBrush x:Key="KeyBrush" />
+    <i:SignBrush x:Key="SignBrush" />
+    <i:FractionWidth x:Key="Fraction" />
+
+    <ItemsPanelTemplate x:Key="ChoiceRow">
+        <StackPanel Orientation="Horizontal" />
+    </ItemsPanelTemplate>
+    <ItemsPanelTemplate x:Key="ChoiceWrap">
+        <WrapPanel Orientation="Horizontal" />
+    </ItemsPanelTemplate>
+</ResourceDictionary>

@@ -390,6 +390,40 @@ public sealed class ApiLoadTests : IDisposable
     }
 
     /// <summary>Answers by path (and query fragments) with fixture files; anything else is a 404.</summary>
+    [Fact]
+    public async Task Standard_meta_carries_the_matchup_matrix_of_its_slice_with_the_rank_the_api_takes()
+    {
+        var server = FixtureServer.Standard();
+        server.Route("v1/hsguru/matchups?format=standard", """
+            {"data": {"total_games": 900, "archetypes": [
+              {"archetype": "Quest Priest", "class": "PRIEST", "games": 300, "winrate": 48.0, "popularity_pct": 12.5},
+              {"archetype": "Zoolock", "class": "WARLOCK", "games": 600, "winrate": 56.4, "popularity_pct": 18.9}],
+             "matchups": [
+              {"archetype": "Zoolock", "opponent": "Quest Priest", "winrate": 64.5, "games": 210},
+              {"archetype": "Quest Priest", "opponent": "Zoolock", "winrate": 35.5, "games": 210}]}}
+            """);
+
+        var meta = await ConstructedMeta.LoadAsync(Data(server), CardDb.Empty, "standard", "top_100", "past_week", "enUS");
+
+        Assert.NotNull(meta);
+        Assert.Equal(["Zoolock", "Quest Priest"], meta.Matchups.Archetypes.Select(a => a.Name));
+        Assert.Equal(900, meta.Matchups.Games);
+        Assert.Equal(0.645, meta.Matchups.Cell("zoolock", "QUEST PRIEST")!.WinRate, 3);
+        Assert.Null(meta.Matchups.Cell("Zoolock", "Zoolock"));
+        // The meta's narrower ranks read the matrix's top-Legend slice (the endpoint has no top 100).
+        Assert.Contains(server.Requests, r => r.Contains("v1/hsguru/matchups", StringComparison.Ordinal) && r.Contains("rank=top_legend", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_missing_matchup_matrix_leaves_the_tier_list_whole()
+    {
+        var meta = await ConstructedMeta.LoadAsync(Data(FixtureServer.Standard()), CardDb.Empty, "standard", "legend", "past_week", "enUS");
+
+        Assert.NotNull(meta);
+        Assert.Equal(20, meta.Archetypes.Count);
+        Assert.Empty(meta.Matchups.Archetypes);
+    }
+
     private sealed class FixtureServer : HttpMessageHandler
     {
         private readonly List<(string Fragment, string Body)> _routes = [];

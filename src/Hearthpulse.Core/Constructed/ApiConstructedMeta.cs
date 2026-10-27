@@ -77,7 +77,7 @@ public static class ApiConstructedMeta
     public static async Task<ConstructedMeta?> LoadAsync(HearthpulseData data, CardDb cards, string format, string rank, string period, string? locale,
         IProgress<ConstructedMeta>? tierList = null, CancellationToken cancellationToken = default)
     {
-        var slice = await LoadSliceAsync(data, format, rank, period, cancellationToken).ConfigureAwait(false);
+        var (slice, apiPeriod) = await LoadSliceAsync(data, format, rank, period, cancellationToken).ConfigureAwait(false);
         if (slice is null)
         {
             return null;
@@ -125,13 +125,17 @@ public static class ApiConstructedMeta
 
         var decks = built.SelectMany(b => b.Lists.Select(d => new MetaDeck(d.Deck.Code, b.Archetype.Id, b.Archetype.Name, b.Archetype.Class, d.Deck.Games,
             (int)Math.Round(d.Deck.Games * d.Deck.WinRate), d.Deck.WinRate, d.Deck.Updated))).OrderByDescending(d => d.Games).ToList();
+        var matchups = MetaMatchups.Empty;
         ConstructedMeta Meta(IEnumerable<MetaArchetype> archetypes)
         {
             var ordered = archetypes.OrderByDescending(a => a.Games).ToList();
-            return new ConstructedMeta(format, rank, period, slice.FetchedAt, ordered.Sum(a => a.Games), ordered, decks) { Source = Attribution };
+            return new ConstructedMeta(format, rank, period, slice.FetchedAt, ordered.Sum(a => a.Games), ordered, decks) { Source = Attribution, Matchups = matchups };
         }
 
         tierList?.Report(Meta(built.Select(b => b.Archetype)));
+
+        // The matchup matrix (one request) loads beside the mulligan numbers.
+        var matrix = LoadMatchupsAsync(data, format, rank, apiPeriod, labels, cancellationToken);
 
         // Mulligan numbers: HSReplay where an archetype matches (Standard only), HSGuru's own for the most played rest.
         var hsreplay = format == "standard" ? await LoadHsreplayAsync(data, cancellationToken).ConfigureAwait(false) : [];
@@ -163,6 +167,7 @@ public static class ApiConstructedMeta
         }
 
         var archetypes = built.Select(b => withMulligan.GetValueOrDefault(b.Archetype.Id) ?? b.Archetype).ToList();
+        matchups = await matrix.ConfigureAwait(false);
         Diag.Info($"Constructed meta {format}/{rank}/{period}: {archetypes.Count} archetypes, {decks.Count} lists, mulligan for "
                   + $"{archetypes.Count(a => a.MulliganArchetypeId is not null)} (HSReplay) + {archetypes.Count(a => a.MulliganArchetypeId is null && a.Mulligan.Count > 0)} (HSGuru)");
         return Meta(archetypes);
@@ -201,16 +206,47 @@ public static class ApiConstructedMeta
     /// The HSGuru slice. "expansion" and "patch" are not API periods: the API names the current ones (for example
     /// "black_empire", "patch_36.6.3") in every answer, so a cheap slice is read first to learn them.
     /// </summary>
-    private static async Task<HsguruMetaSlice?> LoadSliceAsync(HearthpulseData data, string format, string rank, string period, CancellationToken cancellationToken)
+    /// <returns>The slice and the period as the API names it.</returns>
+    private static async Task<(HsguruMetaSlice? Slice, string Period)> LoadSliceAsync(HearthpulseData data, string format, string rank, string period, CancellationToken cancellationToken)
     {
         if (period is not ("expansion" or "patch"))
         {
-            return await data.LoadHsguruMetaAsync(format, rank, period, cancellationToken).ConfigureAwait(false);
+            return (await data.LoadHsguruMetaAsync(format, rank, period, cancellationToken).ConfigureAwait(false), period);
         }
 
         var probe = await data.LoadHsguruMetaAsync(format, rank, "past_day", cancellationToken).ConfigureAwait(false);
         var resolved = period == "expansion" ? probe?.CurrentPeriod : probe?.CurrentPatchPeriod;
-        return resolved is { Length: > 0 } ? await data.LoadHsguruMetaAsync(format, rank, resolved, cancellationToken).ConfigureAwait(false) : null;
+        return resolved is { Length: > 0 }
+            ? (await data.LoadHsguruMetaAsync(format, rank, resolved, cancellationToken).ConfigureAwait(false), resolved)
+            : (null, period);
+    }
+
+    /// <summary>Archetypes in the matchup heat map: the most played, as many as fit the page.</summary>
+    internal const int MatchupArchetypes = 12;
+
+    /// <summary>
+    /// The matchup matrix of the slice, archetype names as the tier list shows them (<paramref name="labels"/>, null for
+    /// the English names); empty when the API has none (never throws: the tier list does not depend on it).
+    /// </summary>
+    internal static async Task<MetaMatchups> LoadMatchupsAsync(HearthpulseData data, string format, string rank, string period,
+        IReadOnlyDictionary<string, string>? labels, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (await data.LoadHsguruMatchupsAsync(format, rank, period, MatchupArchetypes, cancellationToken).ConfigureAwait(false) is not { } matrix)
+            {
+                return MetaMatchups.Empty;
+            }
+
+            var archetypes = matrix.Archetypes
+                .Select(a => a with { Name = labels is null ? a.Key : labels.GetValueOrDefault(a.Key) ?? ArchetypeTranslations.Current.RussianLabel(a.Key), Class = a.Class.Length > 0 ? a.Class : ArchetypeNames.ClassOf(a.Key) ?? string.Empty })
+                .ToList();
+            return new MetaMatchups(archetypes, matrix.Cells, matrix.Games);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return MetaMatchups.Empty;
+        }
     }
 
     /// <summary>The class HSGuru's lists are written for (the most common real class), else the class the name spells out.</summary>

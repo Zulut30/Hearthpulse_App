@@ -283,26 +283,26 @@ public partial class MainWindow : Window
 
     private void OnBgTab(object sender, RoutedEventArgs e)
     {
-        if (HeroTierCard is null)
+        if (BgTiers is null)
         {
             return;
         }
 
-        HeroTierCard.Visibility = TabHeroes.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        CompTierCard.Visibility = TabComps.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        TrinketTierCard.Visibility = TabTrinkets.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        CardStatsCard.Visibility = TabCards.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        MyHeroesCard.Visibility = TabMine.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        var shown = BgTiers.ShowTab(TabComps.IsChecked == true ? "Comps"
+            : TabTrinkets.IsChecked == true ? "Trinkets"
+            : TabCards.IsChecked == true ? "Cards"
+            : TabMine.IsChecked == true ? "Mine"
+            : "Heroes");
         BracketPicker.Visibility = TabMine.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
         if (sender is RadioButton { IsChecked: true })
         {
-            Reveal(new FrameworkElement[] { HeroTierCard, CompTierCard, TrinketTierCard, CardStatsCard, MyHeroesCard }.First(c => c.Visibility == Visibility.Visible), 8);
+            Reveal(shown, 8);
         }
     }
 
     private void OnCtTab(object sender, RoutedEventArgs e)
     {
-        if (MyDecksPanel is null)
+        if (MyDecksPanel is null || CtMeta is null)
         {
             return;
         }
@@ -310,12 +310,13 @@ public partial class MainWindow : Window
         var meta = TabMyDecks.IsChecked != true;
         MyDecksPanel.Visibility = meta ? Visibility.Collapsed : Visibility.Visible;
         CtStats.Visibility = MyDecksPanel.Visibility;
-        MetaTiersPanel.Visibility = TabMetaTiers.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        MetaDecksPanel.Visibility = TabMetaDecks.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        MetaFilters.Visibility = meta ? Visibility.Visible : Visibility.Collapsed;
+        var shown = CtMeta.ShowTab(TabMetaTiers.IsChecked == true ? "Tiers"
+            : TabMetaDecks.IsChecked == true ? "Top"
+            : TabMetaMatchups.IsChecked == true ? "Matchups"
+            : null);
         if (sender is RadioButton { IsChecked: true })
         {
-            Reveal(new FrameworkElement[] { CtStats, MetaTiersPanel, MetaDecksPanel }.First(c => c.Visibility == Visibility.Visible), 8);
+            Reveal(shown ?? CtStats, 8);
         }
     }
 
@@ -325,11 +326,12 @@ public partial class MainWindow : Window
     /// <summary>The deck page view (used by the UI render check).</summary>
     public Decks.DeckDetailsView DeckDetailsPage => DeckDetails;
 
-    /// <summary>Opens a Constructed tab: "Decks", "Tiers" or "Top" (used by the UI render check).</summary>
+    /// <summary>Opens a Constructed tab: "Decks", "Tiers", "Top" or "Matchups" (used by the UI render check).</summary>
     public void ShowConstructedTab(string tab) => (tab switch
     {
         "Tiers" => TabMetaTiers,
         "Top" => TabMetaDecks,
+        "Matchups" => TabMetaMatchups,
         _ => TabMyDecks,
     }).IsChecked = true;
 

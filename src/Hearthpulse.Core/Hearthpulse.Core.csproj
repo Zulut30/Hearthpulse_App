@@ -17,6 +17,9 @@
          set SatelliteResourceLanguages=en, which would drop satellite assemblies of other languages. -->
     <EmbeddedResource Include="Localization\Strings\en\*.json" LogicalName="Hearthpulse.Loc.en.%(Filename).json" />
     <EmbeddedResource Include="Localization\Strings\ru\*.json" LogicalName="Hearthpulse.Loc.ru.%(Filename).json" />
+    <!-- hearthpulse.net's archetype labels (Constructed/ArchetypeNames.cs). No ".ru." in the name: MSBuild would read it
+         as a culture and move the file to a satellite assembly. -->
+    <EmbeddedResource Include="Constructed\SiteArchetypeLabels.json" LogicalName="Hearthpulse.SiteArchetypeLabels.json" />
   </ItemGroup>
 
   <ItemGroup>

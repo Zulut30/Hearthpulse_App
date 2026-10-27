@@ -134,6 +134,9 @@ public sealed class ConstructedMeta
     /// <summary>Most played first.</summary>
     public IReadOnlyList<MetaDeck> Decks { get; }
 
+    /// <summary>The most played archetypes against each other; empty until the matrix is in (or when the source has none).</summary>
+    public MetaMatchups Matchups { get; internal init; } = MetaMatchups.Empty;
+
     public static string Key(IReadOnlyList<MetaOption> options, string? key) => Option(options, key).Key;
 
     public static string Label(IReadOnlyList<MetaOption> options, string? key) => Option(options, key).Label;

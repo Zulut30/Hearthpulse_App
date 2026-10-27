@@ -71,7 +71,7 @@
   "Match.Round.Health": "здоровье {0}",
   "Match.Round.Offers": "{0} предложение таверны|{0} предложения таверны|{0} предложений таверны",
   "Match.Round.Golden": "{0} (золотое)",
-  "Match.Header.Versus": "{0} против {1}",
+  "Match.Header.Versus": "{0} — {1}",
   "Match.Header.Place": "{0} место",
   "Match.Header.Title": "{0} · {1}",
   "Match.Format.FT_STANDARD": "Стандартный",
