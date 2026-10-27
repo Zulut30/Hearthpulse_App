@@ -1,12 +1,14 @@
 {
   "Arena.Source": "Scores: {0}",
-  "Arena.Score": "Card score",
   "Arena.NoScore": "No score yet",
   "Arena.BestPick": "Best pick",
   "Arena.BestClass": "Best class",
   "Arena.SevenPlus": "7+ wins: {0}",
   "Arena.SevenPlusShort": "7+: {0}",
-  "Arena.RunClass.WinRate": "Win rate {0}",
+  "Arena.Stat.WinRate": "win rate",
+  "Arena.Stat.Place": "class rank",
+  "Arena.Stat.PlaceValue": "{0}/{1}",
+  "Arena.Stat.SevenPlus": "7+ wins",
   "Arena.ChooseHero": "Choose a hero",
   "Arena.NoData": "No Arena numbers yet: Hearthpulse data did not load and there is no saved copy. The deck and curve still work.",
   "Arena.Panel.Title": "Arena draft",
@@ -43,6 +45,6 @@
   "Arena.Panel.Types": "Card types",
   "Arena.Mode.Underground": "Underground Arena",
   "Arena.Mode.Normal": "Normal Arena",
-  "Arena.Slice.Underground": "Scores come from Underground Arena games",
-  "Arena.Slice.Normal": "Scores come from normal Arena games"
+  "Arena.Slice.Underground": "from Underground Arena games",
+  "Arena.Slice.Normal": "from normal Arena games"
 }

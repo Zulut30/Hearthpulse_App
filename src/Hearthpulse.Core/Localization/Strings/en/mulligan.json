@@ -3,7 +3,7 @@
   "Mulligan.OnTheCoin": "on the coin",
   "Mulligan.NoNumbers": "Hearthpulse found no mulligan numbers for this deck: the bars show the offered cards only.",
   "Mulligan.VsClass": " vs {0}",
-  "Mulligan.Impact": "Expected impact of your keeps: {0}%",
+  "Mulligan.Impact": "Expected impact of your keeps: {0}",
   "Mulligan.SynergyKept": "Synergy kept: {0} + {1} ({2})",
   "Mulligan.AverageHand": "Average hand{0}: {1}",
   "Mulligan.YourKeeps": "Your keeps ({0} of {1}): {2}",

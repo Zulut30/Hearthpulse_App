@@ -29,7 +29,7 @@ namespace Hearthpulse.UI.Overlay;
 /// <summary>The badge over one offered draft card (or hero): tier, score (or class win rate), a caption.</summary>
 /// <param name="Number">ArenaSmith score ("54") or class win rate ("55.4%"); "—" without numbers.</param>
 /// <param name="Tier">Tier letter for the colour, or empty.</param>
-/// <param name="Caption">"Card score", "Best pick", or the class's place and 7+ wins share.</param>
+/// <param name="Caption">"Best pick", "No score yet", the class's place and 7+ wins share, or empty for a plain score.</param>
 /// <param name="FitCost">Where the card sits on the curve: "3 mana · 4 in deck"; empty for a hero.</param>
 /// <param name="FitType">Its type in the deck ("Spell · 5 in deck") or the package it brings ("+2 cards"); empty for a hero.</param>
 public sealed record ArenaPickBadge(string CardId, string Number, string Tier, string Caption, bool IsBest, string FitCost = "", string FitType = "");
@@ -40,6 +40,10 @@ public sealed record ArenaCurveBar(string Label, int Count, double Height, bool 
 
 /// <summary>One distinct card of the deck so far.</summary>
 public sealed record ArenaDeckRow(string CardId, string Cost, string Name, string Copies, string Score, string Tier);
+
+/// <summary>One figure of the run's class under the panel title: "55.2%" over "win rate".</summary>
+/// <param name="Tier">Tier letter for the value's colour, or empty for plain text.</param>
+public sealed record ArenaStat(string Value, string Label, string Tier);
 
 /// <summary>A class in the hero-pick list: its community win rate and 7+ share.</summary>
 public sealed record ArenaClassRow(string Name, string WinRate, string SevenPlus, string Tier, bool Offered);
@@ -83,7 +87,7 @@ public sealed partial class OverlayViewModel
     private string _arenaMode = string.Empty;
     private string _arenaTypes = string.Empty;
     private string _arenaSliceNote = string.Empty;
-    private string _arenaClassLine = string.Empty;
+    private IReadOnlyList<ArenaStat> _arenaClassStats = [];
     private bool _arenaHasPicks;
     private string? _arenaPrint;
 
@@ -131,14 +135,19 @@ public sealed partial class OverlayViewModel
     /// <summary>Card types of the deck so far: "12 minions · 5 spells · 1 weapon"; empty before the first card.</summary>
     public string ArenaTypes { get => _arenaTypes; private set => Set(ref _arenaTypes, value); }
 
-    /// <summary>"Scores come from Underground Arena games" when the run is the other mode, else empty.</summary>
+    /// <summary>"from Underground Arena games" when the run is the other mode, else empty; part of <see cref="ArenaSource"/>.</summary>
     public string ArenaSliceNote { get => _arenaSliceNote; private set => Set(ref _arenaSliceNote, value); }
 
-    /// <summary>The run's class results after the hero pick: "Win rate 55.2% · #1 of 11 classes · 7+ wins: 15%"; else empty.</summary>
-    public string ArenaClassLine { get => _arenaClassLine; private set => Set(ref _arenaClassLine, value); }
+    /// <summary>
+    /// The run's class results after the hero pick as three short stats (win rate, place, 7+ wins), so the line never
+    /// wraps in the middle of a number; empty before the hero is known.
+    /// </summary>
+    public IReadOnlyList<ArenaStat> ArenaClassStats { get => _arenaClassStats; private set => Set(ref _arenaClassStats, value); }
 
-    /// <summary>"Hearthpulse data · ArenaSmith score".</summary>
-    public string ArenaSource => Loc.F("Arena.Source", ArenaMeta.Attribution);
+    /// <summary>The panel's one footer: "Scores: Hearthpulse data", with "· from Underground Arena games" when the run is the other mode.</summary>
+    public string ArenaSource => string.IsNullOrEmpty(ArenaSliceNote)
+        ? Loc.F("Arena.Source", ArenaMeta.Attribution)
+        : Loc.F("Arena.Source", ArenaMeta.Attribution) + " · " + ArenaSliceNote;
 
     private void UpdateArena(ArenaDraftView? draft, AppSettings settings)
     {
@@ -216,14 +225,14 @@ public sealed partial class OverlayViewModel
                 ArenaDraft.TierOfWinRate(c.WinRate) ?? string.Empty,
                 c.Offered))
             .ToList();
-        ArenaClassLine = draft.RunClass is { } run
-            ? string.Join(" · ", new[]
+        ArenaClassStats = draft.RunClass is { } run
+            ? new[]
             {
-                Loc.F("Arena.RunClass.WinRate", run.WinRate.ToString("P1", culture)),
-                Loc.F("Arena.ClassRank", run.Rank, run.Of),
-                run.SevenPlus is { } runSeven ? Loc.F("Arena.SevenPlus", runSeven.ToString("P0", culture)) : null,
-            }.Where(part => part is not null))
-            : string.Empty;
+                new ArenaStat(OverlayFormat.Percent(run.WinRate, 1), Loc.T("Arena.Stat.WinRate"), ArenaDraft.TierOfWinRate(run.WinRate) ?? string.Empty),
+                new ArenaStat(Loc.F("Arena.Stat.PlaceValue", run.Rank, run.Of), Loc.T("Arena.Stat.Place"), string.Empty),
+                run.SevenPlus is { } runSeven ? new ArenaStat(OverlayFormat.Percent(runSeven), Loc.T("Arena.Stat.SevenPlus"), string.Empty) : null,
+            }.OfType<ArenaStat>().ToList()
+            : [];
         ArenaNoData = draft.HasData ? string.Empty : Loc.T("Arena.NoData");
         Raise(nameof(ArenaSource));
     }
@@ -243,7 +252,8 @@ public sealed partial class OverlayViewModel
     /// <summary>A card: its score, and where it would sit in the deck (curve bucket and type, or its package).</summary>
     private static ArenaPickBadge CardBadge(ArenaPickOption o, CultureInfo culture)
     {
-        var caption = o.IsBest ? Loc.T("Arena.BestPick") : o.Score is null ? Loc.T("Arena.NoScore") : Loc.T("Arena.Score");
+        // The number is the score: only the best pick and a card without one get a caption.
+        var caption = o.IsBest ? Loc.T("Arena.BestPick") : o.Score is null ? Loc.T("Arena.NoScore") : string.Empty;
         var cost = o.Cost is { } c
             ? Loc.F("Arena.Fit", Loc.P("Arena.Mana", c), o.SameCost)
             : string.Empty;

@@ -210,16 +210,23 @@ public sealed class ViewModelContractTests
         Assert.Equal("1 minion · 2 spells", ava.ArenaTypes);
         Assert.Equal((ava.ArenaMode, ava.ArenaSliceNote), (wpf.ArenaMode, wpf.ArenaSliceNote));
         Assert.Equal("Normal Arena", ava.ArenaMode);
-        Assert.Equal("Scores come from Underground Arena games", ava.ArenaSliceNote);
-        Assert.Equal(string.Empty, ava.ArenaClassLine);
+        Assert.Equal("from Underground Arena games", ava.ArenaSliceNote);
+        // One footer: the source, then which games the scores come from.
+        Assert.Equal((wpf.ArenaSource, "Scores: Hearthpulse data · from Underground Arena games"), (ava.ArenaSource, ava.ArenaSource));
+        // A scored card that is not the best pick needs no caption under its number.
+        Assert.Equal(string.Empty, ava.ArenaPicks[1].Caption);
+        Assert.Empty(ava.ArenaClassStats);
 
         // The run's class keeps its community numbers in the panel after the hero pick.
         var withClasses = new Hearthpulse.Core.Arena.ArenaMeta(meta.Cards, [new("WARLOCK", 0.552, 0.8, 0.15, 100), new("MAGE", 0.56, 0.7, 0.16, 100)]);
         var classView = Hearthpulse.Core.Arena.ArenaDraft.Build(state, ["BIG", "SPELL"], withClasses, ArenaCards);
         wpf.Update(snapshot with { ArenaDraft = classView }, ArenaCards, settings, null, null);
         ava.Update(snapshot with { ArenaDraft = classView }, ArenaCards, settings, null, null);
-        Assert.Equal(wpf.ArenaClassLine, ava.ArenaClassLine);
-        Assert.Equal($"Win rate {0.552.ToString("P1", System.Globalization.CultureInfo.CurrentCulture)} · #2 of 2 classes · 7+ wins: {0.15.ToString("P0", System.Globalization.CultureInfo.CurrentCulture)}", ava.ArenaClassLine);
+        Assert.Equal(wpf.ArenaClassStats.Select(s => (s.Value, s.Label, s.Tier)), ava.ArenaClassStats.Select(s => (s.Value, s.Label, s.Tier)));
+        // Three short figures instead of one sentence that wrapped between "7+ wins:" and its number.
+        Assert.Equal(
+            [(0.552.ToString("P1", System.Globalization.CultureInfo.CurrentCulture), "win rate"), ("2/2", "class rank"), (0.15.ToString("P0", System.Globalization.CultureInfo.CurrentCulture), "7+ wins")],
+            ava.ArenaClassStats.Select(s => (s.Value, s.Label)));
 
         // The hero power pick: no numbers over the cards, the panel asks for the pick.
         var power = Hearthpulse.Core.Arena.ArenaDraft.Build(state with { Cards = [] }, ["HERO_07bp", "HERO_08bp"], meta, ArenaCards);
@@ -270,7 +277,8 @@ public sealed class ViewModelContractTests
 
         var rows = wpf.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top, r.LowSample)).ToList();
         Assert.Equal(rows, ava.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top, r.LowSample)));
-        Assert.Equal([("CARD_A", "60%", "58% won", true, false), ("CARD_B", "22%", "38% won", false, false), ("CARD_C", "—", "", false, false), ("CARD_D", "50%", "40% won", false, true)], rows);
+        static string P(double share) => share.ToString("P0", CultureInfo.CurrentCulture);
+        Assert.Equal([("CARD_A", P(0.6), P(0.583) + " won", true, false), ("CARD_B", P(0.222), P(0.375) + " won", false, false), ("CARD_C", "—", "", false, false), ("CARD_D", P(0.5), P(0.4) + " won", false, true)], rows);
         Assert.Equal("Legend · Hearthpulse data · faded: few games", wpf.CardPoolPicksNote);
         Assert.Equal(wpf.CardPoolPicksNote, ava.CardPoolPicksNote);
 
@@ -308,6 +316,9 @@ public sealed class ViewModelContractTests
         var hand = wpf.Hand.Select(h => (h.Slot, h.Highlight, h.Unknown)).ToList();
         Assert.Equal([("1", false, true), ("2", false, false), ("3", false, false), ("4", true, false)], hand);
         Assert.Equal(hand, ava.Hand.Select(h => (h.Slot, h.Highlight, h.Unknown)));
+        // ...and shows only its slot and turn: no column of "Unknown".
+        Assert.Equal((string.Empty, string.Empty), (wpf.Hand[0].Detail, ava.Hand[0].Detail));
+        Assert.NotEmpty(ava.Hand[2].Detail);
 
         // Two Secrets played on turn 3 for 3 mana read the same, so they share one line.
         var lines = wpf.SecretSlots.Select(s => s.Text).ToList();

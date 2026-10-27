@@ -3,7 +3,6 @@ using Hearthpulse.App.Infrastructure;
 #else
 using Hearthpulse.UI.Infrastructure;
 #endif
-using System.Globalization;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Localization;
@@ -100,5 +99,5 @@ public sealed partial class OverlayViewModel
     }
 
     /// <summary>"62%"; a near-certain share reads "&gt;99%": the odds are an estimate, never a certainty.</summary>
-    private static string SharePercent(double share) => share >= 0.995 ? ">99%" : (share * 100).ToString("0", CultureInfo.CurrentCulture) + "%";
+    private static string SharePercent(double share) => share >= 0.995 ? OverlayFormat.Above(0.99) : OverlayFormat.Percent(share);
 }

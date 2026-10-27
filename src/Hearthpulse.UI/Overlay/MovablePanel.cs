@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -42,6 +43,22 @@ public sealed class MovablePanel : ContentControl
 
     public static readonly StyledProperty<string> ScaleTextProperty = AvaloniaProperty.Register<MovablePanel, string>(nameof(ScaleText), string.Empty);
 
+    public static readonly StyledProperty<HorizontalAlignment> PlaceholderAlignmentProperty =
+        AvaloniaProperty.Register<MovablePanel, HorizontalAlignment>(nameof(PlaceholderAlignment), HorizontalAlignment.Stretch);
+
+    /// <summary>How far below its spot a panel starts when it fades in, in overlay units.</summary>
+    private const double RevealRise = 6;
+
+    private static readonly TimeSpan RevealTime = TimeSpan.FromMilliseconds(150);
+    private static readonly TimeSpan HideTime = TimeSpan.FromMilliseconds(110);
+
+    private readonly TranslateTransform _rise = new();
+    private readonly DispatcherTimer _fade = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private readonly Stopwatch _fadeClock = new();
+    private double _fadeFrom;
+    private bool _fadingIn;
+    private bool _hiding;
+    private bool _lastEditing;
     private HorizontalAlignment _defaultHorizontal;
     private VerticalAlignment _defaultVertical;
     private Thickness _defaultMargin;
@@ -70,6 +87,8 @@ public sealed class MovablePanel : ContentControl
     public MovablePanel()
     {
         IsVisible = false;
+        RenderTransform = _rise;
+        _fade.Tick += (_, _) => StepFade();
         // The layout-mode frame and name tag draw just outside the panel.
         ClipToBounds = false;
         AddHandler(PointerPressedEvent, OnPressed, RoutingStrategies.Tunnel);
@@ -83,8 +102,14 @@ public sealed class MovablePanel : ContentControl
 
     public string Title { get => GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
 
-    /// <summary>When the panel shows, for its layout-mode placeholder; empty = "Appears during matches".</summary>
+    /// <summary>When the panel shows, for its layout-mode placeholder (menu and draft panels); empty for match panels.</summary>
     public string Hint { get => GetValue(HintProperty); set => SetValue(HintProperty, value); }
+
+    /// <summary>
+    /// Where the layout-mode placeholder sits inside a wide panel. The pick rows (heroes, trinkets, Discover, tavern) share
+    /// the game's card row and are as wide as it: stretched, their placeholders would lie on top of each other.
+    /// </summary>
+    public HorizontalAlignment PlaceholderAlignment { get => GetValue(PlaceholderAlignmentProperty); set => SetValue(PlaceholderAlignmentProperty, value); }
 
     public bool Shown { get => GetValue(ShownProperty); set => SetValue(ShownProperty, value); }
 
@@ -108,12 +133,98 @@ public sealed class MovablePanel : ContentControl
 
     private void UpdateState()
     {
-        IsVisible = Shown || IsEditing;
+        // Entering or leaving layout mode switches every panel at once: no fades there, only for a panel the game shows.
+        // Off with the Windows animation setting (and elsewhere), like the card pool's reveal.
+        var animate = IsEditing == _lastEditing && !IsEditing && TopLevel.GetTopLevel(this) is not null && PoolInput.AnimationsOn();
+        _lastEditing = IsEditing;
+        SetVisible(Shown || IsEditing, animate);
         Classes.Set("editing", IsEditing);
         Classes.Set("placeholder", IsEditing && !Shown);
         Classes.Set("hinted", !string.IsNullOrEmpty(Hint));
         OverlayHit.SetInteractive(this, IsEditing || InteractiveContent);
         Cursor = IsEditing ? new Cursor(StandardCursorType.SizeAll) : null;
+    }
+
+    /// <summary>
+    /// Shows or hides the panel; with <paramref name="animate"/> a short fade and rise in (ease-out), or a quicker fade
+    /// out. The timer runs only during those few frames, never while the panel just sits there.
+    /// </summary>
+    private void SetVisible(bool visible, bool animate)
+    {
+        if (visible)
+        {
+            var appearing = !IsVisible || _hiding;
+            // A panel shown again mid fade-out comes back from where it was.
+            var from = _hiding ? Opacity : 0;
+            _hiding = false;
+            IsHitTestVisible = true;
+            IsVisible = true;
+            if (animate && appearing)
+            {
+                StartFade(from, fadingIn: true);
+            }
+            else if (!animate)
+            {
+                StopFade();
+            }
+
+            return;
+        }
+
+        if (!IsVisible || _hiding)
+        {
+            return;
+        }
+
+        if (!animate)
+        {
+            StopFade();
+            IsVisible = false;
+            return;
+        }
+
+        // The game moved on: the panel stops taking clicks at once and is gone a moment later.
+        _hiding = true;
+        IsHitTestVisible = false;
+        StartFade(Opacity, fadingIn: false);
+    }
+
+    private void StartFade(double from, bool fadingIn)
+    {
+        _fadeFrom = from;
+        _fadingIn = fadingIn;
+        Opacity = from;
+        _rise.Y = fadingIn ? RevealRise : 0;
+        _fadeClock.Restart();
+        _fade.Start();
+    }
+
+    private void StepFade()
+    {
+        var t = Math.Min(1, _fadeClock.Elapsed / (_fadingIn ? RevealTime : HideTime));
+        var eased = 1 - Math.Pow(1 - t, 3);
+        Opacity = _fadingIn ? _fadeFrom + ((1 - _fadeFrom) * eased) : _fadeFrom * (1 - eased);
+        _rise.Y = _fadingIn ? RevealRise * (1 - eased) : 0;
+        if (t < 1)
+        {
+            return;
+        }
+
+        if (_hiding)
+        {
+            _hiding = false;
+            IsHitTestVisible = true;
+            IsVisible = false;
+        }
+
+        StopFade();
+    }
+
+    private void StopFade()
+    {
+        _fade.Stop();
+        Opacity = 1;
+        _rise.Y = 0;
     }
 
     private void ApplyScale()

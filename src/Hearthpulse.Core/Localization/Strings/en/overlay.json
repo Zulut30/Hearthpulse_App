@@ -24,7 +24,6 @@
   "Overlay.Layout.Shortcuts": "Ctrl+Shift+L closes layout mode · Ctrl+Shift+H hides the overlay",
   "Overlay.Layout.ResetAll": "Reset all",
   "Overlay.Layout.Done": "Done",
-  "Overlay.Layout.AppearsDuringMatches": "Appears during matches",
   "Overlay.Layout.AppearsInMenus": "Appears in the menus between games",
   "Overlay.Layout.AppearsInArenaDraft": "Appears during the Arena draft",
 
@@ -43,7 +42,6 @@
   "Overlay.Hand.Coin": "The Coin",
   "Overlay.Hand.CreatedBy": "Created by {0}",
   "Overlay.Hand.KeptInMulligan": "Kept in mulligan",
-  "Overlay.Hand.Unknown": "Unknown",
 
   "Overlay.Class.DeathKnight": "Death Knight",
   "Overlay.Class.DemonHunter": "Demon Hunter",

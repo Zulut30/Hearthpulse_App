@@ -206,10 +206,13 @@ public sealed partial class OverlayViewModel
             var impact = MulliganGuide.Evaluate(view, _mulliganKept);
             var vsAverage = impact.Expected - view.BaseWinRate;
             var vsClass = view.OpponentClass is { } opponent ? Loc.F("Mulligan.VsClass", ClassName(opponent)) : string.Empty;
-            MulliganSummary = Loc.F("Mulligan.Impact", Points(vsAverage));
+            MulliganSummary = Loc.F("Mulligan.Impact", OverlayFormat.SignedPercent(vsAverage));
             // Archetype names come from the API in English.
             var context = string.IsNullOrEmpty(view.Context) ? view.Context : ArchetypeTranslations.Current.Display(view.Context);
-            var slices = view.SliceRank is { } rank ? Loc.F("Mulligan.SliceSource", SliceRankName(rank)) : null;
+            // A source that already names the rank ("Hearthpulse data, Legend, 7 days") is not followed by "slice: Legend".
+            var slices = view.SliceRank is { } rank && view.Source?.Contains(SliceRankName(rank), StringComparison.CurrentCultureIgnoreCase) != true
+                ? Loc.F("Mulligan.SliceSource", SliceRankName(rank))
+                : null;
             MulliganSource = string.Join(" · ", new[] { context, view.Source, slices, initiative }.Where(s => !string.IsNullOrEmpty(s)));
             var notes = impact.Warnings
                 .Concat(impact.Synergies.Select(s => Loc.F("Mulligan.SynergyKept", s.NameA, s.NameB, Points(s.Interaction))))

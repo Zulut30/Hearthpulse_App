@@ -456,7 +456,7 @@ public sealed partial class OverlayViewModel : Observable
                 r.Total > 1 || r.Rarity == "LEGENDARY" || r.IsAdded,
                 r.Remaining == 0,
                 r.Rarity,
-                r.Remaining > 0 && view.DeckCount > 0 ? $"{r.DrawChance * 100:0}%" : string.Empty,
+                r.Remaining > 0 && view.DeckCount > 0 ? OverlayFormat.Percent(r.DrawChance) : string.Empty,
                 r.IsAdded))
             .ToList()));
 
@@ -474,7 +474,8 @@ public sealed partial class OverlayViewModel : Observable
             .Select(h => new HandTile(
                 h.Position.ToString(CultureInfo.InvariantCulture),
                 h.Turn > 0 ? Loc.F("Overlay.Turn.Short", h.Turn) : Loc.T("Overlay.Hand.MulliganShort"),
-                h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : h.FromMulligan ? Loc.T("Overlay.Hand.KeptInMulligan") : Loc.T("Overlay.Hand.Unknown")),
+                // A card nothing is known about shows only its slot and turn: ten rows of "Unknown" said nothing.
+                h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : h.FromMulligan ? Loc.T("Overlay.Hand.KeptInMulligan") : string.Empty),
                 h.CardName is not null || h.IsCoin,
                 h.CardName is null && !h.IsCoin && h.CreatedBy is null && !h.FromMulligan))
             .ToList()));
@@ -975,15 +976,15 @@ public sealed partial class OverlayViewModel : Observable
     {
         if (runs <= 0)
         {
-            return value.ToString("P0", CultureInfo.CurrentCulture);
+            return OverlayFormat.Percent(value);
         }
 
         if (value < 0.0005)
         {
-            return "<0.1%";
+            return OverlayFormat.Below(0.001, 1);
         }
 
-        return value > 0.9995 ? ">99.9%" : value.ToString("P1", CultureInfo.CurrentCulture);
+        return value > 0.9995 ? OverlayFormat.Above(0.999, 1) : OverlayFormat.Percent(value, 1);
     }
 
     private static string Ordinal(int n) => n switch
