@@ -16,6 +16,12 @@ internal sealed class DesktopApp : HearthpulseApp
 {
     private const string ActivatePipe = "Hearthpulse.Activate";
 
+    /// <summary>
+    /// <c>--smoke-test</c> (CI on Linux and macOS): starts as usual, with the windows, tray and overlay, and quits once
+    /// start-up is done. The exit code is 0 only when the card data loaded.
+    /// </summary>
+    private static readonly bool SmokeTest = Environment.GetCommandLineArgs().Contains("--smoke-test");
+
     private SingleInstance? _instance;
     private AppHost? _host;
     private MainWindow? _main;
@@ -112,7 +118,25 @@ internal sealed class DesktopApp : HearthpulseApp
         SetupTray();
         ListenForActivation();
         desktop.Exit += (_, _) => Shutdown();
-        _host.InitializeAsync().Forget("Start-up");
+        var startup = _host.InitializeAsync();
+        if (SmokeTest)
+        {
+            ReportSmokeTestAsync(desktop, startup).Forget("Smoke test");
+        }
+        else
+        {
+            startup.Forget("Start-up");
+        }
+    }
+
+    private async Task ReportSmokeTestAsync(IClassicDesktopStyleApplicationLifetime desktop, Task startup)
+    {
+        var finished = await Task.WhenAny(startup, Task.Delay(TimeSpan.FromMinutes(2))) == startup;
+        var cards = _host!.Cards.Count;
+        Console.WriteLine($"Smoke test: start-up {(finished ? "done" : "timed out")}, {cards} cards, "
+                          + $"overlay {(_platform!.Supported ? _platform.GetType().Name : "unsupported")}, data {AppPaths.Root}");
+        _main!.AllowClose = true;
+        desktop.Shutdown(finished && cards > 0 ? 0 : 1);
     }
 
     private void SetupTray()

@@ -102,23 +102,40 @@ public static class UpdateService
             ? (IsInstalledCopy() ? UpdateTarget.WindowsInstalled : UpdateTarget.WindowsPortable)
             : (OperatingSystem.IsMacOS() ? UpdateTarget.MacPackage : UpdateTarget.LinuxPackage);
 
-    /// <summary>"deb", "rpm" or "" (everything else), from the distro's own files.</summary>
-    public static string LinuxFlavor()
+    /// <summary>
+    /// "deb" or "rpm" when the package manager installed this copy, "" for everything else (the tar.gz install, a copy
+    /// run from its folder). Going by the distribution alone offered a .deb to everyone who had unpacked the tar.gz on
+    /// Ubuntu, and opening it installed a second copy next to theirs.
+    /// </summary>
+    public static string LinuxFlavor() =>
+        OperatingSystem.IsLinux() ? LinuxFlavor(AppContext.BaseDirectory, File.Exists) : string.Empty;
+
+    /// <summary><see cref="LinuxFlavor()"/> for an app folder, with the file check passed in (tests).</summary>
+    internal static string LinuxFlavor(string appDirectory, Func<string, bool> exists)
     {
-        if (!OperatingSystem.IsLinux())
+        // The .deb and the .rpm put the app in /opt/hearthpulse/app. "sudo ./install.sh" from the tar.gz uses the same
+        // folder but writes its menu entry under /usr/local/share, the packages under /usr/share.
+        if (!appDirectory.TrimEnd('/').Equals("/opt/hearthpulse/app", StringComparison.Ordinal))
         {
             return string.Empty;
         }
 
-        if (File.Exists("/etc/debian_version"))
+        if (exists("/var/lib/dpkg/info/hearthpulse.list"))
         {
             return "deb";
         }
 
-        return File.Exists("/etc/redhat-release") || File.Exists("/etc/SuSE-release") || Directory.Exists("/etc/yum.repos.d")
-            ? "rpm"
-            : string.Empty;
+        return exists("/usr/share/applications/hearthpulse.desktop") ? "rpm" : string.Empty;
     }
+
+    /// <summary>
+    /// This copy only says that a new version is out and installs nothing: the portable packages, and an AppImage
+    /// (a single file the player keeps wherever they like; no release package replaces it).
+    /// </summary>
+    public static bool NotifyOnly => AppPaths.IsPortable || IsAppImage;
+
+    /// <summary>Running from an AppImage: its runtime sets APPIMAGE to the image file.</summary>
+    public static bool IsAppImage => OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("APPIMAGE") is { Length: > 0 };
 
     /// <summary>"arm64" or "x64" for the running process.</summary>
     public static string RuntimeArchitecture() =>

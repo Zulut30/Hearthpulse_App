@@ -11,6 +11,7 @@
   "Host.Update.AvailableTitle": "Доступно обновление Hearthpulse",
   "Host.Update.AvailableZip": "Вышла версия {0}. Скачайте портативный zip со страницы релизов на GitHub.",
   "Host.Update.AvailablePortable": "Вышла версия {0}. Скачайте новую портативную версию с GitHub.",
+  "Host.Update.AvailableAppImage": "Вышла версия {0}. Скачайте новый AppImage с GitHub.",
   "Host.Update.ReadyTitle": "Обновление Hearthpulse готово",
   "Host.Update.Ready": "Версия {0} скачана — она установится, когда вы закроете Hearthpulse.",
   "Host.Update.DownloadFailed": "Не удалось скачать версию {0}; Hearthpulse попробует позже.",

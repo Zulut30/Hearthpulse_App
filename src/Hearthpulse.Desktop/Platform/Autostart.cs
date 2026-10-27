@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using System.Security;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Updates;
 using Microsoft.Win32;
 
 namespace Hearthpulse.Desktop.Platform;
@@ -59,7 +60,9 @@ internal static class Autostart
 
     private static string Home => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-    private static string Executable => Environment.ProcessPath ?? Name;
+    // An AppImage runs from a mount point that changes on every start; APPIMAGE is the image file itself.
+    private static string Executable =>
+        UpdateService.IsAppImage ? Environment.GetEnvironmentVariable("APPIMAGE")! : Environment.ProcessPath ?? Name;
 
     private static void WriteOrDelete(string path, bool enabled, string content)
     {
