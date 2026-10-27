@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Hearthpulse.Core;
 
@@ -32,7 +33,19 @@ public sealed class MovablePanel : ContentControl
     public static readonly DependencyProperty ScaleTextProperty = DependencyProperty.Register(
         nameof(ScaleText), typeof(string), typeof(MovablePanel), new PropertyMetadata(string.Empty));
 
+    public static readonly DependencyProperty PlaceholderAlignmentProperty = DependencyProperty.Register(
+        nameof(PlaceholderAlignment), typeof(HorizontalAlignment), typeof(MovablePanel), new PropertyMetadata(HorizontalAlignment.Stretch));
+
+    /// <summary>How far below its spot a panel starts when it fades in, in overlay units.</summary>
+    private const double RevealRise = 6;
+
+    private static readonly Duration RevealTime = new(TimeSpan.FromMilliseconds(150));
+    private static readonly Duration HideTime = new(TimeSpan.FromMilliseconds(110));
+
     private readonly ScaleTransform _scale = new(1, 1);
+    private readonly TranslateTransform _rise = new();
+    private bool _lastEditing;
+    private bool _hiding;
     private HorizontalAlignment _defaultHorizontal;
     private VerticalAlignment _defaultVertical;
     private Thickness _defaultMargin;
@@ -51,6 +64,7 @@ public sealed class MovablePanel : ContentControl
     public MovablePanel()
     {
         LayoutTransform = _scale;
+        RenderTransform = _rise;
         Visibility = Visibility.Collapsed;
     }
 
@@ -58,8 +72,18 @@ public sealed class MovablePanel : ContentControl
 
     public string Title { get => (string)GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
 
-    /// <summary>When the panel shows, for its layout-mode placeholder; empty = "Appears during matches".</summary>
+    /// <summary>When the panel shows, for its layout-mode placeholder (menu and draft panels); empty for match panels.</summary>
     public string Hint { get => (string)GetValue(HintProperty); set => SetValue(HintProperty, value); }
+
+    /// <summary>
+    /// Where the layout-mode placeholder sits inside a wide panel. The pick rows (heroes, trinkets, Discover, tavern) share
+    /// the game's card row and are as wide as it: stretched, their placeholders would lie on top of each other.
+    /// </summary>
+    public HorizontalAlignment PlaceholderAlignment
+    {
+        get => (HorizontalAlignment)GetValue(PlaceholderAlignmentProperty);
+        set => SetValue(PlaceholderAlignmentProperty, value);
+    }
 
     public bool Shown { get => (bool)GetValue(ShownProperty); set => SetValue(ShownProperty, value); }
 
@@ -81,10 +105,79 @@ public sealed class MovablePanel : ContentControl
 
     private void UpdateState()
     {
-        Visibility = Shown || IsEditing ? Visibility.Visible : Visibility.Collapsed;
+        // Entering or leaving layout mode switches every panel at once: no fades there, only for a panel the game shows.
+        // Off with the Windows animation setting, like the main window's motion.
+        var animate = IsEditing == _lastEditing && !IsEditing && IsLoaded && SystemParameters.ClientAreaAnimation;
+        _lastEditing = IsEditing;
+        SetVisible(Shown || IsEditing, animate);
         ShowPlaceholder = IsEditing && !Shown;
         OverlayHit.SetInteractive(this, IsEditing || _interactiveContent);
         Cursor = IsEditing ? Cursors.SizeAll : null;
+    }
+
+    /// <summary>
+    /// Shows or hides the panel; with <paramref name="animate"/> a short fade and rise in, or a quicker fade out. The
+    /// animations run once per change, never while the panel just sits there.
+    /// </summary>
+    private void SetVisible(bool visible, bool animate)
+    {
+        if (visible)
+        {
+            var appearing = Visibility != Visibility.Visible || _hiding;
+            // A panel shown again mid fade-out comes back from where it was.
+            var from = _hiding ? Opacity : 0;
+            _hiding = false;
+            IsHitTestVisible = true;
+            Visibility = Visibility.Visible;
+            if (animate && appearing)
+            {
+                BeginAnimation(OpacityProperty, new DoubleAnimation(from, 1, RevealTime) { EasingFunction = new CubicEase(), FillBehavior = FillBehavior.Stop });
+                _rise.BeginAnimation(TranslateTransform.YProperty,
+                    new DoubleAnimation(RevealRise, 0, RevealTime) { EasingFunction = new CubicEase(), FillBehavior = FillBehavior.Stop });
+            }
+            else if (!animate)
+            {
+                StopMotion();
+            }
+
+            return;
+        }
+
+        if (Visibility != Visibility.Visible || _hiding)
+        {
+            return;
+        }
+
+        if (!animate)
+        {
+            StopMotion();
+            Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        // The game moved on: the panel stops taking clicks at once and is gone a moment later.
+        _hiding = true;
+        IsHitTestVisible = false;
+        var fade = new DoubleAnimation(0, HideTime);
+        fade.Completed += (_, _) =>
+        {
+            if (!_hiding)
+            {
+                return;
+            }
+
+            _hiding = false;
+            StopMotion();
+            IsHitTestVisible = true;
+            Visibility = Visibility.Collapsed;
+        };
+        BeginAnimation(OpacityProperty, fade);
+    }
+
+    private void StopMotion()
+    {
+        BeginAnimation(OpacityProperty, null);
+        _rise.BeginAnimation(TranslateTransform.YProperty, null);
     }
 
     private bool _interactiveContent;

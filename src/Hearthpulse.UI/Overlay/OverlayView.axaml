@@ -35,6 +35,7 @@
                                        VerticalAlignment="Center" IsVisible="{Binding Created}" />
                             <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </DockPanel>
+                        <Border Classes="rowSheen" />
                     </Panel>
                 </Border>
                 <TextBlock Grid.Column="2" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"
@@ -62,6 +63,7 @@
                             </Border>
                             <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </DockPanel>
+                        <Border Classes="rowSheen" />
                     </Panel>
                 </Border>
             </Grid>
@@ -494,6 +496,7 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Overlay/OverlayLook.axaml" />
         <!-- Card art answers the mouse: the tile grows and a large tooltip makes small card text readable -->
         <Style Selector="Image.zoomImg:pointerover">
             <Setter Property="RenderTransform" Value="scale(2.2)" />
@@ -748,16 +751,19 @@
                     <Panel>
                         <LayoutTransformControl Name="PART_Scaler" ClipToBounds="False">
                             <Panel>
-                                <Border Name="Placeholder" IsVisible="False" MinWidth="200" MinHeight="56" Background="{StaticResource OverlayPlaceholder}" CornerRadius="8"
-                                        BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1">
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16,10">
-                                        <TextBlock Text="{TemplateBinding Title}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                        <TextBlock Name="DefaultHint" Text="{i:Loc Overlay.Layout.AppearsDuringMatches}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                                        <TextBlock Name="HintText" Text="{TemplateBinding Hint}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" IsVisible="False" />
-                                        <TextBlock Text="{TemplateBinding ScaleText}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" HorizontalAlignment="Center"
-                                                   IsVisible="{TemplateBinding ScaleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                    </StackPanel>
-                                </Border>
+                                <!-- Placeholder: its own dashed frame, so a wide pick row frames only its label, not the whole card row -->
+                                <Panel Name="Placeholder" IsVisible="False" HorizontalAlignment="{TemplateBinding PlaceholderAlignment}">
+                                    <Border MinWidth="200" MinHeight="36" Background="{StaticResource OverlayPlaceholder}" CornerRadius="8"
+                                            BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1">
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16,8">
+                                            <TextBlock Text="{TemplateBinding Title}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                            <TextBlock Name="HintText" Text="{TemplateBinding Hint}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" IsVisible="False" />
+                                            <TextBlock Text="{TemplateBinding ScaleText}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" HorizontalAlignment="Center"
+                                                       IsVisible="{TemplateBinding ScaleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Rectangle Margin="-4" RadiusX="12" RadiusY="12" Stroke="{StaticResource Accent}" StrokeThickness="1.5" StrokeDashArray="4,3" IsHitTestVisible="False" />
+                                </Panel>
                                 <ContentPresenter Name="Body" Content="{TemplateBinding Content}" />
                                 <Border Name="Shield" Background="#01000000" IsVisible="False" />
                             </Panel>
@@ -787,21 +793,25 @@
         <Style Selector="o|MovablePanel.editing /template/ Border#Tag">
             <Setter Property="IsVisible" Value="True" />
         </Style>
-        <Style Selector="o|MovablePanel.placeholder /template/ Border#Placeholder">
+        <Style Selector="o|MovablePanel.placeholder /template/ Panel#Placeholder">
             <Setter Property="IsVisible" Value="True" />
         </Style>
         <Style Selector="o|MovablePanel.placeholder /template/ ContentPresenter#Body">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <!-- Most panels show during matches; menu and draft panels name their scene in Hint -->
-        <Style Selector="o|MovablePanel.hinted /template/ TextBlock#DefaultHint">
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
+        <!-- Most panels show during matches and need no note; menu and draft panels name their scene in Hint -->
         <Style Selector="o|MovablePanel.hinted /template/ TextBlock#HintText">
             <Setter Property="IsVisible" Value="True" />
         </Style>
-        <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours -->
+        <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours. Only the
+             placeholder itself takes the mouse, so a wide row's empty width never hides its neighbours. -->
         <Style Selector="o|MovablePanel.editing.placeholder /template/ Border#Tag">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="o|MovablePanel.editing.placeholder /template/ Border#Shield">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="o|MovablePanel.editing.placeholder /template/ Rectangle#Frame">
             <Setter Property="IsVisible" Value="False" />
         </Style>
     </UserControl.Styles>
@@ -814,11 +824,13 @@
                 <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,12,0">
                     <Border Classes="overlayCard" Width="252">
                         <StackPanel>
-                            <StackPanel Margin="12,10,12,8">
-                                <TextBlock Text="{Binding DeckName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding DeckRecord}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"
-                                           Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
-                            </StackPanel>
+                            <Border Classes="overlayHeader" Margin="0,0,0,6">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DeckName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding DeckRecord}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"
+                                               Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
+                                </StackPanel>
+                            </Border>
                             <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" o:OverlayHit.Interactive="True" />
                             <Border BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
                                 <StackPanel>
@@ -834,28 +846,37 @@
                 <!-- ============ Constructed: opponent (left) ============ -->
                 <o:MovablePanel Id="opponent" Title="{i:Loc Overlay.Common.Opponent}" Shown="{Binding ShowOpponent}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,76,0,0">
                     <Border Classes="overlayCard" Width="214">
-                        <StackPanel Margin="12,10,12,10">
-                            <Grid ColumnDefinitions="Auto,*">
-                                <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding OpponentHeroId}" />
-                                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding OpponentTitle}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding OpponentSubtitle}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
-                            </Grid>
-                            <UniformGrid Columns="3" Margin="0,10,0,0">
-                                <StackPanel>
-                                    <TextBlock Text="{i:Loc Overlay.Opponent.Hand}" FontSize="10.5" Foreground="{StaticResource Muted}" />
-                                    <TextBlock Text="{Binding OpponentHand}" Classes="number" FontSize="17" />
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="{i:Loc Overlay.Opponent.Deck}" FontSize="10.5" Foreground="{StaticResource Muted}" />
-                                    <TextBlock Text="{Binding OpponentDeck}" Classes="number" FontSize="17" />
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="{i:Loc Overlay.Opponent.Secrets}" FontSize="10.5" Foreground="{StaticResource Muted}" />
-                                    <TextBlock Text="{Binding OpponentSecrets}" Classes="number" FontSize="17" />
-                                </StackPanel>
-                            </UniformGrid>
+                        <StackPanel>
+                            <Border Classes="overlayHeader">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <!-- Portrait in a gold ring -->
+                                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" Padding="1">
+                                        <Border CornerRadius="16" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding OpponentHeroId}" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding OpponentTitle}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding OpponentSubtitle}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        <StackPanel Margin="12,0,12,10">
+                            <!-- Hand, deck and Secrets: the numbers first, on one dark plate -->
+                            <Border Classes="statPlate" Margin="0,10,0,0">
+                                <UniformGrid Columns="3">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding OpponentHand}" Classes="statValue" FontSize="17" />
+                                        <TextBlock Text="{i:Loc Overlay.Opponent.Hand}" Classes="statLabel" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding OpponentDeck}" Classes="statValue" FontSize="17" />
+                                        <TextBlock Text="{i:Loc Overlay.Opponent.Deck}" Classes="statLabel" />
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding OpponentSecrets}" Classes="statValue" FontSize="17" />
+                                        <TextBlock Text="{i:Loc Overlay.Opponent.Secrets}" Classes="statLabel" />
+                                    </StackPanel>
+                                </UniformGrid>
+                            </Border>
                             <TextBlock Text="{Binding OpponentMatchup}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
                                        IsVisible="{Binding OpponentMatchup, Converter={StaticResource Truthy}}" />
 
@@ -864,6 +885,7 @@
 
                             <c:Ornament Text="{i:Loc Overlay.Opponent.CardsInHand}" Size="10.5" Margin="0,12,0,6" IsVisible="{Binding Hand, Converter={StaticResource Truthy}}" />
                             <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource HandTemplate}" />
+                        </StackPanel>
                         </StackPanel>
                     </Border>
                 </o:MovablePanel>
@@ -887,7 +909,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Constructed: marks under the opponent's hand fan (top centre; move and scale it onto the cards) ============ -->
-                <o:MovablePanel Id="opponent-hand" Title="{i:Loc Overlay.Panel.OpponentHand}" MinWidth="{x:Static o:OverlayViewModel.HandPanelWidth}" Shown="{Binding ShowHandMarks}"
+                <o:MovablePanel Id="opponent-hand" PlaceholderAlignment="Center" Title="{i:Loc Overlay.Panel.OpponentHand}" MinWidth="{x:Static o:OverlayViewModel.HandPanelWidth}" Shown="{Binding ShowHandMarks}"
                                 HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,92,0,0">
                     <o:OpponentHandPanel />
                 </o:MovablePanel>
@@ -1037,7 +1059,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: hero pick badges, one above each hero (HDT: pitch 340, +7 x) ============ -->
-                <o:MovablePanel Id="hero-row" Title="{i:Loc Overlay.Panel.HeroPick}" MinWidth="1360" Shown="{Binding ShowHeroPick}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,212,0,0">
+                <o:MovablePanel Id="hero-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.HeroPick}" MinWidth="1360" Shown="{Binding ShowHeroPick}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,212,0,0">
                     <StackPanel>
                         <TextBlock Text="{Binding MetaSource}" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,0,0,2" />
                         <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
@@ -1045,7 +1067,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: trinket pick badges (HDT: pitch 277, +10 x) ============ -->
-                <o:MovablePanel Id="trinket-row" Title="{i:Loc Overlay.Panel.TrinketPick}" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
+                <o:MovablePanel Id="trinket-row" PlaceholderAlignment="Right" Title="{i:Loc Overlay.Panel.TrinketPick}" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
                     <StackPanel>
                         <TextBlock Text="{i:Loc Overlay.Trinket.Source}" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,0,0,2" />
                         <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
@@ -1053,7 +1075,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: buy hints over the tavern row (HDT: row top 0.297H, pitch 138) ============ -->
-                <o:MovablePanel Id="tavern-row" Title="{i:Loc Overlay.Panel.TavernRow}" MinWidth="966" Shown="{Binding ShowShop}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,274,0,0">
+                <o:MovablePanel Id="tavern-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.TavernRow}" MinWidth="966" Shown="{Binding ShowShop}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,274,0,0">
                     <ItemsControl ItemsSource="{Binding ShopBadges}" ItemTemplate="{StaticResource ShopBadgeTemplate}" Width="966" Height="40">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -1113,7 +1135,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: Discover pick hints (Dark Gift, triple reward…) ============ -->
-                <o:MovablePanel Id="choice-row" Title="{i:Loc Overlay.Panel.Choice}" MinWidth="1360" Shown="{Binding ShowDiscover}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,222,0,0">
+                <o:MovablePanel Id="choice-row" PlaceholderAlignment="Center" Title="{i:Loc Overlay.Panel.Choice}" MinWidth="1360" Shown="{Binding ShowDiscover}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,222,0,0">
                     <StackPanel>
                         <Border HorizontalAlignment="Center" CornerRadius="6" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
                                 IsVisible="{Binding DiscoverTitle, Converter={StaticResource Truthy}}">

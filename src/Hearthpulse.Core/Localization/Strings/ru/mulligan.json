@@ -3,7 +3,7 @@
   "Mulligan.OnTheCoin": "с монеткой",
   "Mulligan.NoNumbers": "У Hearthpulse нет данных муллигана для этой колоды: полосы показывают только предложенные карты.",
   "Mulligan.VsClass": " против класса {0}",
-  "Mulligan.Impact": "Влияние оставленных карт: {0}%",
+  "Mulligan.Impact": "Влияние оставленных карт: {0}",
   "Mulligan.SynergyKept": "Оставлена синергия: {0} + {1} ({2})",
   "Mulligan.AverageHand": "Средняя рука{0}: {1}",
   "Mulligan.YourKeeps": "Ваш выбор ({0} из {1}): {2}",

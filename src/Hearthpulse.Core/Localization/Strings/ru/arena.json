@@ -1,12 +1,14 @@
 {
   "Arena.Source": "Оценки: {0}",
-  "Arena.Score": "Оценка карты",
   "Arena.NoScore": "Пока без оценки",
   "Arena.BestPick": "Лучший выбор",
   "Arena.BestClass": "Лучший класс",
   "Arena.SevenPlus": "7+ побед: {0}",
   "Arena.SevenPlusShort": "7+: {0}",
-  "Arena.RunClass.WinRate": "Винрейт {0}",
+  "Arena.Stat.WinRate": "винрейт",
+  "Arena.Stat.Place": "место класса",
+  "Arena.Stat.PlaceValue": "{0}/{1}",
+  "Arena.Stat.SevenPlus": "7+ побед",
   "Arena.ChooseHero": "Выбор героя",
   "Arena.NoData": "Цифр Арены пока нет: Hearthpulse data не загрузились, сохранённой копии тоже нет. Колода и кривая работают и без них.",
   "Arena.Panel.Title": "Драфт Арены",
@@ -43,6 +45,6 @@
   "Arena.Panel.Types": "Типы карт",
   "Arena.Mode.Underground": "Подземная Арена",
   "Arena.Mode.Normal": "Обычная Арена",
-  "Arena.Slice.Underground": "Оценки — по играм Подземной Арены",
-  "Arena.Slice.Normal": "Оценки — по играм обычной Арены"
+  "Arena.Slice.Underground": "по играм Подземной Арены",
+  "Arena.Slice.Normal": "по играм обычной Арены"
 }

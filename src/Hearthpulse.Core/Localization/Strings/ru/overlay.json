@@ -24,7 +24,6 @@
   "Overlay.Layout.Shortcuts": "Ctrl+Shift+L — выйти из расстановки · Ctrl+Shift+H — скрыть оверлей",
   "Overlay.Layout.ResetAll": "Сбросить всё",
   "Overlay.Layout.Done": "Готово",
-  "Overlay.Layout.AppearsDuringMatches": "Появится во время матча",
   "Overlay.Layout.AppearsInMenus": "Появится в меню между играми",
   "Overlay.Layout.AppearsInArenaDraft": "Появится во время драфта Арены",
 
@@ -43,7 +42,6 @@
   "Overlay.Hand.Coin": "Монетка",
   "Overlay.Hand.CreatedBy": "Создана: {0}",
   "Overlay.Hand.KeptInMulligan": "Оставлена в муллигане",
-  "Overlay.Hand.Unknown": "Неизвестно",
 
   "Overlay.Class.DeathKnight": "Рыцарь смерти",
   "Overlay.Class.DemonHunter": "Охотник на демонов",

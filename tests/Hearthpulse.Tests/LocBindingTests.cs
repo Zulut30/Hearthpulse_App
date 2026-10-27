@@ -94,9 +94,15 @@ public sealed class LocBindingTests
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("Appears in the menus between games", Hint(panels["ladder-session"]));
             Assert.Equal("Appears during the Arena draft", Hint(panels["arena-draft"]));
-            Assert.Equal("Appears during matches", Hint(panels["deck"]));
-            // The placeholder carries the title, so its gold tag is hidden.
+            // Most panels show during matches: no note repeated on twenty placeholders.
+            Assert.False(Part<TextBlock>(panels["deck"], "HintText").IsVisible);
+            // The placeholder carries the title, so its gold tag is hidden; it draws its own frame and only it takes the mouse.
             Assert.False(Part<Border>(panels["deck"], "Tag").IsVisible);
+            Assert.False(Part<Border>(panels["deck"], "Shield").IsVisible);
+            Assert.False(Part<Avalonia.Controls.Shapes.Rectangle>(panels["deck"], "Frame").IsVisible);
+            // The pick rows are as wide as the game's card row: their placeholders sit apart inside it.
+            Assert.Equal(Avalonia.Layout.HorizontalAlignment.Left, Part<Panel>(panels["hero-row"], "Placeholder").HorizontalAlignment);
+            Assert.Equal(Avalonia.Layout.HorizontalAlignment.Right, Part<Panel>(panels["trinket-row"], "Placeholder").HorizontalAlignment);
         }
         finally
         {
@@ -108,8 +114,12 @@ public sealed class LocBindingTests
         static T Part<T>(Control panel, string name) where T : Control =>
             Assert.Single(panel.GetVisualDescendants().OfType<T>(), c => c.Name == name);
 
-        static string? Hint(Control panel) =>
-            Assert.Single(new[] { Part<TextBlock>(panel, "DefaultHint"), Part<TextBlock>(panel, "HintText") }, b => b.IsVisible).Text;
+        static string? Hint(Control panel)
+        {
+            var hint = Part<TextBlock>(panel, "HintText");
+            Assert.True(hint.IsVisible);
+            return hint.Text;
+        }
     }
 
     [Fact]

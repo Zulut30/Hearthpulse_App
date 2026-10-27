@@ -565,7 +565,7 @@ public sealed partial class OverlayViewModel
             : Loc.T("Pool.Picks.Note");
     }
 
-    private static string PickPercent(double share) => (share * 100).ToString("0", CultureInfo.InvariantCulture) + "%";
+    private static string PickPercent(double share) => OverlayFormat.Percent(share);
 
     private void RebuildCardPoolBrowser()
     {

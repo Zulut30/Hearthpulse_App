@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -246,14 +247,14 @@ public sealed class DeckRecordsTests
     {
         var meta = new DeckMetaStat("Cycle Rogue", 0.534, 12_345, "Legend", "Firestone");
 
-        Assert.Equal("3–2 · 60% win rate", DeckHeader.Describe(new DeckAggregate("D", null, "ROGUE", 5, 3, 2, DateTime.Today), meta).Text);
+        Assert.Equal($"3–2 · {0.6.ToString("P0", CultureInfo.CurrentCulture)} win rate", DeckHeader.Describe(new DeckAggregate("D", null, "ROGUE", 5, 3, 2, DateTime.Today), meta).Text);
         var fromMeta = DeckHeader.Describe(null, meta);
-        Assert.Equal("Meta 53% · Legend", fromMeta.Text);
+        Assert.Equal($"Meta {0.534.ToString("P0", CultureInfo.CurrentCulture)} · Legend", fromMeta.Text);
         Assert.True(fromMeta.FromMeta);
         Assert.Contains("Cycle Rogue", fromMeta.Tooltip);
         Assert.Equal("No games with this deck yet", DeckHeader.Describe(null, null).Text);
         // Only ties or unknown results: no win rate of your own, so the meta speaks.
-        Assert.Equal("Meta 53% · Legend", DeckHeader.Describe(new DeckAggregate("D", null, "ROGUE", 2, 0, 0, DateTime.Today), meta).Text);
+        Assert.Equal($"Meta {0.534.ToString("P0", CultureInfo.CurrentCulture)} · Legend", DeckHeader.Describe(new DeckAggregate("D", null, "ROGUE", 2, 0, 0, DateTime.Today), meta).Text);
     }
 
     /// <summary>Minimal deck code writer (format 2, one hero, every card listed with its count in the n-copies list).</summary>

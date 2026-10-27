@@ -6,7 +6,7 @@
              xmlns:c="clr-namespace:Hearthpulse.App.Controls">
     <!-- Arena draft: a badge over each offered card (ArenaSmith score and tier, its place on the curve and among the
          deck's types) or hero (class win rate and place), the best one in gold. Laid across the width of the draft screen's card row, so each badge sits over its card. Nothing here
-         takes clicks: the cards under it stay clickable. DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+         takes clicks: the cards under it stay clickable. The data source is named once, in the draft panel's footer. DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
         <i:KeyBrush x:Key="KeyBrush" />
@@ -28,7 +28,8 @@
                             <TextBlock Text="{Binding Number}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="Bold"
                                        Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center" />
                         </StackPanel>
-                        <TextBlock x:Name="Caption" Text="{Binding Caption}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
+                        <TextBlock x:Name="Caption" Text="{Binding Caption}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                                   Visibility="{Binding Caption, Converter={StaticResource Vis}}" />
                         <!-- Where the card would sit in the deck: its curve bucket, its type (or package) -->
                         <TextBlock Text="{Binding FitCost}" FontSize="10" Foreground="{StaticResource Text}" Margin="0,2,0,0"
                                    Visibility="{Binding FitCost, Converter={StaticResource Vis}}" />
@@ -56,6 +57,5 @@
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
         </ItemsControl>
-        <TextBlock Text="{Binding ArenaSource}" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,4,0,0" />
     </StackPanel>
 </UserControl>
