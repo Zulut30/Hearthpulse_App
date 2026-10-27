@@ -874,18 +874,18 @@
         </Setter>
     </Style>
 
-    <!-- ===== Slider: flat track, bar handle ===== -->
+    <!-- ===== Slider: thin track, round handle, the fill runs to the handle's centre (as in the Avalonia theme) ===== -->
     <Style x:Key="SliderThumb" TargetType="Thumb">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Grid Width="16" Height="28" Background="Transparent">
-                        <Border x:Name="Handle" Width="4" CornerRadius="2" Background="{StaticResource Accent}" />
+                    <Grid Width="20" Height="28" Background="Transparent">
+                        <Ellipse x:Name="Handle" Width="18" Height="18" Fill="{StaticResource Accent}" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Handle" Property="Width" Value="6" />
-                            <Setter TargetName="Handle" Property="CornerRadius" Value="3" />
+                            <Setter TargetName="Handle" Property="Width" Value="20" />
+                            <Setter TargetName="Handle" Property="Height" Value="20" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -900,13 +900,14 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Slider">
                     <Grid Height="28">
-                        <Border Height="12" CornerRadius="3" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1" />
+                        <Border Height="4" CornerRadius="2" Margin="10,0" Background="{StaticResource GrooveFill}" />
                         <Track x:Name="PART_Track">
                             <Track.DecreaseRepeatButton>
                                 <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
                                     <RepeatButton.Template>
                                         <ControlTemplate TargetType="RepeatButton">
-                                            <Border Height="12" CornerRadius="3" Background="{StaticResource PrimaryFill}" Margin="0,0,3,0" />
+                                            <!-- Half the handle's width past the button: the fill ends under the handle's centre -->
+                                            <Border Height="4" CornerRadius="2" Background="{StaticResource PrimaryFill}" Margin="10,0,-10,0" />
                                         </ControlTemplate>
                                     </RepeatButton.Template>
                                 </RepeatButton>
