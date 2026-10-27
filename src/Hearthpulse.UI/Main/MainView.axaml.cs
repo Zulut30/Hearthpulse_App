@@ -150,6 +150,7 @@ public partial class MainView : UserControl
         {
             _viewModel.PropertyChanged -= OnViewModelChanged;
             _viewModel.HistoryRequested -= ShowHistoryGame;
+            _viewModel.ThemeChanged -= OnThemeChanged;
         }
 
         _viewModel = DataContext as MainViewModel;
@@ -160,6 +161,8 @@ public partial class MainView : UserControl
 
         _viewModel.PropertyChanged += OnViewModelChanged;
         _viewModel.HistoryRequested += ShowHistoryGame;
+        _viewModel.ThemeChanged += OnThemeChanged;
+        ApplyTheme();
         SyncOverlaySwitch();
         ShowSettingsTab(_viewModel.Settings.SettingsTab);
         foreach (var box in this.GetLogicalDescendantsOfType<CheckBox>())
@@ -185,6 +188,30 @@ public partial class MainView : UserControl
                     SettingsChanged?.Invoke();
                 }
             };
+        }
+    }
+
+    /// <summary>A theme was picked in Settings: repaint the app in place (brushes are shared and recoloured) and save it.</summary>
+    private void OnThemeChanged()
+    {
+        ApplyTheme();
+        SettingsChanged?.Invoke();
+    }
+
+    private void ApplyTheme()
+    {
+        if (_viewModel is null || Application.Current is not { } app)
+        {
+            return;
+        }
+
+        try
+        {
+            ThemeEngine.Apply(app, _viewModel.CurrentTheme);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Diag.Error("Theme could not be applied; keeping the current colours", ex);
         }
     }
 

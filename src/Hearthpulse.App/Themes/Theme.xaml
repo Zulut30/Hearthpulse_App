@@ -688,6 +688,47 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- A picture as a button (the Settings theme tiles): it lifts a little under the mouse and gives under a press.
+         The page sets ContentTemplate. -->
+    <Style x:Key="ThemeSwatch" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="0,0,10,10" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter x:Name="Face" RenderTransformOrigin="0.5,0.5">
+                        <ContentPresenter.RenderTransform>
+                            <ScaleTransform />
+                        </ContentPresenter.RenderTransform>
+                    </ContentPresenter>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Face" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.03" Duration="0:0:0.12" />
+                                        <DoubleAnimation Storyboard.TargetName="Face" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.03" Duration="0:0:0.12" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Face" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.22" />
+                                        <DoubleAnimation Storyboard.TargetName="Face" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.22" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Opacity" Value="0.85" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <!-- Window controls: small round buttons -->
     <Style x:Key="CaptionButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
         <Setter Property="Width" Value="26" />
@@ -730,11 +771,22 @@
                     <Grid Background="Transparent">
                         <Border x:Name="Bd" CornerRadius="8" Margin="10,2" Background="Transparent" SnapsToDevicePixels="True" />
                         <Border x:Name="HoverLayer" CornerRadius="8" Margin="10,2" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
-                        <StackPanel Orientation="Horizontal" Margin="26,0,0,0" VerticalAlignment="Center">
+                        <!-- Glyph and label share one column grid, so every item's text starts at the same x whatever its glyph -->
+                        <Grid x:Name="Face" Margin="26,0,0,0" VerticalAlignment="Center" RenderTransformOrigin="0,0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform />
+                            </Grid.RenderTransform>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="24" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
                             <TextBlock x:Name="Glyph" Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="20"
-                                       Foreground="{TemplateBinding Foreground}" Width="24" />
-                            <ContentPresenter Margin="12,0,0,0" VerticalAlignment="Center" />
-                        </StackPanel>
+                                       Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" />
+                            <!-- The lit glyph fades in over the plain one when the item becomes the open page -->
+                            <TextBlock x:Name="GlyphLit" Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="20"
+                                       Foreground="{StaticResource Accent}" HorizontalAlignment="Center" Opacity="0" />
+                            <ContentPresenter Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -755,10 +807,39 @@
                             <Setter Property="Foreground" Value="{StaticResource Text}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Face" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="0.97" Duration="0:0:0.080"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Face" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="0.97" Duration="0:0:0.080"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Face" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Face" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Pressed}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Glyph" Property="Foreground" Value="{StaticResource Accent}" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="GlyphLit" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.18" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="GlyphLit" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                             <Setter Property="Foreground" Value="{StaticResource Text}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -1091,12 +1172,15 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Border x:Name="T" CornerRadius="3" Background="#3DE9B949" />
+                    <!-- Slim at rest, full width under the mouse -->
+                    <Border x:Name="T" CornerRadius="3" Margin="1" Background="#3DE9B949" />
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="T" Property="Margin" Value="0" />
                             <Setter TargetName="T" Property="Background" Value="#80E9B949" />
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="T" Property="Margin" Value="0" />
                             <Setter TargetName="T" Property="Background" Value="{StaticResource AccentLine}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -1366,7 +1450,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
-                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="8" Padding="11,6">
+                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="8" Padding="12,7">
                         <!-- Plain-text tips wrap at a readable width (the Avalonia theme caps ToolTip at 320) -->
                         <ContentPresenter>
                             <ContentPresenter.Resources>
