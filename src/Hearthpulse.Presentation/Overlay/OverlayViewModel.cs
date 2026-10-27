@@ -124,7 +124,7 @@ public sealed partial class OverlayViewModel : Observable
     private string _deckRecord = string.Empty;
     private string _deckCounts = string.Empty;
     private string _nextDraw = string.Empty;
-    private IReadOnlyList<DeckTile> _deck = Array.Empty<DeckTile>();
+    private SyncList<DeckTile> _deck = new();
     private bool _compactDeck;
     private bool _showChance = true;
 
@@ -132,7 +132,7 @@ public sealed partial class OverlayViewModel : Observable
     public string DeckRecord { get => _deckRecord; private set => Set(ref _deckRecord, value); }
     public string DeckCounts { get => _deckCounts; private set => Set(ref _deckCounts, value); }
     public string NextDraw { get => _nextDraw; private set => Set(ref _nextDraw, value); }
-    public IReadOnlyList<DeckTile> Deck { get => _deck; private set => Set(ref _deck, value); }
+    public IReadOnlyList<DeckTile> Deck => _deck;
     public bool CompactDeck { get => _compactDeck; private set => Set(ref _compactDeck, value); }
     public bool ShowChance { get => _showChance; private set => Set(ref _showChance, value); }
 
@@ -143,8 +143,8 @@ public sealed partial class OverlayViewModel : Observable
     private int _opponentDeck;
     private int _opponentSecrets;
     private string _opponentMatchup = string.Empty;
-    private IReadOnlyList<PlayedTile> _played = Array.Empty<PlayedTile>();
-    private IReadOnlyList<HandTile> _hand = Array.Empty<HandTile>();
+    private SyncList<PlayedTile> _played = new();
+    private SyncList<HandTile> _hand = new();
 
     public string OpponentTitle { get => _opponentTitle; private set => Set(ref _opponentTitle, value); }
     public string OpponentSubtitle { get => _opponentSubtitle; private set => Set(ref _opponentSubtitle, value); }
@@ -153,8 +153,8 @@ public sealed partial class OverlayViewModel : Observable
     public int OpponentDeck { get => _opponentDeck; private set => Set(ref _opponentDeck, value); }
     public int OpponentSecrets { get => _opponentSecrets; private set => Set(ref _opponentSecrets, value); }
     public string OpponentMatchup { get => _opponentMatchup; private set => Set(ref _opponentMatchup, value); }
-    public IReadOnlyList<PlayedTile> Played { get => _played; private set => Set(ref _played, value); }
-    public IReadOnlyList<HandTile> Hand { get => _hand; private set => Set(ref _hand, value); }
+    public IReadOnlyList<PlayedTile> Played => _played;
+    public IReadOnlyList<HandTile> Hand => _hand;
 
     // ---- battlegrounds --------------------------------------------------------------------
     private int _turn;
@@ -447,7 +447,7 @@ public sealed partial class OverlayViewModel : Observable
         var best = view.Deck.Where(r => r.Remaining > 0).MaxBy(r => r.DrawChance);
         NextDraw = best is null || view.DeckCount == 0 ? string.Empty : Loc.F("Overlay.Deck.NextDraw", best.Name, best.DrawChance);
         CompactDeck = view.Deck.Count > 24;
-        Replace(nameof(Deck), view.Deck, r => $"{r.CardId}{r.Remaining}{r.Total}{r.DrawChance:0.00}", () => Deck = view.Deck
+        Replace(nameof(Deck), view.Deck, r => $"{r.CardId}{r.Remaining}{r.Total}{r.DrawChance:0.00}", () => Sync(ref _deck, nameof(Deck), view.Deck
             .Select(r => new DeckTile(
                 r.CardId,
                 r.Name,
@@ -458,7 +458,7 @@ public sealed partial class OverlayViewModel : Observable
                 r.Rarity,
                 r.Remaining > 0 && view.DeckCount > 0 ? $"{r.DrawChance * 100:0}%" : string.Empty,
                 r.IsAdded))
-            .ToList());
+            .ToList()));
 
         OpponentHeroId = view.OpponentHeroCardId;
         OpponentTitle = string.IsNullOrEmpty(view.OpponentName) ? ClassName(view.OpponentClass) : view.OpponentName!;
@@ -467,17 +467,17 @@ public sealed partial class OverlayViewModel : Observable
         OpponentDeck = view.OpponentDeckCount;
         OpponentSecrets = view.OpponentSecrets;
         OpponentMatchup = matchup is { Games: > 0 } m ? Loc.F("Overlay.Opponent.Matchup", ClassName(view.OpponentClass), m.Wins, m.Losses, m.WinRate) : string.Empty;
-        Replace(nameof(Played), view.OpponentPlayed, p => $"{p.CardId}{p.Count}", () => Played = view.OpponentPlayed
+        Replace(nameof(Played), view.OpponentPlayed, p => $"{p.CardId}{p.Count}", () => Sync(ref _played, nameof(Played), view.OpponentPlayed
             .Select(p => new PlayedTile(p.CardId, p.Name, p.Cost, p.Count > 1 ? $"×{p.Count}" : string.Empty, Loc.F("Overlay.Turn.Short", p.FirstTurn), p.IsCreated))
-            .ToList());
-        Replace(nameof(Hand), view.OpponentHand, h => $"{h.Position}{h.Turn}{h.CardId}{h.CreatedBy}{h.FromMulligan}", () => Hand = view.OpponentHand
+            .ToList()));
+        Replace(nameof(Hand), view.OpponentHand, h => $"{h.Position}{h.Turn}{h.CardId}{h.CreatedBy}{h.FromMulligan}", () => Sync(ref _hand, nameof(Hand), view.OpponentHand
             .Select(h => new HandTile(
                 h.Position.ToString(CultureInfo.InvariantCulture),
                 h.Turn > 0 ? Loc.F("Overlay.Turn.Short", h.Turn) : Loc.T("Overlay.Hand.MulliganShort"),
                 h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : h.FromMulligan ? Loc.T("Overlay.Hand.KeptInMulligan") : Loc.T("Overlay.Hand.Unknown")),
                 h.CardName is not null || h.IsCoin,
                 h.CardName is null && !h.IsCoin && h.CreatedBy is null && !h.FromMulligan))
-            .ToList());
+            .ToList()));
     }
 
     private void UpdateBattlegrounds(BattlegroundsView view, LiveSnapshot snapshot)
@@ -912,6 +912,26 @@ public sealed partial class OverlayViewModel : Observable
         ToastDetail = outcome.RatingDelta is { } d
             ? Loc.F("Overlay.Toast.Rating", hero, d >= 0 ? "+" : "−", Math.Abs(d), outcome.RatingAfter)
             : hero;
+    }
+
+    /// <summary>
+    /// Changes a bound list in place (<see cref="SyncList{T}"/>): the items control keeps the rows that did not change.
+    /// Into or out of empty there is no row to keep: then the list is a new object and the view is told, so bindings on
+    /// the list itself (the panel shows while it is not empty) look again in both UIs.
+    /// </summary>
+    private void Sync<T>(ref SyncList<T> list, string name, IReadOnlyList<T> items)
+    {
+        if (list.Count > 0 && items.Count > 0)
+        {
+            list.Sync(items);
+            return;
+        }
+
+        if (list.Count != items.Count)
+        {
+            list = new SyncList<T>(items);
+            Raise(name);
+        }
     }
 
     private void Replace<T>(string key, IReadOnlyList<T> source, Func<T, string> fingerprint, Action apply)

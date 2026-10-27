@@ -1,8 +1,8 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Controls;
+using Hearthpulse.Core.Hearthstone;
 
 namespace Hearthpulse.Desktop.Platform;
 
@@ -43,8 +43,8 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
     public PixelRect? FindGameClientArea()
     {
         var now = DateTime.UtcNow;
-        // A process snapshot costs about 10 ms: look again every 1.5 s, or at once when the window that was found closed
-        // (before, every overlay tick while Hearthstone was not running).
+        // Look again every 1.5 s, or at once when the window that was found closed (before, every overlay tick while
+        // Hearthstone was not running). While the game runs this is a window enumeration, not a process snapshot.
         if (now >= _nextLookup || (_game != IntPtr.Zero && !IsWindow(_game)))
         {
             _nextLookup = now.AddSeconds(1.5);
@@ -107,34 +107,7 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
         }
     }
 
-    private static IntPtr FindHearthstoneWindow()
-    {
-        Process[] processes;
-        try
-        {
-            processes = Process.GetProcessesByName("Hearthstone");
-        }
-        catch (OutOfMemoryException)
-        {
-            // The process snapshot fails like this when the system is short of memory: try again on the next lookup.
-            return IntPtr.Zero;
-        }
-
-        var window = IntPtr.Zero;
-        foreach (var process in processes)
-        {
-            // Every Process holds a handle until disposed, also the ones after the window was found.
-            using (process)
-            {
-                if (window == IntPtr.Zero && process.MainWindowHandle != IntPtr.Zero)
-                {
-                    window = process.MainWindowHandle;
-                }
-            }
-        }
-
-        return window;
-    }
+    private static IntPtr FindHearthstoneWindow() => GameProcess.MainWindow();
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT
