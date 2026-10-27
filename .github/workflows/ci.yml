@@ -43,17 +43,39 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      # C: on the hosted Windows runners is slow and scanned by Defender on every write: the SQLite-heavy tests took
+      # 1.5-2.5 min there against 15 s on Linux. Temp files and NuGet packages go to D: and are left out of scanning.
+      - name: Fast temp and package folders
+        shell: pwsh
+        run: |
+          $temp = Join-Path $env:RUNNER_TEMP 'tmp'
+          $nuget = Join-Path $env:RUNNER_TEMP 'nuget'
+          New-Item -ItemType Directory -Force $temp, $nuget | Out-Null
+          Add-MpPreference -ExclusionPath $env:GITHUB_WORKSPACE, $env:RUNNER_TEMP, 'C:\Program Files\dotnet' -ErrorAction SilentlyContinue
+          "TEMP=$temp", "TMP=$temp", "NUGET_PACKAGES=$nuget" | Add-Content $env:GITHUB_ENV
+      # The image already has a .NET 10 SDK; downloading another one cost ~40 s. Install only when it is missing.
+      - name: Installed .NET SDK
+        id: sdk
+        shell: bash
+        run: |
+          dotnet --list-sdks || true
+          if dotnet --list-sdks 2>/dev/null | grep -q '^10\.'; then echo "have10=true" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/setup-dotnet@v4
+        if: steps.sdk.outputs.have10 != 'true'
         with:
           dotnet-version: 10.0.x
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '**/*.projitems') }}
+          restore-keys: nuget-${{ runner.os }}-
       - name: Restore
         run: dotnet restore Hearthpulse.slnx --source https://api.nuget.org/v3/index.json
       - name: Build
         run: dotnet build Hearthpulse.slnx --no-restore -c Release
-      - name: Tests
-        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --logger "trx;LogFileName=tests.trx" --results-directory TestResults
-      - name: WPF and Avalonia presentation contracts
-        run: dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-build -c Release --logger "trx;LogFileName=presentation.trx" --results-directory TestResults
+      # Both test projects in one run: their test hosts work at the same time instead of one after the other.
+      - name: Tests (Core/Avalonia suite and WPF/Avalonia presentation contracts)
+        run: dotnet test Hearthpulse.slnx --no-build -c Release --logger trx --results-directory TestResults
       - name: Test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,6 +91,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', '**/*.projitems') }}
+          restore-keys: nuget-${{ runner.os }}-
       # The WPF app targets Windows only; the Avalonia app and the tests cover Linux.
       - name: Build the cross-platform app
         run: dotnet build src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj -c Release

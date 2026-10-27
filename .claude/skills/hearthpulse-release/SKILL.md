@@ -16,9 +16,9 @@ The version must match `^\d+\.\d+\.\d+$` (a leading `v` is stripped).
 
 | Job | Runner | Does |
 |---|---|---|
-| `windows-linux` | ubuntu-latest | `dotnet test`, then `installer/windows/build.sh V` (NSIS `Hearthpulse-Setup-V-win-x64.exe` and `Hearthpulse-Portable-V-win-x64.zip` from WPF + `Hearthpulse-Preview-V-win-x64.zip` from Avalonia); `installer/linux/build.sh V x64` and `V arm64` produce deb/rpm, `Hearthpulse-V-linux-{x64,arm64}.tar.gz`, `Hearthpulse-Portable-V-linux-{x64,arm64}.tar.gz`, and the x64 AppImage; checks expected files exist |
-| `macos` | macos-latest | `installer/macos/build.sh V arm64 x64` -> `Hearthpulse-V-macOS-{arm64,x64}.{pkg,dmg,zip}` plus `Hearthpulse-Portable-V-macOS-{arm64,x64}.zip` (ad-hoc signed, not notarized); no tests |
-| `release` | ubuntu | merges artifacts into `dist/`, `sha256sum * > SHA256SUMS.txt`, publishes with `softprops/action-gh-release@v2`: tag `vV`, name "Hearthpulse V", `body_path: installer/RELEASE_NOTES.md`, `fail_on_unmatched_files: true` |
+| `tests` | ubuntu-latest | `dotnet test tests/Hearthpulse.Tests`, skipped when `ci.yml` already passed on the same commit; runs beside the builds, `release` waits for it |
+| `build` (matrix, all in parallel) | ubuntu-latest / macos-latest | `installer/windows/build.sh V app` (NSIS `Hearthpulse-Setup-V-win-x64.exe` and `Hearthpulse-Portable-V-win-x64.zip` from WPF); `installer/windows/build.sh V preview` (`Hearthpulse-Preview-V-win-x64.zip` from Avalonia); `installer/linux/build.sh V x64` and `V arm64` (deb/rpm, `Hearthpulse-V-linux-{x64,arm64}.tar.gz`, `Hearthpulse-Portable-V-linux-{x64,arm64}.tar.gz`, AppImage); `installer/macos/build.sh V arm64 x64` on macOS -> `Hearthpulse-V-macOS-{arm64,x64}.{pkg,dmg,zip}` plus `Hearthpulse-Portable-V-macOS-{arm64,x64}.zip` (ad-hoc signed, not notarized) |
+| `release` | ubuntu | merges artifacts into `dist/`, checks every expected installer is there, `sha256sum * > SHA256SUMS.txt`, publishes with `softprops/action-gh-release@v2`: tag `vV`, name "Hearthpulse V", `body_path: installer/RELEASE_NOTES.md`, `fail_on_unmatched_files: true` |
 
 It publishes into the repository the workflow runs in. Verify `git remote -v` and the intended GitHub repository
 before publishing: the updater is configured for `Zulut30/Hearthpulse_App`. CI (`ci.yml`) is separate: build + tests
