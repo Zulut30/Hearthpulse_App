@@ -20,6 +20,9 @@ public partial class OverlayView : UserControl
 {
     public const double ReferenceHeight = 1080;
 
+    /// <summary>Ctrl+Shift+L / Ctrl+Shift+H exist only where the host registers them (Windows), for the layout banner.</summary>
+    public static bool GlobalShortcuts => OperatingSystem.IsWindows();
+
     private readonly List<MovablePanel> _panels = new();
     private readonly DispatcherTimer _toastTimer;
     private OverlayViewModel? _viewModel;

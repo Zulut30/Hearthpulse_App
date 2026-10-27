@@ -776,6 +776,8 @@
                                     <TextBlock x:Name="HintText" Text="{TemplateBinding Hint}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
                                     <TextBlock x:Name="DefaultHint" Text="{i:Loc Overlay.Layout.AppearsDuringMatches}" FontSize="11" Foreground="{StaticResource Muted}"
                                                HorizontalAlignment="Center" Visibility="Collapsed" />
+                                    <TextBlock x:Name="PlaceholderScale" Text="{TemplateBinding ScaleText}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                               HorizontalAlignment="Center" />
                                 </StackPanel>
                             </Border>
                             <ContentPresenter x:Name="Body" />
@@ -784,7 +786,11 @@
                                        StrokeThickness="1.5" StrokeDashArray="4 3" IsHitTestVisible="False" />
                             <Border x:Name="Tag" Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-26,0,0"
                                     Background="{StaticResource Accent}" CornerRadius="5" Padding="7,2" IsHitTestVisible="False">
-                                <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                                    <!-- The size the player scrolled to, so two panels can be given the same one -->
+                                    <TextBlock x:Name="ScaleTag" Text="{TemplateBinding ScaleText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0" />
+                                </StackPanel>
                             </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -792,6 +798,10 @@
                             <Trigger Property="Hint" Value="">
                                 <Setter TargetName="HintText" Property="Visibility" Value="Collapsed" />
                                 <Setter TargetName="DefaultHint" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="ScaleText" Value="">
+                                <Setter TargetName="ScaleTag" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="PlaceholderScale" Property="Visibility" Value="Collapsed" />
                             </Trigger>
                             <Trigger Property="IsEditing" Value="True">
                                 <Setter TargetName="Shield" Property="Visibility" Value="Visible" />
@@ -1534,6 +1544,7 @@
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{i:Loc Overlay.Layout.Title}" FontSize="14" FontWeight="SemiBold" />
                         <TextBlock Text="{i:Loc Overlay.Layout.Hint}" FontSize="11.5" Foreground="{StaticResource Muted}" />
+                        <TextBlock Text="{i:Loc Overlay.Layout.Shortcuts}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,2,0,0" />
                     </StackPanel>
                     <Button Style="{StaticResource GhostButton}" Content="{i:Loc Overlay.Layout.ResetAll}" Margin="18,0,8,0" Command="{Binding ResetLayout}" Focusable="False" />
                     <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Overlay.Layout.Done}" Command="{Binding FinishLayout}" Focusable="False" />

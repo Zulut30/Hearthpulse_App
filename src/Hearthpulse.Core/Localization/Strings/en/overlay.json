@@ -20,7 +20,8 @@
   "Overlay.Common.TavernTier": "Tavern tier",
 
   "Overlay.Layout.Title": "Layout mode",
-  "Overlay.Layout.Hint": "Drag panels anywhere · scroll to resize · right-click resets one",
+  "Overlay.Layout.Hint": "Drag panels anywhere, they snap to the edges and the centre · scroll to resize · right-click resets one",
+  "Overlay.Layout.Shortcuts": "Ctrl+Shift+L closes layout mode · Ctrl+Shift+H hides the overlay",
   "Overlay.Layout.ResetAll": "Reset all",
   "Overlay.Layout.Done": "Done",
   "Overlay.Layout.AppearsDuringMatches": "Appears during matches",

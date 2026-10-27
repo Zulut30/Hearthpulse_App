@@ -20,7 +20,8 @@
   "Overlay.Common.TavernTier": "Уровень таверны",
 
   "Overlay.Layout.Title": "Режим расстановки",
-  "Overlay.Layout.Hint": "Перетаскивайте панели · колесо меняет размер · правый клик сбрасывает панель",
+  "Overlay.Layout.Hint": "Перетаскивайте панели, они прилипают к краям и центру · колесо меняет размер · правый клик сбрасывает панель",
+  "Overlay.Layout.Shortcuts": "Ctrl+Shift+L — выйти из расстановки · Ctrl+Shift+H — скрыть оверлей",
   "Overlay.Layout.ResetAll": "Сбросить всё",
   "Overlay.Layout.Done": "Готово",
   "Overlay.Layout.AppearsDuringMatches": "Появится во время матча",

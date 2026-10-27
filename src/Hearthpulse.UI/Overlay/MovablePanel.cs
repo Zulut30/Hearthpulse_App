@@ -40,6 +40,8 @@ public sealed class MovablePanel : ContentControl
     public static readonly StyledProperty<bool> InteractiveContentProperty =
         AvaloniaProperty.Register<MovablePanel, bool>(nameof(InteractiveContent));
 
+    public static readonly StyledProperty<string> ScaleTextProperty = AvaloniaProperty.Register<MovablePanel, string>(nameof(ScaleText), string.Empty);
+
     private HorizontalAlignment _defaultHorizontal;
     private VerticalAlignment _defaultVertical;
     private Thickness _defaultMargin;
@@ -91,6 +93,9 @@ public sealed class MovablePanel : ContentControl
     /// <summary>Whether the content has its own buttons and should receive the mouse outside layout mode.</summary>
     public bool InteractiveContent { get => GetValue(InteractiveContentProperty); set => SetValue(InteractiveContentProperty, value); }
 
+    /// <summary>The player's size for the layout-mode tag ("115%"); empty at the default size.</summary>
+    public string ScaleText { get => GetValue(ScaleTextProperty); private set => SetValue(ScaleTextProperty, value); }
+
     /// <summary>Raised when the player moves, resizes or resets the panel (null = reset).</summary>
     public event Action<MovablePanel, PanelPlacement?>? PlacementChanged;
 
@@ -113,6 +118,7 @@ public sealed class MovablePanel : ContentControl
 
     private void ApplyScale()
     {
+        ScaleText = PanelSnap.ScaleText(_scale);
         if (_scaler is not null)
         {
             _scaler.LayoutTransform = Math.Abs(_scale - 1) < 0.001 ? null : new ScaleTransform(_scale, _scale);
@@ -254,8 +260,9 @@ public sealed class MovablePanel : ContentControl
         }
 
         var position = e.GetPosition(surface);
-        var left = Math.Clamp(_originStart.X + (position.X - _dragStart.X), 0, Math.Max(0, surface.Bounds.Width - Bounds.Width));
-        var top = Math.Clamp(_originStart.Y + (position.Y - _dragStart.Y), 0, Math.Max(0, surface.Bounds.Height - Bounds.Height));
+        // Edges and the centre line pull the panel in, so panels line up without pixel hunting.
+        var left = Math.Clamp(PanelSnap.Snap(_originStart.X + (position.X - _dragStart.X), Bounds.Width, surface.Bounds.Width), 0, Math.Max(0, surface.Bounds.Width - Bounds.Width));
+        var top = Math.Clamp(PanelSnap.Snap(_originStart.Y + (position.Y - _dragStart.Y), Bounds.Height, surface.Bounds.Height), 0, Math.Max(0, surface.Bounds.Height - Bounds.Height));
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         Margin = new Thickness(left, top, 0, 0);
