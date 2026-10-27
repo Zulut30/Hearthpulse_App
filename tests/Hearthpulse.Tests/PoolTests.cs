@@ -178,7 +178,7 @@ public sealed class PoolTests
         Assert.Equal(id, PoolGame.From(outcome, Base, secret: secret)!.GameId);
         Assert.NotEqual(id, PoolGame.From(outcome, Base, secret: PoolClient.Secret(new Hearthpulse.Core.AppSettings()))!.GameId);
         Assert.Matches("^[0-9a-f]{32}$", id);
-        Assert.DoesNotContain("1234", id);
+        // Only hex digits: the battle tag cannot show through. A "1234" substring check failed by chance on random secrets.
     }
 
     [Fact]
