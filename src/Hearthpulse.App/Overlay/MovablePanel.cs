@@ -185,8 +185,12 @@ public sealed class MovablePanel : ContentControl
         var content = Content as FrameworkElement;
         var width = Math.Max(ActualWidth, content is { Width: > 0 } ? content.Width + content.Margin.Left + content.Margin.Right : 0);
         var height = Math.Max(Math.Max(ActualHeight, _contentHeight), content is { Height: > 0 } ? content.Height + content.Margin.Top + content.Margin.Bottom : 0);
-        var left = Math.Clamp(saved.X, 0, Math.Max(0, surface.ActualWidth - (width * _scale.ScaleX)));
-        var top = Math.Clamp(saved.Y, 0, Math.Max(0, surface.ActualHeight - (height * _scale.ScaleY)));
+        // Fit sets the surface size before the next layout pass: ActualWidth is still the old size (a panel applied
+        // right after an overlay-scale change was clamped to the smaller surface and stayed there).
+        var surfaceWidth = double.IsNaN(surface.Width) ? surface.ActualWidth : surface.Width;
+        var surfaceHeight = double.IsNaN(surface.Height) ? surface.ActualHeight : surface.Height;
+        var left = Math.Clamp(saved.X, 0, Math.Max(0, surfaceWidth - (width * _scale.ScaleX)));
+        var top = Math.Clamp(saved.Y, 0, Math.Max(0, surfaceHeight - (height * _scale.ScaleY)));
         var margin = new Thickness(left, top, 0, 0);
         if (Margin != margin)
         {
