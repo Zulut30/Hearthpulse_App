@@ -11,6 +11,11 @@
                 <ResourceDictionary Source="/Hearthpulse;component/Main/Stats/StatsResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
+            <!-- The card lists: only the rows near the page's viewport are built -->
+            <ItemsPanelTemplate x:Key="PageRows">
+                <c:PageRowsPanel />
+            </ItemsPanelTemplate>
+
             <!-- Card cell: cost gem, round art, name, "few games" tag -->
             <DataTemplate x:Key="CardCell" DataType="{x:Type d:DeckCardStatRow}">
                 <Grid>
@@ -553,7 +558,7 @@
                     <TextBlock Grid.Column="6" Text="{i:Loc Deck.Mulligan.MetaKept}" Style="{StaticResource Head}" Foreground="{StaticResource Faint}" ToolTip="{i:Loc Deck.Mulligan.MetaKeptTip}" />
                     <TextBlock Grid.Column="7" Text="{i:Loc Deck.Mulligan.MetaWr}" Style="{StaticResource Head}" Foreground="{StaticResource Faint}" ToolTip="{i:Loc Deck.Mulligan.MetaWrTip}" />
                 </Grid>
-                <ItemsControl ItemsSource="{Binding CardRows}">
+                <ItemsControl ItemsSource="{Binding CardRows}" ItemsPanel="{StaticResource PageRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type d:DeckCardStatRow}">
                             <Border Style="{StaticResource StatsRow}">
@@ -610,7 +615,7 @@
                     <TextBlock Grid.Column="4" Text="{i:Loc Deck.Cards.WrPlayed}" Style="{StaticResource Head}" ToolTip="{i:Loc Deck.Cards.WrTip}" />
                     <TextBlock Grid.Column="5" Text="{i:Loc Deck.Cards.AvgTurn}" Style="{StaticResource Head}" ToolTip="{i:Loc Deck.Cards.AvgTurnTip}" />
                 </Grid>
-                <ItemsControl ItemsSource="{Binding CardRows}">
+                <ItemsControl ItemsSource="{Binding CardRows}" ItemsPanel="{StaticResource PageRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type d:DeckCardStatRow}">
                             <Border Style="{StaticResource StatsRow}">
