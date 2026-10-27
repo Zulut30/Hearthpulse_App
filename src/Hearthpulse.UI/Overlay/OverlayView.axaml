@@ -811,7 +811,7 @@
             <Grid Name="Surface" Width="1920" Height="1080" Classes.marking="{Binding ShowBestBadges}">
 
                 <!-- ============ Constructed: your deck (right) ============ -->
-                <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,64,12,0">
+                <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,12,0">
                     <Border Classes="overlayCard" Width="252">
                         <StackPanel>
                             <StackPanel Margin="12,10,12,8">
@@ -832,7 +832,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Constructed: opponent (left) ============ -->
-                <o:MovablePanel Id="opponent" Title="{i:Loc Overlay.Common.Opponent}" Shown="{Binding ShowOpponent}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,64,0,0">
+                <o:MovablePanel Id="opponent" Title="{i:Loc Overlay.Common.Opponent}" Shown="{Binding ShowOpponent}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,76,0,0">
                     <Border Classes="overlayCard" Width="214">
                         <StackPanel Margin="12,10,12,10">
                             <Grid ColumnDefinitions="Auto,*">
@@ -899,7 +899,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Constructed: counters (bottom-left) ============ -->
-                <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,170">
+                <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,110">
                     <Border x:Name="CountersCard" Classes="overlayCard" Width="214" o:OverlayHit.Interactive="True">
                         <!-- One value column for every row, so the progress under each title ends at the same place -->
                         <StackPanel Margin="9,8,9,7" Grid.IsSharedSizeScope="True">
@@ -943,13 +943,13 @@
                 </o:MovablePanel>
 
                 <!-- ============ Constructed: card pool of a Discover / random generator ============ -->
-                <o:MovablePanel Id="card-pool" Title="{i:Loc Overlay.Panel.CardPool}" Shown="{Binding ShowCardPoolPanel}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,64,0,0">
+                <o:MovablePanel Id="card-pool" Title="{i:Loc Overlay.Panel.CardPool}" Shown="{Binding ShowCardPoolPanel}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,76,0,0">
                     <o:CardPoolPanel x:Name="CardPool" />
                 </o:MovablePanel>
 
                 <!-- ============ Constructed: card pool browser (every card; right-click on the pool panel) ============ -->
                 <!-- Left edge by default: on the right it would cover the End Turn button. -->
-                <o:MovablePanel Id="card-pool-browser" Title="{i:Loc Overlay.Panel.CardPoolBrowser}" Shown="{Binding CardPoolBrowserOpen}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,8,0,0">
+                <o:MovablePanel Id="card-pool-browser" Title="{i:Loc Overlay.Panel.CardPoolBrowser}" Shown="{Binding CardPoolBrowserOpen}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="248,148,0,0">
                     <o:CardPoolBrowser />
                 </o:MovablePanel>
 
@@ -1127,7 +1127,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: game plan (right) ============ -->
-                <o:MovablePanel Id="plan" Title="{i:Loc Overlay.Plan.Title}" Shown="{Binding ShowComp}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,66,12,0">
+                <o:MovablePanel Id="plan" Title="{i:Loc Overlay.Plan.Title}" Shown="{Binding ShowComp}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,148,12,0">
                     <Border Classes="overlayCard" Width="252" o:OverlayHit.Interactive="True">
                         <DockPanel>
                             <Grid DockPanel.Dock="Top" Margin="12,9,6,0">
@@ -1303,7 +1303,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Arena draft: deck so far, curve, average score, class win rates (left) ============ -->
-                <o:MovablePanel Id="arena-draft" Title="{i:Loc Arena.Panel.Title}" Hint="{i:Loc Overlay.Layout.AppearsInArenaDraft}" Shown="{Binding ShowArenaDraft}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,64,0,0">
+                <o:MovablePanel Id="arena-draft" Title="{i:Loc Arena.Panel.Title}" Hint="{i:Loc Overlay.Layout.AppearsInArenaDraft}" Shown="{Binding ShowArenaDraft}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,148,0,0">
                     <o:ArenaDraftPanel />
                 </o:MovablePanel>
 

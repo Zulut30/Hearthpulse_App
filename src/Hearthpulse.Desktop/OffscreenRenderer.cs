@@ -55,6 +55,8 @@ internal static partial class OffscreenRenderer
     {
         Directory.CreateDirectory(folder);
         var settings = AppSettings.Load();
+        // The default panel spots, not the layout saved in the copied data folder: renders compare across runs and PCs.
+        settings.Panels.Clear();
         using var host = new AppHost(settings, rendering: true);
         await host.InitializeAsync(watchLogs: false);
         await host.LoadMetaAsync();
