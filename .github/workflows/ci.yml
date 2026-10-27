@@ -1,4 +1,4 @@
-# Builds every project and runs the tests on each push to main and each pull request.
+# Builds every project and runs the tests on each push to main and each pull request (Windows, Linux, macOS).
 # Releases (installers) are made by release.yml when a version tag like v0.8.0 is pushed.
 name: CI
 
@@ -81,8 +81,10 @@ jobs:
           name: test-results-windows
           path: TestResults
 
+  # Linux and macOS: the tests, then the self-contained app as the installers ship it (native SQLite, Skia, HarfBuzz for
+  # the runtime identifier), started for real with an empty data folder: windows, tray, overlay platform, card data.
   linux:
-    name: Linux (cross-platform app and tests)
+    name: Linux (cross-platform app, tests and a real start)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +92,43 @@ jobs:
         with:
           dotnet-version: 10.0.x
       # The WPF app targets Windows only; the Avalonia app and the tests cover Linux.
-      - name: Build the cross-platform app
-        run: dotnet build src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj -c Release
+      - name: Publish the cross-platform app (linux-x64)
+        run: dotnet publish src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj -c Release -r linux-x64 --self-contained -o publish
       - name: Tests
         run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj -c Release
+      - name: Start the app
+        shell: bash
+        timeout-minutes: 4
+        run: |
+          command -v xvfb-run >/dev/null || sudo apt-get install -y --no-install-recommends xvfb
+          export HEARTHPULSE_DATA="$RUNNER_TEMP/hearthpulse-data"
+          xvfb-run -a ./publish/Hearthpulse --smoke-test | tee smoke.txt
+          grep -q "start-up done" smoke.txt
+      - name: App log
+        if: always()
+        shell: bash
+        run: cat "$RUNNER_TEMP/hearthpulse-data/hearthpulse.log" 2>/dev/null || echo "no log"
+
+  macos:
+    name: macOS (cross-platform app, tests and a real start)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish the cross-platform app (osx-arm64)
+        run: dotnet publish src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj -c Release -r osx-arm64 --self-contained -o publish
+      - name: Tests
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj -c Release
+      - name: Start the app
+        shell: bash
+        timeout-minutes: 4
+        run: |
+          export HEARTHPULSE_DATA="$RUNNER_TEMP/hearthpulse-data"
+          ./publish/Hearthpulse --smoke-test | tee smoke.txt
+          grep -q "start-up done" smoke.txt
+      - name: App log
+        if: always()
+        shell: bash
+        run: cat "$RUNNER_TEMP/hearthpulse-data/hearthpulse.log" 2>/dev/null || echo "no log"

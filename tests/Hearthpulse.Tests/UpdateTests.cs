@@ -67,6 +67,17 @@ public sealed class UpdateTests
     public void Asset_names_match_the_released_files(UpdateTarget target, string architecture, string flavor, string expected) =>
         Assert.Equal(expected, UpdateService.AssetName("0.5.0", target, architecture, flavor));
 
+    // The Linux package follows how this copy was installed, not the distribution: a tar.gz unpacked on Ubuntu must not
+    // be offered a .deb (opening it installed a second copy).
+    [Theory]
+    [InlineData("/opt/hearthpulse/app/", "/var/lib/dpkg/info/hearthpulse.list", "deb")]
+    [InlineData("/opt/hearthpulse/app/", "/usr/share/applications/hearthpulse.desktop", "rpm")]
+    [InlineData("/opt/hearthpulse/app/", "/usr/local/share/applications/hearthpulse.desktop", "")]
+    [InlineData("/home/player/.local/share/hearthpulse/app/", "/var/lib/dpkg/info/hearthpulse.list", "")]
+    [InlineData("/home/player/Downloads/Hearthpulse-0.13.0-linux-x64/app/", "/usr/share/applications/hearthpulse.desktop", "")]
+    public void The_linux_package_follows_how_this_copy_was_installed(string appDirectory, string existingFile, string expected) =>
+        Assert.Equal(expected, UpdateService.LinuxFlavor(appDirectory, path => path == existingFile));
+
     [Fact]
     public void The_reply_for_this_platform_gives_a_download_url()
     {

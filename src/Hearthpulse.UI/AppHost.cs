@@ -287,10 +287,11 @@ public sealed partial class AppHost : IDisposable
                     var check = await UpdateService.CheckForUpdateAsync(Http);
                     var info = check.Update;
 
-                    // The portable version never installs anything: it only says a new version is out.
-                    if (info is not null && AppPaths.IsPortable)
+                    // The portable version and an AppImage never install anything: they only say a new version is out.
+                    if (info is not null && UpdateService.NotifyOnly)
                     {
-                        Notification?.Invoke(Loc.T("Host.Update.AvailableTitle"), Loc.F("Host.Update.AvailablePortable", info.Version));
+                        var text = UpdateService.IsAppImage ? "Host.Update.AvailableAppImage" : "Host.Update.AvailablePortable";
+                        Notification?.Invoke(Loc.T("Host.Update.AvailableTitle"), Loc.F(text, info.Version));
                         return;
                     }
 

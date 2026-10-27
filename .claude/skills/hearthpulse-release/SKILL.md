@@ -22,7 +22,9 @@ The version must match `^\d+\.\d+\.\d+$` (a leading `v` is stripped).
 
 It publishes into the repository the workflow runs in. Verify `git remote -v` and the intended GitHub repository
 before publishing: the updater is configured for `Zulut30/Hearthpulse_App`. CI (`ci.yml`) is separate: build + tests
-on Windows/Linux and the pool API/Python skill checks on Linux for every push to `main` and every PR.
+on Windows/Linux/macOS (Linux and macOS also publish the self-contained app and start it with `--smoke-test`, under
+`xvfb-run` on Linux: exit 0 only when the card data loaded) and the pool API/Python skill checks on Linux for every push
+to `main` and every PR.
 
 `installer/RELEASE_NOTES.md` exists and supplies the release body. Update it for the version being built and check
 that it describes the actual artifacts and changes before publishing.

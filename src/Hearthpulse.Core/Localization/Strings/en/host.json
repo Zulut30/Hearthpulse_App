@@ -11,6 +11,7 @@
   "Host.Update.AvailableTitle": "Hearthpulse update available",
   "Host.Update.AvailableZip": "{0} is out. Get the portable zip from the GitHub releases page.",
   "Host.Update.AvailablePortable": "{0} is out. Download the new portable version from GitHub.",
+  "Host.Update.AvailableAppImage": "{0} is out. Download the new AppImage from GitHub.",
   "Host.Update.ReadyTitle": "Hearthpulse update ready",
   "Host.Update.Ready": "{0} is downloaded — it installs when you close Hearthpulse.",
   "Host.Update.DownloadFailed": "Version {0} could not be downloaded; Hearthpulse tries again later.",
