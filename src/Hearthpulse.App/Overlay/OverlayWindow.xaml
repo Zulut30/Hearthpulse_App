@@ -422,7 +422,7 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Grid Width="44" Height="44" VerticalAlignment="Center">
+                        <Grid Width="44" Height="44" VerticalAlignment="Center" Background="Transparent" ToolTip="{Binding TierTip}" o:OverlayHit.Interactive="True">
                             <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
                             <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Ink}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -480,7 +480,7 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Grid Width="40" Height="40" VerticalAlignment="Center">
+                        <Grid Width="40" Height="40" VerticalAlignment="Center" Background="Transparent" ToolTip="{Binding TierTip}" o:OverlayHit.Interactive="True">
                             <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
                             <TextBlock Text="{Binding Tier}" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource Ink}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -816,6 +816,9 @@
                                     <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
                                     <!-- The size the player scrolled to, so two panels can be given the same one -->
                                     <TextBlock x:Name="ScaleTag" Text="{TemplateBinding ScaleText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0" />
+                                    <!-- Ctrl held during a game: what the mouse does now -->
+                                    <TextBlock x:Name="ArmedHint" Text="{i:Loc Overlay.Layout.DragHint}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="8,0,0,0"
+                                               Visibility="Collapsed" />
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -832,6 +835,13 @@
                                 <Setter TargetName="Shield" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Frame" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Tag" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <!-- Ctrl over a panel during a game: the same frame and tag, and the shield takes the whole panel for the drag -->
+                            <Trigger Property="IsDragArmed" Value="True">
+                                <Setter TargetName="Shield" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Frame" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Tag" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="ArmedHint" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours.
                                  Only the placeholder itself takes the mouse, so a wide row's empty width never hides its neighbours. -->
@@ -1002,9 +1012,9 @@
                 <o:TurnTimerPanel DataContext="{Binding MyTimer}" />
             </o:MovablePanel>
 
-            <!-- ============ Constructed: marks under the opponent's hand fan (top centre; move and scale it onto the cards) ============ -->
-            <o:MovablePanel Id="opponent-hand" PlaceholderAlignment="Center" Title="{i:Loc Overlay.Panel.OpponentHand}" MinWidth="{x:Static o:OverlayViewModel.HandPanelWidth}" Shown="{Binding ShowHandMarks}"
-                            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,92,0,0">
+            <!-- ============ Constructed: marks on the opponent's hand fan (hangs from the top centre; each mark follows its card) ============ -->
+            <o:MovablePanel Id="opponent-hand-fan" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.OpponentHand}" MinWidth="{x:Static o:OverlayViewModel.HandPanelWidth}" Shown="{Binding ShowHandMarks}"
+                            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0">
                 <o:OpponentHandPanel />
             </o:MovablePanel>
 
@@ -1159,25 +1169,13 @@
 
             <!-- ============ Battlegrounds: hero pick badges, one above each hero (HDT: pitch 340, +7 x) ============ -->
             <o:MovablePanel Id="hero-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.HeroPick}" MinWidth="1360" Shown="{Binding ShowHeroPick}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,212,0,0">
-                <StackPanel>
-                    <!-- One line: where the numbers come from and what the tier letters mean -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
-                        <TextBlock Text="{Binding MetaSource}" FontSize="10" Foreground="{StaticResource Faint}" />
-                        <TextBlock Text="{i:Loc Overlay.Tier.Heroes}" FontSize="10" Foreground="{StaticResource Faint}" Margin="12,0,0,0" />
-                    </StackPanel>
-                    <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
-                </StackPanel>
+                <!-- Where the numbers come from and what the tier letters mean: the tier badge's tooltip -->
+                <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: trinket pick badges (HDT: pitch 277, +10 x) ============ -->
             <o:MovablePanel Id="trinket-row" PlaceholderAlignment="Right" Title="{i:Loc Overlay.Panel.TrinketPick}" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
-                        <TextBlock Text="{i:Loc Overlay.Trinket.Source}" FontSize="10" Foreground="{StaticResource Faint}" />
-                        <TextBlock Text="{i:Loc Overlay.Tier.Heroes}" FontSize="10" Foreground="{StaticResource Faint}" Margin="12,0,0,0" />
-                    </StackPanel>
-                    <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
-                </StackPanel>
+                <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: buy hints over the tavern row (HDT: row top 0.297H, pitch 138) ============ -->
@@ -1431,8 +1429,6 @@
                             <ItemsControl ItemsSource="{Binding OwnedTrinkets}" ItemsPanel="{StaticResource WrapRow}" ItemTemplate="{StaticResource PillTemplate}" />
                         </StackPanel>
 
-                        <TextBlock DockPanel.Dock="Bottom" Text="{Binding MetaSource}" FontSize="9.5" Foreground="{StaticResource Faint}" Margin="12,0,12,8" TextWrapping="Wrap" />
-
                         <ScrollViewer x:Name="PlanBody" MaxHeight="520" VerticalScrollBarVisibility="Auto" Padding="12,0,12,8">
                             <StackPanel>
                                 <c:Ornament Text="{i:Loc Overlay.Plan.CompCards}" Size="10.5" Margin="0,0,0,6" Visibility="{Binding TargetCards, Converter={StaticResource Vis}}"
@@ -1592,6 +1588,7 @@
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{i:Loc Overlay.Layout.Title}" FontSize="14" FontWeight="SemiBold" />
                         <TextBlock Text="{i:Loc Overlay.Layout.Hint}" FontSize="11.5" Foreground="{StaticResource Muted}" />
+                        <TextBlock Text="{i:Loc Overlay.Layout.InGameHint}" FontSize="11.5" Foreground="{StaticResource Muted}" />
                     </StackPanel>
                     <Button Style="{StaticResource GhostButton}" Content="{i:Loc Overlay.Layout.ResetAll}" Margin="18,0,8,0" Command="{Binding ResetLayout}" Focusable="False" />
                     <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Overlay.Layout.Done}" Command="{Binding FinishLayout}" Focusable="False"

@@ -75,6 +75,8 @@ internal sealed partial class WindowsOverlayPlatform : IOverlayPlatform
 
     public (bool Left, bool Right) MouseButtons() => ((GetAsyncKeyState(0x01) & 0x8000) != 0, (GetAsyncKeyState(0x02) & 0x8000) != 0);
 
+    public bool ControlDown() => (GetAsyncKeyState(0x11 /* VK_CONTROL */) & 0x8000) != 0;
+
     public void SetClickThrough(bool clickThrough)
     {
         if (clickThrough == _clickThrough || _overlay == IntPtr.Zero)

@@ -21,6 +21,8 @@
 
   "Overlay.Layout.Title": "Layout mode",
   "Overlay.Layout.Hint": "Drag panels anywhere, they snap to the edges and the centre · scroll to resize · right-click resets one",
+  "Overlay.Layout.InGameHint": "During a game: hold Ctrl over a panel and drag it, scroll to resize",
+  "Overlay.Layout.DragHint": "drag to move · scroll to resize",
   "Overlay.Layout.Shortcuts": "Ctrl+Shift+L closes layout mode · Ctrl+Shift+H hides the overlay",
   "Overlay.Layout.ResetAll": "Reset all",
   "Overlay.Layout.Done": "Done",

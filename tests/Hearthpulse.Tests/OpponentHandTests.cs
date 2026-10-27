@@ -304,36 +304,48 @@ public sealed class OpponentHandTests
     [InlineData(4)]
     [InlineData(7)]
     [InlineData(10)]
-    public void Marks_spread_under_the_fan_symmetrically(int count)
+    public void Marks_follow_the_fan_evenly_around_its_centre(int count)
     {
         var positions = OpponentHandFan.Positions(count);
 
         Assert.Equal(count, positions.Count);
-        Assert.InRange(positions[^1].X - positions[0].X, 0, OpponentHandFan.MaxSpan + 0.001);
-        for (var i = 0; i < count; i++)
-        {
-            Assert.Equal(-positions[i].X, positions[count - 1 - i].X, 6);
-            Assert.Equal(positions[i].Y, positions[count - 1 - i].Y, 6);
-        }
-
+        Assert.InRange(positions[^1].X - positions[0].X, 0, OpponentHandFan.MaxSpan);
+        Assert.Equal(OpponentHandFan.FanCentre, (positions[0].X + positions[^1].X) / 2, 6);
         for (var i = 1; i < count; i++)
         {
-            Assert.True(positions[i].X > positions[i - 1].X);
-            Assert.True(positions[i].X - positions[i - 1].X <= OpponentHandFan.CardPitch + 0.001);
+            var pitch = positions[i].X - positions[i - 1].X;
+            Assert.InRange(pitch, 0.001, OpponentHandFan.CardPitch + 0.001);
+            Assert.Equal(positions[1].X - positions[0].X, pitch, 6);
         }
 
-        // The middle of the fan hangs lowest.
-        Assert.Equal(positions.Max(p => p.Y), positions[(count - 1) / 2].Y, 6);
+        // The card edges hang from the top of the window: lowest near the middle, rising to both ends, the left end highest.
+        Assert.All(positions, p => Assert.InRange(p.Y, 0, OpponentHandFan.EdgeDepth));
+        var lowest = positions.ToList().FindIndex(p => p.Y == positions.Max(q => q.Y));
+        Assert.InRange(lowest, (count - 1) / 2, (count + 1) / 2);
+        for (var i = 0; i < count - 1; i++)
+        {
+            Assert.True(i < lowest ? positions[i].Y <= positions[i + 1].Y : positions[i].Y >= positions[i + 1].Y);
+        }
+
+        Assert.True(positions[0].Y <= positions[^1].Y);
     }
 
     [Fact]
-    public void A_full_hand_fills_the_whole_fan_and_a_small_one_keeps_the_pitch()
+    public void A_full_hand_squeezes_and_a_small_one_keeps_the_pitch()
     {
         var full = OpponentHandFan.Positions(10);
         var small = OpponentHandFan.Positions(3);
 
-        Assert.Equal(OpponentHandFan.MaxSpan, full[^1].X - full[0].X, 6);
+        // Ten cards span about a third of the window height; three keep the wide pitch.
+        Assert.InRange(full[^1].X - full[0].X, 325, 340);
         Assert.Equal(OpponentHandFan.CardPitch, small[1].X - small[0].X, 6);
+        // Each added card narrows the pitch, so marks never drift apart from the cards as the hand grows.
+        for (var count = 3; count < 10; count++)
+        {
+            Assert.True(OpponentHandFan.Span(count + 1) / count < OpponentHandFan.Span(count) / (count - 1));
+            Assert.True(OpponentHandFan.Span(count + 1) > OpponentHandFan.Span(count));
+        }
+
         Assert.Empty(OpponentHandFan.Positions(0));
     }
 }

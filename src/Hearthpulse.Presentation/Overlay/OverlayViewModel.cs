@@ -541,7 +541,8 @@ public sealed partial class OverlayViewModel : Observable
 
         // Lobby-adjusted numbers only mean something once the tribes are known.
         var lobbyKnown = view.Races.Count >= 4;
-        Replace(nameof(HeroPicks), view.HeroOptions, h => $"{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = !view.HeroOptions.Any(h => h.Meta is not null) ? [] : view.HeroOptions
+        var heroTierTip = string.Join("\n", new[] { view.MetaSource ?? string.Empty, Loc.T("Overlay.Tier.Heroes") }.Where(s => s.Length > 0));
+        Replace(nameof(HeroPicks), view.HeroOptions, h => $"{heroTierTip}{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = !view.HeroOptions.Any(h => h.Meta is not null) ? [] : view.HeroOptions
             .Select(h =>
             {
                 var adjusted = h.Meta is not null && lobbyKnown;
@@ -558,10 +559,11 @@ public sealed partial class OverlayViewModel : Observable
                     h.Stats is { Games: > 0 } s ? Loc.P("Overlay.Hero.Personal", s.Games, s.AveragePlace) : string.Empty,
                     string.Join(" · ", (h.TopComps ?? Array.Empty<string>()).Take(2)),
                     highlight && h.Recommended,
-                    h.Meta is not null);
+                    h.Meta is not null) { TierTip = heroTierTip };
             })
             .ToList());
 
+        var trinketTierTip = Loc.T("Overlay.Trinket.Source") + "\n" + Loc.T("Overlay.Tier.Heroes");
         Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{t.CardId}{t.Meta?.AveragePlacement:0.000}{highlight && t.Recommended}", () => TrinketPicks = !view.TrinketOptions.Any(t => t.Meta is not null) ? [] : view.TrinketOptions
             .Select(t => new TrinketBadge(
                 t.CardId,
@@ -570,7 +572,7 @@ public sealed partial class OverlayViewModel : Observable
                 t.Meta is null ? "—" : t.Meta.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
                 t.Meta is null ? Loc.T("Overlay.Badge.NoData") : Loc.F("Overlay.Badge.PickRate", t.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)),
                 highlight && t.Recommended,
-                t.Meta is not null))
+                t.Meta is not null) { TierTip = trinketTierTip })
             .ToList());
 
         Replace(nameof(OwnedTrinkets), view.Trinkets, t => t, () => OwnedTrinkets = view.Trinkets.Select(_cards.NameOf).ToList());
@@ -663,11 +665,13 @@ public sealed partial class OverlayViewModel : Observable
         PinTooltip = manual
             ? Loc.T("Overlay.Plan.ChosenTip")
             : Loc.T("Overlay.Plan.LockTip");
-        PlanTooltip = manual
+        var planTip = manual
             ? Loc.T("Overlay.Plan.ManualTip")
             : ShowBestBadges
                 ? Loc.T("Overlay.Plan.SuggestTip")
                 : Loc.T("Overlay.Plan.AutoTip");
+        // The data source goes under the explanation rather than a footnote at the bottom of the panel.
+        PlanTooltip = string.IsNullOrEmpty(view.MetaSource) ? planTip : planTip + "\n\n" + view.MetaSource;
         CompRowTooltip = manual ? Loc.T("Overlay.Plan.RowChooseTip") : Loc.T("Overlay.Plan.RowSwitchTip");
         CompListTitle = Target is not null
             ? manual ? Loc.T("Overlay.Plan.OtherChoose") : Loc.T("Overlay.Plan.OtherSwitch")

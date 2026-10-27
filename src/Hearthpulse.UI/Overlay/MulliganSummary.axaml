@@ -4,8 +4,8 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              x:Class="Hearthpulse.UI.Overlay.MulliganSummary"
              x:DataType="o:OverlayViewModel">
-    <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps,
-         the source and slice in small type; the estimate and curve notes in the tooltip. Above the Confirm button.
+    <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps;
+         the source and slice, the estimate and curve notes in the tooltip. Above the Confirm button.
          DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
@@ -27,8 +27,6 @@
                        FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
             <TextBlock Text="&#xF02FD;" Classes="icon" FontSize="12" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
                        IsVisible="{Binding MulliganHasWarnings}" />
-            <TextBlock Text="{Binding MulliganSource}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" Margin="10,0,0,0"
-                       IsVisible="{Binding MulliganSource, Converter={StaticResource Truthy}}" />
         </StackPanel>
     </Border>
 </UserControl>

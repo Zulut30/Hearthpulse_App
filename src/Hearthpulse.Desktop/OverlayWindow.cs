@@ -144,8 +144,10 @@ internal sealed class OverlayWindow : Window
             local = new Point((p.X - r.X) / scaling, (p.Y - r.Y) / scaling);
         }
 
-        // In layout mode the whole overlay takes the mouse so panels can be dragged anywhere.
-        var interactive = local is { } point && (vm.LayoutEditing || _view.IsInteractiveAt(point));
+        // In layout mode the whole overlay takes the mouse so panels can be dragged anywhere; during a game only a panel
+        // under the pointer with Ctrl held (or one being dragged) does.
+        var armed = _view.UpdateDragArm(local, _platform.ControlDown());
+        var interactive = local is { } point && (vm.LayoutEditing || armed || _view.IsInteractiveAt(point));
         _platform.SetClickThrough(!interactive);
         if (!interactive)
         {

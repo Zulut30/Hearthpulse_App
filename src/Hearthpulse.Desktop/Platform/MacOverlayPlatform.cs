@@ -131,6 +131,9 @@ internal sealed class MacOverlayPlatform : IOverlayPlatform
     // accessibility permission.
     public (bool Left, bool Right) MouseButtons() => (CGEventSourceButtonState(0, 0), CGEventSourceButtonState(0, 1));
 
+    // kCGEventSourceStateCombinedSessionState, kCGEventFlagMaskControl
+    public bool ControlDown() => (CGEventSourceFlagsState(0) & 0x40000) != 0;
+
     public void SetClickThrough(bool clickThrough)
     {
         if (_window == IntPtr.Zero || clickThrough == _clickThrough)
@@ -221,6 +224,7 @@ internal sealed class MacOverlayPlatform : IOverlayPlatform
     [DllImport(CoreGraphics)]
     [return: MarshalAs(UnmanagedType.I1)]
     private static extern bool CGEventSourceButtonState(int stateId, uint button);
+    [DllImport(CoreGraphics)] private static extern ulong CGEventSourceFlagsState(int stateId);
     [DllImport(CoreGraphics)] private static extern int CGGetActiveDisplayList(uint max, [Out] uint[] displays, out uint count);
     [DllImport(CoreGraphics)] private static extern CGRect CGDisplayBounds(uint display);
     [DllImport(CoreFoundation)] private static extern nint CFArrayGetCount(IntPtr array);

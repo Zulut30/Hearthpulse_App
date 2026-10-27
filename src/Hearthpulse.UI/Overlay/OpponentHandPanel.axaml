@@ -5,9 +5,10 @@
              xmlns:c="using:Hearthpulse.UI.Controls"
              x:Class="Hearthpulse.UI.Overlay.OpponentHandPanel"
              x:DataType="o:OverlayViewModel"
-             Width="{x:Static o:OverlayViewModel.HandPanelWidth}" Height="62">
-    <!-- Marks under the opponent's hand fan: the turn each card came in ("M" = opening hand), the Coin, and the portrait
-         of the card when it is known or of the card that created it. The view model places each mark under its card. -->
+             Width="{x:Static o:OverlayViewModel.HandPanelWidth}" Height="{x:Static o:OverlayViewModel.HandPanelHeight}">
+    <!-- Marks on the opponent's hand fan: the turn each card came in ("M" = opening hand), the Coin, and the portrait
+         of the card when it is known or of the card that created it. The panel hangs from the top of the window and the
+         view model puts each mark on the visible edge of its card, following the fan as it grows (OpponentHandFan). -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
     </UserControl.Resources>
@@ -20,20 +21,20 @@
         <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="o:HandMark">
                 <Border Width="{x:Static o:OverlayViewModel.HandMarkWidth}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="{Binding Offset}"
-                        Padding="0,3,0,4" CornerRadius="8" Background="{StaticResource OverlayPanel}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
+                        Padding="0,1,0,2" CornerRadius="6" Background="{StaticResource OverlayPanel}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
                         o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding Hint}" c:CardPreview.CardId="{Binding PreviewCardId}"
                         c:CardPreview.Placement="Below">
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="{Binding Label}" Classes="number" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center"
+                        <TextBlock Text="{Binding Label}" Classes="number" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center"
                                    IsVisible="{Binding Label, Converter={StaticResource Truthy}}" />
-                        <Panel Width="26" Height="26" Margin="0,2,0,0" IsVisible="{Binding PortraitId, Converter={StaticResource Truthy}}">
-                            <Border Margin="2" CornerRadius="11" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding PortraitId}" />
-                            <Ellipse Stroke="{StaticResource Accent}" StrokeThickness="1.5" IsVisible="{Binding !Created}" />
-                            <Ellipse Stroke="{StaticResource Info}" StrokeThickness="1.5" IsVisible="{Binding Created}" />
+                        <Panel Width="20" Height="20" Margin="0,1,0,0" IsVisible="{Binding PortraitId, Converter={StaticResource Truthy}}">
+                            <Border Margin="1.5" CornerRadius="8.5" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding PortraitId}" />
+                            <Ellipse Stroke="{StaticResource Accent}" StrokeThickness="1.25" IsVisible="{Binding !Created}" />
+                            <Ellipse Stroke="{StaticResource Info}" StrokeThickness="1.25" IsVisible="{Binding Created}" />
                             <!-- Created by this card: the portrait is the creator's, marked with the same glyph as created deck cards -->
-                            <Border Width="13" Height="13" CornerRadius="7" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,-3"
+                            <Border Width="11" Height="11" CornerRadius="5.5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,-3"
                                     Background="{StaticResource OverlayBadgeShade}" IsVisible="{Binding Created}">
-                                <TextBlock Text="&#xF0674;" Classes="icon" FontSize="9" Foreground="{StaticResource Info}"
+                                <TextBlock Text="&#xF0674;" Classes="icon" FontSize="8" Foreground="{StaticResource Info}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                         </Panel>

@@ -24,7 +24,8 @@ public static class OverlayHit
 
 /// <summary>
 /// Overlay panel host the player can drag, resize (mouse wheel) and reset (right-click) while the overlay is in
-/// layout mode. Without a saved placement it keeps the alignment and margin from XAML.
+/// layout mode, and drag or resize during a game while holding Ctrl over it (<see cref="IsDragArmed"/>). Without a
+/// saved placement it keeps the alignment and margin from XAML.
 /// </summary>
 public sealed class MovablePanel : ContentControl
 {
@@ -37,6 +38,8 @@ public sealed class MovablePanel : ContentControl
     public static readonly StyledProperty<bool> ShownProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(Shown));
 
     public static readonly StyledProperty<bool> IsEditingProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(IsEditing));
+
+    public static readonly StyledProperty<bool> IsDragArmedProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(IsDragArmed));
 
     public static readonly StyledProperty<bool> InteractiveContentProperty =
         AvaloniaProperty.Register<MovablePanel, bool>(nameof(InteractiveContent));
@@ -80,6 +83,7 @@ public sealed class MovablePanel : ContentControl
     {
         ShownProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         IsEditingProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
+        IsDragArmedProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         InteractiveContentProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         HintProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
     }
@@ -115,6 +119,17 @@ public sealed class MovablePanel : ContentControl
 
     public bool IsEditing { get => GetValue(IsEditingProperty); set => SetValue(IsEditingProperty, value); }
 
+    /// <summary>
+    /// Set by the overlay while Ctrl is held over this panel outside layout mode: the panel takes the mouse, shows its
+    /// frame and name tag, and moves or resizes like in layout mode. Without Ctrl it lets every click through as before.
+    /// </summary>
+    public bool IsDragArmed { get => GetValue(IsDragArmedProperty); set => SetValue(IsDragArmedProperty, value); }
+
+    /// <summary>The player is dragging the panel right now (the overlay keeps it armed until the button is released).</summary>
+    public bool IsDragging => _dragging;
+
+    private bool CanMove => IsEditing || IsDragArmed;
+
     /// <summary>Whether the content has its own buttons and should receive the mouse outside layout mode.</summary>
     public bool InteractiveContent { get => GetValue(InteractiveContentProperty); set => SetValue(InteractiveContentProperty, value); }
 
@@ -141,8 +156,9 @@ public sealed class MovablePanel : ContentControl
         Classes.Set("editing", IsEditing);
         Classes.Set("placeholder", IsEditing && !Shown);
         Classes.Set("hinted", !string.IsNullOrEmpty(Hint));
-        OverlayHit.SetInteractive(this, IsEditing || InteractiveContent);
-        Cursor = IsEditing ? new Cursor(StandardCursorType.SizeAll) : null;
+        Classes.Set("armed", IsDragArmed && !IsEditing);
+        OverlayHit.SetInteractive(this, CanMove || InteractiveContent);
+        Cursor = CanMove ? new Cursor(StandardCursorType.SizeAll) : null;
     }
 
     /// <summary>
@@ -348,14 +364,15 @@ public sealed class MovablePanel : ContentControl
 
     private void OnPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!IsEditing || Surface is not { } surface)
+        if (!CanMove || Surface is not { } surface)
         {
             return;
         }
 
         if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
         {
-            e.Handled = true;
+            // Right-click resets a panel in layout mode only; during a game it is the game's.
+            e.Handled = IsEditing;
             return;
         }
 
@@ -407,7 +424,7 @@ public sealed class MovablePanel : ContentControl
 
     private void OnWheel(object? sender, PointerWheelEventArgs e)
     {
-        if (!IsEditing)
+        if (!CanMove)
         {
             return;
         }

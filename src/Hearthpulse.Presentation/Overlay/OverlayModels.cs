@@ -30,10 +30,18 @@ public sealed record HeroPickCard(
     string Personal,
     string Comps,
     bool Recommended,
-    bool HasMeta);
+    bool HasMeta)
+{
+    /// <summary>Where the numbers come from and what the tier letters mean, on the tier badge instead of a caption line.</summary>
+    public string TierTip { get; init; } = string.Empty;
+}
 
 /// <summary>Compact stats badge drawn above one trinket during a trinket choice.</summary>
-public sealed record TrinketBadge(string CardId, string Name, string Tier, string Place, string PickRate, bool Recommended, bool HasMeta);
+public sealed record TrinketBadge(string CardId, string Name, string Tier, string Place, string PickRate, bool Recommended, bool HasMeta)
+{
+    /// <summary>Where the numbers come from and what the tier letters mean, on the tier badge instead of a caption line.</summary>
+    public string TierTip { get; init; } = string.Empty;
+}
 
 /// <summary>
 /// One Discover option slot, above its card: rank among the options, community average placement around this

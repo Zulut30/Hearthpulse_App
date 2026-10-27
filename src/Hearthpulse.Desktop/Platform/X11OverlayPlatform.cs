@@ -92,6 +92,10 @@ internal sealed class X11OverlayPlatform : IOverlayPlatform
             ? ((mask & (1u << 8)) != 0, (mask & (1u << 10)) != 0)
             : (false, false);
 
+    // ControlMask
+    public bool ControlDown() =>
+        XQueryPointer(_display, _root, out _, out _, out _, out _, out _, out _, out var mask) != 0 && (mask & (1u << 2)) != 0;
+
     public void SetClickThrough(bool clickThrough)
     {
         if (_overlay == 0 || clickThrough == _clickThrough)

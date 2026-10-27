@@ -203,7 +203,8 @@ public sealed partial class OverlayViewModel
         {
             MulliganSummary = missing;
             MulliganSource = initiative ?? string.Empty;
-            MulliganDetails = Loc.T("Mulligan.NoNumbers");
+            // The source line heads the tooltip: the strip itself carries only the impact.
+            MulliganDetails = string.Join("\n", new[] { MulliganSource, Loc.T("Mulligan.NoNumbers") }.Where(s => s.Length > 0));
             MulliganImpactGood = MulliganImpactBad = MulliganHasWarnings = false;
         }
         else
@@ -224,6 +225,7 @@ public sealed partial class OverlayViewModel
                 .ToList();
             MulliganDetails = string.Join("\n", new[]
             {
+                MulliganSource,
                 Loc.F("Mulligan.AverageHand", vsClass + (initiative is null ? string.Empty : " " + initiative), view.BaseWinRate.ToString("P1", culture)),
                 Loc.F("Mulligan.YourKeeps", impact.Kept, view.Cards.Count, impact.Expected.ToString("P1", culture)),
                 Loc.F("Mulligan.FullMulligan", impact.FullMulligan.ToString("P1", culture), impact.Recommended.ToString("P1", culture)),

@@ -28,6 +28,9 @@ internal interface IOverlayPlatform : IDisposable
     /// <summary>Whether the left and right mouse buttons are down, read globally (the overlay may let clicks through).</summary>
     (bool Left, bool Right) MouseButtons();
 
+    /// <summary>Whether Ctrl is held, read globally (the game has the keyboard): over a panel it lets the panel be dragged.</summary>
+    bool ControlDown();
+
     /// <summary>True lets every click through to the game; false makes the overlay take the mouse.</summary>
     void SetClickThrough(bool clickThrough);
 }
@@ -78,6 +81,8 @@ internal sealed class NoOverlayPlatform : IOverlayPlatform
     public PixelPoint? PointerPosition() => null;
 
     public (bool Left, bool Right) MouseButtons() => (false, false);
+
+    public bool ControlDown() => false;
 
     public void SetClickThrough(bool clickThrough)
     {

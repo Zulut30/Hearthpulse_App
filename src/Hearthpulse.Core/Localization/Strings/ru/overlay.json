@@ -21,6 +21,8 @@
 
   "Overlay.Layout.Title": "Режим расстановки",
   "Overlay.Layout.Hint": "Перетаскивайте панели, они прилипают к краям и центру · колесо меняет размер · правый клик сбрасывает панель",
+  "Overlay.Layout.InGameHint": "Во время игры: зажмите Ctrl над панелью и тяните её, колесо меняет размер",
+  "Overlay.Layout.DragHint": "тяните, чтобы сдвинуть · колесо — размер",
   "Overlay.Layout.Shortcuts": "Ctrl+Shift+L — выйти из расстановки · Ctrl+Shift+H — скрыть оверлей",
   "Overlay.Layout.ResetAll": "Сбросить всё",
   "Overlay.Layout.Done": "Готово",
