@@ -31,6 +31,7 @@ Project skills live in `.claude/skills/`. Start from the one that matches the ta
 | Versions, tags, installers, updater | `hearthpulse-release` |
 | Reviewing a branch | `hearthpulse-review` |
 | Splitting a big task into parallel sessions | `hearthpulse-parallel-work` |
+| Task -> sessions -> merge, push, build, restart, no confirmations | `hearthpulse-ship` |
 
 Agent `hearthpulse-legal` (`.claude/agents/`): ban risk, licences, Blizzard IP and privacy check before a release or
 a merge that touches game memory, input, third-party code/data, paid features or user data. Report goes to
