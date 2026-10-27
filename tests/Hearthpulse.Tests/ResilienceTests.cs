@@ -80,6 +80,31 @@ public sealed class ResilienceTests
     }
 
     [Fact]
+    public void The_size_seen_by_a_read_counts_what_the_read_left_and_a_missing_log_reads_nothing()
+    {
+        using var dir = new TempDir();
+        var power = Path.Combine(dir.Path, "Power.log");
+        var tail = new LogTail("Power.log");
+        tail.Reset(dir.Path, TailStart.Beginning);
+        Assert.Empty(tail.ReadNewLines());
+        Assert.Equal(0, tail.SeenLength);
+
+        File.WriteAllText(power, "one\ntwo\nthree\n");
+        // A read capped at 8 bytes takes two lines and sees the rest still waiting.
+        Assert.Equal(new[] { "one", "two" }, tail.ReadNewLines(maxBytes: 8));
+        Assert.Equal(14, tail.SeenLength);
+        Assert.Equal(6, tail.SeenPendingBytes);
+        Assert.Equal(new[] { "three" }, tail.ReadNewLines());
+        Assert.Equal(0, tail.SeenPendingBytes);
+
+        // Unchanged: nothing new; then growth is picked up on the next read.
+        Assert.Empty(tail.ReadNewLines());
+        File.AppendAllText(power, "four\n");
+        Assert.Equal(new[] { "four" }, tail.ReadNewLines());
+        Assert.Equal(19, tail.SeenLength);
+    }
+
+    [Fact]
     public void Watching_a_running_session_starts_at_the_last_game_and_replays_it_on_resync()
     {
         using var dir = new TempDir();

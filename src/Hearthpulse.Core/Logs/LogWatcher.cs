@@ -18,6 +18,7 @@ public sealed class LogTail
     private readonly string _fileName;
     private string? _path;
     private long _position;
+    private long _seenLength;
     private byte[] _remainder = Array.Empty<byte>();
     private byte[] _buffer = new byte[ReadChunkSize];
 
@@ -53,10 +54,17 @@ public sealed class LogTail
         }
     }
 
+    /// <summary>Size of the file at the last <see cref="ReadNewLines"/> (0 when it was missing), without asking the disk.</summary>
+    public long SeenLength => _seenLength;
+
+    /// <summary>Bytes the last <see cref="ReadNewLines"/> saw but did not read (past its size limit), without asking the disk.</summary>
+    public long SeenPendingBytes => Math.Max(0, _seenLength - _position);
+
     public void Reset(string sessionDir, TailStart start)
     {
         _path = Path.Combine(sessionDir, _fileName);
         _remainder = Array.Empty<byte>();
+        _seenLength = 0;
         _position = start switch
         {
             TailStart.LastGame when File.Exists(_path) => FindLastGameOffset(_path),
@@ -94,14 +102,25 @@ public sealed class LogTail
     public List<string> ReadNewLines(int maxBytes = 8 * 1024 * 1024)
     {
         var lines = new List<string>();
-        if (_path is null || !File.Exists(_path))
+        if (_path is null)
         {
             return lines;
         }
 
         try
         {
+            // One look at the size first. The watcher polls four logs ten times a second all day, and opening each one
+            // (plus the existence and size checks around it) was most of the app's CPU time while idle; a log that did
+            // not grow is not opened. The size is live for a file the game holds open for writing.
+            var info = new FileInfo(_path);
+            _seenLength = info.Exists ? info.Length : 0;
+            if (!info.Exists || _seenLength == _position)
+            {
+                return lines;
+            }
+
             using var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            _seenLength = stream.Length;
             if (stream.Length < _position)
             {
                 _position = 0;
@@ -316,7 +335,8 @@ public sealed class LogWatcher : IDisposable
     /// <summary>Notices a Power.log that stopped growing and reports the watcher's state every 15 seconds.</summary>
     private void Heartbeat(long pending)
     {
-        var size = PowerTail.FileLength;
+        // As seen by this pass's read: one more look at the disk per pass is what the read avoids.
+        var size = PowerTail.SeenLength;
         var now = Environment.TickCount64;
         if (size != _lastPowerSize)
         {
@@ -476,7 +496,7 @@ public sealed class LogWatcher : IDisposable
         var pending = 0L;
         foreach (var tail in _tails)
         {
-            pending += tail.PendingBytes;
+            pending += tail.SeenPendingBytes;
         }
 
         Volatile.Write(ref _pendingBytes, pending);
