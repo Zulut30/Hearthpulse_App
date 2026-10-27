@@ -30,6 +30,8 @@
             </Grid>
             <TextBlock Text="{Binding ArenaDraftTitle}" FontSize="15" FontWeight="SemiBold" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
             <TextBlock Text="{Binding ArenaMode}" FontSize="10.5" Foreground="{StaticResource Muted}" Visibility="{Binding ArenaMode, Converter={StaticResource Vis}}" />
+            <TextBlock Text="{Binding ArenaClassLine}" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap"
+                       Visibility="{Binding ArenaClassLine, Converter={StaticResource Vis}}" />
 
             <!-- Average score of the deck so far and the mana curve, once a card is picked -->
             <StackPanel Visibility="{Binding ArenaHasPicks, Converter={StaticResource Vis}}">

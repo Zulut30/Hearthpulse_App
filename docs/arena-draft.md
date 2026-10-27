@@ -14,7 +14,8 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 - **Overlay panel `arena-draft`** (left edge): run class (or "Choose a hero" / "Choose a hero power"), the run's mode
   ("Underground Arena" / "Normal Arena") once the client told it, picks `n/30`, average ArenaSmith score of the deck so
   far with its tier, mana curve 0..7+ with the buckets of the offered cards lit, the deck's card types
-  ("12 minions · 5 spells · 1 weapon"), class win rates at the hero pick (the offered classes in gold), the cards
+  ("12 minions · 5 spells · 1 weapon"), class win rates at the hero pick (the offered classes in gold), after it the
+  run class's own line under the title ("Win rate 55.2% · #1 of 11 classes · 7+ wins: 15%"), the cards
   picked by cost with their scores. Attribution line "Scores: Hearthpulse data"; on a normal-Arena run a second line
   says the scores come from Underground Arena games (the only slice the server has, see Data).
 - **Arena page** (main window, My Stats Arena): each run row shows "Deck score N" when the run saved a deck code; a
@@ -43,7 +44,9 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   `LAST_4_DAYS`. `structured.by_class` holds only card counts per class (DEATHKNIGHT 355, DRUID 336...), no scores.
 - **Legal status**: the ArenaSmith scores are HSReplay numbers scraped by the server; the legal report
   `LEGAL-HeartLens-card-choices.md` (L-B1, L-M2) puts them under the same HearthSim ToS risk as the other HSReplay
-  data. They stay until the owner decides; no further HSReplay source is added for Arena.
+  data. **Owner's decision 2026-10-27**: "for Arena use the ArenaSmith scores from our API and the class win rates";
+  the owner accepted the legal risk of the HSReplay data in the API for both endpoints. No further HSReplay source is
+  added for Arena; HearthArena stays unused.
 - Tier letters follow the site (`server/hsreplayArenasmith.ts` of hearthpulse.net): S 53+, A 45+, B 35+, C 24+,
   D 10+, else E. Class win-rate tiers: S 54%+, A 50%+, B 46%+, C 42%+, D 38%+, else E (`ArenaDraft.TierOfWinRate`).
 - Code: `HearthpulseData.LoadArenaMetaAsync` (`Api/HearthpulseData.Arena.cs`) -> `Arena/ArenaMeta` (`Underground` =
@@ -104,7 +107,8 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
    the pick (or only part of it), use `m_packageCardIds` only once the pick is made, never on the badge.
 3. Keep that Arena.log as a test fixture in place of the synthetic lines; name the log, not anything else, as the
    source of the line formats.
-4. The owner decides on the HSReplay and HearthArena data (legal reports, L-M2) and on turning the helper on by default.
+4. The owner decides on turning the helper on by default (the HSReplay data is decided: Legal status above; HearthArena
+   stays unused).
 
 ## Layout and licences
 

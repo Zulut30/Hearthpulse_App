@@ -38,6 +38,10 @@ public sealed record ArenaDeckCard(string CardId, string Name, int Cost, int Cou
 /// <param name="Offered">The class is one of the three heroes on screen.</param>
 public sealed record ArenaClassChoice(string PlayerClass, double WinRate, double? SevenPlus, bool Offered);
 
+/// <summary>Community results of the run's class once the hero is picked.</summary>
+/// <param name="Rank">Place by win rate, 1 = best, of <paramref name="Of"/> classes.</param>
+public sealed record ArenaRunClass(string PlayerClass, double WinRate, double? SevenPlus, int Rank, int Of);
+
 /// <summary>Score summary of a deck (the draft so far, or a finished run's deck).</summary>
 /// <param name="Average">Mean ArenaSmith score over scored cards, copies counted; null when none is scored.</param>
 /// <param name="Curve">Card counts per mana cost 0, 1, ... 6, 7+ (8 entries).</param>
@@ -83,6 +87,7 @@ public enum ArenaDraftPhase
 /// <param name="Underground">The run is an Underground Arena run; null when the client did not say.</param>
 /// <param name="ScoresFromOtherMode">The scores come from the other Arena mode than the run's (the server has one slice).</param>
 /// <param name="Types">Card types of the deck so far.</param>
+/// <param name="RunClass">Results of the run's class after the hero pick; null before it or without class numbers.</param>
 public sealed record ArenaDraftView(
     string? PlayerClass,
     string? HeroCardId,
@@ -96,7 +101,8 @@ public sealed record ArenaDraftView(
     ArenaDraftPhase Phase = ArenaDraftPhase.None,
     bool? Underground = null,
     bool ScoresFromOtherMode = false,
-    ArenaDeckTypes? Types = null);
+    ArenaDeckTypes? Types = null,
+    ArenaRunClass? RunClass = null);
 
 /// <summary>Builds <see cref="ArenaDraftView"/> from the log state, the offer read from memory and the community numbers.</summary>
 public static class ArenaDraft
@@ -128,6 +134,9 @@ public static class ArenaDraft
         var classes = playerClass is null || heroPick
             ? meta.Classes.Select(c => new ArenaClassChoice(c.PlayerClass, c.WinRate, c.SevenPlus, offeredClasses.Contains(c.PlayerClass))).ToList()
             : [];
+        var runStat = heroPick ? null : meta.Class(playerClass);
+        var runClass = runStat is null ? null
+            : new ArenaRunClass(runStat.PlayerClass, runStat.WinRate, runStat.SevenPlus, IndexOf(meta.Classes, runStat) + 1, meta.Classes.Count);
         var mode = offer?.Underground ?? underground;
         return new ArenaDraftView(
             playerClass,
@@ -142,7 +151,8 @@ public static class ArenaDraft
             phase,
             mode,
             meta.HasCards && mode is { } m && meta.Underground is { } slice && m != slice,
-            types);
+            types,
+            runClass);
     }
 
     /// <summary>Scores a deck given as card ids (a card listed once per copy).</summary>

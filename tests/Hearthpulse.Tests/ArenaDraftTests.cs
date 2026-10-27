@@ -152,6 +152,16 @@ public sealed class ArenaDraftTests : IDisposable
     }
 
     [Fact]
+    public void After_the_hero_pick_the_run_class_keeps_its_win_rate_place_and_seven_plus_share()
+    {
+        var view = ArenaDraft.Build(State(["BE_193"]), ["TIME_063", "BE_090", "VAC_301"], Meta(), Cards);
+
+        Assert.Equal(new ArenaRunClass("WARLOCK", 0.5542, 0.1436, 1, 11), view.RunClass! with { WinRate = Math.Round(view.RunClass.WinRate, 4), SevenPlus = Math.Round(view.RunClass.SevenPlus!.Value, 4) });
+        Assert.Null(ArenaDraft.Build(ArenaDraftState.Empty, ["HERO_07", "HERO_08", "HERO_10"], Meta(), Cards).RunClass);
+        Assert.Null(ArenaDraft.Build(State(["BE_193"]), (ArenaDraftOffer?)null, new ArenaMeta(Meta().Cards, []), Cards).RunClass);
+    }
+
+    [Fact]
     public void A_hero_offer_shows_class_win_rates()
     {
         var view = ArenaDraft.Build(ArenaDraftState.Empty, ["HERO_07", "HERO_08", "HERO_10"], Meta(), Cards);

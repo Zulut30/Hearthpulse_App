@@ -211,6 +211,15 @@ public sealed class ViewModelContractTests
         Assert.Equal((ava.ArenaMode, ava.ArenaSliceNote), (wpf.ArenaMode, wpf.ArenaSliceNote));
         Assert.Equal("Normal Arena", ava.ArenaMode);
         Assert.Equal("Scores come from Underground Arena games", ava.ArenaSliceNote);
+        Assert.Equal(string.Empty, ava.ArenaClassLine);
+
+        // The run's class keeps its community numbers in the panel after the hero pick.
+        var withClasses = new Hearthpulse.Core.Arena.ArenaMeta(meta.Cards, [new("WARLOCK", 0.552, 0.8, 0.15, 100), new("MAGE", 0.56, 0.7, 0.16, 100)]);
+        var classView = Hearthpulse.Core.Arena.ArenaDraft.Build(state, ["BIG", "SPELL"], withClasses, ArenaCards);
+        wpf.Update(snapshot with { ArenaDraft = classView }, ArenaCards, settings, null, null);
+        ava.Update(snapshot with { ArenaDraft = classView }, ArenaCards, settings, null, null);
+        Assert.Equal(wpf.ArenaClassLine, ava.ArenaClassLine);
+        Assert.Equal($"Win rate {0.552.ToString("P1", System.Globalization.CultureInfo.CurrentCulture)} · #2 of 2 classes · 7+ wins: {0.15.ToString("P0", System.Globalization.CultureInfo.CurrentCulture)}", ava.ArenaClassLine);
 
         // The hero power pick: no numbers over the cards, the panel asks for the pick.
         var power = Hearthpulse.Core.Arena.ArenaDraft.Build(state with { Cards = [] }, ["HERO_07bp", "HERO_08bp"], meta, ArenaCards);

@@ -83,6 +83,7 @@ public sealed partial class OverlayViewModel
     private string _arenaMode = string.Empty;
     private string _arenaTypes = string.Empty;
     private string _arenaSliceNote = string.Empty;
+    private string _arenaClassLine = string.Empty;
     private bool _arenaHasPicks;
     private string? _arenaPrint;
 
@@ -133,6 +134,9 @@ public sealed partial class OverlayViewModel
     /// <summary>"Scores come from Underground Arena games" when the run is the other mode, else empty.</summary>
     public string ArenaSliceNote { get => _arenaSliceNote; private set => Set(ref _arenaSliceNote, value); }
 
+    /// <summary>The run's class results after the hero pick: "Win rate 55.2% · #1 of 11 classes · 7+ wins: 15%"; else empty.</summary>
+    public string ArenaClassLine { get => _arenaClassLine; private set => Set(ref _arenaClassLine, value); }
+
     /// <summary>"Hearthpulse data · ArenaSmith score".</summary>
     public string ArenaSource => Loc.F("Arena.Source", ArenaMeta.Attribution);
 
@@ -156,7 +160,8 @@ public sealed partial class OverlayViewModel
         var print = $"{Loc.Instance.Language}|{draft.PlayerClass}|{draft.HasData}|{draft.Score.Average:0.00}|{draft.Phase}|{draft.Underground}|{draft.ScoresFromOtherMode}|"
                     + string.Join(",", draft.Options.Select(o => $"{o.CardId}:{o.Score}:{o.WinRate}:{o.IsBest}:{o.SameCost}:{o.SameType}:{o.Package?.Count}")) + "|"
                     + string.Join(",", draft.Deck.Select(c => $"{c.CardId}:{c.Count}:{c.Score}")) + "|"
-                    + string.Join(",", draft.Classes.Select(c => $"{c.PlayerClass}:{c.WinRate}:{c.Offered}"));
+                    + string.Join(",", draft.Classes.Select(c => $"{c.PlayerClass}:{c.WinRate}:{c.Offered}")) + "|"
+                    + $"{draft.RunClass?.WinRate}:{draft.RunClass?.SevenPlus}:{draft.RunClass?.Rank}";
         if (print == _arenaPrint)
         {
             return;
@@ -211,6 +216,14 @@ public sealed partial class OverlayViewModel
                 ArenaDraft.TierOfWinRate(c.WinRate) ?? string.Empty,
                 c.Offered))
             .ToList();
+        ArenaClassLine = draft.RunClass is { } run
+            ? string.Join(" · ", new[]
+            {
+                Loc.F("Arena.RunClass.WinRate", run.WinRate.ToString("P1", culture)),
+                Loc.F("Arena.ClassRank", run.Rank, run.Of),
+                run.SevenPlus is { } runSeven ? Loc.F("Arena.SevenPlus", runSeven.ToString("P0", culture)) : null,
+            }.Where(part => part is not null))
+            : string.Empty;
         ArenaNoData = draft.HasData ? string.Empty : Loc.T("Arena.NoData");
         Raise(nameof(ArenaSource));
     }

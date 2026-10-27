@@ -31,6 +31,8 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 Not used: `/v1/meta-intelligence/*` (needs a token). **Not to be used**: `v1/hsreplay/card-choices` and
 `v1/hsreplay/mulligan` - HSReplay Premium data, a Blocker (L-B1) in `../reference/reviews/LEGAL-HeartLens-card-choices.md`:
 HearthSim's terms forbid it without written permission (the Discover pick hint uses the stats pool instead).
+The two Arena endpoints above (ArenaSmith scores, class results) are HSReplay data too: the owner decided on
+2026-10-27 to use them for the Arena draft helper and accepted the legal risk (`docs/arena-draft.md`, Legal status).
 Available without a token but not called yet (fields in
 [kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)): HSGuru
 matchup matrix `v1/hsguru/matchups`, BG hero detail `api/bg/heroes/{dbf}` and trinkets

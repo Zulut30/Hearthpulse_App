@@ -6,6 +6,7 @@
   "Arena.BestClass": "Best class",
   "Arena.SevenPlus": "7+ wins: {0}",
   "Arena.SevenPlusShort": "7+: {0}",
+  "Arena.RunClass.WinRate": "Win rate {0}",
   "Arena.ChooseHero": "Choose a hero",
   "Arena.NoData": "No Arena numbers yet: Hearthpulse data did not load and there is no saved copy. The deck and curve still work.",
   "Arena.Panel.Title": "Arena draft",

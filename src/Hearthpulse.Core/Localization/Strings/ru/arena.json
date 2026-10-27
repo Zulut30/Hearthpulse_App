@@ -6,6 +6,7 @@
   "Arena.BestClass": "Лучший класс",
   "Arena.SevenPlus": "7+ побед: {0}",
   "Arena.SevenPlusShort": "7+: {0}",
+  "Arena.RunClass.WinRate": "Винрейт {0}",
   "Arena.ChooseHero": "Выбор героя",
   "Arena.NoData": "Цифр Арены пока нет: Hearthpulse data не загрузились, сохранённой копии тоже нет. Колода и кривая работают и без них.",
   "Arena.Panel.Title": "Драфт Арены",
