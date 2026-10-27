@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -20,24 +19,8 @@ namespace Hearthpulse.Presentation.Tests;
 /// </summary>
 public sealed class MainWindowXamlLoadTests
 {
-    /// <summary>
-    /// The window's "/Assets/..." images are resources of the app, not of the test host. The public setter refuses
-    /// once there is an entry assembly (the test host), so the two places WPF keeps it are set directly.
-    /// </summary>
-    private static void UseAppResources()
-    {
-        const BindingFlags Static = BindingFlags.NonPublic | BindingFlags.Static;
-        var app = typeof(WpfWindow).Assembly;
-        var field = typeof(Application).GetFields(Static).Where(f => f.FieldType == typeof(Assembly)).ToList();
-        var helpers = new[] { typeof(Application).Assembly, typeof(UIElement).Assembly, typeof(DependencyObject).Assembly }
-            .SelectMany(a => a.GetTypes()).Where(t => t.Name == "BaseUriHelper").ToList();
-        var property = helpers.Select(t => t.GetProperty("ResourceAssembly", Static)).FirstOrDefault(p => p is not null);
-        Assert.True(field.Count == 1 && property is not null,
-            $"fields: {string.Join(",", field.Select(f => f.Name))}; helpers: {string.Join(",", helpers.Select(h => h.FullName))}");
-        field[0].SetValue(null, app);
-        property!.SetValue(null, app);
-    }
-
+    // The window names its images by assembly ("/Hearthpulse;component/Assets/..."), so they load here too, where the
+    // application resource assembly is the test host, whatever other test made the process's Application first.
     private static HistoryStore History() => new(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
 
     [Fact]
@@ -71,7 +54,6 @@ public sealed class MainWindowXamlLoadTests
 
     private static void Check()
     {
-        UseAppResources();
         var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Resources.MergedDictionaries.Clear();
         app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Frost", 0, 0, 1)));

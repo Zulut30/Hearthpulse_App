@@ -11,7 +11,7 @@
         Title="Hearthpulse" Width="1260" Height="840" MinWidth="1040" MinHeight="660"
         Background="{StaticResource WindowFill}" Foreground="{StaticResource Text}"
         WindowStartupLocation="CenterScreen" UseLayoutRounding="True" Style="{StaticResource AppWindow}"
-        TextOptions.TextFormattingMode="Display" Icon="/Assets/hearthpulse.ico">
+        TextOptions.TextFormattingMode="Display" Icon="/Hearthpulse;component/Assets/hearthpulse.ico">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="52" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
@@ -224,7 +224,7 @@
                         <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
-                        <Image Source="/Assets/hearthpulse.png" Width="42" Height="42" RenderOptions.BitmapScalingMode="HighQuality" />
+                        <Image Source="/Hearthpulse;component/Assets/hearthpulse.png" Width="42" Height="42" RenderOptions.BitmapScalingMode="HighQuality" />
                         <TextBlock Text="Hearthpulse" Style="{StaticResource H2}" FontSize="21" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}"
                                    Margin="12,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
