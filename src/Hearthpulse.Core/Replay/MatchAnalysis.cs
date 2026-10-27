@@ -22,7 +22,11 @@ public sealed record AnalysisTurnRow(
     string Played);
 
 /// <summary>A card that swung the game, with why.</summary>
-public sealed record KeyCardRow(string CardId, string Name, bool Local, string Reason, double Score);
+public sealed record KeyCardRow(string CardId, string Name, bool Local, string Reason, double Score)
+{
+    /// <summary>The replay frame of the card's biggest swing (the match page marks that action).</summary>
+    public int Frame { get; init; } = -1;
+}
 
 /// <summary>One opening card: what the player did and what the archetype's players usually do.</summary>
 public sealed record MulliganCardRow(string CardId, string Name, bool Kept, string Choice, string MetaKeep, string MetaWinRate, int Agreement)
@@ -219,7 +223,7 @@ public sealed class MatchAnalysis
     /// </summary>
     private static (IReadOnlyList<KeyCardRow> Rows, int Dealt, int Taken, (int Local, int Opponent) Kills) Swings(IReadOnlyList<ReplayFrame> frames, CardDb cards)
     {
-        var best = new Dictionary<(string Card, bool Local), (double Score, string Reason)>();
+        var best = new Dictionary<(string Card, bool Local), (double Score, string Reason, int Frame)>();
         int dealt = 0, taken = 0, killed = 0, lost = 0;
         for (var i = 1; i < frames.Count; i++)
         {
@@ -254,14 +258,14 @@ public sealed class MatchAnalysis
             var key = (card, player == ReplayPlayer.Local);
             if (!best.TryGetValue(key, out var known) || score > known.Score)
             {
-                best[key] = (score, string.Join(" · ", reason));
+                best[key] = (score, string.Join(" · ", reason), after.Index);
             }
         }
 
         var rows = best
             .GroupBy(b => b.Key.Local)
             .SelectMany(g => g.OrderByDescending(b => b.Value.Score).Take(3))
-            .Select(b => new KeyCardRow(b.Key.Card, cards.NameOf(b.Key.Card), b.Key.Local, b.Value.Reason, b.Value.Score))
+            .Select(b => new KeyCardRow(b.Key.Card, cards.NameOf(b.Key.Card), b.Key.Local, b.Value.Reason, b.Value.Score) { Frame = b.Value.Frame })
             .OrderByDescending(r => r.Local)
             .ThenByDescending(r => r.Score)
             .ToList();
