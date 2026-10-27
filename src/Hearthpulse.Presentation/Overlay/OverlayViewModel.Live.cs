@@ -18,8 +18,8 @@ namespace Hearthpulse.UI.Overlay;
 public sealed partial class OverlayViewModel
 {
     private bool _showCounters;
-    private IReadOnlyList<CounterChip> _myCounters = [];
-    private IReadOnlyList<CounterChip> _opponentCounters = [];
+    private SyncList<CounterChip> _myCounters = new();
+    private SyncList<CounterChip> _opponentCounters = new();
     private string? _expandedCounter;
     private RelayCommand? _toggleCounter;
     private RelayCommand? _hideCounter;
@@ -31,9 +31,9 @@ public sealed partial class OverlayViewModel
 
     public bool ShowCounters { get => _showCounters; private set => Set(ref _showCounters, value); }
 
-    public IReadOnlyList<CounterChip> MyCounters { get => _myCounters; private set => Set(ref _myCounters, value); }
+    public IReadOnlyList<CounterChip> MyCounters => _myCounters;
 
-    public IReadOnlyList<CounterChip> OpponentCounters { get => _opponentCounters; private set => Set(ref _opponentCounters, value); }
+    public IReadOnlyList<CounterChip> OpponentCounters => _opponentCounters;
 
     /// <summary>Click a chip: show or hide what it counted right under it.</summary>
     public RelayCommand ToggleCounter => _toggleCounter ??= new RelayCommand(p =>
@@ -76,8 +76,8 @@ public sealed partial class OverlayViewModel
             _ => false,
         }).ToList();
 
-        MyCounters = shown.Where(c => !c.Opponent).Select(Chip).ToList();
-        OpponentCounters = settings.ShowOpponentCounters ? shown.Where(c => c.Opponent).Select(Chip).ToList() : [];
+        Sync(ref _myCounters, nameof(MyCounters), shown.Where(c => !c.Opponent).Select(Chip).ToList());
+        Sync(ref _opponentCounters, nameof(OpponentCounters), settings.ShowOpponentCounters ? shown.Where(c => c.Opponent).Select(Chip).ToList() : []);
         ShowCounters = MyCounters.Count + OpponentCounters.Count > 0;
     }
 

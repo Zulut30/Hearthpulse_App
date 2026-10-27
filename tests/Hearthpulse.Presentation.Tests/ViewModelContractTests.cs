@@ -374,6 +374,71 @@ public sealed class ViewModelContractTests
 
     public sealed record ValueRow(string Name);
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Overlay_lists_change_rows_in_place_and_become_a_new_list_only_into_or_out_of_empty(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        static LiveSnapshot With(params HandSlot[] hand) => LiveSnapshot.Empty with
+        {
+            Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED",
+            Constructed = new ConstructedView(6, null, false, "HERO_10", "DEMONHUNTER", "HERO_08", "MAGE", null, [], 20, 4, [], hand, 18, hand.Length, 0, null, null),
+        };
+
+        INotifyPropertyChanged vm = wpf ? new WpfOverlay() : new AvaOverlay();
+        var settings = new AppSettings();
+        Action<LiveSnapshot> update = wpf ? s => ((WpfOverlay)vm).Update(s, CardDb.Empty, settings, null, null) : s => ((AvaOverlay)vm).Update(s, CardDb.Empty, settings, null, null);
+        System.Collections.IList Hand() => wpf ? (System.Collections.IList)((WpfOverlay)vm).Hand : (System.Collections.IList)((AvaOverlay)vm).Hand;
+        var names = new List<string?>();
+        vm.PropertyChanged += (_, e) => names.Add(e.PropertyName);
+
+        update(With(new(1, 1, null, null, false, false, null), new(2, 0, null, null, true, false, null), new(3, 2, null, null, false, false, null)));
+        var list = Hand();
+        var kept = list[0];
+        Assert.Contains("Hand", names);
+
+        // The third card turns out to be a known one: only its row changes, the list and the other rows stay the objects
+        // the items control already shows.
+        names.Clear();
+        update(With(new(1, 1, null, null, false, false, null), new(2, 0, null, null, true, false, null), new(3, 2, null, null, false, false, "Arcane Intellect")));
+        Assert.Same(list, Hand());
+        Assert.Same(kept, Hand()[0]);
+        Assert.Equal(3, Hand().Count);
+        Assert.DoesNotContain("Hand", names);
+
+        // Out of empty and back there is no row to keep: a new list, announced, so "shown when not empty" looks again.
+        update(With());
+        Assert.Empty(Hand());
+        Assert.NotSame(list, Hand());
+        Assert.Contains("Hand", names);
+    }
+
+    [Fact]
+    public void SyncList_ends_equal_to_any_target_and_keeps_the_rows_that_did_not_change()
+    {
+        var random = new Random(5);
+        for (var run = 0; run < 500; run++)
+        {
+            var list = new Hearthpulse.App.Infrastructure.SyncList<ValueRow>(Enumerable.Range(0, random.Next(8)).Select(_ => new ValueRow(random.Next(5).ToString(CultureInfo.InvariantCulture))));
+            var target = Enumerable.Range(0, random.Next(8)).Select(_ => new ValueRow(random.Next(5).ToString(CultureInfo.InvariantCulture))).ToList();
+            var before = list.ToList();
+            Assert.Equal(!before.SequenceEqual(target), list.Sync(target));
+            Assert.Equal(target, list);
+            Assert.False(list.Sync(target));
+        }
+
+        // One row appended or one row changed touches only that row.
+        var rows = new Hearthpulse.App.Infrastructure.SyncList<ValueRow>([new("a"), new("b"), new("c")]);
+        var first = rows[0];
+        var events = new List<System.Collections.Specialized.NotifyCollectionChangedAction>();
+        rows.CollectionChanged += (_, e) => events.Add(e.Action);
+        Assert.True(rows.Sync([new("a"), new("b"), new("c"), new("d")]));
+        Assert.True(rows.Sync([new("a"), new("B"), new("c"), new("d")]));
+        Assert.Equal([System.Collections.Specialized.NotifyCollectionChangedAction.Add, System.Collections.Specialized.NotifyCollectionChangedAction.Replace], events);
+        Assert.Same(first, rows[0]);
+    }
+
     private static async Task Changed(INotifyPropertyChanged model, string property, Action change)
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
