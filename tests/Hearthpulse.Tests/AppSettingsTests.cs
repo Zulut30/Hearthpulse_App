@@ -94,6 +94,24 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal(original, File.ReadAllText(FilePath + ".invalid"));
     }
 
+    [Theory]
+    [InlineData("null")]
+    [InlineData("\"wide\"")]
+    [InlineData("\"Sideways\"")]
+    public void One_unreadable_value_does_not_reset_the_other_settings(string value)
+    {
+        var original = $$"""{"OverlayEnabled":false,"Theme":"Frost","OverlayScale":{{value}},"PickHints":{{value}}}""";
+        File.WriteAllText(FilePath, original);
+
+        var settings = AppSettings.Load(FilePath);
+
+        Assert.False(settings.OverlayEnabled);
+        Assert.Equal("Frost", settings.Theme);
+        Assert.Equal(1, settings.OverlayScale);
+        Assert.Equal(PickHints.StatsOnly, settings.PickHints);
+        Assert.Equal(original, File.ReadAllText(FilePath + ".invalid"));
+    }
+
     [Fact]
     public void A_previous_diagnostic_copy_is_never_overwritten()
     {
