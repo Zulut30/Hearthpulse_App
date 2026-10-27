@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -25,9 +27,10 @@ public sealed class GlobalLanguage;
 public sealed class LocBindingTests
 {
     [Fact]
-    public void Bare_history_button_renders_the_game_row_template_instead_of_record_text()
+    public void Bare_history_button_renders_the_game_row_template_instead_of_record_text() => Headless.Run(HistoryButton);
+
+    private static void HistoryButton()
     {
-        Headless.Start();
         var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))
         {
             Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml"),
@@ -66,9 +69,10 @@ public sealed class LocBindingTests
     }
 
     [Fact]
-    public void Layout_placeholders_name_the_scene_their_panel_shows_in_and_drop_the_repeated_tag()
+    public void Layout_placeholders_name_the_scene_their_panel_shows_in_and_drop_the_repeated_tag() => Headless.Run(LayoutPlaceholders);
+
+    private static void LayoutPlaceholders()
     {
-        Headless.Start();
         var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))
         {
             Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml"),
@@ -109,9 +113,10 @@ public sealed class LocBindingTests
     }
 
     [Fact]
-    public void Avalonia_texts_follow_a_switch_and_let_their_controls_go()
+    public void Avalonia_texts_follow_a_switch_and_let_their_controls_go() => Headless.Run(LanguageSwitch);
+
+    private static void LanguageSwitch()
     {
-        Headless.Start();
         var block = Bound();
         try
         {
@@ -149,15 +154,55 @@ public sealed class LocBindingTests
     private static List<WeakReference<TextBlock>> BindMany(int count) =>
         Enumerable.Range(0, count).Select(_ => new WeakReference<TextBlock>(Bound())).ToList();
 
-    /// <summary>One headless Avalonia platform per test run, set up on the first test that needs it.</summary>
+    /// <summary>
+    /// One headless Avalonia platform per test run on its own thread: Avalonia objects belong to the thread that set the
+    /// platform up, and xUnit may run each test of the collection on a different pool thread.
+    /// </summary>
     private static class Headless
     {
-        private static readonly Lazy<bool> Setup = new(() =>
-        {
-            AppBuilder.Configure<Application>().UseHeadless(new AvaloniaHeadlessPlatformOptions()).SetupWithoutStarting();
-            return true;
-        });
+        private static readonly BlockingCollection<Action> Work = new();
+        private static readonly Thread UiThread = Start();
 
-        public static void Start() => _ = Setup.Value;
+        public static void Run(Action body)
+        {
+            _ = UiThread;
+            ExceptionDispatchInfo? error = null;
+            using var done = new ManualResetEventSlim();
+            Work.Add(() =>
+            {
+                try
+                {
+                    body();
+                }
+                catch (Exception e)
+                {
+                    error = ExceptionDispatchInfo.Capture(e);
+                }
+                finally
+                {
+                    done.Set();
+                }
+            });
+            done.Wait();
+            error?.Throw();
+        }
+
+        private static Thread Start()
+        {
+            var thread = new Thread(() =>
+            {
+                AppBuilder.Configure<Application>().UseHeadless(new AvaloniaHeadlessPlatformOptions()).SetupWithoutStarting();
+                foreach (var job in Work.GetConsumingEnumerable())
+                {
+                    job();
+                }
+            })
+            {
+                IsBackground = true,
+                Name = "Avalonia headless",
+            };
+            thread.Start();
+            return thread;
+        }
     }
 }
