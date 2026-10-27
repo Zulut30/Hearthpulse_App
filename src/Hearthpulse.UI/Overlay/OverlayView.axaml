@@ -1349,11 +1349,11 @@
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="{i:Loc Overlay.Layout.Title}" FontSize="14" FontWeight="SemiBold" />
                             <TextBlock Text="{i:Loc Overlay.Layout.Hint}" FontSize="11.5" Foreground="{StaticResource Muted}" />
-                            <!-- The global shortcuts are registered on Windows only (WindowsOverlayPlatform) -->
-                            <TextBlock Text="{i:Loc Overlay.Layout.Shortcuts}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,2,0,0" IsVisible="{x:Static o:OverlayView.GlobalShortcuts}" />
                         </StackPanel>
                         <Button Classes="ghost" Content="{i:Loc Overlay.Layout.ResetAll}" Margin="18,0,8,0" Command="{Binding ResetLayout}" Focusable="False" />
-                        <Button Classes="ghost primary" Content="{i:Loc Overlay.Layout.Done}" Command="{Binding FinishLayout}" Focusable="False" />
+                        <!-- The global shortcuts are registered on Windows only (WindowsOverlayPlatform) -->
+                        <Button Classes="ghost primary" Content="{i:Loc Overlay.Layout.Done}" Command="{Binding FinishLayout}" Focusable="False"
+                                ToolTip.Tip="{i:Loc Overlay.Layout.Shortcuts}" ToolTip.ServiceEnabled="{x:Static o:OverlayView.GlobalShortcuts}" />
                     </StackPanel>
                 </Border>
 

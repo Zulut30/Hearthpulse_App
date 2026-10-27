@@ -1538,10 +1538,10 @@
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{i:Loc Overlay.Layout.Title}" FontSize="14" FontWeight="SemiBold" />
                         <TextBlock Text="{i:Loc Overlay.Layout.Hint}" FontSize="11.5" Foreground="{StaticResource Muted}" />
-                        <TextBlock Text="{i:Loc Overlay.Layout.Shortcuts}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,2,0,0" />
                     </StackPanel>
                     <Button Style="{StaticResource GhostButton}" Content="{i:Loc Overlay.Layout.ResetAll}" Margin="18,0,8,0" Command="{Binding ResetLayout}" Focusable="False" />
-                    <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Overlay.Layout.Done}" Command="{Binding FinishLayout}" Focusable="False" />
+                    <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Overlay.Layout.Done}" Command="{Binding FinishLayout}" Focusable="False"
+                            ToolTip="{i:Loc Overlay.Layout.Shortcuts}" />
                 </StackPanel>
             </Border>
 
