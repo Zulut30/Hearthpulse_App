@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Hearthpulse.Core.Hearthstone;
 using System.Runtime.InteropServices;
 
 namespace Hearthpulse.App.Infrastructure;
@@ -109,34 +110,7 @@ internal static partial class Native
         return new RECT { Left = origin.X, Top = origin.Y, Right = origin.X + client.Width, Bottom = origin.Y + client.Height };
     }
 
-    public static IntPtr FindHearthstoneWindow()
-    {
-        Process[] processes;
-        try
-        {
-            processes = Process.GetProcessesByName("Hearthstone");
-        }
-        catch (OutOfMemoryException)
-        {
-            // The process snapshot fails like this when the system is short of memory: try again on the next lookup.
-            return IntPtr.Zero;
-        }
-
-        var window = IntPtr.Zero;
-        foreach (var process in processes)
-        {
-            // Every Process holds a handle until disposed, also the ones after the window was found.
-            using (process)
-            {
-                if (window == IntPtr.Zero && process.MainWindowHandle != IntPtr.Zero)
-                {
-                    window = process.MainWindowHandle;
-                }
-            }
-        }
-
-        return window;
-    }
+    public static IntPtr FindHearthstoneWindow() => GameProcess.MainWindow();
 
     /// <summary>Dark title bar and rounded corners on Windows 11.</summary>
     public static void UseDarkChrome(IntPtr hwnd)

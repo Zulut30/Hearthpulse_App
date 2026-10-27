@@ -31,17 +31,7 @@ public static class HearthstoneInstall
     {
         try
         {
-            foreach (var name in ProcessNames)
-            {
-                var processes = Process.GetProcessesByName(name);
-                foreach (var p in processes) p.Dispose();
-                if (processes.Length > 0)
-                {
-                    return _lastRunning = true;
-                }
-            }
-
-            return _lastRunning = false;
+            return _lastRunning = GameProcess.IsRunning();
         }
         catch (OutOfMemoryException)
         {
@@ -559,28 +549,7 @@ public static class ClientConfig
         _ => true,
     };
 
-    private static DateTime? ClientStartTime()
-    {
-        try
-        {
-            var processes = System.Diagnostics.Process.GetProcessesByName("Hearthstone");
-            try
-            {
-                return processes.Length == 0 ? null : processes[0].StartTime;
-            }
-            finally
-            {
-                foreach (var process in processes)
-                {
-                    process.Dispose();
-                }
-            }
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException)
-        {
-            return null;
-        }
-    }
+    private static DateTime? ClientStartTime() => GameProcess.StartTime();
 
     /// <summary>Sets Log.FileSizeLimit.Int=-1 and keeps everything else in the file. True when the file changed.</summary>
     public static bool Ensure(string? installDir)
