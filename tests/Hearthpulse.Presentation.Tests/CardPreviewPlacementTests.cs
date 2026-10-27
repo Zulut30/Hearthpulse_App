@@ -87,6 +87,12 @@ public sealed class CardPreviewPlacementTests
             host.Show(edgeRow);
             var edgeLeft = edge.TransformToVisual(host).Transform(default).X;
             Assert.Equal(edgeLeft - 10 - PreviewWidth, Canvas.GetLeft(frame), 1);
+
+            // A card in a grid (Battlegrounds tier list): right against the card itself, not beside its whole list.
+            CardPreview.SetPlacement(middleRow, CardPreviewPlacement.Adjacent);
+            host.Show(middleRow);
+            var card = middleRow.TransformToVisual(host).TransformBounds(new Rect(middleRow.RenderSize));
+            Assert.Equal(card.Right + 4, Canvas.GetLeft(frame), 1);
         }
         finally
         {

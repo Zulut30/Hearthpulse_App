@@ -335,6 +335,8 @@ public sealed partial class OverlayViewModel : Observable
         CloseBrowser = new RelayCommand(() =>
         {
             SelectedTier = 0;
+            _selectedTribe = string.Empty;
+            RebuildTribeChips();
             RebuildBrowser();
             RebuildTiers();
         });
@@ -526,7 +528,11 @@ public sealed partial class OverlayViewModel : Observable
         RatingDeltaValue = delta ?? 0;
         RatingDelta = delta is { } dv && dv != 0 ? (dv > 0 ? $"+{dv}" : $"−{-dv}") : string.Empty;
 
-        Replace(nameof(Tribes), view.Races, r => r, () => Tribes = view.Races.Select(r => Races.Display(r, _locale)).ToList());
+        Replace(nameof(Tribes), view.Races, r => r, () =>
+        {
+            Tribes = view.Races.Select(r => Races.Display(r, _locale)).ToList();
+            RebuildTribeChips();
+        });
         UpdateFocusRaces(view.Races);
         Combats = view.Combats.TakeLast(8)
             .Select(c => new CombatDot(c.Result, Loc.F("Overlay.Combat.Tip", c.Turn, _cards.NameOf(c.OpponentHeroCardId), ResultText(c.Result))
@@ -824,6 +830,7 @@ public sealed partial class OverlayViewModel : Observable
 
     private void RebuildBrowser()
     {
+        UpdateBrowserHeading();
         if (_bg is not { } bg || SelectedTier == 0)
         {
             Browser = Array.Empty<BrowserGroup>();
@@ -837,6 +844,7 @@ public sealed partial class OverlayViewModel : Observable
         var minions = _cards.BattlegroundsMinions
             .Where(c => c.TechLevel == SelectedTier && (bg.IsDuos || !c.IsBattlegroundsDuosExclusive))
             .Where(c => lobby.Count == 0 || c.Races.Count == 0 || c.Races.Any(r => r == "ALL" || lobby.Contains(r)))
+            .Where(c => InChosenTribe(c.Races))
             .ToList();
 
         // Before the lobby is known, show every tribe in the pool.
@@ -860,7 +868,8 @@ public sealed partial class OverlayViewModel : Observable
             }
         }
 
-        var spells = _cards.BattlegroundsSpells.Where(c => c.TechLevel == SelectedTier).OrderBy(c => c.Name, StringComparer.CurrentCulture)
+        // A tribe chosen on the bar shows its minions only; tavern spells belong to no tribe.
+        var spells = _cards.BattlegroundsSpells.Where(c => c.TechLevel == SelectedTier && _selectedTribe.Length == 0).OrderBy(c => c.Name, StringComparer.CurrentCulture)
             .Select(c => new BrowserCard(c.Id, c.Name, false, null)).ToList();
         if (spells.Count > 0)
         {
@@ -904,12 +913,21 @@ public sealed partial class OverlayViewModel : Observable
 
         LobbyTop = top;
         LobbyLeft = left;
-        if (Lobby?.HeroCardId == opponent.HeroCardId && Lobby.Board.Count == opponent.LastBoard.Count && Lobby.Health == opponent.Health)
+        if (Lobby?.HeroCardId == opponent.HeroCardId && Lobby.Board.Count == opponent.LastBoard.Count && Lobby.Health == opponent.Health
+            && Lobby.ResultKey == (opponent.LastResult ?? string.Empty) && Lobby.History.Count == FightsWith(opponent).Count)
         {
             return;
         }
 
         var turnsAgo = _bg!.Turn - opponent.LastBoardTurn;
+        var fights = FightsWith(opponent);
+        // The tribe most of the board shares, once it is at least two minions (amalgams count for every tribe, so not here).
+        var tribe = opponent.LastBoard
+            .SelectMany(m => (_cards.Get(m.CardId)?.Races ?? Array.Empty<string>()).Where(r => r != "ALL"))
+            .GroupBy(r => r)
+            .Select(g => (Race: g.Key, Count: g.Count()))
+            .OrderByDescending(g => g.Count)
+            .FirstOrDefault();
         Lobby = new LobbyPopup(
             opponent.HeroCardId,
             opponent.HeroName,
@@ -928,8 +946,17 @@ public sealed partial class OverlayViewModel : Observable
             opponent.LastBoard.Count == 0 ? Loc.T("Overlay.LobbyPopup.BoardNotSeen") : turnsAgo <= 0 ? Loc.T("Overlay.LobbyPopup.BoardThisTurn") : Loc.P("Overlay.LobbyPopup.BoardAgo", turnsAgo),
             opponent.IsNextOpponent,
             opponent.Dead,
-            opponent.LastBoard.Select(m => new LobbyMinion(m.CardId, m.Name, m.Attack, m.Health, m.Golden, string.Join(" · ", m.Keywords))).ToList());
+            opponent.LastBoard.Select(m => new LobbyMinion(m.CardId, m.Name, m.Attack, m.Health, m.Golden, string.Join(" · ", m.Keywords))).ToList())
+        {
+            ResultKey = opponent.LastResult ?? string.Empty,
+            History = fights.Count >= 2 ? fights.TakeLast(8).Select(c => new CombatDot(c.Result, string.Empty)).ToList() : [],
+            Tribe = tribe.Count >= 2 ? $"{Races.Display(tribe.Race, _locale)} ×{tribe.Count}" : string.Empty,
+        };
     }
+
+    /// <summary>The fights with this opponent so far this game, oldest first.</summary>
+    private List<CombatRecord> FightsWith(BgOpponent opponent) =>
+        _bg?.Combats.Where(c => c.OpponentPlayerId == opponent.PlayerId).ToList() ?? [];
 
     public void ShowOutcome(GameOutcome outcome)
     {

@@ -80,6 +80,9 @@ public sealed record BrowserCard(string CardId, string Name, bool InComp, string
 
 public sealed record LobbyMinion(string CardId, string Name, int Attack, int Health, bool Golden, string Keywords);
 
+/// <summary>A lobby tribe on the tavern bar; <see cref="Selected"/> when the tier list shows only this tribe.</summary>
+public sealed record TribeChip(string Key, string Name, bool Selected);
+
 public sealed record LobbyPopup(
     string HeroCardId,
     string HeroName,
@@ -92,7 +95,25 @@ public sealed record LobbyPopup(
     string LastSeen,
     bool NextOpponent,
     bool Dead,
-    IReadOnlyList<LobbyMinion> Board);
+    IReadOnlyList<LobbyMinion> Board)
+{
+    /// <summary>The last fight with this opponent: Win, Loss or Tie, colouring its plate; empty before the first one.</summary>
+    public string ResultKey { get; init; } = string.Empty;
+
+    /// <summary>Every fight with this opponent so far, oldest first; shown once there are two or more.</summary>
+    public IReadOnlyList<CombatDot> History { get; init; } = [];
+
+    /// <summary>The tribe most of the last seen board has ("Murloc ×4"); empty when no tribe stands out.</summary>
+    public string Tribe { get; init; } = string.Empty;
+
+    public string PlaceText => $"#{Place}";
+
+    public string HealthText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.HpShort", Health);
+
+    public string TierText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.TierShort", Tier);
+
+    public string TriplesText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.TriplesShort", Triples);
+}
 
 public sealed record LobbyRow(
     int Place,

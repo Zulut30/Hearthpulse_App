@@ -18,6 +18,12 @@ public enum CardPreviewPlacement
 
     /// <summary>Under the element itself (small marks along the top of the screen).</summary>
     Below,
+
+    /// <summary>
+    /// Right against the element itself, right of it when there is room, at its height (cards in a grid: the preview
+    /// opens next to the hovered card instead of beside the whole panel).
+    /// </summary>
+    Adjacent,
 }
 
 /// <summary>
@@ -37,6 +43,10 @@ public static class CardPreview
     public static readonly DependencyProperty PlacementProperty = DependencyProperty.RegisterAttached(
         "Placement", typeof(CardPreviewPlacement), typeof(CardPreview), new PropertyMetadata(CardPreviewPlacement.Beside));
 
+    /// <summary>The card is a Battlegrounds one (minion or tavern spell): its Battlegrounds render, without a mana cost.</summary>
+    public static readonly DependencyProperty BattlegroundsProperty = DependencyProperty.RegisterAttached(
+        "Battlegrounds", typeof(bool), typeof(CardPreview), new PropertyMetadata(false));
+
     public static string? GetCardId(DependencyObject d) => (string?)d.GetValue(CardIdProperty);
 
     public static void SetCardId(DependencyObject d, string? value) => d.SetValue(CardIdProperty, value);
@@ -48,6 +58,10 @@ public static class CardPreview
     public static CardPreviewPlacement GetPlacement(DependencyObject d) => (CardPreviewPlacement)d.GetValue(PlacementProperty);
 
     public static void SetPlacement(DependencyObject d, CardPreviewPlacement value) => d.SetValue(PlacementProperty, value);
+
+    public static bool GetBattlegrounds(DependencyObject d) => (bool)d.GetValue(BattlegroundsProperty);
+
+    public static void SetBattlegrounds(DependencyObject d, bool value) => d.SetValue(BattlegroundsProperty, value);
 
     /// <summary>Whether the element has anything to preview.</summary>
     public static bool HasPreview(DependencyObject d) => !string.IsNullOrEmpty(GetCardId(d)) || !string.IsNullOrEmpty(GetCaption(d));
@@ -94,12 +108,16 @@ public sealed class CardPreviewHost : Canvas
     private const double CardHeight = CardWidth * 388 / 256;
     private const double Gap = 10;
 
+    /// <summary>Gap of an <see cref="CardPreviewPlacement.Adjacent"/> preview: right against the hovered card.</summary>
+    private const double TightGap = 4;
+
     private static readonly List<WeakReference<CardPreviewHost>> Hosts = new();
 
     private readonly StackPanel _frame;
     private readonly Border _captionPlate;
     private readonly TextBlock _caption;
     private readonly Image _image;
+    private readonly Image _bgImage;
     private readonly DispatcherTimer _hide;
     private FrameworkElement? _target;
 
@@ -112,9 +130,12 @@ public sealed class CardPreviewHost : Canvas
         _captionPlate = new Border { Padding = new Thickness(9, 6, 9, 7), Child = _caption };
         _captionPlate.SetResourceReference(StyleProperty, "OverlayCard");
         _image = new Image { Width = CardWidth, Height = CardHeight, Stretch = Stretch.Uniform };
+        // Battlegrounds cards have their own render; a second image keeps the two loads from racing on one source.
+        _bgImage = new Image { Width = CardWidth, Height = CardHeight, Stretch = Stretch.Uniform, Visibility = Visibility.Collapsed };
         _frame = new StackPanel { Width = CardWidth, Visibility = Visibility.Collapsed };
         _frame.Children.Add(_captionPlate);
         _frame.Children.Add(_image);
+        _frame.Children.Add(_bgImage);
         Children.Add(_frame);
 
         // A short grace period: the mouse crossing the gap between two rows must not close and reopen the preview.
@@ -151,8 +172,11 @@ public sealed class CardPreviewHost : Canvas
         var caption = CardPreview.GetCaption(element);
         _caption.Text = caption ?? string.Empty;
         _captionPlate.Visibility = string.IsNullOrEmpty(caption) ? Visibility.Collapsed : Visibility.Visible;
-        _image.Visibility = string.IsNullOrEmpty(cardId) ? Visibility.Collapsed : Visibility.Visible;
-        CardArt.SetCard(_image, cardId);
+        var battlegrounds = CardPreview.GetBattlegrounds(element);
+        _image.Visibility = string.IsNullOrEmpty(cardId) || battlegrounds ? Visibility.Collapsed : Visibility.Visible;
+        _bgImage.Visibility = !string.IsNullOrEmpty(cardId) && battlegrounds ? Visibility.Visible : Visibility.Collapsed;
+        CardArt.SetCard(_image, battlegrounds ? null : cardId);
+        CardArt.SetBattlegroundsCard(_bgImage, battlegrounds ? cardId : null);
         _frame.Visibility = Visibility.Visible;
         Place(element);
     }
@@ -223,6 +247,11 @@ public sealed class CardPreviewHost : Canvas
         {
             left = row.Left + (row.Width / 2) - (size.Width / 2);
             top = row.Bottom + Gap;
+        }
+        else if (CardPreview.GetPlacement(element) == CardPreviewPlacement.Adjacent)
+        {
+            left = row.Right + TightGap + size.Width <= ActualWidth - 4 ? row.Right + TightGap : row.Left - TightGap - size.Width;
+            top = row.Top + (row.Height / 2) - (size.Height / 2);
         }
         else
         {

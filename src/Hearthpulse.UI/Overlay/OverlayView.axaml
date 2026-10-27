@@ -426,16 +426,11 @@
             </Button>
         </DataTemplate>
 
+        <!-- Tier list card: every card the same size; hover opens one large render right against it (CardPreview) -->
         <DataTemplate x:Key="BrowserCardTemplate" x:DataType="o:BrowserCard">
-            <Panel Width="92" Margin="2" ToolTip.ShowDelay="120">
-                <ToolTip.Tip>
-                    <StackPanel Width="248">
-                        <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" Margin="2,0,2,4" />
-                        <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="248" Height="340" Stretch="Uniform" />
-                    </StackPanel>
-                </ToolTip.Tip>
-                <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="92" Height="128" Stretch="Uniform"
-                       Classes="zoomImg" RenderTransformOrigin="1,0.5" />
+            <Panel Width="84" Height="116" Margin="1" Background="Transparent"
+                   c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Battlegrounds="True" c:CardPreview.Placement="Adjacent">
+                <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="84" Height="116" Stretch="Uniform" />
                 <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Background="{StaticResource Accent}" CornerRadius="5"
                         Padding="6,0" Margin="0,0,0,2" IsVisible="{Binding InComp}">
                     <TextBlock Text="{i:Loc Overlay.Browser.InPlan}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
@@ -443,23 +438,20 @@
             </Panel>
         </DataTemplate>
 
+        <!-- Opponent's minion in the leaderboard popup: a mini card with its attack and health on it, as on the board -->
         <DataTemplate x:Key="LobbyMinionTemplate" x:DataType="o:LobbyMinion">
-            <Grid Width="78" Margin="2,0" RowDefinitions="Auto,Auto" ToolTip.ShowDelay="120">
-                <ToolTip.Tip>
-                    <StackPanel Width="248">
-                        <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="248" Height="340" Stretch="Uniform" />
-                        <TextBlock Text="{Binding Keywords}" FontSize="10.5" TextWrapping="Wrap" Margin="2,4,2,0" />
-                    </StackPanel>
-                </ToolTip.Tip>
-                <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="78" Height="108" Stretch="Uniform"
-                       Classes="zoomImg" RenderTransformOrigin="1,0.5" />
-                <Border Width="78" Height="108" BorderBrush="{StaticResource TierS}" BorderThickness="2" CornerRadius="6" IsVisible="{Binding Golden}" />
-                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,0">
-                    <TextBlock Text="{Binding Attack}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TierS}" />
-                    <TextBlock Text=" / " FontSize="12" Foreground="{StaticResource Faint}" />
-                    <TextBlock Text="{Binding Health}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource Negative}" />
-                </StackPanel>
-            </Grid>
+            <Panel Width="60" Height="84" Margin="1,0">
+                <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="60" Height="84" Stretch="Uniform" />
+                <Border BorderBrush="{StaticResource TierS}" BorderThickness="2" CornerRadius="6" IsVisible="{Binding Golden}" />
+                <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="1,0,0,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
+                        Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource TierS}" BorderThickness="1">
+                    <TextBlock Text="{Binding Attack}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TierS}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
+                        Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource Negative}" BorderThickness="1">
+                    <TextBlock Text="{Binding Health}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Negative}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </Panel>
         </DataTemplate>
 
         <DataTemplate x:Key="LobbyRowTemplate" x:DataType="o:LobbyRow">
@@ -501,9 +493,25 @@
 
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Overlay/OverlayLook.axaml" />
-        <!-- Card art answers the mouse: the tile grows and a large tooltip makes small card text readable -->
-        <Style Selector="Image.zoomImg:pointerover">
-            <Setter Property="RenderTransform" Value="scale(2.2)" />
+        <!-- Tribe chips on the tavern bar: each filters the tier list; the chosen one is filled -->
+        <Style Selector="Button.tribeChip Border#Chip">
+            <Setter Property="Background" Value="{StaticResource Surface3}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.tribeChip TextBlock#Name">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="Button.tribeChip:pointerover Border#Chip">
+            <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+        </Style>
+        <Style Selector="Button.tribeChip:pointerover TextBlock#Name">
+            <Setter Property="Foreground" Value="{StaticResource Text}" />
+        </Style>
+        <Style Selector="Button.tribeChip.selected Border#Chip">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="Button.tribeChip.selected TextBlock#Name">
+            <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
         </Style>
         <Style Selector="Border.divider">
             <Setter Property="Width" Value="1" />
@@ -1033,7 +1041,7 @@
                 <!-- ============ Battlegrounds: slim top bar + minion browser (top-left) ============ -->
                 <o:MovablePanel Id="bgbar" Title="{i:Loc Overlay.Panel.BgBar}" Shown="{Binding ShowBattlegrounds}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,10,0,0">
                     <StackPanel>
-                        <Border Classes="overlayCard" Padding="12,7" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
+                        <Border Classes="overlayCard" Padding="10,5" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
                             <StackPanel Orientation="Horizontal">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Overlay.Bar.TurnTip}">
                                     <TextBlock Text="{i:Loc Overlay.Bar.Turn}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,6,0" />
@@ -1043,17 +1051,22 @@
                                 <ItemsControl ItemsSource="{Binding Tiers}" ItemTemplate="{StaticResource TierTemplate}" ItemsPanel="{StaticResource HRow}" VerticalAlignment="Center" />
                                 <Border Classes="divider" />
                                 <Panel VerticalAlignment="Center" MaxWidth="300" ToolTip.Tip="{i:Loc Overlay.Bar.TribesTip}">
-                                    <ItemsControl ItemsSource="{Binding Tribes}" ItemsPanel="{StaticResource WrapRow}" Margin="0,4,0,0">
+                                    <!-- Each tribe filters the tier list below; the chosen one is filled -->
+                                    <ItemsControl ItemsSource="{Binding TribeChips}" ItemsPanel="{StaticResource WrapRow}" Margin="0,2,0,0">
                                         <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="x:String">
-                                                <Border Classes="pill" Margin="0,0,4,4" Padding="7,1">
-                                                    <TextBlock Text="{Binding}" FontSize="10.5" Foreground="{StaticResource Muted}" />
-                                                </Border>
+                                            <DataTemplate x:DataType="o:TribeChip">
+                                                <Button Classes="bare tribeChip" Classes.selected="{Binding Selected}" Margin="0,0,4,2" Focusable="False" Cursor="Hand"
+                                                        Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).SelectTribe}" CommandParameter="{Binding Key}"
+                                                        ToolTip.Tip="{i:Loc Overlay.Bar.TribeFilterTip}">
+                                                    <Border Name="Chip" Height="22" CornerRadius="11" Padding="9,0" BorderThickness="1">
+                                                        <TextBlock Name="Name" Text="{Binding Name}" FontSize="11" VerticalAlignment="Center" />
+                                                    </Border>
+                                                </Button>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                     <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="11" Foreground="{StaticResource Faint}" VerticalAlignment="Center"
-                                               IsVisible="{Binding Tribes, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                                               IsVisible="{Binding TribeChips, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                                 </Panel>
                                 <Border Classes="divider" />
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Overlay.Bar.RatingTip}">
@@ -1072,20 +1085,21 @@
                         </Border>
 
                         <!-- Minion browser for the selected tier -->
-                        <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Margin="0,6,0,0" Padding="12,10"
-                                HorizontalAlignment="Left" MaxWidth="900" o:OverlayHit.Interactive="True"
+                        <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Margin="0,6,0,0" Padding="10,7,10,8"
+                                HorizontalAlignment="Left" MaxWidth="880" o:OverlayHit.Interactive="True"
                                 IsVisible="{Binding Browser, Converter={StaticResource Truthy}}">
                             <DockPanel>
-                                <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
-                                    <TextBlock FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"><Run Text="{i:Loc Overlay.Browser.Tier}" /><Run Text=" " /><Run Text="{Binding SelectedTier, Mode=OneWay}" /><Run Text=" " /><Run Text="{i:Loc Overlay.Browser.MinionsInLobby}" Foreground="{StaticResource Muted}" FontWeight="Normal" /></TextBlock>
-                                    <Button Classes="icon" Content="&#xF0156;" HorizontalAlignment="Right" Command="{Binding CloseBrowser}" ToolTip.Tip="{i:Loc Overlay.Common.Close}" />
-                                </Grid>
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                    <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0143;" Width="24" Height="24" Command="{Binding CloseBrowser}"
+                                            ToolTip.Tip="{i:Loc Overlay.Browser.Collapse}" Focusable="False" />
+                                    <TextBlock VerticalAlignment="Center"><Run Text="{Binding BrowserTitle, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" /><Run Text="  ·  " FontSize="11" Foreground="{StaticResource Faint}" /><Run Text="{Binding BrowserScope, Mode=OneWay}" FontSize="11.5" Foreground="{StaticResource Muted}" /></TextBlock>
+                                </DockPanel>
                                 <ScrollViewer MaxHeight="760" VerticalScrollBarVisibility="Auto">
                                     <ItemsControl ItemsSource="{Binding Browser}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="o:BrowserGroup">
-                                                <StackPanel Margin="0,0,0,8">
-                                                    <TextBlock Text="{Binding Title}" Classes="sectionLabel" Margin="2,0,0,2" />
+                                                <StackPanel Margin="0,0,0,6">
+                                                    <TextBlock Text="{Binding Title}" Classes="sectionLabel" Margin="1,0,0,1" />
                                                     <ItemsControl ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource BrowserCardTemplate}" ItemsPanel="{StaticResource WrapRow}" />
                                                 </StackPanel>
                                             </DataTemplate>
@@ -1326,22 +1340,43 @@
 
                 <!-- ============ Battlegrounds: leaderboard hover ============ -->
                 <Canvas Name="LobbyLayer" IsHitTestVisible="False">
-                    <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Padding="12,10"
+                    <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Padding="10,8"
                             Canvas.Left="{Binding LobbyLeft}" Canvas.Top="{Binding LobbyTop}"
                             IsVisible="{Binding Lobby, Converter={StaticResource Truthy}}">
                         <StackPanel DataContext="{Binding Lobby}" x:DataType="o:LobbyPopup">
-                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                <Border Width="34" Height="34" CornerRadius="17" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding HeroCardId}" />
-                                <StackPanel Grid.Column="1" Margin="10,0,16,0" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding HeroName}" FontSize="14" FontWeight="SemiBold" />
-                                    <TextBlock FontSize="11.5" Foreground="{StaticResource Muted}"><Run Text="#" /><Run Text="{Binding Place, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text=" ·  " /><Run Text="{Binding Health, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text="{i:Loc Overlay.LobbyPopup.Hp}" /><Run Text="{i:Loc Overlay.LobbyPopup.Tier}" /><Run Text="{Binding Tier, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text="{i:Loc Overlay.LobbyPopup.Triples}" /><Run Text="{Binding Triples, Mode=OneWay}" Foreground="{StaticResource Text}" /></TextBlock>
-                                </StackPanel>
-                                <Border Grid.Column="2" Background="{StaticResource Accent}" CornerRadius="5" Padding="8,1" VerticalAlignment="Top"
-                                        IsVisible="{Binding NextOpponent}">
-                                    <TextBlock Text="{i:Loc Overlay.LobbyPopup.Next}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                            <!-- One line: portrait, hero, place, health, tavern tier, triples -->
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding HeroCardId}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding HeroName}" FontSize="13.5" FontWeight="SemiBold" Margin="8,0,10,0" VerticalAlignment="Center" />
+                                <Border Classes="pill" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding PlaceText}" FontSize="11" FontWeight="SemiBold" />
                                 </Border>
-                            </Grid>
-                            <TextBlock FontSize="11" Foreground="{StaticResource Muted}" Margin="0,8,0,6"><Run Text="{Binding LastSeen, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding LastResult, Mode=OneWay}" Foreground="{StaticResource Text}" /></TextBlock>
+                                <Border Classes="pill" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding HealthText}" FontSize="11" />
+                                </Border>
+                                <Border Classes="pill" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding TierText}" FontSize="11" />
+                                </Border>
+                                <Border Classes="pill" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding TriplesText}" FontSize="11" />
+                                </Border>
+                                <Border Background="{StaticResource Accent}" CornerRadius="5" Padding="7,1" Margin="4,0,0,0" VerticalAlignment="Center"
+                                        IsVisible="{Binding NextOpponent}">
+                                    <TextBlock Text="{i:Loc Overlay.LobbyPopup.Next}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                                </Border>
+                            </StackPanel>
+                            <!-- The last fight on a plate in its colour, the fights with this opponent as dots, when the board was seen -->
+                            <StackPanel Orientation="Horizontal" Margin="0,7,0,6">
+                                <Border CornerRadius="5" Padding="7,1" Margin="0,0,8,0" BorderThickness="1" VerticalAlignment="Center"
+                                        BorderBrush="{Binding ResultKey, Converter={StaticResource KeyBrush}}" IsVisible="{Binding LastResult, Converter={StaticResource Truthy}}">
+                                    <TextBlock Text="{Binding LastResult}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                                </Border>
+                                <ItemsControl ItemsSource="{Binding History}" ItemTemplate="{StaticResource CombatTemplate}" ItemsPanel="{StaticResource HRow}" Margin="0,0,8,0"
+                                              VerticalAlignment="Center" IsVisible="{Binding History, Converter={StaticResource Truthy}}" />
+                                <TextBlock Text="{Binding LastSeen}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Tribe}" FontSize="11" Foreground="{StaticResource Text}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                           IsVisible="{Binding Tribe, Converter={StaticResource Truthy}}" />
+                            </StackPanel>
                             <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource LobbyMinionTemplate}" ItemsPanel="{StaticResource HRow}" />
                         </StackPanel>
                     </Border>
