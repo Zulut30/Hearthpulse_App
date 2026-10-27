@@ -19,13 +19,15 @@ internal static class Program
           hover     replay: game time during which the card under the mouse is read from the game, before and now
           cleanup   run the start-up cache clean-up on HEARTHPULSE_DATA: size of cache/ before and after (deletes files)
           history   history store and My Stats queries on 1 000 / 5 000 (/ --games) synthetic games
-          startup   WPF start-up steps up to the first rendered main window
+          startup   WPF start-up steps up to the first rendered main window and until the log watcher can start
+                    (HP_BENCH_SERIAL=1: game and cards looked up after the first frame, the order before stage 6)
           ram       working set step by step (cards, meta, window, every page and tab), image cache bytes, page times
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
           idle      the overlay window with no Hearthstone window: CPU time over 20 s (run with Hearthstone closed)
           watch     LogWatcher + GameSession on the installed game's logs: CPU time over 20 s
           poll      one idle watcher pass and one "is Hearthstone running" (game closed): thread CPU per call
+          meta      Battlegrounds meta, Constructed meta and the card pool catalog from the cache: time and allocations
           all       cards, replay, overlay, history
 
         HEARTHPULSE_DATA must point at a copy of the data folder; the bench refuses to touch the real one.
@@ -82,6 +84,9 @@ internal static class Program
                 break;
             case "poll":
                 CoreBench.Poll();
+                break;
+            case "meta":
+                CoreBench.Meta();
                 break;
             case "cleanup":
                 CoreBench.Cleanup();

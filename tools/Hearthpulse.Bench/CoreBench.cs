@@ -23,8 +23,12 @@ internal static class CoreBench
         Memory("before cards");
         var started = Stopwatch.StartNew();
         var allocated = GC.GetTotalAllocatedBytes(precise: true);
+        var (gen0, gen1, gen2, paused) = (GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2), GC.GetTotalPauseDuration());
+        using var large = LargeAllocations.StartIfAsked();
         var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
-        Console.WriteLine($"[cards] CardDb.LoadAsync ruRU: {started.ElapsedMilliseconds} ms, alloc {Mb(GC.GetTotalAllocatedBytes(precise: true) - allocated)}, {cards.Count} cards");
+        large?.Report("cards");
+        Console.WriteLine($"[cards] CardDb.LoadAsync ruRU: {started.ElapsedMilliseconds} ms, alloc {Mb(GC.GetTotalAllocatedBytes(precise: true) - allocated)}, {cards.Count} cards, "
+                          + $"GCs gen0 {GC.CollectionCount(0) - gen0} gen1 {GC.CollectionCount(1) - gen1} gen2 {GC.CollectionCount(2) - gen2}, paused {(GC.GetTotalPauseDuration() - paused).TotalMilliseconds:N0} ms");
         Memory("after cards");
 
         // A second load on a pool thread (a locale switch, or the app's next start-up path) shows what stays pooled.
@@ -86,6 +90,40 @@ internal static class CoreBench
             Console.WriteLine($"[replay r{round}] publish {publish.Count:N0}: {Spread(publish)}; alloc {Mb(publishAlloc)} ({publishAlloc / Math.Max(1, publish.Count) / 1024} KB/publish)");
             Console.WriteLine($"[replay r{round}] GCs gen0 {GC.CollectionCount(0) - gen0}, gen1 {GC.CollectionCount(1) - gen1}, gen2 {GC.CollectionCount(2) - gen2}");
         }
+
+        // The parser alone, no listeners, lines already in memory: what reading Power.log costs before the trackers.
+        var all = logs.Select(l => (l.Start, Lines: File.ReadAllLines(l.Path))).ToList();
+        for (var round = 0; round < Math.Max(2, options.Rounds); round++)
+        {
+            long count = 0;
+            var allocated = GC.GetAllocatedBytesForCurrentThread();
+            var watch = Stopwatch.StartNew();
+            foreach (var (start, lines) in all)
+            {
+                var parser = new Hearthpulse.Core.Power.PowerParser(DateOnly.FromDateTime(start));
+                foreach (var line in lines)
+                {
+                    parser.Feed(line);
+                }
+
+                count += lines.Length;
+            }
+
+            Console.WriteLine($"[parser r{round}] {count:N0} lines in {watch.ElapsedMilliseconds:N0} ms ({count / Math.Max(0.001, watch.Elapsed.TotalSeconds):N0} lines/s), alloc {Mb(GC.GetAllocatedBytesForCurrentThread() - allocated)} ({(GC.GetAllocatedBytesForCurrentThread() - allocated) / Math.Max(1, count)} B/line)");
+        }
+
+        // What a parsed game keeps alive: the parser of the longest log, held until its last line.
+        var longest = all.MaxBy(l => l.Lines.Length);
+        var before = GC.GetTotalMemory(forceFullCollection: true);
+        var kept = new Hearthpulse.Core.Power.PowerParser(DateOnly.FromDateTime(longest.Start));
+        foreach (var line in longest.Lines)
+        {
+            kept.Feed(line);
+        }
+
+        var held = GC.GetTotalMemory(forceFullCollection: true) - before;
+        Console.WriteLine($"[parser] live after the longest log ({longest.Lines.Length:N0} lines, game of {kept.Game?.Entities.Count ?? 0} entities): {Mb(held)}");
+        GC.KeepAlive(kept);
     }
 
     /// <summary>
@@ -187,6 +225,34 @@ internal static class CoreBench
     /// Power.log size it reports) and one "is Hearthstone running" with the game closed, on this thread's CPU clock.
     /// Builds against the commit before stage 4 too (the sizes the read saw are looked up by name).
     /// </summary>
+    /// <summary>
+    /// What the app loads after the log watcher starts: Battlegrounds meta, Constructed meta (the settings' slice) and
+    /// the card pool catalog, from the cache of the data copy (a stale or missing answer is downloaded). Twice each.
+    /// </summary>
+    public static void Meta()
+    {
+        using var http = Http();
+        var settings = AppSettings.Load();
+        var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
+        var api = new HearthpulseApi(http);
+        void Time(string what, Func<object?> load)
+        {
+            for (var pass = 1; pass <= 2; pass++)
+            {
+                var allocated = GC.GetTotalAllocatedBytes(precise: true);
+                var watch = Stopwatch.StartNew();
+                var result = load();
+                Console.WriteLine($"[meta] {what,-22} pass {pass}: {watch.ElapsedMilliseconds,5:N0} ms, alloc {Mb(GC.GetTotalAllocatedBytes(precise: true) - allocated),9}{(result is null ? " (none)" : "")}");
+            }
+        }
+
+        Time("Battlegrounds meta", () => BattlegroundsMeta.LoadAsync(new HearthpulseData(api)).GetAwaiter().GetResult());
+        Time("Constructed meta", () => Hearthpulse.Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(api), cards, settings.MetaFormat,
+            settings.MetaRank, settings.MetaPeriod, cards.Locale).GetAwaiter().GetResult());
+        Time("card pool catalog", () => CardPoolCatalog.LoadAsync(api, http).GetAwaiter().GetResult());
+        Memory("after meta");
+    }
+
     public static void Poll()
     {
         var install = HearthstoneInstall.FindInstallDirectory(null);

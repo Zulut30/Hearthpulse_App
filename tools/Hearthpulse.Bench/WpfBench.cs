@@ -18,6 +18,7 @@ using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Hearthstone;
 using static Hearthpulse.Bench.Measure;
 
 namespace Hearthpulse.Bench;
@@ -145,8 +146,14 @@ internal static class WpfBench
             sw.Restart();
         }
 
+        var fromMain = Stopwatch.StartNew();
         var (app, settings) = NewApplication();
         Step("Application + settings + theme");
+        // The app's order since stage 6: the game and the cards are looked up while the windows are built
+        // (HP_BENCH_SERIAL=1: the order before, all of it after the main window's first frame).
+        var serial = Environment.GetEnvironmentVariable("HP_BENCH_SERIAL") == "1";
+        using var http = Http();
+        var prefetch = serial ? null : StartupPrefetch.Start(settings, http);
         var history = new HistoryStore(AppPaths.Database);
         Step("HistoryStore open");
         var main = OffScreen(new MainWindow(new MainViewModel(history, settings)));
@@ -167,14 +174,33 @@ internal static class WpfBench
         main.Show();
         Dispatcher.PushFrame(frame);
         Step("Show -> ContentRendered");
+        Console.WriteLine($"[start] Main -> first frame of the main window   {fromMain.Elapsed.TotalMilliseconds,8:N0} ms, GCs gen0 {GC.CollectionCount(0)} gen1 {GC.CollectionCount(1)} gen2 {GC.CollectionCount(2)}, paused {GC.GetTotalPauseDuration().TotalMilliseconds:N0} ms");
         if (overlayAfter)
         {
             overlay.Show();
             Step("overlay.Show (after the first frame)");
         }
-        using var http = Http();
-        var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
-        Step("CardDb.LoadAsync on this thread");
+
+        // What InitializeAsync waits for before the log watcher starts (the first overlay values).
+        string? install;
+        string client;
+        if (prefetch is null)
+        {
+            install = HearthstoneInstall.FindInstallDirectory(settings.HearthstonePath);
+            client = HearthstoneInstall.DetectLocale(install);
+        }
+        else
+        {
+            (install, client) = prefetch.Game.GetAwaiter().GetResult();
+        }
+
+        settings.ClientLocale = client;
+        var locale = settings.CardLocale();
+        var cards = prefetch is null
+            ? CardDb.LoadAsync(locale, http).GetAwaiter().GetResult()
+            : prefetch.CardsAsync(locale).GetAwaiter().GetResult();
+        Step($"{(serial ? "game + cards, serial" : "game + cards, prefetched")} ({locale})");
+        Console.WriteLine($"[start] Main -> log watcher can start          {fromMain.Elapsed.TotalMilliseconds,8:N0} ms ({cards.Count} cards, install {install ?? "none"})");
         Memory("after start-up");
         Close(main, settings);
         overlay.Close();
@@ -608,7 +634,9 @@ internal static class WpfBench
         // Relative pack URIs (Themes/Theme.xaml) resolve against the entry assembly; point them at the app's.
         typeof(Application).GetField("_resourceAssembly", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, typeof(Hearthpulse.App.App).Assembly);
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        var load = Stopwatch.StartNew();
         var settings = AppSettings.Load();
+        Console.WriteLine($"[start] AppSettings.Load in {load.Elapsed.TotalMilliseconds:N0} ms");
         // As the app does before any window: the language decides every text (and a later switch rebuilds pages).
         Core.Localization.Loc.Instance.SetLanguage(settings.InterfaceLanguage());
         var theme = Stopwatch.StartNew();
