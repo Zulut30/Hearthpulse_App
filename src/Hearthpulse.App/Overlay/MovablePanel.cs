@@ -29,6 +29,9 @@ public sealed class MovablePanel : ContentControl
     public static readonly DependencyProperty ShowPlaceholderProperty = DependencyProperty.Register(
         nameof(ShowPlaceholder), typeof(bool), typeof(MovablePanel));
 
+    public static readonly DependencyProperty ScaleTextProperty = DependencyProperty.Register(
+        nameof(ScaleText), typeof(string), typeof(MovablePanel), new PropertyMetadata(string.Empty));
+
     private readonly ScaleTransform _scale = new(1, 1);
     private HorizontalAlignment _defaultHorizontal;
     private VerticalAlignment _defaultVertical;
@@ -63,6 +66,15 @@ public sealed class MovablePanel : ContentControl
     public bool IsEditing { get => (bool)GetValue(IsEditingProperty); set => SetValue(IsEditingProperty, value); }
 
     public bool ShowPlaceholder { get => (bool)GetValue(ShowPlaceholderProperty); private set => SetValue(ShowPlaceholderProperty, value); }
+
+    /// <summary>The player's size for the layout-mode tag ("115%"); empty at the default size.</summary>
+    public string ScaleText { get => (string)GetValue(ScaleTextProperty); private set => SetValue(ScaleTextProperty, value); }
+
+    private void SetScale(double scale)
+    {
+        _scale.ScaleX = _scale.ScaleY = scale;
+        ScaleText = PanelSnap.ScaleText(scale);
+    }
 
     /// <summary>Raised when the player moves, resizes or resets the panel (null = reset).</summary>
     public event Action<MovablePanel, PanelPlacement?>? PlacementChanged;
@@ -120,11 +132,11 @@ public sealed class MovablePanel : ContentControl
             Margin = GameAnchored && overlayScale > 0
                 ? new Thickness(_defaultMargin.Left / overlayScale, _defaultMargin.Top / overlayScale, _defaultMargin.Right / overlayScale, _defaultMargin.Bottom / overlayScale)
                 : _defaultMargin;
-            _scale.ScaleX = _scale.ScaleY = 1;
+            SetScale(1);
             return;
         }
 
-        _scale.ScaleX = _scale.ScaleY = Math.Clamp(placement.Scale, 0.6, 1.6);
+        SetScale(Math.Clamp(placement.Scale, 0.6, 1.6));
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         _saved = new Point(placement.X * surface.Width, placement.Y * surface.Height);
@@ -225,8 +237,9 @@ public sealed class MovablePanel : ContentControl
         var position = e.GetPosition(surface);
         var width = ActualWidth * _scale.ScaleX;
         var height = ActualHeight * _scale.ScaleY;
-        var left = Math.Clamp(_originStart.X + (position.X - _dragStart.X), 0, Math.Max(0, surface.ActualWidth - width));
-        var top = Math.Clamp(_originStart.Y + (position.Y - _dragStart.Y), 0, Math.Max(0, surface.ActualHeight - height));
+        // Edges and the centre line pull the panel in, so panels line up without pixel hunting.
+        var left = Math.Clamp(PanelSnap.Snap(_originStart.X + (position.X - _dragStart.X), width, surface.ActualWidth), 0, Math.Max(0, surface.ActualWidth - width));
+        var top = Math.Clamp(PanelSnap.Snap(_originStart.Y + (position.Y - _dragStart.Y), height, surface.ActualHeight), 0, Math.Max(0, surface.ActualHeight - height));
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         Margin = new Thickness(left, top, 0, 0);
@@ -259,7 +272,7 @@ public sealed class MovablePanel : ContentControl
         CaptureDefaults();
         var next = Math.Clamp(Math.Round(_scale.ScaleX + (e.Delta > 0 ? 0.05 : -0.05), 2), 0.6, 1.6);
         var origin = TopLeft();
-        _scale.ScaleX = _scale.ScaleY = next;
+        SetScale(next);
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         Margin = new Thickness(origin.X, origin.Y, 0, 0);

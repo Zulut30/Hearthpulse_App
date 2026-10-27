@@ -126,7 +126,7 @@
   "Match.Settings.ReplayLimit": "Match replays: the last 3,000 games are kept (up to 300 MB); older ones are deleted.",
   "Match.Position": "Step {0} of {1}",
   "Match.View.Back": "History",
-  "Match.View.BackTip": "Back to History",
+  "Match.View.BackTip": "Back to History (Esc)",
   "Match.View.OpenTip": "Open the match: replay, decks and analysis",
   "Match.View.Loading": "Reading the game…",
   "Match.View.TabReplay": "Replay",

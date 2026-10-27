@@ -439,6 +439,56 @@ public sealed class ViewModelContractTests
         Assert.Same(first, rows[0]);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Keyboard_navigation_maps_digits_to_pages_and_Back_leaves_only_the_page_on_screen(bool wpf)
+    {
+        Assert.Equal(WpfMain.NavPages, AvaMain.NavPages);
+        Assert.Equal("Overview", WpfMain.NavPageForDigit(1));
+        Assert.Equal("History", AvaMain.NavPageForDigit(6));
+        Assert.Equal("Settings", WpfMain.NavPageForDigit(7));
+        Assert.Null(AvaMain.NavPageForDigit(0));
+        Assert.Null(WpfMain.NavPageForDigit(8));
+
+        var history = History();
+        Assert.True(history.Add(Game(0)));
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        await model.RefreshAsync();
+        Assert.False((bool)model.GoBack("History"));
+
+        Assert.True(await (Task<bool>)model.OpenMatchPageAsync("presentation-game-0"));
+        Assert.True((bool)model.MatchOpen);
+        // The match page lives on History: Esc on another page leaves it open.
+        Assert.False((bool)model.GoBack(ConstructedPage.Standard));
+        Assert.True((bool)model.MatchOpen);
+        Assert.True((bool)model.GoBack("History"));
+        Assert.False((bool)model.MatchOpen);
+    }
+
+    [Fact]
+    public void Layout_mode_snaps_dragged_panels_to_the_edges_and_centre_and_names_their_size()
+    {
+        foreach (var snap in new Func<double, double, double, double>[] { Hearthpulse.App.Overlay.PanelSnap.Snap, Hearthpulse.UI.Overlay.PanelSnap.Snap })
+        {
+            Assert.Equal(12, snap(5, 200, 1920));          // left gutter
+            Assert.Equal(1920 - 12 - 200, snap(1700, 200, 1920)); // right gutter
+            Assert.Equal(860, snap(853, 200, 1920));       // centre line
+            Assert.Equal(400, snap(400, 200, 1920));       // free spot stays
+            Assert.Equal(0, snap(0, 200, 1920));           // flush to the edge is still allowed
+            Assert.Equal(30, snap(30, 1900, 1920));        // wider than the guides: no snapping
+        }
+
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+        try
+        {
+            Assert.Equal(string.Empty, Hearthpulse.App.Overlay.PanelSnap.ScaleText(1));
+            Assert.Equal("115 %", Hearthpulse.UI.Overlay.PanelSnap.ScaleText(1.15));
+        }
+        finally { CultureInfo.CurrentCulture = previous; }
+    }
+
     private static async Task Changed(INotifyPropertyChanged model, string property, Action change)
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

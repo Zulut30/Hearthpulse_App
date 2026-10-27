@@ -1,7 +1,7 @@
 {
   "Deck.Unnamed": "Deck",
   "Deck.Back": "Your decks",
-  "Deck.BackTip": "Back to your decks",
+  "Deck.BackTip": "Back to your decks (Esc)",
   "Deck.ArchetypeTip": "The meta archetype the main version matches, and its community win rate",
   "Deck.ClearFilterTip": "Show every game again",
   "Deck.Filter": "Only games vs {0} ({1})",

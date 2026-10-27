@@ -754,6 +754,8 @@
                                         <TextBlock Text="{TemplateBinding Title}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
                                         <TextBlock Name="DefaultHint" Text="{i:Loc Overlay.Layout.AppearsDuringMatches}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
                                         <TextBlock Name="HintText" Text="{TemplateBinding Hint}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" IsVisible="False" />
+                                        <TextBlock Text="{TemplateBinding ScaleText}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" HorizontalAlignment="Center"
+                                                   IsVisible="{TemplateBinding ScaleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                     </StackPanel>
                                 </Border>
                                 <ContentPresenter Name="Body" Content="{TemplateBinding Content}" />
@@ -765,8 +767,12 @@
                                    StrokeThickness="1.5" StrokeDashArray="4,3" IsHitTestVisible="False" />
                         <Border Name="Tag" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-26,0,0" Height="18"
                                 Background="{StaticResource Accent}" CornerRadius="5" Padding="7,0" IsHitTestVisible="False">
-                            <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}"
-                                       VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                                <!-- The size the player scrolled to, so two panels can be given the same one -->
+                                <TextBlock Text="{TemplateBinding ScaleText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0"
+                                           IsVisible="{TemplateBinding ScaleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
                         </Border>
                     </Panel>
                 </ControlTemplate>
@@ -1343,6 +1349,8 @@
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="{i:Loc Overlay.Layout.Title}" FontSize="14" FontWeight="SemiBold" />
                             <TextBlock Text="{i:Loc Overlay.Layout.Hint}" FontSize="11.5" Foreground="{StaticResource Muted}" />
+                            <!-- The global shortcuts are registered on Windows only (WindowsOverlayPlatform) -->
+                            <TextBlock Text="{i:Loc Overlay.Layout.Shortcuts}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,2,0,0" IsVisible="{x:Static o:OverlayView.GlobalShortcuts}" />
                         </StackPanel>
                         <Button Classes="ghost" Content="{i:Loc Overlay.Layout.ResetAll}" Margin="18,0,8,0" Command="{Binding ResetLayout}" Focusable="False" />
                         <Button Classes="ghost primary" Content="{i:Loc Overlay.Layout.Done}" Command="{Binding FinishLayout}" Focusable="False" />

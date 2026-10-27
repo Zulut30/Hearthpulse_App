@@ -126,7 +126,7 @@
   "Match.Settings.ReplayLimit": "Реплеи матчей: хранятся последние 3000 игр (до 300 МБ), более старые удаляются.",
   "Match.Position": "Шаг {0} из {1}",
   "Match.View.Back": "История",
-  "Match.View.BackTip": "Назад к истории",
+  "Match.View.BackTip": "Назад к истории (Esc)",
   "Match.View.OpenTip": "Открыть матч: реплей, колоды и анализ",
   "Match.View.Loading": "Читаю игру…",
   "Match.View.TabReplay": "Реплей",
