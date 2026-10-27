@@ -24,6 +24,8 @@
   "Overlay.Layout.ResetAll": "Reset all",
   "Overlay.Layout.Done": "Done",
   "Overlay.Layout.AppearsDuringMatches": "Appears during matches",
+  "Overlay.Layout.AppearsInMenus": "Appears in the menus between games",
+  "Overlay.Layout.AppearsInArenaDraft": "Appears during the Arena draft",
 
   "Overlay.Deck.Fallback": "Deck",
   "Overlay.Deck.Counts": "{0} in deck · {1} in hand",

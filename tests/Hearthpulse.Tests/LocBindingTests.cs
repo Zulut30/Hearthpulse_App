@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Headless;
+using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -62,6 +63,49 @@ public sealed class LocBindingTests
             app.Styles.Remove(theme);
             Dispatcher.UIThread.RunJobs();
         }
+    }
+
+    [Fact]
+    public void Layout_placeholders_name_the_scene_their_panel_shows_in_and_drop_the_repeated_tag()
+    {
+        Headless.Start();
+        var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))
+        {
+            Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml"),
+        };
+        var app = Application.Current!;
+        app.Styles.Add(theme);
+        var window = new Window { Width = 1920, Height = 1080 };
+        try
+        {
+            var view = new Hearthpulse.UI.Overlay.OverlayView { DataContext = new Hearthpulse.UI.Overlay.OverlayViewModel { LayoutEditing = true } };
+            // Templates and styles only: the window is not shown, so nothing measures text (the headless run has no fonts).
+            window.Content = view;
+            var panels = view.GetLogicalDescendants().OfType<Hearthpulse.UI.Overlay.MovablePanel>().ToDictionary(p => p.Id);
+            foreach (var panel in panels.Values)
+            {
+                panel.ApplyTemplate();
+            }
+
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("Appears in the menus between games", Hint(panels["ladder-session"]));
+            Assert.Equal("Appears during the Arena draft", Hint(panels["arena-draft"]));
+            Assert.Equal("Appears during matches", Hint(panels["deck"]));
+            // The placeholder carries the title, so its gold tag is hidden.
+            Assert.False(Part<Border>(panels["deck"], "Tag").IsVisible);
+        }
+        finally
+        {
+            window.Close();
+            app.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        static T Part<T>(Control panel, string name) where T : Control =>
+            Assert.Single(panel.GetVisualDescendants().OfType<T>(), c => c.Name == name);
+
+        static string? Hint(Control panel) =>
+            Assert.Single(new[] { Part<TextBlock>(panel, "DefaultHint"), Part<TextBlock>(panel, "HintText") }, b => b.IsVisible).Text;
     }
 
     [Fact]

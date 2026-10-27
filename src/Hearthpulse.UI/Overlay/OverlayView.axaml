@@ -758,7 +758,8 @@
                                         BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1">
                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16,10">
                                         <TextBlock Text="{TemplateBinding Title}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                        <TextBlock Text="{i:Loc Overlay.Layout.AppearsDuringMatches}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+                                        <TextBlock Name="DefaultHint" Text="{i:Loc Overlay.Layout.AppearsDuringMatches}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+                                        <TextBlock Name="HintText" Text="{TemplateBinding Hint}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" IsVisible="False" />
                                     </StackPanel>
                                 </Border>
                                 <ContentPresenter Name="Body" Content="{TemplateBinding Content}" />
@@ -791,6 +792,13 @@
         </Style>
         <Style Selector="o|MovablePanel.placeholder /template/ ContentPresenter#Body">
             <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- Most panels show during matches; menu and draft panels name their scene in Hint -->
+        <Style Selector="o|MovablePanel.hinted /template/ TextBlock#DefaultHint">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="o|MovablePanel.hinted /template/ TextBlock#HintText">
+            <Setter Property="IsVisible" Value="True" />
         </Style>
         <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours -->
         <Style Selector="o|MovablePanel.editing.placeholder /template/ Border#Tag">
@@ -866,7 +874,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Menus: ranked ladder session (top right, outside games only) ============ -->
-                <o:MovablePanel Id="ladder-session" Title="{i:Loc Widgets.Ladder.Panel}" Shown="{Binding ShowLadder}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,276,0">
+                <o:MovablePanel Id="ladder-session" Title="{i:Loc Widgets.Ladder.Panel}" Hint="{i:Loc Overlay.Layout.AppearsInMenus}" Shown="{Binding ShowLadder}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,276,0">
                     <o:LadderSessionPanel />
                 </o:MovablePanel>
 
@@ -1290,12 +1298,12 @@
 
                 <!-- ============ Arena draft: a score badge over each offered card or hero (centred on the play area left of the client's
                      deck list: right margin 339 shifts the centre 170 left; anchors from HdtArenaHelper, MIT) ============ -->
-                <o:MovablePanel Id="arena-picks" Title="{i:Loc Arena.Panel.Picks}" GameAnchored="True" Shown="{Binding ShowArenaPicks}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,566,339,0">
+                <o:MovablePanel Id="arena-picks" Title="{i:Loc Arena.Panel.Picks}" Hint="{i:Loc Overlay.Layout.AppearsInArenaDraft}" GameAnchored="True" Shown="{Binding ShowArenaPicks}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,566,339,0">
                     <o:ArenaPicksPanel />
                 </o:MovablePanel>
 
                 <!-- ============ Arena draft: deck so far, curve, average score, class win rates (left) ============ -->
-                <o:MovablePanel Id="arena-draft" Title="{i:Loc Arena.Panel.Title}" Shown="{Binding ShowArenaDraft}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,64,0,0">
+                <o:MovablePanel Id="arena-draft" Title="{i:Loc Arena.Panel.Title}" Hint="{i:Loc Overlay.Layout.AppearsInArenaDraft}" Shown="{Binding ShowArenaDraft}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,64,0,0">
                     <o:ArenaDraftPanel />
                 </o:MovablePanel>
 

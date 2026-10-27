@@ -17,6 +17,9 @@ public sealed class MovablePanel : ContentControl
 
     public static readonly DependencyProperty TitleProperty = DependencyProperty.Register(nameof(Title), typeof(string), typeof(MovablePanel));
 
+    public static readonly DependencyProperty HintProperty = DependencyProperty.Register(nameof(Hint), typeof(string), typeof(MovablePanel),
+        new PropertyMetadata(string.Empty));
+
     public static readonly DependencyProperty ShownProperty = DependencyProperty.Register(
         nameof(Shown), typeof(bool), typeof(MovablePanel), new PropertyMetadata(false, (d, _) => ((MovablePanel)d).UpdateState()));
 
@@ -51,6 +54,9 @@ public sealed class MovablePanel : ContentControl
     public string Id { get => (string)GetValue(IdProperty); set => SetValue(IdProperty, value); }
 
     public string Title { get => (string)GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
+
+    /// <summary>When the panel shows, for its layout-mode placeholder; empty = "Appears during matches".</summary>
+    public string Hint { get => (string)GetValue(HintProperty); set => SetValue(HintProperty, value); }
 
     public bool Shown { get => (bool)GetValue(ShownProperty); set => SetValue(ShownProperty, value); }
 

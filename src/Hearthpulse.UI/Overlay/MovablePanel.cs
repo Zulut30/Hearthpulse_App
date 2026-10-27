@@ -31,6 +31,8 @@ public sealed class MovablePanel : ContentControl
 
     public static readonly StyledProperty<string> TitleProperty = AvaloniaProperty.Register<MovablePanel, string>(nameof(Title), string.Empty);
 
+    public static readonly StyledProperty<string> HintProperty = AvaloniaProperty.Register<MovablePanel, string>(nameof(Hint), string.Empty);
+
     public static readonly StyledProperty<bool> ShownProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(Shown));
 
     public static readonly StyledProperty<bool> IsEditingProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(IsEditing));
@@ -60,6 +62,7 @@ public sealed class MovablePanel : ContentControl
         ShownProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         IsEditingProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         InteractiveContentProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
+        HintProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
     }
 
     public MovablePanel()
@@ -77,6 +80,9 @@ public sealed class MovablePanel : ContentControl
     public string Id { get => GetValue(IdProperty); set => SetValue(IdProperty, value); }
 
     public string Title { get => GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
+
+    /// <summary>When the panel shows, for its layout-mode placeholder; empty = "Appears during matches".</summary>
+    public string Hint { get => GetValue(HintProperty); set => SetValue(HintProperty, value); }
 
     public bool Shown { get => GetValue(ShownProperty); set => SetValue(ShownProperty, value); }
 
@@ -100,6 +106,7 @@ public sealed class MovablePanel : ContentControl
         IsVisible = Shown || IsEditing;
         Classes.Set("editing", IsEditing);
         Classes.Set("placeholder", IsEditing && !Shown);
+        Classes.Set("hinted", !string.IsNullOrEmpty(Hint));
         OverlayHit.SetInteractive(this, IsEditing || InteractiveContent);
         Cursor = IsEditing ? new Cursor(StandardCursorType.SizeAll) : null;
     }
