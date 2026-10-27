@@ -49,19 +49,94 @@
         <UniformGrid Columns="3" />
     </ItemsPanelTemplate>
 
-    <!-- A header number: label, big value, caption -->
+    <!-- A KPI card: label, a short gold rule, big value (green or red with its sign), caption. The page's tile look
+         (Main/MainLook TileCard), tighter. Placed in a row with 12 between cards. -->
     <DataTemplate x:Key="StatsTile" DataType="{x:Type m:StatTile}">
-        <StackPanel Margin="0,0,18,0" ToolTip="{Binding Detail}">
-            <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" />
-            <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" FontSize="25" Margin="0,6,0,2" TextTrimming="CharacterEllipsis" />
-            <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
-        </StackPanel>
+        <Border Style="{DynamicResource TileCard}" Padding="18,14,16,14" Margin="0,0,12,12" ToolTip="{Binding Detail}">
+            <StackPanel>
+                <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" TextTrimming="CharacterEllipsis" />
+                <Border Width="22" Height="2" CornerRadius="1" Background="{StaticResource AccentLine}" HorizontalAlignment="Left" Margin="0,6,0,0" />
+                <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" FontSize="25" Margin="0,6,0,2" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </Border>
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding Sign}" Value="1">
                 <Setter TargetName="Value" Property="Foreground" Value="{StaticResource Positive}" />
             </DataTrigger>
             <DataTrigger Binding="{Binding Sign}" Value="-1">
                 <Setter TargetName="Value" Property="Foreground" Value="{StaticResource Negative}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    <!-- A row of KPI cards: the cards' right/bottom gaps are taken back here -->
+    <Style x:Key="StatsTiles" TargetType="ItemsControl">
+        <Setter Property="ItemTemplate" Value="{StaticResource StatsTile}" />
+        <Setter Property="Margin" Value="0,0,-12,4" />
+        <Setter Property="Focusable" Value="False" />
+    </Style>
+
+    <!-- Column heads over a StatGroupRowTemplate table: Content names the first column; a hairline under them -->
+    <Style x:Key="StatsTableHead" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="0,0,0,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="64" />
+                                <ColumnDefinition Width="132" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource StatsHead}" />
+                            <TextBlock Grid.Column="1" Text="{i:Loc Stats.Table.Record}" Style="{StaticResource StatsHead}" HorizontalAlignment="Right" ToolTip="{i:Loc Stats.RecordTip}" />
+                            <TextBlock Grid.Column="2" Text="{i:Loc Stats.Table.WinRate}" Style="{StaticResource StatsHead}" HorizontalAlignment="Right" />
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A share as a flat rounded bar (0..1) on a dark track; Foreground is the bar -->
+    <Style x:Key="ShareBar" TargetType="ProgressBar">
+        <Setter Property="Minimum" Value="0" />
+        <Setter Property="Maximum" Value="1" />
+        <Setter Property="Height" Value="10" />
+        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="Foreground" Value="{StaticResource Positive}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid>
+                        <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="5" />
+                        <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="5" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A final place in "Where you finish": place, a bar against the most common place (green in the top), share -->
+    <DataTemplate x:Key="BgPlaceRowTemplate" DataType="{x:Type m:BgPlaceRow}">
+        <Grid Margin="0,0,0,7" Background="Transparent" ToolTip="{Binding Tip}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="44" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="52" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Place}" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <ProgressBar x:Name="Bar" Grid.Column="1" Style="{StaticResource ShareBar}" Value="{Binding Fraction, Mode=OneWay}" Foreground="{StaticResource Negative}"
+                         Opacity="0.75" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{Binding Share}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+        </Grid>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Top}" Value="True">
+                <Setter TargetName="Bar" Property="Foreground" Value="{StaticResource Positive}" />
+                <Setter TargetName="Bar" Property="Opacity" Value="1" />
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>

@@ -20,15 +20,7 @@
             </Border>
         </Grid>
 
-        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
-            <ItemsControl ItemsSource="{Binding CtStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel3}" Margin="0,0,0,-14">
-                <ItemsControl.ItemContainerStyle>
-                    <Style TargetType="ContentPresenter">
-                        <Setter Property="Margin" Value="0,0,0,14" />
-                    </Style>
-                </ItemsControl.ItemContainerStyle>
-            </ItemsControl>
-        </Border>
+        <ItemsControl ItemsSource="{Binding CtStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel3}" />
 
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <DockPanel>
@@ -49,15 +41,17 @@
             <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Stats.Ct.YourClasses}" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
+                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Visibility="{Binding CtClasses, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding CtClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <TextBlock Text="{i:Loc Stats.Chart.NoGames}" Style="{StaticResource Caption}" Visibility="{Binding CtClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0004;" Content="{i:Loc Stats.Chart.NoGames}" Visibility="{Binding CtClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
             <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10" />
+                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Opponent}" Visibility="{Binding CtOpponents, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding CtOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <TextBlock Text="{i:Loc Stats.NoMatchups}" Style="{StaticResource Caption}" Visibility="{Binding CtOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF04E5;" Content="{i:Loc Stats.NoMatchups}" Visibility="{Binding CtOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -71,16 +65,18 @@
             <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Stats.Ct.Archetypes}" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
+                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Archetype}" Visibility="{Binding CtArchetypes, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding CtArchetypes}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <TextBlock Text="{i:Loc Stats.Ct.ArchetypesEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap"
-                               Visibility="{Binding CtArchetypes, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0639;" Content="{i:Loc Stats.Ct.ArchetypesEmpty}"
+                                    Visibility="{Binding CtArchetypes, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
             <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Stats.Ct.GameLength}" Icon="&#xF02DA;" Size="13" Margin="0,0,0,10" />
+                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Length}" Visibility="{Binding CtLengths, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding CtLengths}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <TextBlock Text="{i:Loc Stats.Chart.NoGames}" Style="{StaticResource Caption}" Visibility="{Binding CtLengths, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0128;" Content="{i:Loc Stats.Chart.NoGames}" Visibility="{Binding CtLengths, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
             </Border>
         </Grid>
