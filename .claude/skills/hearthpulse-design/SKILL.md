@@ -173,6 +173,6 @@ no hex literals outside the theme files, new tokens in both theme files, animati
   theme picker (`MainViewModel.Theme.cs`: `Themes`, `SelectTheme`, custom hue sliders), page reveal and nav pill
   animation, the faded hero banner, and the overlay tribe focus (`CompFocus`, `FocusChoices` in the WPF
   `OverlayViewModel`).
-- Avalonia only: compact layout below 900 px, separate Hearthstone/memory status dots, an extra overlay switch in
+- Avalonia only: compact layout below 900 px, an extra overlay switch in
   Settings. Avalonia has no theme engine (static Tavern).
 - Compact hero/comp tier tables (Avalonia): fixed column widths leave no room for the name column at phone width.

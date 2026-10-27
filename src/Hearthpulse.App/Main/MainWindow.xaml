@@ -1097,14 +1097,15 @@
                                                             <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="36" />
                                                                 <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
+                                                                <!-- Fixed, so every row's "kept N%" and name trim line up -->
+                                                                <ColumnDefinition Width="116" />
                                                                 <ColumnDefinition Width="52" />
                                                             </Grid.ColumnDefinitions>
                                                             <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                                                     i:CardArt.Portrait="{Binding CardId}" />
                                                             <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                            <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                                       Margin="12,0,0,0" ToolTip="{i:Loc Main.Meta.KeepRateTip}" />
+                                                            <TextBlock Grid.Column="2" Text="{Binding KeepRate}" Style="{StaticResource Caption}" TextAlignment="Right" VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis" Margin="12,0,0,0" ToolTip="{i:Loc Main.Meta.KeepRateTip}" />
                                                             <TextBlock Grid.Column="3" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
                                                                        Foreground="{Binding Edge, Converter={StaticResource SignBrush}}">
                                                                 <TextBlock.ToolTip>

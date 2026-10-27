@@ -308,10 +308,9 @@ public partial class MainView : UserControl
         switch (e.PropertyName)
         {
             case nameof(MainViewModel.HearthstoneRunning):
-                HsDot.Fill = ThemeBrushes.Get(_viewModel.HearthstoneRunning ? "Positive" : "Faint");
-                break;
             case nameof(MainViewModel.MemoryAttached):
-                MemDot.Fill = ThemeBrushes.Get(_viewModel.MemoryAttached ? "Positive" : "Faint");
+                // One chip, as in WPF: gold while Hearthstone runs, green once its memory is read.
+                StatusDot.Fill = ThemeBrushes.Get(_viewModel.MemoryAttached ? "Positive" : _viewModel.HearthstoneRunning ? "Accent" : "Faint");
                 break;
             case nameof(MainViewModel.InGame):
                 LivePulse.Fill = ThemeBrushes.Get(_viewModel.InGame ? "AccentContainer" : "Surface4");

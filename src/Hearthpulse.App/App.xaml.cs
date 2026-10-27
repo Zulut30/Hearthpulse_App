@@ -102,6 +102,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        NumberCulture.Apply();
         for (var i = 0; i < e.Args.Length - 1; i++)
         {
             if (e.Args[i] == "--render-ui")

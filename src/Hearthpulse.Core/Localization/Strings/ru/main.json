@@ -22,8 +22,6 @@
   "Main.Update.Downloaded": "Версия {0} загружена — она установится, когда вы закроете Hearthpulse.",
   "Main.Update.NotChecked": "Обновления ещё не проверялись.",
   "Main.Status.Tip": "Золотой: Hearthstone запущен. Зелёный: подключено. Hearthpulse читает только ваш рейтинг и расы лобби.",
-  "Main.Status.HearthstoneTip": "Зелёный, когда Hearthstone запущен",
-  "Main.Status.MemoryTip": "Только чтение вашего рейтинга и рас лобби (только Windows). Скрытая информация никогда не читается.",
   "Main.Mode.Battlegrounds": "Поля сражений",
   "Main.Mode.Duos": "Дуэты",
   "Main.Mode.Arena": "Арена",

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Desktop;
 
@@ -8,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        NumberCulture.Apply();
         for (var i = 0; i < args.Length - 1; i++)
         {
             if (args[i] == "--render-ui")

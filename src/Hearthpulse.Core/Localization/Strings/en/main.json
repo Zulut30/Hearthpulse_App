@@ -22,8 +22,6 @@
   "Main.Update.Downloaded": "Version {0} is downloaded — it installs when you close Hearthpulse.",
   "Main.Update.NotChecked": "Updates have not been checked yet.",
   "Main.Status.Tip": "Gold: Hearthstone is running. Green: connected. Hearthpulse only reads your rating and the lobby tribes.",
-  "Main.Status.HearthstoneTip": "Green when Hearthstone is running",
-  "Main.Status.MemoryTip": "Read-only access to your rating and the lobby tribes (Windows only). Nothing hidden is ever read.",
   "Main.Mode.Battlegrounds": "Battlegrounds",
   "Main.Mode.Duos": "Duos",
   "Main.Mode.Arena": "Arena",

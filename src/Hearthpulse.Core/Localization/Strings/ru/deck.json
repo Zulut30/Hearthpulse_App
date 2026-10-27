@@ -8,7 +8,7 @@
   "Deck.VersionCount": "{0} версия|{0} версии|{0} версий",
   "Deck.LastPlayed": "последняя игра: {0}",
   "Deck.Games": "{0:N0} игра|{0:N0} игры|{0:N0} игр",
-  "Deck.Minutes": "{0:0} мин",
+  "Deck.Minutes": "{0:0}\u00a0мин",
 
   "Deck.Tile.WinRate": "Винрейт",
   "Deck.Tile.Games": "Игры",

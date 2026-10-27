@@ -8,7 +8,7 @@
   "Deck.VersionCount": "{0} version|{0} versions",
   "Deck.LastPlayed": "last played {0}",
   "Deck.Games": "{0:N0} game|{0:N0} games",
-  "Deck.Minutes": "{0:0} min",
+  "Deck.Minutes": "{0:0}\u00a0min",
 
   "Deck.Tile.WinRate": "Win rate",
   "Deck.Tile.Games": "Games",

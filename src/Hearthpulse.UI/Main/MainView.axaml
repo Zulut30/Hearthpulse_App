@@ -260,17 +260,10 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,22,0">
                     <Button Classes="ghost primary" Content="{i:Loc Main.Update.Ready}" Command="{Binding InstallUpdate}" IsVisible="{Binding UpdateReady}"
                             VerticalAlignment="Center" Margin="0,0,8,0" ToolTip.Tip="{Binding UpdateText}" />
-                    <Border Classes="pill" Background="{StaticResource Surface3}" Padding="12,5" Margin="0,0,8,0"
-                            ToolTip.Tip="{i:Loc Main.Status.HearthstoneTip}">
+                    <Border Classes="pill" Background="{StaticResource Surface3}" Padding="12,5"
+                            ToolTip.Tip="{i:Loc Main.Status.Tip}">
                         <StackPanel Orientation="Horizontal">
-                            <Ellipse Name="HsDot" Width="8" Height="8" Fill="{StaticResource Faint}" />
-                            <TextBlock Text="Hearthstone" FontSize="12" Margin="8,0,0,0" />
-                        </StackPanel>
-                    </Border>
-                    <Border Classes="pill wide" Background="{StaticResource Surface3}" Padding="12,5"
-                            ToolTip.Tip="{i:Loc Main.Status.MemoryTip}">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Name="MemDot" Width="8" Height="8" Fill="{StaticResource Faint}" />
+                            <Ellipse Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" />
                             <TextBlock Text="{Binding MemoryStatus}" FontSize="12" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="220" />
                         </StackPanel>
                     </Border>
