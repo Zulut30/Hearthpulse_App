@@ -41,7 +41,7 @@
             <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Stats.Ct.YourClasses}" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
-                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Visibility="{Binding CtClasses, Converter={StaticResource Vis}}" />
+                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding CtClassesSort}" Visibility="{Binding CtClasses, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding CtClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                     <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0004;" Content="{i:Loc Stats.Chart.NoGames}" Visibility="{Binding CtClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
@@ -49,7 +49,7 @@
             <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10" />
-                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Opponent}" Visibility="{Binding CtOpponents, Converter={StaticResource Vis}}" />
+                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Opponent}" Tag="{Binding CtOpponentsSort}" Visibility="{Binding CtOpponents, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding CtOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                     <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF04E5;" Content="{i:Loc Stats.NoMatchups}" Visibility="{Binding CtOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 </StackPanel>
@@ -65,7 +65,7 @@
             <Border Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
                     <c:Ornament Text="{i:Loc Stats.Ct.Archetypes}" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
-                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Archetype}" Visibility="{Binding CtArchetypes, Converter={StaticResource Vis}}" />
+                    <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Archetype}" Tag="{Binding CtArchetypesSort}" Visibility="{Binding CtArchetypes, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding CtArchetypes}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                     <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0639;" Content="{i:Loc Stats.Ct.ArchetypesEmpty}"
                                     Visibility="{Binding CtArchetypes, Converter={StaticResource Vis}, ConverterParameter=!}" />

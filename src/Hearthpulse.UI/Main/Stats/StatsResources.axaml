@@ -2,6 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:m="using:Hearthpulse.UI.Main"
                     xmlns:i="using:Hearthpulse.UI.Infrastructure"
+                    xmlns:c="using:Hearthpulse.UI.Controls"
                     xmlns:sys="using:System">
     <!-- Shared by the My Stats views (Battlegrounds, Constructed, Arena). Colours are theme tokens only. -->
     <i:Truthy x:Key="Truthy" />
@@ -34,14 +35,18 @@
         </Border>
     </DataTemplate>
 
-    <!-- Column heads over a StatGroupRowTemplate table (ContentControl.Content names the first column); a hairline under them -->
+    <!-- Column heads over a StatGroupRowTemplate table: ContentControl.Content names the first column, its Tag is the
+         table's TableSort (none: plain heads); a hairline under them. The ContentControl sits first in a panel of the
+         head and the rows and takes c:StickyHeader.IsEnabled, so it stays in view. -->
     <DataTemplate x:Key="StatsTableHead" x:DataType="sys:String">
-        <Border BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="0,0,0,6" Margin="0,0,0,4">
+        <Border BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="10,0,10,6" Margin="-10,0,-10,4">
             <Grid ColumnDefinitions="*,Auto,Auto">
-                <TextBlock Text="{Binding}" Classes="label" FontSize="11.5" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{i:Loc Stats.Table.Record}" Classes="label wide" FontSize="11.5" Width="64" TextAlignment="Right"
-                           ToolTip.Tip="{i:Loc Stats.RecordTip}" />
-                <TextBlock Grid.Column="2" Text="{i:Loc Stats.Table.WinRate}" Classes="label" FontSize="11.5" Width="132" TextAlignment="Right" />
+                <c:SortHeader Text="{Binding}" Column="Name" HorizontalAlignment="Left" ToolTip.Tip="{i:Loc Stats.Table.NameTip}"
+                              Sort="{Binding $parent[ContentControl].Tag}" />
+                <c:SortHeader Grid.Column="1" Text="{i:Loc Stats.Table.Record}" Column="Games" Classes="wide" Width="64" HorizontalAlignment="Right"
+                              ToolTip.Tip="{i:Loc Stats.Table.RecordTip}" Sort="{Binding $parent[ContentControl].Tag}" />
+                <c:SortHeader Grid.Column="2" Text="{i:Loc Stats.Table.WinRate}" Column="WinRate" Width="132" HorizontalAlignment="Right"
+                              ToolTip.Tip="{i:Loc Stats.Table.WinRateTip}" Sort="{Binding $parent[ContentControl].Tag}" />
             </Grid>
         </Border>
     </DataTemplate>
@@ -81,12 +86,17 @@
                            ToolTip.Tip="{i:Loc Stats.RecordTip}" />
                 <StackPanel Grid.Column="3" Width="132" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Border Width="64" Height="7" CornerRadius="3" Background="{StaticResource NegativeSoft}" VerticalAlignment="Center">
-                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
+                        <!-- The win rate on a 0–100 % bar in its colour, a tick at 50 % -->
+                        <Panel Width="64" Height="11" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <Border Height="7" CornerRadius="3" Background="{StaticResource Surface3}" />
+                            <Border Height="7" HorizontalAlignment="Left" CornerRadius="3" Background="{Binding WinSign, Converter={StaticResource SignBrush}}"
                                     Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />
+                            <Border Width="1" HorizontalAlignment="Center" Background="{StaticResource Text}" Opacity="0.45" />
+                        </Panel>
+                        <Border Classes="markCell" Classes.best="{Binding WinBest}" Classes.worst="{Binding WinWorst}">
+                            <TextBlock Text="{Binding WinRate}" MinWidth="40" TextAlignment="Right" FontWeight="Bold"
+                                       Foreground="{Binding WinSign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
                         </Border>
-                        <TextBlock Text="{Binding WinRate}" Width="52" TextAlignment="Right" FontWeight="Bold"
-                                   Foreground="{Binding WinSign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
                     </StackPanel>
                     <ContentControl Content="{Binding Vs}" ContentTemplate="{StaticResource VsGlobalTemplate}" HorizontalAlignment="Right" />
                 </StackPanel>

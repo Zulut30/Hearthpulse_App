@@ -47,10 +47,26 @@ public sealed record DeckMatchupRow(
     double WinFraction,
     bool IsArchetype,
     bool Selected,
-    bool Few)
+    bool Few,
+    int GameCount = 0)
 {
     /// <summary>The win rate's colour: +1 from 53 %, -1 up to 47 %, 0 between them and when there is no rate.</summary>
     public int WinSign => WinRate == "—" ? 0 : WinFraction >= 0.53 ? 1 : WinFraction <= 0.47 ? -1 : 0;
+
+    /// <summary>+1 on the best opponent class of the table, -1 on the worst (enough games only), else 0.</summary>
+    public int WinMark { get; init; }
+
+    public bool WinBest => WinMark > 0;
+
+    public bool WinWorst => WinMark < 0;
+
+    /// <summary>The value of a sortable column: "Name", "Games" or "WinRate".</summary>
+    internal IComparable? SortValue(string column) => column switch
+    {
+        "Name" => Label,
+        "Games" => GameCount,
+        _ => WinRate == "—" ? null : WinFraction,
+    };
 }
 
 /// <summary>One cost of the main version's mana curve ("0" … "7+"): cards at that cost and the bar's share of the tallest.</summary>
@@ -70,7 +86,10 @@ public sealed record DeckListRow(string CardId, string Name, int Cost, string Ra
     public bool Legendary => Rarity == "LEGENDARY";
 }
 
-/// <summary>One card in the mulligan and card tables. Signs colour a win rate against the deck's own (+1 above, -1 below).</summary>
+/// <summary>
+/// One card in the mulligan and card tables. Signs colour a win rate against the deck's own (+1 above, -1 below);
+/// marks flag the best (+1) and the worst (-1) card of a column among the cards with enough games.
+/// </summary>
 public sealed record DeckCardStatRow(
     string CardId,
     string Name,
@@ -93,7 +112,73 @@ public sealed record DeckCardStatRow(
     string Played,
     string PlayedWinRate,
     int PlayedSign,
-    string AverageTurn);
+    string AverageTurn)
+{
+    /// <summary>The raw numbers behind the columns, for sorting and the bars (null: no value).</summary>
+    public DeckCardNumbers Numbers { get; init; } = DeckCardNumbers.None;
+
+    public int KeptMark { get; init; }
+
+    public int ReplacedMark { get; init; }
+
+    public int DrawnMark { get; init; }
+
+    public int PlayedMark { get; init; }
+
+    public bool KeptBest => KeptMark > 0;
+
+    public bool KeptWorst => KeptMark < 0;
+
+    public bool ReplacedBest => ReplacedMark > 0;
+
+    public bool ReplacedWorst => ReplacedMark < 0;
+
+    public bool DrawnBest => DrawnMark > 0;
+
+    public bool DrawnWorst => DrawnMark < 0;
+
+    public bool PlayedBest => PlayedMark > 0;
+
+    public bool PlayedWorst => PlayedMark < 0;
+
+    /// <summary>Share of the opening hands with the card that kept it (0..1), for the keep bar.</summary>
+    public double KeepFraction => Numbers.KeepRate ?? 0;
+
+    /// <summary>The value of a sortable column of <see cref="DeckDetailsViewModel.MulliganSort"/> or <see cref="DeckDetailsViewModel.CardsSort"/>.</summary>
+    internal IComparable? SortValue(string column) => column switch
+    {
+        "Card" => (Cost, Name),
+        "Offered" => Numbers.Offered,
+        "Kept" => Numbers.KeepRate,
+        "KeptWinRate" => Numbers.KeptWinRate,
+        "ReplacedWinRate" => Numbers.ReplacedWinRate,
+        "MetaKept" => Numbers.MetaKeep,
+        "MetaWinRate" => Numbers.MetaWinRate,
+        "Drawn" => Numbers.Drawn,
+        "DrawnWinRate" => Numbers.DrawnWinRate,
+        "Played" => Numbers.Played,
+        "PlayedWinRate" => Numbers.PlayedWinRate,
+        "AverageTurn" => Numbers.AverageTurn,
+        _ => null,
+    };
+}
+
+/// <summary>A card's mulligan and card numbers as numbers (rates 0..1; null where there is none).</summary>
+public sealed record DeckCardNumbers(
+    int Offered,
+    double? KeepRate,
+    double? KeptWinRate,
+    double? ReplacedWinRate,
+    double? MetaKeep,
+    double? MetaWinRate,
+    int Drawn,
+    double? DrawnWinRate,
+    int Played,
+    double? PlayedWinRate,
+    double? AverageTurn)
+{
+    public static DeckCardNumbers None { get; } = new(0, null, null, null, null, null, 0, null, 0, null, null);
+}
 
 /// <summary>A card whose copies differ between two lists: its tile, name and "+2" / "−1" (the sign colours it).</summary>
 public sealed record CardDiffRow(string CardId, string Name, string Count, int Sign);
@@ -169,7 +254,6 @@ public sealed class DeckDetailsViewModel : Observable
     private ConstructedMeta? _meta;
     private CardDb _cards = CardDb.Empty;
     private string? _matchup;
-    private bool _sortByWinRate;
     private int _build;
 
     private string _name = string.Empty;
@@ -193,6 +277,8 @@ public sealed class DeckDetailsViewModel : Observable
     private IReadOnlyList<string> _lengthLabels = [];
     private IReadOnlyList<DeckMatchupRow> _matchups = [];
     private IReadOnlyList<DeckCardStatRow> _cardRows = [];
+    private IReadOnlyList<DeckCardStatRow> _mulliganRows = [];
+    private IReadOnlyList<DeckCardStatRow> _performanceRows = [];
     private string _mulliganNote = string.Empty;
     private string _cardsNote = string.Empty;
     private IReadOnlyList<DeckVersionRow> _versions = [];
@@ -221,11 +307,10 @@ public sealed class DeckDetailsViewModel : Observable
             _matchup = null;
             Rebuild();
         });
-        SortMatchups = new RelayCommand(p =>
-        {
-            _sortByWinRate = p as string == "WinRate";
-            Rebuild();
-        });
+        MatchupSort = new TableSort("Games", Rebuild, "Name");
+        SortMatchups = new RelayCommand(p => MatchupSort.SortBy(p as string == "WinRate" ? "WinRate" : "Games"));
+        MulliganSort = new TableSort("Card", () => MulliganRows = MulliganSort!.Apply(_cardRows, (r, c) => r.SortValue(c)), "Card");
+        CardsSort = new TableSort("Card", () => PerformanceRows = CardsSort!.Apply(_cardRows, (r, c) => r.SortValue(c)), "Card");
         StartRename = new RelayCommand(() =>
         {
             EditName = _family?.Name ?? string.Empty;
@@ -287,8 +372,20 @@ public sealed class DeckDetailsViewModel : Observable
 
     public RelayCommand ClearMatchup { get; }
 
-    /// <summary>"Games" or "WinRate".</summary>
+    /// <summary>"Games" or "WinRate" (the column heads use <see cref="MatchupSort"/>).</summary>
     public RelayCommand SortMatchups { get; }
+
+    /// <summary>The matchups' column heads: "Name", "Games", "WinRate"; archetypes stay under their class.</summary>
+    public TableSort MatchupSort { get; }
+
+    /// <summary>
+    /// The mulligan table's column heads: "Card" (cost, then name), "Offered", "Kept", "KeptWinRate",
+    /// "ReplacedWinRate", "MetaKept", "MetaWinRate".
+    /// </summary>
+    public TableSort MulliganSort { get; }
+
+    /// <summary>The card table's column heads: "Card", "Drawn", "DrawnWinRate", "Played", "PlayedWinRate", "AverageTurn".</summary>
+    public TableSort CardsSort { get; }
 
     /// <summary>Saves <see cref="EditName"/> as the deck's name.</summary>
     public RelayCommand Rename { get; }
@@ -390,9 +487,16 @@ public sealed class DeckDetailsViewModel : Observable
 
     public IReadOnlyList<DeckMatchupRow> Matchups { get => _matchups; private set => Set(ref _matchups, value); }
 
-    public bool SortedByWinRate => _sortByWinRate;
+    public bool SortedByWinRate => MatchupSort.Column == "WinRate";
 
+    /// <summary>The cards of both tables in the deck's order (cost, then name).</summary>
     public IReadOnlyList<DeckCardStatRow> CardRows { get => _cardRows; private set => Set(ref _cardRows, value); }
+
+    /// <summary>The mulligan table: <see cref="CardRows"/> in <see cref="MulliganSort"/> order.</summary>
+    public IReadOnlyList<DeckCardStatRow> MulliganRows { get => _mulliganRows; private set => Set(ref _mulliganRows, value); }
+
+    /// <summary>The card table: <see cref="CardRows"/> in <see cref="CardsSort"/> order.</summary>
+    public IReadOnlyList<DeckCardStatRow> PerformanceRows { get => _performanceRows; private set => Set(ref _performanceRows, value); }
 
     public string MulliganNote { get => _mulliganNote; private set => Set(ref _mulliganNote, value); }
 
@@ -504,10 +608,11 @@ public sealed class DeckDetailsViewModel : Observable
         }
 
         var build = ++_build;
-        var (families, suggestions, meta, cards, matchup, byWinRate) = (_families, _suggestions, _meta, _cards, _matchup, _sortByWinRate);
+        var (families, suggestions, meta, cards, matchup) = (_families, _suggestions, _meta, _cards, _matchup);
+        var (sortColumn, descending) = (MatchupSort.Column, MatchupSort.Descending);
         try
         {
-            var apply = await Task.Run(() => Build(family, families, suggestions, meta, cards, matchup, byWinRate)).ConfigureAwait(true);
+            var apply = await Task.Run(() => Build(family, families, suggestions, meta, cards, matchup, sortColumn, descending)).ConfigureAwait(true);
             if (build == _build)
             {
                 apply();
@@ -520,7 +625,7 @@ public sealed class DeckDetailsViewModel : Observable
     }
 
     private Action Build(DeckFamily family, IReadOnlyList<DeckFamily> families, IReadOnlyList<MergeSuggestion> suggestions, ConstructedMeta? meta,
-        CardDb cards, string? matchup, bool byWinRate)
+        CardDb cards, string? matchup, string sortColumn, bool descending)
     {
         // The family's games again with their card columns (lists read the history without them).
         var all = _owner.History.WithCards(family.Games);
@@ -575,14 +680,19 @@ public sealed class DeckDetailsViewModel : Observable
         // Matchups count every game of the deck: they are the filter, not filtered.
         var classes = DeckDetails.ByOpponentClass(all);
         var archetypes = DeckDetails.ByOpponentArchetype(all, meta);
-        IEnumerable<DeckMatchup> Sorted(IEnumerable<DeckMatchup> list) => byWinRate
-            ? list.OrderByDescending(m => m.Record.WinRate ?? -1).ThenByDescending(m => m.Record.Games)
-            : list.OrderByDescending(m => m.Record.Games).ThenByDescending(m => m.Record.WinRate ?? -1);
+        // By the clicked column; ties keep the most played (then the best) first.
+        List<(DeckMatchup Matchup, DeckMatchupRow Row)> Sorted(IEnumerable<DeckMatchup> list) => TableSort.Apply(
+                list.OrderByDescending(m => m.Record.Games).ThenByDescending(m => m.Record.WinRate ?? -1).Select(m => (m, MatchupRow(m, matchup))),
+                (r, c) => r.Item2.SortValue(c), sortColumn, descending)
+            .ToList();
+        var classRows = Sorted(classes);
+        var classMarks = TableSort.BestAndWorst(classRows, r => r.Row.SortValue("WinRate") as double?, r => !r.Row.Few);
         var matchupRows = new List<DeckMatchupRow>();
-        foreach (var opponent in Sorted(classes))
+        for (var i = 0; i < classRows.Count; i++)
         {
-            matchupRows.Add(MatchupRow(opponent, matchup));
-            matchupRows.AddRange(Sorted(archetypes.Where(a => a.OpponentClass == opponent.OpponentClass)).Select(a => MatchupRow(a, matchup)));
+            var opponent = classRows[i].Matchup;
+            matchupRows.Add(classRows[i].Row with { WinMark = classMarks[i] });
+            matchupRows.AddRange(Sorted(archetypes.Where(a => a.OpponentClass == opponent.OpponentClass)).Select(a => a.Row));
         }
 
         var filterText = matchup is null
@@ -596,6 +706,18 @@ public sealed class DeckDetailsViewModel : Observable
             {
                 var card = cards.Get(c.DbfId);
                 var m = metaCards.GetValueOrDefault(c.CardId);
+                var numbers = new DeckCardNumbers(
+                    c.Offered,
+                    c.Offered > 0 ? c.KeepRate : null,
+                    c.WhenKept.WinRate,
+                    c.WhenReplaced.WinRate,
+                    m?.KeepRate,
+                    m?.InHandWinRate,
+                    c.WhenDrawn.Games,
+                    c.WhenDrawn.WinRate,
+                    c.WhenPlayed.Games,
+                    c.WhenPlayed.WinRate,
+                    c.AveragePlayTurn);
                 return new DeckCardStatRow(
                     c.CardId,
                     card?.Name ?? c.CardId,
@@ -618,9 +740,10 @@ public sealed class DeckDetailsViewModel : Observable
                     c.WhenPlayed.Games.ToString(CultureInfo.CurrentCulture),
                     Percent(c.WhenPlayed.WinRate),
                     Sign(c.WhenPlayed.WinRate, deckRate),
-                    c.AveragePlayTurn is { } t ? t.ToString("0.0", CultureInfo.CurrentCulture) : "—");
+                    c.AveragePlayTurn is { } t ? t.ToString("0.0", CultureInfo.CurrentCulture) : "—") { Numbers = numbers };
             })
             .ToList();
+        cardRows = Marked(cardRows);
         // The main version's list, as the tracker shows it, and its curve (cost 7 and up share the last bar).
         var deckList = cardStats.Where(c => c.Copies > 0)
             .Select(c => (Stat: c, Card: cards.Get(c.DbfId)))
@@ -728,6 +851,8 @@ public sealed class DeckDetailsViewModel : Observable
             Matchups = matchupRows;
             Raise(nameof(SortedByWinRate));
             CardRows = cardRows;
+            MulliganRows = MulliganSort.Apply(cardRows, (r, c) => r.SortValue(c));
+            PerformanceRows = CardsSort.Apply(cardRows, (r, c) => r.SortValue(c));
             MulliganNote = mulliganNote;
             CardsNote = cardsNote;
             ShowOpenDiffs(versionRows, suggestionRows);
@@ -735,6 +860,19 @@ public sealed class DeckDetailsViewModel : Observable
             RefreshCandidates();
             Games = recent;
         };
+    }
+
+    /// <summary>
+    /// The cards with their best and worst win rates flagged, per column, among the cards seen often enough
+    /// (<see cref="DeckDetails.SmallSample"/> mulligans for the mulligan columns, draws for the card columns).
+    /// </summary>
+    private static List<DeckCardStatRow> Marked(List<DeckCardStatRow> rows)
+    {
+        var kept = TableSort.BestAndWorst(rows, r => r.Numbers.KeptWinRate, r => !r.FewMulligan);
+        var replaced = TableSort.BestAndWorst(rows, r => r.Numbers.ReplacedWinRate, r => !r.FewMulligan);
+        var drawn = TableSort.BestAndWorst(rows, r => r.Numbers.DrawnWinRate, r => !r.FewDrawn);
+        var played = TableSort.BestAndWorst(rows, r => r.Numbers.PlayedWinRate, r => !r.FewDrawn);
+        return rows.Select((r, i) => r with { KeptMark = kept[i], ReplacedMark = replaced[i], DrawnMark = drawn[i], PlayedMark = played[i] }).ToList();
     }
 
     /// <summary>Card differences as tiles: added cards first, then the ones taken out.</summary>
@@ -761,7 +899,8 @@ public sealed class DeckDetailsViewModel : Observable
         m.Record.WinRate ?? 0,
         m.Archetype is not null,
         m.Key == selected,
-        m.Record.Games < DeckDetails.SmallSample);
+        m.Record.Games < DeckDetails.SmallSample,
+        m.Record.Games);
 
     private static string Opponent(GameRecord g, ConstructedMeta? meta)
     {

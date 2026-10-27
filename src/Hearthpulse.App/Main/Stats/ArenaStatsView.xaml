@@ -89,7 +89,7 @@
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <StackPanel>
                         <c:Ornament Text="{i:Loc Stats.Arena.Classes}" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
-                        <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Visibility="{Binding ArenaClasses, Converter={StaticResource Vis}}" />
+                        <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding ArenaClassesSort}" Visibility="{Binding ArenaClasses, Converter={StaticResource Vis}}" />
                         <ItemsControl ItemsSource="{Binding ArenaClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                         <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0004;" Content="{i:Loc Stats.Arena.NoRuns}" Visibility="{Binding ArenaClasses, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     </StackPanel>
@@ -97,7 +97,7 @@
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
                         <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10" />
-                        <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Opponent}" Visibility="{Binding ArenaOpponents, Converter={StaticResource Vis}}" />
+                        <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Opponent}" Tag="{Binding ArenaOpponentsSort}" Visibility="{Binding ArenaOpponents, Converter={StaticResource Vis}}" />
                         <ItemsControl ItemsSource="{Binding ArenaOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                         <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF04E5;" Content="{i:Loc Stats.NoMatchups}" Visibility="{Binding ArenaOpponents, Converter={StaticResource Vis}, ConverterParameter=!}" />
                     </StackPanel>

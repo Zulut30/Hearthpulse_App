@@ -96,10 +96,32 @@ public sealed record VsGlobal(bool Shown, string Text, string Glyph, int Sign)
 }
 
 /// <summary>A group in a My Stats table (class, opponent class, archetype, game length).</summary>
-public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs)
+public sealed record StatGroupRow(string Label, string CardId, string Games, string Record, string WinRate, double WinFraction, VsGlobal Vs, int GameCount = 0)
 {
     /// <summary>The win rate's colour: +1 from 53 %, -1 up to 47 %, 0 between them and when there is no rate.</summary>
     public int WinSign => WinRate == "—" ? 0 : WinFraction >= 0.53 ? 1 : WinFraction <= 0.47 ? -1 : 0;
+
+    /// <summary>+1 on the table's best win rate, -1 on its worst (groups with enough games only), else 0.</summary>
+    public int WinMark { get; init; }
+
+    public bool WinBest => WinMark > 0;
+
+    public bool WinWorst => WinMark < 0;
+
+    /// <summary>The value of a sortable column: "Name", "Games" or "WinRate".</summary>
+    internal IComparable? SortValue(string column) => column switch
+    {
+        "Name" => Label,
+        "Games" => GameCount,
+        _ => WinRate == "—" ? null : WinFraction,
+    };
+
+    /// <summary>The rows with the best and the worst win rate flagged (groups of <see cref="DeckDetails.SmallSample"/> games or more).</summary>
+    internal static List<StatGroupRow> Marked(IReadOnlyList<StatGroupRow> rows)
+    {
+        var marks = TableSort.BestAndWorst(rows, r => r.SortValue("WinRate") as double?, r => r.GameCount >= DeckDetails.SmallSample);
+        return rows.Select((r, i) => r with { WinMark = marks[i] }).ToList();
+    }
 }
 
 /// <summary>
@@ -146,6 +168,11 @@ public sealed partial class MainViewModel
     private RelayCommand? _setBgMinGames;
     private RelayCommand? _setCtPeriod;
     private RelayCommand? _setArenaPeriod;
+    private TableSort? _ctClassesSort;
+    private TableSort? _ctOpponentsSort;
+    private TableSort? _ctArchetypesSort;
+    private TableSort? _arenaClassesSort;
+    private TableSort? _arenaOpponentsSort;
 
     public RelayCommand SetBgPeriod => _setBgPeriod ??= new RelayCommand(p => { _bgPeriod = ParsePeriod(p); RebuildBattlegroundsStats(); });
 
@@ -220,6 +247,19 @@ public sealed partial class MainViewModel
     public IReadOnlyList<StatTile> CtStatTiles { get => _ctStatTiles; private set => Set(ref _ctStatTiles, value); }
 
     public IReadOnlyList<IChartValue> CtRankChart { get => _ctRankChart; private set => Set(ref _ctRankChart, value); }
+
+    // The class and archetype tables sort by their column heads (most played first until one is clicked).
+    public TableSort CtClassesSort => _ctClassesSort ??= GroupSort(() => CtClasses = CtClassesSort.Apply(CtClasses, (r, c) => r.SortValue(c)));
+
+    public TableSort CtOpponentsSort => _ctOpponentsSort ??= GroupSort(() => CtOpponents = CtOpponentsSort.Apply(CtOpponents, (r, c) => r.SortValue(c)));
+
+    public TableSort CtArchetypesSort => _ctArchetypesSort ??= GroupSort(() => CtArchetypes = CtArchetypesSort.Apply(CtArchetypes, (r, c) => r.SortValue(c)));
+
+    public TableSort ArenaClassesSort => _arenaClassesSort ??= GroupSort(() => ArenaClasses = ArenaClassesSort.Apply(ArenaClasses, (r, c) => r.SortValue(c)));
+
+    public TableSort ArenaOpponentsSort => _arenaOpponentsSort ??= GroupSort(() => ArenaOpponents = ArenaOpponentsSort.Apply(ArenaOpponents, (r, c) => r.SortValue(c)));
+
+    private static TableSort GroupSort(Action changed) => new("Games", changed, "Name");
 
     public IReadOnlyList<StatGroupRow> CtClasses { get => _ctClasses; private set => Set(ref _ctClasses, value); }
 
@@ -461,9 +501,9 @@ public sealed partial class MainViewModel
         {
             CtStatTiles = tiles;
             CtRankChart = chart;
-            CtClasses = classes;
-            CtOpponents = opponents;
-            CtArchetypes = archetypes;
+            CtClasses = CtClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
+            CtOpponents = CtOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
+            CtArchetypes = CtArchetypesSort.Apply(StatGroupRow.Marked(archetypes), (r, c) => r.SortValue(c));
             CtLengths = lengths;
             CtStatsNote = note;
         };
@@ -512,15 +552,16 @@ public sealed partial class MainViewModel
                 $"{c.Record.Wins}–{c.Record.Losses}",
                 Percent(c.Record.WinRate),
                 c.Record.WinRate ?? 0,
-                VsGlobal.None))
+                VsGlobal.None,
+                c.Record.Games))
             .ToList();
         var opponents = ConstructedStats.ByOpponentClass(games).Select(g => Group(g, ClassHero(g.Key), OverlayViewModel.ClassName(g.Key))).ToList();
         return () =>
         {
             ArenaStatTiles = tiles;
             ArenaRuns = runRows;
-            ArenaClasses = classes;
-            ArenaOpponents = opponents;
+            ArenaClasses = ArenaClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
+            ArenaOpponents = ArenaOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
             applyDeck(this);
         };
     }
@@ -536,7 +577,8 @@ public sealed partial class MainViewModel
         $"{g.Record.Wins}–{g.Record.Losses}",
         Percent(g.Record.WinRate),
         g.Record.WinRate ?? 0,
-        VsGlobal.Of(g.Record.WinRate, g.GlobalWinRate, lowerIsBetter: false, "0", percent: true));
+        VsGlobal.Of(g.Record.WinRate, g.GlobalWinRate, lowerIsBetter: false, "0", percent: true),
+        g.Record.Games);
 
     private static string Percent(double? value) => value is { } v ? v.ToString("P0", CultureInfo.CurrentCulture) : "—";
 

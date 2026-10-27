@@ -33,6 +33,7 @@ public static class ArchetypeNames
         ["Burn Mage"] = "Берн Маг",
         ["Burn Rogue"] = "Берн Разбойник",
         ["Burn Warrior"] = "Берн Воин",
+        ["C'Thun Warlock"] = "К'Тун Чернокнижник",
         ["Chef Druid"] = "Шеф-повар Друид",
         ["Companion Hunter"] = "Компаньон Охотник",
         ["Control Priest"] = "Контроль Жрец",

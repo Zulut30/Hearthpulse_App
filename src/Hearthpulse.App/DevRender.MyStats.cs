@@ -66,6 +66,11 @@ public partial class App
     /// <summary>Saves a page's whole content (not just what the window shows) on the window background.</summary>
     private static void SaveFull(FrameworkElement content, string path)
     {
+        if (content.Parent is ScrollViewer page)
+        {
+            Controls.PageRowsPanel.BuildAllRows(page);
+        }
+
         const double pad = 40;
         var width = Math.Ceiling(content.ActualWidth + (2 * pad));
         var height = Math.Ceiling(content.ActualHeight + pad);
