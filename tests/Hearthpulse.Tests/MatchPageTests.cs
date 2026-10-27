@@ -133,10 +133,19 @@ public sealed class MatchPageTests : IDisposable
         var key = Assert.Single(analysis.KeyCards, k => k.Local);
         Assert.Equal("BE_012", key.CardId);
         Assert.Equal("Turn 1 · +5 board", key.Reason);
+        Assert.Equal("BE_012", replay.Frames[key.Frame].Action.CardId);
         Assert.Equal(["Replaced", "Kept"], analysis.Mulligan.Select(m => m.Choice));
         Assert.Equal(["CS2_182"], analysis.MulliganReceived);
         Assert.Contains("community meta", analysis.MulliganNote);
         Assert.Empty(analysis.Meta);
+
+        // The match page stars that one action in the turn's list, with the reason as its tooltip; the header says won.
+        var page = MatchPage.Load(Game(_store.Save(Game(null).Key, ReplayFile.Write(new ReplayHeader(), events))), _store, CardDb.Empty, null);
+        Assert.True(page.Header.Won);
+        Assert.False(page.Header.Lost);
+        var marked = Assert.Single(page.Actions(key.Frame), a => a.Key);
+        Assert.Equal((key.Frame, "BE_012", true, "Turn 1 · +5 board"), (marked.Frame, marked.CardId, marked.Local, marked.KeyReason));
+        Assert.All(page.Actions(key.Frame).Where(a => !a.Key), a => Assert.Null(a.KeyReason));
     }
 
     [Fact]

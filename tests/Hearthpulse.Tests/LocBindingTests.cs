@@ -88,9 +88,12 @@ public sealed class LocBindingTests
             Dispatcher.UIThread.RunJobs();
 
             // Main/MainLook.axaml is included: the gold rule under each page title takes its size from there.
-            var rules = view.GetLogicalDescendants().OfType<Hearthpulse.UI.Controls.Wave>().Where(w => w.Classes.Contains("pageRule")).ToList();
+            var all = view.GetLogicalDescendants().OfType<Hearthpulse.UI.Controls.Wave>().Where(w => w.Classes.Contains("pageRule")).ToList();
+            var rules = all.Where(w => w.FindLogicalAncestorOfType<Hearthpulse.UI.Main.Match.MatchView>() is null).ToList();
             Assert.Equal(6, rules.Count);
-            Assert.All(rules, r => Assert.Equal(168, r.Width));
+            // The match page (inside History) has its own rule under the game's title.
+            Assert.Single(all.Except(rules));
+            Assert.All(all, r => Assert.Equal(168, r.Width));
 
             // An empty list shows its glyph in a cookie over the localized line, not the content's type name.
             var empty = view.GetLogicalDescendants().OfType<ContentControl>().Single(c => c.Classes.Contains("emptyState") && Equals(c.Tag, "\U000F02DA"));

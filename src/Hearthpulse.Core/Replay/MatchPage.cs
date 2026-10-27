@@ -17,6 +17,11 @@ public sealed record MatchHeader(
     MatchPlayerView Local,
     MatchPlayerView Opponent)
 {
+    /// <summary>The game was won (Constructed) or placed in the top half (Battlegrounds).</summary>
+    public bool Won => ResultKey == "Win";
+
+    public bool Lost => ResultKey == "Loss";
+
     /// <summary>Header facts as label/value pairs: duration, turns, coin, deck...</summary>
     public IReadOnlyList<MatchFact> Facts { get; init; } = [];
 }
@@ -96,10 +101,21 @@ public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> 
 public sealed record MatchTurnChip(int Number, string Label, string Tooltip, bool Local, bool Mulligan, int FirstFrame, int LastFrame);
 
 /// <summary>An action in the turn's list (clicking it goes to its step).</summary>
-public sealed record MatchActionRow(int Frame, string Icon, string Text, bool Local, string? CardId, bool Current);
+public sealed record MatchActionRow(int Frame, string Icon, string Text, bool Local, string? CardId, bool Current)
+{
+    /// <summary>The action is a key card's biggest swing (<see cref="KeyCardRow"/>): the row is marked.</summary>
+    public bool Key { get; init; }
+
+    /// <summary>Why the card was key ("Turn 6 · 2 minions killed"), the marked row's tooltip; null for other rows.</summary>
+    public string? KeyReason { get; init; }
+}
 
 /// <summary>A card of a deck list: ours with draw/play marks, or one the opponent showed with its turn.</summary>
-public sealed record MatchDeckRow(string CardId, string Name, int Cost, string Count, string Note, bool Used);
+public sealed record MatchDeckRow(string CardId, string Name, int Cost, string Count, string Note, bool Used)
+{
+    /// <summary>The card's rarity ("COMMON", "RARE", "EPIC", "LEGENDARY", "FREE"), for the row's rarity edge.</summary>
+    public string Rarity { get; init; } = string.Empty;
+}
 
 /// <summary>A Battlegrounds round as shown.</summary>
 public sealed record MatchRoundView(
@@ -243,7 +259,7 @@ public sealed class MatchPage
                 ? RevealedRows(replay, cards)
                 : replay.OpponentPlayed
                     .Select(c => new MatchDeckRow(c.CardId, cards.NameOf(c.CardId), cards.Get(c.CardId)?.Cost ?? 0, c.Count > 1 ? $"×{c.Count}" : string.Empty,
-                        Loc.F("Match.Deck.Turn", c.Turn), true))
+                        Loc.F("Match.Deck.Turn", c.Turn), true) { Rarity = cards.Get(c.CardId)?.Rarity ?? string.Empty })
                     .ToList(),
             OpponentPredicted = predicted,
             OpponentPredictedNote = predictedNote,
@@ -267,7 +283,7 @@ public sealed class MatchPage
                     .Concat(g.Key.Created ? [Loc.T("Match.Reveal.Created")] : []));
                 var count = g.Count();
                 return new MatchDeckRow(g.Key.Card, cards.NameOf(g.Key.Card), cards.Get(g.Key.Card)?.Cost ?? 0, count > 1 ? $"×{count}" : string.Empty, note,
-                    !g.Key.Created);
+                    !g.Key.Created) { Rarity = cards.Get(g.Key.Card)?.Rarity ?? string.Empty };
             })
             .OrderBy(r => r.Used ? 0 : 1).ThenBy(r => r.Cost).ThenBy(r => r.Name, StringComparer.CurrentCulture)
             .ToList();
@@ -299,7 +315,7 @@ public sealed class MatchPage
                 Note: Loc.F("Match.Predicted.Core", archetype.Name));
         var rows = list.Cards
             .Select(c => new MatchDeckRow(c.Id, cards.NameOf(c.Id), cards.Get(c.Id)?.Cost ?? 0, c.Copies > 1 ? $"×{c.Copies}" : string.Empty,
-                seen.Contains(c.Id) ? Loc.T("Match.Predicted.Seen") : string.Empty, seen.Contains(c.Id)))
+                seen.Contains(c.Id) ? Loc.T("Match.Predicted.Seen") : string.Empty, seen.Contains(c.Id)) { Rarity = cards.Get(c.Id)?.Rarity ?? string.Empty })
             .OrderBy(r => r.Cost).ThenBy(r => r.Name, StringComparer.CurrentCulture)
             .ToList();
         return (rows, closestHits is { } hits ? $"{list.Note} {Loc.P("Match.Predicted.Closest", hits)}" : list.Note);
@@ -392,9 +408,15 @@ public sealed class MatchPage
             return [];
         }
 
+        var keys = Analysis?.KeyCards ?? [];
         return replay.Frames.Skip(chip.FirstFrame).Take(chip.LastFrame - chip.FirstFrame + 1)
-            .Select(f => new MatchActionRow(f.Index, IconOf(f.Action.Kind), Describe(f.Action) + Details(f.Action) switch { "" => "", var d => " · " + d },
-                f.Action.Player == ReplayPlayer.Local, f.Action.CardId, f.Index == frame))
+            .Select(f =>
+            {
+                var local = f.Action.Player == ReplayPlayer.Local;
+                var key = keys.FirstOrDefault(k => k.Frame == f.Index && k.CardId == f.Action.CardId && k.Local == local);
+                return new MatchActionRow(f.Index, IconOf(f.Action.Kind), Describe(f.Action) + Details(f.Action) switch { "" => "", var d => " · " + d },
+                    local, f.Action.CardId, f.Index == frame) { Key = key is not null, KeyReason = key?.Reason };
+            })
             .ToList();
     }
 
@@ -619,7 +641,7 @@ public sealed class MatchPage
                 var marks = new List<string>();
                 if (d > 0) marks.Add(d > 1 ? Loc.F("Match.Deck.DrawnTimes", d) : Loc.T("Match.Deck.Drawn"));
                 if (p > 0) marks.Add(p > 1 ? Loc.F("Match.Deck.PlayedTimes", p) : Loc.T("Match.Deck.Played"));
-                return new MatchDeckRow(c.Id, cards.NameOf(c.Id), card?.Cost ?? 0, c.Copies > 1 ? $"×{c.Copies}" : string.Empty, string.Join(" · ", marks), d > 0);
+                return new MatchDeckRow(c.Id, cards.NameOf(c.Id), card?.Cost ?? 0, c.Copies > 1 ? $"×{c.Copies}" : string.Empty, string.Join(" · ", marks), d > 0) { Rarity = card?.Rarity ?? string.Empty };
             })
             .OrderBy(r => r.Cost).ThenBy(r => r.Name, StringComparer.CurrentCulture)
             .ToList();
