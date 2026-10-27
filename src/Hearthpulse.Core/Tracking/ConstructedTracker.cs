@@ -277,23 +277,24 @@ public sealed class ConstructedTracker : IPowerListener
         var cardId = hidden ? string.Empty : e.CardId;
         var creator = hidden ? null : game.Entities.GetValueOrDefault(e.GetInt(GameTag.DisplayedCreator) is > 0 and var d ? d : e.GetInt(GameTag.Creator));
         var creatorId = creator is { CardId.Length: > 0 } && creator.CardType is not ("PLAYER" or "GAME") ? creator.CardId : null;
-        // Only the opening-hand Coin means they went second; a Coin made later is just a created card.
-        var isCoin = cardId == "GAME_005" && e.EnteredHandTurn == 0;
+        // Only the opening-hand Coin means they went second; a Coin made later is just a created card. The Coin can be a
+        // skin (EDR_COIN1, JAIL_COIN3...): COIN_CARD marks it.
+        var isCoin = (cardId == "GAME_005" || e.GetInt("COIN_CARD") == 1) && e.EnteredOpeningHand;
         var from = _cameToHandFrom.GetValueOrDefault(e.Id, e.InitialZone);
         var origin = isCoin ? HandCardOrigin.Coin
             : e.InitialController == game.LocalPlayerId && game.LocalPlayerId != 0 ? HandCardOrigin.Stolen
-            : hidden ? (e.EnteredHandTurn == 0 ? HandCardOrigin.Mulligan : HandCardOrigin.Drawn)
+            : hidden ? (e.EnteredOpeningHand ? HandCardOrigin.Mulligan : HandCardOrigin.Drawn)
             : from is "PLAY" or "GRAVEYARD" or "SECRET" ? HandCardOrigin.Returned
             : from == "DECK" && !e.IsOriginalDeckCard ? HandCardOrigin.Shuffled
             : from != "DECK" && (creatorId is not null || e.CreatedTurn > 0) ? HandCardOrigin.Created
-            : e.EnteredHandTurn == 0 ? HandCardOrigin.Mulligan
+            : e.EnteredOpeningHand ? HandCardOrigin.Mulligan
             : HandCardOrigin.Drawn;
         return new HandSlot(
             e.ZonePosition,
             ToPlayerTurn(e.EnteredHandTurn),
             cardId.Length > 0 ? cardId : null,
             cardId.Length > 0 ? cards.NameOf(cardId) : null,
-            e.EnteredHandTurn == 0,
+            e.EnteredOpeningHand,
             isCoin,
             creatorId is null ? null : cards.NameOf(creatorId))
         {

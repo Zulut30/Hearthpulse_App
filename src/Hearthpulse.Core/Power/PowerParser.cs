@@ -415,6 +415,7 @@ public sealed partial class PowerParser
             if (entity.InHand)
             {
                 entity.EnteredHandTurn = game.Turn;
+                entity.EnteredOpeningHand = game.InOpeningHand(entity.Controller);
             }
 
             game.TryResolveLocalPlayer();
@@ -441,6 +442,7 @@ public sealed partial class PowerParser
             if (value == "HAND")
             {
                 entity.EnteredHandTurn = game.Turn;
+                entity.EnteredOpeningHand = game.InOpeningHand(entity.Controller);
             }
             else if (previous == "HAND")
             {

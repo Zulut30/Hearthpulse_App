@@ -173,6 +173,34 @@ public sealed class OpponentHandTests
     }
 
     [Fact]
+    public void The_opening_hand_and_a_skinned_coin_are_marked_in_the_real_order()
+    {
+        // Real logs set TURN=1 before the deal; the Coin is a skin (EDR_COIN1) marked COIN_CARD=1 and dealt with the hand.
+        var hand = Hand(
+        [
+            "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=TURN value=1 ",
+            .. Card(40, "", "DECK", 2, "tag=CARDTYPE value=MINION"),
+            .. Card(41, "", "DECK", 2, "tag=CARDTYPE value=MINION"),
+            ToHand(40, "DECK"),
+            .. Card(77, "EDR_COIN1", "HAND", 2, "tag=CARDTYPE value=SPELL", "tag=COIN_CARD value=1"),
+            "DebugPrintPower() - TAG_CHANGE Entity=3 tag=MULLIGAN_STATE value=INPUT ",
+            "DebugPrintPower() - TAG_CHANGE Entity=3 tag=MULLIGAN_STATE value=DONE ",
+        ],
+        ToHand(41, "DECK"));
+
+        var dealt = hand.Single(h => h.EntityId == 40);
+        Assert.Equal(HandCardOrigin.Mulligan, dealt.Origin);
+        Assert.True(dealt.FromMulligan);
+        var coin = hand.Single(h => h.EntityId == 77);
+        Assert.True(coin.IsCoin);
+        Assert.Equal(HandCardOrigin.Coin, coin.Origin);
+        var drawn = hand.Single(h => h.EntityId == 41);
+        Assert.Equal(HandCardOrigin.Drawn, drawn.Origin);
+        Assert.False(drawn.FromMulligan);
+        Assert.Equal(3, drawn.Turn);
+    }
+
+    [Fact]
     public void A_coin_made_mid_game_is_a_created_card()
     {
         var slot = Assert.Single(Hand([], Card(6, "GAME_005", "HAND", 2, "tag=CARDTYPE value=SPELL")));

@@ -50,6 +50,12 @@ public sealed class Entity
 
     public int EnteredHandTurn { get; internal set; } = -1;
 
+    /// <summary>
+    /// True when the card last entered the hand as part of its controller's opening hand (the deal, the Coin, a mulligan
+    /// replacement). Real logs set TURN to 1 before the deal, so <see cref="EnteredHandTurn"/> alone cannot tell.
+    /// </summary>
+    public bool EnteredOpeningHand { get; internal set; }
+
     public int LeftHandTurn { get; internal set; } = -1;
 
     public bool Mulliganed { get; internal set; }
