@@ -11,7 +11,10 @@ namespace Hearthpulse.UI.Controls;
 /// <summary>Where the hover preview opens relative to the hovered element.</summary>
 public enum CardPreviewPlacement
 {
-    /// <summary>Beside the panel that holds the element, on the side facing the screen centre (deck and counter rows).</summary>
+    /// <summary>
+    /// Beside the panel that holds the element, on the side facing the screen centre (deck and counter rows); on a
+    /// window page beside the element's list, right of it when there is room, at the element's height.
+    /// </summary>
     Beside,
 
     /// <summary>Under the element itself (small marks along the top of the screen).</summary>
@@ -84,8 +87,9 @@ public static class CardPreview
 
 /// <summary>
 /// The layer that draws the hover preview: a transparent canvas laid over the whole overlay surface (last child, so
-/// it sits on top). It never takes the pointer. The preview is placed beside the hovered control's panel, so it never
-/// covers the row being read, and is pulled back inside the canvas near the screen edges.
+/// it sits on top). It never takes the pointer. The preview is placed beside the hovered control's panel (in a window
+/// page: beside the row's list, at the row), so it never covers the row being read, and is pulled back inside the
+/// canvas near the window edges.
 /// </summary>
 public sealed class CardPreviewHost : Canvas
 {
@@ -221,13 +225,57 @@ public sealed class CardPreviewHost : Canvas
         {
             var panel = PanelOf(control, surface);
             var anchor = panel.TransformToVisual(this) is { } toAnchor ? new Rect(panel.Bounds.Size).TransformToAABB(toAnchor) : row;
-            var onRight = anchor.X + (anchor.Width / 2) > Bounds.Width / 2;
-            left = onRight ? anchor.X - size.Width - Gap : anchor.Right + Gap;
-            top = row.Y + (row.Height / 2) - (size.Height / 2);
+            if (anchor.Width > Bounds.Width / 2)
+            {
+                // A page rather than a floating panel: right beside the list that holds the row (left of it when the
+                // right has no room), else beside the row itself, else under or over the row, never on top of it.
+                var list = ListOf(control, panel) is { } owner && owner.TransformToVisual(this) is { } toList
+                    ? new Rect(owner.Bounds.Size).TransformToAABB(toList)
+                    : row;
+                top = row.Y + (row.Height / 2) - (size.Height / 2);
+                if ((Beside(list, size.Width) ?? Beside(row, size.Width)) is { } x)
+                {
+                    left = x;
+                }
+                else
+                {
+                    left = row.X + Gap;
+                    top = row.Bottom + Gap + size.Height <= Bounds.Height - 4 ? row.Bottom + Gap : row.Y - Gap - size.Height;
+                }
+            }
+            else
+            {
+                var onRight = anchor.X + (anchor.Width / 2) > Bounds.Width / 2;
+                left = onRight ? anchor.X - size.Width - Gap : anchor.Right + Gap;
+                top = row.Y + (row.Height / 2) - (size.Height / 2);
+            }
         }
 
         SetLeft(_frame, Math.Clamp(left, 4, Math.Max(4, Bounds.Width - size.Width - 4)));
         SetTop(_frame, Math.Clamp(top, 4, Math.Max(4, Bounds.Height - size.Height - 4)));
+    }
+
+    /// <summary>Left edge of a preview right of <paramref name="rect"/>, or left of it; null when neither side has room.</summary>
+    private double? Beside(Rect rect, double width) =>
+        rect.Right + Gap + width <= Bounds.Width - 4 ? rect.Right + Gap
+        : rect.X - Gap - width >= 4 ? rect.X - Gap - width
+        : null;
+
+    /// <summary>The nearest list (items control) holding <paramref name="control"/> below <paramref name="panel"/>, if any.</summary>
+    private static Visual? ListOf(Control control, Visual panel)
+    {
+        Visual node = control;
+        while (node.GetVisualParent() is { } parent && parent != panel)
+        {
+            if (parent is ItemsControl list)
+            {
+                return list;
+            }
+
+            node = parent;
+        }
+
+        return null;
     }
 
     /// <summary>The control's top-level panel: its ancestor that sits directly on the same surface as this host.</summary>

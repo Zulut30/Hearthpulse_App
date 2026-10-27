@@ -1,6 +1,8 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:m="using:Hearthpulse.UI.Main">
+        xmlns:m="using:Hearthpulse.UI.Main"
+        xmlns:c="using:Hearthpulse.UI.Controls"
+        xmlns:i="using:Hearthpulse.UI.Infrastructure">
     <!-- Styles of the My Stats views and the deck page (StatsResources.axaml holds their templates). Theme tokens only;
          the WPF twins are in Main/Stats/StatsResources.xaml. -->
 
@@ -11,6 +13,38 @@
     <Style Selector="m|MainView.compact UniformGrid.kpis">
         <Setter Property="Rows" Value="0" />
         <Setter Property="Columns" Value="2" />
+    </Style>
+
+    <!-- A number cell of a sortable table: .best is the column's best (green plate), .worst its worst (red plate).
+         The plate's padding hangs past the column edge, so the number keeps the numbers' right edge. -->
+    <Style Selector="Border.markCell">
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Padding" Value="6,1" />
+        <Setter Property="Margin" Value="0,0,-6,0" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.markCell.best">
+        <Setter Property="Background" Value="{StaticResource PositiveSoft}" />
+        <Setter Property="ToolTip.Tip" Value="{i:Loc Stats.Table.Best}" />
+    </Style>
+    <Style Selector="Border.markCell.worst">
+        <Setter Property="Background" Value="{StaticResource NegativeSoft}" />
+        <Setter Property="ToolTip.Tip" Value="{i:Loc Stats.Table.Worst}" />
+    </Style>
+
+    <!-- The head band of a sortable table: hairline under it, stays in view while the rows scroll (c:StickyHeader) -->
+    <Style Selector="Border.tableHead">
+        <Setter Property="BorderBrush" Value="{StaticResource Border}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="10,0,10,6" />
+        <Setter Property="Margin" Value="-10,0,-10,4" />
+        <Setter Property="c:StickyHeader.IsEnabled" Value="True" />
+    </Style>
+    <!-- A numeric column head: right on the numbers' edge -->
+    <Style Selector="c|SortHeader.num">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="Margin" Value="4,0,0,0" />
     </Style>
 
     <!-- A share as a flat rounded bar (0..1) on a dark track: red, green for a top finish -->
@@ -27,6 +61,16 @@
     </Style>
     <Style Selector="ProgressBar.shareBar.top">
         <Setter Property="Foreground" Value="{StaticResource Positive}" />
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <!-- A share with a thin bar under it (the keep rate) -->
+    <Style Selector="ProgressBar.shareBar.under">
+        <Setter Property="Height" Value="3" />
+        <Setter Property="MinHeight" Value="3" />
+        <Setter Property="Width" Value="46" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="Margin" Value="0,3,0,0" />
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
         <Setter Property="Opacity" Value="1" />
     </Style>
 </Styles>

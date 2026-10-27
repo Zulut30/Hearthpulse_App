@@ -89,7 +89,7 @@
                 <Border Classes="card" Margin="0,0,0,16">
                     <StackPanel>
                         <c:Ornament Text="{i:Loc Stats.Arena.Classes}" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
-                        <ContentControl Content="{i:Loc Stats.Table.Class}" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding ArenaClasses, Converter={StaticResource Truthy}}" />
+                        <ContentControl Content="{i:Loc Stats.Table.Class}" Tag="{Binding ArenaClassesSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding ArenaClasses, Converter={StaticResource Truthy}}" />
                         <ItemsControl ItemsSource="{Binding ArenaClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                         <ContentControl Classes="emptyState" Tag="&#xF0004;" Content="{i:Loc Stats.Arena.NoRuns}"
                                         IsVisible="{Binding ArenaClasses, Converter={StaticResource Truthy}, ConverterParameter=!}" />
@@ -98,7 +98,7 @@
                 <Border Classes="card">
                     <StackPanel>
                         <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10" />
-                        <ContentControl Content="{i:Loc Stats.Table.Opponent}" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding ArenaOpponents, Converter={StaticResource Truthy}}" />
+                        <ContentControl Content="{i:Loc Stats.Table.Opponent}" Tag="{Binding ArenaOpponentsSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding ArenaOpponents, Converter={StaticResource Truthy}}" />
                         <ItemsControl ItemsSource="{Binding ArenaOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                         <ContentControl Classes="emptyState" Tag="&#xF04E5;" Content="{i:Loc Stats.NoMatchups}"
                                         IsVisible="{Binding ArenaOpponents, Converter={StaticResource Truthy}, ConverterParameter=!}" />
