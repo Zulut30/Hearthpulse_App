@@ -1202,7 +1202,15 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
                     <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="8" Padding="11,6">
-                        <ContentPresenter />
+                        <!-- Plain-text tips wrap at a readable width (the Avalonia theme caps ToolTip at 320) -->
+                        <ContentPresenter>
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="MaxWidth" Value="320" />
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>

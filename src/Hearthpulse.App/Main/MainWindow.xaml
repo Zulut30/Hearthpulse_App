@@ -1310,10 +1310,7 @@
                     <!-- ===== Settings: tabs General / Overlay / Tracker / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                     <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left" ToggleButton.Checked="OnSettingChanged" ToggleButton.Unchecked="OnSettingChanged">
-                            <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource Display}" />
-                            <StackPanel Style="{StaticResource PageSubtitle}">
-                                <TextBlock Text="{i:Loc Settings.Subtitle}" Style="{StaticResource Caption}" FontSize="14" VerticalAlignment="Center" />
-                            </StackPanel>
+                            <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource Display}" Margin="0,0,0,20" />
 
                             <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,20">
                                 <WrapPanel>
@@ -1336,10 +1333,8 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                                <TextBlock Text="{i:Loc Settings.Language.Label}" FontSize="13.5" />
-                                                <TextBlock Text="{i:Loc Settings.Language.Caption}" Style="{StaticResource Caption}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap" />
-                                            </StackPanel>
+                                            <TextBlock Text="{i:Loc Settings.Language.Label}" FontSize="13.5" VerticalAlignment="Center" Margin="0,0,16,0"
+                                                       Background="Transparent" ToolTip="{i:Loc Settings.Language.Caption}" />
                                             <Border Grid.Column="1" Style="{StaticResource SegmentBar}" VerticalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal">
                                                     <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Language.System}" GroupName="Language" IsChecked="{Binding LanguageAuto}" />
@@ -1355,8 +1350,7 @@
 
                                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                                     <StackPanel>
-                                        <c:Ornament Text="{i:Loc Settings.Theme.Title}" Icon="&#xF03D8;" Size="13" Margin="0,0,0,6" />
-                                        <TextBlock Text="{i:Loc Settings.Theme.Caption}" Style="{StaticResource Caption}" Margin="0,0,0,14" />
+                                        <c:Ornament Text="{i:Loc Settings.Theme.Title}" Icon="&#xF03D8;" Size="13" Margin="0,0,0,14" />
                                         <ItemsControl ItemsSource="{Binding Themes}" Focusable="False">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
@@ -1465,32 +1459,15 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                                <TextBlock Text="{i:Loc Settings.Overlay.PickHints}" FontSize="13.5" />
-                                                <TextBlock FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
-                                                            <Setter Property="Text" Value="{i:Loc Settings.Overlay.PickHintsStatsOnlyCaption}" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsChecked, ElementName=PickHintsHighlightOption}" Value="True">
-                                                                    <Setter Property="Text" Value="{i:Loc Settings.Overlay.PickHintsHighlightCaption}" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding IsChecked, ElementName=PickHintsOffOption}" Value="True">
-                                                                    <Setter Property="Text" Value="{i:Loc Settings.Overlay.PickHintsOffCaption}" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </StackPanel>
+                                            <TextBlock Text="{i:Loc Settings.Overlay.PickHints}" FontSize="13.5" VerticalAlignment="Center" Margin="0,0,16,0" />
                                             <Border Grid.Column="1" Style="{StaticResource SegmentBar}" VerticalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal">
                                                     <RadioButton x:Name="PickHintsHighlightOption" Style="{StaticResource Segment}" Content="{i:Loc Settings.Overlay.PickHintsHighlight}" GroupName="PickHints"
-                                                                 IsChecked="{Binding PickHintsHighlight}" />
+                                                                 IsChecked="{Binding PickHintsHighlight}" ToolTip="{i:Loc Settings.Overlay.PickHintsHighlightCaption}" />
                                                     <RadioButton x:Name="PickHintsStatsOnlyOption" Style="{StaticResource Segment}" Content="{i:Loc Settings.Overlay.PickHintsStatsOnly}" GroupName="PickHints"
-                                                                 IsChecked="{Binding PickHintsStatsOnly}" />
+                                                                 IsChecked="{Binding PickHintsStatsOnly}" ToolTip="{i:Loc Settings.Overlay.PickHintsStatsOnlyCaption}" />
                                                     <RadioButton x:Name="PickHintsOffOption" Style="{StaticResource Segment}" Content="{i:Loc Settings.Overlay.PickHintsOff}" GroupName="PickHints"
-                                                                 IsChecked="{Binding PickHintsOff}" />
+                                                                 IsChecked="{Binding PickHintsOff}" ToolTip="{i:Loc Settings.Overlay.PickHintsOffCaption}" />
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -1511,44 +1488,24 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                                <TextBlock Text="{i:Loc Settings.Overlay.CompMode}" FontSize="13.5" />
-                                                <TextBlock FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
-                                                            <Setter Property="Text" Value="{i:Loc Settings.Overlay.CompModeManualCaption}" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsChecked, ElementName=CompModeAutoOption}" Value="True">
-                                                                    <Setter Property="Text" Value="{i:Loc Settings.Overlay.CompModeAutoCaption}" />
-                                                                </DataTrigger>
-                                                                <!-- Stats only never shows the comp Hearthpulse picks: only a lock puts one on screen -->
-                                                                <MultiDataTrigger>
-                                                                    <MultiDataTrigger.Conditions>
-                                                                        <Condition Binding="{Binding IsChecked, ElementName=CompModeAutoOption}" Value="True" />
-                                                                        <Condition Binding="{Binding IsChecked, ElementName=PickHintsStatsOnlyOption}" Value="True" />
-                                                                    </MultiDataTrigger.Conditions>
-                                                                    <Setter Property="Text" Value="{i:Loc Settings.Overlay.CompModeAutoHiddenCaption}" />
-                                                                </MultiDataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </StackPanel>
+                                            <TextBlock Text="{i:Loc Settings.Overlay.CompMode}" FontSize="13.5" VerticalAlignment="Center" Margin="0,0,16,0" />
                                             <Border Grid.Column="1" Style="{StaticResource SegmentBar}" VerticalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal">
                                                     <RadioButton x:Name="CompModeManualOption" Style="{StaticResource Segment}" Content="{i:Loc Settings.Overlay.CompModeManual}" GroupName="CompMode"
-                                                                 IsChecked="{Binding CompModeManual}" />
+                                                                 IsChecked="{Binding CompModeManual}" ToolTip="{i:Loc Settings.Overlay.CompModeManualCaption}" />
                                                     <RadioButton x:Name="CompModeAutoOption" Style="{StaticResource Segment}" Content="{i:Loc Settings.Overlay.CompModeAuto}" GroupName="CompMode"
-                                                                 IsChecked="{Binding CompModeAuto}" />
+                                                                 IsChecked="{Binding CompModeAuto}" ToolTip="{i:Loc Settings.Overlay.CompModeAutoCaption}" />
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Boards}" IsChecked="{Binding ShowOpponentBoards}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.BoardsTip}" />
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Lobby}" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Lobby}" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Settings.Overlay.LobbyTip}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Odds}" IsChecked="{Binding ShowCombatOdds}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.OddsTip}" />
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,18" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,18"
+                                                  ToolTip="{i:Loc Settings.Overlay.SessionTip}" />
 
                                         <Grid Margin="0,0,0,12">
                                             <Grid.ColumnDefinitions>
@@ -1575,12 +1532,12 @@
 
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel DataContext="{Binding Settings}">
-                                        <c:Ornament Text="{i:Loc Settings.Layout.Title}" Icon="&#xF01BE;" Size="13" Margin="0,0,0,8" />
-                                        <TextBlock Text="{i:Loc Settings.Layout.Caption}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,14" />
-                                        <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24" />
-                                        <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,8" />
-                                        <TextBlock Text="{i:Loc Settings.Leaderboard.Caption}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,14" />
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Leaderboard.Guides}" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14" />
+                                        <c:Ornament Text="{i:Loc Settings.Layout.Title}" Icon="&#xF01BE;" Size="13" Margin="0,0,0,14" />
+                                        <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24"
+                                                ToolTip="{i:Loc Settings.Layout.Caption}" />
+                                        <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Leaderboard.Guides}" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Settings.Leaderboard.Caption}" />
                                         <Grid Margin="0,0,0,10">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="160" />
@@ -1616,7 +1573,8 @@
                                         <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Deck}" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Settings.Tracker.OpponentTip}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.CardPool}" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Tracker.CardPoolTip}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Arena.Settings.Show}" IsChecked="{Binding ShowArenaDraft}" Margin="0,0,0,14"
@@ -1627,9 +1585,9 @@
 
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
-                                        <c:Ornament Text="{i:Loc Settings.Counters.Title}" Icon="&#xF012C;" Size="13" Margin="0,0,0,6" />
-                                        <TextBlock Text="{i:Loc Settings.Counters.Caption}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,14" />
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Counters.Show}" IsChecked="{Binding Settings.ShowCounters}" Margin="0,0,0,14" />
+                                        <c:Ornament Text="{i:Loc Settings.Counters.Title}" Icon="&#xF012C;" Size="13" Margin="0,0,0,14" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Counters.Show}" IsChecked="{Binding Settings.ShowCounters}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Settings.Counters.Caption}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Counters.Opponent}" IsChecked="{Binding Settings.ShowOpponentCounters}" Margin="0,0,0,14" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Counters.Mulligan}" IsChecked="{Binding Settings.ShowMulligan}" Margin="0,0,0,8"
                                                   ToolTip="{i:Loc Settings.Counters.MulliganTip}" />
@@ -1661,8 +1619,8 @@
                                         </ItemsControl>
 
                                         <!-- Battlegrounds counters: same modes, ids start with "bg-" -->
-                                        <TextBlock x:Name="BgCountersHeading" Text="{i:Loc Settings.Counters.Battlegrounds}" Style="{StaticResource H2}" Margin="0,14,0,4" />
-                                        <TextBlock Text="{i:Loc Settings.Counters.BgCaption}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                                        <TextBlock x:Name="BgCountersHeading" Text="{i:Loc Settings.Counters.Battlegrounds}" Style="{StaticResource H2}" Margin="0,14,0,10"
+                                                   Background="Transparent" ToolTip="{i:Loc Settings.Counters.BgCaption}" />
                                         <ItemsControl ItemsSource="{Binding BgCounterRows}" Focusable="False">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type m:CounterSettingRow}">
@@ -1718,9 +1676,14 @@
                                             <Run Text="&#xF03CC;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource Accent}" />
                                         </TextBlock>
                                         <!-- Games to the profile on the site ("My statistics") -->
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Upload.Switch}" IsChecked="{Binding UploadGames}" Margin="0,14,0,4" />
-                                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Text="{i:Loc Upload.Intro}" />
-                                        <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,2,0,0" Text="{i:Loc Upload.What}" />
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Upload.Switch}" IsChecked="{Binding UploadGames}" Margin="0,14,0,4">
+                                            <CheckBox.ToolTip>
+                                                <StackPanel>
+                                                    <TextBlock Text="{i:Loc Upload.Intro}" />
+                                                    <TextBlock Text="{i:Loc Upload.What}" Margin="0,6,0,0" />
+                                                </StackPanel>
+                                            </CheckBox.ToolTip>
+                                        </CheckBox>
                                         <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0">
                                             <Hyperlink Command="{Binding OpenPrivacy}" Foreground="{StaticResource Accent}"><Run Text="{i:Loc Upload.Privacy}" /></Hyperlink>
                                             <Run Text="  &#xB7;  " />
@@ -1741,12 +1704,8 @@
                                     </StackPanel>
                                     <!-- Signed out -->
                                     <StackPanel Visibility="{Binding AccountSignedOut, Converter={StaticResource Vis}}">
-                                        <TextBlock Text="{i:Loc Settings.Account.SignedOutCaption}" Style="{StaticResource Caption}"
-                                                   TextWrapping="Wrap" Margin="0,0,0,14" />
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Account.SignIn}" Command="{Binding SignIn}" />
-                                            <TextBlock Text="{i:Loc Settings.Account.OpensBrowser}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="12,0,0,0" />
-                                        </StackPanel>
+                                        <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Account.SignIn}" Command="{Binding SignIn}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                                ToolTip="{i:Loc Settings.Account.SignedOutCaption}" />
                                     </StackPanel>
                                     <!-- Signing in: getting a code, then waiting for the player to confirm it on the site -->
                                     <StackPanel Visibility="{Binding AccountWaiting, Converter={StaticResource Vis}}">
@@ -1792,8 +1751,8 @@
                                                     ToolTip="{i:Loc Settings.Data.ImportTip}" />
                                             <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Data.OpenFolder}" Click="OnOpenData" ToolTip="{i:Loc Settings.Data.OpenFolderTip}" />
                                         </StackPanel>
-                                        <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
-                                        <TextBlock Text="{i:Loc Match.Settings.ReplayLimit}" Style="{StaticResource Caption}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" Background="Transparent"
+                                                   ToolTip="{i:Loc Match.Settings.ReplayLimit}" />
                                     </StackPanel>
                                 </Border>
 
