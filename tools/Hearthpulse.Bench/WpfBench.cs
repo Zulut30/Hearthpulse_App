@@ -34,17 +34,34 @@ internal static class WpfBench
         using var http = Http();
         var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
         var settings = AppSettings.Load();
+        var wpf = new OverlayViewModel();
+        OverlayRun("WPF", wpf, typeof(OverlayViewModel), s => wpf.Update(s, cards, settings, null, null), cards, options);
+        var avalonia = new Hearthpulse.UI.Overlay.OverlayViewModel();
+        OverlayRun("Avalonia", avalonia, avalonia.GetType(), s => avalonia.Update(s, cards, settings, null, null), cards, options);
+    }
+
+    /// <summary>
+    /// Replays every kept log into one overlay view model: time and bytes allocated per Update, PropertyChanged per
+    /// property and how many of them carried the same content in a new object.
+    /// </summary>
+    private static void OverlayRun(string ui, System.ComponentModel.INotifyPropertyChanged overlay, Type type, Action<Core.Tracking.LiveSnapshot> update, CardDb cards, Options options)
+    {
         var json = new JsonSerializerOptions { MaxDepth = 16, ReferenceHandler = ReferenceHandler.IgnoreCycles };
-        var overlay = new OverlayViewModel();
         var last = new Dictionary<string, string?>();
         var changed = new Dictionary<string, (int Real, int Same, int Unknown)>();
+        var counting = false;
         overlay.PropertyChanged += (_, e) =>
         {
+            if (!counting)
+            {
+                return;
+            }
+
             var name = e.PropertyName ?? "*";
             string? now;
             try
             {
-                now = JsonSerializer.Serialize(typeof(OverlayViewModel).GetProperty(name)?.GetValue(overlay), json);
+                now = JsonSerializer.Serialize(type.GetProperty(name)?.GetValue(overlay), json);
             }
             catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException or TargetInvocationException or ArgumentException)
             {
@@ -69,29 +86,49 @@ internal static class WpfBench
             changed[name] = c;
         };
 
-        var times = new List<double>();
+        // Collect the snapshots first: the timed pass then measures Update alone, without the replay or the counting.
+        var snapshots = new List<Core.Tracking.LiveSnapshot>();
         foreach (var (dir, path, start) in LogReplay.Logs(options.Logs))
         {
             var (session, setClock, db) = LogReplay.NewSession(cards);
-            session.SnapshotChanged += s =>
-            {
-                var t = Stopwatch.GetTimestamp();
-                overlay.Update(s, cards, settings, null, null);
-                times.Add(Stopwatch.GetElapsedTime(t).TotalMilliseconds);
-            };
+            session.SnapshotChanged += snapshots.Add;
             LogReplay.Run(session, setClock, dir, path, start);
             LogReplay.Delete(db);
         }
 
-        Console.WriteLine($"[overlay] {times.Count:N0} snapshots; OverlayViewModel.Update {Spread(times)}");
-        foreach (var (name, c) in changed.OrderByDescending(x => x.Value.Real + x.Value.Same + x.Value.Unknown).Take(20))
+        counting = true;
+        foreach (var s in snapshots)
         {
-            Console.WriteLine($"[overlay] {name,-26} real {c.Real,6:N0}  same content {c.Same,6:N0}  unknown {c.Unknown,4:N0}");
+            update(s);
+        }
+
+        counting = false;
+        for (var round = 0; round < Math.Max(1, options.Rounds); round++)
+        {
+            var times = new List<double>(snapshots.Count);
+            long bytes = 0;
+            var gen0 = GC.CollectionCount(0);
+            foreach (var s in snapshots)
+            {
+                var a = GC.GetAllocatedBytesForCurrentThread();
+                var t = Stopwatch.GetTimestamp();
+                update(s);
+                times.Add(Stopwatch.GetElapsedTime(t).TotalMilliseconds);
+                bytes += GC.GetAllocatedBytesForCurrentThread() - a;
+            }
+
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"[overlay {ui}] {times.Count:N0} snapshots; Update {Spread(times)}; alloc {bytes / (double)Math.Max(1, times.Count) / 1024:N1} KB/snapshot; gen0 {GC.CollectionCount(0) - gen0}"));
+        }
+
+        foreach (var (name, c) in changed.OrderByDescending(x => x.Value.Real + x.Value.Same + x.Value.Unknown).Take(12))
+        {
+            Console.WriteLine($"[overlay {ui}] {name,-26} real {c.Real,6:N0}  same content {c.Same,6:N0}  unknown {c.Unknown,4:N0}");
         }
 
         var total = changed.Values.Sum(c => c.Real + c.Same + c.Unknown);
         var same = changed.Values.Sum(c => c.Same);
-        Console.WriteLine($"[overlay] PropertyChanged {total:N0} ({(double)total / Math.Max(1, times.Count):N1}/snapshot), same content {same:N0} ({100.0 * same / Math.Max(1, total):N0}%)");
+        Console.WriteLine($"[overlay {ui}] PropertyChanged {total:N0} ({(double)total / Math.Max(1, snapshots.Count):N1}/snapshot), same content {same:N0} ({100.0 * same / Math.Max(1, total):N0}%)");
     }
 
     public static void Startup()
@@ -288,7 +325,7 @@ internal static class WpfBench
         GC.KeepAlive(app);
     }
 
-    private static (Application App, AppSettings Settings) NewApplication()
+    internal static (Application App, AppSettings Settings) NewApplication()
     {
         // Relative pack URIs (Themes/Theme.xaml) resolve against the entry assembly; point them at the app's.
         typeof(Application).GetField("_resourceAssembly", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, typeof(Hearthpulse.App.App).Assembly);

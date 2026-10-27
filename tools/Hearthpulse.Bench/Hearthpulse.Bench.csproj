@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hearthpulse.Core\Hearthpulse.Core.csproj" />
     <ProjectReference Include="..\..\src\Hearthpulse.App\Hearthpulse.App.csproj" />
+    <ProjectReference Include="..\..\src\Hearthpulse.UI\Hearthpulse.UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
