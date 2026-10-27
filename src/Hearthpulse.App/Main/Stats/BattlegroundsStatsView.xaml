@@ -80,7 +80,8 @@
                     </WrapPanel>
                 </Grid>
 
-                <Grid Margin="0,0,0,6">
+                <!-- Column heads only over rows: an empty period shows the one line below instead -->
+                <Grid Margin="0,0,0,6" Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="54" />
                         <ColumnDefinition Width="*" MinWidth="100" />
@@ -156,10 +157,10 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{i:Loc Stats.Bg.NoHeroes}" Style="{StaticResource Caption}" Margin="0,8"
-                           Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF01A5;" Content="{i:Loc Stats.Bg.NoHeroes}"
+                                Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 <TextBlock Text="{Binding BgStatsNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="0,10,0,0"
-                           TextWrapping="Wrap" />
+                           TextWrapping="Wrap" Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
     </StackPanel>

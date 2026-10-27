@@ -31,5 +31,5 @@ public static class DeckHeader
     // Numbers as before localization: invariant, so the text does not depend on the machine's culture.
     private static string Num(int value) => value.ToString(CultureInfo.InvariantCulture);
 
-    private static string Percent(double rate) => (rate * 100).ToString("0", CultureInfo.InvariantCulture) + "%";
+    private static string Percent(double rate) => rate.ToString("P0", CultureInfo.CurrentCulture);
 }

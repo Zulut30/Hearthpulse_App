@@ -32,7 +32,7 @@ public sealed class ViewModelContractTests
     };
 
     [Fact]
-    public async Task History_rows_match_while_each_host_keeps_its_existing_count_and_label_rules()
+    public async Task History_rows_and_tiles_match_while_each_host_keeps_its_existing_count_rule()
     {
         Loc.Instance.SetLanguage(Loc.English);
         var history = History();
@@ -47,7 +47,10 @@ public sealed class ViewModelContractTests
         Assert.Equal(400, ava.HistoryCount);
         Assert.Equal(wpf.Recent.Select(r => (r.Key, r.Hero, r.Result, r.Detail)),
             ava.Recent.Select(r => (r.Key, r.Hero, r.Result, r.Detail)));
-        Assert.Equal(wpf.OverviewTiles.Select(t => t.Label.ToUpper(CultureInfo.CurrentCulture)), ava.OverviewTiles.Select(t => t.Label));
+        // Tile labels are sentence case in both hosts (the Avalonia capitals are gone); captions do not repeat the label.
+        Assert.Equal(wpf.OverviewTiles.Select(t => (t.Label, t.Detail)), ava.OverviewTiles.Select(t => (t.Label, t.Detail)));
+        Assert.Equal(Loc.T("Main.Tile.SoloRating"), wpf.OverviewTiles[0].Label);
+        Assert.Equal(string.Empty, wpf.OverviewTiles[1].Detail);
         Assert.Equal(Loc.P("Main.History.SubtitlePc", 401), wpf.HistorySubtitle);
         Assert.Equal(Loc.P("Main.History.SubtitleDevice", 400), ava.HistorySubtitle);
     }

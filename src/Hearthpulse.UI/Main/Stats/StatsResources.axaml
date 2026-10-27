@@ -55,7 +55,8 @@
                             <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
                                     Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />
                         </Border>
-                        <TextBlock Text="{Binding WinRate}" Width="46" TextAlignment="Right" FontWeight="Bold" />
+                        <TextBlock Text="{Binding WinRate}" Width="52" TextAlignment="Right" FontWeight="Bold"
+                                   Foreground="{Binding WinSign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
                     </StackPanel>
                     <ContentControl Content="{Binding Vs}" ContentTemplate="{StaticResource VsGlobalTemplate}" HorizontalAlignment="Right" />
                 </StackPanel>

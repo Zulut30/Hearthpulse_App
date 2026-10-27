@@ -88,7 +88,7 @@ public static class DeckFamilies
                 var code = latest.DeckCode is { Length: > 0 } c ? c : null;
                 return new DeckVersion(
                     group.Key,
-                    latest.DeckName is { Length: > 0 } name ? name : Loc.T("Deck.Unnamed"),
+                    latest.DeckName is { Length: > 0 } name ? DeckName.Display(name) : Loc.T("Deck.Unnamed"),
                     latest.PlayerClass,
                     latest.Format,
                     code,

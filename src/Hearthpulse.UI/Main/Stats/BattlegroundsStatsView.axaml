@@ -85,6 +85,8 @@
                     </WrapPanel>
                 </Grid>
 
+                <!-- Column heads only over rows: an empty period shows the one line below instead -->
+                <Panel IsVisible="{Binding BgHeroPerf, Converter={StaticResource Truthy}}">
                 <Grid Classes="wide" Margin="0,0,0,6">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="54" />
@@ -113,6 +115,7 @@
                     <TextBlock Grid.Column="6" Text="{i:Loc Stats.Bg.PickRate}" Classes="label" FontSize="11.5" VerticalAlignment="Center" HorizontalAlignment="Right"
                                ToolTip.Tip="{i:Loc Stats.Bg.PickRateTip}" />
                 </Grid>
+                </Panel>
                 <ItemsControl Classes="wide" ItemsSource="{Binding BgHeroPerf}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="m:BgHeroPerfRow">
@@ -185,10 +188,10 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{i:Loc Stats.Bg.NoHeroes}" Classes="caption" Margin="0,8"
-                           IsVisible="{Binding BgHeroPerf, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                <ContentControl Classes="emptyState" Tag="&#xF01A5;" Content="{i:Loc Stats.Bg.NoHeroes}"
+                                IsVisible="{Binding BgHeroPerf, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                 <TextBlock Text="{Binding BgStatsNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="0,10,0,0"
-                           TextWrapping="Wrap" />
+                           TextWrapping="Wrap" IsVisible="{Binding BgHeroPerf, Converter={StaticResource Truthy}}" />
             </StackPanel>
         </Border>
     </StackPanel>

@@ -69,6 +69,47 @@ public sealed class LocBindingTests
     }
 
     [Fact]
+    public void Main_view_takes_the_main_look_rule_and_empty_state_styles() => Headless.Run(MainLookStyles);
+
+    private static void MainLookStyles()
+    {
+        var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))
+        {
+            Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml"),
+        };
+        var app = Application.Current!;
+        app.Styles.Add(theme);
+        var window = new Window { Width = 1260, Height = 840 };
+        try
+        {
+            var view = new MainView();
+            // Styles and templates only: the window is not shown, so nothing measures text (the headless run has no fonts).
+            window.Content = view;
+            Dispatcher.UIThread.RunJobs();
+
+            // Main/MainLook.axaml is included: the gold rule under each page title takes its size from there.
+            var rules = view.GetLogicalDescendants().OfType<Hearthpulse.UI.Controls.Wave>().Where(w => w.Classes.Contains("pageRule")).ToList();
+            Assert.Equal(6, rules.Count);
+            Assert.All(rules, r => Assert.Equal(168, r.Width));
+
+            // An empty list shows its glyph in a cookie over the localized line, not the content's type name.
+            var empty = view.GetLogicalDescendants().OfType<ContentControl>().Single(c => c.Classes.Contains("emptyState") && Equals(c.Tag, "\U000F02DA"));
+            empty.ApplyTemplate();
+            Dispatcher.UIThread.RunJobs();
+            var texts = empty.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToArray();
+            Assert.Contains(Loc.T("Main.Home.NoGames"), texts);
+            Assert.Contains("\U000F02DA", texts);
+            Assert.Single(empty.GetVisualDescendants().OfType<Hearthpulse.UI.Controls.Scallop>());
+        }
+        finally
+        {
+            window.Close();
+            app.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    [Fact]
     public void Layout_placeholders_name_the_scene_their_panel_shows_in_and_drop_the_repeated_tag() => Headless.Run(LayoutPlaceholders);
 
     private static void LayoutPlaceholders()

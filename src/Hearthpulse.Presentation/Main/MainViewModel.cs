@@ -242,8 +242,6 @@ public sealed partial class MainViewModel : Observable
     // The games the last refresh read; the history filter is applied to them.
     private IReadOnlyList<GameRecord>? _recentGames;
     private IReadOnlyList<StatTile> _overviewTiles = Array.Empty<StatTile>();
-    private IReadOnlyList<StatTile> _bgTiles = Array.Empty<StatTile>();
-    private IReadOnlyList<StatTile> _constructedTiles = Array.Empty<StatTile>();
     private IReadOnlyList<RatingPoint> _ratingPoints = Array.Empty<RatingPoint>();
     private IReadOnlyList<PlacementBar> _placements = Array.Empty<PlacementBar>();
     private bool _hasBgGames;
@@ -272,8 +270,6 @@ public sealed partial class MainViewModel : Observable
 
     public IReadOnlyList<GameRow> HistoryRows { get => _historyRows; private set => Set(ref _historyRows, value); }
     public IReadOnlyList<StatTile> OverviewTiles { get => _overviewTiles; private set => Set(ref _overviewTiles, value); }
-    public IReadOnlyList<StatTile> BgTiles { get => _bgTiles; private set => Set(ref _bgTiles, value); }
-    public IReadOnlyList<StatTile> ConstructedTiles { get => _constructedTiles; private set => Set(ref _constructedTiles, value); }
     public IReadOnlyList<RatingPoint> RatingPoints { get => _ratingPoints; private set => Set(ref _ratingPoints, value); }
     public IReadOnlyList<PlacementBar> Placements { get => _placements; private set => Set(ref _placements, value); }
 
@@ -387,7 +383,7 @@ public sealed partial class MainViewModel : Observable
         else if (s.Constructed is { } c)
         {
             LiveTitle = Loc.F("Main.Live.Mode", Mode(s.GameType));
-            LiveDetail = Loc.F("Main.Live.CtDetail", c.DeckName ?? OverlayViewModel.ClassName(c.PlayerClass), OverlayViewModel.ClassName(c.OpponentClass), c.Turn);
+            LiveDetail = Loc.F("Main.Live.CtDetail", c.DeckName is { Length: > 0 } deck ? Hearthpulse.Core.Stats.DeckName.Display(deck) : OverlayViewModel.ClassName(c.PlayerClass), OverlayViewModel.ClassName(c.OpponentClass), c.Turn);
         }
         else
         {
@@ -434,16 +430,12 @@ public sealed partial class MainViewModel : Observable
         {
             var recent = _history.Recent(400);
             var bgGames = recent.Where(g => g.Mode == mode && g.Placement > 0).ToList();
-            var all = _history.Recent(5000, mode);
             return (
                 Recent: recent,
                 Total: CountHistory(recent),
-                Bg: all.Where(g => g.Placement > 0).ToList(),
                 Rating: _history.RatingHistory(mode, 200),
                 Distribution: _history.PlacementDistribution(mode),
                 Heroes: _history.HeroStats(cards.BaseHeroId, mode),
-                Decks: _history.DeckStats(),
-                Classes: _history.ClassStats(),
                 Session: bgGames);
         }).ConfigureAwait(true);
 
@@ -469,17 +461,6 @@ public sealed partial class MainViewModel : Observable
             .ToList();
         HasBgGames = data.Distribution.Sum() > 0 || data.Rating.Count >= 2;
 
-        var bg = data.Bg;
-        var net = bg.Where(g => g.RatingDelta is not null).Sum(g => g.RatingDelta ?? 0);
-        BgTiles =
-        [
-            new StatTile(TileLabel(Loc.T("Main.Tile.Games")), bg.Count.ToString("N0", CultureInfo.CurrentCulture), mode == "Duos" ? Loc.T("Main.Mode.Duos") : Loc.T("Main.Bg.Solo")),
-            new StatTile(TileLabel(Loc.T("Main.Tile.AvgPlace")), bg.Count == 0 ? "—" : bg.Average(g => g.Placement).ToString("0.00", CultureInfo.CurrentCulture), Loc.T("Main.Tile.LowerBetter")),
-            new StatTile(TileLabel(Loc.F("Main.Tile.Top", top)), bg.Count == 0 ? "—" : (bg.Count(g => g.Placement <= top) / (double)bg.Count).ToString("P0", CultureInfo.CurrentCulture), Loc.T("Main.Tile.OfGames")),
-            new StatTile(TileLabel(Loc.T("Main.Tile.Firsts")), bg.Count(g => g.Placement == 1).ToString(CultureInfo.CurrentCulture), bg.Count == 0 ? "—" : Loc.F("Main.Tile.WinRateOf", (bg.Count(g => g.Placement == 1) / (double)bg.Count).ToString("P0", CultureInfo.CurrentCulture))),
-            new StatTile(TileLabel(Loc.T("Main.Tile.NetRating")), net == 0 ? "±0" : net > 0 ? $"+{net:N0}" : $"−{-net:N0}", Loc.T("Main.Tile.TrackedGames"), Math.Sign(net)),
-        ];
-
         MyHeroes = data.Heroes.Select(h => new HeroRow(
                 h.HeroCardId,
                 cards.NameOf(h.HeroCardId),
@@ -493,26 +474,15 @@ public sealed partial class MainViewModel : Observable
                 BattlegroundsAdvisor.TierOf(h.AveragePlace)))
             .ToList();
 
-        var constructed = data.Recent.Where(g => !g.IsBattlegrounds && g.Mode != "Mercenaries" && g.Result is "Win" or "Loss").ToList();
-        var wins = constructed.Count(g => g.Result == "Win");
-        ConstructedTiles =
-        [
-            new StatTile(TileLabel(Loc.T("Main.Tile.Games")), constructed.Count.ToString(CultureInfo.CurrentCulture), Loc.T("Main.Tile.Recent")),
-            new StatTile(TileLabel(Loc.T("Main.Tile.WinRate")), constructed.Count == 0 ? "—" : (wins / (double)constructed.Count).ToString("P0", CultureInfo.CurrentCulture), $"{wins}–{constructed.Count - wins}"),
-            new StatTile(TileLabel(Loc.T("Main.Tile.Decks")), data.Decks.Count.ToString(CultureInfo.CurrentCulture), Loc.T("Main.Tile.Tracked")),
-            new StatTile(TileLabel(Loc.T("Main.Tile.BestClass")), data.Classes.Where(c => c.Games >= 3).MaxBy(c => c.WinRate) is { } best ? OverlayViewModel.ClassName(best.PlayerClass) : "—",
-                data.Classes.Where(c => c.Games >= 3).MaxBy(c => c.WinRate) is { } b2 ? b2.WinRate.ToString("P0", CultureInfo.CurrentCulture) : Loc.T("Main.Tile.NeedGames")),
-        ];
-
         var today = data.Recent.Where(g => g.StartedAt.Date == DateTime.Today && !g.IsAbandoned).ToList();
         var todayBg = today.Where(g => g.IsBattlegrounds && g.Placement > 0).ToList();
         OverviewTiles =
         [
-            new StatTile(TileLabel(Loc.T("Main.Tile.SoloRating")), SoloRating, SessionDelta.Length > 0 ? SessionDelta : Loc.T("Main.Mode.Battlegrounds"), SessionDeltaValue),
-            new StatTile(TileLabel(Loc.T("Main.Tile.DuosRating")), DuosRating, Loc.T("Main.Mode.BattlegroundsDuos")),
-            new StatTile(TileLabel(Loc.T("Main.Tile.Today")), today.Count.ToString(CultureInfo.CurrentCulture),
-                todayBg.Count > 0 ? Loc.F("Main.Tile.BgAvg", todayBg.Average(g => g.Placement)) : today.Count > 0 ? $"{today.Count(g => g.Result == "Win")}–{today.Count(g => g.Result == "Loss")}" : Loc.T("Main.Tile.NoGamesYet")),
-            new StatTile(TileLabel(Loc.T("Main.Tile.AllTime")), HistoryCount.ToString("N0", CultureInfo.CurrentCulture), Loc.T("Main.Tile.GamesTracked")),
+            new StatTile(Loc.T("Main.Tile.SoloRating"), SoloRating, SessionDelta, SessionDeltaValue),
+            new StatTile(Loc.T("Main.Tile.DuosRating"), DuosRating, string.Empty),
+            new StatTile(Loc.T("Main.Tile.Today"), today.Count.ToString(CultureInfo.CurrentCulture),
+                todayBg.Count > 0 ? Loc.F("Main.Tile.BgAvg", todayBg.Average(g => g.Placement)) : today.Count > 0 ? $"{today.Count(g => g.Result == "Win")}–{today.Count(g => g.Result == "Loss")}" : string.Empty),
+            new StatTile(Loc.T("Main.Tile.AllTime"), HistoryCount.ToString("N0", CultureInfo.CurrentCulture), Loc.T("Main.Tile.GamesTracked")),
         ];
 
         await RefreshMyStatsAsync();
@@ -532,7 +502,7 @@ public sealed partial class MainViewModel : Observable
             Bracket = meta.WidestBracket;
         }
 
-        BracketOptions = brackets.Select((b, i) => new BracketOption(b, b >= 100 ? Loc.T("Main.Bracket.All") : i == 0 ? Loc.F("Main.Bracket.Top", b) : $"{b}%", b == Bracket, SetBracket)).ToList();
+        BracketOptions = brackets.Select((b, i) => new BracketOption(b, b >= 100 ? Loc.T("Main.Bracket.All") : i == 0 ? Loc.F("Main.Bracket.Top", b / 100.0) : (b / 100.0).ToString("P0", CultureInfo.CurrentCulture), b == Bracket, SetBracket)).ToList();
 
         var personal = MyHeroes.ToDictionary(h => h.CardId);
         var heroes = meta.HeroesByBracket.GetValueOrDefault(Bracket) ?? new Dictionary<string, MetaHero>();
@@ -651,7 +621,7 @@ public sealed partial class MainViewModel : Observable
             ? Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)
             : string.Join(" · ", new[]
             {
-                g.DeckName,
+                g.DeckName is { Length: > 0 } deck ? Hearthpulse.Core.Stats.DeckName.Display(deck) : null,
                 string.IsNullOrEmpty(g.OpponentClass) ? null : Loc.F("Main.Game.Vs", OverlayViewModel.ClassName(g.OpponentClass)),
                 RankInfo.Localize(g.Rank),
                 Loc.P("Main.Game.Turns", g.Turns),

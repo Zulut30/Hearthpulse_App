@@ -1,4 +1,3 @@
-using System.Globalization;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
@@ -16,9 +15,6 @@ public sealed partial class MainViewModel
     public string HistorySubtitle => Loc.P("Main.History.SubtitleDevice", HistoryCount);
 
     private static int CountHistory(IReadOnlyList<GameRecord> recent) => recent.Count(g => !g.IsAbandoned);
-
-    /// <summary>Tile labels are set in capitals here (the WPF app styles them instead).</summary>
-    private static string TileLabel(string text) => text.ToUpper(CultureInfo.CurrentCulture);
 
     private static bool UseTribeRows(BattlegroundsMeta meta) => false;
 }

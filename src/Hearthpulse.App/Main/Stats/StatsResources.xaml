@@ -8,6 +8,19 @@
     <i:SignBrush x:Key="SignBrush" />
     <i:FractionWidth x:Key="Fraction" />
 
+    <!-- A win rate coloured on a scale: green from 53 %, red up to 47 %, plain text between (StatGroupRow.WinSign) -->
+    <Style x:Key="WinRateText" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding WinSign}" Value="1">
+                <Setter Property="Foreground" Value="{StaticResource Positive}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding WinSign}" Value="-1">
+                <Setter Property="Foreground" Value="{StaticResource Negative}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
     <Style x:Key="StatsHead" TargetType="TextBlock" BasedOn="{StaticResource Label}">
         <Setter Property="FontSize" Value="11.5" />
         <Setter Property="VerticalAlignment" Value="Center" />
@@ -88,7 +101,7 @@
                             <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Positive}"
                                     Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />
                         </Border>
-                        <TextBlock Text="{Binding WinRate}" Width="46" TextAlignment="Right" FontWeight="Bold" />
+                        <TextBlock Text="{Binding WinRate}" Width="52" TextAlignment="Right" FontWeight="Bold" Style="{StaticResource WinRateText}" />
                     </StackPanel>
                     <ContentControl Content="{Binding Vs}" ContentTemplate="{StaticResource VsGlobalTemplate}" HorizontalAlignment="Right" Focusable="False" />
                 </StackPanel>

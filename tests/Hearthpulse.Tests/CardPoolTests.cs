@@ -162,7 +162,7 @@ public sealed class CardPoolTests
         Assert.Equal(1.0, odd.Bars[3].Height);
 
         var even = PoolStats.Histogram("Health", [2, 3], 1, 10);
-        Assert.Equal("2.5", even.MedianText);
+        Assert.Equal(2.5.ToString("0.0", System.Globalization.CultureInfo.CurrentCulture), even.MedianText);
         Assert.Equal("2", even.Bars.Single(b => b.IsMedian).Label);
         Assert.Equal("10+", even.Bars[^1].Label);
     }
