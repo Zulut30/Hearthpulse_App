@@ -244,9 +244,9 @@ public sealed class ViewModelContractTests
         Loc.Instance.SetLanguage(Loc.English);
         var pool = new Core.CardPool.CardPoolView("CORE_YOP_001", "Illidari Studies", Core.CardPool.PoolTrigger.Choice, "Discover", "Outcast cards · Standard",
             3, new Core.CardPool.PoolHistogram("Cost", [], 0, 0), null, null, [], null, null, []);
-        var options = new Dictionary<string, Core.Pool.PickOption> { ["CARD_A"] = new(200, 120, 70), ["CARD_B"] = new(180, 40, 15), ["CARD_C"] = new(10, 5, 2) };
-        var stats = new Core.Pool.DiscoverPickStats("standard", 900, new Dictionary<string, Core.Pool.SourcePicks> { ["CORE_YOP_001"] = new(300, options) });
-        var picks = Core.CardPool.DiscoverPicks.Build(stats, "CORE_YOP_001", ["CARD_A", "CARD_B", "CARD_C"], CardDb.Empty);
+        var choices = new Core.CardPool.CardChoices("CORE_YOP_001", "standard", "legend",
+            [new("CARD_A", 0, 0.6, 0.583, false), new("CARD_B", 0, 0.222, 0.375, false), new("CARD_D", 0, 0.5, 0.4, true)], null);
+        var picks = Core.CardPool.DiscoverPicks.Build(choices, "CORE_YOP_001", ["CARD_A", "CARD_B", "CARD_C", "CARD_D"], CardDb.Empty);
         var constructed = new ConstructedView(5, null, false, "HERO_10", "DEMONHUNTER", "HERO_01", "WARRIOR", null, [], 0, 0, [], [], 0, 0, 0, null, null)
         {
             CardPool = pool,
@@ -259,10 +259,10 @@ public sealed class ViewModelContractTests
         wpf.Update(snapshot, CardDb.Empty, settings, null, null);
         ava.Update(snapshot, CardDb.Empty, settings, null, null);
 
-        var rows = wpf.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top)).ToList();
-        Assert.Equal(rows, ava.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top)));
-        Assert.Equal([("CARD_A", "60%", "58% won", true), ("CARD_B", "22%", "38% won", false), ("CARD_C", "—", "", false)], rows);
-        Assert.Equal("300 choices from this card · Hearthpulse stats pool, 30 days", wpf.CardPoolPicksNote);
+        var rows = wpf.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top, r.LowSample)).ToList();
+        Assert.Equal(rows, ava.CardPoolPicks.Select(r => (r.CardId, r.PickText, r.WinText, r.Top, r.LowSample)));
+        Assert.Equal([("CARD_A", "60%", "58% won", true, false), ("CARD_B", "22%", "38% won", false, false), ("CARD_C", "—", "", false, false), ("CARD_D", "50%", "40% won", false, true)], rows);
+        Assert.Equal("Legend · Hearthpulse data · faded: few games", wpf.CardPoolPicksNote);
         Assert.Equal(wpf.CardPoolPicksNote, ava.CardPoolPicksNote);
 
         // The pick is made: the session hands no hint any more, and the rows go.

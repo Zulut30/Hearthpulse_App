@@ -397,22 +397,6 @@ public static class PoolClient
         }
     }
 
-    /// <summary>What pool players pick from each Discover-style card in "standard" or "wild"; null when unavailable.</summary>
-    public static async Task<DiscoverPickStats?> LoadChoicesAsync(HttpClient http, string endpoint, string format, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await using var stream = await http.GetStreamAsync($"{endpoint}/v1/choices?format={(format == "wild" ? "wild" : "standard")}", cancellationToken).ConfigureAwait(false);
-            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return doc.RootElement.ValueKind == JsonValueKind.Object ? DiscoverPickStats.Parse(doc.RootElement) : null;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            Diag.Error("Pool pick totals unavailable", ex);
-            return null;
-        }
-    }
-
     /// <summary>Hero, card, trinket and tribe totals from the pool, in the shape the tier lists and pick tiles read.</summary>
     public static async Task<BattlegroundsMeta?> LoadStatsAsync(HttpClient http, string endpoint, CancellationToken cancellationToken = default)
     {

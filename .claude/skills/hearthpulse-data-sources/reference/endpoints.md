@@ -27,10 +27,14 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 | `api/v1/constructed-cards?format=wild&per_page=200&page=N` (<= 80 pages) | `cache/api/card-pool.json`, 1 day | `CardPoolCatalog` |
 | `datasets/hsreplay_arena_cards_advanced` (envelope `data.structured.cards[]`, ~1.7 MB, list repeated in `hsreplay_extracted`) | `arena-cards.json`, trimmed to id/dbfId/score/win_rate/pick_rate/times_played (`ShrinkArenaCards`) | `HearthpulseData.LoadArenaMetaAsync` -> `ArenaMeta` (ArenaSmith `score`; one all-classes slice, Underground, last 4 days) |
 | `v1/arena/classes?limit=20` | `arena-classes.json` | `ArenaMeta.Classes` (win rate, pick rate, 7+ share, drafts) |
+| `v1/hsreplay/card-choices/cards` | `card-choices-cards.json`, trimmed to card_id/dbf_id/formats/has_hsreplay_stats | `LoadChoiceCardsAsync` -> `DiscoverChoiceSource` (which cards have numbers, by card id or dbfId) |
+| `v1/hsreplay/card-choices?card=&format=&rank=legend` (`CardIdKey`; `card` takes a card id or a dbfId) | `card-choices-{format}-{rank}-{cardId}.json`, trimmed to card/format/rank/stats.state+as_of/options (card_id, dbf_id, popularity, win_rate, low_sample) | `LoadCardChoicesAsync` -> `DiscoverPicks.Build`: the card pool panel's pick hint (percent -> share; `stats.state` `not_collected` = no options, no hint) |
 
-Not used: `/v1/meta-intelligence/*` (needs a token). **Not to be used**: `v1/hsreplay/card-choices` and
-`v1/hsreplay/mulligan` - HSReplay Premium data, a Blocker (L-B1) in `../reference/reviews/LEGAL-HeartLens-card-choices.md`:
-HearthSim's terms forbid it without written permission (the Discover pick hint uses the stats pool instead).
+Not used: `/v1/meta-intelligence/*` (needs a token). **Not to be used**: `v1/hsreplay/mulligan` - HSReplay Premium data,
+a Blocker (L-B1) in `../reference/reviews/LEGAL-HeartLens-card-choices.md`: HearthSim's terms forbid it without written
+permission. `v1/hsreplay/card-choices` falls under the same Blocker, but **the owner accepted that risk on 2026-10-27**
+("что берут на раскопках брать с api"): the Discover pick hint reads it, shown as "Hearthpulse data". The acceptance
+covers card choices only, not the per-deck mulligan.
 Available without a token but not called yet (fields in
 [kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)): HSGuru
 matchup matrix `v1/hsguru/matchups`, BG hero detail `api/bg/heroes/{dbf}` and trinkets
@@ -102,9 +106,9 @@ Firestone (`static.zerotoheroes.com`) is not used. Details: `docs/bg-meta-source
 - `POST v1/constructed` - Discover-style picks of shared Ranked/Casual games, consent version 4
   (`PoolClient.SubmitConstructedAsync`, `ConstructedPoolGame`; WPF only).
 - `GET v1/stats`, `v1/meta` - Battlegrounds totals and base stats (`OverlayAsync`).
-- `GET v1/choices?format=standard|wild` - pick totals for the card pool panel's pick hint (`DiscoverPickSource`,
-  whole format in memory for 6 h; never one request per choice). Contract: `server/pool/README.md`,
-  `docs/discover-pool.md` ("What players take").
+- `GET v1/choices?format=standard|wild` - pick totals of shared games; the server still serves it, but since
+  2026-10-27 the app does not read it: the pick hint comes from the data API's `v1/hsreplay/card-choices` (above).
+  Contract: `server/pool/README.md`.
 
 ## GitHub
 

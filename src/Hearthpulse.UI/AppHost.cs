@@ -68,7 +68,7 @@ public sealed partial class AppHost : IDisposable
         Session = new GameSession(History, Memory);
         Session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(Api)));
         Session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(Api)));
-        Session.SetDiscoverPicks(new Hearthpulse.Core.Pool.DiscoverPickSource(Http, () => Hearthpulse.Core.Pool.PoolClient.Endpoint(Settings)));
+        Session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(Api)));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
         Uploader = ProfileUploader.For(accountClient, Account, () => Settings.UploadGamesToProfile, History);

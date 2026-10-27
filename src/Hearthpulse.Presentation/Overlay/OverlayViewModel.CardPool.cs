@@ -38,12 +38,13 @@ public sealed record PoolChipModel(string Key, string Label, bool Selected, bool
 public sealed record PoolCardRowModel(IReadOnlyList<PoolEntry> Cards);
 
 /// <summary>
-/// One option of the player's open choice with what stats pool players did when it was offered: the share of offers
-/// in which it was taken (the bar) and the share of games won after taking it. Empty texts when the pool has too few.
+/// One option of the player's open choice with what players did when it was offered (Hearthpulse data): the share of
+/// offers in which it was taken (the bar) and the share of games won after taking it. A dash when there is no number.
 /// </summary>
 /// <param name="FillWidth">The pick bar's filled width in overlay units (the track is a fixed width).</param>
 /// <param name="Top">The most taken option, clearly ahead of the others.</param>
-public sealed record PoolPickRowModel(string CardId, string Name, string PickText, double FillWidth, string WinText, bool Top);
+/// <param name="LowSample">The numbers rest on few games: the panel draws them faded.</param>
+public sealed record PoolPickRowModel(string CardId, string Name, string PickText, double FillWidth, string WinText, bool Top, bool LowSample);
 
 /// <summary>
 /// The card pool: a compact panel (pool of the generator being discovered from or hovered in hand, about 300 x 350
@@ -535,7 +536,7 @@ public sealed partial class OverlayViewModel
     private void UpdateCardPoolPicks(DiscoverPicksView? picks)
     {
         var key = picks is null ? string.Empty
-            : string.Join('|', picks.Rows.Select(r => $"{r.CardId}:{r.Offered}:{r.Picked}:{r.WinRate}:{r.Top}")) + "|" + picks.Choices + "|" + Loc.Instance.Language;
+            : string.Join('|', picks.Rows.Select(r => $"{r.CardId}:{r.PickRate}:{r.WinRate}:{r.LowSample}:{r.Top}")) + "|" + picks.Rank + "|" + Loc.Instance.Language;
         if (key == _cardPoolPicksKey)
         {
             return;
@@ -556,11 +557,12 @@ public sealed partial class OverlayViewModel
                 r.PickRate is { } p ? PickPercent(p) : "—",
                 r.PickRate is { } f ? Math.Max(2, PickTrack * f) : 0,
                 r.WinRate is { } w ? Loc.F("Pool.Picks.Win", PickPercent(w)) : string.Empty,
-                r.Top))
+                r.Top,
+                r.LowSample && r.PickRate is not null))
             .ToList();
-        CardPoolPicksNote = picks.HasNumbers
-            ? Loc.P("Pool.Picks.Note", picks.Choices, CardCount(picks.Choices), Core.Pool.PoolClient.HistoryDays)
-            : Loc.T("Pool.Picks.Few");
+        CardPoolPicksNote = !picks.HasNumbers ? Loc.T("Pool.Picks.Few")
+            : picks.HasLowSample ? Loc.T("Pool.Picks.Note") + " · " + Loc.T("Pool.Picks.LowSample")
+            : Loc.T("Pool.Picks.Note");
     }
 
     private static string PickPercent(double share) => (share * 100).ToString("0", CultureInfo.InvariantCulture) + "%";

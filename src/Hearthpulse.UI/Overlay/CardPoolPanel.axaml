@@ -52,6 +52,11 @@
             <Setter Property="Foreground" Value="{StaticResource Accent}" />
         </Style>
 
+        <!-- Pick hint: numbers on few games are faded (bar, share, win rate; the name stays) -->
+        <Style Selector="Grid.lowSample > Border, Grid.lowSample > TextBlock">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+
         <!-- Chart: the stat's colour on bars and axis gems; the gem's shape follows the stat -->
         <Style Selector="ItemsControl.chart Border.bar">
             <Setter Property="Background" Value="{StaticResource PoolStatCostBar}" />
@@ -123,7 +128,7 @@
                 </ItemsControl>
             </StackPanel>
 
-            <!-- ===== Your open choice: what stats pool players take from these options (numbers only, no advice) ===== -->
+            <!-- ===== Your open choice: what players take from these options, Hearthpulse data (numbers only, no advice) ===== -->
             <Border Margin="8,7,8,0" Padding="8,6,8,5" CornerRadius="6" Background="{StaticResource Decor}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1"
                     IsVisible="{Binding CardPoolPicks, Converter={StaticResource Truthy}}">
                 <StackPanel>
@@ -131,8 +136,8 @@
                     <ItemsControl ItemsSource="{Binding CardPoolPicks}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="o:PoolPickRowModel">
-                                <!-- One line: name (gold with a star when clearly the most taken), pick bar, share, win rate. -->
-                                <Grid Height="18" ColumnDefinitions="*,72,34,52">
+                                <!-- One line: name (gold with a star when clearly the most taken), pick bar, share, win rate; faded on few games. -->
+                                <Grid Height="18" ColumnDefinitions="*,72,34,52" Classes.lowSample="{Binding LowSample}">
                                     <DockPanel Margin="0,0,6,0">
                                         <TextBlock DockPanel.Dock="Left" Text="&#xF04CE;" FontFamily="{StaticResource IconFont}" FontSize="10" Foreground="{StaticResource Accent}"
                                                    VerticalAlignment="Center" Margin="0,0,3,0" IsVisible="{Binding Top}" />

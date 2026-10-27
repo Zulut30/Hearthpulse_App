@@ -220,27 +220,32 @@ panel next to its card is a second `CardPoolPanel` in a Canvas over the surface 
 ## What players take (pick hint)
 
 While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the chart,
-one line per offered card: its name, the share of offers in which stats pool players took it (bar and percent), the
-share of games they won after taking it, the name in gold with a star when one option leads the next by 5 points or
-more; then a line with the number of choices from this card in the pool's 30 days. Numbers only, never advice or a click for the player.
+one line per offered card: its name, the share of offers in which players took it (bar and percent), the share of
+games they won after taking it, the name in gold with a star when one option leads the next by 5 points or more; then
+a line naming the rank and the source, "Legend · Hearthpulse data". Numbers only, never advice or a click for the player.
 
-- **Data: our own stats pool, not HSReplay.** The legal check (`reference/reviews/LEGAL-HeartLens-card-choices.md`,
-  2026-10-26) ruled out `api.kolodahearthstone.com/v1/hsreplay/card-choices` (HSReplay Premium data scraped without
-  HearthSim's written permission, ToS §8). The pool counts only games players chose to share.
+- **Data: the Hearthpulse data API** (`api.kolodahearthstone.com/v1/hsreplay/card-choices`, Legend). The legal check
+  (`reference/reviews/LEGAL-HeartLens-card-choices.md`, 2026-10-26) marked it a Blocker (L-B1: HSReplay Premium data
+  collected without HearthSim's written permission, ToS §8). **The owner accepted that risk on 2026-10-27** and chose
+  the API over the stats pool, which is not deployed; the UI names the source "Hearthpulse data" like every other API
+  number.
 - **Collected**: `ConstructedPicksTracker` keeps the local player's picks of a Ranked/Casual Standard/Wild game
   (source card id as the log names it, 2 to 8 offered card ids, the taken ones; the opponent's choices never reach
   listeners, and the source must be the player's). At the game's end `ConstructedPoolGame.From` turns them into
   `{id, day, format, won, picks}` - no deck, class, rank or opponent - and the WPF app posts it to
   `POST /v1/constructed` when the player agreed to consent version 4 (`PoolClient.SharingPicks`). Sharing, as for
   Battlegrounds, is the WPF app's; the Avalonia preview only reads.
-- **Read**: `DiscoverPickSource` loads `GET /v1/choices?format=` whole per format in the background, keeps it for 6 h
-  and retries after 5 minutes; the panel answers from memory, so a choice never waits on the network and never tells
-  the server which card is being played. Without a pool address (`PoolClient.DefaultEndpoint` is empty until the pool
-  is deployed) nothing is requested and the block does not show.
-- **Thresholds** (`DiscoverPicks`): a pick rate from 20 offers of that option from that source, a win rate from 20
-  picks; below, a dash, and "Too few stats pool games with this card yet" when no option has a number.
+- **Read**: `DiscoverChoiceSource` loads `v1/hsreplay/card-choices/cards` once (which cards have numbers, in which
+  formats), then, the first time a choice from a listed card opens, that card's `v1/hsreplay/card-choices?card=&format=
+  &rank=legend` in the background - never per frame. Both answers are kept in memory and in `cache/api/` (6 h, trimmed
+  to the fields read); a failed load is retried after 5 minutes. Until the answer is in, and for cards the API has no
+  numbers for, the block does not show. The stats pool's `v1/choices` is no longer read by the app.
+- **Matching** (`DiscoverPicks.Build`): an offered card id matches an API option by card id, else by its dbfId (a
+  reprint under another id). `popularity` and `win_rate` are percents; an option the API does not list gets a dash,
+  and "No Hearthpulse data for these cards yet" shows when no offered card has a number. Options marked `low_sample`
+  are drawn faded (bar, share, win rate), the note adds "faded: few games", and they never get the star.
 - Panel and rows: `OverlayViewModel.UpdateCardPoolPicks` (`CardPoolPicks`, `CardPoolPicksNote`), both `CardPoolPanel`s.
-  Render scene `overlay-card-pool-picks` uses made-up totals (`DiscoverPicks.RenderSample`).
+  Render scene `overlay-card-pool-picks` uses made-up numbers (`DiscoverPicks.RenderSample`, one option on few games).
 
 ## Pool browser ("all options")
 

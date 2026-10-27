@@ -192,7 +192,7 @@ public partial class App : Application
         _session = new GameSession(_history, _memory);
         _session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(_api)));
         _session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(_api)));
-        _session.SetDiscoverPicks(new DiscoverPickSource(_http, () => PoolClient.Endpoint(_settings)));
+        _session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(_api)));
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
