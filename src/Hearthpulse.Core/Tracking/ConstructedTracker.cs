@@ -308,9 +308,10 @@ public sealed class ConstructedTracker : IPowerListener
     private List<DeckCardRow> BuildDeckRows(GameState game, CardDb cards, int local, int deckCount)
     {
         var owned = game.Entities.Values.Where(e => e.Controller == local || e.InitialController == local).ToList();
+        // A card that transformed in hand still left the deck as the card it was drawn as.
         var removed = owned
-            .Where(e => e.IsOriginalDeckCard && e.InitialController == local && e.CardId.Length > 0 && !e.InDeck)
-            .GroupBy(e => e.CardId).ToDictionary(g => g.Key, g => g.Count());
+            .Where(e => e.IsOriginalDeckCard && e.InitialController == local && e.FirstCardId.Length > 0 && !e.InDeck)
+            .GroupBy(e => e.FirstCardId).ToDictionary(g => g.Key, g => g.Count());
         var added = owned
             .Where(e => e.Controller == local && e.InDeck && !e.IsOriginalDeckCard && e.CardId.Length > 0)
             .GroupBy(e => e.CardId).ToDictionary(g => g.Key, g => g.Count());

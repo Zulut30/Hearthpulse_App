@@ -201,6 +201,25 @@ public sealed class OpponentHandTests
     }
 
     [Fact]
+    public void A_deck_card_that_transformed_in_hand_still_left_the_deck()
+    {
+        // Real log 2026-10-23 18:29: BE_781 drawn, then CHANGE_ENTITY to BE_781t4 in hand.
+        var deck = new DeckDefinition("Priest", 1, "code", "FT_STANDARD", [813], new Dictionary<int, int> { [120003] = 2 });
+        var view = View(new ConstructedTracker { Deck = deck }, "FT_STANDARD",
+        [
+            .. Card(30, "", "DECK", 1, "tag=CARDTYPE value=MINION"),
+            .. Card(31, "", "DECK", 1, "tag=CARDTYPE value=MINION"),
+        ],
+        "DebugPrintPower() - SHOW_ENTITY - Updating Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=30 zone=DECK zonePos=0 cardId= player=1] CardID=BE_012",
+        "DebugPrintPower() -     tag=ZONE value=HAND",
+        "DebugPrintPower() - CHANGE_ENTITY - Updating Entity=[entityName=Dark Deacon id=30 zone=HAND zonePos=2 cardId=BE_012 player=1] CardID=BE_014",
+        "DebugPrintPower() -     tag=CARDTYPE value=MINION");
+
+        var row = view.Deck.Single(r => r.CardId == "BE_012");
+        Assert.Equal(1, row.Remaining);
+    }
+
+    [Fact]
     public void A_coin_made_mid_game_is_a_created_card()
     {
         var slot = Assert.Single(Hand([], Card(6, "GAME_005", "HAND", 2, "tag=CARDTYPE value=SPELL")));

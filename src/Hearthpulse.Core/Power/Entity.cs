@@ -12,7 +12,26 @@ public sealed class Entity
 
     public int Id { get; }
 
-    public string CardId { get; internal set; } = string.Empty;
+    public string CardId
+    {
+        get => _cardId;
+        internal set
+        {
+            _cardId = value;
+            if (FirstCardId.Length == 0)
+            {
+                FirstCardId = value;
+            }
+        }
+    }
+
+    private string _cardId = string.Empty;
+
+    /// <summary>
+    /// The first card id the entity showed: for a deck card, the card it was drawn as, even after it transformed in hand
+    /// (CHANGE_ENTITY, e.g. a Corrupt or Forge upgrade).
+    /// </summary>
+    public string FirstCardId { get; private set; } = string.Empty;
 
     /// <summary>Localised name as printed by the client, when known.</summary>
     public string Name { get; internal set; } = string.Empty;
