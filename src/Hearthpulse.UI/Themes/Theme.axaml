@@ -59,10 +59,10 @@
             <!-- Fluent text boxes: a light border and a near-black hover/focus fill; keep the warm surface and an
                  Outline border that turns gold on focus, like the WPF text box. -->
             <SolidColorBrush x:Key="TextControlBorderBrush" Color="{StaticResource OutlineColor}" />
-            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{StaticResource OutlineColor}" />
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#99E9B949" />
             <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource AccentColor}" />
-            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource Surface3Color}" />
-            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource Surface3Color}" />
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#1A110B" />
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#1A110B" />
             <SolidColorBrush x:Key="SliderTrackValueFillDisabled" Color="#8F7A5C" />
 
             <!-- Fluent combo boxes and menu flyouts: the text box frame, a card for the list, gold for the selected row. -->
@@ -187,19 +187,183 @@
             <SolidColorBrush x:Key="GoldTrim" Color="#8A6533" />
             <SolidColorBrush x:Key="GoldFill" Color="{StaticResource AccentColor}" />
             <SolidColorBrush x:Key="PanelEdge" Color="#3D2A19" />
-            <SolidColorBrush x:Key="SelectedEdge" Color="#8A6533" />
+            <!-- Same as the WPF tokens: a raised leather plate with a gold edge, and a polished gold button -->
+            <SolidColorBrush x:Key="SelectedEdge" Color="#A27839" />
             <LinearGradientBrush x:Key="SelectedFill" StartPoint="0%,0%" EndPoint="0%,100%">
-                <GradientStop Color="#4A331E" Offset="0" />
-                <GradientStop Color="#36251A" Offset="1" />
+                <GradientStop Color="#5C4120" Offset="0" />
+                <GradientStop Color="#3C2A18" Offset="1" />
             </LinearGradientBrush>
             <LinearGradientBrush x:Key="PrimaryFill" StartPoint="0%,0%" EndPoint="0%,100%">
-                <GradientStop Color="#F2CB5C" Offset="0" />
-                <GradientStop Color="#C99331" Offset="1" />
+                <GradientStop Color="#FFE79E" Offset="0" />
+                <GradientStop Color="#EFC253" Offset="0.45" />
+                <GradientStop Color="#C88F2E" Offset="1" />
             </LinearGradientBrush>
             <LinearGradientBrush x:Key="PrimaryFillHover" StartPoint="0%,0%" EndPoint="0%,100%">
-                <GradientStop Color="#F7D676" Offset="0" />
-                <GradientStop Color="#D6A040" Offset="1" />
+                <GradientStop Color="#FFF0C2" Offset="0" />
+                <GradientStop Color="#F6CD66" Offset="0.45" />
+                <GradientStop Color="#D69C3C" Offset="1" />
             </LinearGradientBrush>
+            <SolidColorBrush x:Key="PanelFill" Color="{StaticResource SurfaceColor}" />
+            <SolidColorBrush x:Key="OverlayFill" Color="#F0201510" />
+            <SolidColorBrush x:Key="SidebarFill" Color="{StaticResource BgColor}" />
+            <SolidColorBrush x:Key="WindowBg" Color="{StaticResource BgColor}" />
+
+            <!-- ===== Gilded Tavern (same as the WPF tokens): light falls from above, every plate is lit on top ===== -->
+            <LinearGradientBrush x:Key="GildedText" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#FFF6D8" Offset="0" />
+                <GradientStop Color="#F3CF72" Offset="0.55" />
+                <GradientStop Color="#D29A35" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="StatText" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#FFFAEE" Offset="0" />
+                <GradientStop Color="#EDD6A4" Offset="1" />
+            </LinearGradientBrush>
+            <RadialGradientBrush x:Key="WindowFill" GradientOrigin="10%,0%" Center="10%,0%" RadiusX="90%" RadiusY="110%">
+                <GradientStop Color="#22160C" Offset="0" />
+                <GradientStop Color="#110B07" Offset="1" />
+            </RadialGradientBrush>
+            <LinearGradientBrush x:Key="ContentEdge" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#86602F" Offset="0" />
+                <GradientStop Color="#3A2919" Offset="0.35" />
+                <GradientStop Color="#2A1C12" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="CardFill" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#352516" Offset="0" />
+                <GradientStop Color="#2C1F13" Offset="0.45" />
+                <GradientStop Color="#23180F" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="CardEdge" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#8A6436" Offset="0" />
+                <GradientStop Color="#4A331D" Offset="0.3" />
+                <GradientStop Color="#2E1F13" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="GhostFill" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#47321C" Offset="0" />
+                <GradientStop Color="#34241A" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="GhostEdge" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#86603A" Offset="0" />
+                <GradientStop Color="#4E3720" Offset="1" />
+            </LinearGradientBrush>
+            <SolidColorBrush x:Key="PrimaryEdge" Color="#8A5E22" />
+            <LinearGradientBrush x:Key="BestEdge" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#FFF0C2" Offset="0" />
+                <GradientStop Color="#E9B949" Offset="0.45" />
+                <GradientStop Color="#A87526" Offset="1" />
+            </LinearGradientBrush>
+            <RadialGradientBrush x:Key="BestHalo">
+                <GradientStop Color="#4DE9B949" Offset="0.6" />
+                <GradientStop Color="#00E9B949" Offset="1" />
+            </RadialGradientBrush>
+            <SolidColorBrush x:Key="Sheen" Color="#80FFF4D6" />
+            <SolidColorBrush x:Key="GrooveFill" Color="#1A110B" />
+            <SolidColorBrush x:Key="GrooveEdge" Color="#36261A" />
+            <LinearGradientBrush x:Key="NavSelectedFill" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Color="#42E9B949" Offset="0" />
+                <GradientStop Color="#14E9B949" Offset="0.55" />
+                <GradientStop Color="#06E9B949" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="NavSelectedEdge" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Color="#AAE9B949" Offset="0" />
+                <GradientStop Color="#40E9B949" Offset="0.5" />
+                <GradientStop Color="#14E9B949" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="OverlayCardFill" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#F22E2015" Offset="0" />
+                <GradientStop Color="#F01B120B" Offset="1" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="OverlayEdge" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Color="#A6E9B949" Offset="0" />
+                <GradientStop Color="#45E9B949" Offset="0.35" />
+                <GradientStop Color="#2AE9B949" Offset="1" />
+            </LinearGradientBrush>
+
+            <!-- ===== Character of the theme (same as the WPF tokens): a second accent, soft glows, a backdrop motif ===== -->
+            <!-- The second accent decorates; it never carries meaning. -->
+            <Color x:Key="Accent2Color">#4FC2A8</Color>
+            <SolidColorBrush x:Key="Accent2" Color="{StaticResource Accent2Color}" />
+            <SolidColorBrush x:Key="Accent2Soft" Color="#1F4FC2A8" />
+            <SolidColorBrush x:Key="Accent2Line" Color="#994FC2A8" />
+            <RadialGradientBrush x:Key="Glow">
+                <GradientStop Color="#3DE9B949" Offset="0" />
+                <GradientStop Color="#14E9B949" Offset="0.55" />
+                <GradientStop Color="#00E9B949" Offset="1" />
+            </RadialGradientBrush>
+            <RadialGradientBrush x:Key="Accent2Glow">
+                <GradientStop Color="#334FC2A8" Offset="0" />
+                <GradientStop Color="#0F4FC2A8" Offset="0.55" />
+                <GradientStop Color="#004FC2A8" Offset="1" />
+            </RadialGradientBrush>
+            <LinearGradientBrush x:Key="EdgeLight" StartPoint="0%,0%" EndPoint="100%,0%">
+                <GradientStop Color="#00FFE9B0" Offset="0" />
+                <GradientStop Color="#8CFFE9B0" Offset="0.5" />
+                <GradientStop Color="#00FFE9B0" Offset="1" />
+            </LinearGradientBrush>
+            <!-- Backdrop motifs: original line art in a 1000x1000 box (tools/themes/motifs.py). This theme is Tavern. -->
+            <SolidColorBrush x:Key="MotifInk" Color="#17E9B949" />
+            <SolidColorBrush x:Key="MotifInk2" Color="#244FC2A8" />
+            <!-- motifs:begin -->
+            <StreamGeometry x:Key="MotifTavern">M30,500 A470,470 0 1 0 970,500 A470,470 0 1 0 30,500 Z M52,500 A448,448 0 1 0 948,500 A448,448 0 1 0 52,500 Z M200,500 A300,300 0 1 0 800,500 A300,300 0 1 0 200,500 Z M382,500 A118,118 0 1 0 618,500 A118,118 0 1 0 382,500 Z M632,500 L788,500 M622,550.5 L698.6,582.3 M593.3,593.3 L703.6,703.6 M550.5,622 L582.3,698.6 M500,632 L500,788 M449.5,622 L417.7,698.6 M406.7,593.3 L296.4,703.6 M378,550.5 L301.4,582.3 M368,500 L212,500 M378,449.5 L301.4,417.7 M406.7,406.7 L296.4,296.4 M449.5,378 L417.7,301.4 M500,368 L500,212 M550.5,378 L582.3,301.4 M593.3,406.7 L703.6,296.4 M622,449.5 L698.6,417.7 M804,500 Q867.4,441.8 940,500 Q867.4,558.2 804,500 Z M793.8,621.7 Q838.6,606.8 862.2,650 Q814.9,663.9 793.8,621.7 Z M715,715 Q801,718.7 811.1,811.1 Q718.7,801 715,715 Z M621.7,793.8 Q663.9,814.9 650,862.2 Q606.8,838.6 621.7,793.8 Z M500,804 Q558.2,867.4 500,940 Q441.8,867.4 500,804 Z M378.3,793.8 Q393.2,838.6 350,862.2 Q336.1,814.9 378.3,793.8 Z M285,715 Q281.3,801 188.9,811.1 Q199,718.7 285,715 Z M206.2,621.7 Q185.1,663.9 137.8,650 Q161.4,606.8 206.2,621.7 Z M196,500 Q132.6,558.2 60,500 Q132.6,441.8 196,500 Z M206.2,378.3 Q161.4,393.2 137.8,350 Q185.1,336.1 206.2,378.3 Z M285,285 Q199,281.3 188.9,188.9 Q281.3,199 285,285 Z M378.3,206.2 Q336.1,185.1 350,137.8 Q393.2,161.4 378.3,206.2 Z M500,196 Q441.8,132.6 500,60 Q558.2,132.6 500,196 Z M621.7,206.2 Q606.8,161.4 650,137.8 Q663.9,185.1 621.7,206.2 Z M715,285 Q718.7,199 811.1,188.9 Q801,281.3 715,285 Z M793.8,378.3 Q814.9,336.1 862.2,350 Q838.6,393.2 793.8,378.3 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifTavernAlt">M954,500 A5,5 0 1 0 964,500 A5,5 0 1 0 954,500 Z M938.4,618.8 A5,5 0 1 0 948.4,618.8 A5,5 0 1 0 938.4,618.8 Z M892.5,729.5 A5,5 0 1 0 902.5,729.5 A5,5 0 1 0 892.5,729.5 Z M819.6,824.6 A5,5 0 1 0 829.6,824.6 A5,5 0 1 0 819.6,824.6 Z M724.5,897.5 A5,5 0 1 0 734.5,897.5 A5,5 0 1 0 724.5,897.5 Z M613.8,943.4 A5,5 0 1 0 623.8,943.4 A5,5 0 1 0 613.8,943.4 Z M495,959 A5,5 0 1 0 505,959 A5,5 0 1 0 495,959 Z M376.2,943.4 A5,5 0 1 0 386.2,943.4 A5,5 0 1 0 376.2,943.4 Z M265.5,897.5 A5,5 0 1 0 275.5,897.5 A5,5 0 1 0 265.5,897.5 Z M170.4,824.6 A5,5 0 1 0 180.4,824.6 A5,5 0 1 0 170.4,824.6 Z M97.5,729.5 A5,5 0 1 0 107.5,729.5 A5,5 0 1 0 97.5,729.5 Z M51.6,618.8 A5,5 0 1 0 61.6,618.8 A5,5 0 1 0 51.6,618.8 Z M36,500 A5,5 0 1 0 46,500 A5,5 0 1 0 36,500 Z M51.6,381.2 A5,5 0 1 0 61.6,381.2 A5,5 0 1 0 51.6,381.2 Z M97.5,270.5 A5,5 0 1 0 107.5,270.5 A5,5 0 1 0 97.5,270.5 Z M170.4,175.4 A5,5 0 1 0 180.4,175.4 A5,5 0 1 0 170.4,175.4 Z M265.5,102.5 A5,5 0 1 0 275.5,102.5 A5,5 0 1 0 265.5,102.5 Z M376.2,56.6 A5,5 0 1 0 386.2,56.6 A5,5 0 1 0 376.2,56.6 Z M495,41 A5,5 0 1 0 505,41 A5,5 0 1 0 495,41 Z M613.8,56.6 A5,5 0 1 0 623.8,56.6 A5,5 0 1 0 613.8,56.6 Z M724.5,102.5 A5,5 0 1 0 734.5,102.5 A5,5 0 1 0 724.5,102.5 Z M819.6,175.4 A5,5 0 1 0 829.6,175.4 A5,5 0 1 0 819.6,175.4 Z M892.5,270.5 A5,5 0 1 0 902.5,270.5 A5,5 0 1 0 892.5,270.5 Z M938.4,381.2 A5,5 0 1 0 948.4,381.2 A5,5 0 1 0 938.4,381.2 Z M583.4,574.4 L592.4,583.4 L583.4,592.4 L574.4,583.4 Z M416.6,574.4 L425.6,583.4 L416.6,592.4 L407.6,583.4 Z M416.6,407.6 L425.6,416.6 L416.6,425.6 L407.6,416.6 Z M583.4,407.6 L592.4,416.6 L583.4,425.6 L574.4,416.6 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifFrost">M500,438 L553.7,469 L553.7,531 L500,562 L446.3,531 L446.3,469 Z M575,370.1 L650,500 L575,629.9 L425,629.9 L350,500 L425,370.1 Z M500,438 L500,30 M500,310 L401.7,241.2 M500,310 L598.3,241.2 M500,210 L421.4,154.9 M500,210 L578.6,154.9 M500,120 L449.2,84.4 M500,120 L550.8,84.4 M553.7,469 L907,265 M664.5,405 L675,285.5 M664.5,405 L773.3,455.7 M751.1,355 L759.5,259.4 M751.1,355 L838.2,395.6 M829.1,310 L834.5,248.2 M829.1,310 L885.3,336.2 M553.7,531 L907,735 M664.5,595 L773.3,544.3 M664.5,595 L675,714.5 M751.1,645 L838.2,604.4 M751.1,645 L759.5,740.6 M829.1,690 L885.3,663.8 M829.1,690 L834.5,751.8 M500,562 L500,970 M500,690 L598.3,758.8 M500,690 L401.7,758.8 M500,790 L578.6,845.1 M500,790 L421.4,845.1 M500,880 L550.8,915.6 M500,880 L449.2,915.6 M446.3,531 L93,735 M335.5,595 L325,714.5 M335.5,595 L226.7,544.3 M248.9,645 L240.5,740.6 M248.9,645 L161.8,604.4 M170.9,690 L165.5,751.8 M170.9,690 L114.7,663.8 M446.3,469 L93,265 M335.5,405 L226.7,455.7 M335.5,405 L325,285.5 M248.9,355 L161.8,395.6 M248.9,355 L240.5,259.4 M170.9,310 L114.7,336.2 M170.9,310 L165.5,248.2</StreamGeometry>
+            <StreamGeometry x:Key="MotifFrostAlt">M500,17 L513,30 L500,43 L487,30 Z M907,252 L920,265 L907,278 L894,265 Z M907,722 L920,735 L907,748 L894,735 Z M500,957 L513,970 L500,983 L487,970 Z M93,722 L106,735 L93,748 L80,735 Z M93,252 L106,265 L93,278 L80,265 Z M665,192.2 L668.4,210.8 L687,214.2 L668.4,217.6 L665,236.2 L661.6,217.6 L643,214.2 L661.6,210.8 Z M830,478 L833.4,496.6 L852,500 L833.4,503.4 L830,522 L826.6,503.4 L808,500 L826.6,496.6 Z M665,763.8 L668.4,782.4 L687,785.8 L668.4,789.2 L665,807.8 L661.6,789.2 L643,785.8 L661.6,782.4 Z M335,763.8 L338.4,782.4 L357,785.8 L338.4,789.2 L335,807.8 L331.6,789.2 L313,785.8 L331.6,782.4 Z M170,478 L173.4,496.6 L192,500 L173.4,503.4 L170,522 L166.6,503.4 L148,500 L166.6,496.6 Z M335,192.2 L338.4,210.8 L357,214.2 L338.4,217.6 L335,236.2 L331.6,217.6 L313,214.2 L331.6,210.8 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifFel">M30,500 A470,470 0 1 0 970,500 A470,470 0 1 0 30,500 Z M80,500 A420,420 0 1 0 920,500 A420,420 0 1 0 80,500 Z M892,500 L830.9,558.3 L868.4,634.1 L791,668 L800.3,752 L716,757.4 L696,839.5 L614.9,815.7 L568.1,886 L500,836 L431.9,886 L385.1,815.7 L304,839.5 L284,757.4 L199.7,752 L209,668 L131.6,634.1 L169.1,558.3 L108,500 L169.1,441.7 L131.6,365.9 L209,332 L199.7,248 L284,242.6 L304,160.5 L385.1,184.3 L431.9,114 L500,164 L568.1,114 L614.9,184.3 L696,160.5 L716,242.6 L800.3,248 L791,332 L868.4,365.9 L830.9,441.7 Z M190,500 Q500,270 810,500 Q500,730 190,500 Z M408,500 A92,92 0 1 0 592,500 A92,92 0 1 0 408,500 Z M500,420 Q528,500 500,580 Q472,500 500,420 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifFelAlt">M929.8,605.2 L939.8,615.2 L929.8,625.2 L919.8,615.2 Z M814.7,804.7 L824.7,814.7 L814.7,824.7 L804.7,814.7 Z M615.2,919.8 L625.2,929.8 L615.2,939.8 L605.2,929.8 Z M384.8,919.8 L394.8,929.8 L384.8,939.8 L374.8,929.8 Z M185.3,804.7 L195.3,814.7 L185.3,824.7 L175.3,814.7 Z M70.2,605.2 L80.2,615.2 L70.2,625.2 L60.2,615.2 Z M70.2,374.8 L80.2,384.8 L70.2,394.8 L60.2,384.8 Z M185.3,175.3 L195.3,185.3 L185.3,195.3 L175.3,185.3 Z M384.8,60.2 L394.8,70.2 L384.8,80.2 L374.8,70.2 Z M615.2,60.2 L625.2,70.2 L615.2,80.2 L605.2,70.2 Z M814.7,175.3 L824.7,185.3 L814.7,195.3 L804.7,185.3 Z M929.8,374.8 L939.8,384.8 L929.8,394.8 L919.8,384.8 Z M486,500 A14,14 0 1 0 514,500 A14,14 0 1 0 486,500 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifArcane">M950,500 A450,150 0 1 0 50,500 A450,150 0 1 0 950,500 Z M725,889.7 A450,150 60 1 0 275,110.3 A450,150 60 1 0 725,889.7 Z M275,889.7 A450,150 120 1 0 725,110.3 A450,150 120 1 0 275,889.7 Z M30,500 A470,470 0 1 0 970,500 A470,470 0 1 0 30,500 Z M500,380 L517,483 L620,500 L517,517 L500,620 L483,517 L380,500 L483,483 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifArcaneAlt">M832.7,596.4 A12,12 0 1 0 856.7,596.4 A12,12 0 1 0 832.7,596.4 Z M321,108.1 A12,12 0 1 0 345,108.1 A12,12 0 1 0 321,108.1 Z M488,759.8 A12,12 0 1 0 512,759.8 A12,12 0 1 0 488,759.8 Z M198.7,385.1 A12,12 0 1 0 222.7,385.1 A12,12 0 1 0 198.7,385.1 Z M442.9,703.8 A12,12 0 1 0 466.9,703.8 A12,12 0 1 0 442.9,703.8 Z M160,144 L164,166 L186,170 L164,174 L160,196 L156,174 L134,170 L156,166 Z M850,214 L854,236 L876,240 L854,244 L850,266 L846,244 L824,240 L846,236 Z M790,814 L794,836 L816,840 L794,844 L790,866 L786,844 L764,840 L786,836 Z M210,774 L214,796 L236,800 L214,804 L210,826 L206,804 L184,800 L206,796 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifEmber">M500,930 C203,930 165.2,585.6 381.2,388.8 C489.2,274 478.4,192 532.4,110 C694.4,290.4 813.2,520 770,716.8 C737.6,880.8 608,930 500,930 Z M500,930 C296.5,930 270.6,678 418.6,534 C492.6,450 444.5,390 481.5,330 C633.2,462 714.6,630 685,774 C662.8,894 574,930 500,930 Z M500,930 C390,930 376,778.8 456,692.4 C496,642 496,606 516,570 C572,649.2 616,750 600,836.4 C588,908.4 540,930 500,930 Z M250,930 C123.5,930 107.4,770.4 199.4,679.2 C245.4,626 199.4,588 222.4,550 C332.8,633.6 383.4,740 365,831.2 C351.2,907.2 296,930 250,930 Z M760,930 C622.5,930 605,745.2 705,639.6 C755,578 760,534 785,490 C850,586.8 905,710 885,815.6 C870,903.6 810,930 760,930 Z M120,930 L880,930</StreamGeometry>
+            <StreamGeometry x:Key="MotifEmberAlt">M300,245 L309,260 L300,275 L291,260 Z M420,105 L429,120 L420,135 L411,120 Z M640,155 L649,170 L640,185 L631,170 Z M720,315 L729,330 L720,345 L711,330 Z M220,425 L229,440 L220,455 L211,440 Z M820,505 L829,520 L820,535 L811,520 Z M560,45 L569,60 L560,75 L551,60 Z M360,365 L369,380 L360,395 L351,380 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifTide">M0,560 C45,528 80,528 125,560 C170,592 205,592 250,560 C295,528 330,528 375,560 C420,592 455,592 500,560 C545,528 580,528 625,560 C670,592 705,592 750,560 C795,528 830,528 875,560 C920,592 955,592 1000,560 M0,660 C36,631 64,631 100,660 C136,689 164,689 200,660 C236,631 264,631 300,660 C336,689 364,689 400,660 C436,631 464,631 500,660 C536,689 564,689 600,660 C636,631 664,631 700,660 C736,689 764,689 800,660 C836,631 864,631 900,660 C936,689 964,689 1000,660 M0,760 C45,734 80,734 125,760 C170,786 205,786 250,760 C295,734 330,734 375,760 C420,786 455,786 500,760 C545,734 580,734 625,760 C670,786 705,786 750,760 C795,734 830,734 875,760 C920,786 955,786 1000,760 M0,860 C36,837 64,837 100,860 C136,883 164,883 200,860 C236,837 264,837 300,860 C336,883 364,883 400,860 C436,837 464,837 500,860 C536,883 564,883 600,860 C636,837 664,837 700,860 C736,883 764,883 800,860 C836,837 864,837 900,860 C936,883 964,883 1000,860 M0,480 C260,480 400,170 640,170 L657.4,172.5 L674.3,177 L690.4,183.3 L705.4,191.5 L719.2,201.2 L731.7,212.5 L742.6,225 L751.9,238.5 L759.4,252.9 L765.1,268 L769,283.4 L770.9,299 L771,314.6 L769.3,329.9 L765.8,344.7 L760.7,358.9 L754,372.2 L745.8,384.5 L736.4,395.5 L725.8,405.3 L714.3,413.7 L702,420.5 L689.2,425.8 L676,429.4 L662.6,431.5 L649.2,431.9 L636.1,430.8 L623.3,428.1 L611.1,424 L599.7,418.6 L589.1,411.9 L579.5,404.1 L571,395.4 L563.7,385.8 L557.7,375.6 L553.1,364.9 L549.8,353.8 L547.8,342.7 L547.2,331.5 L548,320.5 L550,309.9 L553.2,299.7 L557.6,290.2 L562.9,281.4 L569.2,273.4 L576.3,266.3 L584,260.3 L592.3,255.3 L600.9,251.4 L609.8,248.6 L618.8,246.9 L627.8,246.4 L636.6,246.9 L645.1,248.4 L653.2,251 L660.7,254.4 L667.7,258.6 L674,263.5 L679.5,269 L684.2,275 L688,281.4 L691,288.1 L693.1,294.9 L694.3,301.8 L694.6,308.6 L694.1,315.2 L692.9,321.6 L690.9,327.5 L688.2,333.1 L685,338.1 L681.3,342.6 L677.2,346.4 L672.8,349.6 L668.1,352.2 L663.3,354.1 L658.5,355.3 L653.7,355.9 L649,355.8 L644.6,355.2 L640.4,354 L636.6,352.4 L633.1,350.4 L630.1,348 L627.5,345.3 L625.4,342.5 L623.8,339.5 L622.7,336.4 L622,333.4 L621.8,330.5 M790,320 C790,420 880,480 1000,480</StreamGeometry>
+            <StreamGeometry x:Key="MotifTideAlt">M165,300 A15,15 0 1 0 195,300 A15,15 0 1 0 165,300 Z M231,210 A9,9 0 1 0 249,210 A9,9 0 1 0 231,210 Z M294,330 A6,6 0 1 0 306,330 A6,6 0 1 0 294,330 Z M143,160 A7,7 0 1 0 157,160 A7,7 0 1 0 143,160 Z M349,230 A11,11 0 1 0 371,230 A11,11 0 1 0 349,230 Z M872,120 A8,8 0 1 0 888,120 A8,8 0 1 0 872,120 Z M887,260 A13,13 0 1 0 913,260 A13,13 0 1 0 887,260 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifShadow">M492.2,201.3 A300,300 0 1 0 791.1,628.4 A262,262 0 1 1 492.2,201.3 Z M919.4,522 A420,420 0 0 1 907.5,601.6 M886.6,664.1 A420,420 0 0 1 848.2,734.9 M807.2,786.4 A420,420 0 0 1 746.9,839.8 M690.7,874.2 A420,420 0 0 1 615.8,903.7 M551.2,916.9 A420,420 0 0 1 470.7,919 M405.5,909.2 A420,420 0 0 1 329.2,883.7 M271.3,852.2 A420,420 0 0 1 208.2,802.1 M164.6,752.8 A420,420 0 0 1 122.5,684.1 M98.4,622.8 A420,420 0 0 1 82.3,543.9 M80.6,478 A420,420 0 0 1 92.5,398.4 M113.4,335.9 A420,420 0 0 1 151.8,265.1 M192.8,213.6 A420,420 0 0 1 253.1,160.2 M309.3,125.8 A420,420 0 0 1 384.2,96.3 M448.8,83.1 A420,420 0 0 1 529.3,81 M594.5,90.8 A420,420 0 0 1 670.8,116.3 M728.7,147.8 A420,420 0 0 1 791.8,197.9 M835.4,247.2 A420,420 0 0 1 877.5,315.9 M901.6,377.2 A420,420 0 0 1 917.7,456.1 M30,500 A470,470 0 1 0 970,500 A470,470 0 1 0 30,500 Z</StreamGeometry>
+            <StreamGeometry x:Key="MotifShadowAlt">M780,190 L784.7,215.3 L810,220 L784.7,224.7 L780,250 L775.3,224.7 L750,220 L775.3,215.3 Z M850,364 L852.5,377.5 L866,380 L852.5,382.5 L850,396 L847.5,382.5 L834,380 L847.5,377.5 Z M700,106 L702.2,117.8 L714,120 L702.2,122.2 L700,134 L697.8,122.2 L686,120 L697.8,117.8 Z M180,180 L183.1,196.9 L200,200 L183.1,203.1 L180,220 L176.9,203.1 L160,200 L176.9,196.9 Z M130,608 L131.9,618.1 L142,620 L131.9,621.9 L130,632 L128.1,621.9 L118,620 L128.1,618.1 Z M760,738 L763.4,756.6 L782,760 L763.4,763.4 L760,782 L756.6,763.4 L738,760 L756.6,756.6 Z M300,846 L302.2,857.8 L314,860 L302.2,862.2 L300,874 L297.8,862.2 L286,860 L297.8,857.8 Z</StreamGeometry>
+            <!-- motifs:end -->
+            <DrawingBrush x:Key="MotifBrush" Stretch="Uniform" SourceRect="0,0,1000,1000">
+                <DrawingBrush.Drawing>
+                    <DrawingGroup>
+                        <GeometryDrawing Geometry="{StaticResource MotifTavern}">
+                            <GeometryDrawing.Pen>
+                                <Pen Brush="{StaticResource AccentLine}" Thickness="8" LineCap="Round" LineJoin="Round" />
+                            </GeometryDrawing.Pen>
+                        </GeometryDrawing>
+                        <GeometryDrawing Geometry="{StaticResource MotifTavernAlt}" Brush="{StaticResource Accent2}" />
+                    </DrawingGroup>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
+            <!-- The content plate: lamplight from the top left, a wash of the second accent and the motif in the bottom right -->
+            <DrawingBrush x:Key="ContentFill" Stretch="UniformToFill" AlignmentX="Right" AlignmentY="Bottom" SourceRect="0,0,1600,1000">
+                <DrawingBrush.Drawing>
+                    <DrawingGroup ClipGeometry="M0,0 H1600 V1000 H0 Z">
+                        <GeometryDrawing Geometry="M0,0 H1600 V1000 H0 Z">
+                            <GeometryDrawing.Brush>
+                                <RadialGradientBrush GradientOrigin="25%,0%" Center="25%,0%" RadiusX="100%" RadiusY="90%">
+                                    <GradientStop Color="#2D1E12" Offset="0" />
+                                    <GradientStop Color="#1D140C" Offset="1" />
+                                </RadialGradientBrush>
+                            </GeometryDrawing.Brush>
+                        </GeometryDrawing>
+                        <GeometryDrawing Geometry="M0,0 H1600 V1000 H0 Z">
+                            <GeometryDrawing.Brush>
+                                <RadialGradientBrush GradientOrigin="87%,80%" Center="87%,80%" RadiusX="42%" RadiusY="62%">
+                                    <GradientStop Color="#144FC2A8" Offset="0" />
+                                    <GradientStop Color="#004FC2A8" Offset="1" />
+                                </RadialGradientBrush>
+                            </GeometryDrawing.Brush>
+                        </GeometryDrawing>
+                        <DrawingGroup>
+                            <DrawingGroup.Transform>
+                                <MatrixTransform Matrix="0.9,0,0,0.9,950,330" />
+                            </DrawingGroup.Transform>
+                            <GeometryDrawing Geometry="{StaticResource MotifTavern}">
+                                <GeometryDrawing.Pen>
+                                    <Pen Brush="{StaticResource MotifInk}" Thickness="3" LineCap="Round" LineJoin="Round" />
+                                </GeometryDrawing.Pen>
+                            </GeometryDrawing>
+                            <GeometryDrawing Geometry="{StaticResource MotifTavernAlt}" Brush="{StaticResource MotifInk2}" />
+                        </DrawingGroup>
+                    </DrawingGroup>
+                </DrawingBrush.Drawing>
+            </DrawingBrush>
 
             <SolidColorBrush x:Key="RarityCommon" Color="#D8CDB8" />
             <SolidColorBrush x:Key="RarityRare" Color="#5B9BFF" />
@@ -225,6 +389,7 @@
         <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
         <Setter Property="FontSize" Value="34" />
         <Setter Property="FontWeight" Value="ExtraBold" />
+        <Setter Property="Foreground" Value="{StaticResource GildedText}" />
     </Style>
     <Style Selector="TextBlock.h2">
         <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
@@ -244,6 +409,7 @@
         <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
         <Setter Property="FontSize" Value="28" />
         <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource StatText}" />
     </Style>
     <Style Selector="TextBlock.number">
         <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
@@ -258,17 +424,17 @@
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <!-- ===== Surfaces: framed panels with a thin bronze edge ===== -->
+    <!-- ===== Surfaces: framed panels lit on top, with an edge that catches the accent ===== -->
     <Style Selector="Border.card">
-        <Setter Property="Background" Value="{StaticResource Surface2}" />
-        <Setter Property="BorderBrush" Value="{StaticResource PanelEdge}" />
+        <Setter Property="Background" Value="{StaticResource CardFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource CardEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Padding" Value="22,18" />
     </Style>
     <Style Selector="Border.overlayCard">
-        <Setter Property="Background" Value="{StaticResource OverlayPanel}" />
-        <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+        <Setter Property="Background" Value="{StaticResource OverlayCardFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource OverlayEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="8" />
     </Style>
@@ -278,16 +444,19 @@
         <Setter Property="Padding" Value="9,2" />
     </Style>
     <Style Selector="Border.segmentBar">
-        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="Background" Value="{StaticResource GrooveFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GrooveEdge}" />
+        <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="4" />
     </Style>
 
-    <!-- ===== Buttons: framed rectangles, gold for the primary action ===== -->
+    <!-- ===== Buttons: framed rectangles, gold for the primary action. States fade in (0.12 s) and a press
+         shrinks the button a little, as in the WPF theme. ===== -->
     <Style Selector="Button.ghost">
         <Setter Property="Foreground" Value="{StaticResource OnSecondaryContainer}" />
-        <Setter Property="Background" Value="{StaticResource Surface3}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Outline}" />
+        <Setter Property="Background" Value="{StaticResource GhostFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GhostEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="18,9" />
         <Setter Property="FontWeight" Value="SemiBold" />
@@ -300,10 +469,30 @@
         </Setter>
         <Setter Property="Template">
             <ControlTemplate>
-                <Panel>
+                <Panel Name="Root" RenderTransform="scale(1)">
+                    <Panel.Transitions>
+                        <Transitions>
+                            <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08" Easing="CubicEaseOut" />
+                        </Transitions>
+                    </Panel.Transitions>
                     <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" />
-                    <Border Name="State" Background="Transparent" CornerRadius="8" />
+                    <Border Name="Lift" Background="{StaticResource PrimaryFillHover}" CornerRadius="8" Opacity="0" IsVisible="False">
+                        <Border.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.12" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Border.Transitions>
+                    </Border>
+                    <!-- Polished metal on the primary button: a bright rim along the top edge -->
+                    <Border Name="Sheen" CornerRadius="7" Margin="1" BorderBrush="{StaticResource Sheen}" BorderThickness="0,1,0,0" IsVisible="False" />
+                    <Border Name="State" Background="{StaticResource Hover}" CornerRadius="8" Opacity="0">
+                        <Border.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.12" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Border.Transitions>
+                    </Border>
                     <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
                                       Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Panel>
@@ -311,13 +500,17 @@
         </Setter>
     </Style>
     <Style Selector="Button.ghost:pointerover">
-        <Setter Property="BorderBrush" Value="{StaticResource GoldTrim}" />
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
     </Style>
     <Style Selector="Button.ghost:pointerover /template/ Border#State">
-        <Setter Property="Background" Value="{StaticResource Hover}" />
+        <Setter Property="Opacity" Value="1" />
     </Style>
     <Style Selector="Button.ghost:pressed /template/ Border#State">
         <Setter Property="Background" Value="{StaticResource Pressed}" />
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.ghost:pressed /template/ Panel#Root">
+        <Setter Property="RenderTransform" Value="scale(0.96)" />
     </Style>
     <Style Selector="Button.ghost:disabled">
         <Setter Property="Opacity" Value="0.45" />
@@ -325,17 +518,27 @@
     <Style Selector="Button.primary">
         <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
         <Setter Property="Background" Value="{StaticResource PrimaryFill}" />
-        <Setter Property="BorderBrush" Value="{StaticResource GoldTrim}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryEdge}" />
         <Setter Property="FontWeight" Value="Bold" />
     </Style>
     <Style Selector="Button.primary:pointerover">
-        <Setter Property="Background" Value="{StaticResource PrimaryFillHover}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryEdge}" />
+    </Style>
+    <Style Selector="Button.primary /template/ Border#Lift">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Button.primary /template/ Border#Sheen">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ Border#Lift">
+        <Setter Property="Opacity" Value="1" />
     </Style>
     <Style Selector="Button.primary:pointerover /template/ Border#State">
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Opacity" Value="0" />
     </Style>
     <Style Selector="Button.primary:pressed /template/ Border#State">
         <Setter Property="Background" Value="{StaticResource Pressed}" />
+        <Setter Property="Opacity" Value="1" />
     </Style>
 
     <!-- Round icon buttons stay circles. -->
@@ -354,7 +557,13 @@
         </Setter>
         <Setter Property="Template">
             <ControlTemplate>
-                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="999">
+                <Border Name="Bd" Background="{TemplateBinding Background}" CornerRadius="999" RenderTransform="scale(1)">
+                    <Border.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="Background" Duration="0:0:0.12" />
+                            <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08" Easing="CubicEaseOut" />
+                        </Transitions>
+                    </Border.Transitions>
                     <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
             </ControlTemplate>
@@ -365,6 +574,7 @@
     </Style>
     <Style Selector="Button.icon:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{StaticResource Pressed}" />
+        <Setter Property="RenderTransform" Value="scale(0.9)" />
     </Style>
     <Style Selector="Button.icon:pointerover">
         <Setter Property="Foreground" Value="{StaticResource Text}" />
@@ -403,6 +613,11 @@
             <ControlTemplate>
                 <Panel Background="Transparent">
                     <Border Name="Bd" CornerRadius="8" Margin="10,2" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="Background" Duration="0:0:0.12" />
+                            </Transitions>
+                        </Border.Transitions>
                         <Panel>
                             <Border Name="Bar" Width="3" CornerRadius="2" Margin="0,8" HorizontalAlignment="Left"
                                     Background="{StaticResource Accent}" IsVisible="False" />
@@ -455,13 +670,22 @@
         </Setter>
         <Setter Property="Template">
             <ControlTemplate>
-                <Border Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Name="Check" Text="&#xF012C;" FontFamily="{DynamicResource IconFont}" FontSize="14" FontWeight="Normal"
-                                   Margin="0,0,5,0" VerticalAlignment="Center" Foreground="{StaticResource Accent}" IsVisible="False" />
-                        <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Border>
+                <Panel>
+                    <Border Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="Background" Duration="0:0:0.12" />
+                            </Transitions>
+                        </Border.Transitions>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Name="Check" Text="&#xF012C;" FontFamily="{DynamicResource IconFont}" FontSize="14" FontWeight="Normal"
+                                       Margin="0,0,5,0" VerticalAlignment="Center" Foreground="{StaticResource Accent}" IsVisible="False" />
+                            <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <!-- The selected chip is a raised plate: a lit hairline on its top edge -->
+                    <Border Name="Edge" Height="1" Margin="6,1,6,0" VerticalAlignment="Top" Background="{StaticResource EdgeLight}" IsVisible="False" />
+                </Panel>
             </ControlTemplate>
         </Setter>
     </Style>
@@ -481,6 +705,9 @@
     <Style Selector="RadioButton.segment:checked /template/ TextBlock#Check">
         <Setter Property="IsVisible" Value="True" />
     </Style>
+    <Style Selector="RadioButton.segment:checked /template/ Border#Edge">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
     <Style Selector="RadioButton.segment:checked">
         <Setter Property="Foreground" Value="{StaticResource Accent}" />
     </Style>
@@ -495,42 +722,51 @@
             <ControlTemplate>
                 <Grid ColumnDefinitions="*,Auto" Background="Transparent">
                     <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" Margin="0,0,16,0" />
-                    <Border Name="Track" Grid.Column="1" Width="48" Height="28" CornerRadius="14"
-                            Background="{StaticResource Surface4}" BorderBrush="{StaticResource Faint}" BorderThickness="2">
-                        <Panel Name="Thumb" Width="14" Height="14" HorizontalAlignment="Left" Margin="5,0">
-                            <Ellipse Name="Knob" Fill="{StaticResource Faint}" />
-                            <TextBlock Name="Tick" Text="&#xF012C;" FontFamily="{DynamicResource IconFont}" FontSize="14" FontWeight="Normal"
+                    <!-- Same as the WPF switch: a Surface4 track with a Muted rim, gold when on; the knob slides and grows -->
+                    <Panel Grid.Column="1" Width="48" Height="28">
+                        <Border Name="Track" CornerRadius="14" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
+                        <Border Name="OnFill" CornerRadius="14" Background="{StaticResource PrimaryFill}" Opacity="0">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut" />
+                                </Transitions>
+                            </Border.Transitions>
+                        </Border>
+                        <Panel Name="Thumb" Width="24" Height="24" HorizontalAlignment="Left" Margin="2,0" RenderTransform="translate(0px,0px) scale(0.67)">
+                            <Panel.Transitions>
+                                <Transitions>
+                                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22" Easing="CubicEaseOut" />
+                                </Transitions>
+                            </Panel.Transitions>
+                            <Ellipse Name="Knob" Fill="{StaticResource Muted}" />
+                            <TextBlock Name="Tick" Text="&#xF012C;" FontFamily="{DynamicResource IconFont}" FontSize="17" FontWeight="Normal"
                                        Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="False" />
                         </Panel>
-                    </Border>
+                    </Panel>
                 </Grid>
             </ControlTemplate>
         </Setter>
     </Style>
     <Style Selector="CheckBox.switch:pointerover /template/ Border#Track">
-        <Setter Property="BorderBrush" Value="{StaticResource Muted}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Text}" />
     </Style>
     <Style Selector="CheckBox.switch:pointerover /template/ Ellipse#Knob">
-        <Setter Property="Fill" Value="{StaticResource Muted}" />
+        <Setter Property="Fill" Value="{StaticResource Text}" />
     </Style>
-    <Style Selector="CheckBox.switch:checked /template/ Border#Track">
-        <Setter Property="Background" Value="{StaticResource Accent}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    <Style Selector="CheckBox.switch:checked /template/ Border#OnFill">
+        <Setter Property="Opacity" Value="1" />
     </Style>
     <Style Selector="CheckBox.switch:checked /template/ Ellipse#Knob">
         <Setter Property="Fill" Value="{StaticResource OnAccent}" />
     </Style>
     <Style Selector="CheckBox.switch:checked /template/ Panel#Thumb">
-        <Setter Property="Width" Value="20" />
-        <Setter Property="Height" Value="20" />
-        <Setter Property="Margin" Value="2,0" />
-        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="RenderTransform" Value="translate(20px,0px) scale(0.83)" />
     </Style>
     <Style Selector="CheckBox.switch:checked /template/ TextBlock#Tick">
         <Setter Property="IsVisible" Value="True" />
     </Style>
-    <Style Selector="CheckBox.switch:pointerover /template/ Border#Track">
-        <Setter Property="Opacity" Value="0.9" />
+    <Style Selector="CheckBox.switch:disabled">
+        <Setter Property="Opacity" Value="0.45" />
     </Style>
 
     <!-- ===== List rows ===== -->
@@ -539,6 +775,11 @@
         <Setter Property="Padding" Value="10,8" />
         <Setter Property="Margin" Value="-10,0,-10,2" />
         <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
     </Style>
     <Style Selector="Border.row:pointerover">
         <Setter Property="Background" Value="{StaticResource Hover}" />
@@ -569,6 +810,11 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Name="Bd" CornerRadius="8" Padding="13,9" Margin="0,0,0,3" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+                    <Border.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="Background" Duration="0:0:0.12" />
+                        </Transitions>
+                    </Border.Transitions>
                     <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
                 </Border>
             </ControlTemplate>
@@ -617,8 +863,8 @@
     <!-- ===== Tooltips ===== -->
     <Style Selector="ToolTip">
         <Setter Property="Foreground" Value="{StaticResource Text}" />
-        <Setter Property="Background" Value="{StaticResource Surface4}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Outline}" />
+        <Setter Property="Background" Value="{StaticResource CardFill}" />
+        <Setter Property="BorderBrush" Value="{StaticResource CardEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="12,7" />
@@ -628,7 +874,7 @@
 
     <!-- ===== Inputs ===== -->
     <Style Selector="TextBox">
-        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="Background" Value="{StaticResource GrooveFill}" />
         <Setter Property="Foreground" Value="{StaticResource Text}" />
         <Setter Property="CaretBrush" Value="{StaticResource Accent}" />
         <Setter Property="SelectionBrush" Value="{StaticResource AccentDeep}" />

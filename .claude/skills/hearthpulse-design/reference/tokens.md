@@ -10,8 +10,8 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 |---|---|---|---|
 | BgColor | #140D08 | `Bg` | window background, ink |
 | SurfaceColor | #21160E | `Surface` | lowest panel |
-| Surface2Color | #2B1D12 | `Surface2` | Avalonia `card` fill |
-| Surface3Color | #3A2817 | `Surface3` | raised plate, live bar, Avalonia segmentBar |
+| Surface2Color | #2B1D12 | `Surface2` | panel fill |
+| Surface3Color | #3A2817 | `Surface3` | raised plate, live bar |
 | Surface4Color | #4A331E | `Surface4` | pills, chips, icon-button fill |
 | BorderColor | #3D2A19 | `Border`, `PanelEdge` | hairlines, chart grid |
 | OutlineColor | #6E4E2C | `Outline` | stronger edge (live bar) |
@@ -45,19 +45,34 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 | OverlayPlaceholder | #E6201510 | layout-mode placeholder (WPF only) |
 | Row | #2E1F13 | list row plate |
 | TileFade | gradient from Row | card-tile art fade |
-| Ink | = BgColor | Avalonia only |
+| Ink | = BgColor | ink behind small art badges |
 | GoldTrim | #8A6533 | ornament/frame trim, Wave default stroke |
-| SelectedEdge | WPF #A27839, Avalonia #8A6533 | selected plate edge |
+| SelectedEdge | #A27839 | selected plate edge |
 | SelectedFill, PrimaryFill, PrimaryFillHover | gradients | selected plate, gold button |
 | ManaGem | #3D7BE0 | flat mana blue (fixed); cost badges draw the `ManaCost` control (`Assets/mana-gem.png`), not this brush |
 | RarityCommon/Rare/Epic/Legendary | #D8CDB8 / #5B9BFF / #B98AF5 / #FFB547 | rarity (fixed) |
 | TierS/A/B/C/D | #FFC857 / #8CCF63 / #7CC0FF / Muted / Negative | tier letters (fixed) |
 
-WPF-only "Gilded Tavern" gradients (Theme.xaml lines ~85-157): `GildedText` (Display headings), `StatText` (Stat
-numbers), `WindowFill`, `ContentFill`, `ContentEdge`, `CardFill`, `CardEdge`, `GhostFill`, `GhostEdge`,
-`PrimaryEdge`, `BestEdge`, `BestHalo` (gold glow behind the recommended option, a gradient not a bitmap effect),
-`Sheen`, `GrooveFill`, `GrooveEdge` (SegmentBar), `NavSelectedFill`, `NavSelectedEdge`, `OverlayCardFill`,
-`OverlayEdge`. Legacy aliases kept so older templates resolve: `PanelFill`, `OverlayFill`, `SidebarFill`, `WindowBg`.
+"Gilded Tavern" gradients (both files): `GildedText` (Display headings), `StatText` (Stat numbers), `WindowFill`,
+`ContentEdge`, `CardFill`, `CardEdge` (lit top, the rim catches the accent), `GhostFill`, `GhostEdge`, `PrimaryEdge`,
+`BestEdge`, `BestHalo` (gold glow behind the recommended option, a gradient not a bitmap effect), `Sheen`,
+`GrooveFill`, `GrooveEdge` (SegmentBar), `NavSelectedFill`, `NavSelectedEdge`, `OverlayCardFill`, `OverlayEdge`.
+Legacy aliases kept so older templates resolve: `PanelFill`, `OverlayFill`, `SidebarFill`, `WindowBg`.
+
+Theme character (both files; `ThemeFileTests` keeps the colour, brush and geometry keys of the two files identical):
+
+| Key | Tavern value | Use |
+|---|---|---|
+| `Accent2Color` / `Accent2` | #4FC2A8 (patina teal) | second accent: decoration only, never meaning; each preset turns it to its own hue |
+| `Accent2Soft` / `Accent2Line` | #1F4FC2A8 / #994FC2A8 | second-accent wash and line |
+| `Glow` / `Accent2Glow` | radial gradients | soft halo behind a highlighted element (no bitmap effect, overlay-safe) |
+| `EdgeLight` | horizontal gradient | lit top hairline of a raised plate (selected Segment/Tab) |
+| `MotifInk` / `MotifInk2` | #17E9B949 / #244FC2A8 | backdrop motif lines / dots |
+| `Motif<Name>`, `Motif<Name>Alt` | geometries in a 1000x1000 box | original line art per preset: Tavern rosette, Frost crystal, Fel sigil, Arcane orbits, Ember flames, Tide wave, Shadow crescent (`tools/themes/motifs.py`) |
+| `MotifBrush` | DrawingBrush, Uniform | the active theme's motif alone (lines in AccentLine, dots in Accent2) for a square decoration |
+| `ContentFill` | DrawingBrush, cached | content plate: lamplight top left, a second-accent wash and the motif carved faintly into the bottom right |
+
+`ThemeChoice` (WPF picker) also carries each preset's `Secondary` brush and `Motif` geometry.
 
 Avalonia-only: Fluent overrides `SystemAccentColor*`, `ScrollBar*`, `Slider*` so built-in Fluent controls use the
 same gold/wood palette.
@@ -80,12 +95,12 @@ Font files (both projects, `Assets/Fonts/`): `Montserrat-Bold.ttf`, `Montserrat-
 | WPF style (`TextBlock`) | Avalonia class | Font | Size | Weight | Colour |
 |---|---|---|---|---|---|
 | `Base` | (inherited from view: UiFont 13) | UiFont | 13 | Normal | Text |
-| `Display` | `display` | DisplayFont | WPF 36 / Avalonia 34 | ExtraBold | WPF `GildedText` |
+| `Display` | `display` | DisplayFont | WPF 36 / Avalonia 34 | ExtraBold | `GildedText` |
 | `H1` | - | DisplayFont | 30 | ExtraBold | Text |
 | `H2` | `h2` | DisplayFont | 16 | Bold | Text |
 | `Label` | `label` | UiFont | 12 | SemiBold | Muted |
 | `Caption` | `caption` | UiFont | 12.5 | Normal | Muted |
-| `Stat` | `stat` | DisplayFont | 28 | Bold | WPF `StatText` |
+| `Stat` | `stat` | DisplayFont | 28 | Bold | `StatText` |
 | - | `number` | DisplayFont | 15 | SemiBold | - |
 | `Icon` | `icon` | IconFont | 18 | Normal | Muted |
 
@@ -96,10 +111,10 @@ TextBlock style, so icon glyph TextBlocks inside templates are not restyled.
 
 | WPF key | Avalonia selector | Shape |
 |---|---|---|
-| `Card` (Border) | `Border.card` | r12, padding 22,18, 1px edge. WPF fill `CardFill`/`CardEdge`; Avalonia `Surface2`/`PanelEdge` |
-| `OverlayCard` | `Border.overlayCard` | r8, 1px edge |
+| `Card` (Border) | `Border.card` | r12, padding 22,18, 1px edge, `CardFill`/`CardEdge` |
+| `OverlayCard` | `Border.overlayCard` | r8, 1px edge, `OverlayCardFill`/`OverlayEdge` |
 | `Pill` | `Border.pill` | Surface4, r6, padding 9,2 |
-| `SegmentBar` | `Border.segmentBar` | r8, padding 4; WPF Groove fill/edge, Avalonia Surface3 |
+| `SegmentBar` | `Border.segmentBar` | r8, padding 4, `GrooveFill`/`GrooveEdge` |
 | `GhostButton` | `Button.ghost` | padding 18,9, SemiBold 13, template r8, OnSecondaryContainer text |
 | `PrimaryButton` (BasedOn GhostButton) | `Button.ghost.primary` (use both classes) | PrimaryFill gold, OnAccent text, Bold, top sheen |
 | `IconButton` | `Button.icon` | 32x32 circle, IconFont 17, Muted |
@@ -108,10 +123,15 @@ TextBlock style, so icon glyph TextBlocks inside templates are not restyled.
 | `NavItem` (RadioButton) | `RadioButton.nav` | height 46, SemiBold 14, glyph in `Tag`; WPF selected look is the sliding `NavPill` in MainWindow |
 | `Segment` (RadioButton) | `RadioButton.segment` | chip inside a SegmentBar, 12.5 SemiBold |
 | `Tab` (BasedOn Segment, 2px gold underline) | - (Avalonia tabs use `segment`) | page tabs |
-| `Switch` (CheckBox) | `CheckBox.switch` | rounded track, gold when on |
+| `Switch` (CheckBox) | `CheckBox.switch` | Surface4 track with a Muted rim, `PrimaryFill` when on; the knob slides and grows |
 | `FocusRing*` | Fluent focus | thin gold outline per shape (Chip, Nav, Row, Round, Switch) |
 | implicit `Slider`, `ScrollBar`, `TextBox`, `ToolTip` | `TextBox`, `ToolTip`, Fluent slider/scrollbar overrides | |
 | - | `Border.row`, `ListBox.plain`, `ListBox.selectable` | Avalonia list rows |
+
+States match in both UIs: hover fades a layer in over 0.12 s (WPF fades it out over 0.22 s), a press darkens with
+`Pressed` and shrinks buttons to 0.96 (icon buttons 0.9), a selected chip is a raised `SelectedFill` plate with an
+`EdgeLight` top hairline, text boxes take an `AccentLine` rim on hover and `Accent` on focus. No transition in the
+themes is longer than 0.25 s and none repeats (`ThemeFileTests`).
 
 View-local styles: WPF `MainWindow.xaml` resources `TableHead`, `RowBorder`, `TierBadge`, `NavGroup`, `PageSubtitle`,
 `StatTileTemplate`, `GameRowTemplate`, `ThemeTile`, `ThemeSwatch`, `HueStrip`, `TilesPanel`; Avalonia

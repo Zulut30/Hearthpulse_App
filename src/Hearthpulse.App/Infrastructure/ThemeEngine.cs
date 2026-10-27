@@ -10,8 +10,9 @@ namespace Hearthpulse.App.Infrastructure;
 
 /// <summary>
 /// Builds the app's resource dictionary for a colour theme. The source of Themes/Theme.xaml ships inside the app;
-/// every colour in it is recoloured through <see cref="ThemePalette.Map"/> and the result replaces the theme.
-/// Windows resolve their brushes when they are created, so the host recreates them after a change.
+/// every colour in it is recoloured through <see cref="ThemePalette.Map"/>, the backdrop takes the theme's motif and
+/// the result replaces the theme. Windows resolve their brushes when they are created, so the host recreates them
+/// after a change.
 /// </summary>
 public static partial class ThemeEngine
 {
@@ -32,16 +33,24 @@ public static partial class ThemeEngine
     [GeneratedRegex("(Duration|BeginTime)=\"0:0:[0-9.]+\"")]
     private static partial Regex Timing();
 
+    /// <summary>Uses of the built-in motif (the backdrop and MotifBrush draw MotifTavern and MotifTavernAlt).</summary>
+    [GeneratedRegex("\\{StaticResource Motif" + ThemePalette.DefaultName + "(Alt)?\\}")]
+    private static partial Regex MotifUse();
+
     public static void Apply(Application app, ThemeSpec theme)
     {
         // With Windows' animation setting off, the theme is rebuilt with every control animation made instant.
         var dictionary = ThemePalette.IsDefault(theme) && SystemParameters.ClientAreaAnimation ? new ResourceDictionary { Source = BuiltIn } : Build(theme);
+        Freeze(dictionary);
         var merged = app.Resources.MergedDictionaries;
         merged.Clear();
         merged.Add(dictionary);
     }
 
-    public static ResourceDictionary Build(ThemeSpec theme)
+    public static ResourceDictionary Build(ThemeSpec theme) => (ResourceDictionary)XamlReader.Parse(Source(theme));
+
+    /// <summary>The theme's XAML: Theme.xaml recoloured, with the theme's motif and, if needed, instant animations.</summary>
+    public static string Source(ThemeSpec theme)
     {
         _source ??= Load();
         var lines = _source.Split('\n');
@@ -54,12 +63,13 @@ public static partial class ThemeEngine
         }
 
         var xaml = LocalNamespace().Replace(string.Join('\n', lines), "clr-namespace:$1;assembly=Hearthpulse\"");
+        xaml = MotifUse().Replace(xaml, m => "{StaticResource Motif" + theme.Motif + m.Groups[1].Value + "}");
         if (!SystemParameters.ClientAreaAnimation)
         {
             xaml = Timing().Replace(xaml, "$1=\"0:0:0\"");
         }
 
-        return (ResourceDictionary)XamlReader.Parse(xaml);
+        return xaml;
     }
 
     /// <summary>One theme colour as a frozen brush, for previews.</summary>
@@ -69,6 +79,21 @@ public static partial class ThemeEngine
         var brush = new SolidColorBrush(Color.FromArgb((byte)(c >> 24), (byte)(c >> 16), (byte)(c >> 8), (byte)c));
         brush.Freeze();
         return brush;
+    }
+
+    /// <summary>
+    /// Freezes every brush, geometry and drawing of the theme: frozen resources are shared without change tracking,
+    /// which keeps the overlay (redrawn over the game) cheap.
+    /// </summary>
+    public static void Freeze(ResourceDictionary dictionary)
+    {
+        foreach (var key in dictionary.Keys)
+        {
+            if (dictionary[key] is Freezable { IsFrozen: false, CanFreeze: true } freezable)
+            {
+                freezable.Freeze();
+            }
+        }
     }
 
     private static string Recolor(string hex, ThemeSpec theme)

@@ -40,6 +40,60 @@ public sealed class ThemeFileTests
         Assert.Empty(keys.GroupBy(k => k).Where(g => g.Count() > 1).Select(g => g.Key));
     }
 
+    private static readonly string[] TokenTypes =
+        ["Color", "SolidColorBrush", "LinearGradientBrush", "RadialGradientBrush", "DrawingBrush", "Geometry", "StreamGeometry"];
+
+    /// <summary>Avalonia's own Fluent control resources, which have no WPF counterpart.</summary>
+    private static readonly string[] FluentPrefixes = ["System", "ScrollBar", "Slider", "TextControl", "ComboBox", "MenuFlyout"];
+
+    private static HashSet<string> Tokens(string relative) =>
+        XDocument.Load(RepoFile(relative)).Root!.Descendants()
+            .Where(e => TokenTypes.Contains(e.Name.LocalName) && e.Parent?.Name.LocalName == "ResourceDictionary")
+            .Select(e => (string?)e.Attribute(X + "Key")).OfType<string>()
+            .Where(k => !FluentPrefixes.Any(k.StartsWith))
+            .ToHashSet();
+
+    /// <summary>Both UIs share one set of colour, brush and motif tokens, so a view can be ported key for key.</summary>
+    [Fact]
+    public void Both_themes_define_the_same_colour_and_motif_tokens()
+    {
+        var wpf = Tokens("src/Hearthpulse.App/Themes/Theme.xaml");
+        var avalonia = Tokens("src/Hearthpulse.UI/Themes/Theme.axaml");
+        Assert.Empty(wpf.Except(avalonia));
+        Assert.Empty(avalonia.Except(wpf));
+    }
+
+    [Fact]
+    public void Every_preset_has_its_motif_in_both_themes()
+    {
+        foreach (var file in new[] { "src/Hearthpulse.App/Themes/Theme.xaml", "src/Hearthpulse.UI/Themes/Theme.axaml" })
+        {
+            var tokens = Tokens(file);
+            foreach (var preset in Core.ThemePalette.Presets)
+            {
+                Assert.Contains("Motif" + preset.Motif, tokens);
+                Assert.Contains("Motif" + preset.Motif + "Alt", tokens);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The overlay draws over the game: no bitmap effects (blur, drop shadow) and no endless animation come from the
+    /// theme, and its state transitions stay short.
+    /// </summary>
+    [Theory]
+    [InlineData("src/Hearthpulse.App/Themes/Theme.xaml")]
+    [InlineData("src/Hearthpulse.UI/Themes/Theme.axaml")]
+    public void Theme_has_no_bitmap_effects_endless_or_long_animations(string file)
+    {
+        var all = XDocument.Load(RepoFile(file)).Root!.Descendants().ToList();
+        Assert.DoesNotContain(all, e => e.Name.LocalName.EndsWith("Effect", StringComparison.Ordinal));
+        Assert.DoesNotContain(all.Attributes("RepeatBehavior"), a => a.Value == "Forever");
+        Assert.DoesNotContain(all.Attributes("IterationCount"), a => a.Value == "Infinite");
+        var durations = all.Attributes("Duration").Select(a => TimeSpan.Parse(a.Value, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.All(durations, d => Assert.True(d <= TimeSpan.FromMilliseconds(250), $"{d} is longer than a state change should take"));
+    }
+
     /// <summary>
     /// Parses Theme.xaml with WPF's XamlReader, as ThemeEngine does at start-up (the test project is cross-platform,
     /// so WPF is loaded from the Windows Desktop runtime next to the running .NET).

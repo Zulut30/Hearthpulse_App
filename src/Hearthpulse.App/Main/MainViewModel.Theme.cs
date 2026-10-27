@@ -5,8 +5,12 @@ using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.App.Main;
 
-/// <summary>A theme as the picker shows it: its name and four of its colours.</summary>
-public sealed record ThemeChoice(string Name, Brush Background, Brush Surface, Brush Accent, Brush Text, bool Selected)
+/// <summary>
+/// A theme as the picker shows it: its name, five of its colours (Secondary is the second accent) and its backdrop
+/// motif (null outside the app, where the theme's geometries are not loaded).
+/// </summary>
+public sealed record ThemeChoice(string Name, Brush Background, Brush Surface, Brush Accent, Brush Text, bool Selected,
+    Brush? Secondary = null, Geometry? Motif = null)
 {
     public static ThemeChoice From(ThemeSpec theme, bool selected) => new(
         Loc.Or("Main.Theme." + theme.Name, theme.Name),
@@ -14,7 +18,9 @@ public sealed record ThemeChoice(string Name, Brush Background, Brush Surface, B
         ThemeEngine.Brush(0xFF4A331E, theme),
         ThemeEngine.Brush(0xFFE9B949, theme),
         ThemeEngine.Brush(0xFFF4E7C9, theme),
-        selected);
+        selected,
+        ThemeEngine.Brush(0xFF4FC2A8, theme),
+        System.Windows.Application.Current?.TryFindResource("Motif" + theme.Motif) as Geometry);
 }
 
 public sealed partial class MainViewModel

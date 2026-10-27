@@ -34,15 +34,21 @@ theme/focus and Avalonia compact differences remain intentional. See `src/Hearth
 
 WPF themes work by **rewriting hex literals inside Theme.xaml only**:
 
-- `src/Hearthpulse.Core/ThemePalette.cs`: `ThemeSpec(Name, AccentHue, BaseHue, BaseTint)`. Presets: `Tavern`
-  (default, accent hue 42, base hue 28, tint 1.0), `Frost`, `Fel`, `Arcane`, `Ember`, `Tide`, `Shadow`; anything
-  else resolves to `Custom` (`ThemePalette.Resolve`). `Map(argb, theme)` returns the colour unchanged for the default
-  theme, for low saturation (s < 0.08) and for hues outside 15-60 deg. Inside that range, saturated mid tones
-  (chroma >= 0.3) are treated as gold accents and shifted to `AccentHue`; dull/dark/light tones are wood and
-  parchment, shifted to `BaseHue` with saturation scaled by `BaseTint`.
+- `src/Hearthpulse.Core/ThemePalette.cs`: `ThemeSpec(Name, AccentHue, BaseHue, BaseTint, SecondaryHue, AccentLift,
+  SurfaceLift, Motif)`. Presets: `Tavern` (default: gold 42 + patina teal 168 on wood 28, tint 1.0), `Frost`, `Fel`,
+  `Arcane`, `Ember`, `Tide`, `Shadow`, each with its own accent, second accent, surface lightness and backdrop motif;
+  anything else resolves to `Custom` (`ThemePalette.Resolve`: the second accent keeps Tavern's spacing, the motif is the
+  nearest preset's). `Map(argb, theme)` returns the colour unchanged for the default theme and for low saturation
+  (s < 0.08). Teals at 150-186 deg (chroma >= 0.15) are the second accent and turn to `SecondaryHue`; other hues
+  outside 15-60 deg stay. Inside 15-60, saturated mid tones (chroma >= 0.3) are gold accents, shifted to `AccentHue`
+  and lightened by `AccentLift`; dull/dark/light tones are wood and parchment, shifted to `BaseHue` with saturation
+  scaled by `BaseTint` and dark tones lightened (or darkened) by `SurfaceLift`. `ThemeContrastTests` keeps every
+  preset at WCAG AA for text on its surfaces.
 - `src/Hearthpulse.App/Infrastructure/ThemeEngine.cs`: loads the embedded `Hearthpulse.Theme.xaml` (the csproj embeds
   `Themes\Theme.xaml` with that LogicalName), runs every `#RRGGBB`/`#AARRGGBB` through `Map` line by line, and parses
   the result. Lines whose `x:Key` starts with `Positive|Negative|Info|Rarity|Tier|ManaGem|PoolStat` are never recoloured.
+  Uses of `{StaticResource MotifTavern(Alt)}` are pointed at the theme's `Motif<Name>`, and every brush, geometry and
+  drawing of the dictionary is frozen (`ThemeEngine.Freeze`).
   Windows resolve brushes when created, so the host (`App.xaml.cs` `ApplyTheme`) recreates windows after a change.
 - Settings: `AppSettings.Theme` (default `"Tavern"`), `ThemeAccentHue`, `ThemeBaseHue`, `ThemeBaseTint`. Picker UI:
   `Main/MainViewModel.Theme.cs` (`ThemeChoice` previews use `ThemeEngine.Brush`).
@@ -55,7 +61,8 @@ Consequences:
   deliberate: the hue-slider rainbow (`HueStrip` in MainWindow.xaml) and transparent stops.
 - New colour token: add it to **both** theme files with the same key. If its colour carries meaning (win/loss, tier,
   rarity) give it a key starting with one of the fixed prefixes, or it will turn purple/blue under Arcane/Frost.
-- Gold-ish hue (15-60) means "will be themed"; pick non-gold hues only for semantic colours.
+- Gold-ish hue (15-60) means "will be themed", and so does patina teal (150-186, the second accent); pick other
+  hues only for semantic colours.
 - Map tokens to meaning, not to looks: `Positive`/`Negative` for results (`SignBrush` converter), `Tier*` via
   `KeyBrush`, `Rarity*`, the `ManaCost` control for cost gems, `Accent` for the one thing that matters, `Muted`/`Faint` for
   secondary text.
@@ -65,7 +72,9 @@ Consequences:
 Core tokens (details in reference): `Bg`, `Surface`, `Surface2`-`Surface4`, `Border`, `Outline`, `Text`, `Muted`,
 `Faint`, `Accent`, `AccentDeep`, `AccentSoft`, `AccentLine`, `AccentContainer`, `OnAccent`, `OnAccentContainer`,
 `SecondaryContainer`, `OnSecondaryContainer`, `Positive(Soft)`, `Negative(Soft)`, `Info`, `Hover`, `Pressed`, `Decor`,
-`DecorStrong`, `Row`, `GoldTrim`, `OverlayPanel`, `OverlayBorder`, `SelectedFill`, `SelectedEdge`, `PrimaryFill`.
+`DecorStrong`, `Row`, `GoldTrim`, `OverlayPanel`, `OverlayBorder`, `SelectedFill`, `SelectedEdge`, `PrimaryFill`;
+theme character: `Accent2` (+`Soft`/`Line`), `Glow`, `Accent2Glow`, `EdgeLight`, `MotifBrush`, `ContentFill` (backdrop
+with the motif), `Motif<Name>` geometries.
 
 ## Type and icons
 
