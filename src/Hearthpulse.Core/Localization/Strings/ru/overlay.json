@@ -137,8 +137,6 @@
   "Overlay.Odds.Kill": "добиваете: {0}",
   "Overlay.Odds.KillTip": "Доля симуляций, где урон не меньше здоровья соперника с бронёй",
 
-  "Overlay.Plan.AnyTribe": "Любая раса",
-
   "Overlay.LobbyPopup.Next": "СЛЕДУЮЩИЙ",
   "Overlay.LobbyPopup.HpShort": "{0} ОЗ",
   "Overlay.LobbyPopup.TierShort": "ур. {0}",

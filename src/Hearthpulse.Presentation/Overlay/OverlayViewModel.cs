@@ -219,12 +219,6 @@ public sealed partial class OverlayViewModel : Observable
     public string ToastResult { get => _toastResult; private set => Set(ref _toastResult, value); }
     public bool ShowToast { get => _showToast; set => Set(ref _showToast, value); }
 
-    // WPF exposes tribe-focus controls; Avalonia has no matching controls or public members.
-    partial void InitializeFocus();
-    partial void RefreshFocusLanguage();
-    partial void UpdateFocusSettings(AppSettings settings);
-    partial void UpdateFocusRaces(IReadOnlyList<string> races);
-
     public OverlayViewModel()
     {
         Loc.Instance.LanguageChanged += OnLanguageChanged;
@@ -235,7 +229,6 @@ public sealed partial class OverlayViewModel : Observable
             RebuildBrowser();
             RebuildTiers();
         });
-        InitializeFocus();
         FinishLayout = new RelayCommand(() => LayoutEditing = false);
         ResetLayout = new RelayCommand(() => ResetLayoutRequested?.Invoke());
         CloseBrowser = new RelayCommand(() =>
@@ -256,7 +249,6 @@ public sealed partial class OverlayViewModel : Observable
     {
         _fingerprints.Clear();
         _handMarksKey = string.Empty;
-        RefreshFocusLanguage();
         Lobby = null;
         RebuildBrowser();
         RebuildCounters();
@@ -279,7 +271,6 @@ public sealed partial class OverlayViewModel : Observable
 
     public void Update(LiveSnapshot snapshot, CardDb cards, AppSettings settings, DeckAggregate? deck, MatchupAggregate? matchup)
     {
-        UpdateFocusSettings(settings);
         _cards = cards;
         _locale = cards.Locale;
         var enabled = settings.OverlayEnabled && snapshot.InGame;
@@ -425,7 +416,6 @@ public sealed partial class OverlayViewModel : Observable
             Tribes = view.Races.Select(r => Races.Display(r, _locale)).ToList();
             RebuildTribeChips();
         });
-        UpdateFocusRaces(view.Races);
         Combats = view.Combats.TakeLast(8)
             .Select(c => new CombatDot(c.Result, Loc.F("Overlay.Combat.Tip", c.Turn, _cards.NameOf(c.OpponentHeroCardId), ResultText(c.Result))
                 + (c.DamageTaken > 0 ? Loc.F("Overlay.Combat.Took", c.DamageTaken) : c.DamageDealt > 0 ? Loc.F("Overlay.Combat.Dealt", c.DamageDealt) : string.Empty)

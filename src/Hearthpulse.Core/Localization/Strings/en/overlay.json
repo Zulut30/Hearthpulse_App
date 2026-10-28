@@ -137,8 +137,6 @@
   "Overlay.Odds.Kill": "you kill: {0}",
   "Overlay.Odds.KillTip": "Share of simulated fights whose damage reaches the opponent's health plus armor",
 
-  "Overlay.Plan.AnyTribe": "Any tribe",
-
   "Overlay.LobbyPopup.Next": "NEXT",
   "Overlay.LobbyPopup.HpShort": "{0} HP",
   "Overlay.LobbyPopup.TierShort": "tier {0}",

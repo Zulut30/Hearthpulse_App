@@ -233,13 +233,6 @@ public partial class App : Application
         };
         _mainViewModel.CountersChanged += OnSettingsChanged;
         _session.SetCompFocus(_settings.CompFocus);
-        _overlayViewModel.FocusRequested += tribe =>
-        {
-            _settings.CompFocus = tribe;
-            _session.SetCompFocus(tribe);
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
-        };
 
         _mainViewModel.ThemeChanged += OnThemeChanged;
         _mainViewModel.PoolAvailable = PoolClient.Available(_settings);

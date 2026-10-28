@@ -282,21 +282,6 @@ public sealed class ViewModelContractTests
     }
 
     [Fact]
-    public void Wpf_tribe_focus_still_selects_and_clears_the_requested_tribe()
-    {
-        var model = new WpfOverlay();
-        model.Update(LiveSnapshot.Empty with { Battlegrounds = Fight(), InGame = true }, CardDb.Empty, new AppSettings(), null, null);
-        var requested = new List<string?>();
-        model.FocusRequested += requested.Add;
-        Assert.Equal(3, model.FocusChoices.Count);
-        model.FocusTribe.Execute("BEAST");
-        Assert.Equal("BEAST", Assert.Single(model.FocusChoices, c => c.Selected).Key);
-        model.FocusTribe.Execute("BEAST");
-        Assert.Equal(string.Empty, Assert.Single(model.FocusChoices, c => c.Selected).Key);
-        Assert.Equal(new string?[] { "BEAST", null }, requested);
-    }
-
-    [Fact]
     public void Both_overlays_show_the_same_pick_hint_and_drop_it_once_the_choice_closes()
     {
         Loc.Instance.SetLanguage(Loc.English);
