@@ -337,8 +337,6 @@ public sealed class LogWatcher : IDisposable
         _installDir = installDir;
     }
 
-    public string? CurrentSession => _session;
-
     /// <summary>Milliseconds since the last polling pass finished (a dead or wedged watcher stops growing this).</summary>
     public long LastPollAgeMs => Environment.TickCount64 - Volatile.Read(ref _lastPollTicks);
 

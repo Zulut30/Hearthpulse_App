@@ -397,9 +397,6 @@ public sealed class ShopPlanTests
     }
 
     private static MetaComp Comp(
-        string id, string name, string tribe, double placement, params (string CardId, string Status)[] cards) => Comp(id, name, tribe, placement, cards, []);
-
-    private static MetaComp Comp(
         string id, string name, string tribe, double placement, (string CardId, string Status)[] cards, (string CardId, string Status)[] extra) => new(
         id,
         name,

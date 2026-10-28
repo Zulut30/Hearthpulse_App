@@ -323,9 +323,6 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>The match page view (used by the UI render check).</summary>
-    public Match.MatchView MatchDetailsPage => MatchDetails;
-
     /// <summary>The deck page view (used by the UI render check).</summary>
     public Decks.DeckDetailsView DeckDetailsPage => DeckDetails;
 

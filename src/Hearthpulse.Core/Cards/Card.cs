@@ -53,8 +53,6 @@ public sealed class Card
 
     public bool IsLegendary => Rarity == "LEGENDARY";
 
-    public bool IsBattlegroundsCard => Set == "BATTLEGROUNDS" || TechLevel > 0 || IsBattlegroundsHero;
-
     public bool HasRace(string race) => Races.Contains(race) || Races.Contains("ALL");
 
     public override string ToString() => $"{Name} ({Id})";

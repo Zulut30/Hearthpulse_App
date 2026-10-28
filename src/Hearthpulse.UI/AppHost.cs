@@ -183,8 +183,6 @@ public sealed partial class AppHost : IDisposable
 
     public BattlegroundsMeta? Meta { get; private set; }
 
-    public LiveSnapshot LastSnapshot => _last;
-
     /// <summary>Something the player should know (title, text), e.g. "restart Hearthstone"; shells show it as a notification.</summary>
     public event Action<string, string>? Notification;
 

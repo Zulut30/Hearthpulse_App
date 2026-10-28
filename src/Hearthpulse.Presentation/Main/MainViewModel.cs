@@ -285,7 +285,6 @@ public sealed partial class MainViewModel : Observable
             if (Set(ref _heroTiers, value))
             {
                 RebuildHeroGroups();
-                OnHeroTiersChanged();
             }
         }
     }
@@ -314,10 +313,10 @@ public sealed partial class MainViewModel : Observable
     private IReadOnlyList<MetaCardRow> _cardTiers = Array.Empty<MetaCardRow>();
     private int _cardTier = 1;
 
-    public IReadOnlyList<MetaTrinketRow> TrinketTiers { get => _trinketTiers; private set { if (Set(ref _trinketTiers, value)) { RebuildTrinketGroups(); OnTrinketTiersChanged(); } } }
+    public IReadOnlyList<MetaTrinketRow> TrinketTiers { get => _trinketTiers; private set { if (Set(ref _trinketTiers, value)) RebuildTrinketGroups(); } }
 
 
-    public IReadOnlyList<MetaCardRow> CardTiers { get => _cardTiers; private set { if (Set(ref _cardTiers, value)) OnCardTiersChanged(); } }
+    public IReadOnlyList<MetaCardRow> CardTiers { get => _cardTiers; private set => Set(ref _cardTiers, value); }
 
 
     /// <summary>Tavern tier shown in the card list (0 = tavern spells).</summary>
@@ -714,13 +713,7 @@ public sealed partial class MainViewModel : Observable
 
     partial void OnRecentChanged();
 
-    partial void OnHeroTiersChanged();
-
     partial void OnCompTiersChanged();
-
-    partial void OnTrinketTiersChanged();
-
-    partial void OnCardTiersChanged();
 
     partial void RestoreRatingFromHistory(string mode, IReadOnlyList<RatingPoint> rating);
 

@@ -3,8 +3,6 @@ using Hearthpulse.Core.Pool;
 
 namespace Hearthpulse.Core.Battlegrounds;
 
-public sealed record MetaTribeImpact(int Tribe, double Impact);
-
 /// <summary>Community results for a hero at one MMR bracket.</summary>
 /// <param name="PlacementShares">Share of games ending in place 1..8 (index 0 = 1st), when the source publishes them.</param>
 /// <param name="CombatWinRate">Share of combats won on each turn, when the source publishes it.</param>

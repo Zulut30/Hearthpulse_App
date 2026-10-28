@@ -308,7 +308,6 @@ public sealed class DeckDetailsViewModel : Observable
             Rebuild();
         });
         MatchupSort = new TableSort("Games", Rebuild, "Name");
-        SortMatchups = new RelayCommand(p => MatchupSort.SortBy(p as string == "WinRate" ? "WinRate" : "Games"));
         MulliganSort = new TableSort("Card", () => MulliganRows = MulliganSort!.Apply(_cardRows, (r, c) => r.SortValue(c)), "Card");
         CardsSort = new TableSort("Card", () => PerformanceRows = CardsSort!.Apply(_cardRows, (r, c) => r.SortValue(c)), "Card");
         StartRename = new RelayCommand(() =>
@@ -371,9 +370,6 @@ public sealed class DeckDetailsViewModel : Observable
     public RelayCommand SelectMatchup { get; }
 
     public RelayCommand ClearMatchup { get; }
-
-    /// <summary>"Games" or "WinRate" (the column heads use <see cref="MatchupSort"/>).</summary>
-    public RelayCommand SortMatchups { get; }
 
     /// <summary>The matchups' column heads: "Name", "Games", "WinRate"; archetypes stay under their class.</summary>
     public TableSort MatchupSort { get; }

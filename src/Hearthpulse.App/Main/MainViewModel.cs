@@ -59,22 +59,13 @@ public sealed partial class MainViewModel
 
     public string CompCaption => _tribeRows ? Loc.T("Main.Bg.CompCaptionTribes") : Loc.T("Main.Bg.CompCaptionComps");
 
-    public bool HasHeroTiers => _heroTiers.Count > 0;
     public bool HasCompTiers => _compTiers.Count > 0;
-    public bool HasTrinketTiers => _trinketTiers.Count > 0;
-    public bool HasCardTiers => _cardTiers.Count > 0;
 
     private int CountHistory(IReadOnlyList<GameRecord> recent) => _history.GameCount();
 
     partial void OnRecentChanged() => Raise(nameof(BannerHero));
 
-    partial void OnHeroTiersChanged() => Raise(nameof(HasHeroTiers));
-
     partial void OnCompTiersChanged() => Raise(nameof(HasCompTiers));
-
-    partial void OnTrinketTiersChanged() => Raise(nameof(HasTrinketTiers));
-
-    partial void OnCardTiersChanged() => Raise(nameof(HasCardTiers));
 
     partial void RestoreRatingFromHistory(string mode, IReadOnlyList<RatingPoint> rating)
     {

@@ -59,9 +59,6 @@ public static class UpdateService
     /// <summary>Where the newest published release is described. Drafts and pre-releases are never returned.</summary>
     public static string LatestApi => $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases/latest";
 
-    /// <summary>The releases page, for the "what's new" link.</summary>
-    public static string ReleasesPage => $"https://github.com/{RepoOwner}/{RepoName}/releases";
-
     /// <summary>The running version (the Version property of every project), e.g. "0.4.0".</summary>
     public static string CurrentVersion { get; } = ReadCurrentVersion();
 
