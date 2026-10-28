@@ -104,13 +104,6 @@
         </Style.Animations>
     </Style>
 
-    <!-- One small source line at the bottom of a panel -->
-    <Style Selector="TextBlock.overlayFooter">
-        <Setter Property="FontSize" Value="9.5" />
-        <Setter Property="Foreground" Value="{StaticResource Faint}" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
-
     <!-- The tier letter at the end of a list row (S to E, coloured by the row's tier through KeyBrush) -->
     <Style Selector="TextBlock.tierLetter">
         <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />

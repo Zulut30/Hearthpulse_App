@@ -263,15 +263,6 @@
         <Style Selector=":is(Control).statsRight">
             <Setter Property="Grid.Column" Value="2" />
         </Style>
-        <Style Selector=":is(Control).statsSide">
-            <Setter Property="Grid.Column" Value="1" />
-        </Style>
-        <Style Selector="m|MainView.compact :is(Control).statsSide">
-            <Setter Property="Grid.Column" Value="0" />
-            <Setter Property="Grid.ColumnSpan" Value="2" />
-            <Setter Property="Grid.Row" Value="1" />
-            <Setter Property="Margin" Value="0,16,0,0" />
-        </Style>
         <Style Selector="UniformGrid.tiles3">
             <Setter Property="Columns" Value="3" />
         </Style>

@@ -93,13 +93,6 @@
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
-    <!-- One small source line at the bottom of a panel -->
-    <Style x:Key="OverlayFooter" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="9.5" />
-        <Setter Property="Foreground" Value="{StaticResource Faint}" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
-
     <!-- The tier letter at the end of a list row (S to E, coloured by the row's tier through KeyBrush) -->
     <Style x:Key="TierLetter" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
