@@ -16,6 +16,8 @@ internal static class Program
           replay    replay kept Power logs through GameSession: parse and publish timings, allocations
           overlay   replay snapshots into the WPF and Avalonia OverlayViewModel: time and bytes per Update, PropertyChanged
           tick      the WPF overlay tick's click-through hit test and hover along cursor paths, game window lookup
+          frames    the shown WPF overlay at 1080p and 4K: process and UI-thread CPU idle, at 10 snapshots/s, a small change
+                    30/s and when shown again (HP_BENCH_SIZES=WxH,... other sizes)
           hover     replay: game time during which the card under the mouse is read from the game, before and now
           cleanup   run the start-up cache clean-up on HEARTHPULSE_DATA: size of cache/ before and after (deletes files)
           history   history store and My Stats queries on 1 000 / 5 000 (/ --games) synthetic games
@@ -72,6 +74,9 @@ internal static class Program
                 break;
             case "tick":
                 TickBench.Run(options);
+                break;
+            case "frames":
+                FrameBench.Run(options);
                 break;
             case "history":
                 CoreBench.History(options);

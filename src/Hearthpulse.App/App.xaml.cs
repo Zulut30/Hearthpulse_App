@@ -56,6 +56,7 @@ public partial class App : Application
     private LiveSnapshot? _pending;
     private LiveSnapshot _last = LiveSnapshot.Empty;
     private int _applyScheduled;
+    private readonly SnapshotPacer _pacer = new();
     private DispatcherTimer _historyDebounce = null!;
     private DispatcherTimer _settingsDebounce = null!;
     private DispatcherTimer _metaRefresh = null!;
@@ -692,18 +693,28 @@ public partial class App : Application
 
     private void OnSnapshot(LiveSnapshot snapshot)
     {
-        // Called on the log thread; coalesce into one UI update per dispatcher pass.
+        // Called on the log thread; coalesce into one UI update per dispatcher pass, at most one per frame.
         Volatile.Write(ref _pending, snapshot);
         if (Interlocked.Exchange(ref _applyScheduled, 1) == 0)
         {
-            Volatile.Write(ref _scheduledAt, Environment.TickCount64);
-            Dispatcher.BeginInvoke(ApplySnapshot, DispatcherPriority.Background);
+            var now = Environment.TickCount64;
+            Volatile.Write(ref _scheduledAt, now);
+            var delay = _pacer.Delay(now);
+            if (delay == 0)
+            {
+                Dispatcher.BeginInvoke(ApplySnapshot, DispatcherPriority.Background);
+            }
+            else
+            {
+                _ = Task.Delay(delay).ContinueWith(_ => Dispatcher.BeginInvoke(ApplySnapshot, DispatcherPriority.Background), TaskScheduler.Default);
+            }
         }
     }
 
     private void ApplySnapshot()
     {
         Interlocked.Exchange(ref _applyScheduled, 0);
+        _pacer.Applied(Environment.TickCount64);
         var snapshot = Interlocked.Exchange(ref _pending, null);
         if (snapshot is null)
         {

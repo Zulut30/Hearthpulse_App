@@ -35,6 +35,7 @@ public sealed partial class AppHost : IDisposable
     private LiveSnapshot? _pending;
     private LiveSnapshot _last = LiveSnapshot.Empty;
     private int _applyScheduled;
+    private readonly SnapshotPacer _pacer = new();
     private string? _deckStatsKey;
     private DeckAggregate? _deckStats;
     private MatchupAggregate? _matchupStats;
@@ -662,17 +663,26 @@ public sealed partial class AppHost : IDisposable
 
     private void OnSnapshot(LiveSnapshot snapshot)
     {
-        // Called on the log thread; coalesce into one UI update per dispatcher pass.
+        // Called on the log thread; coalesce into one UI update per dispatcher pass, at most one per frame.
         Volatile.Write(ref _pending, snapshot);
         if (Interlocked.Exchange(ref _applyScheduled, 1) == 0)
         {
-            Dispatcher.UIThread.Post(ApplySnapshot, DispatcherPriority.Background);
+            var delay = _pacer.Delay(Environment.TickCount64);
+            if (delay == 0)
+            {
+                Dispatcher.UIThread.Post(ApplySnapshot, DispatcherPriority.Background);
+            }
+            else
+            {
+                _ = Task.Delay(delay).ContinueWith(_ => Dispatcher.UIThread.Post(ApplySnapshot, DispatcherPriority.Background), TaskScheduler.Default);
+            }
         }
     }
 
     private void ApplySnapshot()
     {
         Interlocked.Exchange(ref _applyScheduled, 0);
+        _pacer.Applied(Environment.TickCount64);
         var snapshot = Interlocked.Exchange(ref _pending, null);
         if (snapshot is null)
         {

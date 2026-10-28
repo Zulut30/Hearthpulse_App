@@ -121,6 +121,26 @@ public sealed class OverlayXamlLoadTests
         Assert.True(OverlayHit.GetInteractive(deck));
         Assert.Equal(Visibility.Visible, ((FrameworkElement)deck.Template.FindName("Shield", deck)).Visibility);
         Assert.Equal(Visibility.Visible, ((FrameworkElement)deck.Template.FindName("ArmedHint", deck)).Visibility);
+        // Its tag buttons show too (compact only where the panel has card lists), and the mouse may go over to them.
+        // Only a panel the game shows is ever armed.
+        deck.Shown = true;
+        root.UpdateLayout();
+        Assert.Equal(Visibility.Visible, ((FrameworkElement)deck.Template.FindName("Tools", deck)).Visibility);
+        Assert.Equal(Visibility.Visible, ((FrameworkElement)deck.Template.FindName("PART_Compact", deck)).Visibility);
+        Assert.Equal(Visibility.Collapsed, ((FrameworkElement)panels["counters"].Template.FindName("PART_Compact", panels["counters"])).Visibility);
+        Assert.True(deck.ArmedArea().Top < -20 && deck.ArmedArea().Bottom >= deck.ActualHeight - 0.5, deck.ArmedArea().ToString());
+
+        // The player's look: the content fades, the frame does not; compact rows are short and without art.
+        deck.ApplyLook(new PanelLook { Opacity = 0.55, Compact = true });
+        Assert.Equal(0.55, ((FrameworkElement)deck.Template.FindName("Body", deck)).Opacity, 3);
+        Assert.Equal(1, ((FrameworkElement)deck.Template.FindName("Frame", deck)).Opacity);
+        MovablePanel.SetCompact(row, true);
+        row.UpdateLayout();
+        var rowRoot = Descendants<System.Windows.Controls.Grid>(row).First(g => g.Name == "RowRoot");
+        Assert.Equal(18, rowRoot.ActualHeight, 0.5); // layout rounding to the test machine's pixels
+        Assert.Equal(Visibility.Collapsed, Descendants<System.Windows.Controls.Image>(row).First(i => i.Name == "Art").Visibility);
+        deck.ApplyLook(null);
+        Assert.False(MovablePanel.GetCompact(deck));
         deck.IsDragArmed = false;
         Assert.False(OverlayHit.GetInteractive(deck));
         Assert.Equal(Visibility.Collapsed, ((FrameworkElement)deck.Template.FindName("ArmedHint", deck)).Visibility);

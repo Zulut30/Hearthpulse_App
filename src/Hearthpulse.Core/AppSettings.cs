@@ -231,6 +231,12 @@ public sealed class AppSettings
     public Dictionary<string, PanelPlacement> Panels { get; set; } = new(StringComparer.Ordinal);
 
     /// <summary>
+    /// How each overlay panel looks, by id (opacity, compact lists); kept apart from <see cref="Panels"/> so a panel can
+    /// be faded or made compact without being moved from its default spot. Missing = opaque and full size.
+    /// </summary>
+    public Dictionary<string, PanelLook> PanelLooks { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>
     /// Fallback leaderboard hover areas, as fractions of the client height (the leaderboard scales with height).
     /// X is measured from the left edge of the 4:3 game area, where Hearthstone draws the leaderboard.
     /// Defaults match Hearthstone's layout; the live hover normally comes from the game's memory instead.
@@ -405,6 +411,18 @@ public sealed class AppSettings
             panel.Scale = Math.Clamp(panel.Scale, 0.6, 1.6);
         }
 
+        PanelLooks ??= new(StringComparer.Ordinal);
+        foreach (var (key, look) in PanelLooks.ToArray())
+        {
+            if (look is null || look.IsDefault)
+            {
+                PanelLooks.Remove(key);
+                continue;
+            }
+
+            look.Opacity = Bounded(look.Opacity, PanelLook.MinOpacity, 1, 1);
+        }
+
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
         if (!Enum.IsDefined(CompMode)) CompMode = CompMode.Manual;
         OverlayScale = Bounded(OverlayScale, 0.6, 1.6, 1);
@@ -496,6 +514,22 @@ public sealed class AppSettings
             return false;
         }
     }
+}
+
+/// <summary>How the player wants one overlay panel to look: see-through, or lists without card art and shorter rows.</summary>
+public sealed class PanelLook
+{
+    /// <summary>The faintest a panel can be made: below this it can no longer be found on a bright board.</summary>
+    public const double MinOpacity = 0.3;
+
+    public double Opacity { get; set; } = 1.0;
+
+    /// <summary>Card lists in the panel use short rows without art.</summary>
+    public bool Compact { get; set; }
+
+    /// <summary>Nothing differs from a panel without an entry.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsDefault => !Compact && (Opacity >= 0.999 || !double.IsFinite(Opacity));
 }
 
 /// <summary>Top-left corner as fractions of the overlay surface, plus a per-panel size multiplier.</summary>

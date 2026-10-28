@@ -363,7 +363,7 @@ internal static class TickBench
     /// Every in-game snapshot of the kept logs, and the fullest Constructed one: most deck rows, opponent hand and
     /// played cards.
     /// </summary>
-    private static (LiveSnapshot? Best, List<LiveSnapshot> All) MidGame(CardDb cards, Options options)
+    internal static (LiveSnapshot? Best, List<LiveSnapshot> All) MidGame(CardDb cards, Options options)
     {
         LiveSnapshot? best = null;
         var all = new List<LiveSnapshot>();

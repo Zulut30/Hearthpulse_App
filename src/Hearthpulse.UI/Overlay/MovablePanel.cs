@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Hearthpulse.Core;
 
 namespace Hearthpulse.UI.Overlay;
@@ -23,9 +24,10 @@ public static class OverlayHit
 }
 
 /// <summary>
-/// Overlay panel host the player can drag, resize (mouse wheel) and reset (right-click) while the overlay is in
-/// layout mode, and drag or resize during a game while holding Ctrl over it (<see cref="IsDragArmed"/>). Without a
-/// saved placement it keeps the alignment and margin from XAML.
+/// Overlay panel host the player can drag, resize (mouse wheel), fade (Shift+wheel) and reset (right-click) while the
+/// overlay is in layout mode, and the same during a game while holding Ctrl over it (<see cref="IsDragArmed"/>). Its
+/// name tag carries buttons for size, opacity, compact lists and reset. Without a saved placement it keeps the
+/// alignment and margin from XAML.
 /// </summary>
 public sealed class MovablePanel : ContentControl
 {
@@ -48,6 +50,12 @@ public sealed class MovablePanel : ContentControl
 
     public static readonly StyledProperty<HorizontalAlignment> PlaceholderAlignmentProperty =
         AvaloniaProperty.Register<MovablePanel, HorizontalAlignment>(nameof(PlaceholderAlignment), HorizontalAlignment.Stretch);
+
+    public static readonly StyledProperty<double> PanelOpacityProperty = AvaloniaProperty.Register<MovablePanel, double>(nameof(PanelOpacity), 1);
+
+    public static readonly StyledProperty<string> OpacityTextProperty = AvaloniaProperty.Register<MovablePanel, string>(nameof(OpacityText), string.Empty);
+
+    public static readonly StyledProperty<bool> CanCompactProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(CanCompact));
 
     /// <summary>How far below its spot a panel starts when it fades in, in overlay units.</summary>
     private const double RevealRise = 6;
@@ -136,14 +144,89 @@ public sealed class MovablePanel : ContentControl
     /// <summary>The player's size for the layout-mode tag ("115%"); empty at the default size.</summary>
     public string ScaleText { get => GetValue(ScaleTextProperty); private set => SetValue(ScaleTextProperty, value); }
 
+    /// <summary>The player's opacity for this panel; only the content fades, the layout-mode frame and tag stay solid.</summary>
+    public double PanelOpacity { get => GetValue(PanelOpacityProperty); private set => SetValue(PanelOpacityProperty, value); }
+
+    /// <summary>The player's opacity for the tag ("70%"); empty when opaque.</summary>
+    public string OpacityText { get => GetValue(OpacityTextProperty); private set => SetValue(OpacityTextProperty, value); }
+
+    /// <summary>The panel holds card lists that have a compact form: its tag shows the compact button.</summary>
+    public bool CanCompact { get => GetValue(CanCompactProperty); set => SetValue(CanCompactProperty, value); }
+
+    /// <summary>Card lists in the panel use short rows without art (the <c>compact</c> class, styled in OverlayView.axaml).</summary>
+    public bool IsCompact => Classes.Contains("compact");
+
     /// <summary>Raised when the player moves, resizes or resets the panel (null = reset).</summary>
     public event Action<MovablePanel, PanelPlacement?>? PlacementChanged;
+
+    /// <summary>Raised when the player changes the panel's opacity or compact lists (null = back to the default look).</summary>
+    public event Action<MovablePanel, PanelLook?>? LookChanged;
+
+    /// <summary>Shows the panel with the player's look (null = opaque, full rows).</summary>
+    public void ApplyLook(PanelLook? look)
+    {
+        var opacity = Math.Clamp(look?.Opacity ?? 1, PanelLook.MinOpacity, 1);
+        PanelOpacity = opacity;
+        OpacityText = PanelSnap.OpacityText(opacity);
+        Classes.Set("compact", look?.Compact == true);
+    }
+
+    private void ChangeLook(double opacity, bool compact)
+    {
+        var look = new PanelLook { Opacity = opacity, Compact = compact };
+        ApplyLook(look);
+        LookChanged?.Invoke(this, look.IsDefault ? null : look);
+    }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
         _scaler = e.NameScope.Find<LayoutTransformControl>("PART_Scaler");
+        _chrome = e.NameScope.Find<Control>("PART_Chrome");
+        Hook("PART_Smaller", () => StepScale(up: false));
+        Hook("PART_Larger", () => StepScale(up: true));
+        Hook("PART_Fade", () => ChangeLook(PanelSnap.NextOpacity(PanelOpacity), IsCompact));
+        Hook("PART_Compact", () => ChangeLook(PanelOpacity, !IsCompact));
+        Hook("PART_Reset", Reset);
         ApplyScale();
+        UpdateChrome();
+
+        void Hook(string name, Action action)
+        {
+            if (e.NameScope.Find<Button>(name) is { } button)
+            {
+                button.Click += (_, args) =>
+                {
+                    action();
+                    args.Handled = true;
+                };
+            }
+        }
+    }
+
+    // The name tag and its buttons, which follow a wide row's placeholder to its end of the row.
+    private Control? _chrome;
+
+    /// <summary>Back to the XAML spot and size, opaque with full rows.</summary>
+    private void Reset()
+    {
+        ApplyLook(null);
+        LookChanged?.Invoke(this, null);
+        PlacementChanged?.Invoke(this, null);
+    }
+
+    /// <summary>Whether the pointer went down on one of the tag's buttons, which must click rather than start a drag.</summary>
+    private bool OnTool(object? source)
+    {
+        for (var node = source as Visual; node is not null && node != this; node = node.GetVisualParent())
+        {
+            if (node is Button)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void UpdateState()
@@ -159,6 +242,31 @@ public sealed class MovablePanel : ContentControl
         Classes.Set("armed", IsDragArmed && !IsEditing);
         OverlayHit.SetInteractive(this, CanMove || InteractiveContent);
         Cursor = CanMove ? new Cursor(StandardCursorType.SizeAll) : null;
+        UpdateChrome();
+    }
+
+    /// <summary>
+    /// Where the pointer keeps an armed panel armed, in its own coordinates: the panel and the strip with its name tag
+    /// and buttons, which can reach past a narrow panel's right edge.
+    /// </summary>
+    public Rect ArmedArea()
+    {
+        var area = new Rect(Bounds.Size);
+        if (_chrome is { IsVisible: true } chrome && chrome.TranslatePoint(default, this) is { } origin)
+        {
+            area = area.Union(new Rect(origin, chrome.Bounds.Size));
+        }
+
+        return area;
+    }
+
+    /// <summary>A placeholder in a wide row sits at one end of it: its tag buttons go with it.</summary>
+    private void UpdateChrome()
+    {
+        if (_chrome is not null)
+        {
+            _chrome.HorizontalAlignment = IsEditing && !Shown && PlaceholderAlignment != HorizontalAlignment.Stretch ? PlaceholderAlignment : HorizontalAlignment.Left;
+        }
     }
 
     /// <summary>
@@ -364,15 +472,15 @@ public sealed class MovablePanel : ContentControl
 
     private void OnPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!CanMove || Surface is not { } surface)
+        if (!CanMove || Surface is not { } surface || OnTool(e.Source))
         {
             return;
         }
 
         if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
         {
-            // Right-click resets a panel in layout mode only; during a game it is the game's.
-            e.Handled = IsEditing;
+            // Right-click resets the panel (layout mode, or Ctrl held during a game); it is released below.
+            e.Handled = true;
             return;
         }
 
@@ -392,9 +500,10 @@ public sealed class MovablePanel : ContentControl
         }
 
         var position = e.GetPosition(surface);
-        // Edges and the centre line pull the panel in, so panels line up without pixel hunting.
-        var left = Math.Clamp(PanelSnap.Snap(_originStart.X + (position.X - _dragStart.X), Bounds.Width, surface.Bounds.Width), 0, Math.Max(0, surface.Bounds.Width - Bounds.Width));
-        var top = Math.Clamp(PanelSnap.Snap(_originStart.Y + (position.Y - _dragStart.Y), Bounds.Height, surface.Bounds.Height), 0, Math.Max(0, surface.Bounds.Height - Bounds.Height));
+        // Edges, the centre line and the other panels' edges pull the panel in, so panels line up without pixel hunting.
+        var neighbours = _neighbours ??= Neighbours(surface);
+        var left = Math.Clamp(PanelSnap.Snap(_originStart.X + (position.X - _dragStart.X), Bounds.Width, surface.Bounds.Width, neighbours.Across), 0, Math.Max(0, surface.Bounds.Width - Bounds.Width));
+        var top = Math.Clamp(PanelSnap.Snap(_originStart.Y + (position.Y - _dragStart.Y), Bounds.Height, surface.Bounds.Height, neighbours.Down), 0, Math.Max(0, surface.Bounds.Height - Bounds.Height));
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         Margin = new Thickness(left, top, 0, 0);
@@ -403,9 +512,9 @@ public sealed class MovablePanel : ContentControl
 
     private void OnReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (IsEditing && e.InitialPressMouseButton == MouseButton.Right)
+        if (CanMove && e.InitialPressMouseButton == MouseButton.Right && !OnTool(e.Source))
         {
-            PlacementChanged?.Invoke(this, null);
+            Reset();
             e.Handled = true;
             return;
         }
@@ -416,10 +525,32 @@ public sealed class MovablePanel : ContentControl
         }
 
         _dragging = false;
+        _neighbours = null;
         e.Pointer.Capture(null);
         _saved = TopLeft();
         PlacementChanged?.Invoke(this, CurrentPlacement());
         e.Handled = true;
+    }
+
+    // The other shown panels' spans on the surface (left-right, top-bottom), taken once per drag.
+    private ((double Start, double End)[] Across, (double Start, double End)[] Down)? _neighbours;
+
+    private ((double Start, double End)[] Across, (double Start, double End)[] Down) Neighbours(Control surface)
+    {
+        var across = new List<(double, double)>();
+        var down = new List<(double, double)>();
+        foreach (var other in (surface as Panel)?.Children.OfType<MovablePanel>() ?? [])
+        {
+            // A wide row's placeholder is only a label at one end of the row: its bounds are not where it shows.
+            if (other != this && other is { IsVisible: true, Bounds.Width: > 0 } && (other.Shown || (other.IsEditing && other.PlaceholderAlignment == HorizontalAlignment.Stretch))
+                && other.TranslatePoint(default, surface) is { } origin)
+            {
+                across.Add((origin.X, origin.X + other.Bounds.Width));
+                down.Add((origin.Y, origin.Y + other.Bounds.Height));
+            }
+        }
+
+        return (across.ToArray(), down.ToArray());
     }
 
     private void OnWheel(object? sender, PointerWheelEventArgs e)
@@ -429,15 +560,30 @@ public sealed class MovablePanel : ContentControl
             return;
         }
 
+        // Shift+wheel may arrive as a sideways scroll.
+        var up = (e.Delta.Y != 0 ? e.Delta.Y : e.Delta.X) > 0;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            ChangeLook(PanelSnap.WheelOpacity(PanelOpacity, up), IsCompact);
+        }
+        else
+        {
+            StepScale(up);
+        }
+
+        e.Handled = true;
+    }
+
+    private void StepScale(bool up)
+    {
         CaptureDefaults();
         var origin = TopLeft();
-        _scale = Math.Clamp(Math.Round(_scale + (e.Delta.Y > 0 ? 0.05 : -0.05), 2), 0.6, 1.6);
+        _scale = Math.Clamp(Math.Round(_scale + (up ? 0.05 : -0.05), 2), 0.6, 1.6);
         ApplyScale();
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         Margin = new Thickness(origin.X, origin.Y, 0, 0);
         _saved = origin;
         PlacementChanged?.Invoke(this, CurrentPlacement());
-        e.Handled = true;
     }
 }
