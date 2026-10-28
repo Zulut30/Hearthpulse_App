@@ -120,7 +120,7 @@ SH
   cp "$HERE/Uninstall Hearthpulse.command" "$PKGROOT/Applications/Hearthpulse.app/Contents/Resources/"
   codesign --force --deep --sign - "$PKGROOT/Applications/Hearthpulse.app"
 
-  cp "$ASSETS/hearthpulse.png" "$WORK/resources/background.png"
+  cp "$ASSETS/icons/hearthpulse-256.png" "$WORK/resources/background.png"
   cat > "$WORK/resources/welcome.html" <<HTML
 <html><body style="font-family:-apple-system,Helvetica;font-size:13px">
 <h2>Hearthpulse $VERSION</h2>

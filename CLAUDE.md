@@ -14,6 +14,9 @@ Tests: `tests/Hearthpulse.Tests` remains the cross-platform net10.0 Core/Avaloni
 checks). `tests/Hearthpulse.Presentation.Tests` targets net10.0-windows, references both UIs and checks their
 presentation contracts together; run it on Windows as well when changing shared presentation code.
 
+Feature specs, data contracts and project records: [docs/README.md](docs/README.md). Shared build settings (satellite
+languages, no symbols in published apps): `Directory.Build.props` / `Directory.Build.targets`.
+
 Project skills live in `.claude/skills/`. Start from the one that matches the task:
 
 | Task | Skill |
