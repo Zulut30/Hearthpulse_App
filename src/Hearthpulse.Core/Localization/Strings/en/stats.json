@@ -96,7 +96,6 @@
   "Stats.Ct.LengthTurns": "{0} turns",
   "Stats.Ct.NoteNoMeta": "vs Global needs the community meta of this format (pick it on the Meta tier list tab).",
   "Stats.Ct.NoteSource": "vs Global: {0}, {1}.",
-  "Stats.Ct.NoteWindowsOnly": "vs Global and archetypes need the Constructed community meta, which only the Windows app loads.",
   "Stats.Ct.UnnamedDeck": "Deck",
 
   "Stats.Arena.Runs": "Runs",

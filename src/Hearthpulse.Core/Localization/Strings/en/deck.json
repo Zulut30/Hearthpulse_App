@@ -41,9 +41,6 @@
   "Deck.Length.Tip": "Wins (green) and losses (red) by how many turns you had",
 
   "Deck.Matchups.Title": "Matchups",
-  "Deck.Matchups.SortTip": "Sort",
-  "Deck.Matchups.SortGames": "Games",
-  "Deck.Matchups.SortWinRate": "Win rate",
   "Deck.Matchups.Hint": "Click a matchup to see only those games below. Archetypes show when the opponent's cards told.",
   "Deck.Matchups.Empty": "No opponents recorded yet.",
 
@@ -100,7 +97,6 @@
   "Deck.Mulligan.WrKept": "Win rate if kept",
   "Deck.Mulligan.WrKeptTip": "Your win rate in games you kept it. Green: 5 points or more above the deck's win rate, red: as far below",
   "Deck.Mulligan.WrReplaced": "Win rate if replaced",
-  "Deck.Mulligan.WrReplacedShort": "WR repl.",
   "Deck.Mulligan.WrReplacedTip": "Your win rate in games you sent it back. Green: 5 points or more above the deck's win rate, red: as far below",
   "Deck.Mulligan.MetaKept": "Meta keep rate",
   "Deck.Mulligan.MetaKeptTip": "How often players of the archetype keep it (community data)",

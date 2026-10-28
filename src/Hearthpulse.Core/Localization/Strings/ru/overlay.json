@@ -16,7 +16,6 @@
   "Overlay.Panel.Toast": "Итог игры",
 
   "Overlay.Common.Opponent": "Соперник",
-  "Overlay.Common.Close": "Закрыть",
   "Overlay.Common.TavernTier": "Уровень таверны",
 
   "Overlay.Layout.Title": "Режим расстановки",
@@ -162,7 +161,6 @@
   "Overlay.Ordinal.Second": "2-е",
   "Overlay.Ordinal.Third": "3-е",
   "Overlay.Ordinal.Other": "{0}-е",
-  "Overlay.Tier.Name": "Тир {0}",
   "Overlay.Tier.WithText": "Тир {0} · {1}",
   "Overlay.Tier.ArenaCards": "Тиры карт: S от 53 · A от 45 · B от 35 · C от 24 · D от 10 · ниже E",
   "Overlay.Tier.ArenaClasses": "Тиры классов: S от 54% · A от 50% · B от 46% · C от 42% · D от 38% · ниже E",
