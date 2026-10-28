@@ -29,6 +29,9 @@ namespace Hearthpulse.UI.Overlay;
 /// <param name="Kept">The player's current choice (starts as the recommendation; a click toggles it).</param>
 /// <param name="Duplicate">A second copy (counts once, heuristic).</param>
 /// <param name="Late">Usually played late (curve rule).</param>
+/// <param name="PickTier">Arena: the card's draft tier letter, shown before <paramref name="Details"/> as on the draft screen; else empty.</param>
+/// <param name="Soft">The call comes from the cards' general results, not the deck's mulligan stats (Arena): "keep" in
+/// the accent colour, "replace" muted, instead of green and red.</param>
 public sealed record MulliganPlate(
     int EntityId,
     string Name,
@@ -46,7 +49,9 @@ public sealed record MulliganPlate(
     bool Duplicate,
     bool Late,
     bool Kept,
-    string Tooltip)
+    string Tooltip,
+    string PickTier = "",
+    bool Soft = false)
 {
     /// <summary>Neither keep nor replace: no numbers for the card.</summary>
     public bool NoCall => !KeepCall && !MulliganCall;
@@ -56,6 +61,9 @@ public sealed record MulliganPlate(
 
     /// <summary>A close call: the edge is within half a point either way (drawn neutral).</summary>
     public bool Close => !NoCall && !Good && !Bad;
+
+    /// <summary>The small line under the gauge has something: the draft tier or <see cref="Details"/>.</summary>
+    public bool HasSecondLine => PickTier.Length > 0 || Details.Length > 0;
 }
 
 /// <summary>
@@ -112,7 +120,7 @@ public sealed partial class OverlayViewModel
     /// <summary>"Expected impact of your keeps: +2.1%", or why there are no numbers.</summary>
     public string MulliganSummary { get => _mulliganSummary; private set => Set(ref _mulliganSummary, value); }
 
-    /// <summary>"Egg Death Knight · HSReplay Legend EU · on the coin" (small, under the summary).</summary>
+    /// <summary>"Egg Death Knight · HSReplay Legend EU · on the coin", "Arena · card win rate when drawn" (small, under the summary).</summary>
     public string MulliganSource { get => _mulliganSource; private set => Set(ref _mulliganSource, value); }
 
     /// <summary>The summary's tooltip: average hand, full mulligan, recommended keeps, curve and synergy notes.</summary>
@@ -188,7 +196,7 @@ public sealed partial class OverlayViewModel
 
         // Snapshots arrive every 100 ms while anything changes; rebuild the badges only when what they show changed. The
         // language is part of it: after a switch the host pushes the last snapshot again and the texts are made anew.
-        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|{_mulliganCompact}|"
+        var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|{view.ArenaBasis}|{_mulliganCompact}|"
                     + $"{string.Join(",", _mulliganKept.Order())}|"
                     + string.Join(";", view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.Edge:0.0000}|{c.KeepRate:0.0000}|{c.KeptDelta:0.0000}|{c.DrawnDelta:0.0000}"));
         if (print == _mulliganPrint)
@@ -224,10 +232,11 @@ public sealed partial class OverlayViewModel
                 .ToList();
             MulliganDetails = string.Join("\n", new[]
             {
+                view.ArenaBasis is null ? string.Empty : Loc.T("Mulligan.Arena.Note"),
                 Loc.F("Mulligan.AverageHand", vsClass + (initiative is null ? string.Empty : " " + initiative), view.BaseWinRate.ToString("P1", culture)),
                 Loc.F("Mulligan.YourKeeps", impact.Kept, view.Cards.Count, impact.Expected.ToString("P1", culture)),
                 Loc.F("Mulligan.FullMulligan", impact.FullMulligan.ToString("P1", culture), impact.Recommended.ToString("P1", culture)),
-            }.Concat(notes).Append(view.HasPairData ? string.Empty : Loc.T("Mulligan.NoPairData"))
+            }.Concat(notes).Append(view.HasPairData || view.ArenaBasis is not null ? string.Empty : Loc.T("Mulligan.NoPairData"))
              .Append(Loc.T("Overlay.Tier.KeepLegend"))
              .Where(s => s.Length > 0));
             MulliganImpactGood = impact.Expected >= impact.Recommended - 0.0005 && vsAverage > 0.0005;
@@ -242,10 +251,12 @@ public sealed partial class OverlayViewModel
             var late = MulliganGuide.IsLate(c);
             var edge = c.Edge ?? 0;
             var fill = c.Edge is null ? 0 : Math.Min(1, Math.Abs(edge) / MulliganGaugeFull) * MulliganGaugeHalf;
+            var arena = view.ArenaBasis is not null;
             var details = _mulliganCompact ? string.Empty : string.Join(" · ", new[]
             {
                 c.KeepRate is { } keepRate ? Loc.F("Mulligan.KeepRateShort", keepRate.ToString("P0", culture)) : null,
                 c.DrawnDelta is { } drawn ? Loc.F("Mulligan.DrawnShort", Points(drawn)) : null,
+                arena && c.WinRate is { } arenaRate ? Loc.F("Mulligan.Arena.RateShort", arenaRate.ToString("P1", culture)) : null,
             }.Where(s => s is not null));
             var tier = OverlayTiers.Keep(c.Edge) ?? string.Empty;
             var lines = new List<string> { c.Name };
@@ -257,7 +268,7 @@ public sealed partial class OverlayViewModel
             {
                 if (c.Edge is not null)
                 {
-                    lines.Add(Loc.F("Mulligan.EdgeLine", Points(edge), Points(delta), Points(view.ReplaceDelta)));
+                    lines.Add(Loc.F(arena ? "Mulligan.Arena.EdgeLine" : "Mulligan.EdgeLine", Points(edge), Points(delta), Points(view.ReplaceDelta)));
                     if (Math.Abs(edge - (delta - view.ReplaceDelta)) > 0.0005)
                     {
                         // A kept synergy partner or the other copy changes what keeping this one adds.
@@ -265,8 +276,17 @@ public sealed partial class OverlayViewModel
                     }
                 }
 
-                lines.Add(Loc.P("Mulligan.CardWinRate", c.Sample, rate.ToString("P1", culture), view.CardBaseline.ToString("P1", culture)));
-                lines.Add(Loc.F("Mulligan.KeptBy", c.KeepRate?.ToString("P0", culture), c.ExpectedTurn.ToString("0.#", culture)));
+                if (view.ArenaBasis is { } basis)
+                {
+                    // Arena: the card's own results, no keep rate and no turn played.
+                    lines.Add(Loc.P("Mulligan.Arena.CardWinRate", c.Sample, rate.ToString("P1", culture), view.CardBaseline.ToString("P1", culture),
+                        Loc.T("Mulligan.Arena.Basis." + basis)));
+                }
+                else
+                {
+                    lines.Add(Loc.P("Mulligan.CardWinRate", c.Sample, rate.ToString("P1", culture), view.CardBaseline.ToString("P1", culture)));
+                    lines.Add(Loc.F("Mulligan.KeptBy", c.KeepRate?.ToString("P0", culture), c.ExpectedTurn.ToString("0.#", culture)));
+                }
                 if (c.CoinShift is { } coinShift)
                 {
                     lines.Add(Loc.F(view.GoingFirst == true ? "Mulligan.Shift.First" : "Mulligan.Shift.Coin", Points(coinShift)));
@@ -290,6 +310,11 @@ public sealed partial class OverlayViewModel
             if (c.DrawnDelta is { } drawnDelta)
             {
                 lines.Add(Loc.F("Mulligan.DrawnLine", Points(drawnDelta)));
+            }
+
+            if (c.PickTier is { } pickTier)
+            {
+                lines.Add(Loc.F("Mulligan.Arena.Pick", pickTier, c.PickScore?.ToString("0", culture)));
             }
 
             if (c.Copy > 1)
@@ -325,7 +350,9 @@ public sealed partial class OverlayViewModel
                 c.Copy > 1,
                 late,
                 kept,
-                string.Join("\n", lines));
+                string.Join("\n", lines),
+                _mulliganCompact ? string.Empty : c.PickTier ?? string.Empty,
+                arena);
         }).ToList();
     }
 

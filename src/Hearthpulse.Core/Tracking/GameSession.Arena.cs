@@ -25,6 +25,7 @@ public sealed partial class GameSession
     public void SetArenaMeta(ArenaMeta? meta)
     {
         _arenaMeta = meta;
+        _constructed.Arena = meta;
         _dirty = true;
     }
 

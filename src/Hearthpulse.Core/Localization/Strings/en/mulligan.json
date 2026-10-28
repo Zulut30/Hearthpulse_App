@@ -42,5 +42,19 @@
   "Mulligan.DrawnLine": "Drawn at any point: {0} against the deck's average",
   "Mulligan.SliceSource": "slice: {0}",
   "Mulligan.Slice.Legend": "Legend",
-  "Mulligan.Slice.AllRanks": "all ranks"
+  "Mulligan.Slice.AllRanks": "all ranks",
+
+  "Mulligan.NoStats.ArenaNotYet": "Arena: card results are not loaded yet",
+  "Mulligan.NoStats.ArenaNone": "Arena: no card results for this class",
+  "Mulligan.Arena.Source.Drawn": "Arena · card win rate when drawn",
+  "Mulligan.Arena.Source.Played": "Arena · card win rate when played",
+  "Mulligan.Arena.Source.Deck": "Arena · win rate of decks with the card",
+  "Mulligan.Arena.Basis.Drawn": "when the card is drawn",
+  "Mulligan.Arena.Basis.Played": "when the card is played",
+  "Mulligan.Arena.Basis.Deck": "of decks with the card",
+  "Mulligan.Arena.Note": "Arena decks have no mulligan stats: the advice compares the cards' general Arena win rates with the average card of your deck. The data does not split by the coin or the opponent's class.",
+  "Mulligan.Arena.CardWinRate": "Win rate {1} {3}, against {2} for an average card of the class ({0:N0} game)|Win rate {1} {3}, against {2} for an average card of the class ({0:N0} games)",
+  "Mulligan.Arena.EdgeLine": "Keeping vs replacing: {0} points (the card {1} against the class's average card, a replacement {2})",
+  "Mulligan.Arena.Pick": "Draft tier {0}: score {1}",
+  "Mulligan.Arena.RateShort": "win rate {0}"
 }

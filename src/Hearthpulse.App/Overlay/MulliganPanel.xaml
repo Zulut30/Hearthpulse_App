@@ -74,8 +74,13 @@
                                         <TextBlock x:Name="Number" Grid.Column="1" Text="{Binding Number}" FontFamily="{StaticResource DisplayFont}" FontSize="15" FontWeight="Bold"
                                                    Foreground="{StaticResource Text}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,0,0" Visibility="{Binding Number, Converter={StaticResource Vis}}" />
                                     </Grid>
-                                    <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,5,0,0"
-                                               TextTrimming="CharacterEllipsis" Visibility="{Binding Details, Converter={StaticResource Vis}}" />
+                                    <!-- Keep rate and drawn win rate; in Arena the draft tier letter (coloured as on the draft screen) and the card's win rate -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0" Visibility="{Binding HasSecondLine, Converter={StaticResource Vis}}">
+                                        <TextBlock Text="{Binding PickTier}" FontFamily="{StaticResource DisplayFont}" FontSize="11" FontWeight="Bold" Foreground="{Binding PickTier, Converter={StaticResource KeyBrush}}"
+                                                   VerticalAlignment="Center" Margin="0,0,5,0" Visibility="{Binding PickTier, Converter={StaticResource Vis}}" />
+                                        <TextBlock Text="{Binding Details}" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" Visibility="{Binding Details, Converter={StaticResource Vis}}" />
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                             <!-- Hover wash over the solid plate, so the card art never shows through the numbers -->
@@ -110,6 +115,41 @@
                             <DataTrigger Binding="{Binding Close}" Value="True">
                                 <Setter TargetName="Number" Property="Foreground" Value="{StaticResource Accent}" />
                             </DataTrigger>
+                            <!-- Advice from the cards' general results (Arena): "keep" in the accent colour, "replace" muted -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Soft}" Value="True" />
+                                    <Condition Binding="{Binding KeepCall}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="CallIcon" Property="Foreground" Value="{StaticResource Accent}" />
+                                <Setter TargetName="CallText" Property="Foreground" Value="{StaticResource Accent}" />
+                                <Setter TargetName="Bar" Property="BorderBrush" Value="{StaticResource Accent}" />
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Soft}" Value="True" />
+                                    <Condition Binding="{Binding MulliganCall}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="CallIcon" Property="Foreground" Value="{StaticResource Muted}" />
+                                <Setter TargetName="CallText" Property="Foreground" Value="{StaticResource Muted}" />
+                                <Setter TargetName="Bar" Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Soft}" Value="True" />
+                                    <Condition Binding="{Binding Good}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Number" Property="Foreground" Value="{StaticResource Accent}" />
+                                <Setter TargetName="FillRight" Property="Background" Value="{StaticResource Accent}" />
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Soft}" Value="True" />
+                                    <Condition Binding="{Binding Bad}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Number" Property="Foreground" Value="{StaticResource Muted}" />
+                                <Setter TargetName="FillLeft" Property="Background" Value="{StaticResource Muted}" />
+                            </MultiDataTrigger>
                             <!-- The player replaces it (a click on the bar): dimmed until they keep it again -->
                             <DataTrigger Binding="{Binding Kept}" Value="False">
                                 <Setter TargetName="Bar" Property="Opacity" Value="0.55" />

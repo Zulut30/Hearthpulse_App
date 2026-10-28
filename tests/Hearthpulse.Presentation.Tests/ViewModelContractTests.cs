@@ -365,6 +365,45 @@ public sealed class ViewModelContractTests
         Assert.Equal(["Turn 2", "Mulligan"], ava.Hand.Select(h => h.Turn));
     }
 
+    [Fact]
+    public void Both_overlays_show_the_arena_mulligan_from_card_results_with_its_source()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var mulligan = new MulliganView(string.Empty, 0.54,
+        [
+            new MulliganCardStat(4, "A", "A", null, 0.60, 0.06, 1000) { Cost = 2, ExpectedTurn = 2, Call = MulliganCall.Keep, Edge = 0.066, PickScore = 55, PickTier = "S" },
+            new MulliganCardStat(5, "B", "B", null, 0.48, -0.06, 1000) { Cost = 1, ExpectedTurn = 1, Call = MulliganCall.Mulligan, Edge = -0.053, PickScore = 12, PickTier = "D" },
+        ], MulliganArena.SourceOf(ArenaCardBasis.Drawn))
+        {
+            CardBaseline = 0.54,
+            ReplaceDelta = -0.0067,
+            Recommended = [4],
+            ArenaBasis = ArenaCardBasis.Drawn,
+        };
+        var constructed = new ConstructedView(1, "Arena", true, "HERO_07", "WARLOCK", "HERO_08", "MAGE", null, [], 26, 4, [], [], 26, 4, 0, null, null) { Mulligan = mulligan };
+        var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_ARENA", Constructed = constructed };
+        var wpf = new WpfOverlay();
+        var ava = new AvaOverlay();
+
+        wpf.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+        ava.Update(snapshot, CardDb.Empty, new AppSettings(), null, null);
+
+        foreach (var (source, cards, summary, details) in new[]
+                 {
+                     (wpf.MulliganSource, wpf.MulliganCards.Select(c => (c.KeepCall, c.Soft, c.PickTier, c.Details)).ToList(), wpf.MulliganSummary, wpf.MulliganDetails),
+                     (ava.MulliganSource, ava.MulliganCards.Select(c => (c.KeepCall, c.Soft, c.PickTier, c.Details)).ToList(), ava.MulliganSummary, ava.MulliganDetails),
+                 })
+        {
+            Assert.Equal("Arena · card win rate when drawn", source);
+            Assert.Equal([(true, true, "S", "win rate " + 0.60.ToString("P1", CultureInfo.CurrentCulture)), (false, true, "D", "win rate " + 0.48.ToString("P1", CultureInfo.CurrentCulture))], cards);
+            Assert.StartsWith("Expected impact", summary);
+            Assert.Contains("Arena decks have no mulligan stats", details);
+        }
+
+        Assert.Contains("Draft tier S: score 55", wpf.MulliganCards[0].Tooltip);
+        Assert.Equal(wpf.MulliganCards[0].Tooltip, ava.MulliganCards[0].Tooltip);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

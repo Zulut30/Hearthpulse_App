@@ -42,5 +42,19 @@
   "Mulligan.DrawnLine": "Взята в любой момент: {0} к среднему по колоде",
   "Mulligan.SliceSource": "срез: {0}",
   "Mulligan.Slice.Legend": "Легенда",
-  "Mulligan.Slice.AllRanks": "все ранги"
+  "Mulligan.Slice.AllRanks": "все ранги",
+
+  "Mulligan.NoStats.ArenaNotYet": "Арена: данные карт ещё не загружены",
+  "Mulligan.NoStats.ArenaNone": "Арена: нет данных по картам этого класса",
+  "Mulligan.Arena.Source.Drawn": "Арена · винрейт карт при взятии",
+  "Mulligan.Arena.Source.Played": "Арена · винрейт карт при розыгрыше",
+  "Mulligan.Arena.Source.Deck": "Арена · винрейт колод с картой",
+  "Mulligan.Arena.Basis.Drawn": "когда карта взята в руку",
+  "Mulligan.Arena.Basis.Played": "когда карта разыграна",
+  "Mulligan.Arena.Basis.Deck": "у колод с этой картой",
+  "Mulligan.Arena.Note": "У колод Арены нет статистики муллигана: совет — по общему винрейту карт Арены против средней карты вашей колоды. Монетку и класс соперника эти данные не различают.",
+  "Mulligan.Arena.CardWinRate": "Винрейт {1} {3} против {2} у средней карты класса ({0:N0} игра)|Винрейт {1} {3} против {2} у средней карты класса ({0:N0} игры)|Винрейт {1} {3} против {2} у средней карты класса ({0:N0} игр)",
+  "Mulligan.Arena.EdgeLine": "Оставить против замены: {0} п. (карта {1} к средней карте класса, замена {2})",
+  "Mulligan.Arena.Pick": "Тир драфта {0}: оценка {1}",
+  "Mulligan.Arena.RateShort": "винрейт {0}"
 }

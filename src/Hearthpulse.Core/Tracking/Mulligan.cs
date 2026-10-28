@@ -1,3 +1,4 @@
+using Hearthpulse.Core.Arena;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Localization;
@@ -47,6 +48,11 @@ public sealed record MulliganCardStat(int EntityId, string CardId, string Name, 
 
     /// <summary>The HSGuru slice the keep rate and the kept / replaced / drawn numbers come from; null for HSReplay's.</summary>
     public MulliganSlice? Slice { get; init; }
+
+    /// <summary>The card's Arena draft score and its tier letter (as on the draft screen); null outside Arena.</summary>
+    public double? PickScore { get; init; }
+
+    public string? PickTier { get; init; }
 }
 
 /// <summary>The mulligan panel: whose numbers they are and one row per offered card.</summary>
@@ -83,12 +89,19 @@ public sealed record MulliganView(string Context, double BaseWinRate, IReadOnlyL
     /// overlay shows the offered cards anyway from the start of the mulligan, with this line instead of the impact.
     /// </summary>
     public string? NoStats { get; init; }
+
+    /// <summary>
+    /// The numbers are the Arena cards' own results (<see cref="MulliganArena"/>), with this win rate standing in for the
+    /// opening hand's; null for a deck's or an archetype's mulligan stats.
+    /// </summary>
+    public ArenaCardBasis? ArenaBasis { get; init; }
 }
 
 /// <summary>
 /// Builds the mulligan panel while the local player chooses their opening hand (docs/mulligan-v2.md). Numbers come
 /// from the Hearthpulse API (HSReplay Legend, Standard) for the archetype the deck matches; the meta's archetypes
 /// (<see cref="ConstructedMeta"/>, matched by core cards) are the fallback, pooled over the class when none matches.
+/// Arena decks are unique and have no mulligan stats: there the Arena cards' own results speak (<see cref="MulliganArena"/>).
 /// </summary>
 public static class Mulligan
 {
@@ -102,7 +115,9 @@ public static class Mulligan
     /// The panel while the local player's mulligan is on (INPUT, DEALING), null otherwise. Without numbers for the deck
     /// (the guide still loading, an unknown deck or archetype) it still lists the offered cards, with <see cref="MulliganView.NoStats"/>.
     /// </summary>
-    public static MulliganView? Build(GameState game, CardDb cards, DeckDefinition? deck, ConstructedMeta? meta, string playerClass, GuideArchetype? guide = null)
+    /// <param name="arena">Arena card results, for an Arena game.</param>
+    public static MulliganView? Build(GameState game, CardDb cards, DeckDefinition? deck, ConstructedMeta? meta, string playerClass, GuideArchetype? guide = null,
+        ArenaMeta? arena = null)
     {
         if (!InProgress(game))
         {
@@ -129,6 +144,17 @@ public static class Mulligan
         var opponentClass = cards.Get(game.OpponentHero?.CardId)?.CardClass;
         var goingFirst = GoingFirst(game, cards);
 
+        if (MulliganArena.IsArena(game))
+        {
+            // Constructed numbers do not fit an Arena deck: only the Arena cards' results.
+            if (arena is { HasCards: true } && MulliganArena.Build(arena, cards, playerClass, offered, deckIds, MulliganArena.IsUnderground(game)) is { } fromArena)
+            {
+                return fromArena;
+            }
+
+            return NoNumbers(offered, goingFirst, arena is { HasCards: true } ? Loc.T("Mulligan.NoStats.ArenaNone") : Loc.T("Mulligan.NoStats.ArenaNotYet"));
+        }
+
         // A guide that cannot compute (no win rates in its rows) leaves the meta to speak.
         if (guide is not null && MulliganGuide.Compute(guide, offered, deckIds, opponentClass, goingFirst, guide.Name) is { } view)
         {
@@ -144,7 +170,12 @@ public static class Mulligan
         var reason = deck is null ? Loc.T("Mulligan.NoStats.NoDeck")
             : guide is null && meta is null ? Loc.T("Mulligan.NoStats.NotYet")
             : Loc.T("Mulligan.NoStats.None");
-        return new MulliganView(string.Empty, 0, offered.Select(o => new MulliganCardStat(o.EntityId, o.CardId, o.Name, null, null, null, 0)
+        return NoNumbers(offered, goingFirst, reason);
+    }
+
+    /// <summary>The offered cards without numbers, and why.</summary>
+    private static MulliganView NoNumbers(IReadOnlyList<OfferedCard> offered, bool? goingFirst, string reason) =>
+        new(string.Empty, 0, offered.Select(o => new MulliganCardStat(o.EntityId, o.CardId, o.Name, null, null, null, 0)
         {
             Cost = o.Cost,
             ExpectedTurn = o.Cost,
@@ -154,7 +185,6 @@ public static class Mulligan
             NoStats = reason,
             GoingFirst = goingFirst,
         };
-    }
 
     /// <summary>
     /// One line for hearthpulse.log while the mulligan is on: whether the strip has numbers to show, and why not
@@ -163,6 +193,16 @@ public static class Mulligan
     public static string Explain(GameState game, MulliganView? view, DeckDefinition? deck, bool hasGuide, ConstructedMeta? meta)
     {
         var hand = game.Controlled(game.LocalPlayerId, "HAND").Count(e => e.CardId.Length > 0);
+        if (view is { NoStats: null, ArenaBasis: { } basis })
+        {
+            return $"mulligan strip shown: Arena card results ({basis}) for {view.Cards.Count(c => c.Delta is not null)}/{view.Cards.Count} cards";
+        }
+
+        if (MulliganArena.IsArena(game) && hand > 0)
+        {
+            return "mulligan strip without numbers: the Arena card results are not loaded or have nothing for this class";
+        }
+
         if (view is { NoStats: null })
         {
             var withStats = view.Cards.Count(c => c.KeepRate is not null);
