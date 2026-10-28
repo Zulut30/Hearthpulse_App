@@ -89,6 +89,9 @@
 
             <!-- FILTERS: mechanics of this pool; the selected ones must all be on a card -->
             <StackPanel Grid.Row="2" Margin="14,8,14,4">
+                <!-- Excavate: what the player's next Excavate gives; the tier chips below filter the grid, which starts at that tier -->
+                <TextBlock Text="{Binding CardPoolExcavateNext}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Accent}" Margin="0,0,0,6"
+                           Visibility="{Binding CardPoolExcavateNext, Converter={StaticResource Vis}}" />
                 <!-- The generator's separate pools (Hearthstone Wiki): click one to see only its cards -->
                 <ItemsControl ItemsSource="{Binding CardPoolSections}" ItemTemplate="{StaticResource FilterChipTemplate}" Margin="0,0,0,6" Visibility="{Binding CardPoolSections, Converter={StaticResource Vis}}" Focusable="False">
                     <ItemsControl.ItemsPanel>
@@ -97,7 +100,7 @@
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
-                <DockPanel Background="Transparent" Cursor="Hand" MouseLeftButtonUp="OnFiltersClick">
+                <DockPanel Background="Transparent" Cursor="Hand" MouseLeftButtonUp="OnFiltersClick" Visibility="{Binding CardPoolFilterChips, Converter={StaticResource Vis}}">
                     <TextBlock DockPanel.Dock="Right" FontFamily="{StaticResource IconFont}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Center">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">

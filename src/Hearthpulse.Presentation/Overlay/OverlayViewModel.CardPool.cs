@@ -27,6 +27,9 @@ public sealed record PoolTopRow(string CardId, string Name, int Cost, string Rar
 /// <summary>One card of this game the hovered card looks back at, as a tracker row: cost gem, name, "×2" when it counts twice.</summary>
 public sealed record PoolListRow(string CardId, string Name, int Cost, string Rarity, string CountText);
 
+/// <summary>One Excavate tier after the next one, on one quiet line: "T3  Collapse!, Motherlode Drake, …".</summary>
+public sealed record ExcavateTierRow(string Label, string Rarity, string Names);
+
 /// <summary>One mechanic of the pool: label and share.</summary>
 public sealed record PoolMechanicRow(string Label, string PercentText);
 
@@ -91,6 +94,10 @@ public sealed partial class OverlayViewModel
     private string _cardPoolFeaturedNote = string.Empty;
     private bool _cardPoolHasCards;
     private IReadOnlyList<PoolChipModel> _cardPoolSections = [];
+    private bool _showCardPoolExcavate;
+    private string _cardPoolExcavateNext = string.Empty;
+    private IReadOnlyList<PoolListRow> _cardPoolExcavateRows = [];
+    private IReadOnlyList<ExcavateTierRow> _cardPoolExcavateTiers = [];
     private string? _cardPoolSection;
     private RelayCommand? _toggleCardPoolSection;
     private bool _cardPoolHeld;
@@ -222,6 +229,31 @@ public sealed partial class OverlayViewModel
     }
 
     public bool CardPoolHasSections => _cardPoolSections.Count > 0;
+
+    /// <summary>The section chips on the compact panel: not for an Excavate pool, whose tiers have rows of their own.</summary>
+    public bool ShowCardPoolPanelSections => CardPoolHasSections && !ShowCardPoolExcavate;
+
+    /// <summary>The pool is the Excavate treasures: the panel shows the next tier's rows and the other tiers compactly.</summary>
+    public bool ShowCardPoolExcavate
+    {
+        get => _showCardPoolExcavate;
+        private set
+        {
+            if (Set(ref _showCardPoolExcavate, value))
+            {
+                Raise(nameof(ShowCardPoolPanelSections));
+            }
+        }
+    }
+
+    /// <summary>"Next treasure · rare" over the next tier's rows; empty outside a game (no next tier known).</summary>
+    public string CardPoolExcavateNext { get => _cardPoolExcavateNext; private set => Set(ref _cardPoolExcavateNext, value); }
+
+    /// <summary>The treasures the player's next Excavate can give, as tracker rows.</summary>
+    public IReadOnlyList<PoolListRow> CardPoolExcavateRows { get => _cardPoolExcavateRows; private set => Set(ref _cardPoolExcavateRows, value); }
+
+    /// <summary>The cycle's other tiers in the order they come, one line each (every tier when the next is unknown).</summary>
+    public IReadOnlyList<ExcavateTierRow> CardPoolExcavateTiers { get => _cardPoolExcavateTiers; private set => Set(ref _cardPoolExcavateTiers, value); }
 
     /// <summary>Click a section in the browser: show only its cards (again: all of them).</summary>
     public RelayCommand ToggleCardPoolSection => _toggleCardPoolSection ??= new RelayCommand(p =>
@@ -431,6 +463,7 @@ public sealed partial class OverlayViewModel
             _cardPool = null;
             _lastRequestedPool = null;
             CardPoolBrowserOpen = false;
+            UpdateExcavate(null);
             RebuildCardPoolBrowser();
             if (list is not null)
             {
@@ -465,7 +498,9 @@ public sealed partial class OverlayViewModel
 
         _cardPool = pool;
         _cardPoolLanguage = Loc.Instance.Language;
-        CardPoolTitle = pool.Uncomputed is null ? Loc.P("Pool.Title", pool.Count, CardCount(pool.Count)) : Loc.T("Pool.NotComputed");
+        CardPoolTitle = pool.Excavate is { } excavate ? ExcavateTitle(excavate)
+            : pool.Uncomputed is null ? Loc.P("Pool.Title", pool.Count, CardCount(pool.Count))
+            : Loc.T("Pool.NotComputed");
         CardPoolSource = pool.SourceName;
         CardPoolDescription = pool.Uncomputed is { } reason ? $"{pool.SourceName}: {PoolDisplay.Reason(reason)}" : pool.Description;
         CardPoolHasCards = pool.Uncomputed is null;
@@ -473,12 +508,13 @@ public sealed partial class OverlayViewModel
         CardPoolPhrase = pool.Uncomputed is { } why ? $"{pool.SourceName}: {PoolDisplay.Reason(why)}" : pool.SourceName;
         CardPoolMeta = pool.Uncomputed is null ? pool.Description : string.Empty;
         UpdateSectionChips();
-        CardPoolAverages = pool.Uncomputed is not null ? []
+        UpdateExcavate(pool.Excavate);
+        CardPoolAverages = pool.Uncomputed is not null || pool.Excavate is not null ? []
             : CardPoolStats
                 .Select(stat => PoolStats.Average(pool.Cards, stat) is { } value ? new PoolAverage(PoolDisplay.Stat(stat), AverageText(value)) : null)
                 .OfType<PoolAverage>()
                 .ToList();
-        CardPoolMechanicRows = pool.Mechanics.Take(MechanicChipCount).Select(PoolDisplay.Mechanic)
+        CardPoolMechanicRows = pool.Excavate is not null ? [] : pool.Mechanics.Take(MechanicChipCount).Select(PoolDisplay.Mechanic)
             .Select(m => new PoolMechanicRow(m.Label, m.PercentText))
             .ToList();
         var top = PoolStats.TopCards(pool, TopCardCount);
@@ -565,6 +601,7 @@ public sealed partial class OverlayViewModel
         CardPoolMeta = string.Empty;
         CardPoolHasCards = false;
         CardPoolSections = [];
+        UpdateExcavate(null);
         CardPoolAverages = [];
         CardPoolMechanicRows = [];
         CardPoolTopCards = [];
@@ -596,13 +633,33 @@ public sealed partial class OverlayViewModel
         _cardPoolSelected.IntersectWith(pool.Filters.Select(f => f.Tag));
         CardPoolBrowserTitle = Loc.P("Pool.BrowserTitle", pool.Count, CardCount(pool.Count), pool.SourceName);
         CardPoolFilterChips = pool.Filters.Select(f => new PoolChipModel(f.Tag, PoolDisplay.Mechanic(f).Label, _cardPoolSelected.Contains(f.Tag))).ToList();
+        // Excavate treasures come in the order the cycle gives them, the next tier first.
+        var order = pool.Excavate?.FromNext.Select(t => t.Label).ToList();
         var cards = pool.Cards
             .Where(c => _cardPoolSection is null || c.Sections.Contains(_cardPoolSection))
             .Where(c => _cardPoolSelected.All(c.Mechanics.Contains))
-            .OrderBy(c => c.Cost).ThenBy(c => c.Name, StringComparer.CurrentCulture)
+            .OrderBy(c => order is null ? 0 : order.IndexOf(c.Sections.FirstOrDefault() ?? string.Empty))
+            .ThenBy(c => c.Cost).ThenBy(c => c.Name, StringComparer.CurrentCulture)
             .ToList();
         CardPoolBrowserNote = _cardPoolSelected.Count > 0 || _cardPoolSection is not null ? Loc.P("Pool.Match", cards.Count, CardCount(cards.Count)) : string.Empty;
         CardPoolBrowserRows = cards.Chunk(3).Select(row => new PoolCardRowModel(row)).ToList();
+    }
+
+    /// <summary>"Excavate: tier 2 of 4" in a game; "Excavate: 4 tiers" when the next tier is not known.</summary>
+    private static string ExcavateTitle(ExcavatePool excavate) => excavate.Next is { } next
+        ? Loc.F("Pool.Excavate.Title", next, excavate.Tiers.Count)
+        : Loc.P("Pool.Excavate.TitleAll", excavate.Tiers.Count);
+
+    /// <summary>The Excavate rows: the next tier's treasures, then the other tiers in the cycle's order, one line each.</summary>
+    private void UpdateExcavate(ExcavatePool? excavate)
+    {
+        ShowCardPoolExcavate = excavate is not null;
+        var next = excavate?.Next is not null ? excavate.FromNext[0] : null;
+        CardPoolExcavateNext = next is null ? string.Empty : Loc.F("Pool.Excavate.Next", Loc.T("Pool.Excavate.Rarity." + next.Rarity));
+        CardPoolExcavateRows = next?.Treasures.Select(t => new PoolListRow(t.CardId, t.Name, t.Cost, t.Rarity, string.Empty)).ToList() ?? [];
+        CardPoolExcavateTiers = excavate?.FromNext.Where(t => t != next)
+            .Select(t => new ExcavateTierRow(Loc.F("Pool.Excavate.Short", t.Tier), t.Rarity, string.Join(", ", t.Treasures.Select(x => x.Name))))
+            .ToList() ?? [];
     }
 
     /// <summary>An average with one decimal, without a trailing ",0": "6", "4,2".</summary>

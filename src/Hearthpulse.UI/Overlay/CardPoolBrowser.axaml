@@ -7,6 +7,8 @@
              x:DataType="o:OverlayViewModel">
     <!-- The pool browser (MovablePanel "card-pool-browser"): every card of the pool. DataContext is the OverlayViewModel. -->
     <UserControl.Resources>
+        <i:Truthy x:Key="Truthy" />
+
         <DataTemplate x:Key="FilterChipTemplate" x:DataType="o:PoolChipModel">
             <Border Classes="poolFilter" Classes.selected="{Binding Selected}" CornerRadius="6" Padding="8,3" Margin="0,0,5,5" Cursor="Hand"
                     BorderThickness="1" PointerReleased="OnChipReleased">
@@ -84,6 +86,9 @@
 
             <!-- FILTERS: mechanics of this pool; the selected ones must all be on a card -->
             <StackPanel Grid.Row="2" Margin="14,8,14,4">
+                <!-- Excavate: what the player's next Excavate gives; the tier chips below filter the grid, which starts at that tier -->
+                <TextBlock Text="{Binding CardPoolExcavateNext}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Accent}" Margin="0,0,0,6"
+                           IsVisible="{Binding CardPoolExcavateNext, Converter={StaticResource Truthy}}" />
                 <!-- The generator's separate pools (Hearthstone Wiki): click one to see only its cards -->
                 <ItemsControl ItemsSource="{Binding CardPoolSections}" ItemTemplate="{StaticResource FilterChipTemplate}" Margin="0,0,0,6" IsVisible="{Binding CardPoolHasSections}">
                     <ItemsControl.ItemsPanel>
@@ -92,7 +97,7 @@
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
-                <DockPanel Background="Transparent" Cursor="Hand" PointerReleased="OnFiltersReleased">
+                <DockPanel Background="Transparent" Cursor="Hand" PointerReleased="OnFiltersReleased" IsVisible="{Binding CardPoolFilterChips, Converter={StaticResource Truthy}}">
                     <Panel DockPanel.Dock="Right" VerticalAlignment="Center">
                         <TextBlock Text="&#xF0140;" Classes="icon" FontSize="16" IsVisible="{Binding !CardPoolFiltersOpen}" />
                         <TextBlock Text="&#xF0143;" Classes="icon" FontSize="16" IsVisible="{Binding CardPoolFiltersOpen}" />

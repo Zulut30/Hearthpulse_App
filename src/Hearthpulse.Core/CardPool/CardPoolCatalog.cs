@@ -139,9 +139,11 @@ public sealed class CardPoolCatalog
         return await LoadHearthstoneJsonAsync(http, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<List<PoolCard>?> FetchApiAsync(HearthpulseApi api, CancellationToken cancellationToken)
+    /// <summary>Every page of <c>/api/v1/constructed-cards</c>; null when a page fails.</summary>
+    internal static async Task<List<PoolCard>?> FetchApiAsync(HearthpulseApi api, CancellationToken cancellationToken)
     {
         var cards = new List<PoolCard>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var page = 1; page <= MaxPages; page++)
         {
             var result = await api.GetAsync($"api/v1/constructed-cards?format=wild&per_page={PageSize}&page={page}", cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -151,16 +153,25 @@ public sealed class CardPoolCatalog
                 return null;
             }
 
-            var before = cards.Count;
-            cards.AddRange(ParseApiPage(result.Data));
-            // The last page is short; a page past the end repeats the last one, so a short page also ends the loop.
-            if (result.Data.ValueKind != JsonValueKind.Array || result.Data.GetArrayLength() < PageSize || cards.Count == before)
+            // The last page is short, and a page past the end repeats the last one (checked 2026-10-28): a full last page
+            // is followed by the same cards again, so a page with no new card ends the loop as well.
+            var added = 0;
+            foreach (var card in ParseApiPage(result.Data))
+            {
+                if (seen.Add(card.Id))
+                {
+                    cards.Add(card);
+                    added++;
+                }
+            }
+
+            if (result.Data.ValueKind != JsonValueKind.Array || result.Data.GetArrayLength() < PageSize || added == 0)
             {
                 break;
             }
         }
 
-        return cards.DistinctBy(c => c.Id).ToList();
+        return cards;
     }
 
     /// <summary>Reads one page of <c>/api/v1/constructed-cards</c> (the <c>data</c> array).</summary>

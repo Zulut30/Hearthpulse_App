@@ -45,6 +45,9 @@ public sealed record PoolContext(string Format, string? OwnClass, string? Oppone
     /// <summary>The live game's GameType; null outside a game (a pool the UI asks for).</summary>
     public string? GameType { get; init; }
 
+    /// <summary>The player's Excavate cycle in the live game; null outside a game (the Excavate pool then shows no next tier).</summary>
+    public ExcavateState? Excavate { get; init; }
+
     public bool IsStandard => Format == "FT_STANDARD";
 
     public bool IsSupported => Format is "FT_STANDARD" or "FT_WILD" && (GameType is null || SupportedGameTypes.Contains(GameType));

@@ -54,6 +54,18 @@ public sealed record PoolEntry(
 /// <summary>One of several pools a generator draws from (a Hearthstone Wiki pool: "Blood Rune", 29 cards).</summary>
 public sealed record PoolSection(string Label, int Count);
 
+/// <summary>One Excavate tier: its number (1-4), the shown label ("Tier 2", also the section label) and its treasures.</summary>
+public sealed record ExcavateTier(int Tier, string Label, string Rarity, IReadOnlyList<PoolEntry> Treasures);
+
+/// <summary>The Excavate part of a pool view: the cycle's tiers, in order, and the one the next Excavate gives.</summary>
+/// <param name="Next">1-based tier of the player's next Excavate; null outside a game.</param>
+public sealed record ExcavatePool(int? Next, IReadOnlyList<ExcavateTier> Tiers)
+{
+    /// <summary>The tiers from the next one on, in the order the cycle gives them (all in order when the next is unknown).</summary>
+    public IReadOnlyList<ExcavateTier> FromNext =>
+        Next is not { } next ? Tiers : Tiers.SkipWhile(t => t.Tier != next).Concat(Tiers.TakeWhile(t => t.Tier != next)).ToList();
+}
+
 /// <summary>Everything the pool panel shows for one generator.</summary>
 /// <param name="Description">The pool in words: "Battlecry minions · Mage + Neutral · Standard".</param>
 /// <param name="Featured">The highlighted pool card (most played in meta decks), or null.</param>
@@ -86,4 +98,7 @@ public sealed record CardPoolView(
 
     /// <summary>The generator's separate pools (one per rune, per choice...); empty for a single pool.</summary>
     public IReadOnlyList<PoolSection> Sections { get; init; } = [];
+
+    /// <summary>The treasures by tier for a card that Excavates (or counts Excavates); null for other pools.</summary>
+    public ExcavatePool? Excavate { get; init; }
 }
