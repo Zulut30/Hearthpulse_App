@@ -281,6 +281,38 @@ public sealed class BattlegroundsMeta
     }
 
     /// <summary>
+    /// Community stats as both apps load them: heroes and minions from the Hearthpulse API (<see cref="LoadAsync"/>),
+    /// and, when a stats pool is set up, the pool's meta laid over them for what the API lacks (or the pool's own meta
+    /// when the API did not load). Each failure is logged; null when neither loaded. docs/bg-meta-sources.md.
+    /// </summary>
+    public static async Task<BattlegroundsMeta?> LoadCommunityAsync(Api.HearthpulseApi api, HttpClient http, AppSettings settings)
+    {
+        BattlegroundsMeta? meta = null;
+        try
+        {
+            meta = await LoadAsync(new Api.HearthpulseData(api));
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Community stats unavailable", ex);
+        }
+
+        if (PoolClient.Available(settings))
+        {
+            try
+            {
+                meta = await PoolClient.OverlayAsync(http, PoolClient.Endpoint(settings), meta);
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Stats pool unavailable", ex);
+            }
+        }
+
+        return meta;
+    }
+
+    /// <summary>
     /// Loads the community stats from the Hearthpulse API (HSReplay data): hero results for each MMR slice the API
     /// publishes (<see cref="HeroSlices"/>) and minion results per bracket (<see cref="CardSlices"/>). Comps, guides,
     /// trinkets, tribe impact, turn results and MMR floors are not in the API: they stay empty until the stats pool

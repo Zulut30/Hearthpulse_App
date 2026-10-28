@@ -188,6 +188,46 @@ public static class UpdateService
         }
     }
 
+    /// <summary>
+    /// The update loop both apps run in the background: 20 seconds after it starts, then every six hours, asks GitHub
+    /// for a newer release. One this copy must not install itself (<paramref name="notifyOnly"/>) goes to
+    /// <paramref name="available"/>, one downloaded and verified to <paramref name="staged"/>; either ends the loop. A
+    /// failed check, an unverifiable file or a failed download goes to <paramref name="failed"/> as the text to show
+    /// (read when shown, so it follows the language) and is tried again later. Callbacks run on a pool thread.
+    /// </summary>
+    public static async Task WatchAsync(HttpClient http, bool notifyOnly, Action<UpdateInfo> available, Action<UpdateInfo> staged, Action<Func<string>> failed)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(20));
+        while (true)
+        {
+            try
+            {
+                var check = await CheckForUpdateAsync(http);
+                var info = check.Update;
+                if (info is not null && notifyOnly)
+                {
+                    available(info);
+                    return;
+                }
+
+                if (info is { Sha256: not null } && await DownloadAsync(http, info) is not null)
+                {
+                    staged(info);
+                    return;
+                }
+
+                var message = check.Message;
+                failed(info is { Sha256: not null } ? () => Loc.F("Host.Update.DownloadFailed", info.Version) : () => message);
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Update check failed", ex);
+            }
+
+            await Task.Delay(TimeSpan.FromHours(6));
+        }
+    }
+
     /// <summary>Asks GitHub for the newest release; null when this copy is current or when anything goes wrong.</summary>
     public static async Task<UpdateInfo?> CheckAsync(HttpClient http, CancellationToken cancellationToken = default) =>
         (await CheckForUpdateAsync(http, cancellationToken)).Update;
