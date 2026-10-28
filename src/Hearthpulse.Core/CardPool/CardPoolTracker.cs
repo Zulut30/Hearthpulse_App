@@ -11,8 +11,11 @@ namespace Hearthpulse.Core.CardPool;
 /// </summary>
 public sealed class CardPoolTracker : IPowerListener
 {
-    /// <summary>How long a hovered card's pool stays after the mouse leaves it, so the panel can be reached.</summary>
-    public static readonly TimeSpan HoverLinger = TimeSpan.FromSeconds(1.5);
+    /// <summary>
+    /// How long a hovered card's pool stays after the mouse leaves it: long enough to reach the panel beside the card
+    /// (resting on it holds the pool), short enough that it does not hang over the board after the card is left.
+    /// </summary>
+    public static readonly TimeSpan HoverLinger = TimeSpan.FromSeconds(0.8);
 
     private readonly object _gate = new();
     private string? _choiceSource;
@@ -167,6 +170,22 @@ public sealed class CardPoolTracker : IPowerListener
         return false;
     }
 
+    /// <summary>The card under the mouse (or still lingering after it) when it is in your hand; null otherwise.</summary>
+    public string? HoveredInHand(GameState game)
+    {
+        string? hovered;
+        lock (_gate)
+        {
+            hovered = _hovered ?? (_lingering is not null && DateTime.UtcNow <= _lingerUntil ? _lingering : null);
+        }
+
+        return hovered is not null && InLocalHand(game, hovered) ? hovered : null;
+    }
+
+    /// <summary>Where a card in your hand sits (the leftmost copy), for a panel beside it; null when it is not there.</summary>
+    public static CardPoolAnchor? HandAnchor(GameState game, string cardId) =>
+        Slot(game.Controlled(game.LocalPlayerId, "HAND").ToList(), cardId) is { } h ? new CardPoolAnchor(PoolAnchorZone.Hand, h.Index, h.Count) : null;
+
     /// <summary>The pool to show now, or null.</summary>
     public CardPoolView? BuildView(GameState game, CardDb cards)
     {
@@ -234,9 +253,7 @@ public sealed class CardPoolTracker : IPowerListener
             return new CardPoolAnchor(PoolAnchorZone.Choice, 0, Math.Clamp(options, 1, 5));
         }
 
-        return Slot(game.Controlled(game.LocalPlayerId, "HAND").ToList(), view.SourceCardId) is { } h
-            ? new CardPoolAnchor(PoolAnchorZone.Hand, h.Index, h.Count)
-            : null;
+        return HandAnchor(game, view.SourceCardId);
     }
 
     private static (int Index, int Count)? Slot(List<Entity> row, string cardId)

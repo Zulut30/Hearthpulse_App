@@ -1,9 +1,9 @@
 # Card pool panel ("Discover pool")
 
 For a card that Discovers or creates random cards, the overlay shows the pool the cards come from, next to the card in
-your hand or the Discover options, as a compact tooltip (300 units wide): size, classes, format and source on one line, a
-low Cost/Attack/Health chart with the median, the most common mechanics as chips, the most played pool cards as small
-tiles and, on right-click, the pool browser with every card. Everything is built from game data and card text; no code of other trackers was used. The
+your hand or the Discover options, as a compact tooltip (300 units wide): size, classes, format and source on one line,
+the average mana, attack and health on one line, the most common mechanics, the most played pool cards as tracker rows
+and, on right-click, the pool browser with every card. Everything is built from game data and card text; no code of other trackers was used. The
 idea of a pool panel with a list of options is known from HDT's Outfinder; the layout here follows the spec this
 project was given.
 
@@ -158,22 +158,20 @@ Text rules (`PoolStats`, over the English text):
 Cost 0..6 and 7+ (all pool cards); Attack 0..6 and 7+ (minions and weapons); Health 1..9 and 10+ (minions). The
 median is the usual median of the cards that have the stat (halves shown as 3.5); its bar is highlighted.
 
-The panel draws one stat at a time as a low chart (bars at most 34 units, `OverlayViewModel.BarMaxHeight`): tabs
-Cost / Attack / Health (only stats some pool card has), rounded bars with a gradient per stat (tokens `PoolStatCostBar`,
-`PoolStatAttackBar`, `PoolStatHealthBar`; keys starting with `PoolStat` are never recoloured by a theme), the count above
-each bar, the median bar with a sheen and an outline, and an axis of Hearthstone mana gems (`ManaCost`, Cost), round
-tokens (Attack) or drops (Health). The panel lets clicks through, so it reacts to hover only: the pointer on a tab switches the chart, on a
-column lists that column's cards over the lower part of the panel (`PoolStats.CardsIn`: the most played in meta decks
-first, 8 at most, "+N more"). Below the chart: the mechanic chips and the four most played pool cards as small art tiles
-with cost and name (`PoolStats.TopCards`; hidden without meta data). The full lists are in the pool browser.
-Everything is built when the pool changes; a tab or a column only rebuilds the chart. The bars grow in (260 ms) on a
-new pool or tab in WPF when Windows' animation setting is on.
+The histograms stay in the view (`CardPoolView.Cost/Attack/Health`) but the compact panel no longer draws them
+(2026-10-28: the chart with tabs was too busy for a tooltip, and rebuilding it on every hovered column cost about
+25 ms of the UI thread each). It shows one line instead: "Average Mana 6 Attack 4.2 Health 5.1"
+(`PoolStats.Average`: the same cards as the histograms, unclamped, one decimal; a stat no pool card has is left out).
+Below it the four most common mechanics on one quiet line, and the four pool cards played most in meta decks as tracker
+rows: cost gem, the whole name over a strip of card art, and its share of the meta-deck games of the pool's cards
+(`PoolStats.TopCards`; hidden without meta data). The full lists are in the pool browser. Everything is built when the
+pool changes.
 
-The panel fades in and rises 6 units (170 ms, cubic ease-out) when it appears or shows another pool, in both UIs, only
+The panel fades in (opacity only, 120 ms, cubic ease-out) when it appears or shows another pool, in both UIs, only
 with Windows' animation setting on (WPF `SystemParameters.ClientAreaAnimation`, Avalonia `PoolInput.AnimationsOn`, so
 not on macOS/Linux). Its position next to the card is set before the first frame (WPF measures it on becoming visible),
-so it never shows at the previous spot; only the panel itself moves the few units. `--render-ui` turns the Avalonia fade
-off (`CardPoolPanel.Motion`); the WPF render waits long enough for it to finish.
+so it never shows at the previous spot and never slides. `--render-ui` turns the Avalonia fade off
+(`CardPoolPanel.Motion`); the WPF render waits long enough for it to finish.
 
 ## When the panel shows
 
@@ -197,9 +195,15 @@ The compact panel lets clicks through to the game on every desktop (it appears o
 and the mouse buttons are read globally - WPF while the panel is shown; Avalonia through the overlay platform layer
 (`IOverlayPlatform.PointerPosition`/`MouseButtons`: `GetAsyncKeyState` on Windows, `CGEventSourceButtonState` on macOS,
 `XQueryPointer` on X11), the same way the other click-through panels get the pointer. Only the pool browser takes the
-mouse. `OverlayViewModel.UpdateCardPoolPointer` holds the pool only after the pointer has rested on the panel for
-350 ms (crossing the board does not keep a stale pool up). A right-click on the panel opens or closes the browser,
-except while the left button is down (targeting); the game receives that right-click too.
+mouse. A hovered card's pool stays 0.8 s after the mouse leaves the card (`CardPoolTracker.HoverLinger`), enough to
+reach the panel beside it; `OverlayViewModel.UpdateCardPoolPointer` holds the pool only after the pointer has rested on
+the panel for 200 ms with no button down (crossing the board does not keep a stale pool up). A left press ends the
+hold - the player is playing a card or aiming through the panel - so the popup never stays over the board after its
+card is played. A right-click on the panel opens or closes the browser, except while the left button is down
+(targeting); the game receives that right-click too. WPF polls every 40 ms at input priority and also counts a click
+that went down and up between two polls (`PoolInput.WasPressed`). Until 2026-10-28 the right-click closed the browser
+again at once in WPF: opening it hides the popup, the popup's hide handler released the hold, and the re-entered
+update saw a browser "from another turn" because the turn was stored after opening (`CardPoolPopupTests`).
 
 ### Where the panel stands
 
@@ -217,9 +221,27 @@ hand: the leftmost. A pool whose card is not on screen (a request) and the layou
 panel `card-pool` (top left by default, 300 units wide, next to the opponent panel), clear of the Discover options. The
 panel next to its card is a second `CardPoolPanel` in a Canvas over the surface (`Anchored`), not a `MovablePanel`.
 
+## This game's cards (hovered card in hand)
+
+A card in hand whose text looks back at this game - "Trigger the Deathrattle of a random friendly minion that died this
+game" (Undeath Sentence), Resurrect, "spells you've cast this game", "minions you've summoned / played this game" -
+shows, when hovered, the cards of this game that fit, as tracker rows (cost gem, name over the art strip, "×2" for
+repeats; 8 rows at most, "+N more"; "None this game yet" when empty). It sits in the same popup beside the card: on its
+own (header "Your minions that died · Deathrattle: 3" and the card's name) or above the card's pool under that label.
+It never covers another card's pool (a Discover choice wins).
+
+`MatchLists.Parse` reads the rule from the English card text (the pool catalog's; the card data's in an English
+client): the clause before "died this game" / "you've cast|played|summoned this game", or after Resurrect, names the
+side (friendly/your, enemy, or both), a mechanic (Deathrattle, Taunt, Divine Shield, Rush, Lifesteal, Reborn,
+Battlecry), a minion type, a spell school and an "N-Cost". A clause that ends in a name ("each time Ysondre has died",
+"each friendly Treant") or adds a condition the list cannot check ("that didn't start in your deck") has no list.
+`MatchLists.Build` takes the cards from `CounterTracker` (deaths on the board for both players, the local player's
+plays and summons) and the card data (mechanics, types, cost, localized names): only what the player saw. Rules are
+cached per card id; a card with a rule in hand also turns on the hover reads.
+
 ## What players take (pick hint)
 
-While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the chart,
+While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the averages,
 two lines per offered card: its name on its own line, then the share of offers in which players took it (bar and
 percent) and the share of games they won after taking it; the name in gold with a star when one option leads the next by 5 points or more; then
 a line naming the rank and the source, "Legend · Hearthpulse data". Numbers only, never advice or a click for the player.

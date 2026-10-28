@@ -2,10 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Media;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 using Hearthpulse.Core.CardPool;
 
 namespace Hearthpulse.UI.Overlay;
@@ -13,30 +10,23 @@ namespace Hearthpulse.UI.Overlay;
 /// <summary>
 /// The card pool panel. It appears on its own (Discover, a hovered card in hand), often over the board, so it lets
 /// clicks through to the game on every desktop, like the other click-through panels: the overlay host reads the pointer
-/// and mouse buttons through its platform layer and passes them in (<see cref="OverlayView.UpdateCardPoolPointer"/>);
-/// chart tabs and columns react to hover (<see cref="OverlayViewModel.HoverCardPoolChart"/>).
+/// and mouse buttons through its platform layer and passes them in (<see cref="OverlayView.UpdateCardPoolPointer"/>).
 /// With <see cref="Anchored"/> it sits in a Canvas over the whole surface and stands next to its card.
-/// It fades in and rises a few units when it appears or its pool changes (<see cref="Reveal"/>).
+/// It fades in when it appears or its pool changes (<see cref="Reveal"/>).
 /// </summary>
 public partial class CardPoolPanel : UserControl
 {
-    private static readonly TimeSpan RevealTime = TimeSpan.FromMilliseconds(170);
+    private static readonly TimeSpan RevealTime = TimeSpan.FromMilliseconds(120);
 
-    /// <summary>How far below its spot the panel starts when it fades in, in overlay units.</summary>
-    private const double RevealRise = 6;
-
-    private readonly TranslateTransform _shift = new();
     private readonly DispatcherTimer _reveal = new() { Interval = TimeSpan.FromMilliseconds(16) };
     private readonly Stopwatch _revealClock = new();
     private OverlayViewModel? _subscribed;
-    private bool _pointerWasOver;
     private bool _shown;
     private string _revealKey = string.Empty;
 
     public CardPoolPanel()
     {
         InitializeComponent();
-        Card.RenderTransform = _shift;
         _reveal.Tick += (_, _) => StepReveal();
         SizeChanged += (_, _) => Place();
         PropertyChanged += (_, e) =>
@@ -115,8 +105,8 @@ public partial class CardPoolPanel : UserControl
     private string RevealKey() => DataContext is OverlayViewModel vm ? $"{vm.CardPoolSource}|{vm.CardPoolTitle}|{vm.CardPoolPhrase}" : string.Empty;
 
     /// <summary>
-    /// A short fade and rise (ease-out) when the panel appears or shows another pool; only with the Windows animation
-    /// setting on, like the pool browser. The position is set before, so only the panel itself moves the few units.
+    /// A short fade (ease-out, opacity only) when the panel appears or shows another pool; only with the Windows
+    /// animation setting on, like the pool browser. The position is set before, so the panel never slides.
     /// </summary>
     private void Reveal()
     {
@@ -125,12 +115,10 @@ public partial class CardPoolPanel : UserControl
         {
             _reveal.Stop();
             Card.Opacity = 1;
-            _shift.Y = 0;
             return;
         }
 
         Card.Opacity = 0;
-        _shift.Y = RevealRise;
         _revealClock.Restart();
         _reveal.Start();
     }
@@ -140,7 +128,6 @@ public partial class CardPoolPanel : UserControl
         var t = Math.Min(1, _revealClock.Elapsed / RevealTime);
         var eased = 1 - Math.Pow(1 - t, 3);
         Card.Opacity = eased;
-        _shift.Y = RevealRise * (1 - eased);
         if (t >= 1)
         {
             _reveal.Stop();
@@ -172,31 +159,5 @@ public partial class CardPoolPanel : UserControl
         var local = pointer is { } p && Card.IsEffectivelyVisible ? view.TranslatePoint(p, Card) : null;
         var over = local is { } q && q.X >= 0 && q.Y >= 0 && q.X <= Card.Bounds.Width && q.Y <= Card.Bounds.Height;
         vm.UpdateCardPoolPointer(over, buttons.Left, buttons.Right);
-
-        // The chart reacts to hover: the element under the pointer belongs to a tab or a column through its DataContext.
-        string? stat = null;
-        int? bar = null;
-        for (var node = over ? Card.InputHitTest(local!.Value) as Visual : null; node is not null && node != Card; node = node.GetVisualParent())
-        {
-            if (node is Control { DataContext: PoolChartTab tab })
-            {
-                stat = tab.Stat;
-                break;
-            }
-
-            if (node is Control { DataContext: PoolChartBar column })
-            {
-                bar = column.Index;
-                break;
-            }
-        }
-
-        // Off the panel only the moment the pointer leaves it clears the hovered column.
-        if (over || _pointerWasOver)
-        {
-            vm.HoverCardPoolChart(stat, bar);
-        }
-
-        _pointerWasOver = over;
     }
 }

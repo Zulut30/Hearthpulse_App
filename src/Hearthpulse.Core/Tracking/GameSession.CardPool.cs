@@ -13,6 +13,7 @@ public sealed partial class GameSession
     private static readonly TimeSpan HoverIdle = TimeSpan.FromSeconds(10);
 
     private readonly CardPoolTracker _cardPool = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, MatchRule?> _matchRules = new(StringComparer.Ordinal);
     private readonly object _cardPoolGate = new();
     private CardPoolCatalog _cardPoolCatalog = CardPoolCatalog.Empty;
     private WikiPoolSource? _cardPoolWiki;
@@ -32,6 +33,7 @@ public sealed partial class GameSession
         lock (_cardPoolGate)
         {
             _cardPoolCatalog = catalog;
+            _matchRules.Clear();
         }
 
         _dirty = true;
@@ -108,7 +110,7 @@ public sealed partial class GameSession
         var engine = _cardPoolEnabled ? CardPoolEngineNow() : null;
         _cardPoolHoverWanted = engine is not null && HearthstoneMemory.IsSupported
                                && CardPoolTracker.ContextOf(game, _cards).IsSupported
-                               && _cardPool.HandHasPool(game, _cards);
+                               && (_cardPool.HandHasPool(game, _cards) || HandHasMatchList(game));
         if (_cardPoolHoverWanted)
         {
             EnsureHoverThread();
@@ -124,7 +126,12 @@ public sealed partial class GameSession
         try
         {
             var pool = _cardPool.BuildView(game, _cards);
-            return view with { CardPool = pool, CardPoolAnchor = _cardPool.AnchorOf(game, pool), DiscoverPicks = PicksOf(game, pool) };
+            // The hovered card's look back at this game, above its own pool; never over another card's pool (a Discover).
+            var list = _cardPool.HoveredInHand(game) is { } hovered && (pool is null || pool.SourceCardId == hovered) && MatchRuleOf(hovered) is { } rule
+                ? MatchLists.Build(hovered, rule, game, _constructed.Counters, _cards)
+                : null;
+            var anchor = _cardPool.AnchorOf(game, pool) ?? (list is null ? null : CardPoolTracker.HandAnchor(game, list.SourceCardId));
+            return view with { CardPool = pool, CardPoolAnchor = anchor, MatchList = list, DiscoverPicks = PicksOf(game, pool) };
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException)
         {
@@ -132,6 +139,28 @@ public sealed partial class GameSession
             return view;
         }
     }
+
+    /// <summary>Whether a card in your hand looks back at this game (then the card under the mouse is worth reading).</summary>
+    private bool HandHasMatchList(GameState game) =>
+        game.Controlled(game.LocalPlayerId, "HAND").Any(card => card.CardId.Length > 0 && MatchRuleOf(card.CardId) is not null);
+
+    /// <summary>
+    /// The rule of a card, from its English text: the pool catalog's, or the card data's in an English client. Cached;
+    /// cards whose text the catalog does not have (an uncollectible card in a non-English client) have none.
+    /// </summary>
+    private MatchRule? MatchRuleOf(string cardId) => _matchRules.GetOrAdd(cardId, id =>
+    {
+        CardPoolCatalog catalog;
+        lock (_cardPoolGate)
+        {
+            catalog = _cardPoolCatalog;
+        }
+
+        var english = catalog.Get(id) is { } known ? (known.Text, known.Name)
+            : _cards.Locale.StartsWith("en", StringComparison.OrdinalIgnoreCase) && _cards.Get(id) is { } card ? (card.Text, card.Name)
+            : (Text: string.Empty, Name: string.Empty);
+        return english.Text.Length == 0 ? null : MatchLists.Parse(english.Text, english.Name);
+    });
 
     /// <summary>
     /// The pick hint while the player's own choice is open and its pool is up: from the card's choices in memory (the

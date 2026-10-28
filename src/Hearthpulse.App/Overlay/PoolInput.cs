@@ -20,6 +20,12 @@ internal static partial class PoolInput
 
     public static bool IsDown(int key) => (GetAsyncKeyState(key) & 0x8000) != 0;
 
+    /// <summary>
+    /// Down now, or pressed and released since the last read (a click shorter than the poll interval). The "since" bit is
+    /// best effort: another reader of the same key clears it.
+    /// </summary>
+    public static bool WasPressed(int key) => (GetAsyncKeyState(key) & 0x8001) != 0;
+
     /// <summary>The cursor in screen pixels.</summary>
     public static (int X, int Y)? Cursor() => GetCursorPos(out var p) ? (p.X, p.Y) : null;
 
