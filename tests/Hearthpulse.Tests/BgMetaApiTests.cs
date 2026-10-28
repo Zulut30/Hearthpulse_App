@@ -6,7 +6,6 @@ using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

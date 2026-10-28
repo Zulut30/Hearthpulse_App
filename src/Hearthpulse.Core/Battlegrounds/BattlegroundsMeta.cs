@@ -3,8 +3,6 @@ using Hearthpulse.Core.Pool;
 
 namespace Hearthpulse.Core.Battlegrounds;
 
-public sealed record MetaTribeImpact(int Tribe, double Impact);
-
 /// <summary>Community results for a hero at one MMR bracket.</summary>
 /// <param name="PlacementShares">Share of games ending in place 1..8 (index 0 = 1st), when the source publishes them.</param>
 /// <param name="CombatWinRate">Share of combats won on each turn, when the source publishes it.</param>
@@ -280,6 +278,38 @@ public sealed class BattlegroundsMeta
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Community stats as both apps load them: heroes and minions from the Hearthpulse API (<see cref="LoadAsync"/>),
+    /// and, when a stats pool is set up, the pool's meta laid over them for what the API lacks (or the pool's own meta
+    /// when the API did not load). Each failure is logged; null when neither loaded. docs/bg-meta-sources.md.
+    /// </summary>
+    public static async Task<BattlegroundsMeta?> LoadCommunityAsync(Api.HearthpulseApi api, HttpClient http, AppSettings settings)
+    {
+        BattlegroundsMeta? meta = null;
+        try
+        {
+            meta = await LoadAsync(new Api.HearthpulseData(api));
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Community stats unavailable", ex);
+        }
+
+        if (PoolClient.Available(settings))
+        {
+            try
+            {
+                meta = await PoolClient.OverlayAsync(http, PoolClient.Endpoint(settings), meta);
+            }
+            catch (Exception ex)
+            {
+                Diag.Error("Stats pool unavailable", ex);
+            }
+        }
+
+        return meta;
     }
 
     /// <summary>

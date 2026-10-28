@@ -1,5 +1,4 @@
 using Hearthpulse.Core.Hearthstone;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

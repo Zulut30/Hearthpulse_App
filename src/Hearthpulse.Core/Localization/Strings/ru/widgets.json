@@ -23,7 +23,6 @@
   "Widgets.Ladder.LossStreak": "{0} поражение подряд|{0} поражения подряд|{0} поражений подряд",
   "Widgets.Ladder.Since": "С {0:t}",
   "Widgets.Ladder.RankNote": "Ранг — тот, что был в начале последней игры",
-  "Widgets.Ladder.None": "В этой сессии ещё нет рейтинговых игр",
   "Widgets.Ladder.Setting": "Сессия ладдера",
   "Widgets.Ladder.SettingTip": "Ранг в начале сессии и сейчас, счёт, винрейт и серия: в оверлее вне игр и на странице «Обзор»",
   "Widgets.Ladder.Break": "Новая сессия через",

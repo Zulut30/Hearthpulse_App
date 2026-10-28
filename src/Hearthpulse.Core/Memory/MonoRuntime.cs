@@ -406,12 +406,6 @@ public sealed class MonoClass
         return new MonoObject(_runtime, address == 0 ? 0 : _runtime.Memory.ReadPtr(address));
     }
 
-    public int GetStaticInt(string fieldName)
-    {
-        var address = StaticFieldAddress(fieldName);
-        return address == 0 ? 0 : _runtime.Memory.ReadInt32(address);
-    }
-
     private ulong StaticFieldAddress(string fieldName)
     {
         var field = FindField(fieldName);

@@ -59,9 +59,6 @@ public partial class OverlayView : UserControl
     /// <summary>Raised when the player moved, resized or reset panels; settings should be saved.</summary>
     public event Action? LayoutChanged;
 
-    /// <summary>Surface size in overlay units.</summary>
-    public Size SurfaceSize => _layoutSize;
-
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);

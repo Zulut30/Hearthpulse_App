@@ -2,7 +2,6 @@ using System.Net;
 using System.Text;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

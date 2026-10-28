@@ -3,7 +3,6 @@ using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Tracking.Counters;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

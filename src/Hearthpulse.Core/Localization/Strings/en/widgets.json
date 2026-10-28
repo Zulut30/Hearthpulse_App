@@ -23,7 +23,6 @@
   "Widgets.Ladder.LossStreak": "{0} loss in a row|{0} losses in a row",
   "Widgets.Ladder.Since": "Since {0:t}",
   "Widgets.Ladder.RankNote": "The rank is the one shown at the start of the latest game",
-  "Widgets.Ladder.None": "No ranked games in this session yet",
   "Widgets.Ladder.Setting": "Ladder session",
   "Widgets.Ladder.SettingTip": "Rank at the session's start and now, record, win rate and streak: in the overlay outside games and on the Overview page",
   "Widgets.Ladder.Break": "New session after",

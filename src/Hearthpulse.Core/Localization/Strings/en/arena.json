@@ -42,7 +42,6 @@
   "Arena.Types.Spells": "{0:N0} spell|{0:N0} spells",
   "Arena.Types.Weapons": "{0:N0} weapon|{0:N0} weapons",
   "Arena.Types.Locations": "{0:N0} location|{0:N0} locations",
-  "Arena.Panel.Types": "Card types",
   "Arena.Mode.Underground": "Underground Arena",
   "Arena.Mode.Normal": "Normal Arena",
   "Arena.Slice.Underground": "from Underground Arena games",

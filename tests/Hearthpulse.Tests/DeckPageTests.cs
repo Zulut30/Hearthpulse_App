@@ -5,7 +5,6 @@ using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Stats;
 using Hearthpulse.Core.Tracking;
 using Microsoft.Data.Sqlite;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

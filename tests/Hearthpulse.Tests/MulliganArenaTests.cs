@@ -5,7 +5,6 @@ using Hearthpulse.Core.Arena;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

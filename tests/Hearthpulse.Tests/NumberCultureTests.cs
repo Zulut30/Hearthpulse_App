@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Hearthpulse.Core.Localization;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

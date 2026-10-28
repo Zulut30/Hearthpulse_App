@@ -1,5 +1,4 @@
 using System.IO.Pipes;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;

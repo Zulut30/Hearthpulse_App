@@ -98,10 +98,6 @@ public sealed partial class GameSession
         _dirty = true;
     }
 
-    /// <summary>The pool view of any card for a format and classes, outside the live game (null when it has no pool).</summary>
-    public CardPoolView? BuildCardPool(string cardId, PoolContext context) =>
-        CardPoolEngineNow()?.Build(cardId, context, PoolTrigger.Request);
-
     /// <summary>Adds the current pool to a Constructed view; called while publishing.</summary>
     private ConstructedView WithCardPool(ConstructedView view, GameState game)
     {

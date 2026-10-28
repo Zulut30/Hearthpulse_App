@@ -1,6 +1,5 @@
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Secrets;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Hearthpulse.Tests;

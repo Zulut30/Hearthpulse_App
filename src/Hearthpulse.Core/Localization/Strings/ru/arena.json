@@ -42,7 +42,6 @@
   "Arena.Types.Spells": "{0:N0} заклинание|{0:N0} заклинания|{0:N0} заклинаний",
   "Arena.Types.Weapons": "{0:N0} оружие|{0:N0} оружия|{0:N0} оружий",
   "Arena.Types.Locations": "{0:N0} локация|{0:N0} локации|{0:N0} локаций",
-  "Arena.Panel.Types": "Типы карт",
   "Arena.Mode.Underground": "Подземная Арена",
   "Arena.Mode.Normal": "Обычная Арена",
   "Arena.Slice.Underground": "по играм Подземной Арены",

@@ -6,11 +6,7 @@ using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.Data;
 
-public sealed record BackfillResult(int Sessions, int GamesFound, int GamesAdded)
-{
-    /// <summary>Games that got their deck from Decks.log (see <see cref="LogBackfill.FillDecks"/>).</summary>
-    public int DecksFilled { get; init; }
-}
+public sealed record BackfillResult(int Sessions, int GamesFound, int GamesAdded);
 
 /// <summary>Imports finished games from every Power log the client kept on disk.</summary>
 public static class LogBackfill
@@ -56,7 +52,8 @@ public static class LogBackfill
         }
 
         replays.Prune();
-        return new BackfillResult(sessions, found, added) { DecksFilled = FillDecks(installDir, history, cards) };
+        FillDecks(installDir, history, cards);
+        return new BackfillResult(sessions, found, added);
     }
 
     /// <summary>

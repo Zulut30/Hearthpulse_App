@@ -193,7 +193,6 @@
   "Main.Ct.Matchups": "Matchups",
   "Main.Ct.MatchupsHint": "All decks · open a deck for its own",
   "Main.Ct.MatchupsEmpty": "No matchups yet.",
-  "Main.Meta.SortTip": "Order of the list",
   "Main.Meta.TierTip": "Tier by win rate, as on hearthpulse.net: S from 53%, A from 51%, B from 49%, C from 47%, D below",
   "Main.Meta.First": "1st",
   "Main.Meta.FirstTip": "Win rate when going first",

@@ -1,7 +1,6 @@
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

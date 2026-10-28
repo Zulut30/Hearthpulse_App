@@ -144,7 +144,6 @@ public sealed partial class MainViewModel
     private IReadOnlyList<BgPlaceRow> _bgPlaces = [];
     private IReadOnlyList<IChartValue> _bgRatingChart = [];
     private IReadOnlyList<BgHeroPerfRow> _bgHeroPerf = [];
-    private bool _bgHasGlobal;
     private string _bgStatsNote = string.Empty;
 
     private string _ctFormat = "FT_STANDARD";
@@ -233,9 +232,6 @@ public sealed partial class MainViewModel
     public IReadOnlyList<IChartValue> BgRatingChart { get => _bgRatingChart; private set => Set(ref _bgRatingChart, value); }
 
     public IReadOnlyList<BgHeroPerfRow> BgHeroPerf { get => _bgHeroPerf; private set => Set(ref _bgHeroPerf, value); }
-
-    /// <summary>True when community numbers are there to compare with (solo, meta loaded).</summary>
-    public bool BgHasGlobal { get => _bgHasGlobal; private set => Set(ref _bgHasGlobal, value); }
 
     public string BgStatsNote { get => _bgStatsNote; private set => Set(ref _bgStatsNote, value); }
 
@@ -447,7 +443,6 @@ public sealed partial class MainViewModel
             BgPlaces = placeRows;
             BgRatingChart = chart;
             BgHeroPerf = rows;
-            BgHasGlobal = !duos && meta is not null;
             BgStatsNote = note;
         };
     }

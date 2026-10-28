@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows.Input;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Infrastructure;

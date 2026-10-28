@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Hearthpulse.Core.Hearthstone;
 using System.Runtime.InteropServices;
 
@@ -16,7 +15,6 @@ internal static partial class Native
     public const uint MOD_SHIFT = 0x4;
     public const uint MOD_NOREPEAT = 0x4000;
     public const uint SWP_NOACTIVATE = 0x10;
-    public const uint SWP_NOZORDER = 0x4;
     public const uint SWP_NOSIZE = 0x1;
     public const uint SWP_NOMOVE = 0x2;
     public const uint SWP_SHOWWINDOW = 0x40;

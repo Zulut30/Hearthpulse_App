@@ -1,6 +1,5 @@
 using System.Globalization;
 using Hearthpulse.Core.Memory;
-using Hearthpulse.Core.Tracking;
 using Microsoft.Data.Sqlite;
 
 namespace Hearthpulse.Core.Data;

@@ -1,7 +1,6 @@
 using System.Net;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Updates;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

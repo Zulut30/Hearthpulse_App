@@ -1,5 +1,4 @@
 using System.Globalization;
-using Xunit;
 using WpfFormat = Hearthpulse.App.Overlay.OverlayFormat;
 using AvaFormat = Hearthpulse.UI.Overlay.OverlayFormat;
 

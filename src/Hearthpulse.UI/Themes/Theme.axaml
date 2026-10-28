@@ -853,36 +853,6 @@
             </ControlTemplate>
         </Setter>
     </Style>
-    <Style Selector="ListBox.selectable ListBoxItem">
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusAdorner">
-            <FocusAdornerTemplate>
-                <Border Margin="0,0,0,3" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Accent}" />
-            </FocusAdornerTemplate>
-        </Setter>
-        <Setter Property="Template">
-            <ControlTemplate>
-                <Border Name="Bd" CornerRadius="8" Padding="13,9" Margin="0,0,0,3" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
-                    <Border.Transitions>
-                        <Transitions>
-                            <BrushTransition Property="Background" Duration="0:0:0.12" />
-                        </Transitions>
-                    </Border.Transitions>
-                    <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
-                </Border>
-            </ControlTemplate>
-        </Setter>
-    </Style>
-    <Style Selector="ListBox.selectable ListBoxItem:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{StaticResource Hover}" />
-    </Style>
-    <Style Selector="ListBox.selectable ListBoxItem:pressed /template/ Border#Bd">
-        <Setter Property="Background" Value="{StaticResource Pressed}" />
-    </Style>
-    <Style Selector="ListBox.selectable ListBoxItem:selected /template/ Border#Bd">
-        <Setter Property="Background" Value="{StaticResource SelectedFill}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
-    </Style>
 
     <!-- ===== Combo boxes and menus (colours come from the Fluent resources above) ===== -->
     <Style Selector="ComboBox">

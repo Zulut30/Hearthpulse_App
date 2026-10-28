@@ -2,7 +2,6 @@ using System.IO.Compression;
 using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Power;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

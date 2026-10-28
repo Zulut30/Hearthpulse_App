@@ -12,7 +12,6 @@ using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
-using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
 using Hearthpulse.UI.Infrastructure;
@@ -183,8 +182,6 @@ public sealed partial class AppHost : IDisposable
 
     public BattlegroundsMeta? Meta { get; private set; }
 
-    public LiveSnapshot LastSnapshot => _last;
-
     /// <summary>Something the player should know (title, text), e.g. "restart Hearthstone"; shells show it as a notification.</summary>
     public event Action<string, string>? Notification;
 
@@ -299,49 +296,25 @@ public sealed partial class AppHost : IDisposable
             return;
         }
 
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(TimeSpan.FromSeconds(20));
-            while (true)
+        _ = Task.Run(() => UpdateService.WatchAsync(Http, UpdateService.NotifyOnly,
+            // The portable version and an AppImage never install anything: they only say a new version is out.
+            available: info =>
             {
-                try
+                var text = UpdateService.IsAppImage ? "Host.Update.AvailableAppImage" : "Host.Update.AvailablePortable";
+                Notification?.Invoke(Loc.T("Host.Update.AvailableTitle"), Loc.F(text, info.Version));
+            },
+            staged: info =>
+            {
+                _stagedUpdate = info;
+                Dispatcher.UIThread.Post(() =>
                 {
-                    var check = await UpdateService.CheckForUpdateAsync(Http);
-                    var info = check.Update;
-
-                    // The portable version and an AppImage never install anything: they only say a new version is out.
-                    if (info is not null && UpdateService.NotifyOnly)
-                    {
-                        var text = UpdateService.IsAppImage ? "Host.Update.AvailableAppImage" : "Host.Update.AvailablePortable";
-                        Notification?.Invoke(Loc.T("Host.Update.AvailableTitle"), Loc.F(text, info.Version));
-                        return;
-                    }
-
-                    if (info is { Sha256: not null } && await UpdateService.DownloadAsync(Http, info) is not null)
-                    {
-                        _stagedUpdate = info;
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            _updateStatus = null;
-                            Main.SetUpdateReady(info.Version);
-                        });
-                        Notification?.Invoke(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
-                        return;
-                    }
-
-                    // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
-                    var message = check.Message;
-                    Func<string> status = info is { Sha256: not null } ? () => Loc.F("Host.Update.DownloadFailed", info.Version) : () => message;
-                    Dispatcher.UIThread.Post(() => SetUpdateStatus(status));
-                }
-                catch (Exception ex)
-                {
-                    Diag.Error("Update check failed", ex);
-                }
-
-                await Task.Delay(TimeSpan.FromHours(6));
-            }
-        });
+                    _updateStatus = null;
+                    Main.SetUpdateReady(info.Version);
+                });
+                Notification?.Invoke(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
+            },
+            // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
+            failed: status => Dispatcher.UIThread.Post(() => SetUpdateStatus(status))));
     }
 
     /// <summary>The "Update ready" chip: install the downloaded update now. Windows restarts into the new version,
@@ -404,28 +377,7 @@ public sealed partial class AppHost : IDisposable
     /// </summary>
     public async Task LoadMetaAsync()
     {
-        BattlegroundsMeta? meta = null;
-        try
-        {
-            meta = await BattlegroundsMeta.LoadAsync(new HearthpulseData(Api));
-        }
-        catch (Exception ex)
-        {
-            Diag.Error("Community stats unavailable", ex);
-        }
-
-        if (PoolClient.Available(Settings))
-        {
-            try
-            {
-                meta = await PoolClient.OverlayAsync(Http, PoolClient.Endpoint(Settings), meta);
-            }
-            catch (Exception ex)
-            {
-                Diag.Error("Stats pool unavailable", ex);
-            }
-        }
-
+        var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings);
         if (meta is not null)
         {
             Meta = meta;
@@ -706,7 +658,7 @@ public sealed partial class AppHost : IDisposable
 
     private void RefreshDeckStats(ConstructedView? view)
     {
-        var key = view is null ? null : $"{view.DeckName}|{view.DeckId}|{view.DeckCode}|{view.PlayerClass}|{view.OpponentClass}";
+        var key = LiveDeckRecord.Key(view);
         if (key == _deckStatsKey)
         {
             return;
@@ -720,19 +672,7 @@ public sealed partial class AppHost : IDisposable
             return;
         }
 
-        _ = Task.Run(() =>
-        {
-            var sameDeck = InstallDirectory is { } dir ? DecksLog.CodesOf(DecksLog.ReadAll(dir), view.DeckId) : [];
-            var all = History.Recent(int.MaxValue, "Constructed");
-            // Versions the player merged into one deck count together, as on the deck page.
-            var games = Core.Stats.DeckFamilies.WithFamily(all, DeckRecords.Matching(all, view.DeckName, view.DeckCode, view.PlayerClass, sameDeck), History.DeckFamilies());
-            var deck = DeckRecords.Aggregate(games, view.DeckName, view.DeckCode, view.PlayerClass);
-            // The matchup line counts the same games as the record; without any, the class matchup over all decks.
-            var matchup = games.Count > 0
-                ? DeckRecords.Matchup(games, view.OpponentClass)
-                : History.MatchupStats().FirstOrDefault(m => m.OpponentClass == view.OpponentClass);
-            return (deck, matchup);
-        }).ContinueWith(t =>
+        _ = Task.Run(() => LiveDeckRecord.Read(History, InstallDirectory, view)).ContinueWith(t =>
         {
             if (t.IsFaulted)
             {

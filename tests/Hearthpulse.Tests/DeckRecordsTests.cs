@@ -4,7 +4,6 @@ using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 
@@ -240,6 +239,30 @@ public sealed class DeckRecordsTests
 
         Assert.Equal((2, 1, 1), (matchup?.Games, matchup?.Wins, matchup?.Losses));
         Assert.Null(DeckRecords.Matchup(games, "WARRIOR"));
+    }
+
+    [Fact]
+    public void Live_record_reads_the_deck_and_falls_back_to_the_class_matchup()
+    {
+        var history = new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-live-{Guid.NewGuid():N}.db"));
+        var start = new DateTime(2026, 10, 22, 12, 0, 0);
+        history.Add(Game("1", start, "ROGUE", "Win", "Разбойник", RogueCode) with { OpponentClass = "MAGE" });
+        history.Add(Game("2", start.AddHours(1), "ROGUE", "Loss", "Разбойник", RogueCode) with { OpponentClass = "MAGE" });
+        history.Add(Game("3", start.AddHours(2), "DEMONHUNTER", "Win", "Охотник на демонов", HunterCode) with { OpponentClass = "WARRIOR" });
+        ConstructedView View(string? deck, string? code, string playerClass, string opponentClass) =>
+            new(3, deck, true, "HERO_03", playerClass, "HERO_01", opponentClass, null, [], 20, 4, [], [], 20, 4, 0, null, null) { DeckCode = code };
+
+        var rogue = View("Разбойник", RogueCode, "ROGUE", "MAGE");
+        var (deck, matchup) = LiveDeckRecord.Read(history, null, rogue);
+        Assert.Equal((2, 1, 1), (deck?.Games, deck?.Wins, deck?.Losses));
+        Assert.Equal(("MAGE", 2), (matchup?.OpponentClass, matchup?.Games));
+        Assert.Equal($"Разбойник|0|{RogueCode}|ROGUE|MAGE", LiveDeckRecord.Key(rogue));
+
+        // A deck with no games of its own: no record, and the class matchup over every deck.
+        (deck, matchup) = LiveDeckRecord.Read(history, null, View("New", null, "PRIEST", "WARRIOR"));
+        Assert.Null(deck);
+        Assert.Equal(("WARRIOR", 1, 1), (matchup?.OpponentClass, matchup?.Games, matchup?.Wins));
+        Assert.Null(LiveDeckRecord.Key(null));
     }
 
     [Fact]

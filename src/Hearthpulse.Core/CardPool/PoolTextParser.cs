@@ -44,9 +44,6 @@ public sealed record PoolParse(PoolParseStatus Status, PoolGenerator? Generator 
 /// </summary>
 public static partial class PoolTextParser
 {
-    private static readonly string[] ClassNames =
-        ["Death Knight", "Demon Hunter", "Druid", "Hunter", "Mage", "Paladin", "Priest", "Rogue", "Shaman", "Warlock", "Warrior", "Neutral"];
-
     private static readonly Dictionary<string, string> Tribes = new(StringComparer.Ordinal)
     {
         ["Beast"] = "BEAST", ["Demon"] = "DEMON", ["Dragon"] = "DRAGON", ["Elemental"] = "ELEMENTAL", ["Mech"] = "MECHANICAL",

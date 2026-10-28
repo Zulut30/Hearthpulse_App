@@ -1,6 +1,5 @@
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Stats;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

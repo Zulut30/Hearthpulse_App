@@ -61,17 +61,6 @@ public sealed class MatchViewModel : Observable
             int frame => frame,
             _ => Frame,
         });
-        SetSide = new RelayCommand(p =>
-        {
-            if (p as string == "Opponent")
-            {
-                BottomOpponent = true;
-            }
-            else
-            {
-                BottomLocal = true;
-            }
-        });
         SetTab = new RelayCommand(p => Tab = p as string ?? "Replay");
     }
 
@@ -91,9 +80,6 @@ public sealed class MatchViewModel : Observable
 
     /// <summary>Goes to a turn chip, an action row or a step number.</summary>
     public RelayCommand GoFrame { get; }
-
-    /// <summary>"Local" or "Opponent": whose side is at the bottom.</summary>
-    public RelayCommand SetSide { get; }
 
     /// <summary>"Replay", "Decks", "Analysis" (Constructed); "Rounds", "Lobby" (Battlegrounds).</summary>
     public RelayCommand SetTab { get; }

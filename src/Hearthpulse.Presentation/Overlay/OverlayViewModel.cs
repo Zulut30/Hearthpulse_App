@@ -68,7 +68,6 @@ public sealed partial class OverlayViewModel : Observable
     private string _deckCounts = string.Empty;
     private string _nextDraw = string.Empty;
     private SyncList<DeckTile> _deck = new();
-    private bool _compactDeck;
     private bool _showChance = true;
 
     public string DeckName { get => _deckName; private set => Set(ref _deckName, value); }
@@ -76,7 +75,6 @@ public sealed partial class OverlayViewModel : Observable
     public string DeckCounts { get => _deckCounts; private set => Set(ref _deckCounts, value); }
     public string NextDraw { get => _nextDraw; private set => Set(ref _nextDraw, value); }
     public IReadOnlyList<DeckTile> Deck => _deck;
-    public bool CompactDeck { get => _compactDeck; private set => Set(ref _compactDeck, value); }
     public bool ShowChance { get => _showChance; private set => Set(ref _showChance, value); }
 
     private string _opponentTitle = string.Empty;
@@ -221,12 +219,6 @@ public sealed partial class OverlayViewModel : Observable
     public string ToastResult { get => _toastResult; private set => Set(ref _toastResult, value); }
     public bool ShowToast { get => _showToast; set => Set(ref _showToast, value); }
 
-    // WPF exposes tribe-focus controls; Avalonia has no matching controls or public members.
-    partial void InitializeFocus();
-    partial void RefreshFocusLanguage();
-    partial void UpdateFocusSettings(AppSettings settings);
-    partial void UpdateFocusRaces(IReadOnlyList<string> races);
-
     public OverlayViewModel()
     {
         Loc.Instance.LanguageChanged += OnLanguageChanged;
@@ -237,7 +229,6 @@ public sealed partial class OverlayViewModel : Observable
             RebuildBrowser();
             RebuildTiers();
         });
-        InitializeFocus();
         FinishLayout = new RelayCommand(() => LayoutEditing = false);
         ResetLayout = new RelayCommand(() => ResetLayoutRequested?.Invoke());
         CloseBrowser = new RelayCommand(() =>
@@ -258,7 +249,6 @@ public sealed partial class OverlayViewModel : Observable
     {
         _fingerprints.Clear();
         _handMarksKey = string.Empty;
-        RefreshFocusLanguage();
         Lobby = null;
         RebuildBrowser();
         RebuildCounters();
@@ -281,7 +271,6 @@ public sealed partial class OverlayViewModel : Observable
 
     public void Update(LiveSnapshot snapshot, CardDb cards, AppSettings settings, DeckAggregate? deck, MatchupAggregate? matchup)
     {
-        UpdateFocusSettings(settings);
         _cards = cards;
         _locale = cards.Locale;
         var enabled = settings.OverlayEnabled && snapshot.InGame;
@@ -360,7 +349,6 @@ public sealed partial class OverlayViewModel : Observable
         DeckCounts = Loc.F("Overlay.Deck.Counts", view.DeckCount, view.HandCount);
         var best = view.Deck.Where(r => r.Remaining > 0).MaxBy(r => r.DrawChance);
         NextDraw = best is null || view.DeckCount == 0 ? string.Empty : Loc.F("Overlay.Deck.NextDraw", best.Name, best.DrawChance);
-        CompactDeck = view.Deck.Count > 24;
         Replace(nameof(Deck), view.Deck, r => $"{r.CardId}{r.Remaining}{r.Total}{r.DrawChance:0.00}", () =>
         {
             var changed = DeckChanges(view.Deck);
@@ -428,7 +416,6 @@ public sealed partial class OverlayViewModel : Observable
             Tribes = view.Races.Select(r => Races.Display(r, _locale)).ToList();
             RebuildTribeChips();
         });
-        UpdateFocusRaces(view.Races);
         Combats = view.Combats.TakeLast(8)
             .Select(c => new CombatDot(c.Result, Loc.F("Overlay.Combat.Tip", c.Turn, _cards.NameOf(c.OpponentHeroCardId), ResultText(c.Result))
                 + (c.DamageTaken > 0 ? Loc.F("Overlay.Combat.Took", c.DamageTaken) : c.DamageDealt > 0 ? Loc.F("Overlay.Combat.Dealt", c.DamageDealt) : string.Empty)

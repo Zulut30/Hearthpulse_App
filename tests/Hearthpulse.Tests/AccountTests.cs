@@ -4,7 +4,6 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using Hearthpulse.Core.Accounts;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

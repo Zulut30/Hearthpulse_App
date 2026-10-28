@@ -1,4 +1,3 @@
-using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Tracking.Counters;

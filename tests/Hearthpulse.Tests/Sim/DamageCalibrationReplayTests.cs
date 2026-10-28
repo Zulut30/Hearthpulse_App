@@ -3,7 +3,6 @@ using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Stats;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Hearthpulse.Tests.Sim;

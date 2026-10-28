@@ -16,7 +16,6 @@
   "Overlay.Panel.Toast": "Game summary",
 
   "Overlay.Common.Opponent": "Opponent",
-  "Overlay.Common.Close": "Close",
   "Overlay.Common.TavernTier": "Tavern tier",
 
   "Overlay.Layout.Title": "Layout mode",
@@ -137,8 +136,6 @@
   "Overlay.Odds.Kill": "you kill: {0}",
   "Overlay.Odds.KillTip": "Share of simulated fights whose damage reaches the opponent's health plus armor",
 
-  "Overlay.Plan.AnyTribe": "Any tribe",
-
   "Overlay.LobbyPopup.Next": "NEXT",
   "Overlay.LobbyPopup.HpShort": "{0} HP",
   "Overlay.LobbyPopup.TierShort": "tier {0}",
@@ -164,7 +161,6 @@
   "Overlay.Ordinal.Second": "2nd",
   "Overlay.Ordinal.Third": "3rd",
   "Overlay.Ordinal.Other": "{0}th",
-  "Overlay.Tier.Name": "Tier {0}",
   "Overlay.Tier.WithText": "Tier {0} · {1}",
   "Overlay.Tier.ArenaCards": "Card tiers: S 53+ · A 45+ · B 35+ · C 24+ · D 10+ · else E",
   "Overlay.Tier.ArenaClasses": "Class tiers: S 54%+ · A 50%+ · B 46%+ · C 42%+ · D 38%+ · else E",

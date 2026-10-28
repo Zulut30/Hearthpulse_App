@@ -344,9 +344,6 @@
         <Style Selector="Border.turn.current TextBlock">
             <Setter Property="Foreground" Value="{StaticResource OnAccentContainer}" />
         </Style>
-        <Style Selector="Grid.unused">
-            <Setter Property="Opacity" Value="0.55" />
-        </Style>
         <Style Selector="StackPanel.unusedTile">
             <Setter Property="Opacity" Value="0.5" />
         </Style>

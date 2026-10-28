@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Hearthpulse.Core.Constructed;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 
