@@ -4,7 +4,6 @@ using Avalonia.Controls.Templates;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 using Hearthpulse.UI.Main;
 using Hearthpulse.UI.Main.Meta;
 

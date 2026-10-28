@@ -1,4 +1,3 @@
-using System.Net.Http;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Hearthstone;
 

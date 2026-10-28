@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
-using Xunit;
 using Xunit.Abstractions;
 using static Hearthpulse.Tests.Sim.SimTestKit;
 

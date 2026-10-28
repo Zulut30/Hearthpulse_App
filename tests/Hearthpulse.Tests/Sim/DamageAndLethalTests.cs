@@ -2,7 +2,6 @@ using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Stats;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 using static Hearthpulse.Tests.Sim.SimTestKit;
 
 namespace Hearthpulse.Tests.Sim;

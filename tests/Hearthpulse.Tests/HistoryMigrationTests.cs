@@ -1,7 +1,6 @@
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Microsoft.Data.Sqlite;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Hearthpulse.Tests;

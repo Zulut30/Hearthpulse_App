@@ -1,6 +1,5 @@
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

@@ -1,6 +1,5 @@
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Updates;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

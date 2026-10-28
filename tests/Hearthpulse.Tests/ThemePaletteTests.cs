@@ -1,5 +1,4 @@
 using Hearthpulse.Core;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

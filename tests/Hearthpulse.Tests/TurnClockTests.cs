@@ -2,7 +2,6 @@ using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Hearthpulse.Tests;

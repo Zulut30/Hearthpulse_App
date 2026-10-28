@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Hearthpulse.Core.Localization;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

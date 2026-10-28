@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Hearthpulse.Core.Hearthstone;
 using System.Runtime.InteropServices;
 

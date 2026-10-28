@@ -1,8 +1,6 @@
 using System.Text.Json;
-using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Stats;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

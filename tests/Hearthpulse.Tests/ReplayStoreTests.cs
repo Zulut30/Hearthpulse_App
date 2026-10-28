@@ -1,5 +1,4 @@
 using Hearthpulse.Core.Replay;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

@@ -1,4 +1,3 @@
-using System.Globalization;
 #if HEARTHPULSE_WPF
 using Hearthpulse.App.Infrastructure;
 #else

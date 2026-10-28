@@ -3,7 +3,6 @@ using System.Text;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Replay;
 using Microsoft.Data.Sqlite;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

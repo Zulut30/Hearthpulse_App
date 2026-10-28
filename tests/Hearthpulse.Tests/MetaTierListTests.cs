@@ -6,7 +6,6 @@ using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.UI.Main;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

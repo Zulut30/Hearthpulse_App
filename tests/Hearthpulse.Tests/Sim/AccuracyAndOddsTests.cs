@@ -1,6 +1,4 @@
-using System.Globalization;
 using Hearthpulse.Core.Battlegrounds;
-using Hearthpulse.Core.Battlegrounds.Effects;
 using Xunit;
 using static Hearthpulse.Tests.Sim.SimTestKit;
 

@@ -4,7 +4,6 @@ using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 using static Hearthpulse.Tests.ReplayRecorderTests;
 
 namespace Hearthpulse.Tests;

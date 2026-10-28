@@ -4,7 +4,6 @@ using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 

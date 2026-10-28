@@ -2,7 +2,6 @@ using System.Text.Json;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
-using Xunit;
 
 namespace Hearthpulse.Tests;
 
