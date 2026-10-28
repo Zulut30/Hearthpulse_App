@@ -656,6 +656,97 @@ public sealed class ViewModelContractTests
         finally { CultureInfo.CurrentCulture = previous; }
     }
 
+    private delegate double SnapBeside(double start, double size, double surface, ReadOnlySpan<(double Start, double End)> others);
+
+    [Fact]
+    public void Dragged_panels_snap_to_the_edges_of_the_other_panels_or_a_gap_beside_them()
+    {
+        foreach (var snap in new SnapBeside[] { Hearthpulse.App.Overlay.PanelSnap.Snap, Hearthpulse.UI.Overlay.PanelSnap.Snap })
+        {
+            // Another panel spans 500..760 along this axis.
+            (double, double)[] other = [(500, 760)];
+            Assert.Equal(500, snap(506, 200, 1920, other));           // starts line up
+            Assert.Equal(560, snap(553, 200, 1920, other));           // ends line up (760 - 200)
+            Assert.Equal(768, snap(772, 200, 1920, other));           // just after it, with the spacing
+            Assert.Equal(292, snap(298, 200, 1920, other));           // just before it (500 - 8 - 200)
+            Assert.Equal(1100, snap(1100, 200, 1920, other));         // far from everything: stays
+            Assert.Equal(12, snap(7, 200, 1920, other));              // the screen gutter still works
+            Assert.Equal(501, snap(501, 1900, 1920, [(501, 600)]));   // too wide for the screen guides, a panel still lines it up
+        }
+    }
+
+    [Fact]
+    public void The_opacity_button_steps_down_to_the_faintest_and_back_and_the_wheel_stays_in_range()
+    {
+        var steps = new List<double>();
+        var opacity = 1.0;
+        for (var i = 0; i < 6; i++)
+        {
+            opacity = Hearthpulse.App.Overlay.PanelSnap.NextOpacity(opacity);
+            steps.Add(opacity);
+        }
+
+        Assert.Equal([0.85, 0.7, 0.55, 0.4, 1, 0.85], steps);
+        Assert.Equal(0.85, Hearthpulse.UI.Overlay.PanelSnap.NextOpacity(0.9));
+        Assert.Equal(PanelLook.MinOpacity, Hearthpulse.UI.Overlay.PanelSnap.WheelOpacity(0.32, up: false));
+        Assert.Equal(1, Hearthpulse.App.Overlay.PanelSnap.WheelOpacity(0.98, up: true));
+        Assert.Equal(0.75, Hearthpulse.App.Overlay.PanelSnap.WheelOpacity(0.7, up: true));
+
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+        try
+        {
+            Assert.Equal(string.Empty, Hearthpulse.App.Overlay.PanelSnap.OpacityText(1));
+            Assert.Equal("70 %", Hearthpulse.UI.Overlay.PanelSnap.OpacityText(0.7));
+        }
+        finally { CultureInfo.CurrentCulture = previous; }
+    }
+
+    [Fact]
+    public void Snapshots_are_applied_at_most_once_a_frame()
+    {
+        var pacer = new Hearthpulse.App.Overlay.SnapshotPacer();
+        Assert.Equal(0, pacer.Delay(1_000));           // nothing applied yet: at once
+        pacer.Applied(1_000);
+        Assert.Equal(33, pacer.Delay(1_000));          // right after one: a frame later
+        Assert.Equal(13, pacer.Delay(1_020));
+        Assert.Equal(0, pacer.Delay(1_033));
+        Assert.Equal(0, pacer.Delay(5_000));
+        Assert.Equal(Hearthpulse.UI.Overlay.SnapshotPacer.MinGapMs, Hearthpulse.App.Overlay.SnapshotPacer.MinGapMs);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Battlegrounds_tier_buttons_and_lobby_rows_change_in_place(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        static BgOpponent Opponent(int place, int health) => new(place + 1, $"TB_BaconShop_HERO_{place}", $"Hero{place}", health, 0, 3, place, false, 0, [], 0, null, 0, false);
+        LiveSnapshot With(int tier, int firstHealth) => LiveSnapshot.Empty with
+        {
+            InGame = true, HearthstoneRunning = true,
+            Battlegrounds = Fight() with { TechLevel = tier, Opponents = [Opponent(1, firstHealth), Opponent(2, 50), Opponent(3, 25)] },
+        };
+
+        dynamic vm = wpf ? new WpfOverlay() : new AvaOverlay();
+        var settings = new AppSettings();
+        vm.Update(With(4, 40), CardDb.Empty, settings, null, null);
+        var tiers = (System.Collections.IList)vm.Tiers;
+        var rows = (System.Collections.IList)vm.LobbyRows;
+        var firstTier = tiers[0];
+        var keptRow = rows[1]; // place 2, which nothing below changes
+        Assert.Equal(6, tiers.Count);
+
+        // Tavern tier 5 and one opponent hurt (the healthiest stays at 50): the same lists, the untouched rows the same objects.
+        vm.Update(With(5, 12), CardDb.Empty, settings, null, null);
+        Assert.Same(tiers, vm.Tiers);
+        Assert.Same(rows, vm.LobbyRows);
+        Assert.Same(firstTier, tiers[0]);
+        Assert.Same(keptRow, rows[1]);
+        Assert.True(((dynamic)tiers[4]!).IsCurrent);
+        Assert.False(((dynamic)tiers[3]!).IsCurrent);
+    }
+
     private static async Task Changed(INotifyPropertyChanged model, string property, Action change)
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

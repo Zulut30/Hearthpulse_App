@@ -115,7 +115,7 @@ public sealed partial class OverlayViewModel : Observable
     // ---- battlegrounds --------------------------------------------------------------------
     private int _turn;
     private string _phase = string.Empty;
-    private IReadOnlyList<TierButton> _tiers = Array.Empty<TierButton>();
+    private SyncList<TierButton> _tiers = new();
     private IReadOnlyList<string> _tribes = Array.Empty<string>();
     private string _rating = string.Empty;
     private string _ratingDelta = string.Empty;
@@ -146,7 +146,7 @@ public sealed partial class OverlayViewModel : Observable
 
     public int Turn { get => _turn; private set => Set(ref _turn, value); }
     public string Phase { get => _phase; private set => Set(ref _phase, value); }
-    public IReadOnlyList<TierButton> Tiers { get => _tiers; private set => Set(ref _tiers, value); }
+    public IReadOnlyList<TierButton> Tiers => _tiers;
     public IReadOnlyList<string> Tribes { get => _tribes; private set => Set(ref _tribes, value); }
     public string Rating { get => _rating; private set => Set(ref _rating, value); }
     public string RatingDelta { get => _ratingDelta; private set => Set(ref _ratingDelta, value); }
@@ -194,14 +194,14 @@ public sealed partial class OverlayViewModel : Observable
     // ---- lobby list, session, board -------------------------------------------------------
     private bool _showLobby;
     private bool _showSession;
-    private IReadOnlyList<LobbyRow> _lobbyRows = Array.Empty<LobbyRow>();
+    private SyncList<LobbyRow> _lobbyRows = new();
     private string _sessionRating = string.Empty;
     private IReadOnlyList<PlaceChip> _sessionPlaces = Array.Empty<PlaceChip>();
     private bool _layoutEditing;
 
     public bool ShowLobby { get => _showLobby; private set => Set(ref _showLobby, value); }
     public bool ShowSession { get => _showSession; private set => Set(ref _showSession, value); }
-    public IReadOnlyList<LobbyRow> LobbyRows { get => _lobbyRows; private set => Set(ref _lobbyRows, value); }
+    public IReadOnlyList<LobbyRow> LobbyRows => _lobbyRows;
     public string SessionRating { get => _sessionRating; private set => Set(ref _sessionRating, value); }
     public IReadOnlyList<PlaceChip> SessionPlaces { get => _sessionPlaces; private set => Set(ref _sessionPlaces, value); }
 
@@ -572,10 +572,11 @@ public sealed partial class OverlayViewModel : Observable
 
         // Empty during hero selection: no opponents seen and no hero picked yet.
         var top = Math.Max(1, rows.Select(r => r.Health).DefaultIfEmpty(0).Max());
-        Replace(nameof(LobbyRows), rows, r => $"{r.Place}{r.HeroCardId}{r.Health}{r.Tier}{r.Triples}{r.Last}{r.Next}{r.Dead}", () => LobbyRows = rows
+        // In place: a fight changes one or two rows, and the others keep their portraits.
+        Replace(nameof(LobbyRows), rows, r => $"{r.Place}{r.HeroCardId}{r.Health}{r.Tier}{r.Triples}{r.Last}{r.Next}{r.Dead}", () => Sync(ref _lobbyRows, nameof(LobbyRows), rows
             .Select(r => r with { HealthFraction = r.Dead ? 0 : Math.Clamp(r.Health / (double)top, 0.04, 1) })
             .OrderBy(r => r.Place <= 0 ? 99 : r.Place)
-            .ToList());
+            .ToList()));
 
         var session = snapshot.Session;
         SessionRating = session.StartRating is { } start && session.CurrentRating is { } now
@@ -634,9 +635,10 @@ public sealed partial class OverlayViewModel : Observable
         }
 
         var max = Math.Max(6, bg.MaxTechLevel);
-        Tiers = Enumerable.Range(1, max)
+        // Runs on every Battlegrounds snapshot: only a button whose state moved is replaced.
+        Sync(ref _tiers, nameof(Tiers), Enumerable.Range(1, max)
             .Select(t => new TierButton(t, t == bg.TechLevel, t == SelectedTier, t > 6 && bg.MaxTechLevel < 7))
-            .ToList();
+            .ToList());
     }
 
     private void RebuildBrowser()

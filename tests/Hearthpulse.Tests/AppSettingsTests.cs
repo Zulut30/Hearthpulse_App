@@ -59,6 +59,30 @@ public sealed class AppSettingsTests : IDisposable
     }
 
     [Fact]
+    public void Panel_looks_load_from_old_files_and_keep_only_what_differs_from_the_default()
+    {
+        // A file from before panel looks: no PanelLooks at all.
+        var old = AppSettings.FromJson("""{"Panels":{"deck":{"X":0.9,"Y":0.1,"Scale":1.1}}}""");
+        Assert.Empty(old.PanelLooks);
+        Assert.Equal(1.1, old.Panels["deck"].Scale);
+
+        var settings = AppSettings.FromJson("""
+            {"PanelLooks":{"deck":{"Opacity":0.7,"Compact":true},"opponent":{"Opacity":0.05},"counters":{"Opacity":1,"Compact":false},
+             "broken":null,"lobby":{"Opacity":2,"Compact":true}}}
+            """);
+
+        Assert.Equal(new[] { "deck", "lobby", "opponent" }, settings.PanelLooks.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal((0.7, true), (settings.PanelLooks["deck"].Opacity, settings.PanelLooks["deck"].Compact));
+        Assert.Equal(PanelLook.MinOpacity, settings.PanelLooks["opponent"].Opacity);
+        Assert.Equal((1.0, true), (settings.PanelLooks["lobby"].Opacity, settings.PanelLooks["lobby"].Compact));
+
+        // And back: the look survives a save and load, IsDefault is not written.
+        var json = settings.ToJson();
+        Assert.DoesNotContain("IsDefault", json, StringComparison.Ordinal);
+        Assert.Equal(0.7, AppSettings.FromJson(json).PanelLooks["deck"].Opacity);
+    }
+
+    [Fact]
     public void Settings_of_the_removed_game_plan_still_load()
     {
         // Saved by a version with the game plan panel: its placement, comp mode and chosen comp are read and kept, unused.

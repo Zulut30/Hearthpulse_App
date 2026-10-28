@@ -79,6 +79,7 @@ public partial class OverlayWindow : Window
             {
                 _panels.Add(panel);
                 panel.PlacementChanged += OnPlacementChanged;
+                panel.LookChanged += OnLookChanged;
             }
         };
         viewModel.PropertyChanged += OnViewModelChanged;
@@ -318,7 +319,9 @@ public partial class OverlayWindow : Window
             for (var i = _panels.Count - 1; i >= 0 && target is null; i--)
             {
                 var panel = _panels[i];
-                if (panel is { Shown: true, IsVisible: true, ActualWidth: > 0 } && new Rect(panel.RenderSize).Contains(Root.TranslatePoint(p, panel)))
+                // An armed panel also owns the strip above it where its name tag and buttons show.
+                var area = panel.IsDragArmed ? panel.ArmedArea() : new Rect(panel.RenderSize);
+                if (panel is { Shown: true, IsVisible: true, ActualWidth: > 0 } && area.Contains(Root.TranslatePoint(p, panel)))
                 {
                     target = panel;
                 }
@@ -463,7 +466,22 @@ public partial class OverlayWindow : Window
         foreach (var panel in _panels)
         {
             panel.Apply(_settings.Panels.GetValueOrDefault(panel.Id), _layoutSize, Math.Clamp(_settings.OverlayScale, 0.6, 1.6));
+            panel.ApplyLook(_settings.PanelLooks.GetValueOrDefault(panel.Id));
         }
+    }
+
+    private void OnLookChanged(MovablePanel panel, PanelLook? look)
+    {
+        if (look is null)
+        {
+            _settings.PanelLooks.Remove(panel.Id);
+        }
+        else
+        {
+            _settings.PanelLooks[panel.Id] = look;
+        }
+
+        LayoutChanged?.Invoke();
     }
 
     private void OnPlacementChanged(MovablePanel panel, PanelPlacement? placement)
@@ -484,6 +502,7 @@ public partial class OverlayWindow : Window
     private void ResetLayout()
     {
         _settings.Panels.Clear();
+        _settings.PanelLooks.Clear();
         ApplyLayout();
         LayoutChanged?.Invoke();
     }

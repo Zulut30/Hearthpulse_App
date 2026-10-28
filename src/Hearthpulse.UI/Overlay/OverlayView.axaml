@@ -18,13 +18,13 @@
              column so it never runs into the name. A card with no copies left dims (art, gem and name sink back, the plate
              stays so the row keeps its place); the row whose count just moved flashes once (OverlayLook: rowFlash). -->
         <DataTemplate x:Key="DeckTileTemplate" x:DataType="o:DeckTile">
-            <Grid Classes="tileRow" Classes.empty="{Binding Empty}" Classes.changed="{Binding Changed}" Height="24" Margin="0,0,0,2" ColumnDefinitions="26,*,Auto" Background="Transparent"
+            <Grid Classes="tileRow cardRow" Classes.empty="{Binding Empty}" Classes.changed="{Binding Changed}" Margin="0,0,0,2" ColumnDefinitions="26,*,Auto" Background="Transparent"
                   c:CardPreview.CardId="{Binding CardId}">
                 <c:ManaCost Classes="cost" Text="{Binding Cost}" HorizontalAlignment="Left" />
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
                     <Panel>
                         <Image Classes="tileArt" i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                        <Rectangle Fill="{StaticResource TileFade}" />
+                        <Rectangle Classes="tileFade" Fill="{StaticResource TileFade}" />
                         <Border Classes="rarityStrip" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
                         <DockPanel Margin="9,0,3,0">
                             <Border Classes="countBadge" DockPanel.Dock="Right" IsVisible="{Binding ShowCount}">
@@ -47,12 +47,12 @@
 
         <!-- Opponent's played card: hover shows the whole card beside the panel, as in the deck tracker (the full name too) -->
         <DataTemplate x:Key="PlayedTemplate" x:DataType="o:PlayedTile">
-            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
-                <c:ManaCost Classes="cost" Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" />
+            <Grid Classes="cardRow short" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
+                <c:ManaCost Classes="cost short" Text="{Binding Cost}" HorizontalAlignment="Left" />
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
                     <Panel>
-                        <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                        <Rectangle Fill="{StaticResource TileFade}" />
+                        <Image Classes="tileArt" i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                        <Rectangle Classes="tileFade" Fill="{StaticResource TileFade}" />
                         <DockPanel Margin="8,0,3,0">
                             <!-- Copies and turn on a dark plate, like the deck's copy count, so they stay readable over bright art -->
                             <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" Height="16" Padding="4,0"
@@ -73,7 +73,7 @@
 
         <!-- Opponent's hand row: hover shows the card once revealed, else the card that created it -->
         <DataTemplate x:Key="HandTemplate" x:DataType="o:HandTile">
-            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="22,64,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding PreviewCardId}">
+            <Grid Classes="cardRow short" Margin="0,0,0,2" ColumnDefinitions="22,64,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding PreviewCardId}">
                 <Border Background="{StaticResource Surface3}" CornerRadius="5">
                     <TextBlock Text="{Binding Slot}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
@@ -468,6 +468,30 @@
             <Setter Property="Height" Value="22" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <Style Selector="c|ManaCost.cost.short">
+            <Setter Property="Width" Value="21" />
+            <Setter Property="Height" Value="21" />
+        </Style>
+        <Style Selector="Grid.cardRow">
+            <Setter Property="Height" Value="24" />
+        </Style>
+        <Style Selector="Grid.cardRow.short">
+            <Setter Property="Height" Value="22" />
+        </Style>
+        <!-- Compact lists (the panel's tag button): short rows without art. After the full sizes, so these win. -->
+        <Style Selector="o|MovablePanel.compact Grid.cardRow">
+            <Setter Property="Height" Value="18" />
+        </Style>
+        <Style Selector="o|MovablePanel.compact Image.tileArt">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="o|MovablePanel.compact Rectangle.tileFade">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="o|MovablePanel.compact c|ManaCost.cost">
+            <Setter Property="Width" Value="17" />
+            <Setter Property="Height" Value="17" />
+        </Style>
         <Style Selector="Grid.tileRow.empty Image.tileArt">
             <Setter Property="Opacity" Value="0.22" />
         </Style>
@@ -694,25 +718,46 @@
                                     </Border>
                                     <Rectangle Margin="-4" RadiusX="12" RadiusY="12" Stroke="{StaticResource Accent}" StrokeThickness="1.5" StrokeDashArray="4,3" IsHitTestVisible="False" />
                                 </Panel>
-                                <ContentPresenter Name="Body" Content="{TemplateBinding Content}" />
+                                <!-- The player's opacity fades the content only; the frame and tag stay readable -->
+                                <ContentPresenter Name="Body" Content="{TemplateBinding Content}" Opacity="{TemplateBinding PanelOpacity}" />
                                 <Border Name="Shield" Background="#01000000" IsVisible="False" />
                             </Panel>
                         </LayoutTransformControl>
                         <!-- Layout-mode frame and name tag sit outside the scaler so they are never clipped. -->
                         <Rectangle Name="Frame" IsVisible="False" Margin="-4" RadiusX="12" RadiusY="12" Stroke="{StaticResource Accent}"
                                    StrokeThickness="1.5" StrokeDashArray="4,3" IsHitTestVisible="False" />
-                        <Border Name="Tag" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-26,0,0" Height="18"
-                                Background="{StaticResource Accent}" CornerRadius="5" Padding="7,0" IsHitTestVisible="False">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
-                                <!-- The size the player scrolled to, so two panels can be given the same one -->
-                                <TextBlock Text="{TemplateBinding ScaleText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0"
-                                           IsVisible="{TemplateBinding ScaleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                <!-- Ctrl held during a game: what the mouse does now -->
-                                <TextBlock Name="ArmedHint" Text="{i:Loc Overlay.Layout.DragHint}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="8,0,0,0"
-                                           IsVisible="False" />
+                        <!-- Name tag and, under the pointer, the panel's buttons. The strip reaches down to the panel so the pointer
+                             can travel from the panel to the buttons without leaving it. -->
+                        <Panel Name="PART_Chrome" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-26,0,0" Height="26">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                                <Border Name="Tag" Height="18" Background="{StaticResource Accent}" CornerRadius="5" Padding="7,0" IsHitTestVisible="False">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                                        <!-- The size and opacity the player gave it, so two panels can be given the same -->
+                                        <TextBlock Text="{TemplateBinding ScaleText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0"
+                                                   IsVisible="{TemplateBinding ScaleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                        <StackPanel Orientation="Horizontal" Margin="6,0,0,0"
+                                                    IsVisible="{TemplateBinding OpacityText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                            <TextBlock Text="&#xF05CC;" Classes="icon" FontSize="10.5" Foreground="{StaticResource OnAccent}" />
+                                            <TextBlock Text="{TemplateBinding OpacityText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" />
+                                        </StackPanel>
+                                        <!-- Ctrl held during a game: what the mouse does now -->
+                                        <TextBlock Name="ArmedHint" Text="{i:Loc Overlay.Layout.DragHint}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="8,0,0,0"
+                                                   IsVisible="False" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Name="Tools" IsVisible="False" Height="18" Background="{StaticResource Accent}" CornerRadius="5" Padding="2,0" Margin="4,0,0,0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Name="PART_Smaller" Classes="icon tagButton" Content="&#xF0374;" ToolTip.Tip="{i:Loc Overlay.Layout.Smaller}" />
+                                        <Button Name="PART_Larger" Classes="icon tagButton" Content="&#xF0415;" ToolTip.Tip="{i:Loc Overlay.Layout.Larger}" />
+                                        <Button Name="PART_Fade" Classes="icon tagButton" Content="&#xF05CC;" ToolTip.Tip="{i:Loc Overlay.Layout.Fade}" />
+                                        <Button Name="PART_Compact" Classes="icon tagButton" Content="&#xF0451;" ToolTip.Tip="{i:Loc Overlay.Layout.Compact}"
+                                                IsVisible="{TemplateBinding CanCompact}" />
+                                        <Button Name="PART_Reset" Classes="icon tagButton" Content="&#xF099B;" ToolTip.Tip="{i:Loc Overlay.Layout.ResetPanel}" />
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                        </Border>
+                        </Panel>
                     </Panel>
                 </ControlTemplate>
             </Setter>
@@ -723,8 +768,28 @@
         <Style Selector="o|MovablePanel.editing /template/ Rectangle#Frame">
             <Setter Property="IsVisible" Value="True" />
         </Style>
-        <Style Selector="o|MovablePanel.editing /template/ Border#Tag">
+        <Style Selector="o|MovablePanel.editing /template/ Panel#PART_Chrome">
             <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <!-- Layout mode: the buttons show over the panel the pointer is on, so they never pile up over the neighbours -->
+        <Style Selector="o|MovablePanel.editing:pointerover /template/ Border#Tools">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="o|MovablePanel.editing:pointerover /template/ Panel#PART_Chrome">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.icon.tagButton">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+        </Style>
+        <Style Selector="Button.icon.tagButton:pointerover">
+            <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+        </Style>
+        <Style Selector="Button.icon.tagButton:pointerover /template/ Border#Bd">
+            <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
         </Style>
         <!-- Ctrl over a panel during a game: the same frame and tag, and the shield takes the whole panel for the drag -->
         <Style Selector="o|MovablePanel.armed /template/ Border#Shield">
@@ -733,7 +798,11 @@
         <Style Selector="o|MovablePanel.armed /template/ Rectangle#Frame">
             <Setter Property="IsVisible" Value="True" />
         </Style>
-        <Style Selector="o|MovablePanel.armed /template/ Border#Tag">
+        <Style Selector="o|MovablePanel.armed /template/ Panel#PART_Chrome">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="o|MovablePanel.armed /template/ Border#Tools">
             <Setter Property="IsVisible" Value="True" />
         </Style>
         <Style Selector="o|MovablePanel.armed /template/ TextBlock#ArmedHint">
@@ -767,7 +836,7 @@
             <Grid Name="Surface" Width="1920" Height="1080" Classes.marking="{Binding ShowBestBadges}">
 
                 <!-- ============ Constructed: your deck (right) ============ -->
-                <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,12,0">
+                <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" CanCompact="True" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,12,0">
                     <Border Classes="overlayCard" Width="252">
                         <StackPanel>
                             <Border Classes="overlayHeader" Margin="0,0,0,6">
@@ -790,7 +859,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Constructed: opponent (left) ============ -->
-                <o:MovablePanel Id="opponent" Title="{i:Loc Overlay.Common.Opponent}" Shown="{Binding ShowOpponent}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,76,0,0">
+                <o:MovablePanel Id="opponent" Title="{i:Loc Overlay.Common.Opponent}" CanCompact="True" Shown="{Binding ShowOpponent}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,76,0,0">
                     <Border Classes="overlayCard" Width="214">
                         <StackPanel>
                             <Border Classes="overlayHeader">

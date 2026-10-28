@@ -49,6 +49,7 @@ public partial class OverlayView : UserControl
         {
             _panels.Add(panel);
             panel.PlacementChanged += OnPlacementChanged;
+            panel.LookChanged += OnLookChanged;
         }
     }
 
@@ -148,8 +149,10 @@ public partial class OverlayView : UserControl
             for (var i = _panels.Count - 1; i >= 0 && target is null; i--)
             {
                 var panel = _panels[i];
+                // An armed panel also owns the strip above it where its name tag and buttons show.
+                var area = panel.IsDragArmed ? panel.ArmedArea() : new Rect(panel.Bounds.Size);
                 if (panel is { Shown: true, IsVisible: true, Bounds.Width: > 0 } && this.TranslatePoint(p, panel) is { } local
-                    && new Rect(panel.Bounds.Size).Contains(local))
+                    && area.Contains(local))
                 {
                     target = panel;
                 }
@@ -287,7 +290,22 @@ public partial class OverlayView : UserControl
         foreach (var panel in _panels)
         {
             panel.Apply(Settings.Panels.GetValueOrDefault(panel.Id), _layoutSize, Math.Clamp(Settings.OverlayScale, 0.6, 1.6));
+            panel.ApplyLook(Settings.PanelLooks.GetValueOrDefault(panel.Id));
         }
+    }
+
+    private void OnLookChanged(MovablePanel panel, PanelLook? look)
+    {
+        if (look is null)
+        {
+            Settings.PanelLooks.Remove(panel.Id);
+        }
+        else
+        {
+            Settings.PanelLooks[panel.Id] = look;
+        }
+
+        LayoutChanged?.Invoke();
     }
 
     private void OnPlacementChanged(MovablePanel panel, PanelPlacement? placement)
@@ -308,6 +326,7 @@ public partial class OverlayView : UserControl
     private void ResetLayout()
     {
         Settings.Panels.Clear();
+        Settings.PanelLooks.Clear();
         ApplyLayout();
         LayoutChanged?.Invoke();
     }

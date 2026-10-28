@@ -94,6 +94,13 @@ while the cross-platform test project continues to reference Avalonia UI.
   with the `Title`, drag to move, wheel to resize, right-click resets one; "Reset all" / "Done" banner. Opened from
   Settings "Arrange overlay panels", the tray, the main window toolbar and Ctrl+Shift+L. Your panel gets all of
   this for free - give it a clear `Title`.
+- Look per panel: `AppSettings.PanelLooks` (`PanelLook`: `Opacity` 0.3-1, `Compact`) by `Id`, apart from `Panels`.
+  The tag's buttons (shown under the mouse in layout mode and with Ctrl in a game) step size, opacity, compact and
+  reset; Shift+wheel fades, (Ctrl+)right-click resets everything. Opacity fades the content only (`Body`).
+  A panel with card lists sets `CanCompact="True"`; its row templates react to compact - WPF: a
+  `<Trigger SourceName="RowRoot" Property="o:MovablePanel.Compact" Value="True">` (inherited attached property),
+  Avalonia: `o|MovablePanel.compact Grid.cardRow` styles (heights in styles, not local values, or they never yield).
+- Dragging snaps to the screen guides and to the edges of other shown panels (`PanelSnap.Snap` with neighbours).
 - `MovablePanel.KeepOnScreen` pulls a saved panel back onto the surface using its measured content size; a panel
   that grows while shown (lists, tooltips) should be checked at the bottom/right edge in layout mode.
 
