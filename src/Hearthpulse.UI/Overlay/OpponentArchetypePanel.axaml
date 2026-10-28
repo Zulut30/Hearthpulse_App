@@ -14,7 +14,7 @@
     </UserControl.Resources>
     <Border Classes="overlayCard" Width="220">
         <StackPanel>
-            <!-- The close button and the card rows (hover shows the card) take the pointer; the rest passes clicks to the game. -->
+            <!-- The close button, the tier and chance (tooltips) and the card rows (hover shows the card) take the pointer; the rest passes clicks to the game. -->
             <Border Classes="overlayHeader">
                 <StackPanel>
                     <DockPanel>
@@ -24,11 +24,14 @@
                         <TextBlock Text="{i:Loc Widgets.Archetype.Title}" Classes="headerNote" Margin="0" VerticalAlignment="Center" />
                     </DockPanel>
                     <DockPanel Margin="0,2,0,0">
+                        <!-- How many cards the guess rests on, and the data source, in the tooltip rather than a footnote -->
                         <TextBlock DockPanel.Dock="Right" Text="{Binding ArchetypeChance}" FontFamily="{StaticResource DisplayFont}" FontSize="17"
-                                   Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="8,0,0,0" />
-                        <!-- Its meta tier, as on the site's meta page -->
+                                   Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                   Background="Transparent" ToolTip.Tip="{Binding ArchetypeNote}" o:OverlayHit.Interactive="True" />
+                        <!-- Its meta tier, as on the site's meta page; what the letters mean is in its tooltip -->
                         <Panel DockPanel.Dock="Left" Width="28" Height="28" Margin="0,0,8,0" VerticalAlignment="Center"
-                               IsVisible="{Binding ArchetypeTier, Converter={StaticResource Truthy}}">
+                               IsVisible="{Binding ArchetypeTier, Converter={StaticResource Truthy}}"
+                               Background="Transparent" ToolTip.Tip="{i:Loc Overlay.Tier.Meta}" o:OverlayHit.Interactive="True">
                             <c:Scallop Fill="{Binding ArchetypeTier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
                             <TextBlock Text="{Binding ArchetypeTier}" FontFamily="{DynamicResource DisplayFont}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource Ink}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -87,9 +90,6 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <TextBlock Text="{Binding ArchetypeNote}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                <TextBlock Text="{i:Loc Overlay.Tier.Meta}" FontSize="9.5" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,3,0,0"
-                           IsVisible="{Binding ArchetypeTier, Converter={StaticResource Truthy}}" />
             </StackPanel>
         </StackPanel>
     </Border>

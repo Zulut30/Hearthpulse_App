@@ -10,7 +10,8 @@ namespace Hearthpulse.App.Overlay;
 
 /// <summary>
 /// Overlay panel host the player can drag, resize (mouse wheel) and reset (right-click) while the
-/// overlay is in layout mode. Without a saved placement it keeps the alignment and margin from XAML.
+/// overlay is in layout mode, and drag or resize during a game while holding Ctrl over it (<see cref="IsDragArmed"/>).
+/// Without a saved placement it keeps the alignment and margin from XAML.
 /// </summary>
 public sealed class MovablePanel : ContentControl
 {
@@ -26,6 +27,9 @@ public sealed class MovablePanel : ContentControl
 
     public static readonly DependencyProperty IsEditingProperty = DependencyProperty.Register(
         nameof(IsEditing), typeof(bool), typeof(MovablePanel), new PropertyMetadata(false, (d, _) => ((MovablePanel)d).UpdateState()));
+
+    public static readonly DependencyProperty IsDragArmedProperty = DependencyProperty.Register(
+        nameof(IsDragArmed), typeof(bool), typeof(MovablePanel), new PropertyMetadata(false, (d, _) => ((MovablePanel)d).UpdateState()));
 
     public static readonly DependencyProperty ShowPlaceholderProperty = DependencyProperty.Register(
         nameof(ShowPlaceholder), typeof(bool), typeof(MovablePanel));
@@ -89,6 +93,17 @@ public sealed class MovablePanel : ContentControl
 
     public bool IsEditing { get => (bool)GetValue(IsEditingProperty); set => SetValue(IsEditingProperty, value); }
 
+    /// <summary>
+    /// Set by the overlay while Ctrl is held over this panel outside layout mode: the panel takes the mouse, shows its
+    /// frame and name tag, and moves or resizes like in layout mode. Without Ctrl it lets every click through as before.
+    /// </summary>
+    public bool IsDragArmed { get => (bool)GetValue(IsDragArmedProperty); set => SetValue(IsDragArmedProperty, value); }
+
+    /// <summary>The player is dragging the panel right now (the overlay keeps it armed until the button is released).</summary>
+    public bool IsDragging => _dragging;
+
+    private bool CanMove => IsEditing || IsDragArmed;
+
     public bool ShowPlaceholder { get => (bool)GetValue(ShowPlaceholderProperty); private set => SetValue(ShowPlaceholderProperty, value); }
 
     /// <summary>The player's size for the layout-mode tag ("115%"); empty at the default size.</summary>
@@ -111,8 +126,8 @@ public sealed class MovablePanel : ContentControl
         _lastEditing = IsEditing;
         SetVisible(Shown || IsEditing, animate);
         ShowPlaceholder = IsEditing && !Shown;
-        OverlayHit.SetInteractive(this, IsEditing || _interactiveContent);
-        Cursor = IsEditing ? Cursors.SizeAll : null;
+        OverlayHit.SetInteractive(this, CanMove || _interactiveContent);
+        Cursor = CanMove ? Cursors.SizeAll : null;
     }
 
     /// <summary>
@@ -309,7 +324,7 @@ public sealed class MovablePanel : ContentControl
 
     protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
     {
-        if (!IsEditing || Surface is not { } surface)
+        if (!CanMove || Surface is not { } surface)
         {
             base.OnPreviewMouseLeftButtonDown(e);
             return;
@@ -360,7 +375,7 @@ public sealed class MovablePanel : ContentControl
 
     protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
     {
-        if (!IsEditing)
+        if (!CanMove)
         {
             base.OnPreviewMouseWheel(e);
             return;

@@ -111,6 +111,19 @@ public sealed class OverlayXamlLoadTests
         row.Arrange(new Rect(0, 0, 240, 30));
         row.UpdateLayout();
         Assert.True(row.ActualHeight > 0);
+
+        // Ctrl over a panel during a game: it takes the mouse and shows its frame and drag hint; released, clicks go
+        // through to the game again.
+        model.LayoutEditing = false;
+        var deck = panels["deck"];
+        Assert.False(OverlayHit.GetInteractive(deck));
+        deck.IsDragArmed = true;
+        Assert.True(OverlayHit.GetInteractive(deck));
+        Assert.Equal(Visibility.Visible, ((FrameworkElement)deck.Template.FindName("Shield", deck)).Visibility);
+        Assert.Equal(Visibility.Visible, ((FrameworkElement)deck.Template.FindName("ArmedHint", deck)).Visibility);
+        deck.IsDragArmed = false;
+        Assert.False(OverlayHit.GetInteractive(deck));
+        Assert.Equal(Visibility.Collapsed, ((FrameworkElement)deck.Template.FindName("ArmedHint", deck)).Visibility);
         window.Close();
     }
 

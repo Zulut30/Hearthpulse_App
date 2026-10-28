@@ -6,7 +6,8 @@
              x:Class="Hearthpulse.UI.Overlay.ArenaDraftPanel"
              x:DataType="o:OverlayViewModel">
     <!-- Arena draft panel: the run's class and picks, the average ArenaSmith score, the mana curve, class win rates at
-         the hero pick and the cards picked so far. Read-only, takes no clicks. DataContext: OverlayViewModel.
+         the hero pick and the cards picked so far. Read-only: only the header takes the pointer, for the tier legend and the
+         data source in its tooltip. DataContext: OverlayViewModel.
          Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:Truthy x:Key="Truthy" />
@@ -36,10 +37,18 @@
         </Style>
     </UserControl.Styles>
 
-    <Border Classes="overlayCard" Width="244" IsHitTestVisible="False">
+    <Border Classes="overlayCard" Width="244">
         <StackPanel>
             <!-- Header: what the panel is and how far the draft got, then the run's class -->
-            <Border Classes="overlayHeader">
+            <Border Classes="overlayHeader" o:OverlayHit.Interactive="True">
+                <!-- What the letters mean (the class scale at the hero pick, the card scale after it) and where the scores come from -->
+                <ToolTip.Tip>
+                    <StackPanel MaxWidth="260">
+                        <TextBlock Text="{Binding ArenaTierLegend}" TextWrapping="Wrap" Margin="0,0,0,4"
+                                   IsVisible="{Binding ArenaTierLegend, Converter={StaticResource Truthy}}" />
+                        <TextBlock Text="{Binding ArenaSource}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </ToolTip.Tip>
                 <StackPanel>
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -164,10 +173,6 @@
 
             <TextBlock Text="{Binding ArenaNoData}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
                        IsVisible="{Binding ArenaNoData, Converter={StaticResource Truthy}}" />
-            <!-- What the letters mean: the class scale at the hero pick, the card scale after it -->
-            <TextBlock Text="{Binding ArenaTierLegend}" FontSize="10" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,8,0,0"
-                       IsVisible="{Binding ArenaTierLegend, Converter={StaticResource Truthy}}" />
-            <TextBlock Text="{Binding ArenaSource}" Classes="overlayFooter" Margin="0,9,0,0" />
         </StackPanel>
         </StackPanel>
     </Border>

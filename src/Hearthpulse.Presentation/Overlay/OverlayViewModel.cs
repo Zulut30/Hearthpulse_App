@@ -33,91 +33,34 @@ public sealed partial class OverlayViewModel : Observable
     private bool _showOpponent;
     private bool _showBattlegrounds;
     private bool _showHeroPick;
-    private bool _showComp;
     private bool _showTrinkets;
     private bool _showShop;
     private bool _showDiscover;
     private bool _showOdds;
-    private bool _compCollapsed = true;
 
     public bool ShowConstructed { get => _showConstructed; private set => Set(ref _showConstructed, value); }
     public bool ShowOpponent { get => _showOpponent; private set => Set(ref _showOpponent, value); }
     public bool ShowBattlegrounds { get => _showBattlegrounds; private set => Set(ref _showBattlegrounds, value); }
     public bool ShowHeroPick { get => _showHeroPick; private set => Set(ref _showHeroPick, value); }
-    public bool ShowComp { get => _showComp; private set => Set(ref _showComp, value); }
     public bool ShowTrinkets { get => _showTrinkets; private set => Set(ref _showTrinkets, value); }
     public bool ShowShop { get => _showShop; private set => Set(ref _showShop, value); }
     public bool ShowDiscover { get => _showDiscover; private set => Set(ref _showDiscover, value); }
     public bool ShowOdds { get => _showOdds; private set => Set(ref _showOdds, value); }
 
-    /// <summary>True hides the plan's secondary details (commit timing, tips, alternatives).</summary>
-    public bool CompCollapsed
-    {
-        get => _compCollapsed;
-        set
-        {
-            if (Set(ref _compCollapsed, value))
-            {
-                ShowCompList = Alternatives.Count > 0 && (Target is null || !value);
-            }
-        }
-    }
-
-    // ---- pick suggestions (Settings: "Pick suggestions" and "Game plan comp") -------------------
+    // ---- pick suggestions (Settings: "Pick suggestions") ----------------------------------------
     private PickHints _pickHints = PickHints.StatsOnly;
-    private CompMode _compMode = CompMode.Manual;
-    private string? _chosenCompId;
-    private CompAdvice? _planTarget;
-    private string _targetLabel = string.Empty;
-    private string _pinText = string.Empty;
-    private string _pinTooltip = string.Empty;
-    private string _planTooltip = string.Empty;
-    private string _compListTitle = string.Empty;
-    private string _compRowTooltip = string.Empty;
-    private string _planHint = string.Empty;
-    private bool _showCompList;
 
     /// <summary>
-    /// "Mark the best": BEST PICK / BUY badges, gold styling, Discover ranks and the comp the advisor picks are shown.
-    /// Otherwise every Recommended / Best flag on the badge items is false and <see cref="DiscoverBadge.Rank"/> is 0.
+    /// "Mark the best": BEST PICK / BUY badges, gold styling and Discover ranks are shown. Otherwise every Recommended /
+    /// Best flag on the badge items is false and <see cref="DiscoverBadge.Rank"/> is 0.
     /// </summary>
     public bool ShowBestBadges => _pickHints == PickHints.Highlight;
 
     /// <summary>"Stats only": the same numbers on every option and nothing singled out.</summary>
     public bool StatsOnly => _pickHints == PickHints.StatsOnly;
 
-    /// <summary>Pick suggestions are not "Off": the hero, trinket, tavern, Discover and game-plan panels may show.</summary>
+    /// <summary>Pick suggestions are not "Off": the hero, trinket, tavern and Discover panels may show.</summary>
     public bool ShowPickPanels => _pickHints != PickHints.Off;
-
-    /// <summary>Game plan comp is "I choose": the advisor never picks a comp; the player's choice is kept across games.</summary>
-    public bool CompManual => _compMode == CompMode.Manual;
-
-    /// <summary>Caption above <see cref="Target"/>: "YOUR COMP" (I choose) or "AIM FOR" (Automatic).</summary>
-    public string TargetLabel { get => _targetLabel; private set => Set(ref _targetLabel, value); }
-
-    /// <summary>Text on the button of <see cref="Target"/>: "Chosen" (I choose, a click clears it), "Lock" / "Locked" (Automatic).</summary>
-    public string PinText { get => _pinText; private set => Set(ref _pinText, value); }
-
-    /// <summary>Tooltip of the button of <see cref="Target"/>.</summary>
-    public string PinTooltip { get => _pinTooltip; private set => Set(ref _pinTooltip, value); }
-
-    /// <summary>Tooltip of the "Game plan" header: how the comp is set in the current mode.</summary>
-    public string PlanTooltip { get => _planTooltip; private set => Set(ref _planTooltip, value); }
-
-    /// <summary>Header of the comp list (<see cref="Alternatives"/>), e.g. "Comps for this lobby · click to choose".</summary>
-    public string CompListTitle { get => _compListTitle; private set => Set(ref _compListTitle, value); }
-
-    /// <summary>Tooltip of each comp in <see cref="Alternatives"/>.</summary>
-    public string CompRowTooltip { get => _compRowTooltip; private set => Set(ref _compRowTooltip, value); }
-
-    /// <summary>Muted one-line hint in the plan panel, e.g. "Pick a comp below to plan around it." Empty when there is nothing to say.</summary>
-    public string PlanHint { get => _planHint; private set => Set(ref _planHint, value); }
-
-    /// <summary>
-    /// The comp list is visible: there are comps, and either the plan is expanded or there is no <see cref="Target"/>
-    /// (then the list is how the player chooses, so it shows even while the plan is collapsed).
-    /// </summary>
-    public bool ShowCompList { get => _showCompList; private set => Set(ref _showCompList, value); }
 
     // ---- constructed ----------------------------------------------------------------------
     private string _deckName = string.Empty;
@@ -143,6 +86,9 @@ public sealed partial class OverlayViewModel : Observable
     private int _opponentDeck;
     private int _opponentSecrets;
     private string _opponentMatchup = string.Empty;
+    private string _opponentMatchupRate = string.Empty;
+    private double _opponentMatchupEdge;
+    private string _opponentMatchupTip = string.Empty;
     private SyncList<PlayedTile> _played = new();
     private SyncList<HandTile> _hand = new();
 
@@ -152,7 +98,17 @@ public sealed partial class OverlayViewModel : Observable
     public int OpponentHand { get => _opponentHand; private set => Set(ref _opponentHand, value); }
     public int OpponentDeck { get => _opponentDeck; private set => Set(ref _opponentDeck, value); }
     public int OpponentSecrets { get => _opponentSecrets; private set => Set(ref _opponentSecrets, value); }
+    /// <summary>Your record with this deck against the opponent's class, short ("2–1"); empty before the first game.</summary>
     public string OpponentMatchup { get => _opponentMatchup; private set => Set(ref _opponentMatchup, value); }
+
+    /// <summary>The win rate of <see cref="OpponentMatchup"/> ("67 %"), coloured by <see cref="OpponentMatchupEdge"/>.</summary>
+    public string OpponentMatchupRate { get => _opponentMatchupRate; private set => Set(ref _opponentMatchupRate, value); }
+
+    /// <summary>The win rate above or below an even split: its sign colours the rate.</summary>
+    public double OpponentMatchupEdge { get => _opponentMatchupEdge; private set => Set(ref _opponentMatchupEdge, value); }
+
+    /// <summary>Whose score it is and against what, for the tooltip of the short line.</summary>
+    public string OpponentMatchupTip { get => _opponentMatchupTip; private set => Set(ref _opponentMatchupTip, value); }
     public IReadOnlyList<PlayedTile> Played => _played;
     public IReadOnlyList<HandTile> Hand => _hand;
 
@@ -166,18 +122,8 @@ public sealed partial class OverlayViewModel : Observable
     private int _ratingDeltaValue;
     private IReadOnlyList<CombatDot> _combats = Array.Empty<CombatDot>();
     private IReadOnlyList<HeroPickCard> _heroPicks = Array.Empty<HeroPickCard>();
-    private CompRow? _target;
-    private IReadOnlyList<CompCardTile> _targetCards = Array.Empty<CompCardTile>();
-    private string _commitHint = string.Empty;
-    private string _compTip = string.Empty;
-    private IReadOnlyList<CompRow> _alternatives = Array.Empty<CompRow>();
     private IReadOnlyList<ShopBadge> _shopBadges = Array.Empty<ShopBadge>();
     private IReadOnlyList<TrinketBadge> _trinketPicks = Array.Empty<TrinketBadge>();
-    private IReadOnlyList<string> _ownedTrinkets = Array.Empty<string>();
-    private string _darkGift = string.Empty;
-    private string _freeze = string.Empty;
-    private ShopPlan? _shopPlan;
-    private IReadOnlyList<string> _pairs = Array.Empty<string>();
     private IReadOnlyList<DiscoverBadge> _discoverBadges = Array.Empty<DiscoverBadge>();
     private string _oddsWin = string.Empty;
     private string _oddsTie = string.Empty;
@@ -197,7 +143,6 @@ public sealed partial class OverlayViewModel : Observable
     private LobbyPopup? _lobby;
     private double _lobbyTop;
     private double _lobbyLeft;
-    private string _bracket = string.Empty;
 
     public int Turn { get => _turn; private set => Set(ref _turn, value); }
     public string Phase { get => _phase; private set => Set(ref _phase, value); }
@@ -208,18 +153,8 @@ public sealed partial class OverlayViewModel : Observable
     public int RatingDeltaValue { get => _ratingDeltaValue; private set => Set(ref _ratingDeltaValue, value); }
     public IReadOnlyList<CombatDot> Combats { get => _combats; private set => Set(ref _combats, value); }
     public IReadOnlyList<HeroPickCard> HeroPicks { get => _heroPicks; private set => Set(ref _heroPicks, value); }
-    public CompRow? Target { get => _target; private set => Set(ref _target, value); }
-    public IReadOnlyList<CompCardTile> TargetCards { get => _targetCards; private set => Set(ref _targetCards, value); }
-    public string CommitHint { get => _commitHint; private set => Set(ref _commitHint, value); }
-    public string CompTip { get => _compTip; private set => Set(ref _compTip, value); }
-    public IReadOnlyList<CompRow> Alternatives { get => _alternatives; private set => Set(ref _alternatives, value); }
     public IReadOnlyList<ShopBadge> ShopBadges { get => _shopBadges; private set => Set(ref _shopBadges, value); }
     public IReadOnlyList<TrinketBadge> TrinketPicks { get => _trinketPicks; private set => Set(ref _trinketPicks, value); }
-    public IReadOnlyList<string> OwnedTrinkets { get => _ownedTrinkets; private set => Set(ref _ownedTrinkets, value); }
-    public string DarkGift { get => _darkGift; private set => Set(ref _darkGift, value); }
-    public string Freeze { get => _freeze; private set => Set(ref _freeze, value); }
-    public ShopPlan? ShopPlan { get => _shopPlan; private set => Set(ref _shopPlan, value); }
-    public IReadOnlyList<string> Pairs { get => _pairs; private set => Set(ref _pairs, value); }
     public IReadOnlyList<DiscoverBadge> DiscoverBadges { get => _discoverBadges; private set => Set(ref _discoverBadges, value); }
     public string OddsWin { get => _oddsWin; private set => Set(ref _oddsWin, value); }
     public string OddsTie { get => _oddsTie; private set => Set(ref _oddsTie, value); }
@@ -252,7 +187,6 @@ public sealed partial class OverlayViewModel : Observable
     public LobbyPopup? Lobby { get => _lobby; private set => Set(ref _lobby, value); }
     public double LobbyTop { get => _lobbyTop; private set => Set(ref _lobbyTop, value); }
     public double LobbyLeft { get => _lobbyLeft; private set => Set(ref _lobbyLeft, value); }
-    public string Bracket { get => _bracket; private set => Set(ref _bracket, value); }
 
     /// <summary>Current Battlegrounds game is Duos (the leaderboard is laid out in teams).</summary>
     public bool IsDuos { get; private set; }
@@ -263,7 +197,6 @@ public sealed partial class OverlayViewModel : Observable
     private IReadOnlyList<LobbyRow> _lobbyRows = Array.Empty<LobbyRow>();
     private string _sessionRating = string.Empty;
     private IReadOnlyList<PlaceChip> _sessionPlaces = Array.Empty<PlaceChip>();
-    private IReadOnlyList<string> _boardTribes = Array.Empty<string>();
     private bool _layoutEditing;
 
     public bool ShowLobby { get => _showLobby; private set => Set(ref _showLobby, value); }
@@ -271,7 +204,6 @@ public sealed partial class OverlayViewModel : Observable
     public IReadOnlyList<LobbyRow> LobbyRows { get => _lobbyRows; private set => Set(ref _lobbyRows, value); }
     public string SessionRating { get => _sessionRating; private set => Set(ref _sessionRating, value); }
     public IReadOnlyList<PlaceChip> SessionPlaces { get => _sessionPlaces; private set => Set(ref _sessionPlaces, value); }
-    public IReadOnlyList<string> BoardTribes { get => _boardTribes; private set => Set(ref _boardTribes, value); }
 
     /// <summary>Layout mode: every panel is shown with a frame and can be dragged, resized and reset.</summary>
     public bool LayoutEditing { get => _layoutEditing; set => Set(ref _layoutEditing, value); }
@@ -289,9 +221,6 @@ public sealed partial class OverlayViewModel : Observable
     public string ToastResult { get => _toastResult; private set => Set(ref _toastResult, value); }
     public bool ShowToast { get => _showToast; set => Set(ref _showToast, value); }
 
-    /// <summary>Selected composition (pin) requested from the overlay.</summary>
-    public event Action<string?>? PinRequested;
-
     // WPF exposes tribe-focus controls; Avalonia has no matching controls or public members.
     partial void InitializeFocus();
     partial void RefreshFocusLanguage();
@@ -308,20 +237,14 @@ public sealed partial class OverlayViewModel : Observable
             RebuildBrowser();
             RebuildTiers();
         });
-        Pin = new RelayCommand(p =>
-        {
-            var id = p as string;
-            // Clicking the chosen (or locked) comp again clears it: no target in "I choose", automatic choice otherwise.
-            var pinned = Target is { IsPinned: true } t && t.Id == id;
-            PinRequested?.Invoke(pinned ? null : id);
-        });
         InitializeFocus();
-        ToggleComp = new RelayCommand(() => CompCollapsed = !CompCollapsed);
         FinishLayout = new RelayCommand(() => LayoutEditing = false);
         ResetLayout = new RelayCommand(() => ResetLayoutRequested?.Invoke());
         CloseBrowser = new RelayCommand(() =>
         {
             SelectedTier = 0;
+            _selectedTribe = string.Empty;
+            RebuildTribeChips();
             RebuildBrowser();
             RebuildTiers();
         });
@@ -349,10 +272,6 @@ public sealed partial class OverlayViewModel : Observable
     private GameOutcome? _lastOutcome;
 
     public RelayCommand SelectTier { get; }
-
-    public RelayCommand Pin { get; }
-
-    public RelayCommand ToggleComp { get; }
 
     public RelayCommand CloseBrowser { get; }
 
@@ -396,7 +315,6 @@ public sealed partial class OverlayViewModel : Observable
         ApplyPickSettings(settings);
         ShowHeroPick = bg is { IsHeroSelection: true } && ShowPickPanels && bg.HeroOptions.Count > 0;
         var playing = bg is { IsHeroSelection: false, HeroCardId: not null } && ShowPickPanels;
-        ShowComp = playing && (bg!.Comps.Count > 0 || bg.Trinkets.Count > 0 || bg.DarkGiftAdvice.Length > 0 || bg.Pairs.Count > 0 || bg.ShopPlan is not null);
         ShowTrinkets = playing && bg!.TrinketOptions.Count > 0;
         ShowDiscover = playing && bg!.DiscoverAdvice.Count > 0;
         ShowOdds = settings.ShowCombatOdds && bg is { InCombat: true, CombatOdds: not null };
@@ -424,20 +342,12 @@ public sealed partial class OverlayViewModel : Observable
     private void ApplyPickSettings(AppSettings settings)
     {
         var hints = _pickHints != settings.PickHints;
-        var comp = _compMode != settings.CompMode;
         _pickHints = settings.PickHints;
-        _compMode = settings.CompMode;
-        _chosenCompId = settings.ChosenCompId;
         if (hints)
         {
             Raise(nameof(ShowBestBadges));
             Raise(nameof(StatsOnly));
             Raise(nameof(ShowPickPanels));
-        }
-
-        if (comp)
-        {
-            Raise(nameof(CompManual));
         }
     }
 
@@ -475,18 +385,27 @@ public sealed partial class OverlayViewModel : Observable
         OpponentHand = view.OpponentHandCount;
         OpponentDeck = view.OpponentDeckCount;
         OpponentSecrets = view.OpponentSecrets;
-        OpponentMatchup = matchup is { Games: > 0 } m ? Loc.F("Overlay.Opponent.Matchup", ClassName(view.OpponentClass), m.Wins, m.Losses, m.WinRate) : string.Empty;
+        // Short on the panel ("2–1 · 67 %"); whose games these are goes to the tooltip.
+        var hasMatchup = matchup is { Games: > 0 };
+        OpponentMatchup = hasMatchup ? Loc.F("Overlay.Opponent.Matchup", matchup!.Wins, matchup.Losses) : string.Empty;
+        OpponentMatchupRate = hasMatchup && matchup!.Wins + matchup.Losses > 0 ? matchup.WinRate.ToString("P0", CultureInfo.CurrentCulture) : string.Empty;
+        OpponentMatchupEdge = hasMatchup && matchup!.Wins + matchup.Losses > 0 ? matchup.WinRate - 0.5 : 0;
+        OpponentMatchupTip = hasMatchup ? Loc.P("Overlay.Opponent.MatchupTip", matchup!.Games, ClassName(view.OpponentClass)) : string.Empty;
         Replace(nameof(Played), view.OpponentPlayed, p => $"{p.CardId}{p.Count}", () => Sync(ref _played, nameof(Played), view.OpponentPlayed
             .Select(p => new PlayedTile(p.CardId, p.Name, p.Cost, p.Count > 1 ? $"×{p.Count}" : string.Empty, Loc.F("Overlay.Turn.Short", p.FirstTurn), p.IsCreated))
             .ToList()));
-        Replace(nameof(Hand), view.OpponentHand, h => $"{h.Position}{h.Turn}{h.CardId}{h.CreatedBy}{h.FromMulligan}", () => Sync(ref _hand, nameof(Hand), view.OpponentHand
+        Replace(nameof(Hand), view.OpponentHand, h => $"{h.Position}{h.Turn}{h.CardId}{h.CreatedBy}{h.CreatedById}{h.FromMulligan}", () => Sync(ref _hand, nameof(Hand), view.OpponentHand
             .Select(h => new HandTile(
                 h.Position.ToString(CultureInfo.InvariantCulture),
                 h.Turn > 0 ? Loc.F("Overlay.Turn.Short", h.Turn) : Loc.T("Overlay.Hand.MulliganShort"),
-                // A card nothing is known about shows only its slot and turn: ten rows of "Unknown" said nothing.
-                h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : h.FromMulligan ? Loc.T("Overlay.Hand.KeptInMulligan") : string.Empty),
+                // A card nothing is known about shows only its slot and turn: ten rows of "Unknown" said nothing. A card
+                // kept in the mulligan says so in the turn column already.
+                h.IsCoin ? Loc.T("Overlay.Hand.Coin") : h.CardName ?? (h.CreatedBy is not null ? Loc.F("Overlay.Hand.CreatedBy", h.CreatedBy) : string.Empty),
                 h.CardName is not null || h.IsCoin,
-                h.CardName is null && !h.IsCoin && h.CreatedBy is null && !h.FromMulligan))
+                h.CardName is null && !h.IsCoin && h.CreatedBy is null && !h.FromMulligan)
+            {
+                PreviewCardId = h.CardId is { } id && !h.IsCoin ? id : h.CreatedById,
+            })
             .ToList()));
     }
 
@@ -504,7 +423,11 @@ public sealed partial class OverlayViewModel : Observable
         RatingDeltaValue = delta ?? 0;
         RatingDelta = delta is { } dv && dv != 0 ? (dv > 0 ? $"+{dv}" : $"−{-dv}") : string.Empty;
 
-        Replace(nameof(Tribes), view.Races, r => r, () => Tribes = view.Races.Select(r => Races.Display(r, _locale)).ToList());
+        Replace(nameof(Tribes), view.Races, r => r, () =>
+        {
+            Tribes = view.Races.Select(r => Races.Display(r, _locale)).ToList();
+            RebuildTribeChips();
+        });
         UpdateFocusRaces(view.Races);
         Combats = view.Combats.TakeLast(8)
             .Select(c => new CombatDot(c.Result, Loc.F("Overlay.Combat.Tip", c.Turn, _cards.NameOf(c.OpponentHeroCardId), ResultText(c.Result))
@@ -541,7 +464,8 @@ public sealed partial class OverlayViewModel : Observable
 
         // Lobby-adjusted numbers only mean something once the tribes are known.
         var lobbyKnown = view.Races.Count >= 4;
-        Replace(nameof(HeroPicks), view.HeroOptions, h => $"{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = !view.HeroOptions.Any(h => h.Meta is not null) ? [] : view.HeroOptions
+        var heroTierTip = string.Join("\n", new[] { view.MetaSource ?? string.Empty, Loc.T("Overlay.Tier.Heroes") }.Where(s => s.Length > 0));
+        Replace(nameof(HeroPicks), view.HeroOptions, h => $"{heroTierTip}{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = !view.HeroOptions.Any(h => h.Meta is not null) ? [] : view.HeroOptions
             .Select(h =>
             {
                 var adjusted = h.Meta is not null && lobbyKnown;
@@ -558,10 +482,11 @@ public sealed partial class OverlayViewModel : Observable
                     h.Stats is { Games: > 0 } s ? Loc.P("Overlay.Hero.Personal", s.Games, s.AveragePlace) : string.Empty,
                     string.Join(" · ", (h.TopComps ?? Array.Empty<string>()).Take(2)),
                     highlight && h.Recommended,
-                    h.Meta is not null);
+                    h.Meta is not null) { TierTip = heroTierTip };
             })
             .ToList());
 
+        var trinketTierTip = Loc.T("Overlay.Trinket.Source") + "\n" + Loc.T("Overlay.Tier.Heroes");
         Replace(nameof(TrinketPicks), view.TrinketOptions, t => $"{t.CardId}{t.Meta?.AveragePlacement:0.000}{highlight && t.Recommended}", () => TrinketPicks = !view.TrinketOptions.Any(t => t.Meta is not null) ? [] : view.TrinketOptions
             .Select(t => new TrinketBadge(
                 t.CardId,
@@ -570,28 +495,13 @@ public sealed partial class OverlayViewModel : Observable
                 t.Meta is null ? "—" : t.Meta.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
                 t.Meta is null ? Loc.T("Overlay.Badge.NoData") : Loc.F("Overlay.Badge.PickRate", t.Meta.PickRate.ToString("P0", CultureInfo.CurrentCulture)),
                 highlight && t.Recommended,
-                t.Meta is not null))
+                t.Meta is not null) { TierTip = trinketTierTip })
             .ToList());
 
-        Replace(nameof(OwnedTrinkets), view.Trinkets, t => t, () => OwnedTrinkets = view.Trinkets.Select(_cards.NameOf).ToList());
-        // "Stats only" names no card to buy or keep: the Dark Gift line only says the button is ready.
-        DarkGift = highlight || view.DarkGiftAdvice.Length == 0
-            ? view.DarkGiftAdvice
-            : Loc.P("Overlay.Plan.DarkGiftReady", view.DarkGiftCost > 0 ? view.DarkGiftCost : 3);
-        Freeze = highlight ? view.FreezeAdvice : string.Empty;
-        // "Stats only" keeps the plan's numbers but does not single out one turn-plan action.
-        ShopPlan = highlight ? view.ShopPlan : null;
-        Replace(nameof(Pairs), view.Pairs, p => p, () => Pairs = view.Pairs.ToList());
-
-        // The plan shows the player's choice (or lock), and the advisor's own pick only with "Mark the best".
-        var target = view.Comps.FirstOrDefault(c => c.IsTarget && (highlight || c.IsPinned));
-        _planTarget = target;
-        // Badge tags such as "Core" refer to the advisor's target comp: keep them only while that comp is on screen.
-        var compTags = target is not null;
-        var mode = $"{_pickHints}{_compMode}{_chosenCompId}";
+        var mode = $"{_pickHints}";
 
         // One slot per option in screen order, so each badge lands above its own card.
-        Replace(nameof(DiscoverBadges), view.DiscoverAdvice, d => $"{mode}{compTags}{d.Slot}{d.Score}{d.Best}{d.Reason}{d.Placement:0.000}{d.TechLevel}", () =>
+        Replace(nameof(DiscoverBadges), view.DiscoverAdvice, d => $"{mode}{d.Slot}{d.Score}{d.Best}{d.Reason}{d.Placement:0.000}{d.TechLevel}", () =>
         {
             var gifts = view.DiscoverOptions;
             var ranked = view.DiscoverAdvice.OrderByDescending(d => d.Score).Select(d => d.Slot).ToList();
@@ -599,7 +509,7 @@ public sealed partial class OverlayViewModel : Observable
                 .OrderBy(d => d.Slot)
                 .Select(d => new DiscoverBadge(
                     highlight ? ranked.IndexOf(d.Slot) + 1 : 0,
-                    ShortReason(d.Reason, compTags, highlight),
+                    ShortReason(d.Reason, highlight),
                     d.Slot < gifts.Count ? gifts[d.Slot].DarkGift ?? string.Empty : string.Empty,
                     d.Placement is { } p ? p.ToString("0.00", CultureInfo.CurrentCulture) : "—",
                     d.Placement is null ? Loc.T("Overlay.Badge.NoDataYet") : Loc.T("Overlay.Badge.AvgPlace"),
@@ -618,27 +528,10 @@ public sealed partial class OverlayViewModel : Observable
                     : Loc.F("Overlay.Discover.CloseCall", source);
 
         MetaSource = view.MetaSource ?? string.Empty;
-        Bracket = view.MetaSource?.Split(" · ").ElementAtOrDefault(1) ?? string.Empty;
-
-        Replace(nameof(Target), view.Comps, c => $"{mode}{c.Id}{c.IsTarget}{c.IsPinned}{c.OwnedCore}{c.Why}{string.Join(',', c.LookFor)}{string.Concat(c.Cards.Select(x => x.Owned ? '1' : '0'))}", () =>
-        {
-            Target = target is null ? null : Row(target);
-            TargetCards = target?.Cards
-                .Select(c => new CompCardTile(c.CardId, c.Name, c.Status, c.Status switch { "CORE" => Loc.T("Overlay.Tag.Core"), "ADDON" => Loc.T("Overlay.Tag.AddOn"), _ => Loc.T("Overlay.Tag.Cycle") }, c.TechLevel, c.Owned))
-                .ToList() ?? (IReadOnlyList<CompCardTile>)Array.Empty<CompCardTile>();
-            CommitHint = target?.WhenToCommit ?? string.Empty;
-            CompTip = target?.Tip ?? string.Empty;
-            Alternatives = view.Comps.Where(c => c.Id != target?.Id).Select(c => Row(c) with { IsTarget = false }).ToList();
-            if (SelectedTier > 0)
-            {
-                RebuildBrowser();
-            }
-        });
-        UpdatePlanText(view);
 
         var shopSize = view.Shop.Count;
-        Replace(nameof(ShopBadges), view.ShopAdvice, s => $"{mode}{compTags}{shopSize}{s.Slot}{s.Score}{s.Best}{s.Reason}{s.Placement:0.000}", () => ShopBadges = view.ShopAdvice
-            .Select(s => (Pick: s, Label: ShortReason(s.Reason, compTags, highlight)))
+        Replace(nameof(ShopBadges), view.ShopAdvice, s => $"{mode}{shopSize}{s.Slot}{s.Score}{s.Best}{s.Reason}{s.Placement:0.000}", () => ShopBadges = view.ShopAdvice
+            .Select(s => (Pick: s, Label: ShortReason(s.Reason, highlight)))
             // "Mark the best" badges the best buy and other strong ones; "Stats only" shows what is known about every minion.
             .Where(x => highlight ? x.Pick.Best || x.Pick.Score >= StrongPick : x.Label.Length > 0 || x.Pick.Placement is not null)
             .Select(x => new ShopBadge(
@@ -652,34 +545,6 @@ public sealed partial class OverlayViewModel : Observable
         {
             RebuildBrowser();
         }
-    }
-
-    /// <summary>Wording of the plan panel for the current comp mode, target and list.</summary>
-    private void UpdatePlanText(BattlegroundsView view)
-    {
-        var manual = CompManual;
-        TargetLabel = manual ? Loc.T("Overlay.Plan.YourComp") : Loc.T("Overlay.Plan.AimFor");
-        PinText = manual ? Loc.T("Overlay.Plan.Chosen") : Target is { IsPinned: true } ? Loc.T("Overlay.Plan.Locked") : Loc.T("Overlay.Plan.Lock");
-        PinTooltip = manual
-            ? Loc.T("Overlay.Plan.ChosenTip")
-            : Loc.T("Overlay.Plan.LockTip");
-        PlanTooltip = manual
-            ? Loc.T("Overlay.Plan.ManualTip")
-            : ShowBestBadges
-                ? Loc.T("Overlay.Plan.SuggestTip")
-                : Loc.T("Overlay.Plan.AutoTip");
-        CompRowTooltip = manual ? Loc.T("Overlay.Plan.RowChooseTip") : Loc.T("Overlay.Plan.RowSwitchTip");
-        CompListTitle = Target is not null
-            ? manual ? Loc.T("Overlay.Plan.OtherChoose") : Loc.T("Overlay.Plan.OtherSwitch")
-            : manual ? Loc.T("Overlay.Plan.LobbyChoose") : Loc.T("Overlay.Plan.LobbyLock");
-        PlanHint = Target is not null || view.Comps.Count == 0
-            ? string.Empty
-            : !manual
-                ? Loc.T("Overlay.Plan.HintLock")
-                : _chosenCompId is not null
-                    ? Loc.T("Overlay.Plan.HintUnavailable")
-                    : Loc.T("Overlay.Plan.HintChoose");
-        ShowCompList = Alternatives.Count > 0 && (Target is null || !CompCollapsed);
     }
 
     private void UpdateLobbyAndSession(BattlegroundsView view, LiveSnapshot snapshot)
@@ -719,14 +584,6 @@ public sealed partial class OverlayViewModel : Observable
         var cut = view.IsDuos ? 2 : 4;
         Replace(nameof(SessionPlaces), session.Placements, p => p.ToString(CultureInfo.InvariantCulture), () =>
             SessionPlaces = session.Placements.TakeLast(12).Select(p => new PlaceChip(p, p <= cut)).ToList());
-
-        var tribes = view.Board
-            .SelectMany(m => _cards.Get(m.CardId)?.Races ?? Array.Empty<string>())
-            .GroupBy(r => r)
-            .OrderByDescending(g => g.Count())
-            .Select(g => $"{Races.Display(g.Key, _locale)} ×{g.Count()}")
-            .ToList();
-        Replace(nameof(BoardTribes), tribes, t => t, () => BoardTribes = tribes);
     }
 
     // Tavern row geometry in 1080-unit overlay space (HDT: minion 0.12H plus a 0.0039H margin each side).
@@ -750,16 +607,17 @@ public sealed partial class OverlayViewModel : Observable
         ["Board synergy"] = "Overlay.Tag.BoardSynergy",
         ["Best stats"] = "Overlay.Tag.BestStats",
     };
+    // Tags about a target comp: the overlay shows no comp since the game plan panel went, so they would point at nothing.
     private static readonly string[] CompReasonTags = ["Core", "Add-on", "Cycle", "Fits tribe"];
 
     /// <summary>
-    /// Badge text from the advisor's reason: its tags only, without the comp name. <paramref name="compTags"/> false drops
-    /// the tags about the target comp; <paramref name="bestStats"/> false drops the "Best stats" fallback.
+    /// Badge text from the advisor's reason: its tags only, without the comp name or the tags about a comp.
+    /// <paramref name="bestStats"/> false drops the "Best stats" fallback.
     /// </summary>
-    private static string ShortReason(string reason, bool compTags, bool bestStats)
+    private static string ShortReason(string reason, bool bestStats)
     {
         var parts = reason.Split(" · ");
-        var tags = parts.Where(p => ReasonTags.Contains(p) && (compTags || !CompReasonTags.Contains(p))).Take(2).ToList();
+        var tags = parts.Where(p => ReasonTags.Contains(p) && !CompReasonTags.Contains(p)).Take(2).ToList();
         if (tags.Count == 0 && bestStats && parts.Contains("Best stats available"))
         {
             tags.Add("Best stats");
@@ -767,21 +625,6 @@ public sealed partial class OverlayViewModel : Observable
 
         return string.Join(" · ", tags.Select(t => Loc.T(ReasonTagKeys[t])));
     }
-
-    private CompRow Row(CompAdvice c) => new(
-        c.Id,
-        c.Name,
-        string.IsNullOrEmpty(c.PowerLevel) ? "–" : c.PowerLevel,
-        c.AveragePlacement.ToString("0.00", CultureInfo.CurrentCulture),
-        c.HeroPlacement is { } h ? h.ToString("0.00", CultureInfo.CurrentCulture) : "—",
-        c.Difficulty,
-        string.Join(" · ", c.Tribes.Select(t => Races.Display(t, _locale))),
-        c.OwnedCore,
-        c.Cards.Count(x => x.Status == "CORE"),
-        c.IsTarget,
-        c.IsPinned,
-        c.Why,
-        string.Join("  ·  ", c.LookFor));
 
     private void RebuildTiers()
     {
@@ -798,6 +641,7 @@ public sealed partial class OverlayViewModel : Observable
 
     private void RebuildBrowser()
     {
+        UpdateBrowserHeading();
         if (_bg is not { } bg || SelectedTier == 0)
         {
             Browser = Array.Empty<BrowserGroup>();
@@ -806,11 +650,11 @@ public sealed partial class OverlayViewModel : Observable
 
         _fingerprints["BrowserRaces"] = string.Join(',', bg.Races);
         var lobby = bg.Races.ToHashSet(StringComparer.Ordinal);
-        var inComp = _planTarget?.Cards.ToDictionary(c => c.CardId, c => c.Status) ?? new Dictionary<string, string>();
 
         var minions = _cards.BattlegroundsMinions
             .Where(c => c.TechLevel == SelectedTier && (bg.IsDuos || !c.IsBattlegroundsDuosExclusive))
             .Where(c => lobby.Count == 0 || c.Races.Count == 0 || c.Races.Any(r => r == "ALL" || lobby.Contains(r)))
+            .Where(c => InChosenTribe(c.Races))
             .ToList();
 
         // Before the lobby is known, show every tribe in the pool.
@@ -825,7 +669,7 @@ public sealed partial class OverlayViewModel : Observable
                 .Where(c => race.Length == 0 ? c.Races.Count == 0 : race == "ALL" ? c.Races.Contains("ALL") : c.Races.Contains(race) && !c.Races.Contains("ALL"))
                 .Where(c => race.Length == 0 || race == "ALL" || c.Races.First(known.Contains) == race)
                 .OrderBy(c => c.Name, StringComparer.CurrentCulture)
-                .Select(c => new BrowserCard(c.Id, c.Name, inComp.ContainsKey(c.Id), inComp.GetValueOrDefault(c.Id)))
+                .Select(c => new BrowserCard(c.Id, c.Name))
                 .ToList();
             if (cards.Count > 0)
             {
@@ -834,8 +678,9 @@ public sealed partial class OverlayViewModel : Observable
             }
         }
 
-        var spells = _cards.BattlegroundsSpells.Where(c => c.TechLevel == SelectedTier).OrderBy(c => c.Name, StringComparer.CurrentCulture)
-            .Select(c => new BrowserCard(c.Id, c.Name, false, null)).ToList();
+        // A tribe chosen on the bar shows its minions only; tavern spells belong to no tribe.
+        var spells = _cards.BattlegroundsSpells.Where(c => c.TechLevel == SelectedTier && _selectedTribe.Length == 0).OrderBy(c => c.Name, StringComparer.CurrentCulture)
+            .Select(c => new BrowserCard(c.Id, c.Name)).ToList();
         if (spells.Count > 0)
         {
             groups.Add(new BrowserGroup(Loc.T("Overlay.Browser.TavernSpells"), spells));
@@ -878,12 +723,21 @@ public sealed partial class OverlayViewModel : Observable
 
         LobbyTop = top;
         LobbyLeft = left;
-        if (Lobby?.HeroCardId == opponent.HeroCardId && Lobby.Board.Count == opponent.LastBoard.Count && Lobby.Health == opponent.Health)
+        if (Lobby?.HeroCardId == opponent.HeroCardId && Lobby.Board.Count == opponent.LastBoard.Count && Lobby.Health == opponent.Health
+            && Lobby.ResultKey == (opponent.LastResult ?? string.Empty) && Lobby.History.Count == FightsWith(opponent).Count)
         {
             return;
         }
 
         var turnsAgo = _bg!.Turn - opponent.LastBoardTurn;
+        var fights = FightsWith(opponent);
+        // The tribe most of the board shares, once it is at least two minions (amalgams count for every tribe, so not here).
+        var tribe = opponent.LastBoard
+            .SelectMany(m => (_cards.Get(m.CardId)?.Races ?? Array.Empty<string>()).Where(r => r != "ALL"))
+            .GroupBy(r => r)
+            .Select(g => (Race: g.Key, Count: g.Count()))
+            .OrderByDescending(g => g.Count)
+            .FirstOrDefault();
         Lobby = new LobbyPopup(
             opponent.HeroCardId,
             opponent.HeroName,
@@ -902,8 +756,17 @@ public sealed partial class OverlayViewModel : Observable
             opponent.LastBoard.Count == 0 ? Loc.T("Overlay.LobbyPopup.BoardNotSeen") : turnsAgo <= 0 ? Loc.T("Overlay.LobbyPopup.BoardThisTurn") : Loc.P("Overlay.LobbyPopup.BoardAgo", turnsAgo),
             opponent.IsNextOpponent,
             opponent.Dead,
-            opponent.LastBoard.Select(m => new LobbyMinion(m.CardId, m.Name, m.Attack, m.Health, m.Golden, string.Join(" · ", m.Keywords))).ToList());
+            opponent.LastBoard.Select(m => new LobbyMinion(m.CardId, m.Name, m.Attack, m.Health, m.Golden, string.Join(" · ", m.Keywords))).ToList())
+        {
+            ResultKey = opponent.LastResult ?? string.Empty,
+            History = fights.Count >= 2 ? fights.TakeLast(8).Select(c => new CombatDot(c.Result, string.Empty)).ToList() : [],
+            Tribe = tribe.Count >= 2 ? $"{Races.Display(tribe.Race, _locale)} ×{tribe.Count}" : string.Empty,
+        };
     }
+
+    /// <summary>The fights with this opponent so far this game, oldest first.</summary>
+    private List<CombatRecord> FightsWith(BgOpponent opponent) =>
+        _bg?.Combats.Where(c => c.OpponentPlayerId == opponent.PlayerId).ToList() ?? [];
 
     public void ShowOutcome(GameOutcome outcome)
     {

@@ -31,6 +31,9 @@ public partial class OverlayWindow : Window
 {
     private const double ReferenceHeight = 1080;
 
+    /// <summary>Virtual-key code of either Ctrl key: held over a panel during a game, it lets the panel be dragged.</summary>
+    private const int ControlKey = 0x11;
+
     /// <summary>Overlay tick while the game window is there (follow it, mouse, click-through) and while it is not.</summary>
     private static readonly TimeSpan ActiveTick = TimeSpan.FromMilliseconds(33);
 
@@ -266,10 +269,11 @@ public partial class OverlayWindow : Window
 
     private void UpdateClickThrough(Native.POINT cursor, Native.RECT r)
     {
-        var interactive = Mouse.Captured is not null;
-        if (!interactive && cursor.X >= r.Left && cursor.X < r.Right && cursor.Y >= r.Top && cursor.Y < r.Bottom)
+        var inside = cursor.X >= r.Left && cursor.X < r.Right && cursor.Y >= r.Top && cursor.Y < r.Bottom;
+        var point = new Point((cursor.X - r.Left) / _dpi, (cursor.Y - r.Top) / _dpi);
+        var interactive = UpdateDragArm(inside ? point : null) || Mouse.Captured is not null;
+        if (!interactive && inside)
         {
-            var point = new Point((cursor.X - r.Left) / _dpi, (cursor.Y - r.Top) / _dpi);
             var hit = Root.InputHitTest(point) as DependencyObject;
             for (var node = hit; node is not null; node = node is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
             {
@@ -297,6 +301,40 @@ public partial class OverlayWindow : Window
             // A click-through window gets no mouse-leave, so the hover preview would stay up.
             PreviewHost.Hide();
         }
+    }
+
+    /// <summary>
+    /// Ctrl held over a panel during a game arms that panel (the topmost one under the mouse): it takes the mouse and
+    /// can be dragged or resized as in layout mode, and the placement is saved the same way. Without Ctrl, or over
+    /// empty space, clicks keep going to the game. A panel being dragged stays armed until the button comes up.
+    /// </summary>
+    /// <returns>Whether a panel is under the mouse with Ctrl held, so the overlay must take the mouse.</returns>
+    private bool UpdateDragArm(Point? point)
+    {
+        MovablePanel? target = null;
+        if (point is { } p && !ViewModel.LayoutEditing && PoolInput.IsDown(ControlKey))
+        {
+            // Later panels draw over earlier ones.
+            for (var i = _panels.Count - 1; i >= 0 && target is null; i--)
+            {
+                var panel = _panels[i];
+                if (panel is { Shown: true, IsVisible: true, ActualWidth: > 0 } && new Rect(panel.RenderSize).Contains(Root.TranslatePoint(p, panel)))
+                {
+                    target = panel;
+                }
+            }
+        }
+
+        foreach (var panel in _panels)
+        {
+            var armed = panel == target || (panel.IsDragging && !ViewModel.LayoutEditing);
+            if (panel.IsDragArmed != armed)
+            {
+                panel.IsDragArmed = armed;
+            }
+        }
+
+        return target is not null;
     }
 
     private void UpdateLeaderboardHover(Native.POINT cursor, Native.RECT r)

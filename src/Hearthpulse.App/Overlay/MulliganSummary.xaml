@@ -3,8 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
-    <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps,
-         the source and slice in small type; the estimate and curve notes in the tooltip. Above the Confirm button.
+    <!-- The mulligan summary under the offered cards (the bars are over them, MulliganPanel): the impact of the keeps;
+         the source and slice, the estimate and curve notes in the tooltip. Above the Confirm button.
          DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
@@ -30,8 +30,6 @@
             </TextBlock>
             <TextBlock Text="&#xF02FD;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Info}" VerticalAlignment="Center" Margin="4,0,0,0"
                        Visibility="{Binding MulliganHasWarnings, Converter={StaticResource Vis}}" />
-            <TextBlock Text="{Binding MulliganSource}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" Margin="10,0,0,0"
-                       Visibility="{Binding MulliganSource, Converter={StaticResource Vis}}" />
         </StackPanel>
     </Border>
 </UserControl>

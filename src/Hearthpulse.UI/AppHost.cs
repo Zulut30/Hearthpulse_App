@@ -83,11 +83,12 @@ public sealed partial class AppHost : IDisposable
             Account.RestoreAsync().Forget("Account restore");
         }
         Overlay = new OverlayViewModel();
-        Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
+        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
+        // version stays in the settings, unused).
+        Session.SetCompMode(CompMode.Manual, null);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
         Session.SetArenaDraftEnabled(Settings.ShowArenaDraft);
         Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
-        Overlay.PinRequested += OnPinRequested;
         Overlay.SecretToggleRequested += Session.ToggleSecret;
         Overlay.CardPoolBrowserResized += OnSettingsChanged;
         Overlay.CounterModeRequested += (id, mode) =>
@@ -551,7 +552,9 @@ public sealed partial class AppHost : IDisposable
     {
         _settingsDebounce.Stop();
         _settingsDebounce.Start();
-        Session.SetCompMode(Settings.CompMode, Settings.ChosenCompId);
+        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
+        // version stays in the settings, unused).
+        Session.SetCompMode(CompMode.Manual, null);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
         Session.SetArenaDraftEnabled(Settings.ShowArenaDraft);
         Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
@@ -560,19 +563,6 @@ public sealed partial class AppHost : IDisposable
         if (!_rendering)
         {
             ApplyAutostart?.Invoke(Settings.StartWithWindows);
-        }
-    }
-
-    /// <summary>The player chose (or cleared) a comp in the overlay. With "I choose" the choice is saved and kept across games.</summary>
-    private void OnPinRequested(string? compId)
-    {
-        Session.PinComp(compId);
-        if (Settings.CompMode == CompMode.Manual && Settings.ChosenCompId != compId)
-        {
-            // Saved only: the overlay follows on the session's next snapshot, which already carries the new target.
-            Settings.ChosenCompId = compId;
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
         }
     }
 

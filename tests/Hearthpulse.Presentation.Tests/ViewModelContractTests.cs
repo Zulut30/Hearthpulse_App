@@ -244,6 +244,43 @@ public sealed class ViewModelContractTests
         }
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Tavern_tribe_chips_filter_the_tier_list_and_the_leaderboard_popup_sums_up_the_opponent(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
+        var minion = new BgMinion("BG_X", "Minion", 3, 5, Golden: false, TechLevel: 2, Keywords: []);
+        var bob = new BgOpponent(5, "HERO_BOB", "Bob", 30, 0, 3, 4, false, 0, [minion, minion], 8, "Win", 6, false);
+        var view = Fight() with
+        {
+            Opponents = [bob],
+            // Two fights with Bob (the strip), one with somebody else (not his).
+            Combats = [new CombatRecord(3, 5, "HERO_BOB", "Loss", 4, 0), new CombatRecord(5, 9, "HERO_X", "Win", 0, 3), new CombatRecord(7, 5, "HERO_BOB", "Win", 0, 6)],
+        };
+        model.Update(LiveSnapshot.Empty with { Battlegrounds = view, InGame = true }, CardDb.Empty, new AppSettings(), null, null);
+
+        // A tribe chip opens the list at the player's tier with that tribe only; the same chip again shows every tribe.
+        Assert.Equal(new[] { "BEAST", "DRAGON" }, ((IEnumerable<dynamic>)model.TribeChips).Select(c => (string)c.Key));
+        model.SelectTribe.Execute("BEAST");
+        Assert.Equal("BEAST", ((IEnumerable<dynamic>)model.TribeChips).Single(c => (bool)c.Selected).Key);
+        Assert.Equal(4, (int)model.SelectedTier);
+        Assert.Equal("Tier 4", (string)model.BrowserTitle);
+        model.SelectTribe.Execute("BEAST");
+        Assert.DoesNotContain((IEnumerable<dynamic>)model.TribeChips, c => (bool)c.Selected);
+        model.CloseBrowser.Execute(null);
+        Assert.Equal(0, (int)model.SelectedTier);
+
+        model.HoverLeaderboard(4, 100.0, 200.0);
+        var popup = model.Lobby;
+        Assert.Equal("Win", (string)popup.ResultKey);
+        Assert.Equal("Won · dealt 6", (string)popup.LastResult);
+        Assert.Equal(new[] { "Loss", "Win" }, ((IEnumerable<dynamic>)popup.History).Select(d => (string)d.Result));
+        Assert.Equal(("#4", "30 HP", "tier 3", "triples 0"), ((string)popup.PlaceText, (string)popup.HealthText, (string)popup.TierText, (string)popup.TriplesText));
+        Assert.Equal(2, ((IEnumerable<dynamic>)popup.Board).Count());
+    }
+
     [Fact]
     public void Wpf_tribe_focus_still_selects_and_clears_the_requested_tribe()
     {

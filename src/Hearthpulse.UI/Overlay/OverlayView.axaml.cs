@@ -132,6 +132,43 @@ public partial class OverlayView : UserControl
     }
 
     /// <summary>
+    /// Ctrl held over a panel during a game arms that panel (the topmost one under the pointer, view coordinates; null
+    /// when outside): it takes the mouse and can be dragged or resized as in layout mode, and the placement is saved
+    /// the same way. Without Ctrl, or over empty space, clicks keep going to the game. A panel being dragged stays armed
+    /// until the button comes up.
+    /// </summary>
+    /// <returns>Whether a panel is under the pointer with Ctrl held, so the overlay must take the mouse.</returns>
+    public bool UpdateDragArm(Point? pointer, bool controlDown)
+    {
+        var editing = _viewModel?.LayoutEditing == true;
+        MovablePanel? target = null;
+        if (pointer is { } p && controlDown && !editing)
+        {
+            // Later panels draw over earlier ones.
+            for (var i = _panels.Count - 1; i >= 0 && target is null; i--)
+            {
+                var panel = _panels[i];
+                if (panel is { Shown: true, IsVisible: true, Bounds.Width: > 0 } && this.TranslatePoint(p, panel) is { } local
+                    && new Rect(panel.Bounds.Size).Contains(local))
+                {
+                    target = panel;
+                }
+            }
+        }
+
+        foreach (var panel in _panels)
+        {
+            var armed = panel == target || (panel.IsDragging && !editing);
+            if (panel.IsDragArmed != armed)
+            {
+                panel.IsDragArmed = armed;
+            }
+        }
+
+        return target is not null;
+    }
+
+    /// <summary>
     /// Updates the opponent-board popup from the pointer position (view coordinates, null when outside) and the hero the
     /// game reports under the mouse (null when unknown: then the leaderboard calibration decides).
     /// </summary>
@@ -325,14 +362,6 @@ public partial class OverlayView : UserControl
         if (sender is Control { DataContext: TierButton tier })
         {
             _viewModel?.SelectTier.Execute(tier.Tier);
-        }
-    }
-
-    private void OnAlternativeClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: CompRow comp })
-        {
-            _viewModel?.Pin.Execute(comp.Id);
         }
     }
 }

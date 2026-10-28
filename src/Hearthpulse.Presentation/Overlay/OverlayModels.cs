@@ -11,7 +11,11 @@ public sealed record PlayedTile(string CardId, string Name, int Cost, string Cou
 
 /// <param name="Highlight">The card is known (or the Coin): drawn in full text colour.</param>
 /// <param name="Unknown">Nothing is known about the card: drawn faint so the cards with a hint stand out.</param>
-public sealed record HandTile(string Slot, string Turn, string Detail, bool Highlight, bool Unknown);
+public sealed record HandTile(string Slot, string Turn, string Detail, bool Highlight, bool Unknown)
+{
+    /// <summary>The card shown on hover: the card itself once revealed, else the card that created it; null when neither is known.</summary>
+    public string? PreviewCardId { get; init; }
+}
 
 public sealed record TierButton(int Tier, bool IsCurrent, bool IsSelected, bool Locked);
 
@@ -30,10 +34,18 @@ public sealed record HeroPickCard(
     string Personal,
     string Comps,
     bool Recommended,
-    bool HasMeta);
+    bool HasMeta)
+{
+    /// <summary>Where the numbers come from and what the tier letters mean, on the tier badge instead of a caption line.</summary>
+    public string TierTip { get; init; } = string.Empty;
+}
 
 /// <summary>Compact stats badge drawn above one trinket during a trinket choice.</summary>
-public sealed record TrinketBadge(string CardId, string Name, string Tier, string Place, string PickRate, bool Recommended, bool HasMeta);
+public sealed record TrinketBadge(string CardId, string Name, string Tier, string Place, string PickRate, bool Recommended, bool HasMeta)
+{
+    /// <summary>Where the numbers come from and what the tier letters mean, on the tier badge instead of a caption line.</summary>
+    public string TierTip { get; init; } = string.Empty;
+}
 
 /// <summary>
 /// One Discover option slot, above its card: rank among the options, community average placement around this
@@ -45,28 +57,14 @@ public sealed record DiscoverBadge(int Rank, string Label, string Gift, string P
 /// <summary>Buy hint drawn above one tavern minion; <see cref="Left"/> is in overlay units inside the shop row.</summary>
 public sealed record ShopBadge(double Left, string Label, bool Best, string Placement);
 
-public sealed record CompCardTile(string CardId, string Name, string Status, string StatusText, int Tier, bool Owned);
-
-public sealed partial record CompRow(
-    string Id,
-    string Name,
-    string Power,
-    string Placement,
-    string HeroPlacement,
-    string Difficulty,
-    string Tribes,
-    int OwnedCore,
-    int CoreCount,
-    bool IsTarget,
-    bool IsPinned,
-    string Why = "",
-    string LookFor = "");
-
 public sealed record BrowserGroup(string Title, IReadOnlyList<BrowserCard> Cards);
 
-public sealed record BrowserCard(string CardId, string Name, bool InComp, string? CompStatus);
+public sealed record BrowserCard(string CardId, string Name);
 
 public sealed record LobbyMinion(string CardId, string Name, int Attack, int Health, bool Golden, string Keywords);
+
+/// <summary>A lobby tribe on the tavern bar; <see cref="Selected"/> when the tier list shows only this tribe.</summary>
+public sealed record TribeChip(string Key, string Name, bool Selected);
 
 public sealed record LobbyPopup(
     string HeroCardId,
@@ -80,7 +78,25 @@ public sealed record LobbyPopup(
     string LastSeen,
     bool NextOpponent,
     bool Dead,
-    IReadOnlyList<LobbyMinion> Board);
+    IReadOnlyList<LobbyMinion> Board)
+{
+    /// <summary>The last fight with this opponent: Win, Loss or Tie, colouring its plate; empty before the first one.</summary>
+    public string ResultKey { get; init; } = string.Empty;
+
+    /// <summary>Every fight with this opponent so far, oldest first; shown once there are two or more.</summary>
+    public IReadOnlyList<CombatDot> History { get; init; } = [];
+
+    /// <summary>The tribe most of the last seen board has ("Murloc ×4"); empty when no tribe stands out.</summary>
+    public string Tribe { get; init; } = string.Empty;
+
+    public string PlaceText => $"#{Place}";
+
+    public string HealthText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.HpShort", Health);
+
+    public string TierText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.TierShort", Tier);
+
+    public string TriplesText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.TriplesShort", Triples);
+}
 
 public sealed record LobbyRow(
     int Place,

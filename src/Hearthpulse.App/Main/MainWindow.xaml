@@ -879,33 +879,6 @@
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
-                                        <!-- Game plan comp: who sets the comp the plan, tavern and Discover hints are built around -->
-                                        <Grid Margin="0,0,0,14">
-                                            <Grid.Style>
-                                                <Style TargetType="Grid">
-                                                    <Style.Triggers>
-                                                        <!-- Pick suggestions Off hides the game plan, so this choice has no effect then -->
-                                                        <DataTrigger Binding="{Binding IsChecked, ElementName=PickHintsOffOption}" Value="True">
-                                                            <Setter Property="Opacity" Value="0.5" />
-                                                            <Setter Property="IsEnabled" Value="False" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Grid.Style>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{i:Loc Settings.Overlay.CompMode}" Style="{StaticResource SettingLabel}" />
-                                            <Border Grid.Column="1" Style="{StaticResource SegmentBar}" VerticalAlignment="Center">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <RadioButton x:Name="CompModeManualOption" Style="{StaticResource Segment}" Content="{i:Loc Settings.Overlay.CompModeManual}" GroupName="CompMode"
-                                                                 IsChecked="{Binding CompModeManual}" ToolTip="{i:Loc Settings.Overlay.CompModeManualCaption}" />
-                                                    <RadioButton x:Name="CompModeAutoOption" Style="{StaticResource Segment}" Content="{i:Loc Settings.Overlay.CompModeAuto}" GroupName="CompMode"
-                                                                 IsChecked="{Binding CompModeAuto}" ToolTip="{i:Loc Settings.Overlay.CompModeAutoCaption}" />
-                                                </StackPanel>
-                                            </Border>
-                                        </Grid>
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Boards}" IsChecked="{Binding ShowOpponentBoards}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.BoardsTip}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Lobby}" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14"
