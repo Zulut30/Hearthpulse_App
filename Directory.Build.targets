@@ -1,0 +1,11 @@
+<Project>
+
+  <!-- Packages ship debug symbols as native assets (SkiaSharp and HarfBuzz: ~105 MB of .pdb in the win-x64 publish), which
+       CopyOutputSymbolsToPublishDirectory does not cover. Drop every .pdb from the publish list. -->
+  <Target Name="HearthpulseDropSymbolsFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
+
+</Project>

@@ -32,8 +32,8 @@ src/Hearthpulse.Core/Localization/
 ```
 
 Each file is a flat JSON object of key → text, embedded into `Hearthpulse.Core` (`Hearthpulse.Core.csproj`, logical
-name `Hearthpulse.Loc.<lang>.<file>.json`). JSON, not `.resx`: both hosts set `SatelliteResourceLanguages=en`, which
-would drop the satellite assemblies of other languages. Files are split by area (`settings.json`, `main.json`,
+name `Hearthpulse.Loc.<lang>.<file>.json`). JSON, not `.resx`: `Directory.Build.props` sets `SatelliteResourceLanguages=en;ru`,
+which would drop the satellite assemblies of other languages. Files are split by area (`settings.json`, `main.json`,
 `overlay.json`, `stats.json`, `deck.json`, `core.json`, `host.json`, `sources.json`...) so parallel work rarely
 touches the same file. Every file is read; a key must be unique across all files of a language.
 

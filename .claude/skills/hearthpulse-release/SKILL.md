@@ -45,6 +45,10 @@ rg -n 'Version>|VERSION=|define VERSION|default:' src installer .github/workflow
 ```
 
 The scripts pass `-p:Version=V` to `dotnet publish`, so release builds are consistent even if a default is stale.
+What a publish carries is set once in the root `Directory.Build.props` / `.targets`: satellite assemblies for `en;ru`
+only and no `.pdb` (SkiaSharp/HarfBuzz alone ship ~105 MB of native symbols for win-x64). A file that leaves the
+Windows publish stays behind on upgrade (NSIS `File /r` overwrites, the uninstall list names only current files), so
+`hearthpulse.nsi` deletes such leftovers before copying.
 `Hearthpulse.Core.csproj` has no `<Version>`: a plain local build can report Core as 1.0.0 independently of the app
 version. `UpdateService.CurrentVersion` reads the **Core** assembly version, so always
 test the updater on a build made with `-p:Version=...`, never on a plain `dotnet run`.

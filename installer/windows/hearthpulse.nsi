@@ -172,6 +172,9 @@ Section "$(SecAppName)" SecApp
   SectionIn RO
   !insertmacro CloseApp
   SetOutPath "$INSTDIR"
+  ; Debug symbols that 0.13.0 and earlier installed; the build no longer ships them and the uninstall list skips them.
+  Delete "$INSTDIR\Hearthpulse.pdb"
+  Delete "$INSTDIR\Hearthpulse.Core.pdb"
   File /r "${SOURCE_DIR}\*.*"
   WriteUninstaller "$INSTDIR\${UNINSTALLER}"
 

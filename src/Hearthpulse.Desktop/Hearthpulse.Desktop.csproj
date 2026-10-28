@@ -13,7 +13,6 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\Hearthpulse.UI\Assets\hearthpulse.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- Avalonia's native libraries are resolved per runtime identifier at publish time. -->
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>

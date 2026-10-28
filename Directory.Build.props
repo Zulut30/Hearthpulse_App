@@ -1,0 +1,12 @@
+<Project>
+
+  <!-- Shared by every project in the repository (apps, tests, tools). -->
+  <PropertyGroup>
+    <!-- Framework and package satellite assemblies only for the two interface languages; NuGet packages and the runtime
+         packs otherwise bring a dozen more. The app's own strings are embedded JSON (docs/localization.md). -->
+    <SatelliteResourceLanguages>en;ru</SatelliteResourceLanguages>
+    <!-- Symbols stay in bin/ for local debugging; published apps (installers, portable zips) do not carry them. -->
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+  </PropertyGroup>
+
+</Project>

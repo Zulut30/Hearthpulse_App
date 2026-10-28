@@ -13,8 +13,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Interface strings, read by Localization/Loc.cs (docs/localization.md). Plain embedded JSON, not resx: the hosts
-         set SatelliteResourceLanguages=en, which would drop satellite assemblies of other languages. -->
+    <!-- Interface strings, read by Localization/Loc.cs (docs/localization.md). Plain embedded JSON, not resx:
+         Directory.Build.props sets SatelliteResourceLanguages=en;ru, which would drop satellite assemblies of other
+         languages. -->
     <EmbeddedResource Include="Localization\Strings\en\*.json" LogicalName="Hearthpulse.Loc.en.%(Filename).json" />
     <EmbeddedResource Include="Localization\Strings\ru\*.json" LogicalName="Hearthpulse.Loc.ru.%(Filename).json" />
     <!-- hearthpulse.net's archetype labels (Constructed/ArchetypeNames.cs). No ".ru." in the name: MSBuild would read it
