@@ -24,9 +24,12 @@ public sealed partial class GameSession
     /// <summary>ArenaSmith scores and class results; the host passes them after loading.</summary>
     public void SetArenaMeta(ArenaMeta? meta)
     {
-        _arenaMeta = meta;
-        _constructed.Arena = meta;
-        _dirty = true;
+        lock (_pipelineGate)
+        {
+            _arenaMeta = meta;
+            _constructed.Arena = meta;
+            _dirty = true;
+        }
     }
 
     /// <summary>
@@ -35,13 +38,17 @@ public sealed partial class GameSession
     /// </summary>
     public void SetArenaDraftEnabled(bool enabled)
     {
-        _arenaDraftEnabled = enabled;
-        if (!enabled)
+        // Called on the UI thread: the offer and the pick state are the log thread's, so they change under its lock.
+        lock (_pipelineGate)
         {
-            SetDraftOffer(null);
-        }
+            _arenaDraftEnabled = enabled;
+            if (!enabled)
+            {
+                SetDraftOffer(null);
+            }
 
-        _dirty = true;
+            _dirty = true;
+        }
     }
 
     /// <summary>The offer as the memory reader saw it; internal for tests (there is no game memory in them).</summary>

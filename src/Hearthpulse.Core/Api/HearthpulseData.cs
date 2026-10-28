@@ -19,6 +19,9 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
 
     private static readonly TimeSpan MaxAge = TimeSpan.FromHours(6);
 
+    /// <summary>How old a real answer may be and still stand in for a 404 (a slice the server dropped for a while).</summary>
+    private static readonly TimeSpan MaxStaleForMissing = TimeSpan.FromDays(2);
+
     /// <summary>Values from answers that become part of a URL or cache file name must look like the API's own keys.</summary>
     private static readonly System.Text.RegularExpressions.Regex SafeKey = new("^[a-z0-9_.]{1,64}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
@@ -620,9 +623,14 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
             Diag.Info($"Hearthpulse API {path}: {result.Error!.Code} {result.Error.Message}");
             if (result.Error.Code == "NOT_AVAILABLE")
             {
-                // The server has nothing for this (404): remember that for as long as an answer, instead of asking every load.
-                await WriteCacheAsync(file, "{\"data\":null}", cancellationToken).ConfigureAwait(false);
-                return null;
+                // The server has nothing for this (404): remember that for as long as an answer, instead of asking every
+                // load. A real answer from the last two days is used instead of being replaced by "nothing" (it keeps its
+                // own time, so it is asked again on later loads and gives way after two days).
+                if (!info.Exists || DateTime.UtcNow - info.LastWriteTimeUtc > MaxStaleForMissing || !HoldsData(file))
+                {
+                    await WriteCacheAsync(file, "{\"data\":null}", cancellationToken).ConfigureAwait(false);
+                    return null;
+                }
             }
         }
 
@@ -665,13 +673,33 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Diag.Error($"Hearthpulse API cache not written ({Path.GetFileName(file)})", ex);
+        }
+        finally
+        {
+            // A cancelled or failed write leaves no half-written temporary file behind (after the move there is none).
             try
             {
                 File.Delete(temp);
             }
-            catch (IOException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
             }
+        }
+    }
+
+    /// <summary>True when the cache file is a real answer, not the remembered "nothing" of a 404.</summary>
+    private static bool HoldsData(string file)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllBytes(file));
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                   && doc.RootElement.TryGetProperty("data", out var data)
+                   && data.ValueKind != JsonValueKind.Null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return false;
         }
     }
 
