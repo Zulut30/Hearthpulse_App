@@ -88,5 +88,15 @@
   "Pool.Mechanic.STARSHIP": "Starship",
   "Pool.Mechanic.MANATHIRST": "Manathirst",
   "Pool.Mechanic.FORGE": "Forge",
-  "Pool.Mechanic.MINIATURIZE": "Miniaturize"
+  "Pool.Mechanic.MINIATURIZE": "Miniaturize",
+  "Pool.Excavate.Title": "Excavate: tier {0} of {1}",
+  "Pool.Excavate.TitleAll": "Excavate: {0} tier|Excavate: {0} tiers",
+  "Pool.Excavate.Next": "Next treasure · {0}",
+  "Pool.Excavate.Tier": "Tier {0}",
+  "Pool.Excavate.Short": "T{0}",
+  "Pool.Excavate.Cycle": "cycle of {0} tier|cycle of {0} tiers",
+  "Pool.Excavate.Rarity.COMMON": "common",
+  "Pool.Excavate.Rarity.RARE": "rare",
+  "Pool.Excavate.Rarity.EPIC": "epic",
+  "Pool.Excavate.Rarity.LEGENDARY": "legendary"
 }

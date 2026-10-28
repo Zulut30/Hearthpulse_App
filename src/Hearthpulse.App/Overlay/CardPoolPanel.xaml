@@ -31,6 +31,32 @@
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
             <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
+
+        <!-- A tracker row: cost gem, the whole name over a strip of art, rarity strip, "×2" when it counts twice. -->
+        <DataTemplate x:Key="ListRowTemplate" DataType="{x:Type o:PoolListRow}">
+            <Grid Height="22" Margin="0,0,0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="25" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <c:ManaCost Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
+                    <Grid>
+                        <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                        <Rectangle Fill="{StaticResource TileFade}" />
+                        <Border Style="{StaticResource OverlayRarityStrip}" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                        <DockPanel Margin="9,0,3,0">
+                            <Border DockPanel.Dock="Right" Style="{StaticResource OverlayCountBadge}" Height="16" Visibility="{Binding CountText, Converter={StaticResource Vis}}">
+                                <TextBlock Text="{Binding CountText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <Border Style="{StaticResource OverlayRowSheen}" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -48,7 +74,7 @@
             <StackPanel Margin="12,5,12,0">
                 <TextBlock Text="{Binding CardPoolMeta}" FontSize="10" Foreground="{StaticResource Faint}" TextTrimming="CharacterEllipsis"
                            Visibility="{Binding CardPoolMeta, Converter={StaticResource Vis}}" />
-                <ItemsControl ItemsSource="{Binding CardPoolSections}" Focusable="False" Margin="0,5,0,-4" Visibility="{Binding CardPoolSections, Converter={StaticResource Vis}}">
+                <ItemsControl ItemsSource="{Binding CardPoolSections}" Focusable="False" Margin="0,5,0,-4" Visibility="{Binding ShowCardPoolPanelSections, Converter={StaticResource Vis}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel />
@@ -64,36 +90,29 @@
                 </ItemsControl>
             </StackPanel>
 
+            <!-- ===== Excavate: the next tier's treasures as tracker rows, then the other tiers in the cycle's order, one line each ===== -->
+            <StackPanel Margin="12,9,12,0" Visibility="{Binding ShowCardPoolExcavate, Converter={StaticResource Vis}}">
+                <TextBlock Text="{Binding CardPoolExcavateNext}" Style="{StaticResource PoolLabel}" Foreground="{StaticResource Accent}"
+                           Visibility="{Binding CardPoolExcavateNext, Converter={StaticResource Vis}}" />
+                <ItemsControl ItemsSource="{Binding CardPoolExcavateRows}" ItemTemplate="{StaticResource ListRowTemplate}" Focusable="False" />
+                <ItemsControl ItemsSource="{Binding CardPoolExcavateTiers}" Focusable="False" Margin="0,3,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type o:ExcavateTierRow}">
+                            <DockPanel Margin="0,0,0,2">
+                                <Border DockPanel.Dock="Left" Width="3" Height="11" CornerRadius="1.5" Margin="0,0,5,0" VerticalAlignment="Center"
+                                        Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                                <TextBlock DockPanel.Dock="Left" Text="{Binding Label}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Width="34" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Names}" FontSize="10" Foreground="{StaticResource Faint}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
             <!-- ===== This game: the cards the hovered card looks back at (died, cast, played), as tracker rows ===== -->
             <StackPanel Margin="12,9,12,0" Visibility="{Binding ShowCardPoolList, Converter={StaticResource Vis}}">
                 <TextBlock Text="{Binding CardPoolListTitle}" Style="{StaticResource PoolLabel}" Visibility="{Binding CardPoolListTitle, Converter={StaticResource Vis}}" />
-                <ItemsControl ItemsSource="{Binding CardPoolList}" Focusable="False">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type o:PoolListRow}">
-                            <Grid Height="22" Margin="0,0,0,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="25" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <c:ManaCost Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
-                                    <Grid>
-                                        <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                                        <Rectangle Fill="{StaticResource TileFade}" />
-                                        <Border Style="{StaticResource OverlayRarityStrip}" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                                        <DockPanel Margin="9,0,3,0">
-                                            <Border DockPanel.Dock="Right" Style="{StaticResource OverlayCountBadge}" Height="16" Visibility="{Binding CountText, Converter={StaticResource Vis}}">
-                                                <TextBlock Text="{Binding CountText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            </Border>
-                                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                        </DockPanel>
-                                        <Border Style="{StaticResource OverlayRowSheen}" />
-                                    </Grid>
-                                </Border>
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
+                <ItemsControl ItemsSource="{Binding CardPoolList}" ItemTemplate="{StaticResource ListRowTemplate}" Focusable="False">
                 </ItemsControl>
                 <TextBlock Text="{Binding CardPoolListNote}" FontSize="9.5" Foreground="{StaticResource Faint}" Margin="0,1,0,0"
                            Visibility="{Binding CardPoolListNote, Converter={StaticResource Vis}}" />

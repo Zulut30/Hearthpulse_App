@@ -208,6 +208,64 @@ public sealed class CardPoolPopupTests
         Assert.InRange(panel.ActualHeight, 60, 160);
     });
 
+    [Fact]
+    public void An_excavate_pool_shows_the_next_tier_as_rows_and_the_others_on_a_line_each_in_both_view_models()
+    {
+        var previous = Loc.Instance.Language;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            // Rock in a Death Knight's hand, one Excavate done: the next treasure is rare.
+            var view = Excavate(new ExcavateState(2, 4));
+            foreach (var vm in Models())
+            {
+                vm.Show(view);
+                Assert.True(vm.Popup, vm.Name);
+                var (title, next, rows, tiers, sections) = vm.Excavate();
+                Assert.Equal("Excavate: tier 2 of 4", title);
+                Assert.Equal("Next treasure · rare", next);
+                Assert.Equal(Hearthpulse.Core.CardPool.Excavate.TierTreasures(2, "DEATHKNIGHT").Select(t => t.Id).Order(), rows.Order());
+                Assert.Equal(["T3", "T4", "T1"], tiers.Select(t => t.Label));
+                Assert.Equal("The Azerite Rat", tiers[1].Names);
+                Assert.False(sections, vm.Name);
+                Assert.Empty(vm.Averages());
+
+                // A pool from a deck row (no game): every tier on its line, no next one.
+                vm.Show(Excavate(null));
+                (title, next, rows, tiers, _) = vm.Excavate();
+                Assert.Equal("Excavate: 4 tiers", title);
+                Assert.Equal(string.Empty, next);
+                Assert.Empty(rows);
+                Assert.Equal(["T1", "T2", "T3", "T4"], tiers.Select(t => t.Label));
+            }
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(previous);
+        }
+    }
+
+    [Fact]
+    public void The_wpf_popup_lays_out_an_excavate_pool() => OnSta(() =>
+    {
+        var vm = new OverlayViewModel();
+        var panel = new CardPoolPanel { Anchored = true, DataContext = vm };
+        panel.SetBinding(UIElement.VisibilityProperty, new Binding(nameof(OverlayViewModel.ShowCardPoolPopup)) { Converter = new BooleanToVisibilityConverter() });
+        var root = new Canvas { Width = 1920, Height = 1080 };
+        root.Children.Add(panel);
+        using var source = new HwndSource(new HwndSourceParameters("pool popup test", 1920, 1080) { WindowStyle = 0 }) { RootVisual = root };
+        vm.Update(Snapshot(Excavate(new ExcavateState(1, 4))), CardDb.Empty, new AppSettings(), null, null);
+        root.UpdateLayout();
+
+        Assert.True(panel.IsVisible);
+        // Header, six rows of the next tier, three quiet lines and the hint: no taller than a pool with its top cards.
+        Assert.InRange(panel.ActualHeight, 200, 360);
+    });
+
+    private static CardPoolView Excavate(ExcavateState? state) =>
+        new CardPoolEngine(CardPoolCatalog.Empty, CardDb.Empty)
+            .Build("WW_001t", new PoolContext("FT_WILD", "DEATHKNIGHT", "WARRIOR") { Excavate = state }, PoolTrigger.Hover)!;
+
     /// <summary>The same calls on the WPF and the Avalonia build of the shared view model.</summary>
     private sealed class Model
     {
@@ -222,6 +280,7 @@ public sealed class CardPoolPopupTests
         public required Func<(string, string, string)> ListHeader { get; init; }
         public required Func<IReadOnlyList<(string, string)>> ListRows { get; init; }
         public required Func<string> ListNote { get; init; }
+        public required Func<(string Title, string Next, IReadOnlyList<string> Rows, IReadOnlyList<(string Label, string Names)> Tiers, bool Sections)> Excavate { get; init; }
         public event Action<string?>? Changed;
 
         public void Show(CardPoolView? pool, MatchListView? list = null) => ShowWith(pool, list);
@@ -249,6 +308,8 @@ public sealed class CardPoolPopupTests
             ListHeader = () => (wpf.CardPoolTitle, wpf.CardPoolPhrase, wpf.CardPoolListTitle),
             ListRows = () => wpf.CardPoolList.Select(x => (x.CardId, x.CountText)).ToList(),
             ListNote = () => wpf.CardPoolListNote,
+            Excavate = () => (wpf.CardPoolTitle, wpf.CardPoolExcavateNext, wpf.CardPoolExcavateRows.Select(r => r.CardId).ToList(),
+                wpf.CardPoolExcavateTiers.Select(t => (t.Label, t.Names)).ToList(), wpf.ShowCardPoolPanelSections),
         };
         ((INotifyPropertyChanged)wpf).PropertyChanged += (_, e) => a.Raise(e.PropertyName);
         yield return a;
@@ -267,6 +328,8 @@ public sealed class CardPoolPopupTests
             ListHeader = () => (ava.CardPoolTitle, ava.CardPoolPhrase, ava.CardPoolListTitle),
             ListRows = () => ava.CardPoolList.Select(x => (x.CardId, x.CountText)).ToList(),
             ListNote = () => ava.CardPoolListNote,
+            Excavate = () => (ava.CardPoolTitle, ava.CardPoolExcavateNext, ava.CardPoolExcavateRows.Select(r => r.CardId).ToList(),
+                ava.CardPoolExcavateTiers.Select(t => (t.Label, t.Names)).ToList(), ava.ShowCardPoolPanelSections),
         };
         ((INotifyPropertyChanged)ava).PropertyChanged += (_, e) => b.Raise(e.PropertyName);
         yield return b;

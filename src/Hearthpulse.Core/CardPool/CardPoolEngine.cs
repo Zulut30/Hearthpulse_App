@@ -24,6 +24,7 @@ public sealed class CardPoolEngine
 
     private readonly ConcurrentDictionary<string, PoolParse> _parsed = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, byte> _logged = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, bool> _excavates = new(StringComparer.Ordinal);
 
     // Views are rebuilt on every overlay update while a pool is up; the same pool must come back as the same object
     // (cheap, and the UI keeps its list and scroll position). A wiki answer that arrives later makes a new key.
@@ -114,6 +115,12 @@ public sealed class CardPoolEngine
             _views.Clear();
         }
 
+        // Only an Excavate pool depends on the player's Excavate tier: other pools keep one view through the game.
+        if (context.Excavate is not null && !Excavates(cardId))
+        {
+            context = context with { Excavate = null };
+        }
+
         var wiki = WikiPoolsOf(cardId, context);
         var key = (cardId, context, trigger, wiki is not null);
         if (_views.TryGetValue(key, out var known))
@@ -153,6 +160,13 @@ public sealed class CardPoolEngine
             var phrase = parse.Generator?.Phrase ?? string.Join(", ", wiki.Select(w => w.Pool.Name));
             var description = parse.Generator is { } g ? Describe(g, context) : $"{OwnClass(context)} · {Loc.T("Pool.Format.Standard")}";
             return View(cardId, trigger, phrase, description, listed, sections, WikiPools.Source);
+        }
+
+        // A card that Excavates (or counts Excavates) shows the treasures; a treasure that Discovers (Azerite Gem) keeps
+        // the pool of its own text.
+        if (text is not { Count: > 0 } && Excavates(cardId))
+        {
+            return ExcavateView(cardId, trigger, context);
         }
 
         if (parse.Status is PoolParseStatus.Unrecognized or PoolParseStatus.NotPool or PoolParseStatus.Uncomputed)
@@ -226,6 +240,54 @@ public sealed class CardPoolEngine
             Filters = PoolStats.Mechanics(pool, int.MaxValue),
             Source = source,
             Sections = sections.Select(s => new PoolSection(s.Label, s.Cards.Count)).ToList(),
+        };
+    }
+
+    /// <summary>
+    /// Whether a card Excavates or counts Excavates (its mechanics or referenced tags, or the English text), or is a
+    /// treasure: the cards whose panel is the Excavate pool.
+    /// </summary>
+    public bool Excavates(string cardId) => _excavates.GetOrAdd(cardId, id =>
+        CardPool.Excavate.TreasureOf(id) is not null
+        || Catalog.Get(id) is { } card && (card.Mechanics.Contains(CardPool.Excavate.Mechanic) || card.ReferencedTags.Contains(CardPool.Excavate.Mechanic))
+        || _cards.Get(id)?.Mechanics.Contains(CardPool.Excavate.Mechanic) == true
+        || CardPool.Excavate.Mentions(TextOf(id)));
+
+    /// <summary>
+    /// The Excavate pool: every treasure of the player's cycle (the tier-4 one of their class), tagged with its tier as
+    /// the section; <see cref="CardPoolView.Excavate"/> holds the tiers and the next one.
+    /// </summary>
+    private CardPoolView ExcavateView(string cardId, PoolTrigger trigger, PoolContext context)
+    {
+        var tierCount = context.Excavate?.Tiers ?? CardPool.Excavate.TierCount(context.OwnClass);
+        var tiers = Enumerable.Range(1, tierCount)
+            .Select(tier =>
+            {
+                var label = Loc.F("Pool.Excavate.Tier", tier);
+                var rarity = CardPool.Excavate.TierRarities[tier - 1];
+                var treasures = CardPool.Excavate.TierTreasures(tier, context.OwnClass)
+                    .Select(t => _cards.Get(t.Id) is { } card
+                        ? new PoolEntry(t.Id, card.Name is { Length: > 0 } name ? name : t.Name, t.Cost, card.Type is "MINION" ? card.Attack : null,
+                            card.Type is "MINION" or "LOCATION" ? card.Health : null, t.Type, rarity, t.CardClass ?? "NEUTRAL", 0)
+                        : new PoolEntry(t.Id, t.Name, t.Cost, null, null, t.Type, rarity, t.CardClass ?? "NEUTRAL", 0))
+                    .Select(e => e with { Sections = [label] })
+                    .OrderBy(e => e.Name, StringComparer.CurrentCulture)
+                    .ToList();
+                return new ExcavateTier(tier, label, rarity, treasures);
+            })
+            .ToList();
+        var cards = tiers.SelectMany(t => t.Treasures).ToList();
+        var description = string.Join(" · ", new[]
+        {
+            context.OwnClass is { } own ? Title(own) : null,
+            Loc.P("Pool.Excavate.Cycle", tierCount),
+        }.OfType<string>());
+        return new CardPoolView(cardId, NameOf(cardId), trigger, "Excavate a treasure", description, cards.Count,
+            PoolStats.Histogram("Cost", cards.Select(c => c.Cost), 0, 7), null, null, [], null, null, cards)
+        {
+            Source = CardPool.Excavate.Source,
+            Sections = tiers.Select(t => new PoolSection(t.Label, t.Treasures.Count)).ToList(),
+            Excavate = new ExcavatePool(context.Excavate?.Next is { } next && next <= tierCount ? next : null, tiers),
         };
     }
 

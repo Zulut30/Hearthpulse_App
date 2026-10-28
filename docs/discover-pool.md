@@ -221,6 +221,28 @@ hand: the leftmost. A pool whose card is not on screen (a request) and the layou
 panel `card-pool` (top left by default, 300 units wide, next to the opponent panel), clear of the Discover options. The
 panel next to its card is a second `CardPoolPanel` in a Canvas over the surface (`Anchored`), not a `MovablePanel`.
 
+## Excavate treasures
+
+A card that Excavates (`EXCAVATE` in its mechanics), counts Excavates (`EXCAVATE` in its referenced tags, or
+"Excavate" in its English text) or is a treasure shows the Excavate pool instead of nothing: the card text has no
+pool the parser could read, and treasures are not collectible, so the catalog never had them. A treasure or counter
+card with a pool of its own text (Azerite Gem: "Discover a 5-Cost card") keeps that pool.
+
+- Treasures: `CardPool/Excavate.cs`, the Hearthstone Wiki list of 2026-10-28 (six per tier for tiers 1-3, common,
+  rare, epic; the tier-4 legendary of Death Knight, Mage, Paladin, Rogue, Shaman, Warlock, Warrior). Names come from
+  the card data (localized), English from the table when the card data has no entry.
+- Tier: Power.log keeps it on the player entity. `MAX_EXCAVATE_TIER` is set from the start and 0-based (3 = four
+  tiers, the seven classes; 2 = three tiers, everyone else; seen in the client's logs of 2026-10-23..28).
+  `CURRENT_EXCAVATE_TIER` appears after the first Excavate; until then (and if a build does not log it) the treasures
+  the player got this game are counted. Either value is taken modulo the cycle: the next tier is `value % tiers + 1`.
+  Only the local player's tier is read (the player's own cycle; the opponent's is never shown).
+- Popup: title "Excavate: tier 2 of 4", "Next treasure · rare" over that tier's treasures as tracker rows, then the
+  other tiers in the order they come, one quiet line each ("T3 Collapse!, Motherlode Drake, ..."). No averages,
+  mechanics or section chips. Outside a game (a deck row) every tier is a line and the title is "Excavate: 4 tiers".
+- Browser: the same "Next treasure" line, the tiers as section chips, the grid in cycle order from the next tier.
+- The view depends on the tier (`PoolContext.Excavate`); other pools drop it from the cache key, so they stay the same
+  object through the game.
+
 ## This game's cards (hovered card in hand)
 
 A card in hand whose text looks back at this game - "Trigger the Deathrattle of a random friendly minion that died this

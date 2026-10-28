@@ -216,14 +216,16 @@ public sealed class CardPoolTracker : IPowerListener
         return hovered is not null && InLocalHand(game, hovered) ? engine.Build(hovered, context, PoolTrigger.Hover) : null;
     }
 
-    /// <summary>Game type, format and both classes of a game (classes from the heroes' cards).</summary>
-    public static PoolContext ContextOf(GameState game, CardDb cards) => new(
-        game.FormatType,
-        ClassOf(game.LocalHero, cards),
-        ClassOf(game.OpponentHero, cards))
+    /// <summary>Game type, format, both classes of a game (classes from the heroes' cards) and the player's Excavate tier.</summary>
+    public static PoolContext ContextOf(GameState game, CardDb cards)
     {
-        GameType = game.GameType,
-    };
+        var own = ClassOf(game.LocalHero, cards);
+        return new PoolContext(game.FormatType, own, ClassOf(game.OpponentHero, cards))
+        {
+            GameType = game.GameType,
+            Excavate = CardPool.Excavate.StateOf(game, own),
+        };
+    }
 
     private static string? ClassOf(Entity? hero, CardDb cards) =>
         hero is null ? null

@@ -88,5 +88,15 @@
   "Pool.Mechanic.STARSHIP": "Звездолет",
   "Pool.Mechanic.MANATHIRST": "Жажда маны",
   "Pool.Mechanic.FORGE": "Ковка",
-  "Pool.Mechanic.MINIATURIZE": "Уменьшение"
+  "Pool.Mechanic.MINIATURIZE": "Уменьшение",
+  "Pool.Excavate.Title": "Добыча: уровень {0} из {1}",
+  "Pool.Excavate.TitleAll": "Добыча: {0} уровень|Добыча: {0} уровня|Добыча: {0} уровней",
+  "Pool.Excavate.Next": "Следующее сокровище · {0}",
+  "Pool.Excavate.Tier": "Уровень {0}",
+  "Pool.Excavate.Short": "Ур. {0}",
+  "Pool.Excavate.Cycle": "цикл из {0} уровня|цикл из {0} уровней|цикл из {0} уровней",
+  "Pool.Excavate.Rarity.COMMON": "обычное",
+  "Pool.Excavate.Rarity.RARE": "редкое",
+  "Pool.Excavate.Rarity.EPIC": "эпическое",
+  "Pool.Excavate.Rarity.LEGENDARY": "легендарное"
 }
