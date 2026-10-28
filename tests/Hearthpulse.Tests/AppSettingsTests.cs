@@ -59,6 +59,20 @@ public sealed class AppSettingsTests : IDisposable
     }
 
     [Fact]
+    public void Settings_of_the_removed_game_plan_still_load()
+    {
+        // Saved by a version with the game plan panel: its placement, comp mode and chosen comp are read and kept, unused.
+        var settings = AppSettings.FromJson("""
+            {"CompMode":"Auto","ChosenCompId":"murlocs","CompFocus":"MURLOC","OverlayEnabled":true,
+             "Panels":{"plan":{"X":0.8,"Y":0.1,"Scale":1.1},"deck":{"X":0.9,"Y":0.1,"Scale":1}}}
+            """);
+
+        Assert.True(settings.OverlayEnabled);
+        Assert.Equal(new[] { "deck", "plan" }, settings.Panels.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal("murlocs", settings.ChosenCompId);
+    }
+
+    [Fact]
     public void Non_finite_numbers_do_not_reach_layout_or_time_span_construction()
     {
         var settings = AppSettings.FromJson("""

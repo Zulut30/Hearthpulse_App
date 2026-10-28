@@ -217,11 +217,12 @@ public partial class App : Application
             _account.RestoreAsync().Forget("Account restore");
         }
         _overlayViewModel = new OverlayViewModel();
-        _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
+        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
+        // version stays in the settings, unused).
+        _session.SetCompMode(CompMode.Manual, null);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
         _session.SetArenaDraftEnabled(_settings.ShowArenaDraft);
         _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
-        _overlayViewModel.PinRequested += OnPinRequested;
         _overlayViewModel.SecretToggleRequested += _session.ToggleSecret;
         _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
         _overlayViewModel.CounterModeRequested += (id, mode) =>
@@ -963,7 +964,9 @@ public partial class App : Application
             _trayOverlayItem.Checked = _settings.OverlayEnabled;
         }
 
-        _session.SetCompMode(_settings.CompMode, _settings.ChosenCompId);
+        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
+        // version stays in the settings, unused).
+        _session.SetCompMode(CompMode.Manual, null);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
         _session.SetArenaDraftEnabled(_settings.ShowArenaDraft);
         _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
@@ -972,19 +975,6 @@ public partial class App : Application
         if (_renderDir is null)
         {
             Autostart.Apply(_settings.StartWithWindows);
-        }
-    }
-
-    /// <summary>The player chose (or cleared) a comp in the overlay. With "I choose" the choice is saved and kept across games.</summary>
-    private void OnPinRequested(string? compId)
-    {
-        _session.PinComp(compId);
-        if (_settings.CompMode == CompMode.Manual && _settings.ChosenCompId != compId)
-        {
-            // Saved only: the overlay follows on the session's next snapshot, which already carries the new target.
-            _settings.ChosenCompId = compId;
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
         }
     }
 

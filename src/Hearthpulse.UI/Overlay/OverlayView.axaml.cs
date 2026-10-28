@@ -364,12 +364,4 @@ public partial class OverlayView : UserControl
             _viewModel?.SelectTier.Execute(tier.Tier);
         }
     }
-
-    private void OnAlternativeClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: CompRow comp })
-        {
-            _viewModel?.Pin.Execute(comp.Id);
-        }
-    }
 }

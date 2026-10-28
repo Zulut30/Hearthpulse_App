@@ -57,26 +57,9 @@ public sealed record DiscoverBadge(int Rank, string Label, string Gift, string P
 /// <summary>Buy hint drawn above one tavern minion; <see cref="Left"/> is in overlay units inside the shop row.</summary>
 public sealed record ShopBadge(double Left, string Label, bool Best, string Placement);
 
-public sealed record CompCardTile(string CardId, string Name, string Status, string StatusText, int Tier, bool Owned);
-
-public sealed partial record CompRow(
-    string Id,
-    string Name,
-    string Power,
-    string Placement,
-    string HeroPlacement,
-    string Difficulty,
-    string Tribes,
-    int OwnedCore,
-    int CoreCount,
-    bool IsTarget,
-    bool IsPinned,
-    string Why = "",
-    string LookFor = "");
-
 public sealed record BrowserGroup(string Title, IReadOnlyList<BrowserCard> Cards);
 
-public sealed record BrowserCard(string CardId, string Name, bool InComp, string? CompStatus);
+public sealed record BrowserCard(string CardId, string Name);
 
 public sealed record LobbyMinion(string CardId, string Name, int Attack, int Health, bool Golden, string Keywords);
 

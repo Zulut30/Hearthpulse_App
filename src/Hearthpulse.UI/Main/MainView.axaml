@@ -798,22 +798,6 @@
                                             </WrapPanel>
                                         </Border>
                                     </Grid>
-                                    <!-- Game plan comp: who sets the comp the plan, tavern and Discover hints are built around. Pick suggestions Off
-                                         hides the game plan, so this choice has no effect then. -->
-                                    <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14"
-                                          IsEnabled="{Binding !#PickHintsOffOption.IsChecked}">
-                                        <TextBlock Text="{i:Loc Settings.Overlay.CompMode}" Classes="settingLabel" />
-                                        <Border Classes="segmentBar choice">
-                                            <WrapPanel>
-                                                <RadioButton Name="CompModeManualOption" Classes="segment" Content="{i:Loc Settings.Overlay.CompModeManual}" GroupName="CompMode"
-                                                             IsChecked="{Binding CompModeManual, Mode=OneWay}" Tag="CompMode.Manual"
-                                                             ToolTip.Tip="{i:Loc Settings.Overlay.CompModeManualCaption}" />
-                                                <RadioButton Name="CompModeAutoOption" Classes="segment" Content="{i:Loc Settings.Overlay.CompModeAuto}" GroupName="CompMode"
-                                                             IsChecked="{Binding CompModeAuto, Mode=OneWay}" Tag="CompMode.Auto"
-                                                             ToolTip.Tip="{i:Loc Settings.Overlay.CompModeAutoCaption}" />
-                                            </WrapPanel>
-                                        </Border>
-                                    </Grid>
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Boards}" IsChecked="{Binding ShowOpponentBoards}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.BoardsTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Lobby}" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14"

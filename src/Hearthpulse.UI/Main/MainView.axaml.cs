@@ -220,16 +220,13 @@ public partial class MainView : UserControl
         }
     }
 
-    /// <summary>Applies a settings radio's Tag ("PickHints.Off", "CompMode.Auto"); false when nothing changed.</summary>
+    /// <summary>Applies a settings radio's Tag ("PickHints.Off", "Language.ru"); false when nothing changed.</summary>
     private static bool ApplyChoice(AppSettings settings, string? choice)
     {
         switch (choice?.Split('.'))
         {
             case ["PickHints", var name] when Enum.TryParse<PickHints>(name, out var hints) && settings.PickHints != hints:
                 settings.PickHints = hints;
-                return true;
-            case ["CompMode", var name] when Enum.TryParse<CompMode>(name, out var mode) && settings.CompMode != mode:
-                settings.CompMode = mode;
                 return true;
             case ["Language", var language] when settings.Language != language:
                 settings.Language = language;

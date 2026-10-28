@@ -10,10 +10,3 @@ public sealed record HandMark(Thickness Offset, string Label, string? PortraitId
 
 /// <summary>A tribe chip in the game plan: build around it (Key is the race key; empty for any tribe).</summary>
 public sealed record FocusChoice(string Key, string Name, bool Selected);
-
-public sealed partial record CompRow
-{
-    public string Detail => string.IsNullOrWhiteSpace(Tribes)
-        ? Hearthpulse.Core.Localization.Loc.F("Overlay.Comp.CoreOwned", OwnedCore, CoreCount)
-        : $"{Tribes}  ·  {Hearthpulse.Core.Localization.Loc.F("Overlay.Comp.CoreOwned", OwnedCore, CoreCount)}";
-}
