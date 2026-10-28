@@ -107,7 +107,7 @@ public sealed partial class AppHost : IDisposable
             _settingsDebounce.Start();
         };
         _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(3) };
-        _metaRefresh.Tick += (_, _) => LoadMetaAsync().Forget("Battlegrounds meta load");
+        _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Battlegrounds meta load");
 
         Session.SnapshotChanged += OnSnapshot;
         Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => EnsureConstructedMeta(format));
@@ -270,6 +270,8 @@ public sealed partial class AppHost : IDisposable
 
             await LoadMetaAsync();
             _metaRefresh.Start();
+            // Cards, the catch-up and the meta leave their parsing garbage behind; it is collected once things are quiet.
+            Session.RequestMemoryTrim();
             StartUpdateChecks();
         }
         catch (Exception ex)
@@ -386,6 +388,13 @@ public sealed partial class AppHost : IDisposable
         {
             await LoadMetaAsync();
         }
+    }
+
+    /// <summary>The 3-hour refresh of the Battlegrounds meta; its parsing garbage is collected once things are quiet.</summary>
+    private async Task RefreshMetaAsync()
+    {
+        await LoadMetaAsync();
+        Session.RequestMemoryTrim();
     }
 
     /// <summary>

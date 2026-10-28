@@ -142,6 +142,15 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     /// <summary>False in tests: a client running on the developer's machine must not leak its memory into them.</summary>
     internal bool ReadsMemory { get; set; } = true;
 
+    /// <summary>Collects the garbage of a catch-up or a game once the log is quiet; tests pass one with a counter.</summary>
+    internal MemoryTrimmer Trimmer { get; set; } = new();
+
+    /// <summary>
+    /// The host finished something that left garbage behind (start-up, a meta load): the memory is handed back once the
+    /// app is quiet and no game is being played.
+    /// </summary>
+    public void RequestMemoryTrim() => Trimmer.NoteActivity(Clock());
+
     public event Action<LiveSnapshot>? SnapshotChanged;
 
     /// <summary>Raised when a game result is final (rating included when available).</summary>
@@ -232,15 +241,19 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     /// </summary>
     public void SetCompMode(CompMode mode, string? chosenCompId)
     {
-        var pinned = mode == CompMode.Manual ? chosenCompId : Advisor.CompMode == CompMode.Auto ? Advisor.PinnedCompId : null;
-        if (Advisor.CompMode == mode && Advisor.PinnedCompId == pinned)
+        // The advisor is read on the log thread: both fields change together under its lock.
+        lock (_pipelineGate)
         {
-            return;
-        }
+            var pinned = mode == CompMode.Manual ? chosenCompId : Advisor.CompMode == CompMode.Auto ? Advisor.PinnedCompId : null;
+            if (Advisor.CompMode == mode && Advisor.PinnedCompId == pinned)
+            {
+                return;
+            }
 
-        Advisor.CompMode = mode;
-        Advisor.PinnedCompId = pinned;
-        _dirty = true;
+            Advisor.CompMode = mode;
+            Advisor.PinnedCompId = pinned;
+            _dirty = true;
+        }
     }
 
     /// <summary>Hearthstone install folder, used to locate the client's log.config (it lives in the Wine prefix on Linux).</summary>
@@ -362,6 +375,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                 if (lines.Count > 0)
                 {
                     _lastPowerLinesAt = Clock();
+                    Trimmer.NoteActivity(_lastPowerLinesAt);
                 }
 
                 // Hearthstone writes the log in chunks, so a batch can end inside a FULL_ENTITY's "tag=" lines or a
@@ -414,6 +428,15 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     }
 
     private string ParseErrorText() => string.Join(", ", _parseErrors.OrderByDescending(e => e.Value).Select(e => $"{e.Key} ×{e.Value}"));
+
+    /// <summary>How long Power.log must have been quiet, with the game closed, before the watcher slows down.</summary>
+    private static readonly TimeSpan QuietAfter = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// The game is closed and Power.log has been quiet for a while. A process check that misses a running client (an
+    /// unusual install) costs at most a second: its lines make this false again. Read on the watcher thread.
+    /// </summary>
+    public bool Quiet => !_hearthstoneRunning && Clock() - _lastPowerLinesAt >= QuietAfter;
 
     public void OnTick()
     {
@@ -505,6 +528,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _publishCount = 0;
             _slowestPublishMs = 0;
         }
+
+        // Last, so a collection never delays this tick's view; a game in progress (not abandoned) puts it off.
+        Trimmer.Tick(now, busy: _parser?.Game is { IsComplete: false } && !_recordedAbandoned);
     }
 
     // ---- IPowerListener -----------------------------------------------------------------------

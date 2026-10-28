@@ -288,11 +288,7 @@ public partial class App : Application
         _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), _settings.Save);
         // The pool rebuilds its totals every 6 hours, so asking more often only spends its free requests.
         _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(6) };
-        _metaRefresh.Tick += (_, _) =>
-        {
-            LoadMetaAsync().Forget("Battlegrounds meta load");
-            LoadConstructedMetaAsync().Forget("Constructed meta load");
-        };
+        _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Meta refresh");
 
         _session.SnapshotChanged += OnSnapshot;
         _session.ConstructedMetaNeeded += format => Dispatcher.BeginInvoke(() => EnsureConstructedMeta(format));
@@ -428,6 +424,8 @@ public partial class App : Application
             await LoadMetaAsync();
             await LoadConstructedMetaAsync();
             _metaRefresh.Start();
+            // Cards, the catch-up and the meta leave their parsing garbage behind; it is collected once things are quiet.
+            _session.RequestMemoryTrim();
             _ = ShareHistoryAsync();
         }
         catch (Exception ex)
@@ -546,6 +544,13 @@ public partial class App : Application
         }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
+    }
+
+    /// <summary>The 6-hour refresh of both metas; their parsing garbage is collected once things are quiet.</summary>
+    private async Task RefreshMetaAsync()
+    {
+        await Task.WhenAll(LoadMetaAsync(), LoadConstructedMetaAsync());
+        _session.RequestMemoryTrim();
     }
 
     /// <summary>Russian archetype names, once per run and only while the interface is Russian (the only language that uses them).</summary>

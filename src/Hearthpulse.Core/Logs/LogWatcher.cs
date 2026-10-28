@@ -60,17 +60,29 @@ public sealed class LogTail
     /// <summary>Bytes the last <see cref="ReadNewLines"/> saw but did not read (past its size limit), without asking the disk.</summary>
     public long SeenPendingBytes => Math.Max(0, _seenLength - _position);
 
+    /// <summary>
+    /// Points the tail at <paramref name="sessionDir"/>. Never throws: the watcher resets every tail and only then
+    /// announces the session, so a log deleted or locked between the checks (the client rotating its folder) must
+    /// not leave some tails on the old session. Such a log is read from its start.
+    /// </summary>
     public void Reset(string sessionDir, TailStart start)
     {
         _path = Path.Combine(sessionDir, _fileName);
         _remainder = Array.Empty<byte>();
         _seenLength = 0;
-        _position = start switch
+        try
         {
-            TailStart.LastGame when File.Exists(_path) => FindLastGameOffset(_path),
-            TailStart.End when File.Exists(_path) => new FileInfo(_path).Length,
-            _ => 0,
-        };
+            _position = start switch
+            {
+                TailStart.LastGame when File.Exists(_path) => FindLastGameOffset(_path),
+                TailStart.End when new FileInfo(_path) is { Exists: true } info => info.Length,
+                _ => 0,
+            };
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _position = 0;
+        }
     }
 
     /// <summary>Bytes appended to the file since the last read; 0 when the tail is caught up.</summary>
@@ -267,6 +279,12 @@ public interface ILogConsumer
     /// from the replayed lines, so it must be dropped here without recording the game as finished.
     /// </summary>
     void OnResync() { }
+
+    /// <summary>
+    /// True while nothing is expected in the logs (the game is closed and Power.log is quiet): the watcher then looks
+    /// once a second instead of ten times. Lines that do arrive make the consumer say false again.
+    /// </summary>
+    bool Quiet => false;
 }
 
 /// <summary>Polls the active Hearthstone log session folder and streams new lines to a consumer.</summary>
@@ -281,6 +299,15 @@ public sealed class LogWatcher : IDisposable
         new("Power.log"),
         new("Arena.log"),
     ];
+
+    /// <summary>How often the logs are looked at; <see cref="QuietPollInterval"/> while the consumer expects nothing.</summary>
+    public static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
+
+    /// <summary>
+    /// Ten looks a second at four logs were most of the app's CPU time while the game was closed; once a second still
+    /// sees a game start long before its first game does.
+    /// </summary>
+    public static readonly TimeSpan QuietPollInterval = TimeSpan.FromSeconds(1);
 
     private readonly CancellationTokenSource _cts = new();
     private Thread? _thread;
@@ -418,7 +445,7 @@ public sealed class LogWatcher : IDisposable
                     Volatile.Write(ref _lastProgressTicks, Environment.TickCount64);
                 }
 
-                _cts.Token.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(100));
+                _cts.Token.WaitHandle.WaitOne(_consumer.Quiet ? QuietPollInterval : PollInterval);
             }
         }
         catch (ObjectDisposedException)
@@ -451,13 +478,13 @@ public sealed class LogWatcher : IDisposable
                 // A session already running when we start is joined at its last game;
                 // sessions created later are read from their first line.
                 var midSession = _firstSession && File.Exists(Path.Combine(latest, "Power.log"));
-                _firstSession = false;
-                _session = latest;
                 foreach (var tail in _tails)
                 {
                     tail.Reset(latest, midSession && tail.FileName == "Power.log" ? TailStart.LastGame : TailStart.Beginning);
                 }
 
+                _firstSession = false;
+                _session = latest;
                 _consumer.OnSessionStarted(latest, HearthstoneInstall.SessionStart(latest) ?? DateTime.Now, midSession);
                 Diag.Info($"Reading {Path.GetFileName(latest)}: Power.log {PowerTail.FileLength:N0} bytes, starting at {PowerTail.Position:N0}");
                 var caughtUpFrom = Environment.TickCount64;

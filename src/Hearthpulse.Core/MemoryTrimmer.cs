@@ -1,0 +1,79 @@
+using System.Diagnostics;
+using System.Runtime;
+
+namespace Hearthpulse.Core;
+
+/// <summary>
+/// Gives memory back to Windows once the app goes quiet. Catching up on a log, a game and a meta load leave tens of
+/// megabytes of garbage in the old generation, and an idle app allocates too little for the GC to ever collect it: in
+/// the owner's log the app sat at 444–450 MB (managed 141–148 MB) for 20 minutes after a Battlegrounds game. One
+/// compacting collection after things settle returns it. Never while a game is being played.
+/// </summary>
+public sealed class MemoryTrimmer
+{
+    /// <summary>How long nothing may have happened (no new game lines, no request) before the collection.</summary>
+    public static readonly TimeSpan Settle = TimeSpan.FromSeconds(20);
+
+    /// <summary>The shortest gap between two collections.</summary>
+    public static readonly TimeSpan MinInterval = TimeSpan.FromMinutes(2);
+
+    private readonly Action _collect;
+    private readonly object _gate = new();
+    private DateTime _activityAt = DateTime.MinValue;
+    private DateTime _lastTrim = DateTime.MinValue;
+    private bool _pending;
+
+    /// <param name="collect">The collection; tests pass a counter, the app the real one.</param>
+    public MemoryTrimmer(Action? collect = null)
+    {
+        _collect = collect ?? Collect;
+    }
+
+    /// <summary>Something just left garbage behind (game lines, a meta load): collect once the app has been quiet.</summary>
+    public void NoteActivity(DateTime now)
+    {
+        lock (_gate)
+        {
+            _pending = true;
+            if (now > _activityAt)
+            {
+                _activityAt = now;
+            }
+        }
+    }
+
+    /// <summary>Runs the collection when one is due. While <paramref name="busy"/> (a game in progress) it waits.</summary>
+    /// <returns>True when it collected.</returns>
+    public bool Tick(DateTime now, bool busy)
+    {
+        lock (_gate)
+        {
+            if (!_pending || busy || now - _activityAt < Settle || now - _lastTrim < MinInterval)
+            {
+                return false;
+            }
+
+            _pending = false;
+            _lastTrim = now;
+        }
+
+        _collect();
+        return true;
+    }
+
+    /// <summary>A full blocking collection that compacts the large object heap too and decommits what it frees.</summary>
+    private static void Collect()
+    {
+        const double mb = 1024 * 1024;
+        using var process = Process.GetCurrentProcess();
+        var managedBefore = GC.GetTotalMemory(false);
+        var privateBefore = process.PrivateMemorySize64;
+        var started = Stopwatch.GetTimestamp();
+        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+        var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        process.Refresh();
+        Diag.Info($"Memory trim: managed {managedBefore / mb:N0} -> {GC.GetTotalMemory(false) / mb:N0} MB, "
+                  + $"private {privateBefore / mb:N0} -> {process.PrivateMemorySize64 / mb:N0} MB in {took:N0} ms");
+    }
+}
