@@ -36,13 +36,12 @@ public sealed class OverlayMoveResizeTests
     }
 
     [Fact]
-    public void The_move_tip_shows_once_over_the_game_and_waits_out_layout_mode()
+    public void The_move_tip_shows_once_over_the_game_away_from_the_toast_and_waits_out_layout_mode()
     {
-        Loc.Instance.SetLanguage(Loc.English);
-        foreach (var make in new Func<(Func<AppSettings, bool> Offer, Func<(bool Shown, string Title, string Detail)> Toast, Action<bool> Layout)>[]
+        foreach (var make in new Func<(Func<AppSettings, bool> Offer, Func<(bool Tip, bool Toast)> Shown, Action<bool> Layout)>[]
                  {
-                     () => { var vm = new WpfOverlay(); return (vm.OfferMoveTip, () => (vm.ShowToast, vm.ToastTitle, vm.ToastDetail), v => vm.LayoutEditing = v); },
-                     () => { var vm = new AvaOverlay(); return (vm.OfferMoveTip, () => (vm.ShowToast, vm.ToastTitle, vm.ToastDetail), v => vm.LayoutEditing = v); },
+                     () => { var vm = new WpfOverlay(); return (vm.OfferMoveTip, () => (vm.ShowMoveTip, vm.ShowToast), v => vm.LayoutEditing = v); },
+                     () => { var vm = new AvaOverlay(); return (vm.OfferMoveTip, () => (vm.ShowMoveTip, vm.ShowToast), v => vm.LayoutEditing = v); },
                  })
         {
             var settings = new AppSettings();
@@ -50,18 +49,18 @@ public sealed class OverlayMoveResizeTests
             first.Layout(true);
             Assert.False(first.Offer(settings));
             Assert.False(settings.OverlayMoveTipShown);
-            Assert.False(first.Toast().Shown);
+            Assert.Equal((false, false), first.Shown());
 
+            // Its own spot at the top centre (ShowMoveTip), not the end-of-game toast over the hand.
             first.Layout(false);
             Assert.True(first.Offer(settings));
             Assert.True(settings.OverlayMoveTipShown);
-            Assert.Equal((true, Loc.T("Overlay.Move.TipTitle"), Loc.T("Overlay.Move.Tip")), first.Toast());
-            Assert.Equal("Hold Ctrl over a panel to move and resize it", first.Toast().Detail);
+            Assert.Equal((true, false), first.Shown());
 
             // The flag is in the settings: a new overlay (theme change, next start) does not show it again.
             var next = make();
             Assert.False(next.Offer(settings));
-            Assert.False(next.Toast().Shown);
+            Assert.Equal((false, false), next.Shown());
         }
 
         Assert.True(AppSettings.FromJson(new AppSettings { OverlayMoveTipShown = true }.ToJson()).OverlayMoveTipShown);
@@ -161,6 +160,18 @@ public sealed class OverlayMoveResizeTests
         deck.IsDragArmed = false;
         Assert.False(OverlayHit.GetInteractive(deck));
         Assert.Equal(Visibility.Collapsed, Part(deck, "PART_Grip").Visibility);
+
+        // The one-time tip: its own card at the top centre, clear of the hand, never taking the mouse.
+        var tip = (FrameworkElement)window.FindName("MoveTip");
+        Assert.NotEqual(Visibility.Visible, tip.Visibility);
+        Assert.True(model.OfferMoveTip(new AppSettings()));
+        root.UpdateLayout();
+        Assert.Equal(Visibility.Visible, tip.Visibility);
+        Assert.Equal((HorizontalAlignment.Center, VerticalAlignment.Top), (tip.HorizontalAlignment, tip.VerticalAlignment));
+        Assert.True(tip.TranslatePoint(default, surface).Y < 40);
+        Assert.False(tip.IsHitTestVisible);
+        Assert.Contains("Hold Ctrl over a panel to move and resize it", Descendants<TextBlock>(tip).Select(t => t.Text));
+        Assert.False(model.ShowToast);
 
         // Layout mode: the marker on every shown panel, none on the placeholders.
         model.LayoutEditing = true;

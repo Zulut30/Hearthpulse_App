@@ -1396,6 +1396,17 @@
                 </Border>
             </o:MovablePanel>
 
+            <!-- ============ One-time move tip, the first time the overlay shows over the game: top centre, never over
+                 the hand, and never takes the mouse ============ -->
+            <Border x:Name="MoveTip" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0" Style="{StaticResource OverlayCard}"
+                    Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,9" IsHitTestVisible="False"
+                    Visibility="{Binding ShowMoveTip, Converter={StaticResource Vis}}">
+                <StackPanel>
+                    <TextBlock Text="{i:Loc Overlay.Move.TipTitle}" FontSize="14" FontWeight="SemiBold" />
+                    <TextBlock Text="{i:Loc Overlay.Move.Tip}" FontSize="12.5" Foreground="{StaticResource Muted}" />
+                </StackPanel>
+            </Border>
+
             <!-- ============ Card preview on hover (top layer, never takes the mouse) ============ -->
             <c:CardPreviewHost x:Name="PreviewHost" />
         </Grid>

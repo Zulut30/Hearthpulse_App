@@ -35,6 +35,7 @@ public partial class OverlayView : UserControl
         InitializeComponent();
         // The deck row flash (OverlayLook.axaml) runs only when the system allows animations, like the panel fades.
         Classes.Set("motion", PoolInput.AnimationsOn());
+        // Hides the end-of-game toast and the one-time move tip a few seconds after either shows.
         _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(9) };
         _toastTimer.Tick += (_, _) =>
         {
@@ -42,6 +43,7 @@ public partial class OverlayView : UserControl
             if (_viewModel is not null)
             {
                 _viewModel.ShowToast = false;
+                _viewModel.ShowMoveTip = false;
             }
         };
 
@@ -194,8 +196,8 @@ public partial class OverlayView : UserControl
     }
 
     /// <summary>
-    /// The overlay just appeared over the game: the first time ever, the toast says that Ctrl over a panel moves and
-    /// resizes it, and the settings are saved with the tip marked shown (<see cref="LayoutChanged"/>).
+    /// The overlay just appeared over the game: the first time ever, a tip at the top centre says that Ctrl over a
+    /// panel moves and resizes it, and the settings are saved with the tip marked shown (<see cref="LayoutChanged"/>).
     /// </summary>
     public void OfferMoveTip()
     {
@@ -367,7 +369,8 @@ public partial class OverlayView : UserControl
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(OverlayViewModel.ShowToast) && _viewModel?.ShowToast == true)
+        if ((e.PropertyName == nameof(OverlayViewModel.ShowToast) && _viewModel?.ShowToast == true)
+            || (e.PropertyName == nameof(OverlayViewModel.ShowMoveTip) && _viewModel?.ShowMoveTip == true))
         {
             _toastTimer.Stop();
             _toastTimer.Start();

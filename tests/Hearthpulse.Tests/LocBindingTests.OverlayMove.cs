@@ -142,10 +142,18 @@ public sealed partial class LocBindingTests
             window.MouseUp(body, MouseButton.Left);
             Assert.Equal(3, layoutChanges);
 
-            // The one-time tip: shown and saved the first time the overlay appears over the game, never again.
+            // The one-time tip: shown and saved the first time the overlay appears over the game, never again; its own
+            // card at the top centre, clear of the hand, never taking the pointer.
+            var tip = view.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "MoveTip");
+            Assert.False(tip.IsVisible);
             view.OfferMoveTip();
-            Assert.True(model.ShowToast);
-            Assert.Equal("Hold Ctrl over a panel to move and resize it", model.ToastDetail);
+            Settle();
+            Assert.True(model.ShowMoveTip);
+            Assert.False(model.ShowToast);
+            Assert.True(tip.IsEffectivelyVisible);
+            Assert.True(tip.TranslatePoint(default, view)!.Value.Y < 40);
+            Assert.False(tip.IsHitTestVisible);
+            Assert.Contains("Hold Ctrl over a panel to move and resize it", tip.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
             Assert.True(view.Settings.OverlayMoveTipShown);
             Assert.Equal(4, layoutChanges);
             view.OfferMoveTip();
