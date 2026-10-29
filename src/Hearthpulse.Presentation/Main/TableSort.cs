@@ -46,14 +46,6 @@ public sealed class TableSort : Observable
     /// <summary>Highest (or Z) first.</summary>
     public bool Descending { get => _descending; private set => Set(ref _descending, value); }
 
-    /// <summary>Sorts by a column in its first direction (no turning round when it is already sorted by it).</summary>
-    public void SortBy(string column)
-    {
-        Column = column;
-        Descending = !_ascendingFirst.Contains(column);
-        _changed();
-    }
-
     public void Toggle(string column)
     {
         if (column == _column)

@@ -35,22 +35,6 @@ public sealed class SignBrush : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
-/// <summary>Formats a signed integer as "+12" / "−8".</summary>
-public sealed class Signed : IValueConverter
-{
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
-    {
-        int i when i > 0 => $"+{i:N0}",
-        int i when i < 0 => $"−{-i:N0}",
-        int => "±0",
-        double d when d > 0 => $"+{d:0.00}",
-        double d when d < 0 => $"−{-d:0.00}",
-        _ => "—",
-    };
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
-}
-
 /// <summary>0..1 fraction to a width; parameter is the full width.</summary>
 public sealed class FractionWidth : IValueConverter
 {
