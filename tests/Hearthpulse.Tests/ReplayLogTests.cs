@@ -89,6 +89,10 @@ public sealed class ReplayLogTests(ITestOutputHelper output) : IDisposable
                     else
                     {
                         Assert.NotEmpty(ReplayFile.ReadBattlegrounds(body)!.Rounds);
+                        // The steps as seen: Bob's offer, the opponent, the grammar, picks among the options.
+                        BattlegroundsReplayTests.AssertSeenOnly(body.Take(header.Events).ToList());
+                        BattlegroundsReplayTests.AssertPicksOffered(body);
+                        output.WriteLine($"    {BattlegroundsMatchReplay.From(header, body)?.Frames.Count ?? 0} steps");
                     }
 
                     games++;
