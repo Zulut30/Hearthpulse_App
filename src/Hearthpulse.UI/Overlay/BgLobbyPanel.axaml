@@ -17,7 +17,7 @@
             <Setter Property="Opacity" Value="0.35" />
         </Style>
     </UserControl.Styles>
-    <Border Classes="overlayCard" Width="214" Padding="10,8,10,7">
+    <Border Classes="overlayCard" Width="226" Padding="10,8,10,7">
         <StackPanel>
             <DockPanel Margin="0,0,0,5">
                 <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.BgLobby.Unconfirmed}" FontSize="9.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center"
@@ -46,17 +46,19 @@
             <ItemsControl ItemsSource="{Binding LobbyRows}" Margin="0,4,0,0" IsVisible="{Binding LobbyRows, Converter={StaticResource Truthy}}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="o:LobbyRow">
-                        <Grid Classes="bgLobbyRow" Classes.you="{Binding You}" Classes.dead="{Binding Dead}" Height="22" ColumnDefinitions="14,22,*,22,34">
+                        <!-- Column 3 is kept empty for the opponents' rating (up to 6 characters, P4): it takes its width from
+                             that text, and the name column gives way -->
+                        <Grid Classes="bgLobbyRow" Classes.you="{Binding You}" Classes.dead="{Binding Dead}" Height="22" ColumnDefinitions="14,22,*,Auto,20,30">
                             <TextBlock Text="{Binding Place}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
                             <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                     i:CardArt.Portrait="{Binding HeroCardId}" />
                             <TextBlock Name="HeroName" Grid.Column="2" Text="{Binding Name}" FontSize="11" FontWeight="Medium" TextTrimming="CharacterEllipsis"
                                        VerticalAlignment="Center" Margin="0,0,4,0" />
-                            <Border Grid.Column="3" Width="18" Height="16" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center" HorizontalAlignment="Left">
+                            <Border Grid.Column="4" Width="18" Height="16" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center" HorizontalAlignment="Left">
                                 <TextBlock Text="{Binding Tier}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <!-- Empty until a board was seen: an opponent's only after a fight with them -->
-                            <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
                                         IsVisible="{Binding Tribe, Converter={StaticResource Truthy}}">
                                 <Border Width="16" Height="16" CornerRadius="8" Background="{StaticResource Surface3}">
                                     <TextBlock Text="{Binding Tribe.Glyph}" Classes="icon" FontSize="10" Foreground="{StaticResource Accent}"
