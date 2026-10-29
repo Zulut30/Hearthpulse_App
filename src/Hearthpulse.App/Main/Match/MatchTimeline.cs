@@ -13,15 +13,6 @@ namespace Hearthpulse.App.Main.Match;
 /// </summary>
 public sealed class MatchTimeline : Panel
 {
-    private const double TickTop = 4;
-    private const double TickHeight = 10;
-    private const double SpanTop = 16;
-    private const double SpanHeight = 22;
-    private const double TickZone = 8;
-
-    /// <summary>The pointer moves this far with the button down before a press scrubs instead of clicking.</summary>
-    private const double DragSlop = 4;
-
     public static readonly DependencyProperty SegmentsProperty = DependencyProperty.Register(nameof(Segments), typeof(IReadOnlyList<MatchTimelineSegment>),
         typeof(MatchTimeline), new FrameworkPropertyMetadata(null, (d, _) => ((MatchTimeline)d).Rebuild()));
 
@@ -119,13 +110,8 @@ public sealed class MatchTimeline : Panel
         foreach (var tick in Ticks ?? [])
         {
             var mark = new Border { Width = 2, Height = 8, CornerRadius = new CornerRadius(1), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            mark.SetResourceReference(Border.BackgroundProperty, tick.Look switch
-            {
-                MatchTimelineLook.Mine => "Accent",
-                MatchTimelineLook.Theirs => "Accent2",
-                _ => "Muted",
-            });
-            var zone = new Border { Width = TickZone, Height = TickHeight, Background = Brushes.Transparent, Child = mark, ToolTip = tick.Tooltip };
+            mark.SetResourceReference(Border.BackgroundProperty, MatchTimelineLayout.TickBrush(tick.Look));
+            var zone = new Border { Width = MatchTimelineLayout.TickZone, Height = MatchTimelineLayout.TickHeight, Background = Brushes.Transparent, Child = mark, ToolTip = tick.Tooltip };
             _ticks.Add((tick, zone));
             Children.Add(zone);
         }
@@ -142,16 +128,7 @@ public sealed class MatchTimeline : Panel
         {
             var (segment, box, label, glyph, bar) = _spans[i];
             var current = i == Current;
-            var (fill, edge, text) = current ? ("AccentContainer", "Accent", "OnAccentContainer") : segment.Look switch
-            {
-                MatchTimelineLook.Mine => ("AccentSoft", null, "Text"),
-                MatchTimelineLook.Theirs => ("Accent2Soft", null, "Muted"),
-                MatchTimelineLook.Shop => ("Surface3", "Border", "Muted"),
-                MatchTimelineLook.Won => ("PositiveSoft", "Positive", "Muted"),
-                MatchTimelineLook.Lost => ("NegativeSoft", "Negative", "Muted"),
-                MatchTimelineLook.Combat => ("Surface4", "Border", "Muted"),
-                _ => ("Surface4", (string?)null, "Muted"),
-            };
+            var (fill, edge, text) = MatchTimelineLayout.SpanLook(segment.Look, current);
             box.SetResourceReference(Border.BackgroundProperty, fill);
             if (edge is null)
             {
@@ -175,10 +152,10 @@ public sealed class MatchTimeline : Panel
         foreach (var (segment, box, label, glyph, _) in _spans)
         {
             // Labels and the combat glyph only where they fit.
-            var pixels = (segment.End - segment.Start) * width - 2;
-            label.Visibility = segment.Label.Length > 0 && !segment.IsCombat && pixels >= 18 ? Visibility.Visible : Visibility.Collapsed;
-            glyph.Visibility = segment.IsCombat && pixels >= 16 ? Visibility.Visible : Visibility.Collapsed;
-            box.Measure(new Size(Math.Max(0, pixels), SpanHeight));
+            var pixels = MatchTimelineLayout.SpanPixels(segment, width);
+            label.Visibility = MatchTimelineLayout.ShowsLabel(segment, pixels) ? Visibility.Visible : Visibility.Collapsed;
+            glyph.Visibility = MatchTimelineLayout.ShowsGlyph(segment, pixels) ? Visibility.Visible : Visibility.Collapsed;
+            box.Measure(new Size(Math.Max(0, pixels), MatchTimelineLayout.SpanHeight));
         }
 
         foreach (UIElement child in Children)
@@ -189,7 +166,7 @@ public sealed class MatchTimeline : Panel
             }
         }
 
-        return new Size(width, 40);
+        return new Size(width, MatchTimelineLayout.Height);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
@@ -197,18 +174,16 @@ public sealed class MatchTimeline : Panel
         var width = finalSize.Width;
         foreach (var (segment, box, _, _, _) in _spans)
         {
-            var left = segment.Start * width + 1;
-            box.Arrange(new Rect(left, SpanTop, Math.Max(1, (segment.End - segment.Start) * width - 2), SpanHeight));
+            box.Arrange(Rect(MatchTimelineLayout.Span(segment, width)));
         }
 
         foreach (var (tick, zone) in _ticks)
         {
-            zone.Arrange(new Rect(tick.At * width - TickZone / 2, TickTop, TickZone, TickHeight));
+            zone.Arrange(Rect(MatchTimelineLayout.Tick(tick, width)));
         }
 
-        var x = Position * width;
-        _line.Arrange(new Rect(x - 1, TickTop, 2, SpanTop + SpanHeight - TickTop));
-        _diamond.Arrange(new Rect(x - 4, 0, 8, 8));
+        _line.Arrange(Rect(MatchTimelineLayout.Line(Position, width)));
+        _diamond.Arrange(Rect(MatchTimelineLayout.Diamond(Position, width)));
         return finalSize;
     }
 
@@ -230,10 +205,10 @@ public sealed class MatchTimeline : Panel
         }
 
         var point = e.GetPosition(this);
-        _scrubbing |= Math.Abs(point.X - start.X) > DragSlop;
+        _scrubbing |= Math.Abs(point.X - start.X) > MatchTimelineLayout.DragSlop;
         if (_scrubbing)
         {
-            Go(MatchViewModel.FrameAt(point.X / Math.Max(1, ActualWidth), FrameMax + 1));
+            Go(MatchTimelineLayout.FrameAt(point.X, ActualWidth, FrameMax));
         }
     }
 
@@ -263,25 +238,10 @@ public sealed class MatchTimeline : Panel
     }
 
     /// <summary>A click: the nearest tick in the tick row, else the stretch under the pointer, else the slot there.</summary>
-    private int FrameUnder(Point point)
-    {
-        var width = Math.Max(1, ActualWidth);
-        if (point.Y < SpanTop)
-        {
-            var near = _ticks.Select(t => t.Tick).Where(t => Math.Abs(t.At * width - point.X) <= TickZone / 2)
-                .OrderBy(t => Math.Abs(t.At * width - point.X)).FirstOrDefault();
-            if (near is not null)
-            {
-                return near.Frame;
-            }
-        }
-        else if (_spans.Select(s => s.Segment).FirstOrDefault(s => point.X >= s.Start * width && point.X < s.End * width) is { } segment)
-        {
-            return segment.FirstFrame;
-        }
+    private int FrameUnder(Point point) =>
+        MatchTimelineLayout.FrameUnder(_ticks.Select(t => t.Tick), _spans.Select(s => s.Segment), point.X, point.Y, ActualWidth, FrameMax);
 
-        return MatchViewModel.FrameAt(point.X / width, FrameMax + 1);
-    }
+    private static Rect Rect((double X, double Y, double Width, double Height) r) => new(r.X, r.Y, r.Width, r.Height);
 
     private void Go(int frame)
     {

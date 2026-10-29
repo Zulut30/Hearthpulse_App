@@ -20,7 +20,7 @@ public member types and assembly identities therefore remain in place.
 | Property notification | `Infrastructure/Observable.cs` | `RelayCommand` stays local because command notification semantics differ |
 | Value converter rules (shown or not, brush key, share width) | `Infrastructure/DisplayRules.cs` | The `IValueConverter` classes in `Infrastructure/Converters.cs`: brush lookup, `Visibility` / `bool` |
 | Tracking and statistics algorithms | `src/Hearthpulse.Core` (outside this directory) | Hosts dispatch completed snapshots/results to the UI |
-| Geometry of the custom controls (chart points, ticks, tags) | `Controls/ChartGeometry.cs`, `IChartValue` | The controls themselves: properties, input, text measuring and drawing |
+| Geometry of the custom controls (chart points, ticks, tags; card preview placement; match timeline) | `Controls/ChartGeometry.cs` (with `IChartValue`), `Controls/CardPreviewLayout.cs`, `Main/Match/MatchTimelineLayout.cs` | The controls themselves: properties, input, text measuring and drawing |
 | XAML, controls, resources and rendering | None | Each App/UI/desktop host retains its framework implementation |
 
 For a common feature, add or change the presentation partial once here, then wire the views in both UIs. New C#
