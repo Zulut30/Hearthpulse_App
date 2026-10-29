@@ -16,11 +16,12 @@ namespace Hearthpulse.UI.Main.Match;
 public sealed record MatchTurnRow(int FirstFrame, string Label, string Tooltip, bool Local, bool Mulligan, bool Selected);
 
 /// <summary>
-/// The match page (opened from History): header, the step-by-step replay seen from either side, both decks, the
-/// Battlegrounds rounds and lobby. Everything shown comes from <see cref="MatchPage"/> in Core; this only keeps the
-/// position (step, side, tab).
+/// The match page (opened from History): header, the step-by-step replay seen from either side (Constructed) or the
+/// Battlegrounds table, both decks, the Battlegrounds rounds and lobby. Everything shown comes from
+/// <see cref="MatchPage"/> in Core; this only keeps the position (step, side, tab) and the player bar
+/// (<c>MatchPlayer.cs</c>).
 /// </summary>
-public sealed class MatchViewModel : Observable
+public sealed partial class MatchViewModel : Observable
 {
     private MatchPage? _page;
     private int _frame;
@@ -45,8 +46,11 @@ public sealed class MatchViewModel : Observable
     private string _archetypeLine = string.Empty;
     private MatchAnalysis? _analysis;
 
-    public MatchViewModel(MainViewModel owner)
+    /// <param name="owner">The main window's model (Back closes the page there).</param>
+    /// <param name="delay">The wait between played steps; tests pass their own.</param>
+    public MatchViewModel(MainViewModel owner, Func<TimeSpan, CancellationToken, Task>? delay = null)
     {
+        _delay = delay ?? Task.Delay;
         Back = new RelayCommand(owner.CloseMatch);
         Previous = new RelayCommand(() => Frame--);
         Next = new RelayCommand(() => Frame++);
@@ -54,6 +58,12 @@ public sealed class MatchViewModel : Observable
         Last = new RelayCommand(() => Frame = FrameMax);
         PreviousTurn = new RelayCommand(() => GoTurn(-1));
         NextTurn = new RelayCommand(() => GoTurn(+1));
+        PreviousEvent = new RelayCommand(() => GoEvent(-1));
+        NextEvent = new RelayCommand(() => GoEvent(+1));
+        TogglePlay = new RelayCommand(PlayOrPause);
+        Faster = new RelayCommand(() => ChangeSpeed(+1, wrap: false));
+        Slower = new RelayCommand(() => ChangeSpeed(-1, wrap: false));
+        CycleSpeed = new RelayCommand(() => ChangeSpeed(+1, wrap: true));
         GoFrame = new RelayCommand(p => Frame = p switch
         {
             MatchTurnRow turn => turn.FirstFrame,
@@ -78,10 +88,10 @@ public sealed class MatchViewModel : Observable
 
     public RelayCommand NextTurn { get; }
 
-    /// <summary>Goes to a turn chip, an action row or a step number.</summary>
+    /// <summary>Goes to a turn chip, an action row or a step number (the timeline passes one).</summary>
     public RelayCommand GoFrame { get; }
 
-    /// <summary>"Replay", "Decks", "Analysis" (Constructed); "Rounds", "Lobby" (Battlegrounds).</summary>
+    /// <summary>"Replay", "Decks", "Analysis" (Constructed); "Replay" (format 4), "Rounds", "Lobby" (Battlegrounds).</summary>
     public RelayCommand SetTab { get; }
 
     /// <summary>True while the game's replay is being read.</summary>
@@ -94,7 +104,13 @@ public sealed class MatchViewModel : Observable
 
     public bool IsConstructed => _page is { Replay: not null };
 
-    public bool IsBattlegrounds => _page is { Battlegrounds: not null };
+    public bool IsBattlegrounds => _page is { Battlegrounds: not null } || HasBattlegroundsSteps;
+
+    /// <summary>The game's file holds the Battlegrounds step-by-step replay (format 4).</summary>
+    public bool HasBattlegroundsSteps => _page is { HasBattlegroundsSteps: true };
+
+    /// <summary>The Replay tab exists: a Constructed replay or a Battlegrounds step-by-step one.</summary>
+    public bool HasPlayer => IsConstructed || HasBattlegroundsSteps;
 
     public bool ShowOpponent => _page is { IsBattlegrounds: false };
 
@@ -105,19 +121,25 @@ public sealed class MatchViewModel : Observable
         {
             if (Set(ref _tab, value))
             {
+                Pause();
                 RaiseTabs();
             }
         }
     }
 
     // The tab and side radios bind two-way: a radio being unchecked by its group sets false, which is ignored.
-    public bool ShowReplay { get => IsConstructed && Tab == "Replay"; set => Pick(value, "Replay"); }
+    /// <summary>The Replay tab is open: the player bar and the table of either mode.</summary>
+    public bool ShowReplay { get => HasPlayer && Tab == "Replay"; set => Pick(value, "Replay"); }
+
+    public bool ShowConstructedTable => IsConstructed && Tab == "Replay";
+
+    public bool ShowBattlegroundsTable => HasBattlegroundsSteps && Tab == "Replay";
 
     public bool ShowDecks { get => IsConstructed && Tab == "Decks"; set => Pick(value, "Decks"); }
 
     public bool ShowAnalysis { get => IsConstructed && Tab == "Analysis"; set => Pick(value, "Analysis"); }
 
-    public bool ShowRounds { get => IsBattlegrounds && Tab != "Lobby"; set => Pick(value, "Rounds"); }
+    public bool ShowRounds { get => IsBattlegrounds && Tab != "Lobby" && !ShowBattlegroundsTable; set => Pick(value, "Rounds"); }
 
     public bool ShowLobby { get => IsBattlegrounds && Tab == "Lobby"; set => Pick(value, "Lobby"); }
 
@@ -168,10 +190,12 @@ public sealed class MatchViewModel : Observable
     /// <summary>The first step of an action kind (the mulligan, a Discover), or -1; render scenes go to it.</summary>
     public int FrameOf(ReplayActionKind kind) => _page?.Replay?.Frames.FirstOrDefault(f => f.Action.Kind == kind)?.Index ?? -1;
 
-
+    /// <summary>The Constructed step on screen.</summary>
     public MatchStepView? Step { get => _step; private set => Set(ref _step, value); }
 
-    public string Position => _page is null ? string.Empty : Loc.F("Match.Position", Frame + 1, FrameMax + 1);
+    /// <summary>"Step 34 of 210 · turn 7"; before the first turn "Step 2 of 210".</summary>
+    public string Position => _page is null ? string.Empty
+        : TurnAt(Frame) is > 0 and var turn ? Loc.F("Match.Player.Position", Frame + 1, FrameMax + 1, turn) : Loc.F("Match.Position", Frame + 1, FrameMax + 1);
 
     public IReadOnlyList<MatchActionRow> Actions { get => _actions; private set => Set(ref _actions, value); }
 
@@ -206,7 +230,7 @@ public sealed class MatchViewModel : Observable
     /// <summary>The analysis tab (Constructed replays).</summary>
     public MatchAnalysis? Analysis { get => _analysis; private set => Set(ref _analysis, value); }
 
-    /// <summary>The page being read: clears the previous game.</summary>
+    /// <summary>The page being read: clears the previous game (and stops its playback).</summary>
     public void BeginLoading()
     {
         Clear();
@@ -219,6 +243,7 @@ public sealed class MatchViewModel : Observable
     /// </summary>
     public void Clear()
     {
+        Pause();
         _page = null;
         Loading = false;
         Header = null;
@@ -238,6 +263,7 @@ public sealed class MatchViewModel : Observable
         Analysis = null;
         ArchetypeLine = string.Empty;
         LocalDeckNote = string.Empty;
+        ClearPlayer();
         Raise(nameof(IsConstructed));
         Raise(nameof(IsBattlegrounds));
         RaiseTabs();
@@ -252,9 +278,11 @@ public sealed class MatchViewModel : Observable
         _page = page;
         if (!keepPosition)
         {
+            Pause();
             _frame = 0;
             _bottomLocal = true;
-            _tab = page.IsBattlegrounds ? "Rounds" : "Replay";
+            // A Battlegrounds game opens on its step-by-step replay when the file has one, else on its rounds.
+            _tab = page.IsBattlegrounds && !page.HasBattlegroundsSteps ? "Rounds" : "Replay";
         }
 
         _frame = Math.Clamp(_frame, 0, FrameMax);
@@ -278,6 +306,7 @@ public sealed class MatchViewModel : Observable
         Rounds = page.Rounds;
         Lobby = page.Lobby;
         Analysis = page.Analysis;
+        ShowPlayer(page);
         Raise(nameof(IsConstructed));
         Raise(nameof(IsBattlegrounds));
         Raise(nameof(ShowOpponent));
@@ -298,18 +327,21 @@ public sealed class MatchViewModel : Observable
         }
     }
 
+    /// <summary>Ctrl+arrows and the outer buttons: the start of the next or previous turn (Battlegrounds: tavern).</summary>
     private void GoTurn(int direction)
     {
-        if (_page?.TurnOf(Frame) is not { } current)
+        if (_page is not null)
         {
-            return;
+            Frame = _page.TurnFrom(Frame, direction);
         }
+    }
 
-        var turns = _page.Turns;
-        var index = turns.ToList().IndexOf(current) + direction;
-        if (index >= 0 && index < turns.Count)
+    /// <summary>The arrows and the middle buttons: the next or previous event, skipping turn starts (and combat deaths).</summary>
+    private void GoEvent(int direction)
+    {
+        if (_page is not null)
         {
-            Frame = turns[index].FirstFrame;
+            Frame = _page.EventFrom(Frame, direction);
         }
     }
 
@@ -320,8 +352,18 @@ public sealed class MatchViewModel : Observable
             return;
         }
 
-        Step = _page.Step(_frame, _bottomLocal ? ReplayPlayer.Local : ReplayPlayer.Opponent);
-        Actions = _page.Actions(_frame);
+        // The timeline first: the Battlegrounds list of events is the current stretch's.
+        MoveTimeline();
+        if (HasBattlegroundsSteps)
+        {
+            ShowBattlegroundsStep(_page.BattlegroundsStep(_frame));
+        }
+        else
+        {
+            Step = _page.Step(_frame, _bottomLocal ? ReplayPlayer.Local : ReplayPlayer.Opponent);
+            Actions = _page.Actions(_frame);
+        }
+
         var current = _page.TurnOf(_frame);
         Turns = _page.Turns.Select(t => new MatchTurnRow(t.FirstFrame, t.Label, t.Tooltip, t.Local, t.Mulligan, t == current)).ToList();
         Raise(nameof(Position));
@@ -329,7 +371,13 @@ public sealed class MatchViewModel : Observable
 
     private void RaiseTabs()
     {
+        Raise(nameof(HasBattlegroundsSteps));
+        Raise(nameof(HasPlayer));
         Raise(nameof(ShowReplay));
+        Raise(nameof(ShowConstructedTable));
+        Raise(nameof(ShowBattlegroundsTable));
+        Raise(nameof(ShowBattlegroundsOldNote));
+        Raise(nameof(ShowSide));
         Raise(nameof(ShowDecks));
         Raise(nameof(ShowAnalysis));
         Raise(nameof(ShowRounds));

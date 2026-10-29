@@ -136,7 +136,7 @@ public sealed record MatchLobbyRow(string HeroCardId, string Hero, string Place,
 /// Everything the match page shows for one history game, built off the UI thread: header, the Constructed replay
 /// (steps, turns, actions, decks) or the Battlegrounds rounds and lobby, and the analysis. Both apps bind to it.
 /// </summary>
-public sealed class MatchPage
+public sealed partial class MatchPage
 {
     // MDI glyphs for the action list (Material Design Icons code points, as in the rest of the app).
     private const string IconPlay = "\U000F063A";

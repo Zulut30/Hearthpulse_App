@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.App.Main.Match;
@@ -12,7 +14,8 @@ namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
 /// The WPF match page resolves its styles (its own, MainLook's, the theme's) only at run time: this lays it out off
-/// screen while loading and with a short replay on each tab, so a missing key fails here instead of on the History page.
+/// screen while loading and with a short replay on each tab, so a missing key fails here instead of on the History page;
+/// the Battlegrounds table is laid out on contract records built here (the steps come from a format 4 file).
 /// </summary>
 public sealed class MatchXamlLoadTests
 {
@@ -84,10 +87,86 @@ public sealed class MatchXamlLoadTests
             Assert.True(view.DesiredSize.Height > 0, tab);
         }
 
+        // The player: the timeline over the bar, a child per stretch and tick plus the position line and diamond.
+        model.SetTab.Execute("Replay");
+        Layout(view);
+        var timeline = Descendants(view).OfType<MatchTimeline>().Single();
+        Assert.True(timeline.ActualWidth > 0);
+        Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
+        Assert.Equal(model.TimelineSegments.Count, model.Turns.Count);
+
+        Battlegrounds(view);
+
         // A game without a replay: the header and the empty state only.
         model.Show(MatchPage.Load(game with { Replay = null }, store, CardDb.Empty, null));
         Layout(view);
         Assert.True(view.DesiredSize.Height > 0);
+    }
+
+    /// <summary>The Battlegrounds table on a tavern step and a combat step, and a leaderboard row.</summary>
+    private static void Battlegrounds(MatchView view)
+    {
+        MatchBgCardView Minion(string id) => new(id, "Minion " + id) { Attack = 3, Health = 4, ShowStats = true, Tooltip = id };
+        var hero = new MatchBgHeroView("TB_BaconShop_HERO_08", "Hagatha", 24, 3, 4)
+        {
+            HeroPowers = [new MatchBgCardView("TB_BaconShop_HP_065", "Hero power")],
+            Trinkets = [new MatchBgCardView("BG30_MagicItem_544", "Trinket")],
+        };
+        var tavern = new MatchBgStepView(3, 40, 2, MatchPhase.Shop, MatchStepKind.Buy, "Turn 2 · tavern", "You bought Minion A", string.Empty)
+        {
+            Hero = hero,
+            Board = [Minion("A") with { Acting = true, Golden = true, Taunt = true }],
+            Shop = [Minion("B") with { Frozen = true, Tier = 2 }, Minion("C") with { Tier = 1, DivineShield = true, Reborn = true }],
+            Hand = [new MatchBgCardView("BG_Spell", "Tavern spell")],
+            Choices = [new MatchChoiceView("Discover", [new MatchCardView("BG_X", "Option", false) { Picked = true }])],
+            Gold = "7 / 10",
+            ShopFrozen = true,
+            Leaderboard = [new MatchBgLeaderRow("TB_BaconShop_HERO_08", "Hagatha", 2, 24, 3, 4, true, false, false)],
+        };
+        var combat = tavern with
+        {
+            Phase = MatchPhase.Combat,
+            Kind = MatchStepKind.Attack,
+            Title = "Turn 2 · combat",
+            Opponent = new MatchBgHeroView("TB_BaconShop_HERO_01", "Bartendotron", 18, 0, 5),
+            Board = [Minion("A") with { Attacking = true }, Minion("D")],
+            OpponentBoard = [Minion("E") with { Defending = true, Dying = true, Venomous = true }],
+            Shop = [],
+            Choices = [],
+            Gold = string.Empty,
+            ResultKey = "Win",
+        };
+
+        var table = (FrameworkElement)view.FindName("BattlegroundsTable");
+        var card = (FrameworkElement)view.FindName("BattlegroundsStepCard");
+        table.Visibility = Visibility.Visible;
+        foreach (var (step, ovals) in new[] { (tavern, 3), (combat, 3) })
+        {
+            card.DataContext = step;
+            Layout(view);
+            Assert.True(card.ActualHeight > 0, step.Title);
+            Assert.Equal(ovals, Descendants(card).OfType<Border>().Count(b => b.Name == "Oval"));
+            Assert.Contains(Descendants(card).OfType<TextBlock>(), t => t.Text == step.Title);
+        }
+
+        var row = (FrameworkElement)((DataTemplate)view.Resources["LeaderRow"]).LoadContent();
+        row.DataContext = Hearthpulse.App.Main.Match.MatchViewModel.Leader(tavern.Leaderboard[0]);
+        Layout(row);
+        Assert.True(row.DesiredSize.Height > 0);
+        Assert.Contains(Descendants(row).OfType<TextBlock>(), t => t.Text == "24 + 3");
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            yield return child;
+            foreach (var below in Descendants(child))
+            {
+                yield return below;
+            }
+        }
     }
 
     private static void Layout(FrameworkElement view)

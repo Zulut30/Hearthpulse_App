@@ -131,7 +131,17 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
 
 1. Header card: both heroes, names, rank/rating, class, format/mode, duration, first/coin, result.
 2. Tabs: **Replay** | **Decks** | **Analysis** (Battlegrounds: **Rounds** | **Lobby**).
-3. Replay: turn strip, step buttons and slider, "My side / Opponent's side" (which side is at the bottom), both
+3. Replay (Constructed, and Battlegrounds games with a format 4 file, where it opens first): a player card - the
+   whole-game timeline (`MatchPage.Timeline`: mulligan and turns, or tavern and combats coloured by the combat's
+   result; event ticks from `MatchPage.Marks`, merged into at most 300 on long games; position by step, not time;
+   click a tick or stretch, or drag to scrub; `MatchTimeline` panel in each UI) over the bar: turn / event / step
+   back and forward around play-pause, speed x1/x2/x4 (a step a second / speed, pauses on the last step, stops on
+   another tab, another game or Back), the position, "?" with the legend and keys. Keys on the tab (caught before the
+   focused control): Space play/pause, ←/→ event (`EventFrom`; turn starts, combat deaths and triggers are steps
+   only), Ctrl+←/→ turn (`TurnFrom`: the next stretch that is not a combat), Enter/Backspace step, +/− speed, Esc back.
+   Battlegrounds: the step's table from `MatchBgStepView` (Bob's offer or the combat opponent on top, ours at the
+   bottom, the step bar, choices, hand; leaderboard and the tavern's or combat's events on the right); a format 3
+   file keeps Rounds / Lobby with a note. Constructed: "My side / Opponent's side" (which side is at the bottom), both
    heroes, boards, hands, secrets, mana, deck count, the turn's actions. Hands, boards and choices are full card
    renders from HearthstoneJSON (`render/latest/{locale}/256x/{id}.png`, the card-data locale) through `CardArt.Card`
    (disk cache per locale, decoded at 256 px, memory cache bounded in bytes); the current attack and health sit over
