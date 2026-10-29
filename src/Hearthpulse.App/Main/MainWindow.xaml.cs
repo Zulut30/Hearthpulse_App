@@ -143,6 +143,7 @@ public partial class MainWindow : Window
     {
         _viewModel.PropertyChanged -= OnViewModelChanged;
         _viewModel.HistoryRequested -= ShowHistoryGame;
+        _viewModel.PanelToggled -= OnPanelToggled;
         base.OnClosed(e);
     }
 

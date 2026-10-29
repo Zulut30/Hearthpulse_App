@@ -52,8 +52,13 @@ public sealed class StatsLineChart : FrameworkElement
         AddLogicalChild(_card);
         AddVisualChild(_card);
 
-        // The default empty text is drawn here, so it follows a language switch only by redrawing.
-        Loaded += (_, _) => Loc.Instance.LanguageChanged += InvalidateVisual;
+        // The default empty text is drawn here, so it follows a language switch only by redrawing. WPF may raise Loaded
+        // again without an Unloaded in between: one subscription at most, or the app-wide event keeps a closed window.
+        Loaded += (_, _) =>
+        {
+            Loc.Instance.LanguageChanged -= InvalidateVisual;
+            Loc.Instance.LanguageChanged += InvalidateVisual;
+        };
         Unloaded += (_, _) => Loc.Instance.LanguageChanged -= InvalidateVisual;
     }
 
