@@ -189,6 +189,7 @@ public partial class OverlayWindow : Window
             Root.Visibility = Visibility.Visible;
             _shown = true;
             _lastRect = default; // reposition even if the game window did not move
+            OfferMoveTip();
         }
 
         if (!r.Equals(_lastRect))
@@ -230,6 +231,18 @@ public partial class OverlayWindow : Window
         UpdateClickThrough(cursor, r);
         UpdateLeaderboardHover(cursor, r);
         UpdateGuides(r);
+    }
+
+    /// <summary>
+    /// The overlay just appeared over the game: the first time ever, the toast says that Ctrl over a panel moves and
+    /// resizes it, and the settings are saved with the tip marked shown.
+    /// </summary>
+    private void OfferMoveTip()
+    {
+        if (ViewModel.OfferMoveTip(_settings))
+        {
+            LayoutChanged?.Invoke();
+        }
     }
 
     private string? _visibilityNote;

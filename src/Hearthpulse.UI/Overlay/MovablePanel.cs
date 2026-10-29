@@ -24,10 +24,10 @@ public static class OverlayHit
 }
 
 /// <summary>
-/// Overlay panel host the player can drag, resize (mouse wheel), fade (Shift+wheel) and reset (right-click) while the
-/// overlay is in layout mode, and the same during a game while holding Ctrl over it (<see cref="IsDragArmed"/>). Its
-/// name tag carries buttons for size, opacity, compact lists and reset. Without a saved placement it keeps the
-/// alignment and margin from XAML.
+/// Overlay panel host the player can drag, resize (corner marker or mouse wheel), fade (Shift+wheel) and reset
+/// (right-click) while the overlay is in layout mode, and the same during a game while holding Ctrl over it
+/// (<see cref="IsDragArmed"/>). Its name tag carries buttons for size, opacity, compact lists and reset. Without a saved
+/// placement it keeps the alignment and margin from XAML.
 /// </summary>
 public sealed class MovablePanel : ContentControl
 {
@@ -77,6 +77,11 @@ public sealed class MovablePanel : ContentControl
     private Point _dragStart;
     private Point _originStart;
     private bool _dragging;
+
+    // A drag that started on the corner marker resizes from the size the panel had then (scale, on-screen size).
+    private bool _resizing;
+    private double _startScale;
+    private Size _startSize;
     private double _scale = 1;
     private LayoutTransformControl? _scaler;
 
@@ -107,6 +112,7 @@ public sealed class MovablePanel : ContentControl
         AddHandler(PointerMovedEvent, OnMoved, RoutingStrategies.Tunnel);
         AddHandler(PointerReleasedEvent, OnReleased, RoutingStrategies.Tunnel);
         AddHandler(PointerWheelChangedEvent, OnWheel, RoutingStrategies.Tunnel);
+        AddHandler(PointerCaptureLostEvent, OnCaptureLost);
         SizeChanged += (_, _) => KeepOnScreen();
     }
 
@@ -133,7 +139,7 @@ public sealed class MovablePanel : ContentControl
     /// </summary>
     public bool IsDragArmed { get => GetValue(IsDragArmedProperty); set => SetValue(IsDragArmedProperty, value); }
 
-    /// <summary>The player is dragging the panel right now (the overlay keeps it armed until the button is released).</summary>
+    /// <summary>The player is moving or resizing the panel right now (the overlay keeps it armed until the button is released).</summary>
     public bool IsDragging => _dragging;
 
     private bool CanMove => IsEditing || IsDragArmed;
@@ -183,6 +189,7 @@ public sealed class MovablePanel : ContentControl
         base.OnApplyTemplate(e);
         _scaler = e.NameScope.Find<LayoutTransformControl>("PART_Scaler");
         _chrome = e.NameScope.Find<Control>("PART_Chrome");
+        _grip = e.NameScope.Find<Control>("PART_Grip");
         Hook("PART_Smaller", () => StepScale(up: false));
         Hook("PART_Larger", () => StepScale(up: true));
         Hook("PART_Fade", () => ChangeLook(PanelSnap.NextOpacity(PanelOpacity), IsCompact));
@@ -207,6 +214,9 @@ public sealed class MovablePanel : ContentControl
     // The name tag and its buttons, which follow a wide row's placeholder to its end of the row.
     private Control? _chrome;
 
+    // The corner marker that resizes the panel.
+    private Control? _grip;
+
     /// <summary>Back to the XAML spot and size, opaque with full rows.</summary>
     private void Reset()
     {
@@ -221,6 +231,20 @@ public sealed class MovablePanel : ContentControl
         for (var node = source as Visual; node is not null && node != this; node = node.GetVisualParent())
         {
             if (node is Button)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether the pointer went down on the corner marker, which resizes the panel instead of moving it.</summary>
+    private bool OnGrip(object? source)
+    {
+        for (var node = source as Visual; node is not null && node != this; node = node.GetVisualParent())
+        {
+            if (node == _grip)
             {
                 return true;
             }
@@ -246,18 +270,23 @@ public sealed class MovablePanel : ContentControl
     }
 
     /// <summary>
-    /// Where the pointer keeps an armed panel armed, in its own coordinates: the panel and the strip with its name tag
-    /// and buttons, which can reach past a narrow panel's right edge.
+    /// Where the pointer keeps an armed panel armed, in its own coordinates: the panel, the strip with its name tag and
+    /// buttons, which can reach past a narrow panel's right edge, and the corner marker just outside its corner.
     /// </summary>
     public Rect ArmedArea()
     {
         var area = new Rect(Bounds.Size);
-        if (_chrome is { IsVisible: true } chrome && chrome.TranslatePoint(default, this) is { } origin)
-        {
-            area = area.Union(new Rect(origin, chrome.Bounds.Size));
-        }
-
+        Add(_chrome);
+        Add(_grip);
         return area;
+
+        void Add(Control? part)
+        {
+            if (part is { IsVisible: true } && part.TranslatePoint(default, this) is { } origin)
+            {
+                area = area.Union(new Rect(origin, part.Bounds.Size));
+            }
+        }
     }
 
     /// <summary>A placeholder in a wide row sits at one end of it: its tag buttons go with it.</summary>
@@ -486,6 +515,9 @@ public sealed class MovablePanel : ContentControl
 
         CaptureDefaults();
         _dragging = true;
+        _resizing = OnGrip(e.Source);
+        _startScale = _scale;
+        _startSize = Bounds.Size;
         _dragStart = e.GetPosition(surface);
         _originStart = TopLeft();
         e.Pointer.Capture(this);
@@ -500,6 +532,13 @@ public sealed class MovablePanel : ContentControl
         }
 
         var position = e.GetPosition(surface);
+        if (_resizing)
+        {
+            Resize(position - _dragStart);
+            e.Handled = true;
+            return;
+        }
+
         // Edges, the centre line and the other panels' edges pull the panel in, so panels line up without pixel hunting.
         var neighbours = _neighbours ??= Neighbours(surface);
         var left = Math.Clamp(PanelSnap.Snap(_originStart.X + (position.X - _dragStart.X), Bounds.Width, surface.Bounds.Width, neighbours.Across), 0, Math.Max(0, surface.Bounds.Width - Bounds.Width));
@@ -524,12 +563,47 @@ public sealed class MovablePanel : ContentControl
             return;
         }
 
-        _dragging = false;
-        _neighbours = null;
+        EndDrag();
         e.Pointer.Capture(null);
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// The panel lost the pointer in the middle of a drag (the player switched windows, the platform took the capture
+    /// back): the drag ends where the panel is, rather than leaving it dragging, armed and taking clicks.
+    /// </summary>
+    private void OnCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        if (_dragging)
+        {
+            EndDrag();
+        }
+    }
+
+    /// <summary>Ends a move or resize and saves where the panel is and how big, like the wheel does.</summary>
+    private void EndDrag()
+    {
+        _dragging = false;
+        _resizing = false;
+        _neighbours = null;
         _saved = TopLeft();
         PlacementChanged?.Invoke(this, CurrentPlacement());
-        e.Handled = true;
+    }
+
+    /// <summary>The corner marker: the size follows the pointer and the top-left corner stays where it was.</summary>
+    private void Resize(Vector moved)
+    {
+        var next = PanelSnap.CornerScale(_startScale, _startSize.Width, _startSize.Height, moved.X, moved.Y);
+        if (Math.Abs(next - _scale) < 0.001)
+        {
+            return;
+        }
+
+        _scale = next;
+        ApplyScale();
+        HorizontalAlignment = HorizontalAlignment.Left;
+        VerticalAlignment = VerticalAlignment.Top;
+        Margin = new Thickness(_originStart.X, _originStart.Y, 0, 0);
     }
 
     // The other shown panels' spans on the surface (left-right, top-bottom), taken once per drag.
@@ -578,7 +652,7 @@ public sealed class MovablePanel : ContentControl
     {
         CaptureDefaults();
         var origin = TopLeft();
-        _scale = Math.Clamp(Math.Round(_scale + (up ? 0.05 : -0.05), 2), 0.6, 1.6);
+        _scale = Math.Clamp(Math.Round(_scale + (up ? 0.05 : -0.05), 2), PanelSnap.MinScale, PanelSnap.MaxScale);
         ApplyScale();
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;

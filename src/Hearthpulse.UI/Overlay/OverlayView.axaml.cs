@@ -132,10 +132,14 @@ public partial class OverlayView : UserControl
     /// <summary>
     /// Ctrl held over a panel during a game arms that panel (the topmost one under the pointer, view coordinates; null
     /// when outside): it takes the mouse and can be dragged or resized as in layout mode, and the placement is saved
-    /// the same way. Without Ctrl, or over empty space, clicks keep going to the game. A panel being dragged stays armed
-    /// until the button comes up.
+    /// the same way. Without Ctrl, or over empty space, clicks keep going to the game. A panel being dragged or resized
+    /// stays armed until the button comes up.
     /// </summary>
-    /// <returns>Whether a panel is under the pointer with Ctrl held, so the overlay must take the mouse.</returns>
+    /// <returns>
+    /// Whether a panel is under the pointer with Ctrl held, or one is being dragged or resized, so the overlay must take
+    /// the mouse. During a drag that holds wherever the pointer is, as the WPF overlay keeps the mouse while it is
+    /// captured: once Ctrl was let go and the pointer left the panel, the overlay went click-through mid-drag.
+    /// </returns>
     public bool UpdateDragArm(Point? pointer, bool controlDown)
     {
         var editing = _viewModel?.LayoutEditing == true;
@@ -156,16 +160,30 @@ public partial class OverlayView : UserControl
             }
         }
 
+        var dragging = false;
         foreach (var panel in _panels)
         {
             var armed = panel == target || (panel.IsDragging && !editing);
+            dragging |= panel.IsDragging;
             if (panel.IsDragArmed != armed)
             {
                 panel.IsDragArmed = armed;
             }
         }
 
-        return target is not null;
+        return target is not null || dragging;
+    }
+
+    /// <summary>
+    /// The overlay just appeared over the game: the first time ever, the toast says that Ctrl over a panel moves and
+    /// resizes it, and the settings are saved with the tip marked shown (<see cref="LayoutChanged"/>).
+    /// </summary>
+    public void OfferMoveTip()
+    {
+        if (_viewModel?.OfferMoveTip(Settings) == true)
+        {
+            LayoutChanged?.Invoke();
+        }
     }
 
     /// <summary>

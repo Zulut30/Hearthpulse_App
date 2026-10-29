@@ -751,7 +751,7 @@
                                                 <Run Text="&#xF05CC;" FontFamily="{StaticResource IconFont}" /><Run Text="{Binding OpacityText, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}" />
                                             </TextBlock>
                                             <!-- Ctrl held during a game: what the mouse does now -->
-                                            <TextBlock x:Name="ArmedHint" Text="{i:Loc Overlay.Layout.DragHint}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="8,0,0,0"
+                                            <TextBlock x:Name="ArmedHint" Text="{i:Loc Overlay.Move.Hint}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="8,0,0,0"
                                                        Visibility="Collapsed" />
                                         </StackPanel>
                                     </Border>
@@ -766,6 +766,12 @@
                                     </Border>
                                 </StackPanel>
                             </Grid>
+                            <!-- Corner marker: dragged, it resizes the panel like the wheel (layout mode, or Ctrl held during a game) -->
+                            <Border x:Name="PART_Grip" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"
+                                    Width="14" Height="14" CornerRadius="4" Background="{StaticResource Accent}" Cursor="SizeNWSE" ToolTip="{i:Loc Overlay.Move.Grip}">
+                                <TextBlock Text="&#xF045D;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource OnAccent}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <!-- Most panels show during matches and need no note; menu and draft panels name their scene in Hint -->
@@ -786,6 +792,7 @@
                                 <Setter TargetName="Shield" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Frame" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="PART_Chrome" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="PART_Grip" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <!-- Ctrl over a panel during a game: the same frame and tag, and the shield takes the whole panel for the drag -->
                             <Trigger Property="IsDragArmed" Value="True">
@@ -795,6 +802,7 @@
                                 <Setter TargetName="ArmedHint" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="Tools" Property="Visibility" Value="Visible" />
                                 <Setter TargetName="PART_Chrome" Property="Background" Value="Transparent" />
+                                <Setter TargetName="PART_Grip" Property="Visibility" Value="Visible" />
                             </Trigger>
                             <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours.
                                  Only the placeholder itself takes the mouse, so a wide row's empty width never hides its neighbours. -->
@@ -804,6 +812,7 @@
                                 <Setter TargetName="Tag" Property="Visibility" Value="Collapsed" />
                                 <Setter TargetName="Shield" Property="Visibility" Value="Collapsed" />
                                 <Setter TargetName="Frame" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="PART_Grip" Property="Visibility" Value="Collapsed" />
                             </Trigger>
                             <!-- Layout mode: the buttons show over the panel the mouse is on, so they never pile up over the neighbours -->
                             <MultiTrigger>

@@ -214,6 +214,9 @@ public sealed class AppSettings
 
     public bool ShowGameToasts { get; set; } = true;
 
+    /// <summary>The overlay told once, over the game, that Ctrl held over a panel moves and resizes it.</summary>
+    public bool OverlayMoveTipShown { get; set; }
+
     public bool ShowLobbyPanel { get; set; } = true;
 
     /// <summary>
