@@ -220,7 +220,7 @@ public sealed class DiscoverPicksTests
         var changed = new SemaphoreSlim(0);
         source.Changed += () => changed.Release();
         Assert.Null(source.TryGet("standard", "BE_555", CardDb.Empty));
-        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(5)));
+        await Arrived(changed, server);
         Assert.Equal(["https://api.test/v1/hsreplay/card-choices/cards"], server.Urls);
 
         // Cards the API has no numbers for (or not in this format) are never asked for.
@@ -229,7 +229,7 @@ public sealed class DiscoverPicksTests
         Assert.Null(source.TryGet("standard", "UNKNOWN", CardDb.Empty));
 
         Assert.Null(source.TryGet("standard", "BE_555", CardDb.Empty));
-        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(5)));
+        await Arrived(changed, server);
         var choices = source.TryGet("standard", "BE_555", CardDb.Empty);
         Assert.Equal(0.8, Assert.Single(choices!.Options).PickRate);
         // Every later publish answers from memory.
@@ -290,6 +290,27 @@ public sealed class DiscoverPicksTests
 
     private static string Ref(int id, string cardId, string zone, int player) =>
         $"[entityName=X id={id} zone={zone} zonePos=0 cardId={cardId} player={player}]";
+
+    /// <summary>
+    /// Waits for the source's Changed. A miss says what happened (once on the macOS runner, 2f64b57): whether the request
+    /// went out, and what the background load wrote to the log if it failed.
+    /// </summary>
+    private static async Task Arrived(SemaphoreSlim changed, ChoicesServer server)
+    {
+        if (await changed.WaitAsync(TimeSpan.FromSeconds(5)))
+        {
+            return;
+        }
+
+        string[] urls;
+        lock (server.Urls)
+        {
+            urls = [.. server.Urls];
+        }
+
+        var log = TestDataFolder.ReadLog().Split('\n').Where(l => l.Contains("Card choice", StringComparison.Ordinal) || l.Contains("card choices", StringComparison.Ordinal));
+        Assert.Fail($"No Changed within 5 s. Requests: [{string.Join(", ", urls)}]. Log: [{string.Join(" | ", log)}]");
+    }
 
     private sealed class ChoicesServer : HttpMessageHandler
     {
