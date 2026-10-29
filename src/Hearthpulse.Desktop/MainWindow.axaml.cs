@@ -2,6 +2,7 @@ using Hearthpulse.Core;
 using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
 using Hearthpulse.UI;
+using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.Desktop;
 
@@ -13,7 +14,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        RestoreBounds = new WindowRestoreBounds(this);
     }
+
+    /// <summary>The normal bounds and "maximized", for a dashboard rebuilt after the tray.</summary>
+    public WindowRestoreBounds RestoreBounds { get; }
 
     public MainWindow(AppHost host) : this()
     {
