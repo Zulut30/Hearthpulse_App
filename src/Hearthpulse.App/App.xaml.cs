@@ -49,7 +49,7 @@ public partial class App : Application
     private OverlayViewModel _overlayViewModel = null!;
     private Forms.NotifyIcon? _tray;
     private Forms.ToolStripMenuItem? _trayOverlayItem;
-    private HwndSource? _hotkeySource;
+    private HotkeyWindow? _hotkeys;
     private string? _installDir;
     private StartupPrefetch _prefetch = null!;
     private CardDb _cards = CardDb.Empty;
@@ -316,12 +316,7 @@ public partial class App : Application
         _uiProbe?.Dispose();
         _watcher?.Dispose();
         _uploader?.Dispose();
-        if (_hotkeySource is not null)
-        {
-            Native.UnregisterHotKey(_hotkeySource.Handle, HotkeyId);
-            Native.UnregisterHotKey(_hotkeySource.Handle, LayoutHotkeyId);
-            Native.UnregisterHotKey(_hotkeySource.Handle, RefreshHotkeyId);
-        }
+        _hotkeys?.Dispose();
 
         if (_tray is not null)
         {
@@ -1203,41 +1198,24 @@ public partial class App : Application
 
     private void RegisterHotkey()
     {
-        var handle = new WindowInteropHelper(_main).EnsureHandle();
-        _hotkeySource = HwndSource.FromHwnd(handle);
-        _hotkeySource?.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
-        {
-            if (msg == Native.WM_HOTKEY && wParam.ToInt32() == HotkeyId)
+        // Not on the main window: a theme change replaces it and the tray lets it go.
+        _hotkeys = new HotkeyWindow();
+        if (!_hotkeys.Register(HotkeyId, 0x48, () =>
             {
                 _overlay.Suppressed = !_overlay.Suppressed;
                 Notify(_overlay.Suppressed ? Loc.T("Host.Notify.OverlayHiddenTitle") : Loc.T("Host.Notify.OverlayShownTitle"),
                     _overlay.Suppressed ? Loc.T("Host.Notify.OverlayHidden") : Loc.T("Host.Notify.OverlayShown"));
-                handled = true;
-            }
-            else if (msg == Native.WM_HOTKEY && wParam.ToInt32() == RefreshHotkeyId)
-            {
-                HardRefresh("Ctrl+Shift+R");
-                handled = true;
-            }
-            else if (msg == Native.WM_HOTKEY && wParam.ToInt32() == LayoutHotkeyId)
-            {
-                _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing;
-                handled = true;
-            }
-
-            return IntPtr.Zero;
-        });
-        if (!Native.RegisterHotKey(handle, HotkeyId, Native.MOD_CONTROL | Native.MOD_SHIFT | Native.MOD_NOREPEAT, 0x48))
+            }))
         {
             Diag.Info("Ctrl+Shift+H is taken by another app; overlay hotkey disabled.");
         }
 
-        if (!Native.RegisterHotKey(handle, LayoutHotkeyId, Native.MOD_CONTROL | Native.MOD_SHIFT | Native.MOD_NOREPEAT, 0x4C))
+        if (!_hotkeys.Register(LayoutHotkeyId, 0x4C, () => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing))
         {
             Diag.Info("Ctrl+Shift+L is taken by another app; layout hotkey disabled.");
         }
 
-        if (!Native.RegisterHotKey(handle, RefreshHotkeyId, Native.MOD_CONTROL | Native.MOD_SHIFT | Native.MOD_NOREPEAT, 0x52))
+        if (!_hotkeys.Register(RefreshHotkeyId, 0x52, () => HardRefresh("Ctrl+Shift+R")))
         {
             Diag.Info("Ctrl+Shift+R is taken by another app; hard refresh hotkey disabled.");
         }
