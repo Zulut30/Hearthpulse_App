@@ -172,6 +172,30 @@ public sealed class GameFactsTests
         Assert.Equal(42, record.DeckId);
     }
 
+    [Fact]
+    public void A_hero_card_of_another_class_in_the_deck_does_not_become_the_class()
+    {
+        // Deck cards get lower ids than the starting hero: a Priest hero card in a Mage deck (Tourist, dual-class Arena)
+        // was taken for the class once Deathwing replaced the hero.
+        var parser = new PowerParser(new DateOnly(2026, 10, 28));
+        var battlegrounds = new BattlegroundsTracker { Cards = Cards };
+        parser.AddListener(battlegrounds);
+        Feed(parser,
+        [
+            .. Setup("GT_RANKED", 30, 40, opponentIsDummy: false),
+            .. Entity(20, "HERO_09", Me, "DECK", "HERO"),
+            .. Entity(21, "HERO_09", Me, "HAND", "HERO"),
+            .. Entity(30, "HERO_08", Me, "PLAY", "HERO"),
+            .. Entity(40, "HERO_09", Them, "PLAY", "HERO"),
+            .. Entity(60, "CORE_CS2_029", Me, "HAND", "SPELL"),
+            .. Entity(70, "CATA_190h", Me, "PLAY", "HERO"),
+            "DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=HERO_ENTITY value=70 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=PLAYSTATE value=WON ",
+        ]);
+
+        Assert.Equal("MAGE", GameRecords.Build(parser.Game!, battlegrounds, Cards, null, "test")!.PlayerClass);
+    }
+
     private static GameRecord Ranked(int firstPlayer, DeckDefinition deck)
     {
         var parser = new PowerParser(new DateOnly(2026, 10, 23));

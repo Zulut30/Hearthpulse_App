@@ -8,7 +8,7 @@ internal static class HeroClass
 {
     /// <summary>
     /// The class of the player's hero; when that hero has none (a neutral hero card replaced it), the class of the
-    /// player's first hero that has one - the hero they started with.
+    /// player's first hero out of the deck and hand that has one - the hero they started with.
     /// </summary>
     public static string Of(GameState game, Entity? player, CardDb cards)
     {
@@ -22,7 +22,9 @@ internal static class HeroClass
         Entity? first = null;
         foreach (var entity in game.Entities.Values)
         {
-            if (entity.IsHero && entity.Controller == controller && (first is null || entity.Id < first.Id) && IsClass(cards.Get(entity.CardId)?.CardClass))
+            // Hero cards still in the deck or hand (a Tourist's, another class's in dual-class Arena) are not a hero played.
+            if (entity.IsHero && entity.Controller == controller && entity.Zone is not ("DECK" or "HAND")
+                && (first is null || entity.Id < first.Id) && IsClass(cards.Get(entity.CardId)?.CardClass))
             {
                 first = entity;
             }
