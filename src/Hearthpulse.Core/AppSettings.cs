@@ -222,6 +222,13 @@ public sealed class AppSettings
     /// </summary>
     public bool ShowBgLobbyPanel { get; set; }
 
+    /// <summary>
+    /// Battlegrounds opponents' MMR: the lobby names the client shows, read from memory, matched on this computer
+    /// against the region's public Blizzard leaderboard (8000 and up), which is downloaded whole once a day. Off by
+    /// default; names and ratings are never saved or sent (docs/bg-opponent-mmr.md).
+    /// </summary>
+    public bool ShowBgOpponentMmr { get; set; }
+
     public bool ShowSessionPanel { get; set; } = true;
 
     /// <summary>The ranked ladder session widget: in the overlay outside games and on the Overview page.</summary>

@@ -49,7 +49,9 @@ location if it is absent.
 Ground rules: restore with `--source https://api.nuget.org/v3/index.json`; run the app and `--render-ui` only with
 `HEARTHPULSE_DATA` pointing at a copy of the data folder; hidden game information: during a game - only what the
 player can see; after the match the review may show everything the log revealed by the end of the game (the match
-page only, `docs/match-replay.md`); every user-facing feature goes into both UIs.
+page only, `docs/match-replay.md`); the one in-game exception is BG opponents' MMR from Blizzard's public
+leaderboard, off by default, on the conditions in `docs/bg-opponent-mmr.md` (owner, 2026-10-29); every user-facing
+feature goes into both UIs.
 
 **Default workflow (owner's standing permission, 2026-10-27).** The coordinating session (the one the owner talks to
 in `D:\HeartLens-main`) carries every feature or fix task end to end with `hearthpulse-ship`: sessions in worktrees,

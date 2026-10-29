@@ -12,6 +12,13 @@ a card back in the opponent's hand and was played or shown later is face up on t
 "revealed on turn N"; the opponent's mulligan shows the kept and replaced cards that came to light; the Decks tab lists
 every card the opponent revealed. A card the game never revealed (nowhere in the log) stays a card back.
 
+**One exception during a game (owner's decision, 2026-10-29, "давай сделаем как в firestone"; legal report
+`reference/reviews/LEGAL-HeartLens-bg-opponent-mmr.md`, L-M1):** Battlegrounds opponents' ratings from Blizzard's
+public leaderboard, matched by the names the client shows on its leaderboard. The rating is open data outside the
+client, not game state: the player could look the names up on Blizzard's site. It stays an off-by-default option with
+the conditions in [bg-opponent-mmr.md](bg-opponent-mmr.md) (whole table downloaded, names never sent or saved, "?"
+for a shared name, "<8000" below the table, no lobby average). Nothing else from outside the client is covered.
+
 How the two parts stay apart:
 
 - The **events** of the file are recorded as seen, under the rules below (`ReplayRecorder.Events`). They are the same
