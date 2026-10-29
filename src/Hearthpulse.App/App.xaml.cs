@@ -422,7 +422,9 @@ public partial class App : Application
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();
             _uiProbe = new System.Threading.Timer(ProbeUiThread, null, 2000, 1000);
-            SetBusy(null);
+            SetBusy(_installDir is null
+                ? () => Loc.T("Host.Busy.GameNotFound")
+                : null);
 
             if (logConfigChanged && HearthstoneInstall.IsRunning())
             {
