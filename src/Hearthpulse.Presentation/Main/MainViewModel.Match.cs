@@ -62,11 +62,14 @@ public sealed partial class MainViewModel
         MatchOpen = true;
         var cards = _cards;
         var history = _history;
+        // A copy for the pool thread: the loaded metas are added on this thread while the page builds.
+        var metas = new Dictionary<string, Core.Constructed.ConstructedMeta>(_constructedMetas, StringComparer.Ordinal);
         Core.Replay.MatchPage? page;
         try
         {
             page = await Task.Run(() => history.Game(key) is { } game
-                ? Core.Replay.MatchPage.Load(game, ReplayStore.Default, cards, ConstructedMetaFor(game.Format))
+                ? Core.Replay.MatchPage.Load(game, ReplayStore.Default, cards,
+                    Core.Constructed.ConstructedMeta.FormatKeyOf(game.Format) is { } format && metas.TryGetValue(format, out var meta) ? meta : null)
                 : null).ConfigureAwait(true);
         }
         catch (Exception ex)
