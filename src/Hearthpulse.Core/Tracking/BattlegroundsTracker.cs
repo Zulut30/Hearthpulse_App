@@ -51,6 +51,10 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     private int _pendingDamage = -1;
     private int _localAlive;
     private int _opponentAlive;
+
+    // The hero attack that closes the fight: open while its block runs, then who hit and for how much.
+    private HeroHit? _heroHit;
+    private (bool Ours, int Damage)? _heroBlow;
     private IReadOnlyList<BgMinion> _lastOwnBoard = Array.Empty<BgMinion>();
 
     /// <summary>Cards the player could see in the last tavern phase (tavern, hand, board, trinkets, hero power), for counters.</summary>
@@ -293,6 +297,13 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         }
 
         _combatActivityAt = Environment.TickCount64;
+        if (blockType == "ATTACK" && source is { IsHero: true } attacker)
+        {
+            var ours = attacker.Controller == game.LocalPlayerId;
+            var defender = ours ? CombatOpponentHero(game) : game.LocalHero;
+            _heroHit = new HeroHit(ours, defender, Durability(defender), game.OpenBlocks.Count);
+        }
+
         if (_boardCaptured || blockType != "ATTACK")
         {
             return;
@@ -331,12 +342,30 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         }
 
         _combatActivityAt = Environment.TickCount64;
+        if (_heroHit is { } hit && game.OpenBlocks.Count <= hit.Depth)
+        {
+            FinishHeroHit();
+        }
+
         if (_boardCaptured || _boardsSnapshotted)
         {
             _localAlive = Minions(game, game.LocalPlayerId).Count();
             _opponentAlive = Minions(game, game.OpponentPlayerId).Count();
         }
     }
+
+    private void FinishHeroHit()
+    {
+        if (_heroHit is { } hit)
+        {
+            _heroHit = null;
+            _heroBlow = (hit.Ours, Math.Max(0, hit.Before - Durability(hit.Defender)));
+        }
+    }
+
+    /// <summary>The opponent's hero on the combat board: a copy carrying the player's PLAYER_ID (Bob has none).</summary>
+    private static Entity? CombatOpponentHero(GameState game) =>
+        game.Entities.Values.FirstOrDefault(e => e.IsHero && e.Zone == "PLAY" && e.Controller == game.OpponentPlayerId && e.GetInt(GameTag.PlayerId) > 0);
 
     public BattlegroundsView BuildView(GameState game)
     {
@@ -577,14 +606,18 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _pendingDamage = -1;
         _localAlive = 0;
         _opponentAlive = 0;
+        _heroHit = null;
+        _heroBlow = null;
         _combatOpponent = game.OpponentPlayerEntity?.GetInt(GameTag.CurrentCombatPlayerId) ?? 0;
         _localHealthAtCombat = Durability(game.LocalHero);
         _opponentHealthAtCombat = Durability(LeaderboardHero(game, _combatOpponent));
     }
 
     /// <summary>
-    /// Hero damage lands after the combat burst (armor first). Re-derive the last combat's damage
-    /// from the health+armor snapshot taken when it started until the next combat begins.
+    /// A fight decided without a hero attack in view (a log joined late): its damage is read from the lobby's health,
+    /// which moves after the combat burst (armor first), from the health+armor snapshot taken when it started until the
+    /// next combat begins. Only the loser's side counts and the result never changes: the lobby's health also moves for
+    /// reasons of its own (a hero hurting itself in its tavern, a heal), and a tie stays a tie.
     /// </summary>
     private void ResolvePendingDamage(GameState game)
     {
@@ -594,12 +627,11 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         }
 
         var combat = _combats[_pendingDamage];
-        // Damage and healing both move hero health after the fight: keep the largest damage seen, so a later
-        // heal (or armor gain) cannot erase it or flip a decided win/loss into a tie.
-        var taken = Math.Max(combat.DamageTaken, Math.Max(0, _localHealthAtCombat - Durability(game.LocalHero)));
-        var dealt = Math.Max(combat.DamageDealt, Math.Max(0, _opponentHealthAtCombat - Durability(LeaderboardHero(game, combat.OpponentPlayerId))));
-        var result = taken > 0 ? "Loss" : dealt > 0 ? "Win" : combat.Result;
-        _combats[_pendingDamage] = combat with { DamageTaken = taken, DamageDealt = dealt, Result = result };
+        // Keep the largest damage seen, so a later heal (or armor gain) cannot erase it.
+        var taken = combat.Result != "Loss" ? 0 : Math.Max(combat.DamageTaken, Math.Max(0, _localHealthAtCombat - Durability(game.LocalHero)));
+        var dealt = combat.Result != "Win" ? 0
+            : Math.Max(combat.DamageDealt, Math.Max(0, _opponentHealthAtCombat - Durability(LeaderboardHero(game, combat.OpponentPlayerId))));
+        _combats[_pendingDamage] = combat with { DamageTaken = taken, DamageDealt = dealt };
     }
 
     /// <summary>The lobby's combat damage cap, as the game entity announces it (<see cref="DamageRules.Cap"/>).</summary>
@@ -748,12 +780,17 @@ public sealed partial class BattlegroundsTracker : IPowerListener
             return;
         }
 
-        var result = _localAlive == 0 && _opponentAlive > 0 ? "Loss"
+        // The hero attack that closes the fight decides it and says the damage; without one, the boards.
+        FinishHeroHit();
+        var result = _heroBlow is { } blow ? (blow.Ours ? "Win" : "Loss")
+            : _localAlive == 0 && _opponentAlive > 0 ? "Loss"
             : _opponentAlive == 0 && _localAlive > 0 ? "Win"
             : "Tie";
+        var damage = _heroBlow?.Damage ?? 0;
         var hero = LeaderboardHero(game, _combatOpponent)?.CardId ?? string.Empty;
-        _combats.Add(new CombatRecord(game.BattlegroundsTurn, _combatOpponent, hero, result, 0, 0, _combatOdds));
-        _pendingDamage = _combats.Count - 1;
+        _combats.Add(new CombatRecord(game.BattlegroundsTurn, _combatOpponent, hero, result, result == "Loss" ? damage : 0, result == "Win" ? damage : 0,
+            _combatOdds));
+        _pendingDamage = result != "Tie" && damage == 0 ? _combats.Count - 1 : -1;
         _combatOpponent = 0;
         ResolvePendingDamage(game);
     }
@@ -1015,4 +1052,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     internal sealed record CombatCapture(SimSide Ours, SimSide Theirs, bool? OursFirst, int FirstAttackerEntityId);
 
     private sealed record SeenBoard(int Turn, IReadOnlyList<BgMinion> Minions);
+
+    /// <summary>A hero attack of the fight: whose hero hit, the hero it hit and how sturdy that was, the block depth.</summary>
+    private sealed record HeroHit(bool Ours, Entity? Defender, int Before, int Depth);
 }
