@@ -121,11 +121,37 @@ public sealed class OverlayMoveResizeTests
         deck.Apply(null, new Size(1920, 1080));
         root.UpdateLayout();
 
-        // A drag that loses the mouse (the panel hid, the player switched windows) ends and saves where the panel is.
+        // The marker pressed on its icon resizes: a fifth of the way out along the diagonal makes 120 %, the top-left
+        // corner stays, and the size is saved like a wheel step. With no window the press reads the mouse at (0, 0)
+        // (no presentation source), so the step goes straight to DragTo.
         PanelPlacement? saved = null;
         deck.PlacementChanged += (_, placement) => saved = placement;
+        var before = deck.TranslatePoint(default, surface);
+        var icon = Descendants<TextBlock>(Part(deck, "PART_Grip")).Single();
+        // As a real click: PreviewMouseDown tunnels down to the icon, and each element on the way raises its own
+        // PreviewMouseLeftButtonDown (a direct event) with the icon as the original source.
+        icon.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent });
+        Assert.True(deck.IsDragging);
+        Assert.True(deck.IsResizing);
+        deck.DragTo(new Point(deck.ActualWidth * 0.2, deck.ActualHeight * 0.2));
+        root.UpdateLayout();
+        Assert.Equal(PanelSnap.ScaleText(1.2), deck.ScaleText);
+        var after = deck.TranslatePoint(default, surface);
+        Assert.Equal(before.X, after.X, 0);
+        Assert.Equal(before.Y, after.Y, 0);
+        deck.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.PreviewMouseLeftButtonUpEvent });
+        Assert.False(deck.IsDragging);
+        Assert.Equal(1.2, saved!.Scale, 3);
+        Assert.Equal(before.X / surface.ActualWidth, saved.X, 3);
+        Assert.Equal(before.Y / surface.ActualHeight, saved.Y, 3);
+        deck.Apply(null, new Size(1920, 1080));
+        root.UpdateLayout();
+        saved = null;
+
+        // A drag that loses the mouse (the panel hid, the player switched windows) ends and saves where the panel is.
         deck.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent });
         Assert.True(deck.IsDragging);
+        Assert.False(deck.IsResizing);
         deck.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice, 0) { RoutedEvent = Mouse.LostMouseCaptureEvent });
         Assert.False(deck.IsDragging);
         Assert.NotNull(saved);

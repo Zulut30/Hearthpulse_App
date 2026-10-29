@@ -132,6 +132,9 @@ public sealed class MovablePanel : ContentControl
     /// <summary>The player is moving or resizing the panel right now (the overlay keeps it armed until the button is released).</summary>
     public bool IsDragging => _dragging;
 
+    /// <summary>The drag started on the corner marker: it resizes the panel rather than moving it.</summary>
+    public bool IsResizing => _resizing;
+
     private bool CanMove => IsEditing || IsDragArmed;
 
     public bool ShowPlaceholder { get => (bool)GetValue(ShowPlaceholderProperty); private set => SetValue(ShowPlaceholderProperty, value); }
@@ -534,11 +537,24 @@ public sealed class MovablePanel : ContentControl
             return;
         }
 
-        var position = e.GetPosition(surface);
+        DragTo(e.GetPosition(surface));
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// One step of the drag, for the mouse at <paramref name="position"/> on the surface: the panel moves, or from the
+    /// corner marker it resizes. A no-op when no drag is going.
+    /// </summary>
+    public void DragTo(Point position)
+    {
+        if (!_dragging || Surface is not { } surface)
+        {
+            return;
+        }
+
         if (_resizing)
         {
             Resize(position - _dragStart);
-            e.Handled = true;
             return;
         }
 
@@ -551,7 +567,6 @@ public sealed class MovablePanel : ContentControl
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         Margin = new Thickness(left, top, 0, 0);
-        e.Handled = true;
     }
 
     protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
