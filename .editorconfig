@@ -2,8 +2,8 @@ root = true
 
 # Code analyzers: Meziantou.Analyzer (MA*) and Microsoft.VisualStudio.Threading.Analyzers (VSTHRD*), referenced for the
 # src/* projects in Directory.Build.props. The build stays at 0 warnings: a warning here is fixed, or suppressed in place
-# with [SuppressMessage(..., Justification = "...")]. Each line below differs from the package default and says why;
-# rules not listed keep their default.
+# with [SuppressMessage(..., Justification = "...")]. Each line below differs from the package default, or pins a default
+# worth stating, and says why; rules not listed keep their default.
 
 [*.cs]
 
@@ -44,7 +44,8 @@ dotnet_diagnostic.MA0002.severity = none
 
 # --- Correctness -----------------------------------------------------------------------------------------------------
 # Kept as warnings (default): MA0060 return value not used (TryParse, Stream.Read), MA0065 default struct equality,
-# MA0084 local hides another symbol, MA0169 operator == where Equals is overridden.
+# MA0084 local hides another symbol, MA0169 operator == where Equals is overridden, MA0100 / MA0129 a task awaited
+# before its resource is disposed. IDisposable ownership (CA2000, CA2213): section [src/**.cs] below.
 
 # --- Allocations and performance -------------------------------------------------------------------------------------
 # Kept as a warning (default): MA0158 System.Threading.Lock instead of a lock object.
@@ -106,6 +107,13 @@ dotnet_diagnostic.MA0176.severity = none
 # Deprecated in Meziantou in favour of CA1822.
 dotnet_diagnostic.MA0038.severity = none
 dotnet_diagnostic.MA0041.severity = none
+
+[src/**.cs]
+
+# IDisposable (.NET SDK analyzers, off by default): an object dropped without Dispose, a disposable field its owner does
+# not dispose. src/* only: in tests every fake HttpClient and temp folder would be a finding.
+dotnet_diagnostic.CA2000.severity = warning
+dotnet_diagnostic.CA2213.severity = warning
 
 [src/Hearthpulse.Core/**.cs]
 

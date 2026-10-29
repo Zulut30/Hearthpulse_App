@@ -110,6 +110,7 @@ public partial class App : Application
     private Func<string>? _busy;
     private Func<string>? _updateStatus;
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The SocketsHttpHandler is owned by the HttpClient (disposeHandler: true), which lives as long as the app.")]
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);

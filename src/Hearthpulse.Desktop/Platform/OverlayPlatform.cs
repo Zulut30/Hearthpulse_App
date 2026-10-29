@@ -37,6 +37,7 @@ internal interface IOverlayPlatform : IDisposable
 
 internal static class OverlayPlatform
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The X11 platform is returned to the caller, which owns it for the overlay's lifetime.")]
     public static IOverlayPlatform Create()
     {
         try

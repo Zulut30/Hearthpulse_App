@@ -45,6 +45,7 @@ public sealed partial class AppHost : IDisposable
     private readonly StartupPrefetch _prefetch;
 
     /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The SocketsHttpHandler is owned by the HttpClient (disposeHandler: true), which lives as long as the app.")]
     public AppHost(AppSettings settings, bool rendering = false)
     {
         _rendering = rendering;

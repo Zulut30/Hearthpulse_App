@@ -46,8 +46,11 @@ public sealed class ProfileUploader : IDisposable
     private readonly Func<bool> _enabled;
     private readonly HistoryStore _history;
     private readonly ProfileUploadQueue _queue;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Deliberately not disposed: the loop may still be using it while it winds down after Dispose cancels _stop.")]
     private readonly SemaphoreSlim _wake = new(0, int.MaxValue);
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Deliberately not disposed: the loop may still be using it while it winds down after Dispose cancels _stop.")]
     private readonly SemaphoreSlim _pass = new(1, 1);
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Deliberately not disposed: the loop may still be using it while it winds down after Dispose cancels _stop.")]
     private readonly CancellationTokenSource _stop = new();
     private Task? _loop;
     private int _failures;
