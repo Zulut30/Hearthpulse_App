@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Threading;
@@ -55,6 +56,49 @@ public sealed partial class LocBindingTests
         var folder = Assert.IsType<TextBlock>(((Panel)rule.Parent!).Children[((Panel)rule.Parent!).Children.IndexOf(rule) - 1]);
         Assert.Null(ToolTip.GetTip(folder));
     }));
+
+    [Fact]
+    public void Counter_cross_has_its_own_column_and_leaves_the_art_to_open_the_cards() => Headless.Run(() =>
+    {
+        var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))
+        {
+            Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml"),
+        };
+        var app = Application.Current!;
+        app.Styles.Add(theme);
+        try
+        {
+            var view = new Hearthpulse.UI.Overlay.OverlayView { DataContext = new Hearthpulse.UI.Overlay.OverlayViewModel() };
+            var template = Assert.IsAssignableFrom<IDataTemplate>(view.Resources["CounterTemplate"]);
+            var row = template.Build(null)!;
+            var hide = Assert.Single(row.GetLogicalDescendants().OfType<Button>(), b => b.Classes.Contains("hideCounter"));
+            Assert.Equal(Avalonia.Layout.HorizontalAlignment.Right, hide.HorizontalAlignment);
+            // The row's own button (art, title, value) keeps an empty last column the cross sits over.
+            var grid = row.GetLogicalDescendants().OfType<Grid>().First(g => g.ColumnDefinitions.Count > 0);
+            Assert.Equal(4, grid.ColumnDefinitions.Count);
+            Assert.True(grid.ColumnDefinitions[3].Width.Value >= hide.Width);
+            Assert.DoesNotContain(grid.Children, c => Grid.GetColumn(c) == 3);
+        }
+        finally
+        {
+            app.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
+    /// <summary>Both counter crosses name the real place the counter comes back from, in each language.</summary>
+    [Theory]
+    [InlineData("en")]
+    [InlineData("ru")]
+    public void Counter_hide_tips_name_the_tracker_tab_and_the_counters_card(string language)
+    {
+        var table = Loc.Table(language);
+        foreach (var key in new[] { "Overlay.Counter.HideTip", "Overlay.BgCounter.HideTip" })
+        {
+            Assert.Contains(table["Settings.Tab.Tracker"], table[key], StringComparison.Ordinal);
+            Assert.Contains(table["Settings.Counters.Title"], table[key], StringComparison.Ordinal);
+        }
+    }
 
     /// <summary>The main view over a fresh view model with the theme applied, in English.</summary>
     private static void WithMainView(Action<MainView, MainViewModel> body, AppSettings? settings = null)

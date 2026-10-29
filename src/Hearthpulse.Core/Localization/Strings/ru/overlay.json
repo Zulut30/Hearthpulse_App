@@ -67,8 +67,8 @@
   "Overlay.Counter.Counted": "Учтено",
   "Overlay.Counter.NeededFor": "Нужно для",
   "Overlay.Counter.More": "и ещё {0}",
-  "Overlay.Counter.HideTip": "Скрыть счётчик (вернуть: Настройки, Счётчики)",
-  "Overlay.BgCounter.HideTip": "Скрыть счётчик (вернуть: Настройки, Счётчики и муллиган)",
+  "Overlay.Counter.HideTip": "Скрыть счётчик (вернуть: Настройки → Трекер → Счётчики и муллиган)",
+  "Overlay.BgCounter.HideTip": "Скрыть счётчик (вернуть: Настройки → Трекер → Счётчики и муллиган)",
 
   "Overlay.Bar.Turn": "Ход",
   "Overlay.Bar.TurnTip": "Текущий ход",

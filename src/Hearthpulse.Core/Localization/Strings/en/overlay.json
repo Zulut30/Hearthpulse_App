@@ -67,8 +67,8 @@
   "Overlay.Counter.Counted": "Counted",
   "Overlay.Counter.NeededFor": "Needed for",
   "Overlay.Counter.More": "+{0} more",
-  "Overlay.Counter.HideTip": "Hide this counter (bring it back in Settings, Counters)",
-  "Overlay.BgCounter.HideTip": "Hide this counter (bring it back in Settings, Counters and mulligan)",
+  "Overlay.Counter.HideTip": "Hide this counter (bring it back in Settings → Tracker → Counters and mulligan)",
+  "Overlay.BgCounter.HideTip": "Hide this counter (bring it back in Settings → Tracker → Counters and mulligan)",
 
   "Overlay.Bar.Turn": "Turn",
   "Overlay.Bar.TurnTip": "Current turn",

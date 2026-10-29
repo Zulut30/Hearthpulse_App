@@ -3,10 +3,12 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Hearthpulse.App.Infrastructure;
+using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
 using WpfMain = Hearthpulse.App.Main.MainViewModel;
+using WpfOverlay = Hearthpulse.App.Overlay.OverlayViewModel;
 using WpfWindow = Hearthpulse.App.Main.MainWindow;
 
 namespace Hearthpulse.Presentation.Tests;
@@ -72,6 +74,21 @@ public sealed class UxPolishContractTests
         window.Close();
     });
 
+    [Fact]
+    public void Counter_cross_has_its_own_column_and_leaves_the_art_to_open_the_cards() => Sta(() =>
+    {
+        var window = OpenOverlay(new WpfOverlay());
+        var row = (FrameworkElement)((DataTemplate)window.FindResource("CounterTemplate")).LoadContent();
+        var grid = Logical<Grid>(row).First(g => g.ColumnDefinitions.Count > 0);
+        var hide = Logical<Button>(grid).Single(b => b.Name == "HideButton");
+        Assert.Equal(3, Grid.GetColumn(hide));
+        Assert.True(grid.ColumnDefinitions[3].Width.Value >= 20);
+        // The art stays alone in the first column: a click there opens the counter's cards.
+        Assert.Equal(20, grid.ColumnDefinitions[0].Width.Value);
+        Assert.All(grid.Children.OfType<FrameworkElement>().Where(c => Grid.GetColumn(c) == 0), c => Assert.IsNotType<Button>(c));
+        window.Close();
+    });
+
     // ---- harness ----
 
     /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>
@@ -121,6 +138,15 @@ public sealed class UxPolishContractTests
         root.Arrange(new Rect(0, 0, width, 840));
         Settle(root);
         return (window, root);
+    }
+
+    /// <summary>Builds the overlay window with the default theme (nothing shown).</summary>
+    private static OverlayWindow OpenOverlay(WpfOverlay model)
+    {
+        var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        app.Resources.MergedDictionaries.Clear();
+        app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1)));
+        return new OverlayWindow(model, new AppSettings());
     }
 
     /// <summary>Lets bindings and deferred layout run, then lays the tree out again.</summary>
