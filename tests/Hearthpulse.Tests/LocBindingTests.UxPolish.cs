@@ -237,6 +237,21 @@ public sealed partial class LocBindingTests
     private const string Done = "\U000F05E0";
     private const string Waiting = "\U000F0766";
 
+    [Fact]
+    public void Live_line_tip_carries_the_whole_line() => Headless.Run(() => WithMainView((view, model) =>
+    {
+        model.Apply(LiveSnapshot.Empty with
+        {
+            Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED",
+            Constructed = new ConstructedView(5, null, false, "HERO_08", "MAGE", "HERO_01", "WARRIOR", null, [], 30, 4, [], [], 0, 0, 0, null, null),
+        });
+        Dispatcher.UIThread.RunJobs();
+        var line = view.FindControl<TextBlock>("LiveDetailLine")!;
+        Assert.EndsWith(Loc.T("Main.Live.DeckUnknown"), model.LiveDetail);
+        Assert.Equal(model.LiveDetail, line.Text);
+        Assert.Equal(model.LiveDetail, ToolTip.GetTip(line));
+    }));
+
     /// <summary>The main view over a fresh view model with the theme applied, in English.</summary>
     private static void WithMainView(Action<MainView, MainViewModel> body, AppSettings? settings = null, MainViewModel? model = null)
     {

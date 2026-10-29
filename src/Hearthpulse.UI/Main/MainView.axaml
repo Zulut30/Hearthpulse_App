@@ -1189,7 +1189,9 @@
                         </Panel>
                         <StackPanel Grid.Column="1" Margin="14,0,12,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding LiveTitle}" FontWeight="Bold" FontSize="14.5" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding LiveDetail}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                            <!-- Trimmed in a narrow bar (the "deck not recognised" tail is the first to go): the tip has it all -->
+                            <TextBlock Name="LiveDetailLine" Text="{Binding LiveDetail}" Classes="caption" TextTrimming="CharacterEllipsis"
+                                       ToolTip.Tip="{Binding LiveDetail}" />
                         </StackPanel>
                         <StackPanel Grid.Column="2" Classes="wide" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,20,0" ToolTip.Tip="{i:Loc Main.Live.SessionTip}">
                             <TextBlock Text="{Binding SessionSummary}" Classes="caption" HorizontalAlignment="Right" />

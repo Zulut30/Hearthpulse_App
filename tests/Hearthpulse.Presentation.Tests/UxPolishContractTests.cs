@@ -343,6 +343,34 @@ public sealed class UxPolishContractTests
         window.Close();
     });
 
+    /// <summary>At the default width in Russian the live line is trimmed before its "deck not recognised" tail: the tip has it all.</summary>
+    [Fact]
+    public void Live_line_tip_carries_the_whole_line_when_the_bar_trims_it() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        var (window, root) = Open(model, "Home");
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.Russian);
+            model.Apply(LiveSnapshot.Empty with
+            {
+                Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED",
+                Constructed = new ConstructedView(5, null, false, "HERO_08", "MAGE", "HERO_01", "WARRIOR", null, [], 30, 4, [], [], 0, 0, 0, null, null),
+            });
+            Settle(root);
+            var line = Named<TextBlock>(window, "LiveDetailLine");
+            Assert.EndsWith(Loc.T("Main.Live.DeckUnknown"), model.LiveDetail);
+            Assert.Equal(model.LiveDetail, line.Text);
+            Assert.Equal(model.LiveDetail, line.ToolTip);
+            Assert.True(line.ActualWidth < MeasureFree(line), "The live line should be trimmed at 1260 in Russian");
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            window.Close();
+        }
+    });
+
     // ---- harness ----
 
     /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>
