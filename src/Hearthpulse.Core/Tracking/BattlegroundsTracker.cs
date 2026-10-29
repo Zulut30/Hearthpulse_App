@@ -333,9 +333,38 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _combatActivityAt = Environment.TickCount64;
         if (_boardCaptured || _boardsSnapshotted)
         {
-            _localAlive = Minions(game, game.LocalPlayerId).Count();
-            _opponentAlive = Minions(game, game.OpponentPlayerId).Count();
+            (_localAlive, _opponentAlive) = MinionsInPlay(game, game.LocalPlayerId, game.OpponentPlayerId);
         }
+    }
+
+    /// <summary>
+    /// How many minions two controllers have in play, in one pass and without LINQ: this runs at the end of every block
+    /// of a combat, and two filtered scans of every entity of the game (2 000 late in a game) took a third of the time a
+    /// Battlegrounds log needed to be read (docs/perf-architecture-audit.md, stage 10).
+    /// </summary>
+    internal static (int First, int Second) MinionsInPlay(GameState game, int first, int second)
+    {
+        var (ofFirst, ofSecond) = (0, 0);
+        foreach (var entity in game.Entities.Values)
+        {
+            if (!entity.InPlay || !entity.IsMinion)
+            {
+                continue;
+            }
+
+            var controller = entity.Controller;
+            if (controller == first)
+            {
+                ofFirst++;
+            }
+
+            if (controller == second)
+            {
+                ofSecond++;
+            }
+        }
+
+        return (ofFirst, ofSecond);
     }
 
     public BattlegroundsView BuildView(GameState game)
