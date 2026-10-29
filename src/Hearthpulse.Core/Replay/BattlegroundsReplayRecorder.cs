@@ -783,7 +783,7 @@ public sealed class BattlegroundsReplayRecorder
             {
                 "PLAY" when TableTypes.Contains(type) => 'L',
                 "HAND" when CardTypes.Contains(type) => 'L',
-                "SECRET" when entity.Has("QUEST") => 'L',
+                "SECRET" when type == "SPELL" && entity.Has("QUEST") => 'L',
                 _ => '\0',
             };
         }
@@ -880,7 +880,7 @@ public sealed class BattlegroundsReplayRecorder
             var mine = hero == local;
             var tier = hero.GetInt(GameTag.PlayerTechLevel) is > 0 and var t ? t : mine ? game.LocalPlayerEntity?.GetInt(GameTag.PlayerTechLevel) ?? 0 : 0;
             var line = string.Create(CultureInfo.InvariantCulture,
-                $"L {slot} {(mine ? 'L' : '-')} {hero.CardId} {hero.GetInt(GameTag.PlayerLeaderboardPlace)} {hero.Health} {hero.GetInt(GameTag.Armor)} {tier}");
+                $"L {slot} {(mine ? 'L' : '-')} {hero.CardId} {hero.GetInt(GameTag.PlayerLeaderboardPlace)} {Math.Max(0, hero.Health)} {hero.GetInt(GameTag.Armor)} {tier}");
             if (_leaders.GetValueOrDefault(slot) != line)
             {
                 lines.Add((slot, line));

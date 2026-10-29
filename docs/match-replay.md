@@ -150,25 +150,32 @@ after, tavern tier, anomaly, tribes, and for Battlegrounds the hero powers, trin
 keywords) and hand at the end. No names, BattleTags, account ids or deck name. Constructed events are the grammar of
 format 3, unchanged.
 
-Battlegrounds events (space-separated; `n`, `t` = replay ids, `-` = none; tokens have no spaces; card ids
-`[A-Za-z0-9_]+`). A step line closes the step before it; the step's table is the state when the next step line comes.
+Battlegrounds events, one space between tokens, nothing else on the line. Tokens: `n`, `t` - a replay id
+`[1-9][0-9]{0,6}`, `-` where a line allows none; `card` - a card id `[A-Za-z0-9_]{1,64}`; numbers (`secs`, `taken`,
+`dealt`, `v`, `health`, `armor`) - `0` or `[1-9][0-9]{0,8}`, never negative; small numbers (`pos`, `place`, `slot`,
+`tier`) - `0`-`99`; `turn` - `1`-`999`. A step line closes the step before it; the step's table is the state when the
+next step line comes. `BattlegroundsReplayGrammar` (internal, Core) holds this table as one regular expression: every
+line the recorder writes matches it (tests run it over the 28.10 game and the fixture), and a stricter check of a
+foreign file can start from it.
 
 | Line | Meaning |
 |---|---|
 | `T turn secs` | The tavern of Battlegrounds turn `turn` ((TURN + 1) / 2) opens; `secs` since game start. Step |
 | `F turn secs` | The combat of `turn` starts (BOARD_VISUAL_STATE 2 or BACON_IN_COMBAT_PHASE 1, whichever first). Step |
 | `f result taken dealt` | The combat ends (BOARD_VISUAL_STATE 1, BACON_IN_COMBAT_PHASE 0, the next odd TURN or our end): `WIN`, `LOSS` or `TIE` and the hero damage of the attack after the fight. Step: the boards as the fight left them; the lines after it (the game's clean-up) show with the next step |
-| `M kind n [t]` | A step: `BUY n`, `SELL n`, `PLAY n t`, `POWER n t` (hero power), `USE n t` (an activated power of our minion on the table), `REFRESH -`, `UPGRADE -`, `FREEZE -` (freeze or unfreeze), `MOVE n`, `TRIGGER n` (a card's trigger), `ATTACK n t`, `DEATHS -` |
-| `C kind source opt,opt,..` | Our choice offered: `HERO`, `DISCOVER`, `TRINKET`, `QUEST`; `source` card id or `-`. Step (the hero choice opens the game) |
-| `c card` | Our pick (several lines for several picks) |
-| `R place` | The game is over for us: our hero's leaderboard place when it ended. Step |
-| `E n side zone pos card type [TAG=v ...]` | Card `n` is shown at `zone` (`PLAY`, `HAND`, `SECRET`) slot `pos`; `side` `L` ours, `B` Bob's offer, `O` the combat opponent's. Tags from `ATK HEALTH DAMAGE ARMOR PREMIUM TAUNT DIVINE_SHIELD REBORN POISONOUS VENOMOUS WINDFURY MEGA_WINDFURY STEALTH FROZEN TECH_LEVEL`, written when not 0 |
+| `M kind n` | A step about one card or none: `BUY n`, `SELL n`, `MOVE n`, `TRIGGER n` (a card's trigger); `n` may be `-` (no `CARD_TARGET`, a source never shown) |
+| `M kind n t` | A step with a target: `PLAY n t`, `POWER n t` (hero power), `USE n t` (an activated power of our minion on the table), `ATTACK n t`; either may be `-` |
+| `M kind -` | A step about no card: `REFRESH -`, `UPGRADE -`, `FREEZE -` (freeze or unfreeze), `DEATHS -` |
+| `C kind source opt,opt,..` | Our choice, written at the pick with the options as they were then (a hero reroll changes one): `HERO`, `DISCOVER`, `TRINKET`, `QUEST`; `source` a card id or `-`; 1-16 option card ids. Step (the hero choice opens the game) |
+| `c card` | Our pick, one of the options of the `C` before it (several lines for several picks) |
+| `R place` | The game is over for us: our hero's leaderboard place when it ended (`0` when the game gave none). Step |
+| `E n side zone pos card type [TAG=v ...]` | Card `n` is shown at `zone` slot `pos` (`0` for a hero, a hero power, a trinket, a card just put in hand). `side` + `zone` + `type`: `L PLAY` `HERO HERO_POWER MINION BATTLEGROUND_TRINKET BATTLEGROUND_QUEST_REWARD`; `L HAND` `MINION BATTLEGROUND_SPELL SPELL`; `L SECRET` `SPELL` (our quest); `B PLAY` (Bob's offer) `MINION BATTLEGROUND_SPELL SPELL`; `O PLAY` (the combat opponent) the types of `L PLAY`. Nothing else. Tags from `ATK HEALTH DAMAGE ARMOR PREMIUM TAUNT DIVINE_SHIELD REBORN POISONOUS VENOMOUS WINDFURY MEGA_WINDFURY STEALTH FROZEN TECH_LEVEL`, written when not 0 |
 | `X n` | Card `n` left view (sold, refreshed away, removed after a fight) |
 | `Y n` | Card `n` died (from play to the graveyard): shown dying in this step, gone after it |
 | `Z n pos` | Card `n` moved to slot `pos` |
 | `V n TAG v` | A tag of card `n` (the list above), the value the block left |
 | `V L TAG v` | Our player: `RESOURCES`, `RESOURCES_USED`, `TEMP_RESOURCES` (gold), `PLAYER_TECH_LEVEL` |
-| `L slot side hero place health armor tier` | A leaderboard row changed: `slot` = the game's player slot, `side` `L` ours or `-`, the hero card shown, place, health left, armor, tavern tier |
+| `L slot side hero place health armor tier` | A leaderboard row changed: `slot` = the game's player slot, `side` `L` ours or `-`, the hero card shown, place (`0` before it is known), health left (`0` for a dead hero, never negative), armor, tavern tier. The rows before `f` and `R` are the ones of that moment |
 
 Rules a reader (and the import sanitizer) can check: `B` cards never appear between `F` and `f`; `O` cards only there
 (all of them leave view by the next `T`); `HAND` and `SECRET` only on side `L`; a `V`/`Z`/`X`/`Y` line only for a card

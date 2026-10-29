@@ -273,6 +273,35 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         Assert.DoesNotContain("TB_BaconShop_HERO_94", events.Single(e => e.StartsWith("C ", StringComparison.Ordinal)));
     }
 
+    [Fact]
+    public void Every_line_written_follows_the_format_4_grammar_and_foreign_lines_do_not()
+    {
+        var events = Run(Game5th()).Events;
+        AssertSeenOnly(events);
+        Assert.Contains(events, e => e.StartsWith("L ", StringComparison.Ordinal));
+
+        string[] valid =
+        [
+            "T 1 47", "F 12 1296", "f LOSS 19 0", "M BUY -", "M PLAY 66 -", "M USE 66 64", "M REFRESH -", "C HERO - BG36_HERO_000,BG30_HERO_304",
+            "C DISCOVER TB_BaconShop_Triples_01 BG30_121,BG32_340,BG34_604", "c BG34_604", "R 4", "E 1 L PLAY 0 BG36_HERO_000 HERO ARMOR=12 HEALTH=30",
+            "E 4 L HAND 0 BG36_110 MINION ATK=2 HEALTH=3 TECH_LEVEL=1", "E 6 B PLAY 4 BG28_810 BATTLEGROUND_SPELL TECH_LEVEL=1",
+            "E 9 O PLAY 0 BG26_HERO_104 HERO ARMOR=15 HEALTH=30", "E 12 L SECRET 0 BG24_Quest_112 SPELL", "X 3", "Y 11", "Z 4 7",
+            "V 11 DAMAGE 2", "V L RESOURCES_USED 3", "L 1 L BG36_HERO_000 4 0 0 5",
+        ];
+        Assert.All(valid, line => Assert.True(BattlegroundsReplayGrammar.IsLine(line), line));
+
+        // What a foreign file could carry that the recorder never writes.
+        string[] invalid =
+        [
+            "E 5 O HAND 1 BG26_800 MINION", "E 5 B PLAY 1 TB_BaconShopBob HERO", "E 5 L PLAY 1 TB_BaconShop_8P_PlayerE ENCHANTMENT",
+            "E 5 L SECRET 0 BG_OldGod MINION", "E 0 L PLAY 1 BGS_004 MINION", "E 5 L PLAY -1 BGS_004 MINION", "E 5 L PLAY 1 BGS_004 MINION ATK=-3",
+            "E 5 L PLAY 1 BGS_004 MINION CREATOR_DBID=1234", "L 1 - BG36_HERO_000 4 -4 0 5", "M BUY 5 6", "M REFRESH 4", "M DANCE -",
+            "C DISCOVER - https://example.test/x", "c ../../x", "V O PLAYER_TECH_LEVEL 3", "V 4 PLAYER_ID 2", "R -1", "T 0 5",
+            "E 5 L PLAY 1 Me#1234 MINION", "N 2 64", "",
+        ];
+        Assert.All(invalid, line => Assert.False(BattlegroundsReplayGrammar.IsLine(line), line));
+    }
+
     /// <summary>Every pick is one of the options of the choice before it.</summary>
     internal static void AssertPicksOffered(IEnumerable<string> events)
     {
@@ -535,6 +564,7 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         var shown = new Dictionary<string, char>(StringComparer.Ordinal);
         foreach (var line in events)
         {
+            Assert.True(BattlegroundsReplayGrammar.IsLine(line), $"not in the format 4 grammar: {line}");
             var t = line.Split(' ');
             switch (t[0])
             {
