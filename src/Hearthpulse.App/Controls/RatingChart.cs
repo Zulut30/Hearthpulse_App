@@ -123,11 +123,9 @@ public sealed class RatingChart : FrameworkElement
         var tag = new FormattedText(points[^1].Rating.ToString("N0", CultureInfo.CurrentCulture), CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight, new Typeface(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
             12, (Brush)FindResource("OnAccent"), dpi);
-        var box = new Rect(0, 0, tag.Width + 14, tag.Height + 4);
-        box.X = Math.Clamp(last.X - (box.Width / 2), left, w - right - box.Width);
-        box.Y = last.Y - box.Height - 14 < 0 ? last.Y + 14 : last.Y - box.Height - 14;
-        dc.DrawRoundedRectangle((Brush)FindResource("PrimaryFill"), null, box, 6, 6);
-        dc.DrawText(tag, new Point(box.X + 7, box.Y + 2));
+        var (bx, by, bw, bh) = ChartGeometry.Tag((last.X, last.Y), tag.Width, tag.Height, left, right, w);
+        dc.DrawRoundedRectangle((Brush)FindResource("PrimaryFill"), null, new Rect(bx, by, bw, bh), 6, 6);
+        dc.DrawText(tag, new Point(bx + ChartGeometry.TagPaddingX, by + ChartGeometry.TagPaddingY));
     }
 
     /// <summary>
