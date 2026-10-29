@@ -388,7 +388,7 @@ public sealed class ReplayRecorderTests
     }
 
     [Fact]
-    public void Battlegrounds_games_are_not_recorded_as_events()
+    public void Battlegrounds_games_go_to_the_battlegrounds_recorder()
     {
         var parser = new PowerParser(new DateOnly(2026, 10, 23));
         var recorder = new ReplayRecorder();
@@ -407,8 +407,10 @@ public sealed class ReplayRecorderTests
         }
 
         parser.Flush();
-        Assert.False(recorder.HasGame);
-        Assert.Empty(recorder.Events);
+        // Format 4 records Battlegrounds step by step (BattlegroundsReplayTests); the Constructed events stay empty.
+        Assert.True(recorder.IsBattlegrounds);
+        Assert.True(recorder.HasGame);
+        Assert.Equal(["T 1 0"], recorder.Events);
     }
 }
 

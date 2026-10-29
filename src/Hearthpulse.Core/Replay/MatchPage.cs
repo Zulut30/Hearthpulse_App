@@ -136,7 +136,7 @@ public sealed record MatchLobbyRow(string HeroCardId, string Hero, string Place,
 /// Everything the match page shows for one history game, built off the UI thread: header, the Constructed replay
 /// (steps, turns, actions, decks) or the Battlegrounds rounds and lobby, and the analysis. Both apps bind to it.
 /// </summary>
-public sealed class MatchPage
+public sealed partial class MatchPage
 {
     // MDI glyphs for the action list (Material Design Icons code points, as in the rest of the app).
     private const string IconPlay = "\U000F063A";
@@ -197,7 +197,7 @@ public sealed class MatchPage
 
     public bool IsBattlegrounds => Game.IsBattlegrounds;
 
-    public int FrameCount => Replay?.Frames.Count ?? 0;
+    public int FrameCount => Replay?.Frames.Count ?? BgReplay?.Frames.Count ?? 0;
 
     /// <summary>Loads the page for a history game: its replay file, the card names and the meta for the archetype calls.</summary>
     public static MatchPage Load(GameRecord game, ReplayStore store, CardDb cards, ConstructedMeta? meta)
@@ -224,6 +224,7 @@ public sealed class MatchPage
             return new MatchPage(game, cards, header)
             {
                 Battlegrounds = data,
+                BgReplay = BattlegroundsMatchReplay.From(file.Value.Header, file.Value.Body),
                 Rounds = data.Rounds.Select(r => RoundView(r, cards)).ToList(),
                 Lobby = data.Lobby.Select(h => new MatchLobbyRow(h.HeroCardId, cards.NameOf(h.HeroCardId), Ordinal(h.Place), h.Local)).ToList(),
             };
