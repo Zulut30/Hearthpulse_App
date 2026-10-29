@@ -191,6 +191,15 @@
         <ItemsPanelTemplate x:Key="PageRows">
             <c:PageRowsPanel />
         </ItemsPanelTemplate>
+        <!-- The overlay card's section headings while the overlay itself is off: dimmed. Only these explanatory lines: the
+             switches keep their full contrast and still work (panels can be set up ahead); the "overlay is off" note says why. -->
+        <Style x:Key="SettingGroupOverlayOff" TargetType="TextBlock" BasedOn="{StaticResource SettingGroup}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsChecked, ElementName=OverlaySetting}" Value="False">
+                    <Setter Property="Opacity" Value="0.45" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -265,7 +274,7 @@
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
                     <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Settings}" Tag="&#xF08BB;" GroupName="Nav" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.SettingsTip}" />
-                    <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}" Margin="28,8,0,0" />
+                    <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
                 </StackPanel>
                 <Border />
             </DockPanel>
@@ -301,14 +310,22 @@
                     </Border>
 
                     <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
-                    <StackPanel Orientation="Horizontal" Margin="40,0,320,0" VerticalAlignment="Center" Visibility="{Binding Busy, Converter={StaticResource Vis}}"
-                                ToolTip="{i:Loc Main.Busy.Tip}">
+                    <!-- A dock, not a horizontal stack: the stack measures the line at infinite width, so the ellipsis never showed.
+                         A long message (Hearthstone not found, startup problem) is read in full in the tip. -->
+                    <DockPanel x:Name="BusyLine" Margin="40,0,320,0" VerticalAlignment="Center" Visibility="{Binding Busy, Converter={StaticResource Vis}}">
+                        <DockPanel.ToolTip>
+                            <StackPanel MaxWidth="420">
+                                <TextBlock Text="{Binding Busy}" TextWrapping="Wrap" />
+                                <TextBlock Text="{i:Loc Main.Busy.Tip}" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                            </StackPanel>
+                        </DockPanel.ToolTip>
                         <TextBlock Text="&#xF04E6;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent2}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding Busy}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
+                    </DockPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,22,0">
-                        <!-- A downloaded update: one click installs now, otherwise it installs on the next close -->
-                        <Button Command="{Binding InstallUpdate}" VerticalAlignment="Center" Margin="0,0,8,0" Cursor="Hand" Focusable="False"
+                        <!-- A downloaded update: one click installs now, otherwise it installs on the next close (Tab reaches it too) -->
+                        <Button x:Name="InstallUpdateButton" Command="{Binding InstallUpdate}" VerticalAlignment="Center" Margin="0,0,8,0" Cursor="Hand"
+                                FocusVisualStyle="{StaticResource FocusRing}"
                                 WindowChrome.IsHitTestVisibleInChrome="True" Visibility="{Binding UpdateReady, Converter={StaticResource Vis}}"
                                 ToolTip="{Binding UpdateText}">
                             <Button.Template>
@@ -340,6 +357,47 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xF002A;" Style="{StaticResource Icon}" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,12,0" />
                                     <TextBlock Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
+                                 worth doing before a match. The buttons are the existing import and layout actions. -->
+                            <Border x:Name="GettingStartedCard" Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding ShowGettingStarted, Converter={StaticResource Vis}}">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Main.Home.Start.Title}" Icon="&#xF040A;" Size="13" Margin="0,0,0,14" />
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xF05E0;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top"
+                                                   Visibility="{Binding HearthstoneRunning, Converter={StaticResource Vis}}" />
+                                        <TextBlock Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" Visibility="{Binding HearthstoneRunning, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step1}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xF05E0;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top"
+                                                   Visibility="{Binding LogsReady, Converter={StaticResource Vis}}" />
+                                        <TextBlock Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" Visibility="{Binding LogsReady, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step2}" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip="{i:Loc Main.Home.Start.Step2Tip}" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step3}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="GettingStartedImport" Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Data.Import}" Click="OnReimport" Margin="0,0,8,0"
+                                                ToolTip="{i:Loc Settings.Data.ImportTip}" />
+                                        <Button x:Name="GettingStartedArrange" Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" Click="OnArrangeOverlay" />
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
 
@@ -825,6 +883,63 @@
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.StartMinimized}" IsChecked="{Binding Settings.StartMinimized}" />
                                     </StackPanel>
                                 </Border>
+
+                                <!-- Every shortcut in one place (they were only in tips); the keys match App.xaml.cs and MainWindow.xaml.cs -->
+                                <Border x:Name="ShortcutsCard" Style="{StaticResource Card}" Margin="0,16,0,0">
+                                    <StackPanel>
+                                        <c:Ornament Text="{i:Loc Settings.Shortcuts.Title}" Icon="&#xF030C;" Size="13" Margin="0,0,0,14" />
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Pages}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.PagesKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Back}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.BackKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Hide}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.HideKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Layout}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.LayoutKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Refresh}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.RefreshKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
@@ -833,9 +948,12 @@
                                     <StackPanel DataContext="{Binding Settings}">
                                         <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
                                         <TextBlock Text="{i:Loc Settings.Note.Overlay}" Style="{StaticResource CardNote}" />
-                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
+                                        <CheckBox x:Name="OverlaySetting" Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.EnabledTip}" />
-                                        <TextBlock Text="{i:Loc Widgets.Settings.Section}" Style="{StaticResource SettingGroup}" />
+                                        <TextBlock x:Name="OverlayOffNote" Text="{i:Loc Settings.Overlay.OffNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,-4,0,14"
+                                                   Visibility="{Binding IsChecked, ElementName=OverlaySetting, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <StackPanel x:Name="OverlayPanelSwitches">
+                                        <TextBlock Text="{i:Loc Widgets.Settings.Section}" Style="{StaticResource SettingGroupOverlayOff}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Turn.Setting}" IsChecked="{Binding ShowTurnTimer}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Widgets.Turn.SettingTip}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Archetype.Setting}" IsChecked="{Binding ShowOpponentArchetype}" Margin="0,0,0,14"
@@ -855,10 +973,10 @@
                                                 <Run Text="{Binding LadderSessionBreakHours, Mode=OneWay}" /><Run Text=" " /><Run Text="{i:Loc Widgets.Ladder.HoursUnit}" />
                                             </TextBlock>
                                         </Grid>
-                                        <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Style="{StaticResource SettingGroup}" />
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Style="{StaticResource SettingGroupOverlayOff}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Secrets}" IsChecked="{Binding ShowSecrets}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.SecretsTip}" />
-                                        <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Style="{StaticResource SettingGroup}" />
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Style="{StaticResource SettingGroupOverlayOff}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.TopBar}" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.TopBarTip}" />
                                         <!-- Pick suggestions: badges over heroes, trinkets, tavern minions and every Discover -->
@@ -910,6 +1028,10 @@
                                             <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" ValueChanged="OnSliderChanged" />
                                             <TextBlock Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
                                         </Grid>
+                                        </StackPanel>
+                                        <!-- The deck tracker's panels are overlay panels too, one tab over -->
+                                        <TextBlock Text="{i:Loc Settings.Overlay.TrackerLink}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,22,0,10" />
+                                        <Button x:Name="OpenTrackerTab" Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Overlay.OpenTracker}" HorizontalAlignment="Left" Click="OnOpenTrackerTab" />
                                     </StackPanel>
                                 </Border>
 
@@ -921,31 +1043,41 @@
                                         <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24"
                                                 ToolTip="{i:Loc Settings.Layout.Caption}" />
                                         <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />
+                                        <TextBlock Text="{i:Loc Settings.Leaderboard.Caption}" Style="{StaticResource CardNote}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Leaderboard.Guides}" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Leaderboard.Caption}" />
                                         <Grid Margin="0,0,0,10">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="160" />
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="56" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{i:Loc Settings.Leaderboard.Top}" Style="{StaticResource SettingLabel}" />
-                                            <Slider Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="LeaderboardTopSlider" Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" ValueChanged="OnSliderChanged" />
+                                            <!-- From the slider itself: the settings object does not notify -->
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=LeaderboardTopSlider, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
                                         </Grid>
                                         <Grid Margin="0,0,0,10">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="160" />
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="56" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{i:Loc Settings.Leaderboard.SlotHeight}" Style="{StaticResource SettingLabel}" />
-                                            <Slider Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="LeaderboardSlotSlider" Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" ValueChanged="OnSliderChanged" />
+                                            <!-- From the slider itself: the settings object does not notify -->
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=LeaderboardSlotSlider, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
                                         </Grid>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="160" />
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="56" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{i:Loc Settings.Leaderboard.Width}" Style="{StaticResource SettingLabel}" />
-                                            <Slider Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="LeaderboardWidthSlider" Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" ValueChanged="OnSliderChanged" />
+                                            <!-- From the slider itself: the settings object does not notify -->
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=LeaderboardWidthSlider, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
                                         </Grid>
                                     </StackPanel>
                                 </Border>
@@ -957,6 +1089,9 @@
                                     <StackPanel DataContext="{Binding Settings}">
                                         <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
                                         <TextBlock Text="{i:Loc Settings.Note.Tracker}" Style="{StaticResource CardNote}" />
+                                        <TextBlock Text="{i:Loc Settings.Overlay.OffNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,-4,0,14"
+                                                   Visibility="{Binding IsChecked, ElementName=OverlaySetting, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <StackPanel x:Name="TrackerPanelSwitches">
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Deck}" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14"
@@ -966,6 +1101,10 @@
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Arena.Settings.Show}" IsChecked="{Binding ShowArenaDraft}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Arena.Settings.ShowTip}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Summary}" IsChecked="{Binding ShowGameToasts}" />
+                                        </StackPanel>
+                                        <!-- The overlay's master switch, size and layout are one tab back -->
+                                        <TextBlock Text="{i:Loc Settings.Tracker.OverlayLink}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,22,0,10" />
+                                        <Button x:Name="OpenOverlayTab" Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Tracker.OpenOverlay}" HorizontalAlignment="Left" Click="OnOpenOverlayTab" />
                                     </StackPanel>
                                 </Border>
 
@@ -1140,8 +1279,9 @@
                                                     ToolTip="{i:Loc Settings.Data.ImportTip}" />
                                             <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Data.OpenFolder}" Click="OnOpenData" ToolTip="{i:Loc Settings.Data.OpenFolderTip}" />
                                         </StackPanel>
-                                        <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" Background="Transparent"
-                                                   ToolTip="{i:Loc Match.Settings.ReplayLimit}" />
+                                        <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" />
+                                        <!-- The replay rule was only in the folder path's tip: it decides what is deleted, so it is a visible line -->
+                                        <TextBlock x:Name="ReplayLimitNote" Text="{i:Loc Match.Settings.ReplayLimit}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Border>
 
@@ -1160,7 +1300,7 @@
                                     <c:Ornament Text="{i:Loc Settings.About.Title}" Icon="&#xF02FD;" Size="13" Margin="0,0,0,10" />
                                     <TextBlock Text="{i:Loc Settings.About.Text}" TextWrapping="Wrap" Style="{StaticResource Caption}" />
                                     <TextBlock Text="{i:Loc Settings.About.Fonts}" Style="{StaticResource Caption}" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
-                                    <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,4,0,0" />
+                                    <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,4,0,0" />
                                     <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
                                     <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource Caption}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
                                     <TextBlock Text="{Binding ParseErrorsText}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{StaticResource Negative}"
@@ -1259,7 +1399,9 @@
                             </Grid>
                             <StackPanel Grid.Column="1" Margin="14,0,12,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding LiveTitle}" FontWeight="Bold" FontSize="14.5" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding LiveDetail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                <!-- Trimmed in a narrow bar (the "deck not recognised" tail is the first to go): the tip has it all -->
+                                <TextBlock x:Name="LiveDetailLine" Text="{Binding LiveDetail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding LiveDetail}" />
                             </StackPanel>
                             <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,20,0" ToolTip="{i:Loc Main.Live.SessionTip}">
                                 <TextBlock Text="{Binding SessionSummary}" Style="{StaticResource Caption}" HorizontalAlignment="Right" />

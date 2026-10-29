@@ -20,6 +20,9 @@ internal static partial class Native
     public const uint SWP_SHOWWINDOW = 0x40;
     public static readonly IntPtr HWND_TOPMOST = new(-1);
 
+    /// <summary>Parent of a message-only window: never shown, still gets posted messages such as WM_HOTKEY.</summary>
+    public static readonly IntPtr HWND_MESSAGE = new(-3);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct RECT
     {

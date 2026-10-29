@@ -141,7 +141,7 @@
                                 <TextBlock Grid.Column="1" Text="{Binding WinRate}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"
                                            Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
                                 <TextBlock Grid.Column="2" Text="{Binding Tier}" Classes="tierLetter" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
-                                <TextBlock Grid.Column="3" Text="{Binding SevenPlus}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" TextAlignment="Right" />
+                                <TextBlock Grid.Column="3" Text="{Binding SevenPlus}" FontSize="10" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextAlignment="Right" />
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

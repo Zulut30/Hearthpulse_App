@@ -42,7 +42,7 @@
                 <Setter Property="Foreground" Value="{StaticResource Muted}" />
                 <Setter Property="HorizontalAlignment" Value="Left" />
                 <Setter Property="Cursor" Value="Hand" />
-                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingChip}" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
@@ -626,7 +626,7 @@
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                                             <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
-                                                            <TextBlock Text="{i:Loc Deck.Versions.MarkedDifferent}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}"
+                                                            <TextBlock Text="{i:Loc Deck.Versions.MarkedDifferent}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}"
                                                                        Visibility="{Binding Dismissed, Converter={StaticResource Vis}}" />
                                                         </StackPanel>
                                                         <TextBlock Grid.Column="2" Text="{Binding Shared}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
@@ -749,7 +749,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{Binding MulliganNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="2,10,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding MulliganNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="2,10,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
@@ -809,7 +809,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{Binding CardsNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="2,10,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding CardsNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="2,10,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 

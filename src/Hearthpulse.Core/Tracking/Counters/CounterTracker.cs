@@ -35,6 +35,12 @@ public sealed class CounterTracker : IPowerListener
     private readonly Dictionary<int, PlayerLog> _logs = [];
     private Entity? _pendingChoice;
 
+    /// <summary>
+    /// The counters built for the last update: <see cref="Counters.Build"/> hands one out again when it would come out
+    /// the same, so an update builds only what changed. Off: every counter is built (tests compare both ways).
+    /// </summary>
+    internal Counters.CounterViews Views { get; } = new();
+
     /// <summary>What one player did this game.</summary>
     public sealed class PlayerLog
     {

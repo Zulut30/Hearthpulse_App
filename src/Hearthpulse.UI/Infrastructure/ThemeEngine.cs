@@ -27,6 +27,24 @@ public static class ThemeEngine
     private static readonly ConditionalWeakTable<GeometryDrawing, Geometry> OriginalGeometry = new();
     private static readonly ConditionalWeakTable<IResourceDictionary, Dictionary<object, Color>> OriginalColors = new();
 
+    /// <summary>
+    /// The player's saved theme, applied at start before any window: started minimized there is no dashboard to apply it,
+    /// and the overlay would show in the default colours (WPF does the same in <c>App.OnStartup</c>).
+    /// </summary>
+    /// <returns>False when it could not be applied (the default colours stay; logged).</returns>
+    public static bool ApplySaved(Application app, AppSettings settings)
+    {
+        try
+        {
+            return Apply(app, ThemePalette.Resolve(settings.Theme, settings.ThemeAccentHue, settings.ThemeBaseHue, settings.ThemeBaseTint));
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Diag.Error("Theme could not be applied at start; keeping the default colours", ex);
+            return false;
+        }
+    }
+
     /// <summary>Repaints the running app in <paramref name="theme"/>; false when the theme styles are not loaded.</summary>
     public static bool Apply(Application app, ThemeSpec theme)
     {

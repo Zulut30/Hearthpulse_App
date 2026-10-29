@@ -64,8 +64,10 @@ Consequences:
 - Gold-ish hue (15-60) means "will be themed", and so does patina teal (150-186, the second accent); pick other
   hues only for semantic colours.
 - Map tokens to meaning, not to looks: `Positive`/`Negative` for results (`SignBrush` converter), `Tier*` via
-  `KeyBrush`, `Rarity*`, the `ManaCost` control for cost gems, `Accent` for the one thing that matters, `Muted`/`Faint` for
-  secondary text.
+  `KeyBrush`, `Rarity*`, the `ManaCost` control for cost gems, `Accent` for the one thing that matters, `Muted` for
+  secondary text the player reads (AA on every surface and preset). `Faint` is below AA: only separators, glyphs, an
+  empty box's placeholder and disabled things. `ReadableTextTests` fails on a bound or localized text painted `Faint`,
+  directly or through its style (outside `Themes/` and `Main/Match/`).
 - Avalonia has **no theme engine**: Theme.axaml is static Tavern and `ThemePalette` is not used in `Hearthpulse.UI`.
   Still use tokens so a future engine works.
 

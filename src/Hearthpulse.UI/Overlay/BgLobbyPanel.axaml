@@ -20,7 +20,7 @@
     <Border Classes="overlayCard" Width="226" Padding="10,8,10,7">
         <StackPanel>
             <DockPanel Margin="0,0,0,5">
-                <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.BgLobby.Unconfirmed}" FontSize="9.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center"
+                <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.BgLobby.Unconfirmed}" FontSize="9.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
                            IsVisible="{Binding LobbyTribesUnconfirmed}" />
                 <TextBlock Text="{i:Loc Overlay.BgLobby.Tribes}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
             </DockPanel>
@@ -41,7 +41,7 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="10.5" Foreground="{StaticResource Faint}"
+            <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="10.5" Foreground="{StaticResource Muted}"
                        IsVisible="{Binding LobbyTribes, Converter={StaticResource Truthy}, ConverterParameter=!}" />
             <ItemsControl ItemsSource="{Binding LobbyRows}" Margin="0,4,0,0" IsVisible="{Binding LobbyRows, Converter={StaticResource Truthy}}">
                 <ItemsControl.ItemTemplate>
@@ -49,7 +49,7 @@
                         <!-- Column 3 is kept empty for the opponents' rating (up to 6 characters): it takes its width from that
                              text, and the name column gives way -->
                         <Grid Classes="bgLobbyRow" Classes.you="{Binding You}" Classes.dead="{Binding Dead}" Height="22" ColumnDefinitions="14,22,*,Auto,20,30">
-                            <TextBlock Text="{Binding Place}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Place}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
                             <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                     i:CardArt.Portrait="{Binding HeroCardId}" />
                             <TextBlock Name="HeroName" Grid.Column="2" Text="{Binding Name}" FontSize="11" FontWeight="Medium" TextTrimming="CharacterEllipsis"

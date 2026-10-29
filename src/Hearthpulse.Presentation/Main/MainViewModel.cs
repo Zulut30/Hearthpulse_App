@@ -355,6 +355,7 @@ public sealed partial class MainViewModel : Observable
         SetupWarning = s.LogConfigMissing.Count > 0
             ? Loc.F("Main.Setup.LoggingEnabled", string.Join(", ", s.LogConfigMissing))
             : string.Empty;
+        LogsReady = s.HearthstoneRunning && s.LogConfigMissing.Count == 0;
         ParseErrorsText = s.ParseErrors is { } errors
             ? Loc.F("Main.Setup.ParseErrors", errors.Total, errors.ByType)
             : string.Empty;
@@ -383,7 +384,9 @@ public sealed partial class MainViewModel : Observable
         else if (s.Constructed is { } c)
         {
             LiveTitle = Loc.F("Main.Live.Mode", Mode(s.GameType));
-            LiveDetail = Loc.F("Main.Live.CtDetail", c.DeckName is { Length: > 0 } deck ? Hearthpulse.Core.Stats.DeckName.Display(deck) : OverlayViewModel.ClassName(c.PlayerClass), OverlayViewModel.ClassName(c.OpponentClass), c.Turn);
+            LiveDetail = Loc.F("Main.Live.CtDetail", c.DeckName is { Length: > 0 } deck ? Hearthpulse.Core.Stats.DeckName.Display(deck) : OverlayViewModel.ClassName(c.PlayerClass), OverlayViewModel.ClassName(c.OpponentClass), c.Turn)
+                // The overlay's deck panel waits for a known deck: say why it is missing instead of leaving the player to guess.
+                + (c.DeckKnown || !Settings.ShowDeckTracker ? string.Empty : " · " + Loc.T("Main.Live.DeckUnknown"));
         }
         else
         {
@@ -447,6 +450,7 @@ public sealed partial class MainViewModel : Observable
 
         _recentGames = data.Recent;
         HistoryCount = data.Total;
+        ShowGettingStarted = data.Total == 0;
         Recent = data.Recent.Take(8).Select(Row).ToList();
         ApplyHistoryFilter();
         RatingPoints = data.Rating;

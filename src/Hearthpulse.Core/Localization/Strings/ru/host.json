@@ -31,7 +31,7 @@
   "Host.Tray.Open": "Открыть Hearthpulse",
   "Host.Tray.Overlay": "Оверлей",
   "Host.Tray.Arrange": "Расставить панели оверлея",
-  "Host.Tray.HardRefresh": "Полное обновление (перечитать текущую игру)",
+  "Host.Tray.HardRefresh": "Полное обновление: перечитать текущую игру (Ctrl+Shift+R)",
   "Host.Tray.SoftwareRendering": "Программная отрисовка оверлея (перезапуск)",
   "Host.Tray.Quit": "Выход",
   "Host.Crash.FatalTitle": "Hearthpulse придётся закрыть",

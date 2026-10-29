@@ -67,7 +67,7 @@
                        Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
             <TextBlock Text="{Binding Text}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
                        Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
-            <TextBlock Text="{i:Loc Stats.VsGlobal}" FontSize="11.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
+            <TextBlock Text="{i:Loc Stats.VsGlobal}" FontSize="11.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
         </StackPanel>
     </DataTemplate>
 

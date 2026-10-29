@@ -545,7 +545,7 @@
                                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                                                 <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
-                                                                <TextBlock Text="{i:Loc Deck.Versions.MarkedDifferent}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}"
+                                                                <TextBlock Text="{i:Loc Deck.Versions.MarkedDifferent}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}"
                                                                            IsVisible="{Binding Dismissed}" />
                                                             </StackPanel>
                                                             <TextBlock Grid.Column="2" Text="{Binding Shared}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
@@ -638,7 +638,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{Binding MulliganNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="2,10,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding MulliganNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="2,10,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
@@ -678,7 +678,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{Binding CardsNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="2,10,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding CardsNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="2,10,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 

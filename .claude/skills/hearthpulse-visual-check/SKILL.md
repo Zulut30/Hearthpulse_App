@@ -125,7 +125,7 @@ Open the PNGs with the Read tool (they are images). For each one touched by the 
   be longer; also check tooltips leaving the 1920x1080 surface and the bottom 120 px reserved for the floating live bar.
 - **Overlap**: panels on top of each other in `overlay-layout.png` - fine only between panels that never show in the
   same mode (e.g. `card-pool` vs `bgbar`); text over art; the live bar covering content.
-- **Contrast**: parchment `Text` on wood surfaces; `Muted`/`Faint` only for secondary text; semantic colours
+- **Contrast**: parchment `Text` on wood surfaces; `Muted` for secondary text (`Faint` only for separators, glyphs and disabled things); semantic colours
   (`Positive`/`Negative`/`Tier*`/`Rarity*`) still distinct.
 - **Spacing**: the same margins as neighbouring cards (24 between cards, page margin 40), aligned baselines in rows,
   segment bars right-aligned in headers, icons centred in their Scallop.

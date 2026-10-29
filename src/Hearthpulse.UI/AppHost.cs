@@ -388,6 +388,7 @@ public sealed partial class AppHost : IDisposable
         }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
+        Session.RequestMemoryTrimWhenWindowAway();
 
         try
         {
@@ -487,6 +488,10 @@ public sealed partial class AppHost : IDisposable
             {
                 _constructedLoading.Remove(format);
             }
+
+            // A load (another format, filters, language) leaves about 30 MB of parsing garbage that an idle app would
+            // never collect: it is given back once the window is minimized or let go and things are quiet.
+            Session.RequestMemoryTrimWhenWindowAway();
         }
     }
 

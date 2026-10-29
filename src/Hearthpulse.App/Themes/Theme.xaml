@@ -1130,7 +1130,8 @@
     </Style>
     <Style TargetType="Slider">
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <!-- Arrow keys move a focused slider: the ring shows which one (keyboard focus only, as for every control) -->
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="IsMoveToPointEnabled" Value="True" />
         <Setter Property="Template">
             <Setter.Value>

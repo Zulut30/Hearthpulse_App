@@ -160,8 +160,9 @@
             </StackPanel>
         </DataTemplate>
 
-        <!-- Counter row: card art (the cross over it on hover hides the counter), title with its progress under it, value
-             right-aligned; hover shows the cards, a click opens them under the row -->
+        <!-- Counter row: card art, title with its progress under it, value right-aligned, and on hover a cross in its own
+             column that hides the counter (not over the art: a click there opens the cards); hover shows the cards, a click
+             opens them under the row -->
         <DataTemplate x:Key="CounterTemplate" x:DataType="o:CounterChip">
             <Border Classes="counterChip" Classes.open="{Binding Expanded}" CornerRadius="5" Padding="3,1,4,1" Cursor="Hand" Background="Transparent"
                     ToolTip.Placement="Right" ToolTip.HorizontalOffset="8" ToolTip.ShowDelay="250" ToolTip.ServiceEnabled="{Binding !Expanded}">
@@ -178,6 +179,7 @@
                                     <ColumnDefinition Width="20" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" MinWidth="28" SharedSizeGroup="CounterValue" />
+                                    <ColumnDefinition Width="22" />
                                 </Grid.ColumnDefinitions>
                                 <Border Width="20" Height="20" CornerRadius="10" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding IconCardId}" />
                                 <Ellipse Width="20" Height="20" Stroke="{StaticResource OverlayBorder}" StrokeThickness="1" />
@@ -200,8 +202,8 @@
                                 <TextBlock Grid.Column="2" Text="{Binding Value}" Classes="number" FontSize="14" TextAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
-                        <Button Classes="icon hideCounter" Content="&#xF0156;" FontSize="11" Width="20" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                Background="{StaticResource Surface3}" Focusable="False" ToolTip.Tip="{i:Loc Overlay.Counter.HideTip}"
+                        <Button Classes="icon hideCounter" Content="&#xF0156;" FontSize="11" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Focusable="False" ToolTip.Tip="{i:Loc Overlay.Counter.HideTip}"
                                 Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).HideCounter}" CommandParameter="{Binding Id}" />
                     </Panel>
                     <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterCardsTemplate}" Margin="27,0,0,6" IsVisible="{Binding Expanded}" />
@@ -403,7 +405,7 @@
             <Grid Classes="lobbyRow" Classes.next="{Binding Next}" Classes.you="{Binding You}" Classes.dead="{Binding Dead}"
                   Height="28" Margin="0,0,0,2" ColumnDefinitions="16,28,*,24,42">
                 <Border Name="Bg" Grid.ColumnSpan="5" CornerRadius="6" Margin="-5,0" />
-                <TextBlock Text="{Binding Place}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Place}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
                 <Border Grid.Column="1" Width="22" Height="22" CornerRadius="11" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding HeroCardId}" />
                 <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,6,0">
                     <TextBlock Name="HeroName" Text="{Binding Name}" FontSize="11.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
@@ -1067,7 +1069,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="11" Foreground="{StaticResource Faint}" VerticalAlignment="Center"
+                                    <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
                                                IsVisible="{Binding TribeChips, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                                 </Panel>
                                 <Border Classes="divider" />
@@ -1179,7 +1181,7 @@
                                 <TextBlock Text="{Binding OddsKill}" ToolTip.Tip="{i:Loc Overlay.Odds.KillTip}" FontSize="11" Foreground="{StaticResource Positive}" Margin="5,0" VerticalAlignment="Center"
                                            IsVisible="{Binding OddsKill, Converter={StaticResource Truthy}}" />
                             </StackPanel>
-                            <TextBlock Text="{Binding OddsNote}" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+                            <TextBlock Text="{Binding OddsNote}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
                         </StackPanel>
                     </Border>
                 </o:MovablePanel>
@@ -1285,7 +1287,7 @@
                         <StackPanel>
                             <Grid Margin="0,0,0,6">
                                 <TextBlock Text="{i:Loc Overlay.Lobby.Title}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
-                                <TextBlock Text="{i:Loc Overlay.Lobby.Header}" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Overlay.Lobby.Header}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                             <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" />
                         </StackPanel>

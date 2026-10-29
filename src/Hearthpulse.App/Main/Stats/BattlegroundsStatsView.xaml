@@ -161,7 +161,7 @@
                 </ItemsControl>
                 <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF01A5;" Content="{i:Loc Stats.Bg.NoHeroes}"
                                 Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding BgStatsNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="0,10,0,0"
+                <TextBlock Text="{Binding BgStatsNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="0,10,0,0"
                            TextWrapping="Wrap" Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>

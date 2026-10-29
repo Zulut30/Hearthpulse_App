@@ -281,8 +281,9 @@
             </DataTemplate.Triggers>
         </DataTemplate>
 
-        <!-- Counter row: card art (the cross over it on hover hides the counter), title with its progress under it, value
-             right-aligned; hover shows the cards, a click opens them under the row -->
+        <!-- Counter row: card art, title with its progress under it, value right-aligned, and on hover a cross in its own
+             column that hides the counter (not over the art: a click there opens the cards); hover shows the cards, a click
+             opens them under the row -->
         <DataTemplate x:Key="CounterTemplate" DataType="{x:Type o:CounterChip}">
             <Border x:Name="Chip" Background="Transparent" CornerRadius="5" Padding="3,1,4,1" Cursor="Hand"
                     ToolTipService.InitialShowDelay="250" ToolTipService.Placement="Right" ToolTipService.HorizontalOffset="8">
@@ -299,6 +300,7 @@
                             <ColumnDefinition Width="20" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" MinWidth="28" SharedSizeGroup="CounterValue" />
+                            <ColumnDefinition Width="22" />
                         </Grid.ColumnDefinitions>
                         <!-- The art is drawn a little larger than the circle: some portraits have light edges that WPF shows as a rim -->
                         <Grid Width="20" Height="20">
@@ -309,8 +311,8 @@
                             <Border Margin="-3" i:CardArt.Portrait="{Binding IconCardId}" />
                         </Grid>
                         <Ellipse Width="20" Height="20" Stroke="{StaticResource OverlayBorder}" StrokeThickness="1" />
-                        <Button x:Name="HideButton" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="11" Width="20" Height="20"
-                                Background="{StaticResource Surface3}" Visibility="Hidden" ToolTip="{i:Loc Overlay.Counter.HideTip}"
+                        <Button x:Name="HideButton" Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="11" Width="20" Height="20"
+                                HorizontalAlignment="Right" Visibility="Hidden" ToolTip="{i:Loc Overlay.Counter.HideTip}"
                                 CommandParameter="{Binding Id}" Command="{Binding DataContext.HideCounter, RelativeSource={RelativeSource AncestorType=Window}}" />
                         <StackPanel Grid.Column="1" Margin="7,0,8,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Title}" FontSize="12" TextTrimming="CharacterEllipsis" />
@@ -1119,7 +1121,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="11" Foreground="{StaticResource Faint}" VerticalAlignment="Center"
+                                <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
                                            Visibility="{Binding TribeChips, Converter={StaticResource Vis}, ConverterParameter=!}" />
                             </Grid>
                             <Border Style="{StaticResource Divider}" />

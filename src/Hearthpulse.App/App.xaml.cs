@@ -43,13 +43,23 @@ public partial class App : Application
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
     private LogWatcher? _watcher;
-    private MainWindow _main = null!;
+    /// <summary>
+    /// The main window: built when first shown (start minimized: from the tray), let go after a minute hidden in the tray
+    /// (<see cref="ReleaseMain"/>), forgotten once closed for good; <see cref="ShowMain"/> builds it again where it was.
+    /// </summary>
+    private readonly MainWindowLife<MainWindow, MainPlace> _mainLife = new(main => main.Place);
+
+    /// <summary>Null while there is no window to show (see <see cref="_mainLife"/>). Render scenes always have one.</summary>
+    private MainWindow _main => _mainLife.Window!;
+
+    /// <summary>While the window waits in the tray: is it time to let it go? (A game in progress puts it off.)</summary>
+    private readonly DispatcherTimer _releaseMain = new() { Interval = TimeSpan.FromSeconds(10) };
     private MainViewModel _mainViewModel = null!;
     private OverlayWindow _overlay = null!;
     private OverlayViewModel _overlayViewModel = null!;
     private Forms.NotifyIcon? _tray;
     private Forms.ToolStripMenuItem? _trayOverlayItem;
-    private HwndSource? _hotkeySource;
+    private HotkeyWindow? _hotkeys;
     private string? _installDir;
     private StartupPrefetch _prefetch = null!;
     private CardDb _cards = CardDb.Empty;
@@ -256,7 +266,13 @@ public partial class App : Application
             _settingsDebounce.Start();
             LoadConstructedMetaAsync().Forget("Constructed meta load");
         };
-        _main = CreateMainWindow();
+        _releaseMain.Tick += (_, _) => ReleaseMain();
+        // Started minimized, the window is built the first time it is opened from the tray.
+        if (_renderDir is not null || !_settings.StartMinimized)
+        {
+            _mainLife.Open(CreateMainWindow);
+        }
+
         _overlay = CreateOverlay();
         if (_renderDir is not null)
         {
@@ -316,12 +332,7 @@ public partial class App : Application
         _uiProbe?.Dispose();
         _watcher?.Dispose();
         _uploader?.Dispose();
-        if (_hotkeySource is not null)
-        {
-            Native.UnregisterHotKey(_hotkeySource.Handle, HotkeyId);
-            Native.UnregisterHotKey(_hotkeySource.Handle, LayoutHotkeyId);
-            Native.UnregisterHotKey(_hotkeySource.Handle, RefreshHotkeyId);
-        }
+        _hotkeys?.Dispose();
 
         if (_tray is not null)
         {
@@ -493,6 +504,7 @@ public partial class App : Application
         }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
+        _session.RequestMemoryTrimWhenWindowAway();
     }
 
     /// <summary>The 6-hour refresh of both metas; their parsing garbage is collected once things are quiet.</summary>
@@ -618,6 +630,12 @@ public partial class App : Application
             }
 
             Diag.Error("Constructed stats unavailable", ex);
+        }
+        finally
+        {
+            // A load (another format, filters, language) leaves about 30 MB of parsing garbage that an idle app would
+            // never collect: it is given back once the window is minimized or let go and things are quiet.
+            _session.RequestMemoryTrimWhenWindowAway();
         }
     }
 
@@ -830,13 +848,109 @@ public partial class App : Application
         }
     }
 
-    private MainWindow CreateMainWindow()
+    /// <summary>A new main window, on the page, tabs and bounds of <paramref name="place"/> when given.</summary>
+    private MainWindow CreateMainWindow(MainPlace? place = null)
     {
         var main = new MainWindow(_mainViewModel);
         main.SettingsChanged += OnSettingsChanged;
         main.ReimportRequested += () => ImportLogsAsync(force: true).Forget("Log import");
         main.ArrangeOverlayRequested += () => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing;
+        main.IsVisibleChanged += OnMainVisibleChanged;
+        main.Closing += (_, e) =>
+        {
+            if (!e.Cancel)
+            {
+                _mainLife.Closing(main);
+            }
+        };
+        main.Closed += (_, _) => OnMainClosed(main);
+        main.StateChanged += (_, _) =>
+        {
+            if (!ReferenceEquals(main, _main))
+            {
+                return;
+            }
+
+            SyncWindowInUse();
+            // Building and leaving pages leaves garbage an idle app would never collect.
+            if (main.WindowState == WindowState.Minimized)
+            {
+                _session.RequestMemoryTrimWhenWindowAway();
+            }
+        };
+        if (place is not null)
+        {
+            main.MoveTo(place);
+        }
+
         return main;
+    }
+
+    private void OnMainVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (!ReferenceEquals(sender, _main) || _renderDir is not null)
+        {
+            return;
+        }
+
+        SyncWindowInUse();
+        // Hidden in the tray: no collection of its own; the one after the release takes the pages and the rest.
+        if (_main.IsVisible)
+        {
+            _mainLife.Shown(_main);
+            _releaseMain.Stop();
+        }
+        else
+        {
+            _mainLife.Hidden(_main, DateTime.UtcNow);
+            _releaseMain.Start();
+        }
+    }
+
+    /// <summary>
+    /// Closed for good (no tray to hide it in): forgotten, so the tray's Open builds a new one instead of showing a closed
+    /// window (which threw). Its pages are garbage now.
+    /// </summary>
+    private void OnMainClosed(MainWindow main)
+    {
+        if (!ReferenceEquals(main, _main))
+        {
+            return;
+        }
+
+        _releaseMain.Stop();
+        _mainLife.Closed(main);
+        SyncWindowInUse();
+        _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
+    }
+
+    /// <summary>A collection asked for by a meta load waits while the window is on screen or waiting in the tray.</summary>
+    private void SyncWindowInUse() => _session.MainWindowInUse = _main is { WindowState: not WindowState.Minimized };
+
+    /// <summary>
+    /// The window stayed hidden in the tray for a minute, and no game is being played: it is let go with every page it
+    /// built, and built again on the same page when opened (about half a second). Bench, all pages and tabs open, then
+    /// the memory trim: private 217–222 → 154–157 MB.
+    /// </summary>
+    private void ReleaseMain()
+    {
+        if (!_mainLife.Waiting)
+        {
+            _releaseMain.Stop();
+            return;
+        }
+
+        if (!_mainLife.ReleaseDue(DateTime.UtcNow, _mainViewModel.InGame) || _main is not { IsVisible: false })
+        {
+            return;
+        }
+
+        _releaseMain.Stop();
+        var main = _mainLife.Release()!;
+        main.CloseForReal();
+        Diag.Info("Main window let go while hidden in the tray");
+        SyncWindowInUse();
+        _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
     }
 
     private OverlayWindow CreateOverlay()
@@ -877,28 +991,20 @@ public partial class App : Application
             return;
         }
 
-        var oldMain = _main;
-        var bounds = oldMain.WindowState == WindowState.Normal ? new Rect(oldMain.Left, oldMain.Top, oldMain.Width, oldMain.Height) : oldMain.RestoreBounds;
-        var main = CreateMainWindow();
-        main.WindowStartupLocation = WindowStartupLocation.Manual;
-        main.Left = bounds.Left;
-        main.Top = bounds.Top;
-        main.Width = bounds.Width;
-        main.Height = bounds.Height;
-        main.ShowPage(oldMain.CurrentPage);
-        _main = main;
-        if (oldMain.IsVisible)
+        // A window hidden in the tray (or not built yet) takes the new colours when it is next opened.
+        if (_main is { } oldMain)
         {
-            main.Show();
-            if (oldMain.WindowState == WindowState.Maximized)
+            _releaseMain.Stop();
+            _mainLife.Release();
+            if (oldMain.IsVisible)
             {
-                main.WindowState = WindowState.Maximized;
+                ShowMain();
             }
 
-            main.Activate();
+            oldMain.CloseForReal();
+            SyncWindowInUse();
+            _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
         }
-
-        oldMain.CloseForReal();
 
         var oldOverlay = _overlay;
         _overlay = CreateOverlay();
@@ -1034,19 +1140,26 @@ public partial class App : Application
 
     private void ShowMain()
     {
-        _main.Show();
-        if (_main.WindowState == WindowState.Minimized)
+        _releaseMain.Stop();
+        var built = _main is null;
+        var main = _mainLife.Open(CreateMainWindow);
+        main.Show();
+        if (built && _mainLife.Place is { Maximized: true })
         {
-            _main.WindowState = WindowState.Normal;
+            main.WindowState = WindowState.Maximized;
+        }
+        else if (!built && main.WindowState == WindowState.Minimized)
+        {
+            main.WindowState = WindowState.Normal;
         }
 
-        _main.Activate();
+        main.Activate();
     }
 
     private void ToggleOverlaySetting()
     {
         _settings.OverlayEnabled = !_settings.OverlayEnabled;
-        _main.SyncOverlaySwitch();
+        _main?.SyncOverlaySwitch();
         OnSettingsChanged();
     }
 
@@ -1193,48 +1306,32 @@ public partial class App : Application
 
     private void Quit(int exitCode = 0)
     {
-        _main.CloseForReal();
+        _releaseMain.Stop();
+        _mainLife.Release()?.CloseForReal();
         _overlay.Close();
         Shutdown(exitCode);
     }
 
     private void RegisterHotkey()
     {
-        var handle = new WindowInteropHelper(_main).EnsureHandle();
-        _hotkeySource = HwndSource.FromHwnd(handle);
-        _hotkeySource?.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
-        {
-            if (msg == Native.WM_HOTKEY && wParam.ToInt32() == HotkeyId)
+        // Not on the main window: a theme change replaces it and the tray lets it go.
+        _hotkeys = new HotkeyWindow();
+        if (!_hotkeys.Register(HotkeyId, 0x48, () =>
             {
                 _overlay.Suppressed = !_overlay.Suppressed;
                 Notify(_overlay.Suppressed ? Loc.T("Host.Notify.OverlayHiddenTitle") : Loc.T("Host.Notify.OverlayShownTitle"),
                     _overlay.Suppressed ? Loc.T("Host.Notify.OverlayHidden") : Loc.T("Host.Notify.OverlayShown"));
-                handled = true;
-            }
-            else if (msg == Native.WM_HOTKEY && wParam.ToInt32() == RefreshHotkeyId)
-            {
-                HardRefresh("Ctrl+Shift+R");
-                handled = true;
-            }
-            else if (msg == Native.WM_HOTKEY && wParam.ToInt32() == LayoutHotkeyId)
-            {
-                _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing;
-                handled = true;
-            }
-
-            return IntPtr.Zero;
-        });
-        if (!Native.RegisterHotKey(handle, HotkeyId, Native.MOD_CONTROL | Native.MOD_SHIFT | Native.MOD_NOREPEAT, 0x48))
+            }))
         {
             Diag.Info("Ctrl+Shift+H is taken by another app; overlay hotkey disabled.");
         }
 
-        if (!Native.RegisterHotKey(handle, LayoutHotkeyId, Native.MOD_CONTROL | Native.MOD_SHIFT | Native.MOD_NOREPEAT, 0x4C))
+        if (!_hotkeys.Register(LayoutHotkeyId, 0x4C, () => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing))
         {
             Diag.Info("Ctrl+Shift+L is taken by another app; layout hotkey disabled.");
         }
 
-        if (!Native.RegisterHotKey(handle, RefreshHotkeyId, Native.MOD_CONTROL | Native.MOD_SHIFT | Native.MOD_NOREPEAT, 0x52))
+        if (!_hotkeys.Register(RefreshHotkeyId, 0x52, () => HardRefresh("Ctrl+Shift+R")))
         {
             Diag.Info("Ctrl+Shift+R is taken by another app; hard refresh hotkey disabled.");
         }

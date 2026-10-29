@@ -11,7 +11,7 @@
     <Border Style="{StaticResource OverlayCard}" Width="226" Padding="10,8,10,7">
         <StackPanel>
             <DockPanel Margin="0,0,0,5">
-                <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.BgLobby.Unconfirmed}" FontSize="9.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center"
+                <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.BgLobby.Unconfirmed}" FontSize="9.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
                            Visibility="{Binding LobbyTribesUnconfirmed, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{i:Loc Overlay.BgLobby.Tribes}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
             </DockPanel>
@@ -32,7 +32,7 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="10.5" Foreground="{StaticResource Faint}"
+            <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="10.5" Foreground="{StaticResource Muted}"
                        Visibility="{Binding LobbyTribes, Converter={StaticResource Vis}, ConverterParameter=!}" />
             <ItemsControl ItemsSource="{Binding LobbyRows}" Margin="0,4,0,0" Visibility="{Binding LobbyRows, Converter={StaticResource Vis}}">
                 <ItemsControl.ItemTemplate>
@@ -48,7 +48,7 @@
                                 <ColumnDefinition Width="20" />
                                 <ColumnDefinition Width="30" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Place}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Place}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
                             <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                     i:CardArt.Portrait="{Binding HeroCardId}" />
                             <TextBlock x:Name="Name" Grid.Column="2" Text="{Binding Name}" FontSize="11" FontWeight="Medium" TextTrimming="CharacterEllipsis"
