@@ -42,9 +42,14 @@ public sealed class MainWindowLifetimeTests
         first.ConstructedTab = "Matchups";
         first.ShowPage("Battlegrounds");
         first.BattlegroundsTab = "Trinkets";
-        first.Width = 1180;
+        // Windows keeps a window within the screen's tracking size (1044x788 on CI's 1024x768 runner), and a size set
+        // after showing stays in Width/Height as asked. The smallest size the window allows fits every screen and is not
+        // the one a window that ignored the place would open with.
+        first.Width = first.MinWidth;
+        first.Height = first.MinHeight;
         Pump();
         var place = first.Place;
+        var bounds = (first.Left, first.Top, first.ActualWidth, first.ActualHeight);
         first.CloseForReal();
 
         var second = new WpfWindow(model);
@@ -57,7 +62,8 @@ public sealed class MainWindowLifetimeTests
         Assert.Equal("Trinkets", second.BattlegroundsTab);
         Assert.Equal("Matchups", second.ConstructedTab);
         // Windows keeps a window within its coordinate range: the first one took what it could, the second the same.
-        Assert.Equal((first.Left, first.Top, 1180d, 840d), (second.Left, second.Top, second.Width, second.Height));
+        Assert.Equal((first.MinWidth, first.MinHeight), (bounds.ActualWidth, bounds.ActualHeight));
+        Assert.Equal(bounds, (second.Left, second.Top, second.ActualWidth, second.ActualHeight));
         Assert.False(place.Maximized);
         second.CloseForReal();
     });
