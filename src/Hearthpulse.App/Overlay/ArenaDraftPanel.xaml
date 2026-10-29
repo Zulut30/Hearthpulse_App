@@ -54,6 +54,9 @@
             </Border>
 
         <StackPanel Margin="12,0,12,9">
+            <!-- Why the scores are dashes, right under the header: at the end of a long panel it was out of sight -->
+            <TextBlock x:Name="ArenaNoDataNote" Text="{Binding ArenaNoData}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
+                       Visibility="{Binding ArenaNoData, Converter={StaticResource Vis}}" />
             <!-- The run's class: win rate, place among the classes, 7+ wins - one figure per column, never wrapped mid-number -->
             <Border Style="{StaticResource OverlayStatPlate}" Margin="0,8,0,0" Visibility="{Binding ArenaClassStats, Converter={StaticResource Vis}}">
                 <ItemsControl ItemsSource="{Binding ArenaClassStats}" Focusable="False">
@@ -186,8 +189,6 @@
                 </ItemsControl>
             </StackPanel>
 
-            <TextBlock Text="{Binding ArenaNoData}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
-                       Visibility="{Binding ArenaNoData, Converter={StaticResource Vis}}" />
         </StackPanel>
         </StackPanel>
     </Border>

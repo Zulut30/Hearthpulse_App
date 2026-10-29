@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Tests;
@@ -95,4 +97,34 @@ public sealed class UxRound2MarkupTests
         // Inside the Battlegrounds group of Settings the short name stands for the same bar.
         Assert.Contains(table["Settings.Overlay.TopBar"], table["Main.Live.Panel.BgBar"], StringComparison.OrdinalIgnoreCase);
     }
+
+    [Theory]
+    [InlineData("src/Hearthpulse.App/Overlay/ArenaDraftPanel.xaml", "Visibility")]
+    [InlineData("src/Hearthpulse.UI/Overlay/ArenaDraftPanel.axaml", "IsVisible")]
+    public void Arena_draft_says_why_numbers_are_missing_right_under_its_header(string file, string visibility)
+    {
+        var elements = Markup(file).Descendants().ToList();
+        var header = elements.First(e => IsHeader(e));
+        // The body follows the header: the reason for the dashes is its first line, above the class plate and the lists.
+        var body = header.ElementsAfterSelf().First();
+        var note = body.Elements().First(e => !e.Name.LocalName.Contains('.', StringComparison.Ordinal));
+        Assert.Equal("TextBlock", note.Name.LocalName);
+        Assert.Equal("{Binding ArenaNoData}", (string?)note.Attribute("Text"));
+        Assert.Equal("ArenaNoDataNote", NameOf(note));
+        Assert.Single(elements, e => (string?)e.Attribute("Text") == "{Binding ArenaNoData}");
+        // Hidden while the numbers are there, as before.
+        Assert.StartsWith("{Binding ArenaNoData", (string?)note.Attribute(visibility), StringComparison.Ordinal);
+    }
+
+    private static bool IsHeader(XElement element) =>
+        element.Name.LocalName == "Border"
+        && ((string?)element.Attribute("Style") == "{StaticResource OverlayHeader}" || ((string?)element.Attribute("Classes"))?.Split(' ').Contains("overlayHeader") == true);
+
+    private static XElement Markup(string file) => XDocument.Load(Path.Combine(RepoRoot(), file)).Root!;
+
+    private static string? NameOf(XElement element) =>
+        (string?)element.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) ?? (string?)element.Attribute("Name");
+
+    private static string RepoRoot([CallerFilePath] string source = "") =>
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", ".."));
 }
