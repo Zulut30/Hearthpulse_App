@@ -834,6 +834,8 @@
                                               ToolTip.Tip="{i:Loc Settings.Overlay.BoardsTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Lobby}" IsChecked="{Binding ShowLobbyPanel}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.LobbyTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.BgLobby}" IsChecked="{Binding ShowBgLobbyPanel}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Settings.Overlay.BgLobbyTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Odds}" IsChecked="{Binding ShowCombatOdds}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.OddsTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,18"
@@ -855,6 +857,7 @@
                             <Border Classes="card">
                                 <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
                                     <c:Ornament Text="{i:Loc Settings.Layout.Title}" Icon="&#xF01BE;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Name="MoveHintLine" Text="{i:Loc Overlay.Move.SettingsWindows}" Classes="caption cardNote" />
                                     <Button Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24"
                                             ToolTip.Tip="{i:Loc Settings.Layout.CaptionWindows}" />
                                     <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />

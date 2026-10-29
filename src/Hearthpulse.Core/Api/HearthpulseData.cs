@@ -661,7 +661,7 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     /// Writes a cache file through a temporary file, so a reader (another load, the mulligan guide) never sees half of it
     /// and a crash mid-write leaves the old answer.
     /// </summary>
-    private static async Task WriteCacheAsync(string file, string text, CancellationToken cancellationToken)
+    internal static async Task WriteCacheAsync(string file, string text, CancellationToken cancellationToken)
     {
         var temp = file + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try

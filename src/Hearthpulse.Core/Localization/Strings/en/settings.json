@@ -47,6 +47,8 @@
   "Settings.Overlay.BoardsTip": "When you hover the leaderboard: the last board you saw for that player in combat.",
   "Settings.Overlay.Lobby": "Lobby list",
   "Settings.Overlay.LobbyTip": "Health, tier and last fight of every player in the lobby.",
+  "Settings.Overlay.BgLobby": "Lobby tribes and tiers",
+  "Settings.Overlay.BgLobbyTip": "A compact panel: the lobby's tribes, every player's tavern tier and the main tribe of their board you last saw in a fight.",
   "Settings.Overlay.Odds": "Combat odds",
   "Settings.Overlay.OddsTip": "Win, tie and loss from thousands of simulated fights of both boards, shown while the fight plays.",
   "Settings.Overlay.Session": "Session tracker",

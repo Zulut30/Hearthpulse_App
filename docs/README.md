@@ -23,6 +23,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 |---|---|
 | [constructed-meta-api.md](constructed-meta-api.md) | Constructed stats from the Hearthpulse API |
 | [bg-meta-sources.md](bg-meta-sources.md) | Where each Battlegrounds number comes from |
+| [bg-opponent-mmr.md](bg-opponent-mmr.md) | Battlegrounds opponents' MMR from Blizzard's public leaderboard, its conditions |
 | [accounts-api.md](accounts-api.md) | Sign-in with a hearthpulse.net account (OAuth device flow) |
 | [profile-upload.md](profile-upload.md) | Finished games sent to the hearthpulse.net profile |
 
@@ -32,6 +33,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 |---|---|
 | [upstream-sync.md](upstream-sync.md) | What was ported from HeartLens upstream and how to repeat the sync |
 | [perf-architecture-audit.md](perf-architecture-audit.md) | Performance and architecture audit, stage by stage (in Russian); measured with `tools/Hearthpulse.Bench` |
+| [wpfui-assessment.md](wpfui-assessment.md) | Why the WPF app does not use the WPF UI (Fluent) library, and the ideas kept for `hearthpulse-design` (in Russian) |
 
 ## Elsewhere in the repository
 

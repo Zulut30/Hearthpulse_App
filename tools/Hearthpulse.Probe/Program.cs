@@ -6,10 +6,12 @@ using Hearthpulse.Core.Power;
 //   mem                             read live values from a running Hearthstone client
 //   hover [seconds]                 print the hovered card id (and BG leaderboard hero) every 250 ms
 //   class <Name> [field...]         dump a class's fields / follow a static path
+//   lobby                           Battlegrounds lobby names by player id (opponent MMR, docs/bg-opponent-mmr.md)
 return args.FirstOrDefault() switch
 {
     "heroes" => Heroes(args[1], args.Length > 2 ? int.Parse(args[2]) : int.MaxValue),
     "mem" => Memory(),
+    "lobby" => Lobby(),
     "hover" => Hover(args.Length > 1 ? int.Parse(args[1]) : 30),
     "class" => ClassDump(args[1], args.Skip(2).ToArray()),
     "upgrade" => Upgrade(),
@@ -18,8 +20,33 @@ return args.FirstOrDefault() switch
 
 static int Usage()
 {
-    Console.WriteLine("usage: heroes <Power.log> [maxLines] | mem | hover [seconds] | upgrade | class <Name> [path...]");
+    Console.WriteLine("usage: heroes <Power.log> [maxLines] | mem | hover [seconds] | upgrade | lobby | class <Name> [path...]");
     return 1;
+}
+
+static int Lobby()
+{
+    using var memory = new HearthstoneMemory();
+    if (!memory.EnsureAttached())
+    {
+        Console.WriteLine("Not attached: " + memory.Status);
+        return 2;
+    }
+
+    // Printed to this console only: the app never writes these names anywhere.
+    var names = memory.GetBattlegroundsLobbyNames();
+    if (names is null)
+    {
+        Console.WriteLine("No lobby names (not in a Battlegrounds game, or GameState.m_playerInfoMap / m_name moved)");
+        return 3;
+    }
+
+    foreach (var (playerId, name) in names.OrderBy(p => p.Key))
+    {
+        Console.WriteLine($"pid={playerId} name={name}");
+    }
+
+    return 0;
 }
 
 static int Heroes(string path, int maxLines)

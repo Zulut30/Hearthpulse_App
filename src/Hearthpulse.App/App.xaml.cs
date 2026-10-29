@@ -198,6 +198,7 @@ public partial class App : Application
         _session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(_api)));
         _session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(_api)));
         _session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(_api)));
+        _session.SetBgLeaderboards(new BgLeaderboardSource(_api));
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
@@ -223,6 +224,7 @@ public partial class App : Application
         _session.SetCompMode(CompMode.Manual, null);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
         _session.SetArenaDraftEnabled(_settings.ShowArenaDraft);
+        _session.SetBgOpponentMmrEnabled(_settings.ShowBgOpponentMmr);
         _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
         _overlayViewModel.SecretToggleRequested += _session.ToggleSecret;
         _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
@@ -919,6 +921,7 @@ public partial class App : Application
         _session.SetCompMode(CompMode.Manual, null);
         _session.SetCardPoolEnabled(_settings.ShowCardPool);
         _session.SetArenaDraftEnabled(_settings.ShowArenaDraft);
+        _session.SetBgOpponentMmrEnabled(_settings.ShowBgOpponentMmr);
         _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
         LoadCardPoolAsync().Forget("Card pool load");
         _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);

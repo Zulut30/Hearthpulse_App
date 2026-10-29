@@ -214,7 +214,23 @@ public sealed class AppSettings
 
     public bool ShowGameToasts { get; set; } = true;
 
+    /// <summary>The overlay told once, over the game, that Ctrl held over a panel moves and resizes it.</summary>
+    public bool OverlayMoveTipShown { get; set; }
+
     public bool ShowLobbyPanel { get; set; } = true;
+
+    /// <summary>
+    /// The compact Battlegrounds lobby panel: the lobby's tribes, every player's tavern tier and main tribe. Off by
+    /// default: its player lines repeat the lobby list's (<see cref="ShowLobbyPanel"/>), which is on.
+    /// </summary>
+    public bool ShowBgLobbyPanel { get; set; }
+
+    /// <summary>
+    /// Battlegrounds opponents' MMR: the lobby names the client shows, read from memory, matched on this computer
+    /// against the region's public Blizzard leaderboard (8000 and up), which is downloaded whole once a day. Off by
+    /// default; names and ratings are never saved or sent (docs/bg-opponent-mmr.md).
+    /// </summary>
+    public bool ShowBgOpponentMmr { get; set; }
 
     public bool ShowSessionPanel { get; set; } = true;
 

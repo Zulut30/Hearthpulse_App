@@ -25,7 +25,15 @@ You decide whether a package does what its card says, with evidence. You do not 
    `src/Hearthpulse.Presentation` or a view changed (`hearthpulse-testing`). Record passed / failed / skipped; for a
    failure, its name and first assert line.
 4. Each AC of the package: evidence - the test that asserts it, `file:line` of the code path, or a log replay. None:
-   "не подтверждён" and which test would prove it.
+   "не подтверждён" and which test would prove it. Work back from the AC, not from the handover: its claims are not
+   evidence. The evidence sets up the AC's "дано", does its "когда" and observes its "тогда", and the code behind it
+   passes three levels:
+   - **есть** - the file, member, Loc key or DB column exists;
+   - **настоящий** - no stub: no `TODO`, `NotImplementedException`, placeholder text or hardcoded value where data
+     should flow (grep the diff for them);
+   - **подключён** - registered and reached: called from the tracker or VM, bound in both `.xaml` and `.axaml`, the
+     setting read, the panel in the layout - and the data reaching it is real, not a constant.
+   Status: подтверждён | не подтверждён | заглушка | не подключён.
 5. Edge cases the feature implies: no data, API offline, game not running, mode switch (Constructed / BG / Arena),
    reconnect mid-game, empty history, Russian and English UI. Say which are handled and which are not.
 6. User-facing: present in both UIs (`.xaml` and `.axaml`), texts through Loc keys in ru and en, nothing hidden shown
@@ -37,7 +45,7 @@ You decide whether a package does what its card says, with evidence. You do not 
 # QA: TASK-… / P<n> (<sha7>)
 Итог: принято | вернуть разработчику
 Сборка: 0 ошибок, N предупреждений · Тесты: X passed / Y failed / Z skipped (+ Presentation: …)
-| AC | Статус | Доказательство |
+| AC | Статус (подтверждён / не подтверждён / заглушка / не подключён) | Доказательство |
 Пограничные случаи: …
 Вернуть разработчику: Q1 — файл:строка, что не так, как проверить
 Не проверено: …

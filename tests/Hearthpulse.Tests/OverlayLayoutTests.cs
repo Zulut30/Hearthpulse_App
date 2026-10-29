@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Tests;
@@ -61,6 +62,51 @@ public sealed class OverlayLayoutTests
         Assert.Equal(wpf.Keys.Order(StringComparer.Ordinal), ava.Keys.Order(StringComparer.Ordinal));
         Assert.All(wpf.Values, p => Assert.Equal(p, ava[p.Id]));
     }
+
+    /// <summary>
+    /// Panels declared later draw on top. The tavern bar's tier list opens down from the top-left corner, so a panel
+    /// that can lie under it is declared before the bar: the open list covers it and takes the mouse.
+    /// </summary>
+    [Theory]
+    [InlineData("src/Hearthpulse.App/Overlay/OverlayWindow.xaml")]
+    [InlineData("src/Hearthpulse.UI/Overlay/OverlayView.axaml")]
+    public void The_tavern_bar_tier_list_draws_over_the_lobby_panel(string file)
+    {
+        var ids = Panels(file).Select(p => p.Id).ToList();
+        Assert.InRange(ids.IndexOf("bg-lobby"), 0, ids.IndexOf("bgbar") - 1);
+    }
+
+    /// <summary>
+    /// The lobby panel at its default spot, full (eight players, two lines of tribes), keeps clear of the leaderboard
+    /// (at the left edge of the game's 4:3 area), the tavern bar with its open tier list and the Battlegrounds counters
+    /// on 16:9, 16:10 and 4:3 screens. The surface is 1080 units high; its width follows the screen.
+    /// </summary>
+    [Theory]
+    [InlineData(1920.0)]
+    [InlineData(1728.0)]
+    [InlineData(1440.0)]
+    public void Lobby_panel_default_spot_keeps_clear_of_the_leaderboard_bar_and_counters(double width)
+    {
+        var panelWidth = Assert.Single(new[] { "src/Hearthpulse.App/Overlay/BgLobbyPanel.xaml", "src/Hearthpulse.UI/Overlay/BgLobbyPanel.axaml" }
+            .Select(f => double.Parse(XDocument.Load(Path.Combine(RepoRoot(), f)).Root!.Descendants().First(e => e.Name.LocalName == "Border").Attribute("Width")!.Value,
+                CultureInfo.InvariantCulture))
+            .Distinct());
+        var leaderboard = ((width - (SurfaceHeight * 4 / 3)) / 2, AppSettings.DefaultLeaderboardTop * SurfaceHeight,
+            (AppSettings.DefaultLeaderboardWidth + 0.012) * SurfaceHeight, AppSettings.DefaultLeaderboardSlotHeight * 8 * SurfaceHeight);
+        foreach (var file in new[] { "src/Hearthpulse.App/Overlay/OverlayWindow.xaml", "src/Hearthpulse.UI/Overlay/OverlayView.axaml" })
+        {
+            var panels = Panels(file).ToDictionary(p => p.Id);
+            var lobby = Box(panels["bg-lobby"], panelWidth, 300, width);
+            Assert.False(Intersects(lobby, leaderboard), $"{file} {width}: {lobby} / leaderboard {leaderboard}");
+            // The bar with its tier list open (MaxWidth 880, about 850 down); the counters' chips above their bottom margin.
+            Assert.False(Intersects(lobby, Box(panels["bgbar"], 880, 850, width)), $"{file} {width}: bgbar");
+            Assert.False(Intersects(lobby, Box(panels["bg-counters"], 600, 200, width)), $"{file} {width}: bg-counters");
+        }
+    }
+
+    private static (double X, double Y, double W, double H) Box(Panel panel, double width, double height, double surfaceWidth) =>
+        (Place(panel.Horizontal, panel.Margin.Left, panel.Margin.Right, width, surfaceWidth),
+         Place(panel.Vertical, panel.Margin.Top, panel.Margin.Bottom, height, SurfaceHeight), width, height);
 
     private sealed record Panel(string Id, string TitleKey, bool Hinted, string Horizontal, string Vertical, (double Left, double Top, double Right, double Bottom) Margin, double MinWidth, string PlaceholderAlignment);
 

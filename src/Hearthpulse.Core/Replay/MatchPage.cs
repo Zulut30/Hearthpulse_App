@@ -197,7 +197,7 @@ public sealed partial class MatchPage
 
     public bool IsBattlegrounds => Game.IsBattlegrounds;
 
-    public int FrameCount => Replay?.Frames.Count ?? 0;
+    public int FrameCount => Replay?.Frames.Count ?? BgReplay?.Frames.Count ?? 0;
 
     /// <summary>Loads the page for a history game: its replay file, the card names and the meta for the archetype calls.</summary>
     public static MatchPage Load(GameRecord game, ReplayStore store, CardDb cards, ConstructedMeta? meta)
@@ -224,6 +224,7 @@ public sealed partial class MatchPage
             return new MatchPage(game, cards, header)
             {
                 Battlegrounds = data,
+                BgReplay = BattlegroundsMatchReplay.From(file.Value.Header, file.Value.Body),
                 Rounds = data.Rounds.Select(r => RoundView(r, cards)).ToList(),
                 Lobby = data.Lobby.Select(h => new MatchLobbyRow(h.HeroCardId, cards.NameOf(h.HeroCardId), Ordinal(h.Place), h.Local)).ToList(),
             };

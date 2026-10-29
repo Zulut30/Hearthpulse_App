@@ -35,6 +35,7 @@ public partial class OverlayView : UserControl
         InitializeComponent();
         // The deck row flash (OverlayLook.axaml) runs only when the system allows animations, like the panel fades.
         Classes.Set("motion", PoolInput.AnimationsOn());
+        // Hides the end-of-game toast and the one-time move tip a few seconds after either shows.
         _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(9) };
         _toastTimer.Tick += (_, _) =>
         {
@@ -42,6 +43,7 @@ public partial class OverlayView : UserControl
             if (_viewModel is not null)
             {
                 _viewModel.ShowToast = false;
+                _viewModel.ShowMoveTip = false;
             }
         };
 
@@ -132,10 +134,14 @@ public partial class OverlayView : UserControl
     /// <summary>
     /// Ctrl held over a panel during a game arms that panel (the topmost one under the pointer, view coordinates; null
     /// when outside): it takes the mouse and can be dragged or resized as in layout mode, and the placement is saved
-    /// the same way. Without Ctrl, or over empty space, clicks keep going to the game. A panel being dragged stays armed
-    /// until the button comes up.
+    /// the same way. Without Ctrl, or over empty space, clicks keep going to the game. A panel being dragged or resized
+    /// stays armed until the button comes up.
     /// </summary>
-    /// <returns>Whether a panel is under the pointer with Ctrl held, so the overlay must take the mouse.</returns>
+    /// <returns>
+    /// Whether a panel is under the pointer with Ctrl held, or one is being dragged or resized, so the overlay must take
+    /// the mouse. During a drag that holds wherever the pointer is, as the WPF overlay keeps the mouse while it is
+    /// captured: once Ctrl was let go and the pointer left the panel, the overlay went click-through mid-drag.
+    /// </returns>
     public bool UpdateDragArm(Point? pointer, bool controlDown)
     {
         var editing = _viewModel?.LayoutEditing == true;
@@ -156,16 +162,49 @@ public partial class OverlayView : UserControl
             }
         }
 
+        var dragging = false;
         foreach (var panel in _panels)
         {
             var armed = panel == target || (panel.IsDragging && !editing);
+            dragging |= panel.IsDragging;
             if (panel.IsDragArmed != armed)
             {
                 panel.IsDragArmed = armed;
             }
         }
 
-        return target is not null;
+        return target is not null || dragging;
+    }
+
+    /// <summary>
+    /// A drag ends with its mouse button. Should a panel never hear the release (the pointer capture went elsewhere
+    /// without telling it), it would stay dragging and the overlay would keep the mouse over the whole game: so during a
+    /// game, once the host reads both buttons up (both, as swapped buttons are read by their physical side), a drag
+    /// still going ends where its panel is. Not in layout mode, where the overlay takes the mouse anyway.
+    /// </summary>
+    public void EndReleasedDrags((bool Left, bool Right) buttons)
+    {
+        if (buttons.Left || buttons.Right || _viewModel?.LayoutEditing == true)
+        {
+            return;
+        }
+
+        foreach (var panel in _panels)
+        {
+            panel.EndMissedDrag();
+        }
+    }
+
+    /// <summary>
+    /// The overlay just appeared over the game: the first time ever, a tip at the top centre says that Ctrl over a
+    /// panel moves and resizes it, and the settings are saved with the tip marked shown (<see cref="LayoutChanged"/>).
+    /// </summary>
+    public void OfferMoveTip()
+    {
+        if (_viewModel?.OfferMoveTip(Settings) == true)
+        {
+            LayoutChanged?.Invoke();
+        }
     }
 
     /// <summary>
@@ -330,7 +369,8 @@ public partial class OverlayView : UserControl
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(OverlayViewModel.ShowToast) && _viewModel?.ShowToast == true)
+        if ((e.PropertyName == nameof(OverlayViewModel.ShowToast) && _viewModel?.ShowToast == true)
+            || (e.PropertyName == nameof(OverlayViewModel.ShowMoveTip) && _viewModel?.ShowMoveTip == true))
         {
             _toastTimer.Stop();
             _toastTimer.Start();

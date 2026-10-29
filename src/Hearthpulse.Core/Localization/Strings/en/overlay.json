@@ -19,9 +19,14 @@
   "Overlay.Common.TavernTier": "Tavern tier",
 
   "Overlay.Layout.Title": "Layout mode",
-  "Overlay.Layout.Hint": "Drag panels anywhere, they snap to the edges, the centre and each other · scroll to resize, Shift+scroll to fade · point at a panel for its buttons · right-click resets one",
-  "Overlay.Layout.InGameHint": "During a game: hold Ctrl over a panel to drag it, scroll to resize, Shift+scroll to fade, right-click to reset",
-  "Overlay.Layout.DragHint": "drag to move · scroll to resize · Shift+scroll to fade",
+  "Overlay.Layout.Hint": "Drag panels anywhere, they snap to the edges, the centre and each other · drag the corner or scroll to resize, Shift+scroll to fade · point at a panel for its buttons · right-click resets one",
+  "Overlay.Layout.InGameHint": "During a game: hold Ctrl over a panel to drag it, drag its corner or scroll to resize, Shift+scroll to fade, right-click to reset",
+  "Overlay.Move.Hint": "Drag to move · corner or wheel to resize · right-click to reset",
+  "Overlay.Move.Grip": "Drag the corner to resize",
+  "Overlay.Move.TipTitle": "Panels can move",
+  "Overlay.Move.Tip": "Hold Ctrl over a panel to move and resize it",
+  "Overlay.Move.Settings": "During a game, hold Ctrl over a panel to drag it; its corner or the wheel resizes it. To arrange every panel at once, use the button below or Ctrl+Shift+L.",
+  "Overlay.Move.SettingsWindows": "During a game, hold Ctrl over a panel to drag it; its corner or the wheel resizes it. To arrange every panel at once, use the button below or, on Windows, Ctrl+Shift+L.",
   "Overlay.Layout.Smaller": "Smaller (scroll down)",
   "Overlay.Layout.Larger": "Larger (scroll up)",
   "Overlay.Layout.Fade": "More see-through, then opaque again (Shift+scroll)",
@@ -152,6 +157,10 @@
   "Overlay.Lobby.Won": "W {0}",
   "Overlay.Lobby.Lost": "L {0}",
   "Overlay.Lobby.Tie": "T",
+
+  "Overlay.BgLobby.Title": "Tribes and tiers",
+  "Overlay.BgLobby.Tribes": "Tribes",
+  "Overlay.BgLobby.Unconfirmed": "not confirmed",
 
   "Overlay.Toast.Place": "{0} place",
   "Overlay.Toast.Victory": "Victory",

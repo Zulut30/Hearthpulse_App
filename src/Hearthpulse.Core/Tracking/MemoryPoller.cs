@@ -12,7 +12,8 @@ internal sealed record MemoryRequest(
     bool WantRaces,
     bool WantRanks,
     string? AwaitingRatingKey,
-    bool WantDraftChoices = false);
+    bool WantDraftChoices = false,
+    bool WantLobbyNames = false);
 
 /// <summary>What one memory scan found; null where nothing was read.</summary>
 internal sealed record MemoryReading(
@@ -22,7 +23,8 @@ internal sealed record MemoryReading(
     IReadOnlyList<int>? Races,
     BattlegroundsButtonCosts? ButtonCosts,
     (MatchPlayerInfo? Local, MatchPlayerInfo? Opponent)? Players,
-    Arena.ArenaDraftOffer? DraftChoices = null);
+    Arena.ArenaDraftOffer? DraftChoices = null,
+    IReadOnlyDictionary<int, string>? LobbyNames = null);
 
 /// <summary>
 /// Reads the game's memory on its own thread. A scan can take seconds on a slow PC, or when a security tool inspects
@@ -112,6 +114,7 @@ internal sealed class MemoryPoller
             battlegroundsGame && request.WantRaces ? _memory.GetBattlegroundsRaces() : null,
             battlegroundsGame ? _memory.GetBattlegroundsButtonCosts() : null,
             request.InGame && request.WantRanks ? _memory.GetMatchPlayers() : null,
-            request.WantDraftChoices ? _memory.GetArenaDraftChoices() : null);
+            request.WantDraftChoices ? _memory.GetArenaDraftChoices() : null,
+            battlegroundsGame && request.WantLobbyNames ? _memory.GetBattlegroundsLobbyNames() : null);
     }
 }

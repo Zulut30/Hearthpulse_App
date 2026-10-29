@@ -36,6 +36,20 @@ Project skills live in `.claude/skills/`. Start from the one that matches the ta
 | Splitting a big task into parallel sessions | `hearthpulse-parallel-work` |
 | Task -> sessions -> merge, push, build, restart, no confirmations | `hearthpulse-ship` |
 | Task -> lead's card -> designer, developers, QA, reviewer | `hearthpulse-team` |
+| Test first, red -> green, honest tests | `test-driven-development` |
+| Acting on QA / review findings | `receiving-code-review` |
+| Parallel subagents inside one session | `dispatching-parallel-agents` |
+| Module interfaces, seams, deep modules | `codebase-design` |
+| Architecture review report (owner-invoked) | `improve-codebase-architecture` |
+| Project glossary `docs/GLOSSARY.md`, ADRs `docs/adr/` | `domain-modeling` |
+| Interview the owner about a plan, on request | `grilling`, `grill-with-docs` |
+| Research from primary sources into a file | `research` |
+| Writing skills, agent files, CLAUDE.md | `writing-for-agents` |
+| Session retrospective (owner-invoked) | `retro` |
+| Re-explain the last message plainly (owner-invoked) | `wait-what` |
+
+The last eleven rows are general practices adapted from mattpocock/skills and obra/superpowers (MIT): sources and
+changes in `.claude/skills/THIRD-PARTY-NOTICES.md`.
 
 Team agents (`.claude/agents/`, run by `hearthpulse-team`): `hearthpulse-lead` (task card and work packages),
 `hearthpulse-designer` (design.md), `hearthpulse-core-dev` and `hearthpulse-ui-dev` (developer sessions),
@@ -49,7 +63,9 @@ location if it is absent.
 Ground rules: restore with `--source https://api.nuget.org/v3/index.json`; run the app and `--render-ui` only with
 `HEARTHPULSE_DATA` pointing at a copy of the data folder; hidden game information: during a game - only what the
 player can see; after the match the review may show everything the log revealed by the end of the game (the match
-page only, `docs/match-replay.md`); every user-facing feature goes into both UIs.
+page only, `docs/match-replay.md`); the one in-game exception is BG opponents' MMR from Blizzard's public
+leaderboard, off by default, on the conditions in `docs/bg-opponent-mmr.md` (owner, 2026-10-29); every user-facing
+feature goes into both UIs.
 
 **Default workflow (owner's standing permission, 2026-10-27).** The coordinating session (the one the owner talks to
 in `D:\HeartLens-main`) carries every feature or fix task end to end with `hearthpulse-ship`: sessions in worktrees,

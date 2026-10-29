@@ -72,6 +72,7 @@ public sealed partial class AppHost : IDisposable
         Session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(Api)));
         Session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(Api)));
         Session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(Api)));
+        Session.SetBgLeaderboards(new BgLeaderboardSource(Api));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
         Uploader = ProfileUploader.For(accountClient, Account, () => Settings.UploadGamesToProfile, History);
@@ -88,6 +89,7 @@ public sealed partial class AppHost : IDisposable
         Session.SetCompMode(CompMode.Manual, null);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
         Session.SetArenaDraftEnabled(Settings.ShowArenaDraft);
+        Session.SetBgOpponentMmrEnabled(Settings.ShowBgOpponentMmr);
         Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
         Overlay.SecretToggleRequested += Session.ToggleSecret;
         Overlay.CardPoolBrowserResized += OnSettingsChanged;
@@ -519,6 +521,7 @@ public sealed partial class AppHost : IDisposable
         Session.SetCompMode(CompMode.Manual, null);
         Session.SetCardPoolEnabled(Settings.ShowCardPool);
         Session.SetArenaDraftEnabled(Settings.ShowArenaDraft);
+        Session.SetBgOpponentMmrEnabled(Settings.ShowBgOpponentMmr);
         Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
         LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();

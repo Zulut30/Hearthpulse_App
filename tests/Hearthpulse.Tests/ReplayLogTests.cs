@@ -40,7 +40,9 @@ public sealed class ReplayLogTests(ITestOutputHelper output) : IDisposable
             output.WriteLine($"turn {round.Turn} tier {round.Tier} hp {round.Health} board {round.Board.Count} vs {round.OpponentHero} {round.OpponentBoard.Count} shop {string.Join(",", round.Shop)} {round.Result}");
         }
 
-        Assert.False(recorder.HasGame);
+        // Format 4 records the game step by step as well (it used to keep only the rounds).
+        Assert.True(recorder.HasGame);
+        Assert.True(recorder.IsBattlegrounds);
         var first = data.Rounds[0];
         Assert.Equal(1, first.Turn);
         Assert.True(first.Shop.Count >= 3);
@@ -87,6 +89,10 @@ public sealed class ReplayLogTests(ITestOutputHelper output) : IDisposable
                     else
                     {
                         Assert.NotEmpty(ReplayFile.ReadBattlegrounds(body)!.Rounds);
+                        // The steps as seen: Bob's offer, the opponent, the grammar, picks among the options.
+                        BattlegroundsReplayTests.AssertSeenOnly(body.Take(header.Events).ToList());
+                        BattlegroundsReplayTests.AssertPicksOffered(body);
+                        output.WriteLine($"    {BattlegroundsMatchReplay.From(header, body)?.Frames.Count ?? 0} steps");
                     }
 
                     games++;

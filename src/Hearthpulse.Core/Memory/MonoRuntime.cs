@@ -594,6 +594,22 @@ public readonly struct MonoObject
         }
     }
 
+    /// <summary>Key and value of each non-null entry of Blizzard's Map&lt;int,V&gt; holding references (keySlots is an int[]).</summary>
+    public IEnumerable<(int Key, MonoObject Value)> MapIntEntries()
+    {
+        var keys = Array("keySlots");
+        var values = Array("valueSlots");
+        var count = Math.Min(keys.Length, values.Length);
+        for (var i = 0; i < count && !ProcessMemory.BudgetExhausted; i++)
+        {
+            var value = values.ObjectAt(i);
+            if (!value.IsNull)
+            {
+                yield return (keys.IntAt(i), value);
+            }
+        }
+    }
+
     /// <summary>Values of a CoreFX Dictionary&lt;TRef, TRef&gt; (Entry = hash, next, key, value).</summary>
     public IEnumerable<MonoObject> DictionaryValues()
     {

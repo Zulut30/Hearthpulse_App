@@ -128,7 +128,52 @@ public sealed record BgOpponent(
     int LastBoardTurn,
     string? LastResult,
     int LastDamage,
-    bool IsNextOpponent);
+    bool IsNextOpponent)
+{
+    /// <summary>
+    /// The player's name as the client shows it when the leaderboard tile is hovered; null while the opponent MMR
+    /// setting is off or the name is not read. Never saved (docs/bg-opponent-mmr.md).
+    /// </summary>
+    public string? PlayerName { get; init; }
+
+    /// <summary>Rating from the public Blizzard leaderboard matched by <see cref="PlayerName"/>; null when the setting is off.</summary>
+    public BgOpponentMmr? Mmr { get; init; }
+}
+
+/// <summary>Where an opponent's rating stands (docs/bg-opponent-mmr.md).</summary>
+public enum BgMmrStatus
+{
+    /// <summary>The setting is off.</summary>
+    Off,
+
+    /// <summary>The leaderboard is still downloading, or the lobby names are not read yet.</summary>
+    Loading,
+
+    /// <summary>Exactly one leaderboard row has this name, spelled the same: <see cref="BgOpponentMmr.Rating"/> is its rating.</summary>
+    Found,
+
+    /// <summary>No row has this name: the player is below the table's floor, shown as "&lt;" + <see cref="BgOpponentMmr.Floor"/> (8000).</summary>
+    BelowThreshold,
+
+    /// <summary>
+    /// Several rows share this name, the one row has it only in another case, or another player of the lobby has the
+    /// same name: no rating is picked, shown as "?".
+    /// </summary>
+    Ambiguous,
+
+    /// <summary>No name, no region, or no whole leaderboard (offline without a cached copy, an empty or cut-short table).</summary>
+    Unknown,
+}
+
+/// <summary>An opponent's rating from the public leaderboard; <see cref="Rating"/> is set only for <see cref="BgMmrStatus.Found"/>.</summary>
+public sealed record BgOpponentMmr(BgMmrStatus Status, int? Rating)
+{
+    /// <summary>
+    /// The table's lowest rating, set whenever the answer comes from a whole table (Found, Ambiguous, BelowThreshold):
+    /// <see cref="BgMmrStatus.BelowThreshold"/> reads "&lt;Floor".
+    /// </summary>
+    public int? Floor { get; init; }
+}
 
 public sealed record HeroStats(int Games, double AveragePlace, double Top4Rate, double WinRate);
 
