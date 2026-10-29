@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -153,6 +154,47 @@ public sealed class BgBadgesTests
         // No tier known yet: no empty shield for that place.
         model.Update(Live(Lobby([Murlocs, Unseen with { TechLevel = 0 }])), Cards, settings, null, null);
         Assert.Equal([1], ((IEnumerable<dynamic>)model.BgBadges).Select(b => (int)b.Place));
+    }
+
+    /// <summary>
+    /// The overlay calls <c>ArrangeLeaderboard</c> every 33 ms and pushes snapshots that often repeat: with the same
+    /// inputs the badges stay the same list and nothing is raised, so the items control keeps its containers.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_same_snapshot_or_frame_leaves_the_badges_alone(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        dynamic model = wpf ? new WpfOverlay() : new AvaOverlay();
+        var settings = new AppSettings();
+        model.ArrangeLeaderboard(1920.0, 1080.0, settings);
+        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
+        var badges = (object)model.BgBadges;
+        Assert.Equal(3, ((IEnumerable<dynamic>)model.BgBadges).Count());
+
+        var changes = new List<string?>();
+        ((INotifyPropertyChanged)model).PropertyChanged += (_, e) => changes.Add(e.PropertyName);
+        for (var frame = 0; frame < 30; frame++)
+        {
+            model.ArrangeLeaderboard(1920.0, 1080.0, settings);
+        }
+
+        // A frame with the same size and calibration raises nothing at all.
+        Assert.Empty(changes);
+
+        // The same snapshot again, and an equal new one.
+        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
+        model.Update(Live(Lobby([Murlocs with { }, Tie with { }, Dead with { }])), Cards, settings, null, null);
+        Assert.DoesNotContain(nameof(WpfOverlay.BgBadges), changes);
+        Assert.DoesNotContain(nameof(WpfOverlay.ShowBgBadges), changes);
+        Assert.Same(badges, (object)model.BgBadges);
+
+        // A real change still comes through on the next frame.
+        settings.LeaderboardTop = 0.2;
+        model.ArrangeLeaderboard(1920.0, 1080.0, settings);
+        Assert.Contains(nameof(WpfOverlay.BgBadges), changes);
+        Assert.NotSame(badges, (object)model.BgBadges);
     }
 
     /// <summary>A frame outside Battlegrounds, and one with nothing new in a match, builds nothing: no list, no fingerprints.</summary>
