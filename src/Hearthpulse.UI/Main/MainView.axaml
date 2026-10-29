@@ -796,6 +796,7 @@
                             <Border Classes="card" Margin="0,0,0,16">
                                 <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
                                     <c:Ornament Text="{i:Loc Settings.Overlay.Title}" Icon="&#xF0A07;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Note.Overlay}" Classes="caption cardNote" />
                                     <CheckBox Name="OverlaySetting" Classes="switch" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.EnabledTipWindows}" />
                                     <TextBlock Text="{i:Loc Widgets.Settings.Section}" Classes="label settingGroup" />
@@ -864,6 +865,7 @@
                             <Border Classes="card">
                                 <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
                                     <c:Ornament Text="{i:Loc Settings.Layout.Title}" Icon="&#xF01BE;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Note.Layout}" Classes="caption cardNote" />
                                     <Button Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24"
                                             ToolTip.Tip="{i:Loc Settings.Layout.CaptionWindows}" />
                                     <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />
@@ -890,6 +892,7 @@
                             <Border Classes="card" Margin="0,0,0,16">
                                 <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
                                     <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Note.Tracker}" Classes="caption cardNote" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Deck}" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14"
@@ -905,6 +908,7 @@
                             <Border Classes="card">
                                 <StackPanel>
                                     <c:Ornament Text="{i:Loc Settings.Counters.Title}" Icon="&#xF012C;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Note.Counters}" Classes="caption cardNote" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Show}" IsChecked="{Binding Settings.ShowCounters}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Counters.Caption}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Opponent}" IsChecked="{Binding Settings.ShowOpponentCounters}" Margin="0,0,0,14" />
@@ -960,6 +964,7 @@
                         <Border Name="SettingsAccount" Classes="card" IsVisible="False">
                             <StackPanel>
                                 <c:Ornament Text="{i:Loc Settings.Account.Title}" Icon="&#xF0004;" Size="13" Margin="0,0,0,14" />
+                                <TextBlock Text="{i:Loc Settings.Note.Account}" Classes="caption cardNote" Margin="0,-6,0,8" />
                                 <!-- Signed in -->
                                 <StackPanel IsVisible="{Binding AccountShowProfile}">
                                     <TextBlock Text="{i:Loc Settings.Account.SignedInAs}" Classes="caption" Margin="0,4,0,2" />
@@ -1051,19 +1056,22 @@
                             <Border Classes="card" Margin="0,0,0,16">
                                 <StackPanel>
                                     <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Note.Data}" Classes="caption cardNote" />
                                     <WrapPanel>
                                         <Button Classes="ghost" Content="{i:Loc Settings.Data.Import}" Click="OnReimport" Margin="0,0,8,8"
                                                 ToolTip.Tip="{i:Loc Settings.Data.ImportTip}" />
                                         <Button Classes="ghost" Content="{i:Loc Settings.Data.OpenFolder}" Click="OnOpenData" Margin="0,0,0,8" ToolTip.Tip="{i:Loc Settings.Data.OpenFolderTip}" />
                                     </WrapPanel>
-                                    <TextBlock Text="{Binding DataFolder}" Classes="caption" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" Background="Transparent"
-                                               ToolTip.Tip="{i:Loc Match.Settings.ReplayLimit}" />
+                                    <TextBlock Text="{Binding DataFolder}" Classes="caption" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap" />
+                                    <!-- The replay rule was only in the folder path's tip: it decides what is deleted, so it is a visible line -->
+                                    <TextBlock Name="ReplayLimitNote" Text="{i:Loc Match.Settings.ReplayLimit}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
                                 </StackPanel>
                             </Border>
 
                             <Border Classes="card">
                                 <StackPanel>
                                     <c:Ornament Text="{i:Loc Settings.Sources.Title}" Icon="&#xF0128;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Note.Sources}" Classes="caption cardNote" Margin="0,-6,0,10" />
                                     <TextBlock Text="{Binding Attribution}" Classes="caption" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>

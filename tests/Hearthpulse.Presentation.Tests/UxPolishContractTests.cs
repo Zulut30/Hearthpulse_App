@@ -47,6 +47,31 @@ public sealed class UxPolishContractTests
         window.Close();
     });
 
+    /// <summary>Every settings card says what it is for, in the same words as the Avalonia view (LocBindingTests.UxPolish).</summary>
+    private static readonly string[] CardNotes = ["Language", "Theme", "App", "Overlay", "Layout", "Tracker", "Counters", "Account", "Data", "Sources"];
+
+    [Fact]
+    public void Settings_cards_say_what_they_are_for_and_the_replay_rule_is_a_visible_line() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        var (window, root) = Open(model, "Settings", "Data");
+
+        var note = window.FindResource("CardNote");
+        var notes = Logical<TextBlock>(Named<ScrollViewer>(window, "PageSettings")).Where(t => ReferenceEquals(t.Style, note)).ToList();
+        Assert.Equal(CardNotes.Select(n => Loc.T("Settings.Note." + n)), notes.Select(t => t.Text));
+
+        var rule = Named<TextBlock>(window, "ReplayLimitNote");
+        // Laid out on the Data tab (the window is never shown, so IsVisible stays false): seen without hovering.
+        Assert.True(rule.ActualHeight > 0 && rule.ActualWidth > 0);
+        Assert.Equal(Loc.T("Match.Settings.ReplayLimit"), rule.Text);
+        Assert.Equal(TextWrapping.Wrap, rule.TextWrapping);
+        // The data folder path above it wraps too and no longer hides the rule in its tip.
+        var folder = Logical<TextBlock>(window).Single(t => BindingPath(t) == nameof(WpfMain.DataFolder));
+        Assert.Equal(TextWrapping.Wrap, folder.TextWrapping);
+        Assert.Null(folder.ToolTip);
+        window.Close();
+    });
+
     // ---- harness ----
 
     /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>
@@ -116,6 +141,25 @@ public sealed class UxPolishContractTests
         var copy = new TextBlock { Text = block.Text, FontFamily = block.FontFamily, FontSize = block.FontSize, FontWeight = block.FontWeight };
         copy.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         return copy.DesiredSize.Width;
+    }
+
+    private static string? BindingPath(TextBlock block) => System.Windows.Data.BindingOperations.GetBinding(block, TextBlock.TextProperty)?.Path?.Path;
+
+    /// <summary>Logical descendants: these include the content of collapsed tabs and pages.</summary>
+    private static IEnumerable<T> Logical<T>(DependencyObject root) where T : DependencyObject
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is T found)
+            {
+                yield return found;
+            }
+
+            foreach (var nested in Logical<T>(child))
+            {
+                yield return nested;
+            }
+        }
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject

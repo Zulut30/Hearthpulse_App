@@ -38,6 +38,24 @@ public sealed partial class LocBindingTests
         Assert.Equal(Loc.T("Main.Busy.Tip"), texts[1].Text);
     }));
 
+    [Fact]
+    public void Settings_cards_say_what_they_are_for_and_the_replay_rule_is_a_visible_line() => Headless.Run(() => WithMainView((view, _) =>
+    {
+        // The same ten notes, in the same order, as the WPF settings page (UxPolishContractTests).
+        string[] cards = ["Language", "Theme", "App", "Overlay", "Layout", "Tracker", "Counters", "Account", "Data", "Sources"];
+        var notes = view.FindControl<ScrollViewer>("PageSettings")!.GetLogicalDescendants().OfType<TextBlock>()
+            .Where(t => t.Classes.Contains("cardNote")).ToList();
+        Assert.Equal(cards.Select(n => Loc.T("Settings.Note." + n)), notes.Select(t => t.Text));
+
+        var rule = view.FindControl<TextBlock>("ReplayLimitNote")!;
+        Assert.True(rule.IsVisible);
+        Assert.Equal(Loc.T("Match.Settings.ReplayLimit"), rule.Text);
+        Assert.Equal(Avalonia.Media.TextWrapping.Wrap, rule.TextWrapping);
+        // The data folder path above it no longer hides the rule in its tip.
+        var folder = Assert.IsType<TextBlock>(((Panel)rule.Parent!).Children[((Panel)rule.Parent!).Children.IndexOf(rule) - 1]);
+        Assert.Null(ToolTip.GetTip(folder));
+    }));
+
     /// <summary>The main view over a fresh view model with the theme applied, in English.</summary>
     private static void WithMainView(Action<MainView, MainViewModel> body, AppSettings? settings = null)
     {
