@@ -793,6 +793,39 @@
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.App.StartMinimized}" IsChecked="{Binding Settings.StartMinimized}" />
                                 </StackPanel>
                             </Border>
+
+                            <!-- Every shortcut in one place (they were only in tips). The overlay's global ones exist on Windows only
+                                 (WindowsOverlayPlatform), so their rows show there (MainView.axaml.cs); there is no hard refresh here. -->
+                            <Border Name="ShortcutsCard" Classes="card" Margin="0,16,0,0">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Settings.Shortcuts.Title}" Icon="&#xF030C;" Size="13" Margin="0,0,0,14" />
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                                        <TextBlock Text="{i:Loc Settings.Shortcuts.Pages}" Classes="settingLabel" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                        <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.PagesKeys}" FontSize="12" FontWeight="SemiBold" />
+                                        </Border>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                                        <TextBlock Text="{i:Loc Settings.Shortcuts.Back}" Classes="settingLabel" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                        <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.BackKeys}" FontSize="12" FontWeight="SemiBold" />
+                                        </Border>
+                                    </Grid>
+                                    <Grid Name="ShortcutHideRow" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                                        <TextBlock Text="{i:Loc Settings.Shortcuts.Hide}" Classes="settingLabel" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                        <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.HideKeys}" FontSize="12" FontWeight="SemiBold" />
+                                        </Border>
+                                    </Grid>
+                                    <Grid Name="ShortcutLayoutRow" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                                        <TextBlock Text="{i:Loc Settings.Shortcuts.Layout}" Classes="settingLabel" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                        <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.LayoutKeys}" FontSize="12" FontWeight="SemiBold" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Text="{i:Loc Overlay.Layout.InGameHint}" Classes="caption" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
 
                         <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->
@@ -1161,7 +1194,8 @@
                                 </Button.Flyout>
                             </Button>
                             <Border Classes="wide" Width="1" Height="18" Background="{StaticResource Outline}" Margin="6,0" VerticalAlignment="Center" />
-                            <Button Classes="icon wide" Content="&#xF01BE;" Width="30" Height="30" FontSize="16" Margin="1,0,14,0"
+                            <!-- On Windows the tips name the global shortcuts (MainView.axaml.cs, UseShortcutTips) -->
+                            <Button Name="ArrangeButton" Classes="icon wide" Content="&#xF01BE;" Width="30" Height="30" FontSize="16" Margin="1,0,14,0"
                                     Click="OnArrangeOverlay" ToolTip.Tip="{i:Loc Main.Live.ArrangeTipShort}" AutomationProperties.Name="{i:Loc Main.Live.ArrangeTipShort}" />
                             <CheckBox Name="OverlaySwitch" Classes="switch" Content="{i:Loc Main.Live.Overlay}" HorizontalAlignment="Right"
                                       Click="OnOverlaySwitch" ToolTip.Tip="{i:Loc Main.Live.OverlayTipShort}" />

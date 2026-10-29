@@ -69,7 +69,7 @@
   "Main.Live.ArrangeTip": "Arrange overlay panels (Ctrl+Shift+L)",
   "Main.Live.ArrangeTipShort": "Arrange overlay panels",
   "Main.Live.Overlay": "Overlay",
-  "Main.Live.OverlayTip": "Show or hide the in-game overlay (Ctrl+Shift+H)",
+  "Main.Live.OverlayTip": "Turn the in-game overlay on or off (Ctrl+Shift+H only hides it for a while)",
   "Main.Live.OverlayTipShort": "Show or hide the in-game overlay",
   "Main.Live.Panels": "Overlay panels",
   "Main.Live.PanelsTip": "Show or hide overlay panels",

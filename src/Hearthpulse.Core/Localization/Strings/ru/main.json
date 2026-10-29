@@ -69,7 +69,7 @@
   "Main.Live.ArrangeTip": "Расставить панели оверлея (Ctrl+Shift+L)",
   "Main.Live.ArrangeTipShort": "Расставить панели оверлея",
   "Main.Live.Overlay": "Оверлей",
-  "Main.Live.OverlayTip": "Показать или скрыть оверлей в игре (Ctrl+Shift+H)",
+  "Main.Live.OverlayTip": "Включить или выключить оверлей в игре (Ctrl+Shift+H лишь временно прячет его)",
   "Main.Live.OverlayTipShort": "Показать или скрыть оверлей в игре",
   "Main.Live.Panels": "Панели оверлея",
   "Main.Live.PanelsTip": "Показать или скрыть панели оверлея",

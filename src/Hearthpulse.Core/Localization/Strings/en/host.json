@@ -31,7 +31,7 @@
   "Host.Tray.Open": "Open Hearthpulse",
   "Host.Tray.Overlay": "Overlay",
   "Host.Tray.Arrange": "Arrange overlay panels",
-  "Host.Tray.HardRefresh": "Hard refresh (re-read the current game)",
+  "Host.Tray.HardRefresh": "Hard refresh: re-read the current game (Ctrl+Shift+R)",
   "Host.Tray.SoftwareRendering": "Software overlay rendering (restart)",
   "Host.Tray.Quit": "Quit",
   "Host.Crash.FatalTitle": "Hearthpulse has to close",

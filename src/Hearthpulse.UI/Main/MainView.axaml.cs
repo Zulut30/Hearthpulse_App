@@ -48,6 +48,23 @@ public partial class MainView : UserControl
         }
 
         SizeChanged += (_, e) => ApplyWidth(e.NewSize.Width);
+        UseShortcutTips();
+    }
+
+    /// <summary>
+    /// The overlay's global shortcuts (Ctrl+Shift+H, Ctrl+Shift+L) are registered on Windows only: there the live bar's
+    /// tips name them and Settings lists them; elsewhere the short tips stay and the rows are hidden.
+    /// </summary>
+    private void UseShortcutTips()
+    {
+        var global = Hearthpulse.UI.Overlay.OverlayView.GlobalShortcuts;
+        ShortcutHideRow.IsVisible = global;
+        ShortcutLayoutRow.IsVisible = global;
+        if (global)
+        {
+            ArrangeButton.Bind(ToolTip.TipProperty, new LocExtension("Main.Live.ArrangeTip").ProvideValue(null!));
+            OverlaySwitch.Bind(ToolTip.TipProperty, new LocExtension("Main.Live.OverlayTip").ProvideValue(null!));
+        }
     }
 
     private RadioButton[] SettingsTabs => [SettingsTabGeneral, SettingsTabOverlay, SettingsTabTracker, SettingsTabAccount, SettingsTabData, SettingsTabAbout];

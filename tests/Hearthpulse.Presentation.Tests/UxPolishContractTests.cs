@@ -271,6 +271,28 @@ public sealed class UxPolishContractTests
         }
     });
 
+    [Fact]
+    public void Settings_list_every_keyboard_shortcut_as_the_app_registers_them() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        var (window, _) = Open(model, "Settings", "General");
+        var card = Named<Border>(window, "ShortcutsCard");
+        Assert.True(card.ActualHeight > 0);
+        Assert.Same(Named<StackPanel>(window, "SettingsGeneral"), card.Parent);
+
+        // Each row: what it does, and its keys in a pill. App.xaml.cs registers H, L and R with Ctrl+Shift.
+        string[] rows = ["Pages", "Back", "Hide", "Layout", "Refresh"];
+        var labels = Logical<TextBlock>(card).Where(t => ReferenceEquals(t.Style, window.FindResource("SettingLabel"))).Select(t => t.Text);
+        Assert.Equal(rows.Select(r => Loc.T("Settings.Shortcuts." + r)), labels);
+        var pill = window.FindResource("Pill");
+        var keys = Logical<Border>(card).Where(b => ReferenceEquals(b.Style, pill)).Select(b => ((TextBlock)b.Child).Text);
+        Assert.Equal(["Ctrl+1…7", "Esc · Alt+← · mouse Back", "Ctrl+Shift+H", "Ctrl+Shift+L", "Ctrl+Shift+R"], keys);
+        Assert.Contains(Logical<TextBlock>(card), t => t.Text == Loc.T("Overlay.Layout.InGameHint"));
+        // Ctrl+1…7 open the sidebar's pages in order.
+        Assert.Equal(7, WpfMain.NavPages.Count);
+        window.Close();
+    });
+
     // ---- harness ----
 
     /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>

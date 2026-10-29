@@ -841,6 +841,64 @@
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.StartMinimized}" IsChecked="{Binding Settings.StartMinimized}" />
                                     </StackPanel>
                                 </Border>
+
+                                <!-- Every shortcut in one place (they were only in tips); the keys match App.xaml.cs and MainWindow.xaml.cs -->
+                                <Border x:Name="ShortcutsCard" Style="{StaticResource Card}" Margin="0,16,0,0">
+                                    <StackPanel>
+                                        <c:Ornament Text="{i:Loc Settings.Shortcuts.Title}" Icon="&#xF030C;" Size="13" Margin="0,0,0,14" />
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Pages}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.PagesKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Back}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.BackKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Hide}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.HideKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Layout}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.LayoutKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Settings.Shortcuts.Refresh}" Style="{StaticResource SettingLabel}" TextWrapping="Wrap" Margin="0,0,16,0" />
+                                            <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalAlignment="Center">
+                                                <TextBlock Text="{i:Loc Settings.Shortcuts.RefreshKeys}" FontSize="12" FontWeight="SemiBold" />
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Text="{i:Loc Overlay.Layout.InGameHint}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- ===== Overlay: what is drawn over the game, its size, panel layout ===== -->

@@ -225,6 +225,42 @@ public sealed partial class LocBindingTests
         return dir?.FullName ?? throw new DirectoryNotFoundException("Repository root (Hearthpulse.slnx) not found above the test sources.");
     }
 
+    [Fact]
+    public void Settings_list_the_shortcuts_this_platform_has_and_the_live_bar_names_them() => Headless.Run(() => WithMainView((view, _) =>
+    {
+        var global = OperatingSystem.IsWindows();
+        var card = view.FindControl<Border>("ShortcutsCard")!;
+        Assert.Same(view.FindControl<StackPanel>("SettingsGeneral"), card.Parent);
+        var rows = card.GetLogicalDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("settingLabel")).ToList();
+        Assert.Equal(new[] { "Pages", "Back", "Hide", "Layout" }.Select(r => Loc.T("Settings.Shortcuts." + r)), rows.Select(r => r.Text));
+        // Ctrl+Shift+H and Ctrl+Shift+L are registered on Windows only; there is no hard refresh in this app.
+        Assert.Equal(global, view.FindControl<Grid>("ShortcutHideRow")!.IsVisible);
+        Assert.Equal(global, view.FindControl<Grid>("ShortcutLayoutRow")!.IsVisible);
+        Assert.DoesNotContain(card.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == Loc.T("Settings.Shortcuts.RefreshKeys"));
+
+        Assert.Equal(Loc.T(global ? "Main.Live.ArrangeTip" : "Main.Live.ArrangeTipShort"), ToolTip.GetTip(view.FindControl<Button>("ArrangeButton")!));
+        Assert.Equal(Loc.T(global ? "Main.Live.OverlayTip" : "Main.Live.OverlayTipShort"), ToolTip.GetTip(view.FindControl<CheckBox>("OverlaySwitch")!));
+    }));
+
+    /// <summary>The overlay switch's tips no longer present Ctrl+Shift+H as its own shortcut; the tray names Ctrl+Shift+R.</summary>
+    [Theory]
+    [InlineData("en")]
+    [InlineData("ru")]
+    public void Shortcut_texts_say_what_each_combination_does(string language)
+    {
+        var table = Loc.Table(language);
+        Assert.Contains("Ctrl+Shift+R", table["Host.Tray.HardRefresh"], StringComparison.Ordinal);
+        // The old wording made Ctrl+Shift+H the switch's own shortcut; now it says the key only hides the overlay for a while.
+        var forAWhile = language == "en"
+            ? new Dictionary<string, string> { ["Main.Live.OverlayTip"] = "for a while", ["Settings.Overlay.EnabledTip"] = "for a while", ["Settings.Overlay.EnabledTipWindows"] = "for a while" }
+            : new Dictionary<string, string> { ["Main.Live.OverlayTip"] = "временно", ["Settings.Overlay.EnabledTip"] = "на время", ["Settings.Overlay.EnabledTipWindows"] = "на время" };
+        foreach (var (key, phrase) in forAWhile)
+        {
+            Assert.Contains("Ctrl+Shift+H", table[key], StringComparison.Ordinal);
+            Assert.Contains(phrase, table[key], StringComparison.Ordinal);
+        }
+    }
+
     /// <summary>The main view over a fresh view model with the theme applied, in English.</summary>
     private static void WithMainView(Action<MainView, MainViewModel> body, AppSettings? settings = null)
     {
