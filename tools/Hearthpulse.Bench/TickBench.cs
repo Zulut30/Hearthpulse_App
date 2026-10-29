@@ -36,6 +36,7 @@ internal static class TickBench
             return;
         }
 
+        var bg = WpfBench.BgPanels(settings);
         var vm = new OverlayViewModel();
         vm.Update(snapshot, cards, settings, null, null);
         var window = new OverlayWindow(vm, settings)
@@ -82,6 +83,11 @@ internal static class TickBench
                 var a = GC.GetAllocatedBytesForCurrentThread();
                 var t = Stopwatch.GetTimestamp();
                 vm.Update(s, cards, settings, null, null);
+                if (bg)
+                {
+                    vm.ArrangeLeaderboard(Width, Height, settings);
+                }
+
                 var u = Stopwatch.GetElapsedTime(t).TotalMilliseconds;
                 update.Add(u);
                 t = Stopwatch.GetTimestamp();

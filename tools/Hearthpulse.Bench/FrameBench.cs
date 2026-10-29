@@ -28,7 +28,7 @@ internal static class FrameBench
     [DllImport("kernel32.dll")]
     private static extern bool GetThreadTimes(IntPtr thread, out long creation, out long exit, out long kernel, out long user);
 
-    private static double UiCpuMs()
+    internal static double UiCpuMs()
     {
         GetThreadTimes(GetCurrentThread(), out _, out _, out var kernel, out var user);
         return (kernel + user) / 10_000.0;

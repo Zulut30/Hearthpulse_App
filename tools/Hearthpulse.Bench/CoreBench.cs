@@ -56,15 +56,26 @@ internal static class CoreBench
             var gen1 = GC.CollectionCount(1);
             var gen2 = GC.CollectionCount(2);
             var wall = Stopwatch.StartNew();
+            var logTime = TimeSpan.Zero;
             foreach (var (dir, path, start) in logs)
             {
-                var (session, setClock, db) = LogReplay.NewSession(cards);
+                var (session, sessionClock, db) = LogReplay.NewSession(cards);
+                // The log time the replay covers: what "a second of the game" in the per-second cost below means.
+                DateTime? first = null;
+                var last = DateTime.MinValue;
+                void SetClock(DateTime t)
+                {
+                    first ??= t;
+                    last = t;
+                    sessionClock(t);
+                }
+
                 session.SetMeta(meta);
                 session.SetCardPoolCatalog(catalog);
                 var published = false;
                 session.SnapshotChanged += _ => published = true;
                 parts?.Watch(session, cards);
-                lines += LogReplay.Run(session, setClock, dir, path, start,
+                lines += LogReplay.Run(session, SetClock, dir, path, start,
                     onBatch: feed =>
                     {
                         var t = Stopwatch.GetTimestamp();
@@ -85,10 +96,13 @@ internal static class CoreBench
                             publishAlloc += GC.GetAllocatedBytesForCurrentThread() - a;
                         }
                     });
+                logTime += last - (first ?? last);
                 LogReplay.Delete(db);
             }
 
             Console.WriteLine($"[replay r{round}] {logs.Count} logs, {lines:N0} lines, wall {wall.ElapsedMilliseconds:N0} ms, {lines / Math.Max(0.001, wall.Elapsed.TotalSeconds):N0} lines/s");
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"[replay r{round}] log time {logTime.TotalMinutes:N1} min: {(parse.Sum() + publish.Sum()) / Math.Max(1, logTime.TotalSeconds):N3} ms of parse + publish per second of log, wall {wall.Elapsed.TotalMilliseconds / Math.Max(1, logTime.TotalSeconds):N3} ms/s"));
             Console.WriteLine($"[replay r{round}] parse {parse.Count:N0} batches: {Spread(parse)}; alloc {Mb(parseAlloc)} ({parseAlloc / Math.Max(1, lines)} B/line)");
             Console.WriteLine($"[replay r{round}] publish {publish.Count:N0}: {Spread(publish)}; alloc {Mb(publishAlloc)} ({publishAlloc / Math.Max(1, publish.Count) / 1024} KB/publish)");
             Console.WriteLine($"[replay r{round}] GCs gen0 {GC.CollectionCount(0) - gen0}, gen1 {GC.CollectionCount(1) - gen1}, gen2 {GC.CollectionCount(2) - gen2}");
