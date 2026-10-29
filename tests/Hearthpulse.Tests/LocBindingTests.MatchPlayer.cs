@@ -121,6 +121,20 @@ public sealed partial class LocBindingTests
             model.ShowDecks = true;
             Assert.False(Press(view, Key.Right).Handled);
             Assert.Equal(1, model.Frame);
+
+            // The window hidden to the tray, or the page hidden in it, stops the playback.
+            model.SetTab.Execute("Replay");
+            Press(view, Key.Space);
+            Assert.True(model.Playing);
+            window.Hide();
+            Assert.False(model.Playing);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            Press(view, Key.Space);
+            Assert.True(model.Playing);
+            view.IsVisible = false;
+            Assert.False(model.Playing);
+            Assert.Equal(1, model.Frame);
         }
         finally
         {

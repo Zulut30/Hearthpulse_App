@@ -95,6 +95,20 @@ public sealed class MatchXamlLoadTests
         Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
         Assert.Equal(model.TimelineSegments.Count, model.Turns.Count);
 
+        // The window hidden to the tray stops the playback (the page's IsVisible goes with the window's).
+        var window = new Window
+        {
+            Content = new MatchView { DataContext = model }, Width = 1200, Height = 800, Left = -20000, Top = -20000, ShowActivated = false,
+            WindowStyle = WindowStyle.None, ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.Manual,
+        };
+        window.Show();
+        model.TogglePlay.Execute(null);
+        Assert.True(model.Playing);
+        window.Hide();
+        Assert.False(model.Playing);
+        window.Content = null;
+        window.Close();
+
         Battlegrounds(view);
 
         // A game without a replay: the header and the empty state only.

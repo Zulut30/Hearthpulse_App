@@ -215,6 +215,33 @@ public sealed class MatchPlayerTests : IDisposable
     });
 
     [Fact]
+    public void Playback_stops_when_the_window_is_hidden_and_keeps_the_step() => WithoutContext(() =>
+    {
+        var model = Model(out var clock);
+        model.Show(Page());
+        model.TogglePlay.Execute(null);
+        clock.Tick();
+        Assert.Equal(1, model.Frame);
+
+        // The window hidden to the tray (the views call it): the wait is cancelled, no step comes, the page stays.
+        model.StopPlayback();
+        Assert.False(model.Playing);
+        var (_, token, done) = clock.Waits[^1];
+        Assert.True(token.IsCancellationRequested);
+        Assert.True(done.Task.IsCanceled);
+        var waits = clock.Waits.Count;
+        Assert.Equal(1, model.Frame);
+        Assert.NotEmpty(model.TimelineSegments);
+
+        // Stopping again is harmless; play goes on from the same step once the window is back.
+        model.StopPlayback();
+        Assert.Equal(waits, clock.Waits.Count);
+        model.TogglePlay.Execute(null);
+        Assert.True(model.Playing);
+        Assert.Equal(waits + 1, clock.Waits.Count);
+    });
+
+    [Fact]
     public void Speed_keys_stop_at_the_ends_and_the_button_goes_round()
     {
         var model = Model(out _);

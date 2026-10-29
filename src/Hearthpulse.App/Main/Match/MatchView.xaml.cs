@@ -14,7 +14,16 @@ public partial class MatchView : UserControl
     {
         InitializeComponent();
         DataContextChanged += (_, e) => Watch(e.NewValue as MatchViewModel);
-        IsVisibleChanged += (_, _) => FocusPlayer();
+        // Hidden with the window too (to the tray): the playback stops instead of drawing steps nobody sees.
+        IsVisibleChanged += (_, _) =>
+        {
+            if (!IsVisible)
+            {
+                _model?.StopPlayback();
+            }
+
+            FocusPlayer();
+        };
     }
 
     /// <summary>

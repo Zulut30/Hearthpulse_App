@@ -1,11 +1,13 @@
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Replay;
+using Hearthpulse.UI.Main.Match;
+using Xunit.Abstractions;
 
 namespace Hearthpulse.Tests;
 
 /// <summary>What the match page's player moves along: a mark per step, the whole-game timeline, event and turn jumps.</summary>
-public sealed class MatchTimelineTests : IDisposable
+public sealed class MatchTimelineTests(ITestOutputHelper output) : IDisposable
 {
     /// <summary>
     /// A short Constructed game: the mulligan, our turn 1 (a minion), their turn 1 (a minion and an attack), our turn 2 (the
@@ -88,6 +90,86 @@ public sealed class MatchTimelineTests : IDisposable
         Assert.Equal(["M", "1", "1", "2"], page.Timeline.Select(s => s.Label));
         Assert.Equal(page.Turns.Select(t => t.Tooltip), page.Timeline.Select(s => s.Tooltip));
         Assert.Same(page.Timeline, page.Timeline);
+        AssertTimeline(page);
+    }
+
+    /// <summary>
+    /// Every Constructed and Arena game in the client's kept logs, recorded as the app records it, passes
+    /// <see cref="AssertTimeline"/>.
+    /// </summary>
+    [RealLogsFact]
+    public void Kept_logs_lay_out_the_timeline_of_every_constructed_game()
+    {
+        var games = 0;
+        foreach (var dir in Directory.EnumerateDirectories(RealLogTests.LogRoot, "Hearthstone_*"))
+        {
+            var start = Core.Hearthstone.HearthstoneInstall.SessionStart(dir);
+            foreach (var name in new[] { "Power_old.log", "Power.log" })
+            {
+                var file = Path.Combine(dir, name);
+                if (start is null || !File.Exists(file))
+                {
+                    continue;
+                }
+
+                foreach (var record in LogBackfill.Parse(file, start.Value, CardDb.Empty, replays: _store))
+                {
+                    var page = MatchPage.Load(record, _store, CardDb.Empty, null);
+                    if (page.Replay is null)
+                    {
+                        continue;
+                    }
+
+                    output.WriteLine($"{record.StartedAt:g} {record.Mode,-8} {page.FrameCount,4} steps {page.Timeline.Count,3} stretches {page.Marks.Count(m => m.IsEvent),4} events");
+                    AssertTimeline(page);
+                    games++;
+                }
+            }
+        }
+
+        output.WriteLine($"{games} games");
+    }
+
+    /// <summary>
+    /// What the player needs of a Constructed page: a mark per step, the timeline as the turns, stretches end to end over
+    /// the whole bar, at most 300 ticks, and arrows and Ctrl+arrows that go through every event and turn once each way.
+    /// </summary>
+    private static void AssertTimeline(MatchPage page)
+    {
+        var count = page.FrameCount;
+        Assert.Equal(page.Replay!.Frames.Select(f => f.Index), page.Marks.Select(m => m.Frame));
+        Assert.Equal(page.Turns.Select(t => (t.FirstFrame, t.LastFrame, t.Tooltip)), page.Timeline.Select(s => (s.FirstFrame, s.LastFrame, s.Tooltip)));
+
+        Assert.Equal(0, page.Timeline[0].FirstFrame);
+        Assert.Equal(count - 1, page.Timeline[^1].LastFrame);
+        Assert.All(page.Timeline.Zip(page.Timeline.Skip(1)), p => Assert.Equal(p.First.LastFrame + 1, p.Second.FirstFrame));
+        var segments = MatchViewModel.Segments(page.Timeline, count, _ => null);
+        Assert.Equal((0.0, 1.0), (segments[0].Start, segments[^1].End));
+        Assert.InRange(MatchViewModel.Ticks(page.Marks, count).Count, 1, 300);
+
+        var events = page.Marks.Where(m => m.IsEvent).Select(m => m.Frame).ToList();
+        Assert.Equal(events.Where(f => f > 0), Walk(page.EventFrom, 0, +1));
+        Assert.Equal(events.Where(f => f < count - 1).Reverse(), Walk(page.EventFrom, count - 1, -1));
+        Assert.Equal(page.Timeline.Skip(1).Select(s => s.FirstFrame), Walk(page.TurnFrom, 0, +1));
+        Assert.Equal(page.Timeline.SkipLast(1).Reverse().Select(s => s.FirstFrame), Walk(page.TurnFrom, count - 1, -1));
+    }
+
+    /// <summary>The frames a jump goes through until it stays put; each one must move on in its direction.</summary>
+    private static List<int> Walk(Func<int, int, int> jump, int from, int direction)
+    {
+        var path = new List<int>();
+        for (var frame = from; ;)
+        {
+            var next = jump(frame, direction);
+            if (next == frame)
+            {
+                return path;
+            }
+
+            Assert.True(direction > 0 ? next > frame : next < frame, $"{frame} -> {next}");
+            path.Add(next);
+            frame = next;
+        }
     }
 
     [Fact]

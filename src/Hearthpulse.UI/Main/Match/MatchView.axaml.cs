@@ -10,6 +10,7 @@ namespace Hearthpulse.UI.Main.Match;
 public partial class MatchView : UserControl
 {
     private MatchViewModel? _model;
+    private TopLevel? _window;
 
     public MatchView()
     {
@@ -29,9 +30,48 @@ public partial class MatchView : UserControl
         {
             if (e.Property == IsVisibleProperty)
             {
+                StopWhenHidden(this);
                 FocusPlayer();
             }
         };
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _window = TopLevel.GetTopLevel(this);
+        if (_window is not null)
+        {
+            _window.PropertyChanged += OnWindowChanged;
+        }
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        if (_window is not null)
+        {
+            _window.PropertyChanged -= OnWindowChanged;
+            _window = null;
+        }
+
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    /// <summary>The window hidden to the tray (its <c>Hide()</c>): the playback stops instead of drawing steps nobody sees.</summary>
+    private void OnWindowChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == IsVisibleProperty && sender is Visual window)
+        {
+            StopWhenHidden(window);
+        }
+    }
+
+    private void StopWhenHidden(Visual visual)
+    {
+        if (!visual.IsVisible)
+        {
+            _model?.StopPlayback();
+        }
     }
 
     /// <summary>

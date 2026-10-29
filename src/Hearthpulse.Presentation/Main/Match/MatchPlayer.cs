@@ -225,6 +225,9 @@ public sealed partial class MatchViewModel
         }
     }
 
+    /// <summary>The page went out of sight (the window hidden to the tray, another page): no steps drawn while nobody sees them.</summary>
+    public void StopPlayback() => Pause();
+
     private void Pause()
     {
         if (_playing is not { } playing)
