@@ -15,6 +15,18 @@ public sealed class LocKeyUsageTests
     /// </summary>
     private static readonly Regex RuntimePrefix = new(@"""([A-Z][A-Za-z]*(?:\.[A-Za-z0-9]+)+\.)(?:\{|""\s*\+)", RegexOptions.CultureInvariant);
 
+    /// <summary>
+    /// The prefixes the code completes at run time, each counting every key under it as used. A new one is added here on
+    /// purpose: a stray <c>"X.Y." + id</c> would otherwise excuse all of <c>X.Y.*</c> without anyone noticing.
+    /// </summary>
+    private static readonly string[] RuntimePrefixes =
+    [
+        "Arena.Type.", "Core.Account.Section.", "Core.Class.", "Core.Counter.", "Core.MetaOption.", "Core.MinionType.",
+        "Core.SpellSchool.", "Core.Tribe.", "Main.Live.Panel.", "Main.Mode.", "Main.Theme.", "Match.Format.", "Match.Keyword.",
+        "Match.Reveal.", "Mulligan.Arena.Basis.", "Overlay.Class.", "Pool.Excavate.Rarity.", "Pool.Mechanic.", "Pool.School.",
+        "Pool.Stat.",
+    ];
+
     /// <summary>A dotted name as a whole: <c>Match.View.Next</c> must not count as used because <c>Match.View.NextTurn</c> is.</summary>
     private static readonly Regex DottedName = new(@"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_-]+)+", RegexOptions.CultureInvariant);
 
@@ -30,11 +42,13 @@ public sealed class LocKeyUsageTests
     {
         var code = string.Join('\n', RepoFiles.Sources(".cs", ".xaml", ".axaml").Select(File.ReadAllText));
         var names = DottedName.Matches(code).Select(m => m.Value).ToHashSet(StringComparer.Ordinal);
-        var prefixes = RuntimePrefix.Matches(code).Select(m => m.Groups[1].Value).Distinct(StringComparer.Ordinal).ToList();
-        Assert.NotEmpty(prefixes);
+        var prefixes = RuntimePrefix.Matches(code).Select(m => m.Groups[1].Value).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        Assert.True(prefixes.SequenceEqual(RuntimePrefixes.Order(StringComparer.Ordinal)),
+            "The code completes other key prefixes than RuntimePrefixes lists (add a new one there on purpose, drop a gone one): "
+            + "new " + string.Join(", ", prefixes.Except(RuntimePrefixes)) + "; gone " + string.Join(", ", RuntimePrefixes.Except(prefixes)));
 
         var unused = Loc.Table(Loc.English).Keys
-            .Where(key => !names.Contains(key) && !prefixes.Any(p => key.StartsWith(p, StringComparison.Ordinal)))
+            .Where(key => !names.Contains(key) && !RuntimePrefixes.Any(p => key.StartsWith(p, StringComparison.Ordinal)))
             .Except(KnownUnused, StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)
             .ToList();
