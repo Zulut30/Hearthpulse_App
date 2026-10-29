@@ -24,16 +24,21 @@ public sealed partial class LocBindingTests
     [Fact]
     public void Match_battlegrounds_table_lays_out_contract_records() => Headless.Run(BattlegroundsTable);
 
-    private static (MatchView View, MatchViewModel Model, Window Window, Styles Theme) OpenMatch(string folder)
+    [Fact]
+    public void Match_battlegrounds_table_draws_every_step_of_a_recorded_game() => Headless.Run(RecordedBattlegrounds);
+
+    /// <summary>The match page on the Constructed test game, or on the page <paramref name="load"/> makes from the store.</summary>
+    private static (MatchView View, MatchViewModel Model, Window Window, Styles Theme) OpenMatch(string folder, Func<ReplayStore, MatchPage>? load = null)
     {
         var theme = Theme();
         Directory.CreateDirectory(folder);
         var store = new ReplayStore(Path.Combine(folder, "replays"));
-        var name = store.Save(MatchTimelineTests.Game(null).Key, ReplayFile.Write(new ReplayHeader(), MatchTimelineTests.Events));
+        load ??= s => MatchPage.Load(MatchTimelineTests.Game(s.Save(MatchTimelineTests.Game(null).Key, ReplayFile.Write(new ReplayHeader(), MatchTimelineTests.Events))),
+            s, CardDb.Empty, null);
         // Playback waits until the test ends: no step is played by the clock here.
         var model = new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(folder, "history.db")), new AppSettings()),
             (_, token) => Task.Delay(Timeout.Infinite, token));
-        model.Show(MatchPage.Load(MatchTimelineTests.Game(name), store, CardDb.Empty, null));
+        model.Show(load(store));
         var view = new MatchView { DataContext = model };
         var window = new Window { Width = 1260, Height = 900, Content = view };
         window.Show();
@@ -135,6 +140,43 @@ public sealed partial class LocBindingTests
             view.IsVisible = false;
             Assert.False(model.Playing);
             Assert.Equal(1, model.Frame);
+        }
+        finally
+        {
+            CloseMatch(model, window, theme, folder);
+        }
+    }
+
+    /// <summary>A Battlegrounds game recorded step by step (won on turn 1, lost on turn 2): the table draws each step.</summary>
+    private static void RecordedBattlegrounds()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"hp-match-bg-rec-{Guid.NewGuid():N}");
+        var (view, model, window, theme) = OpenMatch(folder, store =>
+        {
+            var (state, recorder, tracker) = BattlegroundsReplayTests.Play(BattlegroundsReplayTests.Game5th());
+            var game = MatchTimelineTests.Game(null) with { Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 5 };
+            var name = store.Save(game.Key, recorder.Battlegrounds.Text(new ReplayHeader(), tracker.ReplayData(state)));
+            return MatchPage.Load(game with { Replay = name }, store, CardDb.Empty, null);
+        });
+        try
+        {
+            var table = view.FindControl<Grid>("BattlegroundsTable")!;
+            Assert.True(model.ShowBattlegroundsTable && table.IsVisible);
+            var timeline = view.GetVisualDescendants().OfType<MatchTimeline>().Single();
+            Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
+
+            for (var frame = 0; frame <= model.FrameMax; frame++)
+            {
+                model.GoFrame.Execute(frame);
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                var step = model.BattlegroundsStep!;
+                Assert.Contains(step.Title, table.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
+                var ovals = table.GetVisualDescendants().OfType<Border>().Count(b => b.Classes.Contains("oval"));
+                Assert.True(ovals >= step.Board.Count + step.OpponentBoard.Count, $"step {frame}: {ovals} minions drawn");
+                var bar = table.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("bgStep"));
+                Assert.Equal(step.Phase == MatchPhase.Combat, bar.Classes.Contains("combat"));
+            }
         }
         finally
         {

@@ -78,17 +78,21 @@ public partial class MatchView : UserControl
         }
     }
 
+    /// <summary>
+    /// A weak subscription: the view model lives with the app, and a closed main window (theme change, a while in the
+    /// tray) keeps its DataContext, so a plain one would keep the window and all its pages.
+    /// </summary>
     private void Watch(MatchViewModel? model)
     {
         if (_model is not null)
         {
-            _model.PropertyChanged -= OnModelChanged;
+            PropertyChangedEventManager.RemoveHandler(_model, OnModelChanged, string.Empty);
         }
 
         _model = model;
         if (model is not null)
         {
-            model.PropertyChanged += OnModelChanged;
+            PropertyChangedEventManager.AddHandler(model, OnModelChanged, string.Empty);
         }
     }
 

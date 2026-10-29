@@ -42,9 +42,16 @@ internal static class PoolInput
         return _checkedIsGame;
     }
 
+    /// <summary>
+    /// The AppContext switch that turns the overlay's animations off whatever Windows says. Only the headless tests set
+    /// it: a fade runs on the wall clock, so a test could read a panel mid-rise.
+    /// </summary>
+    public const string NoAnimationsSwitch = "Hearthpulse.Overlay.NoAnimations";
+
     /// <summary>Windows animation setting ("Animate controls and elements inside windows"); false elsewhere.</summary>
     public static bool AnimationsOn() =>
-        OperatingSystem.IsWindows() && SystemParametersInfo(0x1042 /* SPI_GETCLIENTAREAANIMATION */, 0, out var on, 0) && on;
+        !(AppContext.TryGetSwitch(NoAnimationsSwitch, out var off) && off)
+        && OperatingSystem.IsWindows() && SystemParametersInfo(0x1042 /* SPI_GETCLIENTAREAANIMATION */, 0, out var on, 0) && on;
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int key);

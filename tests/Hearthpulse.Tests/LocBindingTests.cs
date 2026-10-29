@@ -245,6 +245,9 @@ public sealed partial class LocBindingTests
         {
             var thread = new Thread(() =>
             {
+                // No overlay fades: they run on the wall clock, and a panel read mid-rise depends on what ran before
+                // (PoolInput.NoAnimationsSwitch).
+                AppContext.SetSwitch("Hearthpulse.Overlay.NoAnimations", true);
                 AppBuilder.Configure<Application>().UseHeadless(new AvaloniaHeadlessPlatformOptions()).SetupWithoutStarting();
                 foreach (var job in Work.GetConsumingEnumerable())
                 {
