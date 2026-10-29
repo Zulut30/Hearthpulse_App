@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
@@ -241,7 +242,7 @@ public sealed class CounterReuseTests
                 Trimmer = new Core.MemoryTrimmer(() => { }),
                 Cards = cards,
             };
-            session.SnapshotChanged += snapshot => published.Add(Json(WithoutCombatOdds(snapshot)));
+            session.SnapshotChanged += snapshot => published.Add(WithoutCombatOdds(snapshot));
             session.OnSessionStarted("Hearthstone_2026_10_29_00_00_00", start, attachedMidSession: false);
             return session;
         }
@@ -300,10 +301,43 @@ public sealed class CounterReuseTests
     private static string Json(object value) => JsonSerializer.Serialize(value, value.GetType());
 
     /// <summary>
-    /// Battlegrounds combat odds come from a simulation with a time budget and a refinement in the background: two
-    /// sessions get them at different moments. They have nothing to do with the counters, so they are left out.
+    /// The snapshot as JSON without Battlegrounds combat odds, wherever they are: the live view, its combats and the
+    /// combats of a finished game the snapshot reports. They come from a simulation with a time budget and a refinement in
+    /// the background (150 runs, then 2 000), so two sessions get them at different moments; they have nothing to do with
+    /// the counters. Leaving out only the live view's odds failed on a kept log with a finished Battlegrounds game.
     /// </summary>
-    private static LiveSnapshot WithoutCombatOdds(LiveSnapshot snapshot) => snapshot.Battlegrounds is { } bg
-        ? snapshot with { Battlegrounds = bg with { CombatOdds = null, Combats = bg.Combats.Select(c => c with { Odds = null }).ToList() } }
-        : snapshot;
+    private static string WithoutCombatOdds(LiveSnapshot snapshot)
+    {
+        var node = JsonNode.Parse(Json(snapshot))!;
+        Strip(node);
+        return node.ToJsonString();
+
+        static void Strip(JsonNode? node)
+        {
+            switch (node)
+            {
+                case JsonObject item:
+                    item.Remove("CombatOdds");
+                    // A combat record (CombatRecord): the odds estimated when the fight started.
+                    if (item.ContainsKey("OpponentPlayerId") && item.ContainsKey("Result"))
+                    {
+                        item.Remove("Odds");
+                    }
+
+                    foreach (var (_, child) in item)
+                    {
+                        Strip(child);
+                    }
+
+                    break;
+                case JsonArray items:
+                    foreach (var child in items)
+                    {
+                        Strip(child);
+                    }
+
+                    break;
+            }
+        }
+    }
 }
