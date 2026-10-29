@@ -332,7 +332,9 @@ internal static class WpfBench
         ImageCaches();
 
         // The tray (stage 9): before, the hidden window kept every page; now the app lets it go after a minute hidden,
-        // asks MemoryTrimmer for a collection, and builds a new window on the same place when it is opened again.
+        // asks MemoryTrimmer for a collection, and builds a new window on the same place when it is opened again. The
+        // trim comes right after the dispatcher settles, with no measuring collection in between: that one would do the
+        // first half of the trim's work (the closed window goes only after its finalizers ran).
         main.Hide();
         Pump();
         Memory("hidden to tray (held)");
@@ -345,7 +347,6 @@ internal static class WpfBench
             Pump(DispatcherPriority.Background);
         }
 
-        Memory("main window closed");
         var trimmer = new MemoryTrimmer();
         var clock = DateTime.UtcNow;
         trimmer.NoteActivity(clock);

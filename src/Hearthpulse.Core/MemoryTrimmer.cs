@@ -67,7 +67,12 @@ public sealed class MemoryTrimmer
         return true;
     }
 
-    /// <summary>A full blocking collection that compacts the large object heap too and decommits what it frees.</summary>
+    /// <summary>
+    /// A full blocking collection that compacts the large object heap too and decommits what it frees. A closed window
+    /// is garbage only once its finalizable parts have run: a first collection queues them, the finalizers run, and the
+    /// compacting one takes the window (one collection left a main window let go in the tray in 2 bench runs of 3).
+    /// Runs on the log watcher's thread, not the UI's.
+    /// </summary>
     private static void Collect()
     {
         const double mb = 1024 * 1024;
@@ -75,6 +80,8 @@ public sealed class MemoryTrimmer
         var managedBefore = GC.GetTotalMemory(false);
         var privateBefore = process.PrivateMemorySize64;
         var started = Stopwatch.GetTimestamp();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
         GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
         GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
