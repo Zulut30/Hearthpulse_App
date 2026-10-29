@@ -145,6 +145,13 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     /// <summary>Collects the garbage of a catch-up or a game once the log is quiet; tests pass one with a counter.</summary>
     internal MemoryTrimmer Trimmer { get; set; } = new();
 
+    /// <summary>Off: every counter is built on every update instead of reusing the unchanged ones (tests compare both).</summary>
+    internal bool ReuseCounterViews
+    {
+        get => _constructed.Counters.Views.Reuse;
+        set => _constructed.Counters.Views.Reuse = value;
+    }
+
     /// <summary>
     /// The host finished something that left garbage behind (start-up, a meta load): the memory is handed back once the
     /// app is quiet and no game is being played.
