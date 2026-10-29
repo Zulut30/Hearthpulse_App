@@ -102,6 +102,25 @@ public sealed class OverlayMoveResizeTests
         var area = deck.ArmedArea();
         Assert.True(area.Right > deck.ActualWidth + 3 && area.Bottom > deck.ActualHeight + 3, area.ToString());
 
+        // The marker is one size and sticks out of the corner as far at every panel size, as in the Avalonia overlay.
+        var surface = (FrameworkElement)deck.Parent;
+        foreach (var scale in new[] { 0.6, 1.6 })
+        {
+            deck.Apply(new PanelPlacement { X = 0.3, Y = 0.1, Scale = scale }, new Size(1920, 1080));
+            root.UpdateLayout();
+            var grip = Part(deck, "PART_Grip");
+            var marker = grip.TransformToAncestor(surface).TransformBounds(new Rect(grip.RenderSize));
+            var panel = deck.TransformToAncestor(surface).TransformBounds(new Rect(deck.RenderSize));
+            // To whole units: layout rounding snaps to the test machine's pixels.
+            Assert.Equal(14, marker.Width, 0);
+            Assert.Equal(14, marker.Height, 0);
+            Assert.Equal(6, marker.Right - panel.Right, 0);
+            Assert.Equal(6, marker.Bottom - panel.Bottom, 0);
+        }
+
+        deck.Apply(null, new Size(1920, 1080));
+        root.UpdateLayout();
+
         // A drag that loses the mouse (the panel hid, the player switched windows) ends and saves where the panel is.
         PanelPlacement? saved = null;
         deck.PlacementChanged += (_, placement) => saved = placement;

@@ -152,6 +152,30 @@ public sealed class MovablePanel : ContentControl
     {
         _scale.ScaleX = _scale.ScaleY = scale;
         ScaleText = PanelSnap.ScaleText(scale);
+        UpdateGrip();
+    }
+
+    /// <summary>How far the corner marker sticks out of the panel's corner, in overlay units.</summary>
+    private const double GripOverhang = 6;
+
+    // Undoes the panel's scale on the corner marker.
+    private readonly ScaleTransform _gripScale = new(1, 1);
+
+    /// <summary>
+    /// The corner marker keeps one size and sticks out of the corner as far at every panel size, as in the Avalonia
+    /// overlay, where it sits outside the scaled content: at 60 % it shrank to 8 units, the hardest to hit just where
+    /// the player wants a small panel bigger.
+    /// </summary>
+    private void UpdateGrip()
+    {
+        if (_grip is null)
+        {
+            return;
+        }
+
+        var undo = 1 / _scale.ScaleX;
+        _gripScale.ScaleX = _gripScale.ScaleY = undo;
+        _grip.Margin = new Thickness(0, 0, -GripOverhang * undo, -GripOverhang * undo);
     }
 
     /// <summary>Raised when the player moves, resizes or resets the panel (null = reset).</summary>
@@ -186,6 +210,12 @@ public sealed class MovablePanel : ContentControl
         Hook("PART_Reset", Reset);
         _chrome = GetTemplateChild("PART_Chrome") as FrameworkElement;
         _grip = GetTemplateChild("PART_Grip") as FrameworkElement;
+        if (_grip is not null)
+        {
+            _grip.LayoutTransform = _gripScale;
+        }
+
+        UpdateGrip();
         UpdateChrome();
 
         void Hook(string name, Action action)

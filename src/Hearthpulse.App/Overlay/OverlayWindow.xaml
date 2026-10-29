@@ -766,7 +766,8 @@
                                     </Border>
                                 </StackPanel>
                             </Grid>
-                            <!-- Corner marker: dragged, it resizes the panel like the wheel (layout mode, or Ctrl held during a game) -->
+                            <!-- Corner marker: dragged, it resizes the panel like the wheel (layout mode, or Ctrl held during a game).
+                                 MovablePanel undoes the panel's scale on it (size and margin), so it is one size at every scale. -->
                             <Border x:Name="PART_Grip" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"
                                     Width="14" Height="14" CornerRadius="4" Background="{StaticResource Accent}" Cursor="SizeNWSE" ToolTip="{i:Loc Overlay.Move.Grip}">
                                 <TextBlock Text="&#xF045D;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource OnAccent}"

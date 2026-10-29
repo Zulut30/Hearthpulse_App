@@ -63,6 +63,22 @@ public sealed partial class LocBindingTests
             var area = timer.ArmedArea();
             Assert.True(area.Right > timer.Bounds.Width + 3 && area.Bottom > timer.Bounds.Height + 3, area.ToString());
 
+            // The marker is one size and sticks out of the corner as far at every panel size, as in the WPF overlay.
+            foreach (var scale in new[] { 0.6, 1.6 })
+            {
+                timer.Apply(new PanelPlacement { X = 0.3, Y = 0.1, Scale = scale }, new Size(1920, 1080));
+                Settle();
+                var marker = new Rect(grip.TranslatePoint(default, view)!.Value, grip.TranslatePoint(new Point(grip.Bounds.Width, grip.Bounds.Height), view)!.Value);
+                var panel = new Rect(timer.TranslatePoint(default, view)!.Value, timer.TranslatePoint(new Point(timer.Bounds.Width, timer.Bounds.Height), view)!.Value);
+                Assert.Equal(14, marker.Width, 1);
+                Assert.Equal(14, marker.Height, 1);
+                Assert.Equal(6, marker.Right - panel.Right, 1);
+                Assert.Equal(6, marker.Bottom - panel.Bottom, 1);
+            }
+
+            timer.Apply(null, new Size(1920, 1080));
+            Settle();
+
             // Ctrl let go: no frame, no marker, clicks go to the game.
             Assert.False(view.UpdateDragArm(Inside(), controlDown: false));
             Settle();
