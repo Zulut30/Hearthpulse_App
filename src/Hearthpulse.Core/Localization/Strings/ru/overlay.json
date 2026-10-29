@@ -40,7 +40,7 @@
 
   "Overlay.Deck.Fallback": "Колода",
   "Overlay.Deck.Counts": "{0} в колоде · {1} в руке",
-  "Overlay.Deck.NextDraw": "Следующая карта: {0} {1:P0}",
+  "Overlay.Deck.NextDraw": "Следующая карта ({1:P0}): {0}",
 
   "Overlay.Opponent.Hand": "Рука",
   "Overlay.Opponent.Deck": "Колода",

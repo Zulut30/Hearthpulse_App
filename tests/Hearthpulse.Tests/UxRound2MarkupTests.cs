@@ -310,6 +310,20 @@ public sealed class UxRound2MarkupTests
             (string?)style.Elements().Single(s => (string?)s.Attribute("Property") == "FontSize").Attribute("Value");
     }
 
+    /// <summary>
+    /// The deck panel's last line ends in an ellipsis when it runs long: the chance comes before the card's name, so a
+    /// long Russian name loses its tail, not the number the line is for.
+    /// </summary>
+    [Theory]
+    [InlineData("en")]
+    [InlineData("ru")]
+    public void Next_draw_puts_the_chance_before_the_card_name(string language)
+    {
+        var text = Loc.Table(language)["Overlay.Deck.NextDraw"];
+        Assert.True(text.IndexOf("{1", StringComparison.Ordinal) is var chance and >= 0 && chance < text.IndexOf("{0}", StringComparison.Ordinal), text);
+        Assert.EndsWith("{0}", text, StringComparison.Ordinal);
+    }
+
     /// <summary>The card pool browser stands below the top bar; its card ends above the screen's bottom edge, 16 clear.</summary>
     [Theory]
     [InlineData(WpfOverlay, "src/Hearthpulse.App/Overlay/CardPoolBrowser.xaml")]

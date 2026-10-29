@@ -40,7 +40,7 @@
 
   "Overlay.Deck.Fallback": "Deck",
   "Overlay.Deck.Counts": "{0} in deck · {1} in hand",
-  "Overlay.Deck.NextDraw": "Next draw: {0} {1:P0}",
+  "Overlay.Deck.NextDraw": "Next draw ({1:P0}): {0}",
 
   "Overlay.Opponent.Hand": "Hand",
   "Overlay.Opponent.Deck": "Deck",
