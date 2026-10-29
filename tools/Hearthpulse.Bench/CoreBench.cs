@@ -251,6 +251,32 @@ internal static class CoreBench
             settings.MetaRank, settings.MetaPeriod, cards.Locale).GetAwaiter().GetResult());
         Time("card pool catalog", () => CardPoolCatalog.LoadAsync(api, http).GetAwaiter().GetResult());
         Memory("after meta");
+
+        // The hosts ask MemoryTrimmer for a collection after every Constructed meta load: opening the other format's page
+        // must not leave its parsing garbage behind (stage 9). The real trimmer, on a clock past its waits.
+        var trimmer = new MemoryTrimmer();
+        var clock = DateTime.UtcNow;
+        var kept = new List<object?>();
+        foreach (var format in new[] { "standard", "wild" })
+        {
+            kept.Add(Hearthpulse.Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(api), cards, format,
+                settings.MetaRank, settings.MetaPeriod, cards.Locale).GetAwaiter().GetResult());
+            Private($"{format} loaded");
+            trimmer.NoteActivity(clock);
+            clock += MemoryTrimmer.MinInterval;
+            trimmer.Tick(clock, busy: false);
+            Private($"{format} + memory trim");
+        }
+
+        GC.KeepAlive(kept);
+    }
+
+    /// <summary>Private bytes and the managed heap as they are, without a collection of its own (a trim step measures the trim).</summary>
+    private static void Private(string label)
+    {
+        using var process = Process.GetCurrentProcess();
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"[meta] {label,-26} private {process.PrivateMemorySize64 / 1048576,4} MB  WS {process.WorkingSet64 / 1048576,4} MB  managed {GC.GetTotalMemory(false) / 1048576,4} MB  GC committed {GC.GetGCMemoryInfo().TotalCommittedBytes / 1048576,4} MB"));
     }
 
     public static void Poll()

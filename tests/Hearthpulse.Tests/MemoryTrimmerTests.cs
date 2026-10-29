@@ -82,6 +82,40 @@ public sealed class MemoryTrimmerTests : IDisposable
         Assert.Equal(2, count);
     }
 
+    /// <summary>
+    /// The hosts ask after every meta load and when the window hides: a burst (meta, language, tray) collects once,
+    /// and a request soon after a collection is kept for the next allowed one, not dropped.
+    /// </summary>
+    [Fact]
+    public void A_burst_of_requests_collects_once_and_a_request_too_soon_waits_for_the_minimum_interval()
+    {
+        var count = 0;
+        var trimmer = new MemoryTrimmer(() => count++);
+        var at = new List<TimeSpan>();
+        void TickEverySecond(TimeSpan from, TimeSpan to)
+        {
+            for (var t = from; t <= to; t += TimeSpan.FromSeconds(1))
+            {
+                if (trimmer.Tick(T0 + t, busy: false))
+                {
+                    at.Add(t);
+                }
+            }
+        }
+
+        trimmer.NoteActivity(T0);
+        trimmer.NoteActivity(T0 + TimeSpan.FromSeconds(2));
+        trimmer.NoteActivity(T0 + TimeSpan.FromSeconds(5));
+        TickEverySecond(TimeSpan.Zero, TimeSpan.FromSeconds(60));
+        Assert.Equal([TimeSpan.FromSeconds(5) + MemoryTrimmer.Settle], at);
+
+        var first = at[0];
+        trimmer.NoteActivity(T0 + first + TimeSpan.FromSeconds(30));
+        TickEverySecond(TimeSpan.FromSeconds(61), first + MemoryTrimmer.MinInterval + TimeSpan.FromMinutes(5));
+        Assert.Equal([first, first + MemoryTrimmer.MinInterval], at);
+        Assert.Equal(2, count);
+    }
+
     [Fact]
     public void A_game_in_progress_is_never_interrupted_and_its_garbage_goes_once_it_is_over()
     {

@@ -366,12 +366,8 @@ public sealed partial class AppHost : IDisposable
         }
     }
 
-    /// <summary>The 3-hour refresh of the Battlegrounds meta; its parsing garbage is collected once things are quiet.</summary>
-    private async Task RefreshMetaAsync()
-    {
-        await LoadMetaAsync();
-        Session.RequestMemoryTrim();
-    }
+    /// <summary>The 3-hour refresh of the Battlegrounds meta (it asks for the collection of its parsing garbage).</summary>
+    private Task RefreshMetaAsync() => LoadMetaAsync();
 
     /// <summary>
     /// Community stats: heroes and minions from the Hearthpulse API, and, when a stats pool is set up, the pool's meta
@@ -388,6 +384,7 @@ public sealed partial class AppHost : IDisposable
         }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
+        Session.RequestMemoryTrim();
 
         try
         {
@@ -487,6 +484,10 @@ public sealed partial class AppHost : IDisposable
             {
                 _constructedLoading.Remove(format);
             }
+
+            // A load (another format, filters, language) leaves about 30 MB of parsing garbage that an idle app would
+            // never collect: once things are quiet, it is given back.
+            Session.RequestMemoryTrim();
         }
     }
 

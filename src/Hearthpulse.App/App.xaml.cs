@@ -493,14 +493,11 @@ public partial class App : Application
         }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
-    }
-
-    /// <summary>The 6-hour refresh of both metas; their parsing garbage is collected once things are quiet.</summary>
-    private async Task RefreshMetaAsync()
-    {
-        await Task.WhenAll(LoadMetaAsync(), LoadConstructedMetaAsync());
         _session.RequestMemoryTrim();
     }
+
+    /// <summary>The 6-hour refresh of both metas (each asks for the collection of its parsing garbage).</summary>
+    private Task RefreshMetaAsync() => Task.WhenAll(LoadMetaAsync(), LoadConstructedMetaAsync());
 
     /// <summary>Russian archetype names, once per run and only while the interface is Russian (the only language that uses them).</summary>
     private void LoadArchetypeNames()
@@ -618,6 +615,12 @@ public partial class App : Application
             }
 
             Diag.Error("Constructed stats unavailable", ex);
+        }
+        finally
+        {
+            // A load (another format, filters, language) leaves about 30 MB of parsing garbage that an idle app would
+            // never collect: once things are quiet, it is given back.
+            _session.RequestMemoryTrim();
         }
     }
 
