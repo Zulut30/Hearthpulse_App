@@ -113,7 +113,8 @@ public static class GameRecords
         }
 
         var opponentHero = game.OpponentHero?.CardId ?? string.Empty;
-        var opponentClass = cards.Get(opponentHero)?.CardClass ?? string.Empty;
+        var opponentClass = HeroClass.Of(game, game.OpponentPlayerEntity, cards);
+        var playerClass = HeroClass.Of(game, game.LocalPlayerEntity, cards);
         // Card facts only for deck games (what the deck page reads), and only when the mulligan was seen: a game the
         // log picks up mid-way (a reconnect) has lost its opening hand and early draws.
         var cardFacts = mode is "Ranked" or "Casual" or "Friendly" or "Practice" ? facts : null;
@@ -131,7 +132,7 @@ public static class GameRecords
             OpponentName = game.OpponentPlayer?.Name ?? string.Empty,
             HeroCardId = hero?.CardId ?? string.Empty,
             OpponentHeroCardId = opponentHero,
-            PlayerClass = cards.Get(hero?.CardId)?.CardClass ?? string.Empty,
+            PlayerClass = playerClass,
             OpponentClass = opponentClass,
             Result = left ? GameRecord.AbandonedResult : playState switch
             {
@@ -148,7 +149,7 @@ public static class GameRecords
             RankStarLevel = rankInfo is { StarLevel: > 0 } ? rankInfo.StarLevel : null,
             RankLegend = rankInfo is { LegendRank: > 0 } ? rankInfo.LegendRank : null,
             WentFirst = WentFirst(game),
-            DeckId = deck is { DeckId: > 0 } && DeckFits(deck, cards.Get(hero?.CardId)?.CardClass, cards) ? deck.DeckId : null,
+            DeckId = deck is { DeckId: > 0 } && DeckFits(deck, playerClass, cards) ? deck.DeckId : null,
             Mulligan = GameCards.MulliganJson(mulligan),
             CardsDrawn = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Drawn(game)),
             CardsPlayed = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Played(game)),

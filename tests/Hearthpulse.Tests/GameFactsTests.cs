@@ -21,7 +21,8 @@ public sealed class GameFactsTests
           {"id":"HERO_09","dbfId":813,"name":"Anduin","type":"HERO","cardClass":"PRIEST"},
           {"id":"TB_BaconShop_HERO_50","dbfId":59000,"name":"Tess","type":"HERO"},
           {"id":"BG27_Anomaly_100","dbfId":100100,"name":"An Anomaly","type":"BATTLEGROUND_ANOMALY"},
-          {"id":"CORE_CS2_029","dbfId":1004,"name":"Fireball","type":"SPELL","cardClass":"MAGE"}
+          {"id":"CORE_CS2_029","dbfId":1004,"name":"Fireball","type":"SPELL","cardClass":"MAGE"},
+          {"id":"CATA_190h","dbfId":125400,"name":"Deathwing, Worldbreaker","type":"HERO"}
         ]
         """u8.ToArray()));
 
@@ -135,6 +136,40 @@ public sealed class GameFactsTests
         // A Priest deck still queued from an earlier game, while this game is played as Mage.
         var record = Ranked(Me, new DeckDefinition("Priest", 77, "code", "FT_STANDARD", [813], new Dictionary<int, int>()));
         Assert.Null(record.DeckId);
+    }
+
+    [Fact]
+    public void A_neutral_hero_card_keeps_the_class_each_player_started_with()
+    {
+        // 28.10: the opponent played Deathwing, Worldbreaker (a hero card without a class) and the row lost its class
+        // (matchups, archetype guess); the live view lost it too (deck meta, the opponent's archetype).
+        var parser = new PowerParser(new DateOnly(2026, 10, 28));
+        var battlegrounds = new BattlegroundsTracker { Cards = Cards };
+        var constructed = new ConstructedTracker();
+        parser.AddListener(battlegrounds);
+        parser.AddListener(constructed);
+        Feed(parser,
+        [
+            .. Setup("GT_RANKED", 30, 40, opponentIsDummy: false),
+            .. Entity(30, "HERO_08", Me, "PLAY", "HERO"),
+            .. Entity(40, "HERO_09", Them, "PLAY", "HERO"),
+            .. Entity(60, "CORE_CS2_029", Me, "HAND", "SPELL"),
+            .. Entity(70, "CATA_190h", Me, "PLAY", "HERO"),
+            .. Entity(71, "CATA_190h", Them, "PLAY", "HERO"),
+            "DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=HERO_ENTITY value=70 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=You#5678 tag=HERO_ENTITY value=71 ",
+        ]);
+
+        var view = constructed.BuildView(parser.Game!, Cards);
+        Assert.Equal("MAGE", view.PlayerClass);
+        Assert.Equal("PRIEST", view.OpponentClass);
+
+        Feed(parser, ["DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=PLAYSTATE value=WON "]);
+        var record = GameRecords.Build(parser.Game!, battlegrounds, Cards,
+            new DeckDefinition("Mage", 42, "code", "FT_STANDARD", [637], new Dictionary<int, int>()), "test")!;
+        Assert.Equal("MAGE", record.PlayerClass);
+        Assert.Equal("PRIEST", record.OpponentClass);
+        Assert.Equal(42, record.DeckId);
     }
 
     private static GameRecord Ranked(int firstPlayer, DeckDefinition deck)

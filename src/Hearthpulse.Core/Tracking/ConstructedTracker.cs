@@ -152,7 +152,8 @@ public sealed class ConstructedTracker : IPowerListener
             .Select(e => HandSlotOf(game, cards, e))
             .ToList();
 
-        var playerClass = cards.Get(playerHero)?.CardClass ?? string.Empty;
+        var playerClass = HeroClass.Of(game, game.LocalPlayerEntity, cards);
+        var opponentClass = HeroClass.Of(game, game.OpponentPlayerEntity, cards);
         var meta = GameMeta(game);
         // Asked on every update so the lookup starts as soon as the deck is known, before the mulligan begins.
         // During the mulligan the coin and the opponent's class are known: their slices load then.
@@ -165,9 +166,9 @@ public sealed class ConstructedTracker : IPowerListener
             Deck?.Name,
             Deck is not null,
             playerHero,
-            cards.Get(playerHero)?.CardClass ?? string.Empty,
+            playerClass,
             opponentHero,
-            cards.Get(opponentHero)?.CardClass ?? string.Empty,
+            opponentClass,
             game.OpponentPlayer?.Name,
             rows,
             deckCount,
@@ -185,7 +186,7 @@ public sealed class ConstructedTracker : IPowerListener
             DeckId = Deck?.DeckId ?? 0,
             DeckCode = Deck?.Code,
             DeckMeta = DeckMetaFor(cards, playerClass, game.FormatType),
-            OpponentArchetype = OpponentArchetypeFor(cards, cards.Get(opponentHero)?.CardClass, game.GameType, game.FormatType, played),
+            OpponentArchetype = OpponentArchetypeFor(cards, opponentClass, game.GameType, game.FormatType, played),
         };
     }
 
