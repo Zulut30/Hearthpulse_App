@@ -397,30 +397,58 @@ public sealed class MatchPlayerTests : IDisposable
         var page = BattlegroundsPage("bg-5th", Bg.Game5th());
         model.Show(page);
         var first = model.BattlegroundsStep!;
-        var lists = new object[] { first.Board, first.Shop, first.Hand, first.OpponentBoard, first.Choices, model.Leaders, model.Actions, model.Turns };
+        object[] Lists(MatchBgStepView s) => [s.Board, s.Shop, s.Hand, s.OpponentBoard, s.Choices, model.Leaders, model.Actions, model.Turns];
+        var lists = Lists(first);
+        // The heroes' lists, from the first step that shows each hero (the opponent only in combat).
+        var heroLists = new object?[4];
         var raised = new List<string?>();
         model.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
         var before = first;
-        var powers = first.Hero?.HeroPowers;
+        var opponentSeen = false;
         for (var frame = 1; frame <= model.FrameMax; frame++)
         {
             model.GoFrame.Execute(frame);
             var step = model.BattlegroundsStep!;
             var shown = page.BattlegroundsStep(frame)!;
-            Assert.Equal(lists, new object[] { step.Board, step.Shop, step.Hand, step.OpponentBoard, step.Choices, model.Leaders, model.Actions, model.Turns });
+
+            // The same list objects on every step (the items controls keep them), holding what the step shows.
+            Assert.All(lists.Zip(Lists(step)), pair => Assert.Same(pair.First, pair.Second));
             Assert.Equal(shown.Board, step.Board);
             Assert.Equal(shown.Shop, step.Shop);
             Assert.Equal(shown.Hand, step.Hand);
             Assert.Equal(shown.OpponentBoard, step.OpponentBoard);
-            Assert.Equal(shown.Choices.Count, step.Choices.Count);
+            SameChoices(shown.Choices, step.Choices);
             Assert.Equal(shown.Leaderboard.Select(MatchViewModel.Leader), model.Leaders);
-            Assert.Equal(shown.Hero?.HeroPowers ?? [], step.Hero?.HeroPowers ?? []);
-            Assert.Equal(shown.Hero?.Trinkets ?? [], step.Hero?.Trinkets ?? []);
-            if (step.Hero is { } hero)
+            foreach (var (index, expected, actual) in new[] { (0, shown.Hero, step.Hero), (2, shown.Opponent, step.Opponent) })
             {
-                powers ??= hero.HeroPowers;
-                Assert.Same(powers, hero.HeroPowers);
+                Assert.Equal(expected is null, actual is null);
+                if (expected is null || actual is null)
+                {
+                    continue;
+                }
+
+                Assert.Equal(expected.HeroPowers, actual.HeroPowers);
+                Assert.Equal(expected.Trinkets, actual.Trinkets);
+                Assert.Equal(expected with { HeroPowers = actual.HeroPowers, Trinkets = actual.Trinkets }, actual);
+                heroLists[index] ??= actual.HeroPowers;
+                heroLists[index + 1] ??= actual.Trinkets;
+                Assert.Same(heroLists[index], actual.HeroPowers);
+                Assert.Same(heroLists[index + 1], actual.Trinkets);
+                opponentSeen |= index == 2;
             }
+
+            // Everything else of the step is the page's step.
+            Assert.Equal(shown with
+            {
+                Hero = step.Hero,
+                Opponent = step.Opponent,
+                Board = step.Board,
+                OpponentBoard = step.OpponentBoard,
+                Shop = step.Shop,
+                Hand = step.Hand,
+                Choices = step.Choices,
+                Leaderboard = step.Leaderboard,
+            }, step);
 
             // A card equal to the one shown at its place a step before is still that row.
             var board = step.Board.ToList();
@@ -434,11 +462,22 @@ public sealed class MatchPlayerTests : IDisposable
 
         // The views keep the current event in view when the list says it changed.
         Assert.Contains(nameof(MatchViewModel.Actions), raised);
+        Assert.True(opponentSeen, "the fixture has a combat");
 
         // Leaving the game lets go of its rows.
         model.Clear();
         Assert.Null(model.BattlegroundsStep);
-        Assert.All(lists, list => Assert.Empty((System.Collections.IEnumerable)list));
+        Assert.All(lists.Concat(heroLists.OfType<object>()), list => Assert.Empty((System.Collections.IEnumerable)list));
+    }
+
+    /// <summary>The choices shown are the page's: same titles, same cards in the same order.</summary>
+    private static void SameChoices(IReadOnlyList<MatchChoiceView> expected, IReadOnlyList<MatchChoiceView> actual)
+    {
+        Assert.Equal(expected.Select(c => c.Title), actual.Select(c => c.Title));
+        for (var i = 0; i < expected.Count; i++)
+        {
+            Assert.Equal(expected[i].Cards, actual[i].Cards);
+        }
     }
 
     /// <summary>
@@ -463,16 +502,19 @@ public sealed class MatchPlayerTests : IDisposable
                 model.GoFrame.Execute(frame);
                 var step = model.Step!;
                 var shown = page.Step(frame, local ? ReplayPlayer.Local : ReplayPlayer.Opponent)!;
-                Assert.Equal(lists, Lists(step));
+                Assert.All(lists.Zip(Lists(step)), pair => Assert.Same(pair.First, pair.Second));
                 Assert.Equal(shown.Top.Board, step.Top.Board);
                 Assert.Equal(shown.Top.Hand, step.Top.Hand);
                 Assert.Equal(shown.Top.Secrets, step.Top.Secrets);
                 Assert.Equal(shown.Bottom.Board, step.Bottom.Board);
                 Assert.Equal(shown.Bottom.Hand, step.Bottom.Hand);
                 Assert.Equal(shown.Bottom.Secrets, step.Bottom.Secrets);
-                Assert.Equal(shown.Choices.Count, step.Choices.Count);
-                Assert.Equal((shown.Top.Hero, shown.Bottom.Hero, shown.Action), (step.Top.Hero, step.Bottom.Hero, step.Action));
+                SameChoices(shown.Choices, step.Choices);
                 Assert.Equal(page.Actions(frame), model.Actions);
+
+                // Everything else of the step and its sides is the page's step.
+                static MatchSideView Side(MatchSideView side, MatchSideView lists) => side with { Board = lists.Board, Hand = lists.Hand, Secrets = lists.Secrets };
+                Assert.Equal(shown with { Top = Side(shown.Top, step.Top), Bottom = Side(shown.Bottom, step.Bottom), Choices = step.Choices }, step);
             }
         }
 
