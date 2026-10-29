@@ -27,6 +27,8 @@ Paths: repo `D:\HeartLens-main\HeartLens-main` (`$repo`), worktrees `D:\HeartLen
 
 ## 1. Split into sessions
 
+- Anything bigger than a small fix: get the task card, packages and design from
+  [hearthpulse-team](../hearthpulse-team/SKILL.md) §1-4 - it runs this section with role briefs and QA/review.
 - One session per independent area (files do not overlap - see parallel-work §1-3). A small task (a handful of
   edits) is one session; never do the feature in the coordinating session itself.
 - Per session create the worktree yourself (the session folder `D:\HeartLens-main` is not a git repo):

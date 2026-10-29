@@ -35,6 +35,11 @@ Project skills live in `.claude/skills/`. Start from the one that matches the ta
 | Reviewing a branch | `hearthpulse-review` |
 | Splitting a big task into parallel sessions | `hearthpulse-parallel-work` |
 | Task -> sessions -> merge, push, build, restart, no confirmations | `hearthpulse-ship` |
+| Task -> lead's card -> designer, developers, QA, reviewer | `hearthpulse-team` |
+
+Team agents (`.claude/agents/`, run by `hearthpulse-team`): `hearthpulse-lead` (task card and work packages),
+`hearthpulse-designer` (design.md), `hearthpulse-core-dev` and `hearthpulse-ui-dev` (developer sessions),
+`hearthpulse-qa` (acceptance criteria and tests), `hearthpulse-reviewer` (branch review).
 
 Agent `hearthpulse-legal` (`.claude/agents/`): ban risk, licences, Blizzard IP and privacy check before a release or
 a merge that touches game memory, input, third-party code/data, paid features or user data. Report goes to
