@@ -115,8 +115,14 @@ public sealed class CounterReuseTests
         yield return ([Tag(Entity(21, "HERO_01", 2), "ATK", 0)], null);
     }
 
+    /// <summary>
+    /// On the headless Avalonia thread: switching the global language updates every live Avalonia text bound to it, and
+    /// those belong to that thread (LocBindingTests).
+    /// </summary>
     [Fact]
-    public void Reused_counter_views_match_building_every_counter_line_by_line()
+    public void Reused_counter_views_match_building_every_counter_line_by_line() => LocBindingTests.Headless.Run(LineByLine);
+
+    private static void LineByLine()
     {
         try
         {
@@ -235,7 +241,7 @@ public sealed class CounterReuseTests
                 Trimmer = new Core.MemoryTrimmer(() => { }),
                 Cards = cards,
             };
-            session.SnapshotChanged += snapshot => published.Add(Json(snapshot));
+            session.SnapshotChanged += snapshot => published.Add(Json(WithoutCombatOdds(snapshot)));
             session.OnSessionStarted("Hearthstone_2026_10_29_00_00_00", start, attachedMidSession: false);
             return session;
         }
@@ -292,4 +298,12 @@ public sealed class CounterReuseTests
     }
 
     private static string Json(object value) => JsonSerializer.Serialize(value, value.GetType());
+
+    /// <summary>
+    /// Battlegrounds combat odds come from a simulation with a time budget and a refinement in the background: two
+    /// sessions get them at different moments. They have nothing to do with the counters, so they are left out.
+    /// </summary>
+    private static LiveSnapshot WithoutCombatOdds(LiveSnapshot snapshot) => snapshot.Battlegrounds is { } bg
+        ? snapshot with { Battlegrounds = bg with { CombatOdds = null, Combats = bg.Combats.Select(c => c with { Odds = null }).ToList() } }
+        : snapshot;
 }

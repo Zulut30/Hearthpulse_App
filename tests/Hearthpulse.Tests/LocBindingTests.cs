@@ -212,7 +212,7 @@ public sealed partial class LocBindingTests
     /// One headless Avalonia platform per test run on its own thread: Avalonia objects belong to the thread that set the
     /// platform up, and xUnit may run each test of the collection on a different pool thread.
     /// </summary>
-    private static class Headless
+    internal static class Headless
     {
         private static readonly BlockingCollection<Action> Work = new();
         private static readonly Thread UiThread = Start();
