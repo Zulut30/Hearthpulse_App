@@ -191,15 +191,6 @@
         <ItemsPanelTemplate x:Key="PageRows">
             <c:PageRowsPanel />
         </ItemsPanelTemplate>
-        <!-- The overlay card's section headings while the overlay itself is off: dimmed. Only these explanatory lines: the
-             switches keep their full contrast and still work (panels can be set up ahead); the "overlay is off" note says why. -->
-        <Style x:Key="SettingGroupOverlayOff" TargetType="TextBlock" BasedOn="{StaticResource SettingGroup}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsChecked, ElementName=OverlaySetting}" Value="False">
-                    <Setter Property="Opacity" Value="0.45" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -954,10 +945,21 @@
                                         <TextBlock Text="{i:Loc Settings.Note.Overlay}" Style="{StaticResource CardNote}" />
                                         <CheckBox x:Name="OverlaySetting" Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.EnabledTip}" />
-                                        <TextBlock x:Name="OverlayOffNote" Text="{i:Loc Settings.Overlay.OffNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,-4,0,14"
-                                                   Visibility="{Binding IsChecked, ElementName=OverlaySetting, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <!-- The overlay is off: said by a banner in the accent container colours (as the setup warning on Home); the
+                                             headings and switches below keep their full contrast and still work, so panels can be set up ahead -->
+                                        <Border x:Name="OverlayOffBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,-4,0,14"
+                                                Visibility="{Binding IsChecked, ElementName=OverlaySetting, Converter={StaticResource Vis}, ConverterParameter=!}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="&#xF002A;" Style="{StaticResource Icon}" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,10,0" />
+                                                <TextBlock x:Name="OverlayOffNote" Grid.Column="1" Text="{i:Loc Settings.Overlay.OffNote}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                                            </Grid>
+                                        </Border>
                                         <StackPanel x:Name="OverlayPanelSwitches">
-                                        <TextBlock Text="{i:Loc Widgets.Settings.Section}" Style="{StaticResource SettingGroupOverlayOff}" />
+                                        <TextBlock Text="{i:Loc Widgets.Settings.Section}" Style="{StaticResource SettingGroup}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Turn.Setting}" IsChecked="{Binding ShowTurnTimer}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Widgets.Turn.SettingTip}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Widgets.Archetype.Setting}" IsChecked="{Binding ShowOpponentArchetype}" Margin="0,0,0,14"
@@ -977,10 +979,10 @@
                                                 <Run Text="{Binding LadderSessionBreakHours, Mode=OneWay}" /><Run Text=" " /><Run Text="{i:Loc Widgets.Ladder.HoursUnit}" />
                                             </TextBlock>
                                         </Grid>
-                                        <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Style="{StaticResource SettingGroupOverlayOff}" />
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Style="{StaticResource SettingGroup}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.Secrets}" IsChecked="{Binding ShowSecrets}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.SecretsTip}" />
-                                        <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Style="{StaticResource SettingGroupOverlayOff}" />
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Style="{StaticResource SettingGroup}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Overlay.TopBar}" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Overlay.TopBarTip}" />
                                         <!-- Pick suggestions: badges over heroes, trinkets, tavern minions and every Discover -->
@@ -1095,8 +1097,17 @@
                                     <StackPanel DataContext="{Binding Settings}">
                                         <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
                                         <TextBlock Text="{i:Loc Settings.Note.Tracker}" Style="{StaticResource CardNote}" />
-                                        <TextBlock Text="{i:Loc Settings.Overlay.OffNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,-4,0,14"
-                                                   Visibility="{Binding IsChecked, ElementName=OverlaySetting, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <Border x:Name="TrackerOverlayOffBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,-4,0,14"
+                                                Visibility="{Binding IsChecked, ElementName=OverlaySetting, Converter={StaticResource Vis}, ConverterParameter=!}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="&#xF002A;" Style="{StaticResource Icon}" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,10,0" />
+                                                <TextBlock Grid.Column="1" Text="{i:Loc Settings.Overlay.OffNote}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                                            </Grid>
+                                        </Border>
                                         <StackPanel x:Name="TrackerPanelSwitches">
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Deck}" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
