@@ -42,11 +42,17 @@ public sealed partial class LocBindingTests
     [Fact]
     public void Settings_cards_say_what_they_are_for_and_the_replay_rule_is_a_visible_line() => Headless.Run(() => WithMainView((view, _) =>
     {
-        // The same ten notes, in the same order, as the WPF settings page (UxPolishContractTests).
-        string[] cards = ["Language", "Theme", "App", "Overlay", "Layout", "Tracker", "Counters", "Account", "Data", "Sources"];
+        // The same notes, in the same order, as the WPF settings page (UxPolishContractTests); the leaderboard
+        // calibration has its cross-platform wording here.
+        string[] cards =
+        [
+            "Settings.Note.Language", "Settings.Note.Theme", "Settings.Note.App", "Settings.Note.Overlay", "Settings.Note.Layout",
+            "Settings.Leaderboard.CaptionCrossPlatform", "Settings.Note.Tracker", "Settings.Note.Counters", "Settings.Note.Account",
+            "Settings.Note.Data", "Settings.Note.Sources",
+        ];
         var notes = view.FindControl<ScrollViewer>("PageSettings")!.GetLogicalDescendants().OfType<TextBlock>()
             .Where(t => t.Classes.Contains("cardNote")).ToList();
-        Assert.Equal(cards.Select(n => Loc.T("Settings.Note." + n)), notes.Select(t => t.Text));
+        Assert.Equal(cards.Select(Loc.T), notes.Select(t => t.Text));
 
         var rule = view.FindControl<TextBlock>("ReplayLimitNote")!;
         Assert.True(rule.IsVisible);
@@ -99,6 +105,19 @@ public sealed partial class LocBindingTests
             Assert.Contains(table["Settings.Counters.Title"], table[key], StringComparison.Ordinal);
         }
     }
+
+    [Fact]
+    public void Leaderboard_calibration_shows_each_sliders_value() => Headless.Run(() => WithMainView((view, _) =>
+    {
+        foreach (var name in new[] { "LeaderboardTopSlider", "LeaderboardSlotSlider", "LeaderboardWidthSlider" })
+        {
+            var slider = view.FindControl<Slider>(name)!;
+            slider.Value = 0.08;
+            Dispatcher.UIThread.RunJobs();
+            var value = ((Grid)slider.Parent!).Children.OfType<TextBlock>().Single(t => Grid.GetColumn(t) == 2);
+            Assert.Equal(0.08.ToString("P0", System.Globalization.CultureInfo.CurrentCulture), value.Text);
+        }
+    }));
 
     /// <summary>The main view over a fresh view model with the theme applied, in English.</summary>
     private static void WithMainView(Action<MainView, MainViewModel> body, AppSettings? settings = null)

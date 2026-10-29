@@ -869,19 +869,26 @@
                                     <Button Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24"
                                             ToolTip.Tip="{i:Loc Settings.Layout.CaptionWindows}" />
                                     <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Settings.Leaderboard.CaptionCrossPlatform}" Classes="caption cardNote" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Leaderboard.Guides}" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Leaderboard.CaptionCrossPlatform}" />
-                                    <Grid Margin="0,0,0,10" ColumnDefinitions="160,*">
+                                    <Grid Margin="0,0,0,10" ColumnDefinitions="160,*,56">
                                         <TextBlock Text="{i:Loc Settings.Leaderboard.Top}" Classes="settingLabel" />
-                                        <Slider Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" />
+                                        <Slider Name="LeaderboardTopSlider" Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" />
+                                        <!-- From the slider itself: the settings object does not notify -->
+                                        <TextBlock Grid.Column="2" Text="{Binding #LeaderboardTopSlider.Value, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                                     </Grid>
-                                    <Grid Margin="0,0,0,10" ColumnDefinitions="160,*">
+                                    <Grid Margin="0,0,0,10" ColumnDefinitions="160,*,56">
                                         <TextBlock Text="{i:Loc Settings.Leaderboard.SlotHeight}" Classes="settingLabel" />
-                                        <Slider Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" />
+                                        <Slider Name="LeaderboardSlotSlider" Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" />
+                                        <!-- From the slider itself: the settings object does not notify -->
+                                        <TextBlock Grid.Column="2" Text="{Binding #LeaderboardSlotSlider.Value, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                                     </Grid>
-                                    <Grid ColumnDefinitions="160,*">
+                                    <Grid ColumnDefinitions="160,*,56">
                                         <TextBlock Text="{i:Loc Settings.Leaderboard.Width}" Classes="settingLabel" />
-                                        <Slider Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" />
+                                        <Slider Name="LeaderboardWidthSlider" Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" />
+                                        <!-- From the slider itself: the settings object does not notify -->
+                                        <TextBlock Grid.Column="2" Text="{Binding #LeaderboardWidthSlider.Value, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
                                     </Grid>
                                 </StackPanel>
                             </Border>

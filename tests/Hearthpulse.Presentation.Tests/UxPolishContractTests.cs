@@ -51,8 +51,16 @@ public sealed class UxPolishContractTests
         window.Close();
     });
 
-    /// <summary>Every settings card says what it is for, in the same words as the Avalonia view (LocBindingTests.UxPolish).</summary>
-    private static readonly string[] CardNotes = ["Language", "Theme", "App", "Overlay", "Layout", "Tracker", "Counters", "Account", "Data", "Sources"];
+    /// <summary>
+    /// Every settings card says what it is for, in the same order as the Avalonia view (LocBindingTests.UxPolish); the
+    /// leaderboard calibration in the Layout card says it under its own heading (WPF has its Windows wording).
+    /// </summary>
+    private static readonly string[] CardNotes =
+    [
+        "Settings.Note.Language", "Settings.Note.Theme", "Settings.Note.App", "Settings.Note.Overlay", "Settings.Note.Layout",
+        "Settings.Leaderboard.Caption", "Settings.Note.Tracker", "Settings.Note.Counters", "Settings.Note.Account", "Settings.Note.Data",
+        "Settings.Note.Sources",
+    ];
 
     [Fact]
     public void Settings_cards_say_what_they_are_for_and_the_replay_rule_is_a_visible_line() => Sta(() =>
@@ -62,7 +70,7 @@ public sealed class UxPolishContractTests
 
         var note = window.FindResource("CardNote");
         var notes = Logical<TextBlock>(Named<ScrollViewer>(window, "PageSettings")).Where(t => ReferenceEquals(t.Style, note)).ToList();
-        Assert.Equal(CardNotes.Select(n => Loc.T("Settings.Note." + n)), notes.Select(t => t.Text));
+        Assert.Equal(CardNotes.Select(Loc.T), notes.Select(t => t.Text));
 
         var rule = Named<TextBlock>(window, "ReplayLimitNote");
         // Laid out on the Data tab (the window is never shown, so IsVisible stays false): seen without hovering.
@@ -140,6 +148,29 @@ public sealed class UxPolishContractTests
         var diff = (Style)deck.Resources["DiffToggle"];
         var ring = diff.Setters.OfType<Setter>().Single(x => x.Property == FrameworkElement.FocusVisualStyleProperty);
         Assert.NotNull(ring.Value);
+    });
+
+    [Fact]
+    public void Leaderboard_calibration_says_what_it_is_for_and_shows_each_sliders_value() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        var (window, root) = Open(model, "Settings", "Overlay");
+        foreach (var name in new[] { "LeaderboardTopSlider", "LeaderboardSlotSlider", "LeaderboardWidthSlider" })
+        {
+            var slider = Named<Slider>(window, name);
+            slider.Value = 0.08;
+            Settle(root);
+            var value = ((Grid)slider.Parent).Children.OfType<TextBlock>().Single(t => Grid.GetColumn(t) == 2);
+            // WPF formats with the element's language, as the overlay size beside it does.
+            Assert.Equal(0.08.ToString("P0", value.Language.GetSpecificCulture()), value.Text);
+            Assert.True(value.ActualWidth > 0);
+        }
+
+        // The note is a line under the heading, not only the switch's tip.
+        var note = Logical<TextBlock>(window).Single(t => t.Text == Loc.T("Settings.Leaderboard.Caption"));
+        Assert.Same(window.FindResource("CardNote"), note.Style);
+        Assert.True(note.ActualHeight > 0);
+        window.Close();
     });
 
     // ---- harness ----

@@ -928,31 +928,41 @@
                                         <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24"
                                                 ToolTip="{i:Loc Settings.Layout.Caption}" />
                                         <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />
+                                        <TextBlock Text="{i:Loc Settings.Leaderboard.Caption}" Style="{StaticResource CardNote}" />
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Leaderboard.Guides}" IsChecked="{Binding ShowLeaderboardGuides}" Margin="0,0,0,14"
                                                   ToolTip="{i:Loc Settings.Leaderboard.Caption}" />
                                         <Grid Margin="0,0,0,10">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="160" />
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="56" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{i:Loc Settings.Leaderboard.Top}" Style="{StaticResource SettingLabel}" />
-                                            <Slider Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="LeaderboardTopSlider" Grid.Column="1" Minimum="0.05" Maximum="0.25" Value="{Binding LeaderboardTop}" ValueChanged="OnSliderChanged" />
+                                            <!-- From the slider itself: the settings object does not notify -->
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=LeaderboardTopSlider, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
                                         </Grid>
                                         <Grid Margin="0,0,0,10">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="160" />
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="56" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{i:Loc Settings.Leaderboard.SlotHeight}" Style="{StaticResource SettingLabel}" />
-                                            <Slider Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="LeaderboardSlotSlider" Grid.Column="1" Minimum="0.06" Maximum="0.12" Value="{Binding LeaderboardSlotHeight}" ValueChanged="OnSliderChanged" />
+                                            <!-- From the slider itself: the settings object does not notify -->
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=LeaderboardSlotSlider, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
                                         </Grid>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="160" />
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="56" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{i:Loc Settings.Leaderboard.Width}" Style="{StaticResource SettingLabel}" />
-                                            <Slider Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" ValueChanged="OnSliderChanged" />
+                                            <Slider x:Name="LeaderboardWidthSlider" Grid.Column="1" Minimum="0.04" Maximum="0.2" Value="{Binding LeaderboardWidth}" ValueChanged="OnSliderChanged" />
+                                            <!-- From the slider itself: the settings object does not notify -->
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=LeaderboardWidthSlider, StringFormat={}{0:P0}}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Caption}" />
                                         </Grid>
                                     </StackPanel>
                                 </Border>
