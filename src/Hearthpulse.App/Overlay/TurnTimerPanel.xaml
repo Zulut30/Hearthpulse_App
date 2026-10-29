@@ -53,7 +53,7 @@
                     <TextBlock Text="{Binding Detail}" FontSize="11" VerticalAlignment="Bottom" Margin="7,0,0,3">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
-                                <Setter Property="Foreground" Value="{StaticResource Faint}" />
+                                <Setter Property="Foreground" Value="{StaticResource Muted}" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding Rope}" Value="True">
                                         <Setter Property="Foreground" Value="{StaticResource Negative}" />

@@ -26,11 +26,12 @@
         <Style Selector="TextBlock.time.active">
             <Setter Property="Foreground" Value="{StaticResource Text}" />
         </Style>
+        <!-- Before the rope rule: the style defined later wins, so the burning rope's red is not covered by the base colour -->
+        <Style Selector="TextBlock.detail">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
         <Style Selector="TextBlock.time.rope, TextBlock.detail.rope">
             <Setter Property="Foreground" Value="{StaticResource Negative}" />
-        </Style>
-        <Style Selector="TextBlock.detail">
-            <Setter Property="Foreground" Value="{StaticResource Faint}" />
         </Style>
         <Style Selector="TextBlock.detail.rope">
             <Setter Property="FontWeight" Value="SemiBold" />

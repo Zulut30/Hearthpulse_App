@@ -252,6 +252,36 @@ public sealed partial class LocBindingTests
         Assert.Equal(model.LiveDetail, ToolTip.GetTip(line));
     }));
 
+    /// <summary>The turn timer's detail ("of 1:15", "last turn") reads Muted; a burning rope still turns it red.</summary>
+    [Theory]
+    [InlineData(false, "Muted")]
+    [InlineData(true, "Negative")]
+    public void Turn_timer_detail_is_muted_and_red_on_the_rope(bool rope, string brush) => Headless.Run(() =>
+    {
+        var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))
+        {
+            Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml"),
+        };
+        var app = Application.Current!;
+        app.Styles.Add(theme);
+        var window = new Window { Width = 400, Height = 200 };
+        try
+        {
+            var panel = new Hearthpulse.UI.Overlay.TurnTimerPanel { DataContext = new Hearthpulse.UI.Overlay.TurnTimerSide("You", true, rope, "0:42", "of 1:15", "") };
+            window.Content = panel;
+            Dispatcher.UIThread.RunJobs();
+            var detail = panel.GetLogicalDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("detail"));
+            Assert.True(panel.TryFindResource(brush, out var expected));
+            Assert.Same(expected, detail.Foreground);
+        }
+        finally
+        {
+            window.Close();
+            app.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
     /// <summary>The main view over a fresh view model with the theme applied, in English.</summary>
     private static void WithMainView(Action<MainView, MainViewModel> body, AppSettings? settings = null, MainViewModel? model = null)
     {
