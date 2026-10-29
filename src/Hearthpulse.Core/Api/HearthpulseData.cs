@@ -603,7 +603,9 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     }
 
     /// <param name="shrink">Keeps only what the app reads of a large answer, so the cache file stays small.</param>
-    private async Task<JsonDocument?> FetchAsync(string path, string cacheName, CancellationToken cancellationToken, Func<JsonElement, object>? shrink = null)
+    /// <param name="retry">Set when asking again after the cached file could not be read.</param>
+    private async Task<JsonDocument?> FetchAsync(string path, string cacheName, CancellationToken cancellationToken, Func<JsonElement, object>? shrink = null,
+        bool retry = false)
     {
         var file = Path.Combine(_cacheDirectory, cacheName);
         var info = new FileInfo(file);
@@ -655,7 +657,26 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
         catch (Exception ex) when (ex is IOException or JsonException)
         {
             Diag.Error($"Hearthpulse API cache unreadable ({cacheName})", ex);
+            if (ex is JsonException && !retry && TryDelete(file))
+            {
+                // A young file that cannot be read (zeros after a power cut) kept the API from being asked for six hours.
+                return await FetchAsync(path, cacheName, cancellationToken, shrink, retry: true).ConfigureAwait(false);
+            }
+
             return null;
+        }
+    }
+
+    private static bool TryDelete(string file)
+    {
+        try
+        {
+            File.Delete(file);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 
