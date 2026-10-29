@@ -174,7 +174,7 @@ public sealed class UxPolishContractTests
     });
 
     [Fact]
-    public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_dims_its_panel_switches() => Sta(() =>
+    public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_says_so_at_full_contrast() => Sta(() =>
     {
         var model = new WpfMain(History(), new AppSettings());
         var (window, root) = Open(model, "Settings", "Overlay");
@@ -190,33 +190,46 @@ public sealed class UxPolishContractTests
         var master = Named<CheckBox>(window, "OverlaySetting");
         var note = Named<TextBlock>(window, "OverlayOffNote");
         var groups = new[] { Named<StackPanel>(window, "OverlayPanelSwitches"), Named<StackPanel>(window, "TrackerPanelSwitches") };
+        var switches = groups.SelectMany(Logical<CheckBox>).ToList();
+        var headings = Logical<TextBlock>(groups[0]).Where(t => ReferenceEquals(t.Style, window.FindResource("SettingGroupOverlayOff"))).ToList();
+        Assert.Equal(3, headings.Count);
         Assert.Equal(Visibility.Collapsed, note.Visibility);
-        Assert.All(groups, g => Assert.Equal(1, g.Opacity));
+        Assert.All(headings, h => Assert.Equal(1, h.Opacity));
 
         master.IsChecked = false;
         Settle(root);
         Assert.Equal(Visibility.Visible, note.Visibility);
         Assert.Equal(Loc.T("Settings.Overlay.OffNote"), note.Text);
-        // Dimmed, not disabled: panels can still be set up before the overlay is turned back on.
-        Assert.All(groups, g => Assert.True(g.Opacity < 1));
-        Assert.All(groups, g => Assert.True(g.IsEnabled));
-        Assert.All(groups.SelectMany(Logical<CheckBox>), c => Assert.True(c.IsEnabled));
+        // Only the explanatory section headings dim. The switches keep their theme contrast (Text on the card, AA in
+        // ThemeContrastTests): nothing above them is see-through, and they still work for setting panels up ahead.
+        Assert.All(headings, h => Assert.True(h.Opacity < 1));
+        Assert.All(groups, g => Assert.All(Logical<CheckBox>(g), c => Assert.Equal(1, Opacity(c, card: g.Parent))));
+        Assert.All(switches, c => Assert.True(c.IsEnabled));
 
         master.IsChecked = true;
         Settle(root);
         Assert.Equal(Visibility.Collapsed, note.Visibility);
-        Assert.All(groups, g => Assert.Equal(1, g.Opacity));
+        Assert.All(headings, h => Assert.Equal(1, h.Opacity));
 
-        // The live bar's panel buttons follow the live bar's own overlay switch.
+        // The live bar's panel buttons stay at full contrast whatever the overlay switch says.
         var quick = Named<ItemsControl>(window, "QuickPanels");
         Named<CheckBox>(window, "OverlaySwitch").IsChecked = false;
         Settle(root);
-        Assert.True(quick.Opacity < 1);
-        Assert.All(Descendants<System.Windows.Controls.Primitives.ToggleButton>(quick), b => Assert.True(b.IsEnabled));
-        Named<CheckBox>(window, "OverlaySwitch").IsChecked = true;
-        Settle(root);
         Assert.Equal(1, quick.Opacity);
+        Assert.All(Descendants<System.Windows.Controls.Primitives.ToggleButton>(quick), b => Assert.True(b.IsEnabled));
         window.Close();
+
+        // The opacity a control is drawn with, up to its card.
+        static double Opacity(FrameworkElement element, DependencyObject card)
+        {
+            var opacity = 1.0;
+            for (DependencyObject? e = element; e is not null && !ReferenceEquals(e, card); e = LogicalTreeHelper.GetParent(e))
+            {
+                opacity *= (e as UIElement)?.Opacity ?? 1;
+            }
+
+            return opacity;
+        }
     });
 
     [Fact]

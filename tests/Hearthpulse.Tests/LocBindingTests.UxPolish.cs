@@ -121,7 +121,7 @@ public sealed partial class LocBindingTests
     }));
 
     [Fact]
-    public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_dims_its_panel_switches() => Headless.Run(() => WithMainView((view, model) =>
+    public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_says_so_at_full_contrast() => Headless.Run(() => WithMainView((view, model) =>
     {
         view.ShowSettingsTab("Overlay");
         view.FindControl<Button>("OpenTrackerTab")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
@@ -137,30 +137,43 @@ public sealed partial class LocBindingTests
         var master = view.FindControl<CheckBox>("OverlaySetting")!;
         var note = view.FindControl<TextBlock>("OverlayOffNote")!;
         var groups = new[] { view.FindControl<StackPanel>("OverlayPanelSwitches")!, view.FindControl<StackPanel>("TrackerPanelSwitches")! };
+        var switches = groups.SelectMany(g => g.GetLogicalDescendants().OfType<CheckBox>()).ToList();
+        var headings = groups[0].GetLogicalDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("settingGroup")).ToList();
+        Assert.Equal(3, headings.Count);
         Assert.False(note.IsVisible);
-        Assert.All(groups, g => Assert.Equal(1, g.Opacity));
+        Assert.All(headings, h => Assert.Equal(1, h.Opacity));
 
         master.IsChecked = false;
         Dispatcher.UIThread.RunJobs();
         Assert.True(note.IsVisible);
-        // Dimmed, not disabled: panels can still be set up before the overlay is turned back on.
-        Assert.All(groups, g => Assert.True(g.Opacity < 1));
-        Assert.All(groups.SelectMany(g => g.GetLogicalDescendants().OfType<CheckBox>()), c => Assert.True(c.IsEnabled));
+        // Only the explanatory section headings dim; the switches keep their theme contrast and still work.
+        Assert.All(headings, h => Assert.True(h.Opacity < 1));
+        Assert.All(groups, g => Assert.All(g.GetLogicalDescendants().OfType<CheckBox>(), c => Assert.Equal(1, Opacity(c, g.Parent!))));
+        Assert.All(switches, c => Assert.True(c.IsEnabled));
 
         master.IsChecked = true;
         Dispatcher.UIThread.RunJobs();
         Assert.False(note.IsVisible);
-        Assert.All(groups, g => Assert.Equal(1, g.Opacity));
+        Assert.All(headings, h => Assert.Equal(1, h.Opacity));
 
-        // The live bar's panel buttons follow the live bar's own overlay switch.
+        // The live bar's panel buttons stay at full contrast whatever the overlay switch says.
         var quick = view.FindControl<ItemsControl>("QuickPanels")!;
         view.FindControl<CheckBox>("OverlaySwitch")!.IsChecked = false;
         Dispatcher.UIThread.RunJobs();
-        Assert.True(quick.Opacity < 1);
-        Assert.True(quick.IsEnabled);
-        view.FindControl<CheckBox>("OverlaySwitch")!.IsChecked = true;
-        Dispatcher.UIThread.RunJobs();
         Assert.Equal(1, quick.Opacity);
+        Assert.True(quick.IsEnabled);
+
+        // The opacity a control is drawn with, up to its card.
+        static double Opacity(Control control, Avalonia.LogicalTree.ILogical card)
+        {
+            var opacity = 1.0;
+            for (Avalonia.LogicalTree.ILogical? e = control; e is not null && !ReferenceEquals(e, card); e = e.LogicalParent)
+            {
+                opacity *= (e as Visual)?.Opacity ?? 1;
+            }
+
+            return opacity;
+        }
     }));
 
     [Fact]
