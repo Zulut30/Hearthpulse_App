@@ -1013,6 +1013,12 @@
                     <o:MulliganSummary />
                 </o:MovablePanel>
 
+                <!-- ============ Battlegrounds: lobby tribes, tavern tiers and main tribes (top-right: clear of the leaderboard on 16:9,
+                     16:10 and 4:3; declared before the bar, so the bar's tier list draws over it) ============ -->
+                <o:MovablePanel Id="bg-lobby" Title="{i:Loc Overlay.BgLobby.Title}" Shown="{Binding ShowBgLobby}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,124,12,0">
+                    <o:BgLobbyPanel />
+                </o:MovablePanel>
+
                 <!-- ============ Battlegrounds: slim top bar + minion browser (top-left) ============ -->
                 <o:MovablePanel Id="bgbar" Title="{i:Loc Overlay.Panel.BgBar}" Shown="{Binding ShowBattlegrounds}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,10,0,0">
                     <StackPanel>
@@ -1207,7 +1213,9 @@
                                 <ItemsControl ItemsSource="{Binding History}" ItemTemplate="{StaticResource CombatTemplate}" ItemsPanel="{StaticResource HRow}" Margin="0,0,8,0"
                                               VerticalAlignment="Center" IsVisible="{Binding History, Converter={StaticResource Truthy}}" />
                                 <TextBlock Text="{Binding LastSeen}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Tribe}" FontSize="11" Foreground="{StaticResource Text}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                <TextBlock Text="{Binding TribeGlyph}" Classes="icon" FontSize="12" Foreground="{StaticResource Accent}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                           IsVisible="{Binding TribeGlyph, Converter={StaticResource Truthy}}" />
+                                <TextBlock Text="{Binding Tribe}" FontSize="11" Foreground="{StaticResource Text}" Margin="3,0,0,0" VerticalAlignment="Center"
                                            IsVisible="{Binding Tribe, Converter={StaticResource Truthy}}" />
                             </StackPanel>
                             <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource LobbyMinionTemplate}" ItemsPanel="{StaticResource HRow}" />
