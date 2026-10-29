@@ -17,7 +17,8 @@ public sealed partial class LocBindingTests
     /// <summary>
     /// The Avalonia overlay during a game: Ctrl over a panel arms it (frame, move hint, corner marker) and the overlay
     /// takes the mouse there; let go, the panel lets clicks through again. Dragging the marker resizes the panel in wheel
-    /// steps and saves it; the overlay keeps the mouse for the whole drag, and a drag that lost the pointer ends.
+    /// steps and saves it; the overlay keeps the mouse for the whole drag, and a drag that lost the pointer or its
+    /// release ends.
     /// </summary>
     [Fact]
     public void Avalonia_panel_arms_with_ctrl_resizes_by_its_corner_and_ends_a_drag_that_lost_the_pointer() => Headless.Run(OverlayMoveResize);
@@ -44,17 +45,15 @@ public sealed partial class LocBindingTests
             timer.Shown = true;
             Settle();
             Assert.True(timer.Bounds.Width > 0);
-            var inside = timer.TranslatePoint(new Point(10, 10), view)!.Value;
 
-            Assert.False(view.UpdateDragArm(inside, controlDown: false));
+            Assert.False(view.UpdateDragArm(Inside(), controlDown: false));
             Assert.False(timer.IsDragArmed);
-            Assert.False(view.IsInteractiveAt(inside));
+            Assert.False(view.IsInteractiveAt(Inside()));
             Assert.False(view.UpdateDragArm(new Point(5, 5), controlDown: true));
 
-            Assert.True(view.UpdateDragArm(inside, controlDown: true));
-            Settle();
+            Arm();
             Assert.True(timer.IsDragArmed);
-            Assert.True(view.IsInteractiveAt(inside));
+            Assert.True(view.IsInteractiveAt(Inside()));
             Assert.True(Part<Rectangle>(timer, "Frame").IsVisible);
             var hint = Part<TextBlock>(timer, "ArmedHint");
             Assert.True(hint.IsVisible);
@@ -65,15 +64,16 @@ public sealed partial class LocBindingTests
             Assert.True(area.Right > timer.Bounds.Width + 3 && area.Bottom > timer.Bounds.Height + 3, area.ToString());
 
             // Ctrl let go: no frame, no marker, clicks go to the game.
-            Assert.False(view.UpdateDragArm(inside, controlDown: false));
+            Assert.False(view.UpdateDragArm(Inside(), controlDown: false));
             Settle();
             Assert.False(timer.IsDragArmed);
             Assert.False(grip.IsVisible);
-            Assert.False(view.IsInteractiveAt(inside));
+            Assert.False(view.IsInteractiveAt(Inside()));
 
-            // Drag the corner a fifth of the way out along the diagonal: 120 %, saved like a wheel step.
-            Assert.True(view.UpdateDragArm(inside, controlDown: true));
-            Settle();
+            // Drag the corner a fifth of the way out along the diagonal: 120 %, saved like a wheel step, the top-left
+            // corner where it was.
+            Arm();
+            var origin = timer.TranslatePoint(default, view);
             var size = timer.Bounds.Size;
             var corner = timer.TranslatePoint(new Point(size.Width - 3, size.Height - 3), window)!.Value;
             window.MouseDown(corner, MouseButton.Left);
@@ -85,15 +85,16 @@ public sealed partial class LocBindingTests
             Settle();
             Assert.Equal(PanelSnap.ScaleText(1.2), timer.ScaleText);
             window.MouseUp(corner + new Point(size.Width * 0.2, size.Height * 0.2), MouseButton.Left);
+            Settle();
             Assert.False(timer.IsDragging);
             Assert.Equal(1.2, view.Settings.Panels["turn-timer"].Scale, 3);
+            Assert.Equal(origin, timer.TranslatePoint(default, view));
             Assert.Equal(1, layoutChanges);
             Assert.False(view.UpdateDragArm(null, controlDown: false));
             Assert.False(timer.IsDragArmed);
 
             // A drag that loses the pointer (the player switched windows) ends where the panel is and is saved.
-            Assert.True(view.UpdateDragArm(inside, controlDown: true));
-            Settle();
+            Arm();
             var body = timer.TranslatePoint(new Point(10, 10), window)!.Value;
             window.MouseDown(body, MouseButton.Left);
             Assert.True(timer.IsDragging);
@@ -104,14 +105,35 @@ public sealed partial class LocBindingTests
             Assert.False(timer.IsDragArmed);
             window.MouseUp(body, MouseButton.Left);
 
+            // A drag whose release never reached the panel: once the host reads both buttons up during a game, it ends,
+            // so the overlay does not keep the mouse over the whole game. Not while a button is down, nor in layout mode.
+            Arm();
+            body = timer.TranslatePoint(new Point(10, 10), window)!.Value;
+            window.MouseDown(body, MouseButton.Left);
+            Assert.True(timer.IsDragging);
+            view.EndReleasedDrags((true, false));
+            view.EndReleasedDrags((false, true));
+            Assert.True(timer.IsDragging);
+            model.LayoutEditing = true;
+            view.EndReleasedDrags((false, false));
+            Assert.True(timer.IsDragging);
+            model.LayoutEditing = false;
+            view.EndReleasedDrags((false, false));
+            Assert.False(timer.IsDragging);
+            Assert.Equal(3, layoutChanges);
+            Assert.False(view.UpdateDragArm(null, controlDown: false));
+            Assert.False(timer.IsDragArmed);
+            window.MouseUp(body, MouseButton.Left);
+            Assert.Equal(3, layoutChanges);
+
             // The one-time tip: shown and saved the first time the overlay appears over the game, never again.
             view.OfferMoveTip();
             Assert.True(model.ShowToast);
             Assert.Equal("Hold Ctrl over a panel to move and resize it", model.ToastDetail);
             Assert.True(view.Settings.OverlayMoveTipShown);
-            Assert.Equal(3, layoutChanges);
+            Assert.Equal(4, layoutChanges);
             view.OfferMoveTip();
-            Assert.Equal(3, layoutChanges);
+            Assert.Equal(4, layoutChanges);
 
             // Layout mode: the marker on every shown panel, none on the placeholders.
             model.LayoutEditing = true;
@@ -119,6 +141,15 @@ public sealed partial class LocBindingTests
             Assert.True(grip.IsVisible);
             var placeholder = view.GetLogicalDescendants().OfType<MovablePanel>().Single(p => p.Id == "opponent");
             Assert.False(Part<Border>(placeholder, "PART_Grip").IsVisible);
+
+            // A point just inside the panel's top-left corner, where it is now (the content's width can change).
+            Point Inside() => timer.TranslatePoint(new Point(10, 10), view)!.Value;
+
+            void Arm()
+            {
+                Assert.True(view.UpdateDragArm(Inside(), controlDown: true));
+                Settle();
+            }
         }
         finally
         {
@@ -127,10 +158,12 @@ public sealed partial class LocBindingTests
             Dispatcher.UIThread.RunJobs();
         }
 
+        // Hit tests read the last rendered frame: render after the layout pass.
         void Settle()
         {
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         }
 
         static T Part<T>(Control panel, string name) where T : Control =>

@@ -572,7 +572,13 @@ public sealed class MovablePanel : ContentControl
     /// The panel lost the pointer in the middle of a drag (the player switched windows, the platform took the capture
     /// back): the drag ends where the panel is, rather than leaving it dragging, armed and taking clicks.
     /// </summary>
-    private void OnCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    private void OnCaptureLost(object? sender, PointerCaptureLostEventArgs e) => EndMissedDrag();
+
+    /// <summary>
+    /// Ends a move or resize whose release the panel never got (the pointer was lost, or the host read every mouse
+    /// button up); it is saved where the panel is, as on the release.
+    /// </summary>
+    public void EndMissedDrag()
     {
         if (_dragging)
         {

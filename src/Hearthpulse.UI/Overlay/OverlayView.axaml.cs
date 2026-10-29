@@ -175,6 +175,25 @@ public partial class OverlayView : UserControl
     }
 
     /// <summary>
+    /// A drag ends with its mouse button. Should a panel never hear the release (the pointer capture went elsewhere
+    /// without telling it), it would stay dragging and the overlay would keep the mouse over the whole game: so during a
+    /// game, once the host reads both buttons up (both, as swapped buttons are read by their physical side), a drag
+    /// still going ends where its panel is. Not in layout mode, where the overlay takes the mouse anyway.
+    /// </summary>
+    public void EndReleasedDrags((bool Left, bool Right) buttons)
+    {
+        if (buttons.Left || buttons.Right || _viewModel?.LayoutEditing == true)
+        {
+            return;
+        }
+
+        foreach (var panel in _panels)
+        {
+            panel.EndMissedDrag();
+        }
+    }
+
+    /// <summary>
     /// The overlay just appeared over the game: the first time ever, the toast says that Ctrl over a panel moves and
     /// resizes it, and the settings are saved with the tip marked shown (<see cref="LayoutChanged"/>).
     /// </summary>
