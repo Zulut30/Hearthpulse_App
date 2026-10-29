@@ -449,6 +449,7 @@ public sealed partial class MainViewModel : Observable
 
         _recentGames = data.Recent;
         HistoryCount = data.Total;
+        ShowGettingStarted = data.Total == 0;
         Recent = data.Recent.Take(8).Select(Row).ToList();
         ApplyHistoryFilter();
         RatingPoints = data.Rating;

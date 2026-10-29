@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI.Main;
 
 namespace Hearthpulse.Tests;
@@ -261,8 +262,46 @@ public sealed partial class LocBindingTests
         }
     }
 
+    [Fact]
+    public async Task Getting_started_steps_follow_the_app_and_its_buttons_run_the_existing_actions()
+    {
+        var model = new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, $"hp-ux-polish-{Guid.NewGuid():N}.db")), new AppSettings());
+        await model.RefreshAsync();
+        Assert.True(model.ShowGettingStarted);
+        Headless.Run(() => WithMainView((view, _) =>
+        {
+            var card = view.FindControl<Border>("GettingStartedCard")!;
+            Assert.True(card.IsVisible);
+            var steps = card.GetLogicalDescendants().OfType<Grid>().ToList();
+            Assert.Equal(3, steps.Count);
+            Assert.Equal(new[] { "Step1", "Step2", "Step3" }.Select(k => Loc.T("Main.Home.Start." + k)),
+                steps.Select(g => g.Children.OfType<TextBlock>().Single(t => Grid.GetColumn(t) == 1).Text));
+
+            model.Apply(LiveSnapshot.Empty with { LogConfigMissing = ["Power"] });
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal([Waiting, Waiting, Waiting], steps.Select(Glyph));
+
+            model.Apply(LiveSnapshot.Empty with { HearthstoneRunning = true });
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal([Done, Done, Waiting], steps.Select(Glyph));
+
+            var imports = 0;
+            var arranges = 0;
+            view.ReimportRequested += () => imports++;
+            view.ArrangeOverlayRequested += () => arranges++;
+            view.FindControl<Button>("GettingStartedImport")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            view.FindControl<Button>("GettingStartedArrange")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Assert.Equal((1, 1), (imports, arranges));
+        }, model: model));
+
+        static string? Glyph(Grid step) => step.Children.OfType<TextBlock>().Single(t => Grid.GetColumn(t) == 0 && t.IsVisible).Text;
+    }
+
+    private const string Done = "\U000F05E0";
+    private const string Waiting = "\U000F0766";
+
     /// <summary>The main view over a fresh view model with the theme applied, in English.</summary>
-    private static void WithMainView(Action<MainView, MainViewModel> body, AppSettings? settings = null)
+    private static void WithMainView(Action<MainView, MainViewModel> body, AppSettings? settings = null, MainViewModel? model = null)
     {
         Loc.Instance.SetLanguage(Loc.English);
         var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))
@@ -272,7 +311,7 @@ public sealed partial class LocBindingTests
         var app = Application.Current!;
         app.Styles.Add(theme);
         var window = new Window { Width = 1260, Height = 840 };
-        var model = new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, $"hp-ux-polish-{Guid.NewGuid():N}.db")), settings ?? new AppSettings());
+        model ??= new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, $"hp-ux-polish-{Guid.NewGuid():N}.db")), settings ?? new AppSettings());
         try
         {
             var view = new MainView { DataContext = model };

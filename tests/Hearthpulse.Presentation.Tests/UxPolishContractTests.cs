@@ -293,6 +293,73 @@ public sealed class UxPolishContractTests
         window.Close();
     });
 
+    private static GameRecord Game(int number) => new()
+    {
+        Key = "ux-polish-game-" + number,
+        StartedAt = new DateTime(2026, 10, 23, 10, 0, 0).AddMinutes(number),
+        EndedAt = new DateTime(2026, 10, 23, 10, 5, 0).AddMinutes(number),
+        Mode = "Ranked", GameType = "GT_RANKED", Format = "FT_STANDARD", Result = "Win",
+        PlayerClass = "MAGE", OpponentClass = "WARRIOR", DeckName = "First deck",
+    };
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Getting_started_shows_once_the_history_is_read_empty_and_leaves_with_the_first_game(bool wpf)
+    {
+        var history = History();
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        // Not before the history is read: a player with games never sees it flash.
+        Assert.False((bool)model.ShowGettingStarted);
+        await (Task)model.RefreshAsync();
+        Assert.True((bool)model.ShowGettingStarted);
+
+        Assert.True(history.Add(Game(0)));
+        await (Task)model.RefreshAsync();
+        Assert.False((bool)model.ShowGettingStarted);
+    }
+
+    [Fact]
+    public async Task Getting_started_steps_follow_the_app_and_its_buttons_run_the_existing_actions()
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        await model.RefreshAsync();
+        Sta(() =>
+        {
+            var (window, root) = Open(model, "Home");
+            var card = Named<Border>(window, "GettingStartedCard");
+            Assert.Equal(Visibility.Visible, card.Visibility);
+            Assert.True(card.ActualHeight > 0);
+            var steps = ((StackPanel)card.Child).Children.OfType<Grid>().ToList();
+            Assert.Equal(3, steps.Count);
+            Assert.Equal(new[] { "Step1", "Step2", "Step3" }.Select(k => Loc.T("Main.Home.Start." + k)), steps.Select(g => g.Children.OfType<TextBlock>().Single(t => Grid.GetColumn(t) == 1).Text));
+
+            // Hearthstone not running, logs not configured yet: every step waits.
+            model.Apply(LiveSnapshot.Empty with { LogConfigMissing = ["Power"] });
+            Settle(root);
+            Assert.Equal([Waiting, Waiting, Waiting], steps.Select(Glyph));
+
+            // Running with the logs ready: the first two are done; the match is still to be played.
+            model.Apply(LiveSnapshot.Empty with { HearthstoneRunning = true });
+            Settle(root);
+            Assert.Equal([Done, Done, Waiting], steps.Select(Glyph));
+
+            var imports = 0;
+            var arranges = 0;
+            window.ReimportRequested += () => imports++;
+            window.ArrangeOverlayRequested += () => arranges++;
+            Named<Button>(window, "GettingStartedImport").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Named<Button>(window, "GettingStartedArrange").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Assert.Equal((1, 1), (imports, arranges));
+            window.Close();
+        });
+
+        static string Glyph(Grid step) => step.Children.OfType<TextBlock>().Single(t => Grid.GetColumn(t) == 0 && t.Visibility == Visibility.Visible).Text;
+    }
+
+    private const string Done = "\U000F05E0";
+    private const string Waiting = "\U000F0766";
+
     // ---- harness ----
 
     /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>

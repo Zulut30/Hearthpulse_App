@@ -386,6 +386,33 @@
                             </Grid>
                         </Border>
 
+                        <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
+                             worth doing before a match. The buttons are the existing import and layout actions. -->
+                        <Border Name="GettingStartedCard" Classes="card" Margin="0,0,0,16" IsVisible="{Binding ShowGettingStarted}">
+                            <StackPanel>
+                                <c:Ornament Text="{i:Loc Main.Home.Start.Title}" Icon="&#xF040A;" Size="13" Margin="0,0,0,14" />
+                                <Grid ColumnDefinitions="28,*" Margin="0,0,0,8">
+                                    <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top" IsVisible="{Binding HearthstoneRunning}" />
+                                    <TextBlock Text="&#xF0766;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" IsVisible="{Binding !HearthstoneRunning}" />
+                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step1}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid ColumnDefinitions="28,*" Margin="0,0,0,8">
+                                    <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top" IsVisible="{Binding SetupWarning, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                                    <TextBlock Text="&#xF0766;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" IsVisible="{Binding SetupWarning, Converter={StaticResource Truthy}}" />
+                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step2}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                </Grid>
+                                <Grid ColumnDefinitions="28,*" Margin="0,0,0,14">
+                                    <TextBlock Text="&#xF0766;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" />
+                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step3}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                </Grid>
+                                <WrapPanel>
+                                    <Button Name="GettingStartedImport" Classes="ghost" Content="{i:Loc Settings.Data.Import}" Click="OnReimport" Margin="0,0,8,8"
+                                            ToolTip.Tip="{i:Loc Settings.Data.ImportTip}" />
+                                    <Button Name="GettingStartedArrange" Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" Click="OnArrangeOverlay" Margin="0,0,0,8" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
                         <ItemsControl ItemsSource="{Binding OverviewTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}"
                                       Margin="0,0,-14,16" />
 
