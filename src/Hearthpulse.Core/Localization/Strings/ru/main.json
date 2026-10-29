@@ -149,6 +149,7 @@
   "Main.Bg.SharedGames": " · игр от игроков: {0:N0}",
   "Main.Bg.MetaUpdated": "{0} · {1} · обновлено {2:dd MMM HH:mm}{3}",
   "Main.Bg.CommunityLoading": "Данные сообщества загружаются…",
+  "Main.Bg.CommunityUnavailable": "Данные сообщества сейчас недоступны. Hearthpulse попробует позже.",
   "Main.Table.Hero": "Герой",
   "Main.Table.Tier": "Тир",
   "Main.Table.TierTip": "S — лучший, D — худший. По среднему месту.",

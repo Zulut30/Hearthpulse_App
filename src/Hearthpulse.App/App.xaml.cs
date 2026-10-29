@@ -503,6 +503,10 @@ public partial class App : Application
             _session.SetMeta(meta);
             _mainViewModel.SetMeta(meta);
         }
+        else
+        {
+            _mainViewModel.BattlegroundsMetaUnavailable();
+        }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
         _session.RequestMemoryTrimWhenWindowAway();

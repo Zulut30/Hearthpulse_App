@@ -29,6 +29,7 @@ public sealed partial class MainViewModel
     private string _heroSort = "Placement";
     private bool _heroSortAscending = true;
     private RelayCommand? _setHeroSort;
+    private bool _bgMetaFailed;
 
     /// <summary>The hero tier list by tier, S to D; tiers without heroes are left out.</summary>
     public IReadOnlyList<HeroTierGroup> HeroTierGroups { get => _heroTierGroups; private set => Set(ref _heroTierGroups, value); }
@@ -49,6 +50,34 @@ public sealed partial class MainViewModel
         Raise(nameof(HeroArrows));
         RebuildHeroGroups();
     });
+
+    /// <summary>
+    /// The host's community load returned nothing. With nothing loaded yet the page and the stats note say "unavailable"
+    /// (Main.Bg.CommunityUnavailable); with stats already in, nothing changes.
+    /// </summary>
+    public void BattlegroundsMetaUnavailable()
+    {
+        if (_meta is not null)
+        {
+            return;
+        }
+
+        _bgMetaFailed = true;
+        MetaUpdated = Loc.T("Main.Bg.CommunityUnavailable");
+        RebuildBattlegroundsStats();
+    }
+
+    /// <summary>Community data came: an "unavailable" line goes back to "loading" until the tier list is built with it.</summary>
+    private void ClearBattlegroundsMetaFailure()
+    {
+        if (_meta is null || !_bgMetaFailed)
+        {
+            return;
+        }
+
+        _bgMetaFailed = false;
+        MetaUpdated = Loc.T("Main.Bg.CommunityLoading");
+    }
 
     private string HeroArrow(string column) => column != _heroSort ? string.Empty : _heroSortAscending ? "▲" : "▼";
 

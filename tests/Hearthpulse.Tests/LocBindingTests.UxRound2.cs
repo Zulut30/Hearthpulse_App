@@ -87,4 +87,32 @@ public sealed partial class LocBindingTests
             }
         }
     }));
+
+    [Fact]
+    public void Arena_community_shows_loading_then_unavailable() => Headless.Run(() => WithMainView((_, model) =>
+    {
+        var view = new Hearthpulse.UI.Main.Stats.ArenaStatsView { DataContext = model };
+        var window = new Window { Content = view };
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            AssertOne("Arena.Page.CommunityLoading");
+
+            model.ArenaMetaUnavailable();
+            Dispatcher.UIThread.RunJobs();
+            AssertOne("Arena.Page.CommunityEmpty");
+        }
+        finally
+        {
+            window.Close();
+        }
+
+        void AssertOne(string key)
+        {
+            // The community card: the one under the "Class numbers" heading.
+            var card = (Panel)view.GetLogicalDescendants().OfType<Hearthpulse.UI.Controls.Ornament>().Single(o => o.Text == Loc.T("Arena.Page.Community")).Parent!;
+            var shown = card.Children.OfType<ContentControl>().Where(c => c.Classes.Contains("emptyState") && c.IsVisible).ToList();
+            Assert.Equal(Loc.T(key), Assert.Single(shown).Content);
+        }
+    }));
 }

@@ -340,6 +340,7 @@ public sealed partial class MainViewModel : Observable
     public void SetMeta(BattlegroundsMeta? meta)
     {
         _meta = meta;
+        ClearBattlegroundsMetaFailure();
         RebuildMeta();
         RebuildBattlegroundsStats();
     }

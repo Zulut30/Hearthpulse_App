@@ -28,6 +28,7 @@ public partial class App
         catch (Exception ex)
         {
             Diag.Error("Arena stats unavailable", ex);
+            _mainViewModel.ArenaMetaUnavailable();
         }
     }
 }

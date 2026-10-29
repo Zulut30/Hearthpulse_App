@@ -349,13 +349,13 @@ public sealed partial class MainViewModel
 
     private void RebuildBattlegroundsStats()
     {
-        var (all, mode, period, sort, minGames, cards, meta) = (_allGames, BgMode, _bgPeriod, _bgSort, _bgMinGames, _cards, _meta);
+        var (all, mode, period, sort, minGames, cards, meta, metaFailed) = (_allGames, BgMode, _bgPeriod, _bgSort, _bgMinGames, _cards, _meta, _bgMetaFailed);
         _statsBgMode = mode;
         _statsCards = cards;
-        RunStatsBuild(0, () => BuildBattlegroundsStats(all, mode == "Duos", period, sort, minGames, cards, meta));
+        RunStatsBuild(0, () => BuildBattlegroundsStats(all, mode == "Duos", period, sort, minGames, cards, meta, metaFailed));
     }
 
-    private Action BuildBattlegroundsStats(IReadOnlyList<GameRecord> all, bool duos, StatsPeriod period, BgHeroSort sort, int minGames, CardDb cards, BattlegroundsMeta? meta)
+    private Action BuildBattlegroundsStats(IReadOnlyList<GameRecord> all, bool duos, StatsPeriod period, BgHeroSort sort, int minGames, CardDb cards, BattlegroundsMeta? meta, bool metaFailed)
     {
         var games = StatsFilter.Apply(all.Where(g => BattlegroundsStats.IsGame(g, duos)), period, DateTime.Now);
         var summary = BattlegroundsStats.Summary(games, duos);
@@ -429,7 +429,7 @@ public sealed partial class MainViewModel
         var note = duos
             ? Loc.T("Stats.Bg.NoteDuos")
             : meta is null
-                ? Loc.T("Stats.Bg.NoteLoading")
+                ? Loc.T(metaFailed ? "Main.Bg.CommunityUnavailable" : "Stats.Bg.NoteLoading")
                 : Loc.F("Stats.Bg.NoteSource", meta.Source, BattlegroundsMeta.BracketLabel(meta.WidestBracket));
         // Duos fights are not predicted with damage (the loser of one board is not the one who takes it).
         var accuracy = duos ? null : BattlegroundsStats.SimAccuracy(games);

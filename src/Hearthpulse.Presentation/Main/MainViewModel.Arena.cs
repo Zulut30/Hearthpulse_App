@@ -30,6 +30,7 @@ public sealed partial class MainViewModel
     private const double ArenaCurveHeight = 46;
 
     private ArenaMeta? _arenaMeta;
+    private bool _arenaMetaFailed;
     private bool _hasArenaDeck;
     private string _arenaDeckTitle = string.Empty;
     private string _arenaDeckAverage = "—";
@@ -61,7 +62,23 @@ public sealed partial class MainViewModel
     public IReadOnlyList<ArenaCardLine> ArenaDeckWeakest { get => _arenaDeckWeakest; private set => Set(ref _arenaDeckWeakest, value); }
 
     /// <summary>Community class win rates (Hearthpulse data), best first.</summary>
-    public IReadOnlyList<StatGroupRow> ArenaCommunity { get => _arenaCommunity; private set => Set(ref _arenaCommunity, value); }
+    public IReadOnlyList<StatGroupRow> ArenaCommunity
+    {
+        get => _arenaCommunity;
+        private set
+        {
+            if (Set(ref _arenaCommunity, value))
+            {
+                RaiseArenaCommunityStates();
+            }
+        }
+    }
+
+    /// <summary>No class rows yet and neither numbers nor a failure came from the host.</summary>
+    public bool ArenaCommunityLoading => _arenaCommunity.Count == 0 && !ArenaCommunityUnavailable;
+
+    /// <summary>No class rows: the load failed, or the numbers came without classes.</summary>
+    public bool ArenaCommunityUnavailable => _arenaCommunity.Count == 0 && (_arenaMetaFailed || _arenaMeta is { Classes.Count: 0 });
 
     /// <summary>"Hearthpulse data · ArenaSmith score".</summary>
     public string ArenaCommunitySource { get => _arenaCommunitySource; private set => Set(ref _arenaCommunitySource, value); }
@@ -70,7 +87,22 @@ public sealed partial class MainViewModel
     public void SetArenaMeta(ArenaMeta? meta)
     {
         _arenaMeta = meta;
+        _arenaMetaFailed = false;
+        RaiseArenaCommunityStates();
         RebuildArenaStats();
+    }
+
+    /// <summary>The host's Arena load failed; what an earlier load showed stays.</summary>
+    public void ArenaMetaUnavailable()
+    {
+        _arenaMetaFailed = true;
+        RaiseArenaCommunityStates();
+    }
+
+    private void RaiseArenaCommunityStates()
+    {
+        Raise(nameof(ArenaCommunityLoading));
+        Raise(nameof(ArenaCommunityUnavailable));
     }
 
     /// <summary>"Deck score 41" for a run's row, with its tier; empty without a scored deck.</summary>

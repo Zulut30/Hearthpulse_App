@@ -1,7 +1,10 @@
 using System.Windows;
 using System.Windows.Controls;
+using Hearthpulse.App.Infrastructure;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Arena;
+using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
@@ -130,6 +133,88 @@ public sealed partial class UxPolishContractTests
             }
         }
     });
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Arena_and_battlegrounds_pages_say_unavailable_when_loading_failed(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        try
+        {
+            dynamic model = wpf ? new WpfMain(History(), new AppSettings()) : new AvaMain(History(), new AppSettings());
+
+            // Arena: loading until the host answers, then "unavailable" when its load failed.
+            Assert.True((bool)model.ArenaCommunityLoading);
+            Assert.False((bool)model.ArenaCommunityUnavailable);
+            model.ArenaMetaUnavailable();
+            Assert.False((bool)model.ArenaCommunityLoading);
+            Assert.True((bool)model.ArenaCommunityUnavailable);
+            // Numbers without classes are unavailable too; numbers with classes clear it at once, before the rows are built.
+            model.SetArenaMeta(new ArenaMeta([], []));
+            Assert.True((bool)model.ArenaCommunityUnavailable);
+            model.SetArenaMeta(new ArenaMeta([], [new ArenaClassStat("MAGE", 0.52, 0.1, 0.05, 1000)]));
+            Assert.False((bool)model.ArenaCommunityUnavailable);
+
+            // Battlegrounds: the community data line says "unavailable", in the language shown, until data comes.
+            Assert.Equal(Loc.T("Main.Bg.CommunityLoading"), (string)model.MetaUpdated);
+            model.BattlegroundsMetaUnavailable();
+            Assert.Equal(Loc.T("Main.Bg.CommunityUnavailable"), (string)model.MetaUpdated);
+            Loc.Instance.SetLanguage(Loc.Russian);
+            Assert.Equal(Loc.T("Main.Bg.CommunityUnavailable"), (string)model.MetaUpdated);
+            Loc.Instance.SetLanguage(Loc.English);
+            model.SetMeta(EmptyBgMeta());
+            Assert.NotEqual(Loc.T("Main.Bg.CommunityUnavailable"), (string)model.MetaUpdated);
+
+            // With data in, a failed refresh changes nothing.
+            var before = (string)model.MetaUpdated;
+            model.BattlegroundsMetaUnavailable();
+            Assert.Equal(before, (string)model.MetaUpdated);
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+        }
+    }
+
+    [Fact]
+    public void Arena_community_shows_loading_then_unavailable() => Sta(() =>
+    {
+        // The theme and the main look, as the main window merges them (StatsXamlLoadTests).
+        var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        app.Resources.MergedDictionaries.Clear();
+        app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1)));
+        app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/Hearthpulse;component/Main/MainLook.xaml") });
+        var model = new WpfMain(History(), new AppSettings());
+        var view = new Hearthpulse.App.Main.Stats.ArenaStatsView { DataContext = model };
+        var host = new Border { Child = view };
+        host.Measure(new Size(1180, 4000));
+        host.Arrange(new Rect(0, 0, 1180, 4000));
+        Settle(host);
+        var empty = view.FindResource("EmptyState");
+        AssertOne("Arena.Page.CommunityLoading");
+
+        model.ArenaMetaUnavailable();
+        Settle(host);
+        AssertOne("Arena.Page.CommunityEmpty");
+
+        void AssertOne(string key)
+        {
+            // The community card: the one under the "Class numbers" heading.
+            var card = (Panel)Logical<Hearthpulse.App.Controls.Ornament>(view).Single(o => o.Text == Loc.T("Arena.Page.Community")).Parent;
+            var shown = card.Children.OfType<ContentControl>().Where(c => ReferenceEquals(c.Style, empty) && c.Visibility == Visibility.Visible).ToList();
+            Assert.Equal(Loc.T(key), Assert.Single(shown).Content);
+        }
+    });
+
+    private static BattlegroundsMeta EmptyBgMeta() => (BattlegroundsMeta)Activator.CreateInstance(
+        typeof(BattlegroundsMeta), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null,
+        [
+            new Dictionary<int, IReadOnlyDictionary<string, MetaHero>>(), Array.Empty<(int, int)>(), Array.Empty<MetaComp>(),
+            new Dictionary<string, MetaTrinket>(), new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(),
+            new DateTime(2026, 10, 27, 12, 0, 0, DateTimeKind.Utc),
+        ],
+        null)!;
 
     /// <summary>Stats of the standard format with no archetype in them (Core builds these from the API; its constructor is internal).</summary>
     private static ConstructedMeta EmptyMeta() => (ConstructedMeta)Activator.CreateInstance(

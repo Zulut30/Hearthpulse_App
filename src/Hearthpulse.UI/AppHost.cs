@@ -387,6 +387,10 @@ public sealed partial class AppHost : IDisposable
             Session.SetMeta(meta);
             Main.SetMeta(meta);
         }
+        else
+        {
+            Main.BattlegroundsMetaUnavailable();
+        }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
         Session.RequestMemoryTrimWhenWindowAway();

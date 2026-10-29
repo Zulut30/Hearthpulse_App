@@ -30,6 +30,7 @@ public sealed class UxRound2MarkupTests
     private static readonly string[] LoadingKeys =
     [
         "Main.Bg.CommunityLoading", "Stats.Bg.NoteLoading", "Main.Meta.Loading", "Host.Busy.LoadingCards", "Overlay.Bar.ReadingLobby",
+        "Arena.Page.CommunityLoading",
     ];
 
     [Theory]

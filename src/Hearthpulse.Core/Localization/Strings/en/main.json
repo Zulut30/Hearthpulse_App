@@ -149,6 +149,7 @@
   "Main.Bg.SharedGames": " · {0:N0} shared games",
   "Main.Bg.MetaUpdated": "{0} · {1} · updated {2:dd MMM HH:mm}{3}",
   "Main.Bg.CommunityLoading": "Loading community data…",
+  "Main.Bg.CommunityUnavailable": "Community data is unavailable right now. Hearthpulse tries again later.",
   "Main.Table.Hero": "Hero",
   "Main.Table.Tier": "Tier",
   "Main.Table.TierTip": "S is the best, D the worst. Based on average placement.",
