@@ -18,6 +18,7 @@ public member types and assembly identities therefore remain in place.
 | Deck details and match replay | `Main/Decks/DeckDetailsViewModel.cs` (its rows: `DeckDetailsRows.cs`), `Main/Match/MatchViewModel.cs` | Views and code-behind in each UI |
 | Overlay state and rows | `Overlay/OverlayViewModel*.cs`, `Overlay/OverlayModels*.cs` | `OverlayViewModel.Platform.cs`, `OverlayModels.Platform.cs` |
 | Property notification | `Infrastructure/Observable.cs` | `RelayCommand` stays local because command notification semantics differ |
+| Value converter rules (shown or not, brush key, share width) | `Infrastructure/DisplayRules.cs` | The `IValueConverter` classes in `Infrastructure/Converters.cs`: brush lookup, `Visibility` / `bool` |
 | Tracking and statistics algorithms | `src/Hearthpulse.Core` (outside this directory) | Hosts dispatch completed snapshots/results to the UI |
 | XAML, controls, resources and rendering | None | Each App/UI/desktop host retains its framework implementation |
 
