@@ -54,7 +54,8 @@ public sealed partial class OverlayViewModel
             var left = LeaderboardGeometry.Beside(_surfaceWidth, _surfaceHeight, settings);
             foreach (var row in LobbyRows)
             {
-                if (row.You || row.Place is < 1 or > 8)
+                // No tier yet (not seen in a live game) would be an empty shield: no badge until there is one.
+                if (row.You || row.Place is < 1 or > 8 || row.Tier < 1)
                 {
                     continue;
                 }

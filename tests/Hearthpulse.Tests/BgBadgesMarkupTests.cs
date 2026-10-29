@@ -24,9 +24,12 @@ public sealed class BgBadgesMarkupTests
         var badges = Assert.Single(elements, e => e.Name.LocalName == "BgBadgesLayer");
         // Not a panel: it is not moved or armed with Ctrl, it follows the leaderboard calibration.
         Assert.DoesNotContain(badges.Ancestors(), e => e.Name.LocalName == "MovablePanel");
-        var popup = Assert.Single(elements, e => e.Name.LocalName == "Canvas" && ((string?)e.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) ?? (string?)e.Attribute("Name")) == "LobbyLayer");
+        var popup = Assert.Single(elements, e => e.Name.LocalName == "Canvas" && NameOf(e) == "LobbyLayer");
         Assert.True(elements.IndexOf(badges) < elements.IndexOf(popup), "the hover popup must draw over the badges");
         Assert.Same(popup.Parent, badges.Parent);
+        // The bottom layer of the surface: the tavern bar's tier list, the counters and the pick rows draw over it.
+        Assert.Equal("Surface", NameOf(badges.Parent!));
+        Assert.Same(badges, badges.Parent!.Elements().First(e => !e.Name.LocalName.Contains('.', StringComparison.Ordinal)));
     }
 
     [Theory]
@@ -48,6 +51,9 @@ public sealed class BgBadgesMarkupTests
             Assert.False(string.IsNullOrWhiteSpace(Loc.Table(language)["Settings.Overlay.BgBadgesTip"]));
         }
     }
+
+    private static string? NameOf(XElement element) =>
+        (string?)element.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) ?? (string?)element.Attribute("Name");
 
     private static string RepoRoot([CallerFilePath] string source = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", ".."));

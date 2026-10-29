@@ -73,7 +73,7 @@ public sealed partial class LocBindingTests
             Assert.True(badges[0].ColumnDefinitions[2].Width.IsAuto);
             Assert.DoesNotContain(badges[0].Children, c => Grid.GetColumn(c) == 2);
             // Centred on the tile.
-            var tier = badges[0].GetVisualDescendants().OfType<Border>().Single(b => b.Name == "Tier");
+            var tier = badges[0].GetVisualDescendants().OfType<Control>().Single(b => b.Name == "Tier");
             var centre = tier.TranslatePoint(new Point(0, tier.Bounds.Height / 2), layer)!.Value.Y;
             Assert.InRange(centre, 162 + (slot / 2) - 1, 162 + (slot / 2) + 1);
 

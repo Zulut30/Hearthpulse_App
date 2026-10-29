@@ -149,6 +149,10 @@ public sealed class BgBadgesTests
 
         model.Update(Live(Lobby([Murlocs])), Cards, settings, null, null);
         Assert.True((bool)model.ShowBgBadges);
+
+        // No tier known yet: no empty shield for that place.
+        model.Update(Live(Lobby([Murlocs, Unseen with { TechLevel = 0 }])), Cards, settings, null, null);
+        Assert.Equal([1], ((IEnumerable<dynamic>)model.BgBadges).Select(b => (int)b.Place));
     }
 
     /// <summary>Each badge stands beside its tile: right of the tile by the popup's gap, over the tile's height.</summary>
@@ -270,7 +274,7 @@ public sealed class BgBadgesTests
         Assert.True(badges[0].ColumnDefinitions[2].Width.IsAuto);
         Assert.DoesNotContain(badges[0].Children.Cast<UIElement>(), c => Grid.GetColumn(c) == 2);
         // Centred on its tile.
-        var tier = Descendants<Border>(items[0]).Single(b => b.Name == "Tier");
+        var tier = Descendants<FrameworkElement>(items[0]).Single(b => b.Name == "Tier");
         Assert.InRange(tier.TranslatePoint(new Point(0, tier.ActualHeight / 2), layer).Y, 162 + (slot / 2) - 1, 162 + (slot / 2) + 1);
     });
 
