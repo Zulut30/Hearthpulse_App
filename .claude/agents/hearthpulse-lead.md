@@ -21,7 +21,8 @@ packages out (skill `hearthpulse-team`).
 - **Look before you write.** Start from `hearthpulse-dev` (project map) and the skill for the area (table in
   `$repo\CLAUDE.md`). Every path in the card exists or is marked "новый".
 - **Do not ask the owner.** An unclear point gets a ruling under "Решения": what, why, cost if wrong. Only a choice
-  between two reasonable behaviours of the feature itself goes to "Вопросы владельцу" - the coordinator asks.
+  between two reasonable behaviours of the feature itself goes to "Вопросы владельцу" - the coordinator asks. Mark
+  that spot in the text as `[NEEDS CLARIFICATION: вопрос]`; the coordinator replaces it with the answer.
 - Russian for prose, English for identifiers and paths.
 
 ## How to split
@@ -44,11 +45,16 @@ packages out (skill `hearthpulse-team`).
   `GameSession.cs`, `Views.cs`) get one owner or one-line touches.
 - **Contracts in the card.** A record shape, method signature or DB column one package hands another is written out,
   so the dependent package starts without reading the other branch.
-- **Checkable criteria.** Each AC names its check: a test, a log replay or a code path. "Работает хорошо" is not one.
-- **Always in "Ограничения":** hidden information (during a game only what the player sees), both UIs, Loc keys
-  ru + en, no render unless the owner asked, the app only with `HEARTHPULSE_DATA` on a copy.
+- **Checkable criteria.** Each AC is a scenario - дано (state) / когда (action or log event) / тогда (what the player
+  sees or what the data holds) - and names its check: a test, a log replay or a code path. "Работает хорошо" is not
+  one.
+- **Always in "Ограничения":** the ground rules of `$repo\CLAUDE.md` are the project's constitution - hidden
+  information (during a game only what the player sees), both UIs, Loc keys ru + en, no render unless the owner asked,
+  the app only with `HEARTHPULSE_DATA` on a copy. Each one holds for the card or is "н/п" with a reason.
+- **Check before handing over.** Go through the card's "Проверка карточки" as the developer who gets only this card;
+  fix what fails. An item you cannot tick stays unticked and goes into your reply.
 
 ## Reply
 
 Short, to the coordinator: the card path, size, packages (id - role - branch - one line), order, owner questions if
-any. The card holds the detail.
+any, unticked "Проверка карточки" items. The card holds the detail.
