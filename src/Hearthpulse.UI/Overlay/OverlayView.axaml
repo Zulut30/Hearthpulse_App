@@ -962,7 +962,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: counters row (bottom-left) ============ -->
-                <o:MovablePanel Id="bg-counters" Title="{i:Loc Overlay.Panel.BgCounters}" Hint="{i:Loc Overlay.Layout.AppearsInBg}" Shown="{Binding ShowBgCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,250">
+                <o:MovablePanel Id="bg-counters" Title="{i:Loc Overlay.Panel.BgCounters}" Shown="{Binding ShowBgCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,250">
                     <Border Classes="overlayCard" Padding="8,8,2,2" MaxWidth="560" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
                         <StackPanel>
                             <ItemsControl ItemsSource="{Binding BgCounters}" ItemTemplate="{StaticResource BgCounterTemplate}">
@@ -1017,12 +1017,12 @@
 
                 <!-- ============ Battlegrounds: lobby tribes, tavern tiers and main tribes (top-right: clear of the leaderboard on 16:9,
                      16:10 and 4:3; declared before the bar, so the bar's tier list draws over it) ============ -->
-                <o:MovablePanel Id="bg-lobby" Title="{i:Loc Overlay.BgLobby.Title}" Hint="{i:Loc Overlay.Layout.AppearsInBg}" Shown="{Binding ShowBgLobby}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,124,12,0">
+                <o:MovablePanel Id="bg-lobby" Title="{i:Loc Overlay.BgLobby.Title}" Shown="{Binding ShowBgLobby}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,124,12,0">
                     <o:BgLobbyPanel />
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: slim top bar + minion browser (top-left) ============ -->
-                <o:MovablePanel Id="bgbar" Title="{i:Loc Overlay.Panel.BgBar}" Hint="{i:Loc Overlay.Layout.AppearsInBg}" Shown="{Binding ShowBattlegrounds}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,10,0,0">
+                <o:MovablePanel Id="bgbar" Title="{i:Loc Overlay.Panel.BgBar}" Shown="{Binding ShowBattlegrounds}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,10,0,0">
                     <StackPanel>
                         <Border Classes="overlayCard" Padding="10,5" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
                             <StackPanel Orientation="Horizontal">
@@ -1095,18 +1095,18 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: hero pick badges, one above each hero (HDT: pitch 340, +7 x) ============ -->
-                <o:MovablePanel Id="hero-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.HeroPick}" Hint="{i:Loc Overlay.Layout.AppearsInBg}" MinWidth="1360" Shown="{Binding ShowHeroPick}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,212,0,0">
+                <o:MovablePanel Id="hero-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.HeroPick}" MinWidth="1360" Shown="{Binding ShowHeroPick}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,212,0,0">
                     <!-- Where the numbers come from and what the tier letters mean: the tier badge's tooltip -->
                     <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: trinket pick badges (HDT: pitch 277, +10 x) ============ -->
-                <o:MovablePanel Id="trinket-row" PlaceholderAlignment="Right" Title="{i:Loc Overlay.Panel.TrinketPick}" Hint="{i:Loc Overlay.Layout.AppearsInBg}" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
+                <o:MovablePanel Id="trinket-row" PlaceholderAlignment="Right" Title="{i:Loc Overlay.Panel.TrinketPick}" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
                     <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: buy hints over the tavern row (HDT: row top 0.297H, pitch 138) ============ -->
-                <o:MovablePanel Id="tavern-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.TavernRow}" Hint="{i:Loc Overlay.Layout.AppearsInBg}" MinWidth="966" Shown="{Binding ShowShop}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,274,0,0">
+                <o:MovablePanel Id="tavern-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.TavernRow}" MinWidth="966" Shown="{Binding ShowShop}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,274,0,0">
                     <ItemsControl ItemsSource="{Binding ShopBadges}" ItemTemplate="{StaticResource ShopBadgeTemplate}" Width="966" Height="40">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -1117,7 +1117,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: simulated combat odds (top centre, during combat) ============ -->
-                <o:MovablePanel Id="odds" Title="{i:Loc Overlay.Panel.Odds}" Hint="{i:Loc Overlay.Layout.AppearsInBg}" Shown="{Binding ShowOdds}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
+                <o:MovablePanel Id="odds" Title="{i:Loc Overlay.Panel.Odds}" Shown="{Binding ShowOdds}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
                     <Border x:Name="OddsCard" Classes="overlayCard" Classes.lethal="{Binding LethalDanger}" Background="{StaticResource OverlayPanelSolid}" Padding="14,7,14,8" Width="250">
                         <Border.Styles>
                             <!-- Red edge while the fight can kill the player -->
@@ -1240,7 +1240,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: session (top-right) ============ -->
-                <o:MovablePanel Id="session" Title="{i:Loc Overlay.Session.Title}" Hint="{i:Loc Overlay.Layout.AppearsInBg}" Shown="{Binding ShowSession}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,12,0">
+                <o:MovablePanel Id="session" Title="{i:Loc Overlay.Session.Title}" Shown="{Binding ShowSession}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,12,0">
                     <Border Classes="overlayCard" Padding="12,7">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Overlay.Session.Title}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -1261,7 +1261,7 @@
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: lobby list (bottom-right) ============ -->
-                <o:MovablePanel Id="lobby" Title="{i:Loc Overlay.Lobby.Title}" Hint="{i:Loc Overlay.Layout.AppearsInBg}" Shown="{Binding ShowLobby}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,14">
+                <o:MovablePanel Id="lobby" Title="{i:Loc Overlay.Lobby.Title}" Shown="{Binding ShowLobby}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,14">
                     <Border Classes="overlayCard" Width="230" Padding="12,9,12,8">
                         <StackPanel>
                             <Grid Margin="0,0,0,6">
@@ -1274,15 +1274,14 @@
                 </o:MovablePanel>
 
                 <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->
-                <Border Name="LayoutBanner" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,400,0,0" Classes="overlayCard"
+                <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,400,0,0" Classes="overlayCard"
                         Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,10" o:OverlayHit.Interactive="True"
                         IsVisible="{Binding LayoutEditing}">
                     <StackPanel Orientation="Horizontal">
-                        <!-- The hints wrap: on 4:3 at a large overlay size one line ran past the screen's edge -->
-                        <StackPanel VerticalAlignment="Center" MaxWidth="880">
+                        <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="{i:Loc Overlay.Layout.Title}" FontSize="14" FontWeight="SemiBold" />
-                            <TextBlock Text="{i:Loc Overlay.Layout.Hint}" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
-                            <TextBlock Text="{i:Loc Overlay.Layout.InGameHint}" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Overlay.Layout.Hint}" FontSize="11.5" Foreground="{StaticResource Muted}" />
+                            <TextBlock Text="{i:Loc Overlay.Layout.InGameHint}" FontSize="11.5" Foreground="{StaticResource Muted}" />
                         </StackPanel>
                         <Button Classes="ghost" Content="{i:Loc Overlay.Layout.ResetAll}" Margin="18,0,8,0" Command="{Binding ResetLayout}" Focusable="False" />
                         <!-- The global shortcuts are registered on Windows only (WindowsOverlayPlatform) -->

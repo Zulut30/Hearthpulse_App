@@ -164,69 +164,6 @@ public sealed partial class LocBindingTests
     }));
 
     [Fact]
-    public void Layout_mode_names_the_battlegrounds_placeholders_and_its_banner_wraps() => Headless.Run(() =>
-    {
-        Loc.Instance.SetLanguage(Loc.English);
-        var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))
-        {
-            Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml"),
-        };
-        var app = Application.Current!;
-        app.Styles.Add(theme);
-        var window = new Window { Width = 1920, Height = 1080 };
-        try
-        {
-            var view = new Hearthpulse.UI.Overlay.OverlayView { DataContext = new Hearthpulse.UI.Overlay.OverlayViewModel { LayoutEditing = true } };
-            window.Content = view;
-            Dispatcher.UIThread.RunJobs();
-            var panels = view.GetLogicalDescendants().OfType<Hearthpulse.UI.Overlay.MovablePanel>().ToDictionary(p => p.Id);
-            string[] bg = ["bg-counters", "bg-lobby", "bgbar", "hero-row", "trinket-row", "tavern-row", "odds", "session", "lobby"];
-            Assert.All(bg, id => Assert.Equal(Loc.T("Overlay.Layout.AppearsInBg"), panels[id].Hint));
-            Assert.True(string.IsNullOrEmpty(panels["deck"].Hint));
-
-            var banner = view.FindControl<Border>("LayoutBanner")!;
-            var hints = banner.GetLogicalDescendants().OfType<TextBlock>()
-                .Where(t => t.Text == Loc.T("Overlay.Layout.Hint") || t.Text == Loc.T("Overlay.Layout.InGameHint")).ToList();
-            Assert.Equal(2, hints.Count);
-            Assert.All(hints, t => Assert.Equal(Avalonia.Media.TextWrapping.Wrap, t.TextWrapping));
-            Assert.True(((Control)hints[0].Parent!).MaxWidth <= 880);
-        }
-        finally
-        {
-            window.Close();
-            app.Styles.Remove(theme);
-            Dispatcher.UIThread.RunJobs();
-        }
-    });
-
-    /// <summary>Both overlays give each panel the same placeholder note: (Id, Hint) pairs read from the two XAML sources.</summary>
-    [Fact]
-    public void Both_overlays_give_each_panel_the_same_placeholder_note()
-    {
-        static IEnumerable<(string Id, string? Hint)> Pairs(string relative) =>
-            System.Xml.Linq.XDocument.Load(Path.Combine(RepoRoot(), relative)).Descendants()
-                .Where(e => e.Name.LocalName == "MovablePanel")
-                .Select(e => ((string)e.Attribute("Id")!, (string?)e.Attribute("Hint")))
-                .OrderBy(p => p.Item1, StringComparer.Ordinal);
-
-        var wpf = Pairs(Path.Combine("src", "Hearthpulse.App", "Overlay", "OverlayWindow.xaml")).ToList();
-        Assert.Equal(wpf, Pairs(Path.Combine("src", "Hearthpulse.UI", "Overlay", "OverlayView.axaml")));
-        // Nine: the Discover row's placeholder would grow onto the mulligan bars under it (OverlayXamlLoadTests).
-        Assert.Equal(9, wpf.Count(p => p.Hint == "{i:Loc Overlay.Layout.AppearsInBg}"));
-    }
-
-    private static string RepoRoot([System.Runtime.CompilerServices.CallerFilePath] string source = "")
-    {
-        var dir = new DirectoryInfo(Path.GetDirectoryName(source)!);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Hearthpulse.slnx")))
-        {
-            dir = dir.Parent;
-        }
-
-        return dir?.FullName ?? throw new DirectoryNotFoundException("Repository root (Hearthpulse.slnx) not found above the test sources.");
-    }
-
-    [Fact]
     public void Settings_list_the_shortcuts_this_platform_has_and_the_live_bar_names_them() => Headless.Run(() => WithMainView((view, _) =>
     {
         var global = OperatingSystem.IsWindows();

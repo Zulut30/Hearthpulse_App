@@ -927,7 +927,7 @@
                                                 <TextBlock Text="{i:Loc Settings.Shortcuts.LayoutKeys}" FontSize="12" FontWeight="SemiBold" />
                                             </Border>
                                         </Grid>
-                                        <Grid Margin="0,0,0,10">
+                                        <Grid Margin="0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
@@ -937,7 +937,6 @@
                                                 <TextBlock Text="{i:Loc Settings.Shortcuts.RefreshKeys}" FontSize="12" FontWeight="SemiBold" />
                                             </Border>
                                         </Grid>
-                                        <TextBlock Text="{i:Loc Overlay.Layout.InGameHint}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,8,0,0" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

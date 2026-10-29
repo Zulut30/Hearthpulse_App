@@ -844,13 +844,12 @@
                                             <TextBlock Text="{i:Loc Settings.Shortcuts.HideKeys}" FontSize="12" FontWeight="SemiBold" />
                                         </Border>
                                     </Grid>
-                                    <Grid Name="ShortcutLayoutRow" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                                    <Grid Name="ShortcutLayoutRow" ColumnDefinitions="*,Auto">
                                         <TextBlock Text="{i:Loc Settings.Shortcuts.Layout}" Classes="settingLabel" TextWrapping="Wrap" Margin="0,0,16,0" />
                                         <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
                                             <TextBlock Text="{i:Loc Settings.Shortcuts.LayoutKeys}" FontSize="12" FontWeight="SemiBold" />
                                         </Border>
                                     </Grid>
-                                    <TextBlock Text="{i:Loc Overlay.Layout.InGameHint}" Classes="caption" TextWrapping="Wrap" Margin="0,8,0,0" />
                                 </StackPanel>
                             </Border>
                         </StackPanel>
