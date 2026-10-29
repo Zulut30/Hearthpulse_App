@@ -1,0 +1,113 @@
+root = true
+
+# Code analyzers: Meziantou.Analyzer (MA*) and Microsoft.VisualStudio.Threading.Analyzers (VSTHRD*), referenced for the
+# src/* projects in Directory.Build.props. The build stays at 0 warnings: a warning here is fixed, or suppressed in place
+# with [SuppressMessage(..., Justification = "...")]. Each line below differs from the package default and says why;
+# rules not listed keep their default.
+
+[*.cs]
+
+# --- Threading -------------------------------------------------------------------------------------------------------
+# Kept as warnings (default): VSTHRD002 synchronous waits, VSTHRD100 async void, VSTHRD101 async lambda passed as a
+# void delegate, VSTHRD103 blocking call inside an async method, VSTHRD110 unobserved awaitable result.
+
+# Visual Studio's JoinableTaskFactory: this app has no JTF. Dispatcher.Invoke/BeginInvoke is the WPF way to reach the
+# UI thread, and awaiting a task started elsewhere is normal outside JTF.
+dotnet_diagnostic.VSTHRD001.severity = none
+dotnet_diagnostic.VSTHRD003.severity = none
+# "Async" suffix: the project names async methods by what they do; renaming public members would ripple through both UIs.
+dotnet_diagnostic.VSTHRD200.severity = none
+# Same checks as VSTHRD110 / VSTHRD103 / VSTHRD101 above; one warning per place is enough.
+dotnet_diagnostic.MA0134.severity = none
+dotnet_diagnostic.MA0042.severity = none
+dotnet_diagnostic.MA0147.severity = none
+# ConfigureAwait(false) belongs in the UI-free library only (section for Hearthpulse.Core below). In the UI projects the
+# continuation must come back to the UI thread, which is what a plain await does.
+dotnet_diagnostic.MA0004.severity = none
+
+# --- Culture and string comparison -----------------------------------------------------------------------------------
+# Kept as warnings (default): MA0011 IFormatProvider missing, MA0074 implicit culture-sensitive string method.
+# StringComparison stated on every string call (default: suggestion).
+dotnet_diagnostic.MA0001.severity = warning
+# Implicit culture in string concatenation (default: suggestion).
+dotnet_diagnostic.MA0075.severity = warning
+# Stays a suggestion (default): ~200 interpolated strings, nearly all player-visible text where the current culture is
+# intended, or integers in URLs and log lines where it makes no difference. Machine data uses InvariantCulture by
+# convention (hearthpulse-dev) and explicit ToString/Parse/Format is checked by MA0011.
+dotnet_diagnostic.MA0076.severity = suggestion
+# string == string is already ordinal in C#; "use string.Equals" changes nothing.
+dotnet_diagnostic.MA0006.severity = none
+# Comparer missing on string collections: the defaults (Dictionary, HashSet, GroupBy, Distinct, Contains) are already
+# ordinal; adding StringComparer.Ordinal to 120 places changes nothing. The few string sorts are culture-aware on purpose
+# (names in lists) and are checked in review.
+dotnet_diagnostic.MA0002.severity = none
+
+# --- Correctness -----------------------------------------------------------------------------------------------------
+# Kept as warnings (default): MA0060 return value not used (TryParse, Stream.Read), MA0065 default struct equality,
+# MA0084 local hides another symbol, MA0169 operator == where Equals is overridden.
+
+# --- Allocations and performance -------------------------------------------------------------------------------------
+# Kept as a warning (default): MA0158 System.Threading.Lock instead of a lock object.
+# Char overloads instead of one-character strings (default: suggestion).
+dotnet_diagnostic.MA0089.severity = warning
+# List.Exists/TrueForAll instead of LINQ Any/All on a list (default: suggestion).
+dotnet_diagnostic.MA0020.severity = warning
+# Order()/OrderDescending() instead of OrderBy(x => x) (default: suggestion).
+dotnet_diagnostic.MA0159.severity = warning
+# GetOrAdd with a factory argument instead of a capturing lambda (default: suggestion).
+dotnet_diagnostic.MA0106.severity = warning
+# [GeneratedRegex] instead of a Regex built at run time (default: suggestion).
+dotnet_diagnostic.MA0110.severity = warning
+# Stay suggestions (default): "Count() >= n" -> "Skip(n - 1).Any()" and merged Where calls read worse for a gain that
+# does not matter on these short lists.
+dotnet_diagnostic.MA0029.severity = suggestion
+dotnet_diagnostic.MA0031.severity = suggestion
+# Stays a suggestion (default): passing a token to Task.Run turns a cancel before the start into an exception at callers
+# that do not expect one; each place needs its own decision.
+dotnet_diagnostic.MA0040.severity = suggestion
+# Removing async from a method moves its exceptions from the returned task to the call; not a mechanical change.
+dotnet_diagnostic.VSTHRD202.severity = none
+
+# --- Style and design: not ours --------------------------------------------------------------------------------------
+# Named arguments for every literal.
+dotnet_diagnostic.MA0003.severity = none
+# One type per file: the project keeps small records next to their owner (Views.cs, *Models.cs).
+dotnet_diagnostic.MA0048.severity = none
+# Method length.
+dotnet_diagnostic.MA0051.severity = none
+# Explicit enum member instead of 0 in comparisons and defaults.
+dotnet_diagnostic.MA0099.severity = none
+# Interfaces instead of List<T>/Dictionary in signatures.
+dotnet_diagnostic.MA0016.severity = none
+# Events declared with EventHandler<T>: the project's events are plain Action<T>.
+dotnet_diagnostic.MA0046.severity = none
+# Type named like its namespace (Tracking.Counters.Counters, App): renaming would touch both UIs; default is an error.
+dotnet_diagnostic.MA0049.severity = none
+# Exception class names ending in "Exception": two private helper exceptions.
+dotnet_diagnostic.MA0058.severity = none
+# [StructLayout] on every struct: only P/Invoke structs need it, and those have it.
+dotnet_diagnostic.MA0008.severity = none
+# Regex timeouts: patterns are constants run on Hearthstone's own logs and API answers; a timeout adds a failure mode.
+dotnet_diagnostic.MA0009.severity = none
+# RegexOptions.ExplicitCapture changes what numbered groups match.
+dotnet_diagnostic.MA0023.severity = none
+# Internal types "unused": combat effects are found by reflection ([CardEffect], EffectRegistry).
+dotnet_diagnostic.MA0182.severity = none
+# [GeneratedRegex] on a partial property instead of a partial method: both are fine.
+dotnet_diagnostic.MA0190.severity = none
+# HasFlag instead of a bitwise test: same code, style only.
+dotnet_diagnostic.MA0192.severity = none
+# Math.Round without MidpointRounding: the default (to even) is what every displayed number uses.
+dotnet_diagnostic.MA0193.severity = none
+# "Unnecessary partial": Hearthpulse.Presentation is shared source; the other UI flavour adds the second part.
+dotnet_diagnostic.MA0204.severity = none
+# Guid built from integers instead of parsed from its string: a static parsed once; the string form is the readable one.
+dotnet_diagnostic.MA0176.severity = none
+# Deprecated in Meziantou in favour of CA1822.
+dotnet_diagnostic.MA0038.severity = none
+dotnet_diagnostic.MA0041.severity = none
+
+[src/Hearthpulse.Core/**.cs]
+
+# The library never needs the caller's synchronization context: it is UI-free and its callers await it from their own.
+dotnet_diagnostic.MA0004.severity = warning
