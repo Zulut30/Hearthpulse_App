@@ -107,7 +107,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-windows
-          path: TestResults/**/coverage.cobertura.xml
+          # <suite>/<guid>/ only: with the trx logger the test platform also copies each report under .../In/<machine>/.
+          path: TestResults/*/*/coverage.cobertura.xml
           if-no-files-found: ignore
 
   # Linux and macOS: the tests, then the self-contained app as the installers ship it (native SQLite, Skia, HarfBuzz for
