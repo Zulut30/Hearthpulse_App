@@ -116,6 +116,30 @@ public sealed class UxRound2MarkupTests
         Assert.StartsWith("{Binding ArenaNoData", (string?)note.Attribute(visibility), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Compact_rows_keep_text_size_and_one_gem_size_in_both_uis()
+    {
+        // WPF: the row templates' triggers on the panel's compact flag.
+        var setters = Markup("src/Hearthpulse.App/Overlay/OverlayWindow.xaml").Descendants()
+            .Where(e => e.Name.LocalName == "Trigger" && (string?)e.Attribute("Property") == "o:MovablePanel.Compact")
+            .SelectMany(t => t.Elements().Where(e => e.Name.LocalName == "Setter")).ToList();
+        Assert.NotEmpty(setters);
+        Assert.DoesNotContain(setters, s => (string?)s.Attribute("Property") == "FontSize");
+        var gem = setters.Where(s => (string?)s.Attribute("TargetName") == "Gem").ToList();
+        Assert.Equal(4, gem.Count);
+        Assert.All(gem, s => Assert.Equal("18", (string?)s.Attribute("Value")));
+
+        // Avalonia: the styles under a compact panel.
+        var styles = Markup("src/Hearthpulse.UI/Overlay/OverlayView.axaml").Descendants()
+            .Where(e => e.Name.LocalName == "Style" && ((string?)e.Attribute("Selector"))?.Contains("MovablePanel.compact", StringComparison.Ordinal) == true).ToList();
+        Assert.NotEmpty(styles);
+        Assert.DoesNotContain(styles.SelectMany(s => s.Elements()), s => (string?)s.Attribute("Property") == "FontSize");
+        var gems = styles.Where(s => ((string?)s.Attribute("Selector"))!.Contains("ManaCost", StringComparison.Ordinal))
+            .SelectMany(s => s.Elements().Where(e => (string?)e.Attribute("Property") is "Width" or "Height")).ToList();
+        Assert.Equal(2, gems.Count);
+        Assert.All(gems, s => Assert.Equal("18", (string?)s.Attribute("Value")));
+    }
+
     private static bool IsHeader(XElement element) =>
         element.Name.LocalName == "Border"
         && ((string?)element.Attribute("Style") == "{StaticResource OverlayHeader}" || ((string?)element.Attribute("Classes"))?.Split(' ').Contains("overlayHeader") == true);

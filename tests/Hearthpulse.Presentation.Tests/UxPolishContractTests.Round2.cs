@@ -1,8 +1,10 @@
 using System.Windows;
 using System.Windows.Controls;
+using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Tracking;
 using WpfMain = Hearthpulse.App.Main.MainViewModel;
+using WpfOverlay = Hearthpulse.App.Overlay.OverlayViewModel;
 
 namespace Hearthpulse.Presentation.Tests;
 
@@ -34,6 +36,35 @@ public sealed partial class UxPolishContractTests
         Assert.True(text.ActualWidth <= inner + 0.5, $"text {text.ActualWidth} in {inner}");
         Assert.True(text.TranslatePoint(new Point(text.ActualWidth, 0), banner).X <= banner.ActualWidth - banner.Padding.Right + 0.5);
         Assert.True(text.ActualHeight >= 1.8 * text.FontSize, $"one line only: {text.ActualHeight}");
+        window.Close();
+    });
+
+    [Fact]
+    public void Compact_deck_row_keeps_its_name_size() => Sta(() =>
+    {
+        var window = OpenOverlay(new WpfOverlay());
+        var row = new ContentPresenter
+        {
+            Content = new DeckTile("CS2_029", "Fireball", 4, "2", true, false, "COMMON", string.Empty, false),
+            ContentTemplate = (DataTemplate)window.FindResource("DeckTileTemplate"),
+        };
+        var root = (Panel)window.Content;
+        root.Children.Add(row);
+        row.Measure(new Size(240, 30));
+        row.Arrange(new Rect(0, 0, 240, 30));
+        row.UpdateLayout();
+        var full = Descendants<TextBlock>(row).First(t => t.Name == "CardName").FontSize;
+
+        // Compact only drops the art and makes the row short: the name reads the same, the gem is 18 as in every compact list.
+        MovablePanel.SetCompact(row, true);
+        row.UpdateLayout();
+        Assert.Equal(full, Descendants<TextBlock>(row).First(t => t.Name == "CardName").FontSize);
+        Assert.Equal(12.5, full);
+        var gem = Descendants<FrameworkElement>(row).First(e => e.Name == "Gem");
+        Assert.Equal(18, gem.Width);
+        Assert.Equal(18, gem.Height);
+        Assert.Equal(18, Descendants<Grid>(row).First(g => g.Name == "RowRoot").ActualHeight, 0.5);
+        Assert.Equal(Visibility.Collapsed, Descendants<Image>(row).First(i => i.Name == "Art").Visibility);
         window.Close();
     });
 }

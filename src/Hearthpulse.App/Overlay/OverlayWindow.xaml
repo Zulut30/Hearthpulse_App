@@ -84,7 +84,6 @@
                     <Setter TargetName="Fade" Property="Visibility" Value="Collapsed" />
                     <Setter TargetName="Gem" Property="Width" Value="18" />
                     <Setter TargetName="Gem" Property="Height" Value="18" />
-                    <Setter TargetName="CardName" Property="FontSize" Value="11.5" />
                 </Trigger>
                 <DataTrigger Binding="{Binding Empty}" Value="True">
                     <Setter TargetName="Art" Property="Opacity" Value="0.22" />
@@ -147,8 +146,8 @@
                     <Setter TargetName="RowRoot" Property="Height" Value="18" />
                     <Setter TargetName="Art" Property="Visibility" Value="Collapsed" />
                     <Setter TargetName="Fade" Property="Visibility" Value="Collapsed" />
-                    <Setter TargetName="Gem" Property="Width" Value="17" />
-                    <Setter TargetName="Gem" Property="Height" Value="17" />
+                    <Setter TargetName="Gem" Property="Width" Value="18" />
+                    <Setter TargetName="Gem" Property="Height" Value="18" />
                 </Trigger>
             </DataTemplate.Triggers>
         </DataTemplate>
