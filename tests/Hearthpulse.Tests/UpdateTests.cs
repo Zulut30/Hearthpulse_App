@@ -91,6 +91,23 @@ public sealed class UpdateTests
     }
 
     [Fact]
+    public async Task The_update_loop_only_tells_the_windows_app_outside_its_setup_folder_about_a_release()
+    {
+        // The loop itself, not only the check: a zip copy that is not the preview gets "available", never a download.
+        using var http = new HttpClient(new Stub(HttpStatusCode.OK, AllTargetsReply));
+        var outcome = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var folder = Path.Combine(Path.GetTempPath(), "hp-moved-app");
+
+        _ = UpdateService.WatchAsync(http, notifyOnly: false,
+            available: _ => outcome.TrySetResult("available"),
+            staged: _ => outcome.TrySetResult("staged"),
+            failed: _ => outcome.TrySetResult("failed"),
+            TimeSpan.Zero, UpdateTarget.WindowsPortable, folder, _ => false);
+
+        Assert.Equal("available", await outcome.Task.WaitAsync(TimeSpan.FromSeconds(10)));
+    }
+
+    [Fact]
     public void The_reply_for_this_platform_gives_a_download_url()
     {
         var target = UpdateService.DetectTarget();
