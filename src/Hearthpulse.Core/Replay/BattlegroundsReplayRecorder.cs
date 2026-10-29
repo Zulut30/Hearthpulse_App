@@ -144,6 +144,8 @@ public sealed class BattlegroundsReplayRecorder
         var events = _events.Concat(_pending.OfType<string>()).ToList();
         if (!_resultWritten && _game is not null && Finished(_game))
         {
+            // Saved before the game's end: the leaderboard as it is now (later rows win), then the place.
+            events.AddRange(LeaderLines(_game).Select(l => l.Line));
             events.Add(ResultLine(_game));
         }
 
@@ -224,6 +226,12 @@ public sealed class BattlegroundsReplayRecorder
     {
         if (_ended)
         {
+            // Only the leaderboard still counts: the game sets our final place after PLAYSTATE.
+            if (LeaderTags.Contains(tag) && entity.CardType == "HERO")
+            {
+                NoteHero(entity);
+            }
+
             return;
         }
 
@@ -409,6 +417,7 @@ public sealed class BattlegroundsReplayRecorder
         if (!_resultWritten)
         {
             _resultWritten = true;
+            WriteLeadersNow(game);
             Write(ResultLine(game));
         }
     }
@@ -587,6 +596,7 @@ public sealed class BattlegroundsReplayRecorder
         // Without a hero attack nobody was left standing (a tie), unless our hero lost health some other way.
         var taken = _fightResult is null ? Math.Max(0, _localHeroAtStart - Durability(game.LocalHero)) : _taken;
         var result = _fightResult ?? (taken > 0 ? "LOSS" : "TIE");
+        WriteLeadersNow(game);
         Write(string.Create(CultureInfo.InvariantCulture, $"f {result} {taken} {_dealt}"));
         _combat = false;
         Flush();
@@ -818,6 +828,35 @@ public sealed class BattlegroundsReplayRecorder
         }
 
         _leadersDirty = false;
+        foreach (var (slot, line) in LeaderLines(game))
+        {
+            _leaders[slot] = line;
+            PendingTag(-100 - slot, "L", line);
+        }
+    }
+
+    /// <summary>
+    /// Writes the leaderboard as it is now ahead of a step line that takes the table at once (<c>f</c>, <c>R</c>): a
+    /// pending row of the same slot is older and is dropped.
+    /// </summary>
+    private void WriteLeadersNow(GameState game)
+    {
+        _leadersDirty = false;
+        foreach (var (slot, line) in LeaderLines(game))
+        {
+            if (_tagLines.Remove((-100 - slot, "L"), out var index))
+            {
+                _pending[index] = null;
+            }
+
+            _leaders[slot] = line;
+            Write(line);
+        }
+    }
+
+    /// <summary>The rows that differ from the ones written.</summary>
+    private List<(int Slot, string Line)> LeaderLines(GameState game)
+    {
         var local = game.LocalHero;
         var rows = new SortedDictionary<int, Entity>();
         foreach (var id in _heroes)
@@ -835,6 +874,7 @@ public sealed class BattlegroundsReplayRecorder
             }
         }
 
+        var lines = new List<(int Slot, string Line)>();
         foreach (var (slot, hero) in rows)
         {
             var mine = hero == local;
@@ -843,10 +883,11 @@ public sealed class BattlegroundsReplayRecorder
                 $"L {slot} {(mine ? 'L' : '-')} {hero.CardId} {hero.GetInt(GameTag.PlayerLeaderboardPlace)} {hero.Health} {hero.GetInt(GameTag.Armor)} {tier}");
             if (_leaders.GetValueOrDefault(slot) != line)
             {
-                _leaders[slot] = line;
-                PendingTag(-100 - slot, "L", line);
+                lines.Add((slot, line));
             }
         }
+
+        return lines;
     }
 
     private string IdOf(int entityId) =>

@@ -481,6 +481,8 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         // The hero was rerolled before the pick (BG28_HERO_400_SKIN_C -> BG36_HERO_000): the first step offers it.
         AssertPicksOffered(body);
         var steps = BattlegroundsMatchReplay.Parse(text)!.Frames;
+        // The last step's leaderboard has our final place, set by the game after PLAYSTATE.
+        Assert.Equal(4, steps[^1].Leaderboard.Single(l => l.Local).Place);
         Assert.Equal(["BG36_HERO_000"], steps[0].Choice!.Picked);
         Assert.Contains("BG36_HERO_000", steps[0].Choice!.Options);
         Assert.True(with / without <= 1.25, $"x{with / without:F2}");

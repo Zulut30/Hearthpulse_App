@@ -145,6 +145,10 @@ public sealed class MatchPageBattlegroundsTests : IDisposable
 
         var end = page.BattlegroundsStep(18)!;
         Assert.Equal(("Game over", "Game over: 5th", MatchPhase.End), (end.Title, end.Action, end.Phase));
+        // The leaderboard of the last step is the final one: our place set after PLAYSTATE, our hero dead.
+        var ours = Assert.Single(end.Leaderboard, l => l.Local);
+        Assert.Equal((5, 0, true), (ours.Place, ours.Health, ours.Dead));
+        Assert.True(Assert.Single(lost.Leaderboard, l => l.Local).Dead);
     }
 
     [Fact]
