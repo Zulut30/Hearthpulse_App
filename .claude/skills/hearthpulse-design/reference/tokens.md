@@ -17,7 +17,7 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 | OutlineColor | #6E4E2C | `Outline` | stronger edge (live bar) |
 | TextColor | #F4E7C9 | `Text` | body text (parchment) |
 | MutedColor | #CDB894 | `Muted`, `TierC` | secondary text, icons, labels |
-| FaintColor | #8F7A5C | `Faint` | tertiary text, disabled |
+| FaintColor | #8F7A5C | `Faint` | separators, glyphs, empty-box placeholders, disabled (below AA: not for text to be read) |
 | AccentColor | #E9B949 | `Accent`, `GoldFill` | gold accent |
 | AccentDeepColor | #C48E2C | `AccentDeep` | darker gold |
 | AccentContainerColor | #5A3D17 | `AccentContainer` | icon cookie fill behind gold glyphs |
