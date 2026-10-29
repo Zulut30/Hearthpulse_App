@@ -19,7 +19,7 @@ namespace Hearthpulse.Presentation.Tests;
 /// The usability pass (TASK-2026-10-29-ux-polish): what was hidden in tips or easy to hit by mistake, checked in the
 /// WPF window laid out off screen with the real theme and fonts, and in both hosts' view models.
 /// </summary>
-public sealed class UxPolishContractTests
+public sealed partial class UxPolishContractTests
 {
     private static HistoryStore History() => new(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
 

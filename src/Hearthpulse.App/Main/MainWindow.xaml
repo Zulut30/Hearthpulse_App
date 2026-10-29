@@ -352,12 +352,16 @@
                             <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource PageTitle}" />
                             <c:Wave Style="{StaticResource PageRule}" />
 
-                            <Border Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
+                            <Border x:Name="SetupBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
                                     Visibility="{Binding SetupWarning, Converter={StaticResource Vis}}">
-                                <StackPanel Orientation="Horizontal">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Text="&#xF002A;" Style="{StaticResource Icon}" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,12,0" />
-                                    <TextBlock Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
-                                </StackPanel>
+                                    <TextBlock x:Name="SetupWarningText" Grid.Column="1" Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                                </Grid>
                             </Border>
 
                             <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
