@@ -286,3 +286,6 @@ lines, the whole fight within a second), not the client's animation; in Duos onl
 written (the partner's board in combat is not) and no real Duos log was checked; the result and damage of a combat come
 from the hero attack after the fight (none: a tie, unless our hero lost health otherwise); a recording that starts
 during a combat would hide an opponent's minion frozen at that moment (it is taken for Bob's frozen offer).
+The Rounds tab, History and My Stats take a combat's result and damage from the same hero attack: against the ghost of
+an eliminated player the damage to its combat copy counts (owner, 2026-10-29), and a fight conceded before any hero
+attack has no result (no `f` line).
