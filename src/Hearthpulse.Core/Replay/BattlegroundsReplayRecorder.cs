@@ -91,7 +91,8 @@ public sealed class BattlegroundsReplayRecorder
     private readonly HashSet<int> _heroes = new();
     private readonly Dictionary<int, string> _leaders = new();
 
-    // Bob's offer when the combat started: not the opponent's, whatever the game does with it during the fight.
+    // Bob's offer when the combat started: not the opponent's, whatever the game does with it during the fight; what is
+    // still in Bob's play after it (frozen) is the next tavern's offer again.
     private readonly HashSet<int> _offer = new();
     private GameState? _game;
     private Step? _step;
@@ -110,6 +111,9 @@ public sealed class BattlegroundsReplayRecorder
     private bool _resultWritten;
     private bool _looseMove;
     private bool _died;
+
+    // The recording began during a combat (a reconnect): Bob's offer was never seen leaving, only a frozen card stays.
+    private bool _joinedCombat;
 
     // How the combat ends: the hero attack after the fight is its damage (its block may be nested in the game's own).
     private int _localHeroAtStart;
@@ -178,6 +182,7 @@ public sealed class BattlegroundsReplayRecorder
         _resultWritten = false;
         _looseMove = false;
         _died = false;
+        _joinedCombat = false;
         _opponentHero = null;
         _heroAttack = null;
         _fightResult = null;
@@ -193,6 +198,7 @@ public sealed class BattlegroundsReplayRecorder
             if (InCombat(game))
             {
                 BeginCombat(game);
+                _joinedCombat = true;
             }
             else
             {
@@ -596,6 +602,12 @@ public sealed class BattlegroundsReplayRecorder
         // Without a hero attack nobody was left standing (a tie), unless our hero lost health some other way.
         var taken = _fightResult is null ? Math.Max(0, _localHeroAtStart - Durability(game.LocalHero)) : _taken;
         var result = _fightResult ?? (taken > 0 ? "LOSS" : "TIE");
+        if (_combatSteps == 0)
+        {
+            // No step since the start (no STEP MAIN_START either): what is pending set the boards up.
+            Flush();
+        }
+
         WriteLeadersNow(game);
         Write(string.Create(CultureInfo.InvariantCulture, $"f {result} {taken} {_dealt}"));
         _combat = false;
@@ -606,7 +618,16 @@ public sealed class BattlegroundsReplayRecorder
         }
 
         _opponentHero = null;
-        _offer.Clear();
+        _joinedCombat = false;
+        foreach (var id in _offer.ToList())
+        {
+            _offer.Remove(id);
+            if (game.Entities.GetValueOrDefault(id) is { } kept)
+            {
+                // A frozen offer the fight left in Bob's play is shown in the next tavern.
+                Sync(game, kept);
+            }
+        }
     }
 
     private static int Durability(Entity? hero) => hero is null ? 0 : hero.Health + hero.GetInt(GameTag.Armor);
@@ -712,6 +733,12 @@ public sealed class BattlegroundsReplayRecorder
         if (entity.Id == game.GameEntityId || entity.CardType is "PLAYER" or "GAME" or "ENCHANTMENT")
         {
             return;
+        }
+
+        if (_joinedCombat && entity.Controller == game.OpponentPlayerId && entity.Zone == "PLAY" && entity.GetInt("FROZEN") == 1)
+        {
+            // Joined during a combat: a frozen card in Bob's play is his offer kept for the next tavern, not the opponent's.
+            _offer.Add(entity.Id);
         }
 
         _shown.TryGetValue(entity.Id, out var shown);

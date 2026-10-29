@@ -54,7 +54,8 @@ events once the game is Battlegrounds and the local player is known (live games 
 rule:
 
 - **Bob's offer only in the tavern.** When a combat starts every offer card leaves view (`X`), and a card of the offer
-  left in play during the fight is never taken for the opponent's.
+  left in play during the fight (a frozen one) is never taken for the opponent's; it shows again in the next tavern. A
+  recording that starts during a combat (a reconnect) takes a frozen minion in Bob's play for his offer.
 - **The combat opponent only during the combat with it**: its hero (a hero in the innkeeper's slot with a leaderboard
   slot, `PLAYER_ID`; Bob has none), hero powers, trinkets and board in play. They leave view at the combat's end; the
   page keeps no "last known board" between combats.
@@ -266,4 +267,5 @@ shows only when the client's memory was read during the game (live, not log impo
 the reconnect; games played before this feature have no replay. Battlegrounds: the combat is the server's (GameState
 lines, the whole fight within a second), not the client's animation; in Duos only our board and the opponent's are
 written (the partner's board in combat is not) and no real Duos log was checked; the result and damage of a combat come
-from the hero attack after the fight (none: a tie, unless our hero lost health otherwise).
+from the hero attack after the fight (none: a tie, unless our hero lost health otherwise); a recording that starts
+during a combat would hide an opponent's minion frozen at that moment (it is taken for Bob's frozen offer).

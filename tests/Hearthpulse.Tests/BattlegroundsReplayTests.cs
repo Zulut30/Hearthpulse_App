@@ -274,6 +274,64 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void A_frozen_offer_leaves_view_for_the_combat_and_is_back_in_the_next_tavern()
+    {
+        var events = Events(
+        [
+            Start("PLAY", 43), Tag(50, "FROZEN", 1), End,
+            Game("TURN", 2),
+            Game("BOARD_VISUAL_STATE", 2),
+            // The rest of the offer goes; the frozen card stays in Bob's play through the fight (28.10: BG20_104).
+            Tag(51, "ZONE", "REMOVEDFROMGAME"), Tag(52, "ZONE", "REMOVEDFROMGAME"),
+            Game("BACON_IN_COMBAT_PHASE", 1),
+            .. Entity(110, "BG20_HERO_102", Bob, "PLAY", "HERO", "HEALTH=30", "PLAYER_ID=4"),
+            .. Entity(111, "BGS_119", Bob, "PLAY", "MINION", "ATK=1", "HEALTH=2", "ZONE_POSITION=1"),
+            Tag(50, "ZONE_POSITION", 2),
+            Game("BOARD_VISUAL_STATE", 1),
+            Game("TURN", 3),
+        ]);
+        AssertSeenOnly(events);
+        var frames = Frames(events);
+        Assert.DoesNotContain(frames.Single(f => f.Kind == MatchStepKind.CombatStart).Cards, c => c.CardId == "BGS_004");
+        var tavern = frames.Last(f => f.Kind == MatchStepKind.TurnStart);
+        Assert.Equal(2, tavern.Turn);
+        Assert.Contains(tavern.Cards, c => c is { Side: 'B', CardId: "BGS_004", Frozen: true });
+    }
+
+    [Fact]
+    public void A_recording_that_starts_in_a_combat_keeps_bob_s_frozen_offer_off_the_opponent_s_board()
+    {
+        var recorder = Run(
+        [
+            "DebugPrintPower() - CREATE_GAME",
+            "DebugPrintPower() -     GameEntity EntityID=1",
+            "DebugPrintPower() -         tag=CARDTYPE value=GAME",
+            "DebugPrintPower() -         tag=TURN value=2",
+            "DebugPrintPower() -         tag=BOARD_VISUAL_STATE value=2",
+            "DebugPrintPower() -         tag=BACON_IN_COMBAT_PHASE value=1",
+            .. Setup.Skip(3).Take(11),
+            // A reconnect: the whole table at once, Bob's frozen offer in his play next to the opponent's board.
+            .. Entity(10, "TB_BaconShop_HERO_50", Me, "PLAY", "HERO", "PLAYER_ID=1", "HEALTH=30", "PLAYER_LEADERBOARD_PLACE=1"),
+            .. Entity(50, "BGS_004", Bob, "PLAY", "MINION", "ATK=1", "HEALTH=1", "ZONE_POSITION=1", "FROZEN=1"),
+            .. Entity(101, "BG26_801", Me, "PLAY", "MINION", "ATK=4", "HEALTH=6", "ZONE_POSITION=1"),
+            .. Entity(110, "BG20_HERO_102", Bob, "PLAY", "HERO", "HEALTH=30", "PLAYER_ID=4"),
+            .. Entity(111, "BGS_119", Bob, "PLAY", "MINION", "ATK=1", "HEALTH=2", "ZONE_POSITION=1"),
+            Game("STEP", "MAIN_START"),
+            Start("ATTACK", 101), Game("PROPOSED_DEFENDER", 111), Tag(111, "DAMAGE", 4), End,
+            Start("DEATHS", 1), Tag(111, "ZONE", "GRAVEYARD"), End,
+            Game("BOARD_VISUAL_STATE", 1),
+            Game("TURN", 3),
+        ]);
+        var events = recorder.Events;
+        Assert.StartsWith("F 1 ", events[0], StringComparison.Ordinal);
+        AssertSeenOnly(events);
+        Assert.DoesNotContain(events, e => e.StartsWith("E ", StringComparison.Ordinal) && e.Contains(" O PLAY ", StringComparison.Ordinal) && e.Contains("FROZEN", StringComparison.Ordinal));
+        var frames = Frames(events);
+        Assert.Equal(["BGS_119"], frames.First(f => f.Kind == MatchStepKind.Attack).Cards.Where(c => c.Side == 'O' && c.Type == "MINION").Select(c => c.CardId));
+        Assert.Contains(frames.Last(f => f.Kind == MatchStepKind.TurnStart).Cards, c => c is { Side: 'B', CardId: "BGS_004" });
+    }
+
+    [Fact]
     public void Every_line_written_follows_the_format_4_grammar_and_foreign_lines_do_not()
     {
         var events = Run(Game5th()).Events;
