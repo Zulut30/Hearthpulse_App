@@ -316,6 +316,7 @@ public sealed class BattlegroundsMatchReplay
             "SELL" => MatchStepKind.Sell,
             "PLAY" => MatchStepKind.Play,
             "POWER" => MatchStepKind.HeroPower,
+            "USE" => MatchStepKind.Use,
             "REFRESH" => MatchStepKind.Refresh,
             "UPGRADE" => MatchStepKind.Upgrade,
             "FREEZE" => MatchStepKind.Freeze,

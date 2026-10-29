@@ -638,6 +638,8 @@ public sealed class BattlegroundsReplayRecorder
             ("PLAY", var id) when id.StartsWith("TB_BaconShopTechUp", StringComparison.Ordinal) => new Step("UPGRADE", null, lazy: false),
             ("PLAY", _) when ours && source.Zone == "HAND" => new Step("PLAY", source, lazy: false),
             ("PLAY", _) when ours && source.CardType == "HERO_POWER" => new Step("POWER", source, lazy: false),
+            // A minion of ours on the table used (an activated power, often aimed at a card in hand).
+            ("PLAY", _) when ours && source.Zone == "PLAY" && source.IsMinion => new Step("USE", source, lazy: false),
             ("MOVE_MINION", _) when ours && source.IsMinion => new Step("MOVE", source, lazy: false),
             ("TRIGGER" or "POWER", _) when ours && _shown.ContainsKey(source.Id) && TableTypes.Contains(source.CardType) => new Step("TRIGGER", source, lazy: true),
             _ => null,
@@ -654,12 +656,12 @@ public sealed class BattlegroundsReplayRecorder
         }
 
         // Bought, sold and aimed cards are the source button's CARD_TARGET; a played card's target is its own.
-        var target = step.Kind is "BUY" or "SELL" or "PLAY" or "POWER" ? step.Source?.GetInt("CARD_TARGET") ?? 0 : step.Target;
+        var target = step.Kind is "BUY" or "SELL" or "PLAY" or "POWER" or "USE" ? step.Source?.GetInt("CARD_TARGET") ?? 0 : step.Target;
         var line = step.Kind switch
         {
             "BUY" or "SELL" => $"M {step.Kind} {IdOf(target)}",
             "REFRESH" or "FREEZE" or "UPGRADE" or "DEATHS" => $"M {step.Kind} -",
-            "PLAY" or "POWER" or "ATTACK" => $"M {step.Kind} {IdOf(step.Source?.Id ?? 0)} {IdOf(target)}",
+            "PLAY" or "POWER" or "USE" or "ATTACK" => $"M {step.Kind} {IdOf(step.Source?.Id ?? 0)} {IdOf(target)}",
             _ => $"M {step.Kind} {IdOf(step.Source?.Id ?? 0)}",
         };
         WriteLeaders(game);

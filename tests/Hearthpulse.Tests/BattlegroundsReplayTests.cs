@@ -149,6 +149,31 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void Using_a_minion_on_the_table_is_its_own_step_with_what_it_did()
+    {
+        var events = Events(
+        [
+            .. Entity(60, "BG36_311", Me, "PLAY", "MINION", "ATK=2", "HEALTH=2", "ZONE_POSITION=1"),
+            .. Entity(61, "BG34_604", Me, "HAND", "MINION", "ATK=3", "HEALTH=3", "ZONE_POSITION=1"),
+            Game("STEP", "MAIN_END"),
+            // BG36_311 eats a card in hand (28.10: 17 such plays of BG36_311 and BG36_099, none closed by a BLOCK_END).
+            Start("PLAY", 60), Tag(60, "CARD_TARGET", 61),
+            Start("POWER", 60), Tag(61, "ZONE", "REMOVEDFROMGAME"), Tag(60, "ATK", 5), Tag(60, "HEALTH", 5), End,
+            Start("PLAY", 40), Tag(40, "CARD_TARGET", 51), Tag(51, "CONTROLLER", Me), Tag(51, "ZONE", "HAND"), End,
+        ]);
+        var used = IdOf(events, "BG36_311");
+        Assert.Contains($"M USE {used} {IdOf(events, "BG34_604")}", events);
+        var frames = Frames(events);
+        var use = frames.Single(f => f.Kind == MatchStepKind.Use);
+        Assert.Equal(("BG36_311", "BG34_604"), (use.Actor?.CardId, use.Target?.CardId));
+        Assert.Equal((5, 5), (use.Actor!.Attack, use.Actor.Health));
+        Assert.DoesNotContain(use.Cards, c => c.CardId == "BG34_604");
+        // The card in hand is still there before the use: its change is not the step before.
+        Assert.Contains(frames[use.Index - 1].Cards, c => c.CardId == "BG34_604");
+        Assert.Equal(MatchStepKind.Buy, frames[use.Index + 1].Kind);
+    }
+
+    [Fact]
     public void Moving_a_minion_is_a_move_step_in_its_block_or_without_one()
     {
         var events = Events(
@@ -450,6 +475,8 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         Assert.Equal(12, body.Count(l => l.StartsWith("F ", StringComparison.Ordinal)));
         Assert.Equal(12, body.Count(l => l.StartsWith("f ", StringComparison.Ordinal)));
         Assert.Equal("R 4", body[header.Events - 1]);
+        // 47 plays from hand and 17 activated powers of BG36_311 / BG36_099(_G) on the table.
+        Assert.Equal((47, 17), (body.Count(l => l.StartsWith("M PLAY ", StringComparison.Ordinal)), body.Count(l => l.StartsWith("M USE ", StringComparison.Ordinal))));
         AssertSeenOnly(body.Take(header.Events).ToList());
         // The hero was rerolled before the pick (BG28_HERO_400_SKIN_C -> BG36_HERO_000): the first step offers it.
         AssertPicksOffered(body);

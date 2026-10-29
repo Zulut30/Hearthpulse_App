@@ -158,7 +158,7 @@ Battlegrounds events (space-separated; `n`, `t` = replay ids, `-` = none; tokens
 | `T turn secs` | The tavern of Battlegrounds turn `turn` ((TURN + 1) / 2) opens; `secs` since game start. Step |
 | `F turn secs` | The combat of `turn` starts (BOARD_VISUAL_STATE 2 or BACON_IN_COMBAT_PHASE 1, whichever first). Step |
 | `f result taken dealt` | The combat ends (BOARD_VISUAL_STATE 1, BACON_IN_COMBAT_PHASE 0, the next odd TURN or our end): `WIN`, `LOSS` or `TIE` and the hero damage of the attack after the fight. Step: the boards as the fight left them; the lines after it (the game's clean-up) show with the next step |
-| `M kind n [t]` | A step: `BUY n`, `SELL n`, `PLAY n t`, `POWER n t` (hero power), `REFRESH -`, `UPGRADE -`, `FREEZE -` (freeze or unfreeze), `MOVE n`, `TRIGGER n` (a card's trigger), `ATTACK n t`, `DEATHS -` |
+| `M kind n [t]` | A step: `BUY n`, `SELL n`, `PLAY n t`, `POWER n t` (hero power), `USE n t` (an activated power of our minion on the table), `REFRESH -`, `UPGRADE -`, `FREEZE -` (freeze or unfreeze), `MOVE n`, `TRIGGER n` (a card's trigger), `ATTACK n t`, `DEATHS -` |
 | `C kind source opt,opt,..` | Our choice offered: `HERO`, `DISCOVER`, `TRINKET`, `QUEST`; `source` card id or `-`. Step (the hero choice opens the game) |
 | `c card` | Our pick (several lines for several picks) |
 | `R place` | The game is over for us: our hero's leaderboard place when it ended. Step |
@@ -174,7 +174,8 @@ Rules a reader (and the import sanitizer) can check: `B` cards never appear betw
 (all of them leave view by the next `T`); `HAND` and `SECRET` only on side `L`; a `V`/`Z`/`X`/`Y` line only for a card
 shown. Steps: a tavern action is one top-level block of ours (`TB_BaconShop_DragBuy(_Spell)` buy, `TB_BaconShop_DragSell`
 sell, `TB_BaconShop_8p_Reroll_Button` refresh, `TB_BaconShopTechUp0N_Button` upgrade, `TB_BaconShopLockAll_Button`
-freeze, a PLAY from our hand, a hero power, `MOVE_MINION` or a slot change of ours outside a block, a TRIGGER of a card
+freeze, a PLAY from our hand, a hero power, a PLAY of our minion on the table (its activated power: `USE`),
+`MOVE_MINION` or a slot change of ours outside a block, a TRIGGER of a card
 of ours in play); in combat an ATTACK, a DEATHS block where a shown card died, or a TRIGGER of a minion, hero, hero
 power, trinket or quest reward of either side. Blocks of the game, a player or an enchantment are no step; nested
 blocks belong to the step around them; a step writes the values its block left, one line per card and tag. Real logs

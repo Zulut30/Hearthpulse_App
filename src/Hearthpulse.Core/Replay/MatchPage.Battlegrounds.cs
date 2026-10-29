@@ -141,7 +141,7 @@ public sealed partial class MatchPage
             MatchStepKind.Buy => Loc.F("Match.Bg.Action.Buy", actor),
             MatchStepKind.Sell => Loc.F("Match.Bg.Action.Sell", actor),
             MatchStepKind.Play => Loc.F("Match.Action.YouPlayed", aimed),
-            MatchStepKind.HeroPower => Loc.F("Match.Action.YouUsed", aimed),
+            MatchStepKind.HeroPower or MatchStepKind.Use => Loc.F("Match.Action.YouUsed", aimed),
             MatchStepKind.Refresh => Loc.T("Match.Bg.Action.Refresh"),
             MatchStepKind.Upgrade => Loc.F("Match.Bg.Action.Upgrade", f.Tier),
             MatchStepKind.Freeze => Loc.T(Of(f, 'B').Any(c => c.Frozen) ? "Match.Bg.Action.Freeze" : "Match.Bg.Action.Unfreeze"),
@@ -219,7 +219,7 @@ public sealed partial class MatchPage
         var attacking = f.Kind == MatchStepKind.Attack && actor;
         var defending = f.Kind == MatchStepKind.Attack && f.Target?.Id == c.Id;
         var acting = actor && f.Kind is MatchStepKind.Buy or MatchStepKind.Sell or MatchStepKind.Play or MatchStepKind.HeroPower
-            or MatchStepKind.Move or MatchStepKind.Trigger;
+            or MatchStepKind.Use or MatchStepKind.Move or MatchStepKind.Trigger;
         var minion = c.Type == "MINION";
         var tier = c.Side == 'B' ? c.Tier : 0;
         var parts = new List<string> { minion ? Loc.F("Match.Bg.Card.Stats", name, c.Attack, c.Health) : name };
