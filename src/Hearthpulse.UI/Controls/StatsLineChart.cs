@@ -10,14 +10,6 @@ using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Controls;
 
-/// <summary>A point of <see cref="StatsLineChart"/>: its value and the text shown for it (axis guides, latest tag).</summary>
-public interface IChartValue
-{
-    double ChartValue { get; }
-
-    string ChartLabel { get; }
-}
-
 /// <summary>
 /// A value per game as a gold line, in the style of <see cref="RatingChart"/>, with a card for the point under the
 /// pointer: <see cref="HoverTemplate"/> is applied to the hovered point and placed beside it.
@@ -36,11 +28,11 @@ public sealed class StatsLineChart : Control
     public static readonly StyledProperty<string?> EmptyTextProperty =
         AvaloniaProperty.Register<StatsLineChart, string?>(nameof(EmptyText));
 
-    private const double Right = 14;
-    private const double Top = 16;
-    private const double Bottom = 26;
+    private const double Right = ChartGeometry.LineRight;
+    private const double Top = ChartGeometry.LineTop;
+    private const double Bottom = ChartGeometry.LineBottom;
 
-    private (IReadOnlyList<IChartValue>? Points, double Width, double Height, Point[] At, double Left, int Lowest, int Highest) _layout = (null, 0, 0, [], 10, 0, 0);
+    private (IReadOnlyList<IChartValue>? Points, double Width, double Height, Point[] At, LinePlot Plot) _layout = (null, 0, 0, [], LinePlot.Empty);
 
     private readonly ContentPresenter _card = new() { IsHitTestVisible = false };
 
@@ -115,10 +107,9 @@ public sealed class StatsLineChart : Control
             return finalSize;
         }
 
-        var at = Layout(points, finalSize.Width, finalSize.Height)[index];
+        Layout(points, finalSize.Width, finalSize.Height);
         var size = _card.DesiredSize;
-        var x = at.X + 18 + size.Width <= finalSize.Width ? at.X + 18 : Math.Max(0, at.X - 18 - size.Width);
-        var y = Math.Clamp(at.Y - (size.Height / 2), 0, Math.Max(0, finalSize.Height - size.Height));
+        var (x, y) = ChartGeometry.Card(_layout.Plot.At[index], size.Width, size.Height, finalSize.Width, finalSize.Height);
         _card.Arrange(new Rect(new Point(x, y), size));
         return finalSize;
     }
@@ -131,18 +122,8 @@ public sealed class StatsLineChart : Control
             return;
         }
 
-        var x = e.GetPosition(this).X;
-        var layout = Layout(points, Bounds.Width, Bounds.Height);
-        var nearest = 0;
-        for (var i = 1; i < layout.Length; i++)
-        {
-            if (Math.Abs(layout[i].X - x) < Math.Abs(layout[nearest].X - x))
-            {
-                nearest = i;
-            }
-        }
-
-        HoverIndex = nearest;
+        Layout(points, Bounds.Width, Bounds.Height);
+        HoverIndex = ChartGeometry.Nearest(_layout.Plot.At, e.GetPosition(this).X);
     }
 
     protected override void OnPointerExited(PointerEventArgs e)
@@ -174,9 +155,9 @@ public sealed class StatsLineChart : Control
         }
 
         var at = Layout(points, w, h);
-        var left = _layout.Left;
+        var left = _layout.Plot.Left;
         var grid = new Pen(ThemeBrushes.Get("Border"), 1, new DashStyle([3, 4], 0));
-        var (lowest, highest) = (_layout.Lowest, _layout.Highest);
+        var (lowest, highest) = (_layout.Plot.Lowest, _layout.Plot.Highest);
         DrawFrame(context, points, at, left, w, h);
         foreach (var index in points[highest].ChartValue == points[lowest].ChartValue ? new[] { highest } : new[] { highest, lowest })
         {
@@ -229,7 +210,7 @@ public sealed class StatsLineChart : Control
 
         // Dots only while they stay apart; a long history is just the line.
         var bg = ThemeBrushes.Get("Bg");
-        if (at.Length <= 1 || (at[^1].X - at[0].X) / (at.Length - 1) >= 9)
+        if (ChartGeometry.DotsFit(_layout.Plot.At))
         {
             foreach (var p in at)
             {
@@ -251,17 +232,14 @@ public sealed class StatsLineChart : Control
         context.DrawEllipse(new SolidColorBrush(Gold(0x30)), null, last, 10, 10);
         context.DrawEllipse(bg, new Pen(accent, 2.4), last, 4.5, 4.5);
         var tag = Text(points[^1].ChartLabel, 12, ThemeBrushes.Get("OnAccent"), FontWeight.Bold);
-        var bw = tag.Width + 14;
-        var bh = tag.Height + 4;
-        var bx = Math.Clamp(last.X - (bw / 2), left, Math.Max(left, w - Right - bw));
-        var by = last.Y - bh - 14 < 0 ? last.Y + 14 : last.Y - bh - 14;
+        var (bx, by, bw, bh) = ChartGeometry.Tag(_layout.Plot.At[^1], tag.Width, tag.Height, left, Right, w);
         context.DrawRectangle(ThemeBrushes.Get("PrimaryFill"), null, new Rect(bx, by, bw, bh), 6, 6);
-        context.DrawText(tag, new Point(bx + 7, by + 2));
+        context.DrawText(tag, new Point(bx + ChartGeometry.TagPaddingX, by + ChartGeometry.TagPaddingY));
     }
 
     /// <summary>
-    /// Where each point sits, plus the plot's left edge and the lowest/highest point. Mouse moves, arrange and render
-    /// all need it, so it is worked out once per set of points and size.
+    /// Where each point sits (<see cref="ChartGeometry.Line"/>), with the plot's left edge and the lowest/highest point in
+    /// <c>_layout.Plot</c>. Pointer moves, arrange and render all need it, so it is worked out once per set of points and size.
     /// </summary>
     private Point[] Layout(IReadOnlyList<IChartValue> points, double w, double h)
     {
@@ -270,30 +248,9 @@ public sealed class StatsLineChart : Control
             return _layout.At;
         }
 
-        int lowest = 0, highest = 0;
-        for (var i = 1; i < points.Count; i++)
-        {
-            if (points[i].ChartValue < points[lowest].ChartValue) lowest = i;
-            if (points[i].ChartValue > points[highest].ChartValue) highest = i;
-        }
-
-        // Room for the widest axis label (the guides are at the lowest and highest point).
-        var left = points.Count == 0
-            ? 10
-            : Math.Ceiling(new[] { lowest, highest }.Max(i => Text(points[i].ChartLabel, 11, Brushes.Transparent).Width)) + 16;
-        var min = points.Count == 0 ? 0 : points[lowest].ChartValue;
-        var max = points.Count == 0 ? 0 : points[highest].ChartValue;
-        var pad = Math.Max((max - min) * 0.12, Math.Max(1, Math.Abs(max) * 0.004));
-        var lo = min - pad;
-        var hi = max + pad;
-        var at = new Point[points.Count];
-        for (var i = 0; i < at.Length; i++)
-        {
-            var x = points.Count == 1 ? (left + w - Right) / 2 : left + ((w - left - Right) * i / (points.Count - 1));
-            at[i] = new Point(x, Top + ((h - Top - Bottom) * (1 - ((points[i].ChartValue - lo) / (hi - lo)))));
-        }
-
-        _layout = (points, w, h, at, left, lowest, highest);
+        var plot = ChartGeometry.Line(points, w, h, label => Text(label, 11, Brushes.Transparent).Width);
+        var at = Array.ConvertAll(plot.At, p => new Point(p.X, p.Y));
+        _layout = (points, w, h, at, plot);
         return at;
     }
 
@@ -318,13 +275,12 @@ public sealed class StatsLineChart : Control
         context.DrawLine(axis, new Point(Math.Round(left) + 0.5, Top), new Point(Math.Round(left) + 0.5, bottom));
         context.DrawLine(axis, new Point(left, bottom), new Point(w - Right, bottom));
         var faintText = ThemeBrushes.Get("Faint");
-        foreach (var i in points.Count < 3 ? Enumerable.Range(0, points.Count) : new[] { 0, (points.Count - 1) / 2, points.Count - 1 })
+        foreach (var i in ChartGeometry.Ticks(points.Count))
         {
             var x = Math.Round(at[i].X) + 0.5;
             context.DrawLine(axis, new Point(x, bottom), new Point(x, bottom + 4));
             var label = Text((i + 1).ToString("N0", CultureInfo.CurrentCulture), 10.5, faintText);
-            var lx = Math.Max(left - (label.Width / 2), Math.Min(x - (label.Width / 2), w - label.Width));
-            context.DrawText(label, new Point(lx, bottom + 6));
+            context.DrawText(label, new Point(ChartGeometry.TickLabelX(x, label.Width, left, w), bottom + 6));
         }
     }
 
