@@ -109,7 +109,7 @@ public sealed partial class AppHost : IDisposable
             _settingsDebounce.Stop();
             _settingsDebounce.Start();
         };
-        _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(3) };
+        _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Battlegrounds meta load");
 
         Session.SnapshotChanged += OnSnapshot;
@@ -367,7 +367,7 @@ public sealed partial class AppHost : IDisposable
         }
     }
 
-    /// <summary>The 3-hour refresh of the Battlegrounds meta; its parsing garbage is collected once things are quiet.</summary>
+    /// <summary>The 6-hour refresh of the Battlegrounds meta; its parsing garbage is collected once things are quiet.</summary>
     private async Task RefreshMetaAsync()
     {
         await LoadMetaAsync();

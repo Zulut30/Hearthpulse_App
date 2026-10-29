@@ -29,6 +29,15 @@ public sealed class BgMetaApiTests : IDisposable
     }
 
     [Fact]
+    public void Both_apps_ask_for_the_meta_again_no_more_often_than_its_answers_are_kept()
+    {
+        // The stats pool rebuilds its totals every 6 hours and the API cache keeps answers as long: Avalonia asked every
+        // 3 hours (WPF every 6), which only spent the pool's free requests. Both hosts read this one interval now.
+        Assert.Equal(TimeSpan.FromHours(6), BattlegroundsMeta.RefreshInterval);
+        Assert.True(BattlegroundsMeta.RefreshInterval >= HearthpulseData.MaxAge);
+    }
+
+    [Fact]
     public void Hero_slice_parses_from_the_real_answer()
     {
         var slice = HearthpulseData.ParseHeroSlice(Fixture("heroes-top_50_percent.json"));

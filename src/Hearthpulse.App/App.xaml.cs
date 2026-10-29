@@ -299,8 +299,7 @@ public partial class App : Application
 
         _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _mainViewModel.RefreshAsync().Forget("History refresh"));
         _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), _settings.Save);
-        // The pool rebuilds its totals every 6 hours, so asking more often only spends its free requests.
-        _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(6) };
+        _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Meta refresh");
 
         _session.SnapshotChanged += OnSnapshot;

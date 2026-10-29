@@ -17,7 +17,7 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     /// <summary>The name every number from the Hearthpulse API goes by in the UI, in both languages.</summary>
     public const string Attribution = "Hearthpulse data";
 
-    private static readonly TimeSpan MaxAge = TimeSpan.FromHours(6);
+    internal static readonly TimeSpan MaxAge = TimeSpan.FromHours(6);
 
     /// <summary>How old a real answer may be and still stand in for a 404 (a slice the server dropped for a while).</summary>
     private static readonly TimeSpan MaxStaleForMissing = TimeSpan.FromDays(2);
