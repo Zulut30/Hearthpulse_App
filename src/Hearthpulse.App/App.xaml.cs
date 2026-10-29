@@ -582,7 +582,8 @@ public partial class App : Application
             running.Cancel.Cancel();
         }
 
-        var cancel = new CancellationTokenSource();
+        // Disposed when this load ends: by then a newer request has replaced it in the table, or it removed itself.
+        using var cancel = new CancellationTokenSource();
         _constructedMetaLoads[format] = (request, cancel);
         bool Latest() => _constructedMetaLoads.TryGetValue(format, out var load) && load.Request == request;
         var done = false;
