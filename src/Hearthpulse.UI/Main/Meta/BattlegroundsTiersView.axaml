@@ -114,7 +114,7 @@
                 </ItemsControl>
                 <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{Binding MetaUpdated}"
                                 IsVisible="{Binding HeroTierGroups, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0" TextWrapping="Wrap"
+                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap"
                            IsVisible="{Binding HeroTierGroups, Converter={StaticResource Truthy}}" />
             </StackPanel>
         </Border>
@@ -130,7 +130,7 @@
                                     <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Top" Margin="0,2,0,0" />
                                     <StackPanel Grid.Column="1" Margin="0,0,16,0">
                                         <TextBlock FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"><Run Text="{Binding Name, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding Tribes, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" FontSize="12" /></TextBlock>
-                                        <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0"><Run Text="{i:Loc Main.Bg.Core}" Foreground="{StaticResource Faint}" /><Run Text="{Binding KeyCards, Mode=OneWay}" /></TextBlock>
+                                        <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0"><Run Text="{i:Loc Main.Bg.Core}" Foreground="{StaticResource Muted}" /><Run Text="{Binding KeyCards, Mode=OneWay}" /></TextBlock>
                                         <TextBlock Text="{Binding Commit}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.85"
                                                    IsVisible="{Binding Commit, Converter={StaticResource Truthy}}" />
                                     </StackPanel>
@@ -153,7 +153,7 @@
                 </ItemsControl>
                 <TextBlock Text="{Binding CompEmptyText}" Classes="caption" TextWrapping="Wrap" Margin="0,8"
                            IsVisible="{Binding CompTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
@@ -215,7 +215,7 @@
                 </ItemsControl>
                 <ContentControl Classes="emptyState" Tag="&#xF0127;" Content="{Binding TrinketEmptyText}"
                                 IsVisible="{Binding TrinketTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
@@ -263,7 +263,7 @@
                 </ItemsControl>
                 <TextBlock Text="{Binding CardEmptyText}" Classes="caption" TextWrapping="Wrap" Margin="0,8"
                            IsVisible="{Binding CardTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 

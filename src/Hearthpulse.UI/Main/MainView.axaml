@@ -336,7 +336,7 @@
             <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
                 <RadioButton Name="NavSettings" Classes="nav" Content="{i:Loc Main.Nav.Settings}" Tag="&#xF08BB;" GroupName="Nav"
                              ToolTip.Tip="{i:Loc Main.Nav.SettingsTip}" />
-                <TextBlock Text="{Binding Version}" Classes="caption wide" FontSize="11" Foreground="{StaticResource Faint}" Margin="28,8,0,0" />
+                <TextBlock Text="{Binding Version}" Classes="caption wide" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
             </StackPanel>
             <Panel />
         </DockPanel>
@@ -1141,7 +1141,7 @@
                                 <c:Ornament Text="{i:Loc Settings.About.Title}" Icon="&#xF02FD;" Size="13" Margin="0,0,0,10" />
                                 <TextBlock TextWrapping="Wrap" Classes="caption" Text="{i:Loc Settings.About.TextCrossPlatform}" />
                                 <TextBlock Text="{i:Loc Settings.About.FontsCrossPlatform}" Classes="caption" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
-                                <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,4,0,0" />
+                                <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,4,0,0" />
                                 <TextBlock Text="{Binding VersionText}" Classes="caption" FontSize="11" Margin="0,10,0,0" />
                                 <TextBlock Text="{Binding UpdateStatus}" Classes="caption" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding ParseErrorsText}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{StaticResource Negative}"

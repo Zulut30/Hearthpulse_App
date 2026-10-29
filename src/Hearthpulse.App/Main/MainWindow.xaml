@@ -273,7 +273,7 @@
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
                     <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Settings}" Tag="&#xF08BB;" GroupName="Nav" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.SettingsTip}" />
-                    <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}" Margin="28,8,0,0" />
+                    <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
                 </StackPanel>
                 <Border />
             </DockPanel>
@@ -1258,7 +1258,7 @@
                                     <c:Ornament Text="{i:Loc Settings.About.Title}" Icon="&#xF02FD;" Size="13" Margin="0,0,0,10" />
                                     <TextBlock Text="{i:Loc Settings.About.Text}" TextWrapping="Wrap" Style="{StaticResource Caption}" />
                                     <TextBlock Text="{i:Loc Settings.About.Fonts}" Style="{StaticResource Caption}" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
-                                    <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,4,0,0" />
+                                    <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,4,0,0" />
                                     <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
                                     <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource Caption}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
                                     <TextBlock Text="{Binding ParseErrorsText}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{StaticResource Negative}"

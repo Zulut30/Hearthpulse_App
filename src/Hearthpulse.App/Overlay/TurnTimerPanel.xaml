@@ -64,7 +64,7 @@
                         </TextBlock.Style>
                     </TextBlock>
                 </StackPanel>
-                <TextBlock Text="{Binding Average}" FontSize="10.5" Foreground="{StaticResource Faint}" Visibility="{Binding Average, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding Average}" FontSize="10.5" Foreground="{StaticResource Muted}" Visibility="{Binding Average, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
     </Border>

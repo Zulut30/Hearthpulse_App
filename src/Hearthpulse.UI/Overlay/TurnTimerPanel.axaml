@@ -45,7 +45,7 @@
                                FontFamily="{StaticResource DisplayFont}" FontSize="20" VerticalAlignment="Bottom" />
                     <TextBlock Classes="detail" Classes.rope="{Binding Rope}" Text="{Binding Detail}" FontSize="11" VerticalAlignment="Bottom" Margin="7,0,0,3" />
                 </StackPanel>
-                <TextBlock Text="{Binding Average}" FontSize="10.5" Foreground="{StaticResource Faint}" IsVisible="{Binding Average, Converter={StaticResource Truthy}}" />
+                <TextBlock Text="{Binding Average}" FontSize="10.5" Foreground="{StaticResource Muted}" IsVisible="{Binding Average, Converter={StaticResource Truthy}}" />
             </StackPanel>
         </Border>
     </Border>

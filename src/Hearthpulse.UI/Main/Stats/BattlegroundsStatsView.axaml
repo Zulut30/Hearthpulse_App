@@ -195,7 +195,7 @@
                 </ItemsControl>
                 <ContentControl Classes="emptyState" Tag="&#xF01A5;" Content="{i:Loc Stats.Bg.NoHeroes}"
                                 IsVisible="{Binding BgHeroPerf, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding BgStatsNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Faint}" Margin="0,10,0,0"
+                <TextBlock Text="{Binding BgStatsNote}" Classes="caption" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="0,10,0,0"
                            TextWrapping="Wrap" IsVisible="{Binding BgHeroPerf, Converter={StaticResource Truthy}}" />
             </StackPanel>
         </Border>

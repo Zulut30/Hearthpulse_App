@@ -222,7 +222,7 @@
 
                     <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.LoadingShort}" IsVisible="{Binding MetaLoading}" />
                     <ContentControl Classes="emptyState" Tag="&#xF0233;" Content="{i:Loc Main.Meta.Empty}" IsVisible="{Binding MetaEmpty}" />
-                    <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0"
+                    <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
                                TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
@@ -288,7 +288,7 @@
                                 IsVisible="{Binding MetaDecks, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                 <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                            IsVisible="{Binding CopyNote, Converter={StaticResource Truthy}}" />
-                <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0"
+                <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
                            TextWrapping="Wrap" />
             </StackPanel>
         </Border>
@@ -360,7 +360,7 @@
                 </ScrollViewer>
                 <ContentControl Classes="emptyState" Tag="&#xF04E5;" Content="{i:Loc Main.Meta.MatchupsEmpty}"
                                 IsVisible="{Binding !HasMatchupMatrix}" />
-                <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,12,0,0"
+                <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
                            TextWrapping="Wrap" />
             </StackPanel>
         </Border>

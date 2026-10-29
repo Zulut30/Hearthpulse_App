@@ -160,7 +160,7 @@
                                             <Run Text="{Binding Name, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding Tribes, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" FontSize="12" />
                                         </TextBlock>
                                         <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="{Binding KeyCards, Converter={StaticResource Vis}}">
-                                            <Run Text="{i:Loc Main.Bg.Core}" Foreground="{StaticResource Faint}" /><Run Text="{Binding KeyCards, Mode=OneWay}" />
+                                            <Run Text="{i:Loc Main.Bg.Core}" Foreground="{StaticResource Muted}" /><Run Text="{Binding KeyCards, Mode=OneWay}" />
                                         </TextBlock>
                                         <TextBlock Text="{Binding Commit}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource Text}" Opacity="0.85"
                                                    Visibility="{Binding Commit, Converter={StaticResource Vis}}" />

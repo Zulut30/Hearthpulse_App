@@ -1108,7 +1108,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="11" Foreground="{StaticResource Faint}" VerticalAlignment="Center"
+                                <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
                                            Visibility="{Binding TribeChips, Converter={StaticResource Vis}, ConverterParameter=!}" />
                             </Grid>
                             <Border Style="{StaticResource Divider}" />

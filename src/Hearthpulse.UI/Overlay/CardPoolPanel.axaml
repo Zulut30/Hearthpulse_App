@@ -75,7 +75,7 @@
                 </StackPanel>
             </Border>
             <StackPanel Margin="12,5,12,0">
-                <TextBlock Text="{Binding CardPoolMeta}" FontSize="10" Foreground="{StaticResource Faint}" TextTrimming="CharacterEllipsis"
+                <TextBlock Text="{Binding CardPoolMeta}" FontSize="10" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"
                            IsVisible="{Binding CardPoolMeta, Converter={StaticResource Truthy}}" />
                 <ItemsControl ItemsSource="{Binding CardPoolSections}" Margin="0,5,0,-4" IsVisible="{Binding ShowCardPoolPanelSections}">
                     <ItemsControl.ItemsPanel>
@@ -105,7 +105,7 @@
                                 <Border DockPanel.Dock="Left" Width="3" Height="11" CornerRadius="1.5" Margin="0,0,5,0" VerticalAlignment="Center"
                                         Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
                                 <TextBlock DockPanel.Dock="Left" Text="{Binding Label}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Width="34" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Names}" FontSize="10" Foreground="{StaticResource Faint}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Names}" FontSize="10" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </DockPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -116,7 +116,7 @@
             <StackPanel Margin="12,9,12,0" IsVisible="{Binding ShowCardPoolList}">
                 <TextBlock Classes="poolLabel" Text="{Binding CardPoolListTitle}" IsVisible="{Binding CardPoolListTitle, Converter={StaticResource Truthy}}" />
                 <ItemsControl ItemsSource="{Binding CardPoolList}" ItemTemplate="{StaticResource ListRowTemplate}" />
-                <TextBlock Text="{Binding CardPoolListNote}" FontSize="9.5" Foreground="{StaticResource Faint}" Margin="0,1,0,0"
+                <TextBlock Text="{Binding CardPoolListNote}" FontSize="9.5" Foreground="{StaticResource Muted}" Margin="0,1,0,0"
                            IsVisible="{Binding CardPoolListNote, Converter={StaticResource Truthy}}" />
             </StackPanel>
 
@@ -147,12 +147,12 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{Binding CardPoolPicksNote}" FontSize="9.5" Foreground="{StaticResource Faint}" TextWrapping="Wrap" Margin="0,1,0,0" />
+                <TextBlock Text="{Binding CardPoolPicksNote}" FontSize="9.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,1,0,0" />
             </StackPanel>
 
             <!-- ===== One line of averages: "Average  Mana 6  Attack 4.2  Health 5.1" ===== -->
             <DockPanel Margin="12,9,12,0" IsVisible="{Binding CardPoolAverages, Converter={StaticResource Truthy}}">
-                <TextBlock DockPanel.Dock="Left" Text="{i:Loc Pool.Average}" FontSize="10" Foreground="{StaticResource Faint}" VerticalAlignment="Center" Margin="0,0,9,0" />
+                <TextBlock DockPanel.Dock="Left" Text="{i:Loc Pool.Average}" FontSize="10" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,9,0" />
                 <ItemsControl ItemsSource="{Binding CardPoolAverages}" VerticalAlignment="Center">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -216,7 +216,7 @@
                 </ItemsControl>
             </StackPanel>
 
-            <TextBlock Text="{i:Loc Pool.RightClickHint}" FontSize="9.5" Foreground="{StaticResource Faint}" HorizontalAlignment="Center" Margin="0,8,0,8"
+            <TextBlock Text="{i:Loc Pool.RightClickHint}" FontSize="9.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,8,0,8"
                        IsVisible="{Binding CardPoolHasCards}" />
             <Border Height="9" IsVisible="{Binding CardPoolHasCards, Converter={StaticResource Truthy}, ConverterParameter=!}" />
         </StackPanel>
