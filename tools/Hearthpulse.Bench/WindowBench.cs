@@ -68,8 +68,9 @@ internal static class WindowBench
         session.SnapshotChanged += s => dispatcher.BeginInvoke(() => overlayVm.Update(s, cards, settings, null, null), DispatcherPriority.Background);
         using (var watcher = new Core.Logs.LogWatcher(session, () => install))
         {
+            // Past the start-up: catching up with the last log and the session's trim 20 s after it.
             watcher.Start();
-            Run(TimeSpan.FromSeconds(10));
+            Run(TimeSpan.FromSeconds(40));
             Window("shown on Overview");
             Memory("shown on Overview");
 
@@ -115,14 +116,6 @@ internal static class WindowBench
         }
 
         var history = new HistoryStore(db);
-        if (history.Recent(400).FirstOrDefault(g => g.IsBattlegrounds && g.Replay is not null) is not { } game)
-        {
-            Console.WriteLine("[match] no Battlegrounds game with a replay in the kept logs");
-            return;
-        }
-
-        var file = Path.Combine(AppPaths.Replays, game.Replay!);
-        Console.WriteLine($"[match] {game.Mode} game of {game.StartedAt:dd.MM HH:mm}, replay {new FileInfo(file).Length / 1024} KB");
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
         var vm = new MainViewModel(history, settings);
         var main = WpfBench.OffScreen(new MainWindow(vm));
@@ -132,7 +125,27 @@ internal static class WindowBench
         main.ShowPage("History");
         WpfBench.Pump();
         Memory("History page");
+        var games = history.Recent(400).Where(g => g.Replay is not null).ToList();
+        foreach (var game in new[] { games.FirstOrDefault(g => g.IsBattlegrounds), games.FirstOrDefault(g => !g.IsBattlegrounds) })
+        {
+            if (game is null)
+            {
+                Console.WriteLine("[match] no such game with a replay in the kept logs");
+                continue;
+            }
 
+            Play(vm, main, game);
+        }
+
+        WpfBench.Close(main, settings);
+        GC.KeepAlive(app);
+    }
+
+    /// <summary>One game's match page: opened twice, every step by hand, then played at x4.</summary>
+    private static void Play(MainViewModel vm, MainWindow main, GameRecord game)
+    {
+        var file = Path.Combine(AppPaths.Replays, game.Replay!);
+        Console.WriteLine($"[match] {game.Mode} game of {game.StartedAt:dd.MM HH:mm}, replay {new FileInfo(file).Length / 1024} KB");
         for (var round = 0; round < 2; round++)
         {
             var allocated = GC.GetTotalAllocatedBytes(precise: true);
@@ -151,7 +164,7 @@ internal static class WindowBench
                 $"[match] open r{round}: {sw.Elapsed.TotalMilliseconds:N0} ms, alloc {Mb(GC.GetTotalAllocatedBytes(precise: true) - allocated)}, gen0 {GC.CollectionCount(0) - gen0} gen2 {GC.CollectionCount(2) - gen2}, {vm.MatchPage.FrameMax + 1} steps, visuals {WpfBench.Elements(main) - elements:+#,0;-#,0;0}"));
             if (round == 0)
             {
-                Memory("match page open");
+                Memory($"{game.Mode} match page open");
                 vm.MatchPage.Back.Execute(null);
                 WpfBench.Pump();
             }
@@ -178,16 +191,16 @@ internal static class WindowBench
         page.Faster.Execute(null);
         var from = page.Frame;
         page.TogglePlay.Execute(null);
-        Window($"playing x{page.Speed}");
+        Window($"{game.Mode} playing x{page.Speed}");
         Console.WriteLine($"[match] played {page.Frame - from} steps, still playing {page.Playing}");
         if (page.Playing)
         {
             page.TogglePlay.Execute(null);
         }
 
-        Memory("after playback");
-        WpfBench.Close(main, settings);
-        GC.KeepAlive(app);
+        Memory($"{game.Mode} after playback");
+        page.Back.Execute(null);
+        WpfBench.Pump();
     }
 
     /// <summary>Runs the dispatcher (timers, rendering) for <paramref name="time"/>.</summary>
