@@ -11,13 +11,15 @@ namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
 /// The WPF rating chart draws at every size it accepts (40 px and up): its latest-rating tag stays at the plot's left
-/// edge when the plot is narrower than the tag (<c>ChartGeometry.Tag</c>), instead of failing the render.
+/// edge when the plot is narrower than the tag (<c>ChartGeometry.Tag</c>), instead of failing the render. 80 px fails the
+/// old clamp whatever the culture writes 7250 as; 100 px only by about a pixel in ru.
 /// </summary>
 public sealed class RatingChartRenderTests
 {
     [Theory]
     [InlineData(40)]
     [InlineData(60)]
+    [InlineData(80)]
     [InlineData(100)]
     [InlineData(400)]
     public void A_narrow_rating_chart_still_renders(double width) => OnSta(() =>
