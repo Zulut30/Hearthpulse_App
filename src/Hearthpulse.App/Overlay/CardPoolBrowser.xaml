@@ -50,7 +50,8 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border Style="{StaticResource OverlayCard}" Background="{StaticResource OverlayPanelSolid}" Height="1064"
+    <!-- 916 = 1080 - its top (148, under the Battlegrounds bar) - 16: the whole card stays on screen; the grid scrolls inside -->
+    <Border Style="{StaticResource OverlayCard}" Background="{StaticResource OverlayPanelSolid}" Height="916"
             Width="{Binding CardPoolBrowserWidth}" o:OverlayHit.Interactive="True" MouseEnter="OnMouseEnter" MouseLeave="OnMouseLeave">
         <Grid>
             <Grid.RowDefinitions>

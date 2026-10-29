@@ -310,6 +310,21 @@ public sealed class UxRound2MarkupTests
             (string?)style.Elements().Single(s => (string?)s.Attribute("Property") == "FontSize").Attribute("Value");
     }
 
+    /// <summary>The card pool browser stands below the top bar; its card ends above the screen's bottom edge, 16 clear.</summary>
+    [Theory]
+    [InlineData(WpfOverlay, "src/Hearthpulse.App/Overlay/CardPoolBrowser.xaml")]
+    [InlineData(AvaOverlay, "src/Hearthpulse.UI/Overlay/CardPoolBrowser.axaml")]
+    public void Card_pool_browser_fits_the_screen_from_its_default_spot(string overlay, string browser)
+    {
+        var panel = Surface(overlay).Elements().Single(e => e.Name.LocalName == "MovablePanel" && (string?)e.Attribute("Id") == "card-pool-browser");
+        Assert.Equal("Top", (string?)panel.Attribute("VerticalAlignment"));
+        var top = double.Parse(((string)panel.Attribute("Margin")!).Split(',')[1], System.Globalization.CultureInfo.InvariantCulture);
+        var card = Markup(browser).Elements().First(e => e.Name.LocalName == "Border");
+        var height = double.Parse((string)card.Attribute("Height")!, System.Globalization.CultureInfo.InvariantCulture);
+        // Taller, it ran 132 below the 1080 surface: WPF cut its bottom rows, Avalonia its header and close button.
+        Assert.True(top + height <= 1080 - 16, $"{browser}: {top} + {height}");
+    }
+
     private static HashSet<string> Classes(XElement element) =>
         ((string?)element.Attribute("Classes") ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
 

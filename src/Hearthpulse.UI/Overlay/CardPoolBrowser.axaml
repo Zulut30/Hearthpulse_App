@@ -54,7 +54,8 @@
         </Style>
     </UserControl.Styles>
 
-    <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Height="1064" Width="{Binding CardPoolBrowserWidth}"
+    <!-- 916 = 1080 - its top (148, under the Battlegrounds bar) - 16: the whole card stays on screen; the grid scrolls inside -->
+    <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Height="916" Width="{Binding CardPoolBrowserWidth}"
             o:OverlayHit.Interactive="True" PointerEntered="OnPointerEntered" PointerExited="OnPointerExited">
         <Grid RowDefinitions="Auto,Auto,Auto,*">
             <!-- Header: "<Card> Pool: N cards" and the close button -->
