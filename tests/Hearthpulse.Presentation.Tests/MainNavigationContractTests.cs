@@ -116,7 +116,8 @@ public sealed class MainNavigationContractTests
         }
         finally
         {
-            window.Close();
+            // Close() only hides the window to the tray; a window left open keeps its charts on Loc.LanguageChanged.
+            window.CloseForReal();
             Pump();
         }
     });
