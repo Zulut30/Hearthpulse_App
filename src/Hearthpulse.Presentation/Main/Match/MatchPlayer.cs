@@ -113,7 +113,7 @@ public sealed partial class MatchViewModel
     public bool ShowBattlegroundsOldNote => IsBattlegrounds && !HasBattlegroundsSteps;
 
     /// <summary>The game went over the recording limit: the replay stops early.</summary>
-    public bool Truncated => _page?.Replay?.Header.Truncated == true;
+    public bool Truncated => _page?.Truncated == true;
 
     /// <summary>The "?" tooltip: the timeline legend of the mode, then the keys.</summary>
     public string HelpText => $"{Loc.T(IsConstructed ? "Match.Timeline.LegendConstructed" : "Match.Timeline.LegendBattlegrounds")}\n\n{Loc.T("Match.Player.Help")}";

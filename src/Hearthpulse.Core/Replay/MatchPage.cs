@@ -199,6 +199,9 @@ public sealed partial class MatchPage
 
     public int FrameCount => Replay?.Frames.Count ?? BgReplay?.Frames.Count ?? 0;
 
+    /// <summary>The recording stopped adding steps at its cap: the player says the replay is incomplete.</summary>
+    public bool Truncated => Replay?.Header.Truncated ?? BgReplay?.Header.Truncated ?? false;
+
     /// <summary>Loads the page for a history game: its replay file, the card names and the meta for the archetype calls.</summary>
     public static MatchPage Load(GameRecord game, ReplayStore store, CardDb cards, ConstructedMeta? meta)
     {

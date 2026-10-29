@@ -5,6 +5,7 @@ using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.UI.Main;
 using Hearthpulse.UI.Main.Match;
+using Bg = Hearthpulse.Tests.BattlegroundsReplayTests;
 
 namespace Hearthpulse.Tests;
 
@@ -65,6 +66,21 @@ public sealed class MatchPlayerTests : IDisposable
     {
         var name = _store.Save(MatchTimelineTests.Game(null).Key, ReplayFile.Write(new ReplayHeader(), MatchTimelineTests.Events));
         return MatchPage.Load(MatchTimelineTests.Game(name), _store, CardDb.Empty, null);
+    }
+
+    /// <summary>A Battlegrounds game recorded step by step (format 4) as the app saves it, or the same file marked cut short.</summary>
+    private MatchPage BattlegroundsPage(string key, string[] bodies, bool truncated = false)
+    {
+        var (state, recorder, tracker) = Bg.Play(bodies);
+        var text = recorder.Battlegrounds.Text(new ReplayHeader(), tracker.ReplayData(state));
+        if (truncated)
+        {
+            var (header, body) = ReplayFile.Read(text)!.Value;
+            text = ReplayFile.Write(header with { Truncated = true }, body);
+        }
+
+        var game = MatchTimelineTests.Game(null) with { Key = key, Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 5 };
+        return MatchPage.Load(game with { Replay = _store.Save(key, text) }, _store, CardDb.Empty, null);
     }
 
     /// <summary>
@@ -334,6 +350,88 @@ public sealed class MatchPlayerTests : IDisposable
         Assert.Equal([true, true, false, true], rows.Select(r => r.Local));
         Assert.Equal("Attack 8", rows[2].Text);
         Assert.Null(rows[2].CardId);
+    }
+
+    [Fact]
+    public void A_battlegrounds_game_plays_step_by_step_with_combats_in_their_result_colour()
+    {
+        var model = Model(out _);
+        var page = BattlegroundsPage("bg-5th", Bg.Game5th());
+        model.Show(page);
+
+        Assert.True(model.ShowReplay && model.ShowBattlegroundsTable && model.HasPlayer);
+        Assert.False(model.ShowConstructedTable || model.ShowSide || model.ShowBattlegroundsOldNote || model.Truncated);
+        Assert.Equal(page.FrameCount - 1, model.FrameMax);
+        // Won on turn 1, lost on turn 2: each combat takes the result of its last step.
+        Assert.Equal([MatchTimelineLook.Won, MatchTimelineLook.Lost], model.TimelineSegments.Where(s => s.IsCombat).Select(s => s.Look));
+
+        // Every step is drawn on the table; the list beside it holds the events of the step's stretch, the latest one so
+        // far marked.
+        for (var frame = 0; frame <= model.FrameMax; frame++)
+        {
+            model.GoFrame.Execute(frame);
+            Assert.Equal(frame, model.BattlegroundsStep!.Index);
+            var stretch = model.TimelineSegments[model.TimelineCurrent];
+            Assert.InRange(frame, stretch.FirstFrame, stretch.LastFrame);
+            Assert.All(model.Actions, a => Assert.InRange(a.Frame, stretch.FirstFrame, stretch.LastFrame));
+            var latest = page.Marks.LastOrDefault(m => m.IsEvent && m.Frame >= stretch.FirstFrame && m.Frame <= frame)?.Frame;
+            Assert.Equal(latest, model.Actions.SingleOrDefault(a => a.Current)?.Frame);
+        }
+
+        // Ctrl+arrows go tavern to tavern over the combats.
+        model.First.Execute(null);
+        model.NextTurn.Execute(null);
+        Assert.Equal(MatchPhase.Shop, model.BattlegroundsStep!.Phase);
+        model.NextTurn.Execute(null);
+        Assert.Equal((MatchPhase.Shop, 2), (model.BattlegroundsStep!.Phase, model.BattlegroundsStep.Turn));
+    }
+
+    [Fact]
+    public void A_minion_used_on_the_table_is_an_event_with_the_power_icon()
+    {
+        var model = Model(out _);
+        var page = BattlegroundsPage("bg-use",
+        [
+            .. Bg.Setup,
+            .. Bg.Entity(60, "BG36_311", Bg.Me, "PLAY", "MINION", "ATK=2", "HEALTH=2", "ZONE_POSITION=1"),
+            .. Bg.Entity(61, "BG34_604", Bg.Me, "HAND", "MINION", "ATK=3", "HEALTH=3", "ZONE_POSITION=1"),
+            Bg.Game("STEP", "MAIN_END"),
+            Bg.Start("PLAY", 60), Bg.Tag(60, "CARD_TARGET", 61),
+            Bg.Start("POWER", 60), Bg.Tag(61, "ZONE", "REMOVEDFROMGAME"), Bg.Tag(60, "ATK", 5), Bg.Tag(60, "HEALTH", 5), Bg.End,
+            Bg.Start("PLAY", 40), Bg.Tag(40, "CARD_TARGET", 51), Bg.Tag(51, "CONTROLLER", Bg.Me), Bg.Tag(51, "ZONE", "HAND"), Bg.End,
+        ]);
+        model.Show(page);
+        var use = page.Marks.Single(m => m.Kind == MatchStepKind.Use);
+
+        // A tick on the timeline, an arrow stop, a row of the stretch's list with the hero power's icon.
+        Assert.True(use.IsEvent && use.Local);
+        Assert.Contains(model.TimelineTicks, t => t.Frame == use.Frame);
+        model.GoFrame.Execute(use.Frame - 1);
+        model.NextEvent.Execute(null);
+        Assert.Equal(use.Frame, model.Frame);
+        var row = model.Actions.Single(a => a.Current);
+        Assert.Equal((use.Frame, "󱐋", use.Caption), (row.Frame, row.Icon, row.Text));
+        Assert.Equal(MatchStepKind.Use, model.BattlegroundsStep!.Kind);
+    }
+
+    [Fact]
+    public void A_replay_cut_short_says_so_in_both_modes()
+    {
+        var model = Model(out _);
+        var cut = BattlegroundsPage("bg-cut", Bg.Game5th(), truncated: true);
+        Assert.True(cut.Truncated);
+        Assert.False(BattlegroundsPage("bg-whole", Bg.Game5th()).Truncated);
+
+        model.Show(cut);
+        Assert.True(model.HasBattlegroundsSteps && model.ShowBattlegroundsTable);
+        Assert.True(model.Truncated);
+
+        // A Constructed game reads its own header.
+        var name = _store.Save("constructed-cut", ReplayFile.Write(new ReplayHeader { Truncated = true }, MatchTimelineTests.Events));
+        model.Show(MatchPage.Load(MatchTimelineTests.Game(name), _store, CardDb.Empty, null));
+        Assert.True(model.ShowConstructedTable && model.Truncated);
+        model.Show(Page());
+        Assert.False(model.Truncated);
     }
 
     [Fact]

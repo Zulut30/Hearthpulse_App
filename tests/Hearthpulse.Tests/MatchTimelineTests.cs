@@ -1,6 +1,8 @@
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Replay;
+using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI.Main.Match;
 using Xunit.Abstractions;
 
@@ -93,12 +95,39 @@ public sealed class MatchTimelineTests(ITestOutputHelper output) : IDisposable
         AssertTimeline(page);
     }
 
+    /// <summary>The real Battlegrounds fixture (the hero choice, a tavern, a combat, the next tavern), recorded as the app does.</summary>
+    [Fact]
+    public void The_battlegrounds_fixture_lays_out_its_timeline()
+    {
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        var tracker = new BattlegroundsTracker();
+        var recorder = new ReplayRecorder();
+        parser.AddListener(tracker);
+        parser.AddListener(recorder);
+        foreach (var line in BattlegroundsFixtureTests.Lines())
+        {
+            parser.Feed(line);
+        }
+
+        parser.Flush();
+        var game = Game(null) with { Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS" };
+        var name = _store.Save(game.Key, recorder.Battlegrounds.Text(new ReplayHeader(), tracker.ReplayData(parser.Game!)));
+        var page = MatchPage.Load(game with { Replay = name }, _store, CardDb.Empty, null);
+
+        Assert.True(page.HasBattlegroundsSteps);
+        Assert.Equal([MatchPhase.Start, MatchPhase.Shop, MatchPhase.Combat, MatchPhase.Shop], page.Timeline.Select(s => s.Phase));
+        // The first combat was a tie: its last step says so, for the timeline's colour.
+        var combat = page.Timeline[2];
+        Assert.Equal((MatchStepKind.CombatEnd, "Tie"), (page.BattlegroundsStep(combat.LastFrame)!.Kind, page.BattlegroundsStep(combat.LastFrame)!.ResultKey));
+        AssertTimeline(page);
+    }
+
     /// <summary>
-    /// Every Constructed and Arena game in the client's kept logs, recorded as the app records it, passes
-    /// <see cref="AssertTimeline"/>.
+    /// Every game in the client's kept logs, recorded as the app records it (Constructed, Arena, Battlegrounds step by step),
+    /// passes <see cref="AssertTimeline"/>; a minion used on the table is an event.
     /// </summary>
     [RealLogsFact]
-    public void Kept_logs_lay_out_the_timeline_of_every_constructed_game()
+    public void Kept_logs_lay_out_the_timeline_of_every_game()
     {
         var games = 0;
         foreach (var dir in Directory.EnumerateDirectories(RealLogTests.LogRoot, "Hearthstone_*"))
@@ -115,12 +144,14 @@ public sealed class MatchTimelineTests(ITestOutputHelper output) : IDisposable
                 foreach (var record in LogBackfill.Parse(file, start.Value, CardDb.Empty, replays: _store))
                 {
                     var page = MatchPage.Load(record, _store, CardDb.Empty, null);
-                    if (page.Replay is null)
+                    if (page.FrameCount == 0)
                     {
                         continue;
                     }
 
-                    output.WriteLine($"{record.StartedAt:g} {record.Mode,-8} {page.FrameCount,4} steps {page.Timeline.Count,3} stretches {page.Marks.Count(m => m.IsEvent),4} events");
+                    var uses = page.Marks.Where(m => m.Kind == MatchStepKind.Use).ToList();
+                    output.WriteLine($"{record.StartedAt:g} {record.Mode,-13} {page.FrameCount,4} steps {page.Timeline.Count,3} stretches {page.Marks.Count(m => m.IsEvent),4} events {uses.Count,3} uses");
+                    Assert.All(uses, m => Assert.True(m.IsEvent));
                     AssertTimeline(page);
                     games++;
                 }
@@ -131,14 +162,18 @@ public sealed class MatchTimelineTests(ITestOutputHelper output) : IDisposable
     }
 
     /// <summary>
-    /// What the player needs of a Constructed page: a mark per step, the timeline as the turns, stretches end to end over
-    /// the whole bar, at most 300 ticks, and arrows and Ctrl+arrows that go through every event and turn once each way.
+    /// What the player needs of a page: a mark per step, the timeline as the turns (Constructed), stretches end to end over
+    /// the whole bar, at most 300 ticks, and arrows and Ctrl+arrows that go through every event and turn (never a combat)
+    /// once each way.
     /// </summary>
     private static void AssertTimeline(MatchPage page)
     {
         var count = page.FrameCount;
-        Assert.Equal(page.Replay!.Frames.Select(f => f.Index), page.Marks.Select(m => m.Frame));
-        Assert.Equal(page.Turns.Select(t => (t.FirstFrame, t.LastFrame, t.Tooltip)), page.Timeline.Select(s => (s.FirstFrame, s.LastFrame, s.Tooltip)));
+        Assert.Equal(Enumerable.Range(0, count), page.Marks.Select(m => m.Frame));
+        if (page.Replay is not null)
+        {
+            Assert.Equal(page.Turns.Select(t => (t.FirstFrame, t.LastFrame, t.Tooltip)), page.Timeline.Select(s => (s.FirstFrame, s.LastFrame, s.Tooltip)));
+        }
 
         Assert.Equal(0, page.Timeline[0].FirstFrame);
         Assert.Equal(count - 1, page.Timeline[^1].LastFrame);
@@ -150,8 +185,9 @@ public sealed class MatchTimelineTests(ITestOutputHelper output) : IDisposable
         var events = page.Marks.Where(m => m.IsEvent).Select(m => m.Frame).ToList();
         Assert.Equal(events.Where(f => f > 0), Walk(page.EventFrom, 0, +1));
         Assert.Equal(events.Where(f => f < count - 1).Reverse(), Walk(page.EventFrom, count - 1, -1));
-        Assert.Equal(page.Timeline.Skip(1).Select(s => s.FirstFrame), Walk(page.TurnFrom, 0, +1));
-        Assert.Equal(page.Timeline.SkipLast(1).Reverse().Select(s => s.FirstFrame), Walk(page.TurnFrom, count - 1, -1));
+        var turns = page.Timeline.Where(s => s.Phase != MatchPhase.Combat).Select(s => s.FirstFrame).ToList();
+        Assert.Equal(turns.Where(f => f > page.Timeline[0].FirstFrame), Walk(page.TurnFrom, 0, +1));
+        Assert.Equal(turns.Where(f => f < page.Timeline[^1].FirstFrame).Reverse(), Walk(page.TurnFrom, count - 1, -1));
     }
 
     /// <summary>The frames a jump goes through until it stays put; each one must move on in its direction.</summary>
