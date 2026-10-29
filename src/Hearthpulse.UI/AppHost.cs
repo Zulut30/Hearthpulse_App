@@ -266,7 +266,7 @@ public sealed partial class AppHost : IDisposable
 
             if (logConfigChanged && HearthstoneInstall.IsRunning())
             {
-                Notification?.Invoke(Loc.T("Host.Notify.RestartTitle"), Loc.T("Host.Notify.LoggingEnabled"));
+                Notification?.Invoke(Loc.T("Host.Notify.RestartTitle"), Loc.T("Host.Notify.LogSettingsChanged"));
             }
 
             await LoadMetaAsync();
