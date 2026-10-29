@@ -30,6 +30,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     /// <summary>How long Power.log must be quiet before a block left open at the end of a batch is completed.</summary>
     private static readonly TimeSpan QuietFlush = TimeSpan.FromMilliseconds(150);
 
+    /// <summary>How long a Battlegrounds game over for us waits for our final place before it is saved anyway.</summary>
+    private static readonly TimeSpan FinalPlaceWait = TimeSpan.FromSeconds(2);
+
     private readonly HistoryStore _history;
     private readonly HearthstoneMemory _memory;
     private readonly ConstructedTracker _constructed = new();
@@ -76,6 +79,9 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private bool _readingDeck;
 
     private bool _recorded;
+
+    /// <summary>When the Battlegrounds game was first seen over for us (our PLAYSTATE), for <see cref="FinalPlaceWait"/>.</summary>
+    private DateTime? _localFinishedAt;
     private bool _recordedAbandoned;
     private bool _endingLeftGame;
     private DateTime _hearthstoneStoppedAt = DateTime.MinValue;
@@ -489,6 +495,12 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             AfterPowerBatch();
             _dirty = true;
         }
+        else if (!_recorded && _parser?.Game is { IsBattlegrounds: true } over && _battlegrounds.LocalFinished)
+        {
+            // The final place may never come (already right before the end, or the log went quiet): the wait runs out here.
+            RecordWhenPlaceKnown(over);
+            _dirty |= _recorded;
+        }
 
         if (now >= _nextProcessCheck)
         {
@@ -579,6 +591,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
         _recorded = false;
         _recordedAbandoned = false;
+        _localFinishedAt = null;
         _ranksRead = false;
         _racesRead = false;
         if (Advisor.CompMode == CompMode.Auto)
@@ -621,6 +634,19 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         }
 
         if (game.IsBattlegrounds && _battlegrounds.LocalFinished)
+        {
+            RecordWhenPlaceKnown(game);
+        }
+    }
+
+    /// <summary>
+    /// Saves a Battlegrounds game that is over for us. The client writes our final place a few milliseconds after our
+    /// PLAYSTATE, so a log poll can fall between them: the game waits for the place, at most <see cref="FinalPlaceWait"/>.
+    /// </summary>
+    private void RecordWhenPlaceKnown(GameState game)
+    {
+        _localFinishedAt ??= Clock();
+        if (_battlegrounds.FinalPlaceKnown || Clock() - _localFinishedAt >= FinalPlaceWait)
         {
             RecordIfFinished(game, force: false);
         }

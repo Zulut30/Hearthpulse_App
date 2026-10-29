@@ -127,6 +127,9 @@ public sealed partial class BattlegroundsTracker : IPowerListener
 
     public bool LocalFinished { get; private set; }
 
+    /// <summary>Our hero's leaderboard place changed after the game was over for us: the final place is in.</summary>
+    public bool FinalPlaceKnown { get; private set; }
+
     /// <summary>Deaths and summons for the Battlegrounds counters; registered as a Power.log listener by the session.</summary>
     public BattlegroundsCounterTracker Counters { get; } = new();
 
@@ -153,6 +156,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         MemoryRaces = null;
         LiveButtonCosts = null;
         LocalFinished = false;
+        FinalPlaceKnown = false;
         _pendingDamage = -1;
         ResetRounds();
     }
@@ -277,6 +281,10 @@ public sealed partial class BattlegroundsTracker : IPowerListener
             case GameTag.Zone when !_inCombat && previous == "HAND" && value == "PLAY" && entity.CardId.Length > 0 && entity.Controller == game.LocalPlayerId
                                    && (entity.IsMinion || entity.CardType == "BATTLEGROUND_SPELL") && _plays.Count < 300:
                 _plays.Add(new BgPlay(game.BattlegroundsTurn, entity.CardId));
+                break;
+
+            case GameTag.PlayerLeaderboardPlace when LocalFinished && entity == game.LocalHero:
+                FinalPlaceKnown = true;
                 break;
 
             case GameTag.PlayState when entity.Id == game.LocalPlayer?.EntityId:
