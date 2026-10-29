@@ -149,21 +149,31 @@ public enum BgMmrStatus
     /// <summary>The leaderboard is still downloading, or the lobby names are not read yet.</summary>
     Loading,
 
-    /// <summary>Exactly one leaderboard row has this name: <see cref="BgOpponentMmr.Rating"/> is its rating.</summary>
+    /// <summary>Exactly one leaderboard row has this name, spelled the same: <see cref="BgOpponentMmr.Rating"/> is its rating.</summary>
     Found,
 
-    /// <summary>No row has this name: the player is below the leaderboard's floor (about 8000), shown as "&lt;8000".</summary>
+    /// <summary>No row has this name: the player is below the table's floor, shown as "&lt;" + <see cref="BgOpponentMmr.Floor"/> (8000).</summary>
     BelowThreshold,
 
-    /// <summary>Several rows share this name: no rating is picked, shown as "?".</summary>
+    /// <summary>
+    /// Several rows share this name, the one row has it only in another case, or another player of the lobby has the
+    /// same name: no rating is picked, shown as "?".
+    /// </summary>
     Ambiguous,
 
-    /// <summary>No name, no region, or no leaderboard (offline without a cached copy).</summary>
+    /// <summary>No name, no region, or no whole leaderboard (offline without a cached copy, an empty or cut-short table).</summary>
     Unknown,
 }
 
 /// <summary>An opponent's rating from the public leaderboard; <see cref="Rating"/> is set only for <see cref="BgMmrStatus.Found"/>.</summary>
-public sealed record BgOpponentMmr(BgMmrStatus Status, int? Rating);
+public sealed record BgOpponentMmr(BgMmrStatus Status, int? Rating)
+{
+    /// <summary>
+    /// The table's lowest rating, set whenever the answer comes from a whole table (Found, Ambiguous, BelowThreshold):
+    /// <see cref="BgMmrStatus.BelowThreshold"/> reads "&lt;Floor".
+    /// </summary>
+    public int? Floor { get; init; }
+}
 
 public sealed record HeroStats(int Games, double AveragePlace, double Top4Rate, double WinRate);
 

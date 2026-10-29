@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -12,8 +13,9 @@ namespace Hearthpulse.Tests;
 
 /// <summary>
 /// Battlegrounds opponents' MMR (docs/bg-opponent-mmr.md): the region's public leaderboard downloaded whole and never
-/// asked by name (L-M2), names matched locally with "?" for a shared name and "&lt;8000" for none (L-m1), off by
-/// default, and the names kept out of the history and the log.
+/// asked by name (L-M2), a rating only for one row spelled exactly like the name, "?" for anything less certain and
+/// "&lt;Floor" for no row (L-m1, L-m5), nothing from a partial table (L-m6), off by default, and the names kept out of
+/// the history and the log.
 /// </summary>
 public sealed class BgOpponentMmrTests : IDisposable
 {
@@ -21,6 +23,9 @@ public sealed class BgOpponentMmrTests : IDisposable
 
     /// <summary>A Europe game account: kind 2, region 2, program "WTCG".</summary>
     private const ulong EuAccountHi = 0x0200000257544347;
+
+    /// <summary>The fixture's local player (PlayerID=2, "Player#1000").</summary>
+    private const int LocalId = 2;
 
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "hp-bgmmr-" + Guid.NewGuid().ToString("N"));
     private readonly string _db;
@@ -60,31 +65,55 @@ public sealed class BgOpponentMmrTests : IDisposable
     // ---- matching -------------------------------------------------------------------------------
 
     [Fact]
-    public void One_row_gives_its_rating_whatever_the_case()
+    public void A_name_spelled_exactly_gives_its_rating_and_in_another_case_a_question_mark()
     {
         var board = new BgLeaderboard([("Alice", 9012), ("Борис", 8500)]);
 
-        Assert.Equal(new BgOpponentMmr(BgMmrStatus.Found, 9012), board.Match("aLiCe"));
-        Assert.Equal(new BgOpponentMmr(BgMmrStatus.Found, 8500), board.Match("БОРИС"));
+        Is(BgMmrStatus.Found, 9012, board.Match("Alice"));
+        Is(BgMmrStatus.Found, 8500, board.Match("Борис"));
+        // Names are not unique: one that differs only in case may be another player (L-m5).
+        Is(BgMmrStatus.Ambiguous, null, board.Match("aLiCe"));
+        Is(BgMmrStatus.Ambiguous, null, board.Match("БОРИС"));
+        Is(BgMmrStatus.Ambiguous, null, board.Match("борис"));
     }
 
     [Fact]
-    public void A_name_two_rows_share_gets_no_rating()
+    public void A_name_several_rows_share_gets_no_rating()
     {
         // Not the better one, as Firestone does: it could be the other player's rating (L-m1).
-        var board = new BgLeaderboard([("Bob", 12000), ("bob", 8100)]);
+        var board = new BgLeaderboard([("Bob", 12000), ("bob", 8100), ("Яна", 9000), ("Яна", 8800)]);
 
-        Assert.Equal(new BgOpponentMmr(BgMmrStatus.Ambiguous, null), board.Match("Bob"));
+        Is(BgMmrStatus.Ambiguous, null, board.Match("Bob"));
+        Is(BgMmrStatus.Ambiguous, null, board.Match("bob"));
+        Is(BgMmrStatus.Ambiguous, null, board.Match("Яна"));
     }
 
     [Fact]
     public void A_name_not_on_the_table_is_below_its_floor_and_no_name_is_unknown()
     {
-        var board = new BgLeaderboard([("Alice", 9012)]);
+        var board = new BgLeaderboard([("Alice", 9012), ("Bob", 8003)]);
 
-        Assert.Equal(new BgOpponentMmr(BgMmrStatus.BelowThreshold, null), board.Match("Carol"));
+        Assert.Equal(8003, board.Floor);
+        var below = board.Match("Carol");
+        Is(BgMmrStatus.BelowThreshold, null, below);
+        Assert.Equal(8003, below.Floor);
+        Assert.Equal(8003, board.Match("Alice").Floor);
         Assert.Equal(BgMmrStatus.Unknown, board.Match(null).Status);
         Assert.Equal(BgMmrStatus.Unknown, board.Match("  ").Status);
+    }
+
+    [Fact]
+    public void An_empty_or_partial_table_matches_nobody()
+    {
+        // A missing name says nothing about a player when the table is empty (a new season) or cut short (L-m6).
+        var empty = new BgLeaderboard([]);
+        Assert.False(empty.Complete);
+        Assert.Null(empty.Floor);
+        Is(BgMmrStatus.Unknown, null, empty.Match("Alice"));
+
+        var partial = new BgLeaderboard([("Alice", 9012)], complete: false);
+        Is(BgMmrStatus.Unknown, null, partial.Match("Alice"));
+        Is(BgMmrStatus.Unknown, null, partial.Match("Carol"));
     }
 
     [Theory]
@@ -120,9 +149,11 @@ public sealed class BgOpponentMmrTests : IDisposable
         var board = await source.LoadAsync("battlegrounds", "EU");
 
         Assert.NotNull(board);
+        Assert.True(board.Complete);
         Assert.Equal(250, board.Count);
+        Assert.Equal(19751, board.Floor);
         Assert.Equal("2026-10-29", board.Day);
-        Assert.Equal(new BgOpponentMmr(BgMmrStatus.Found, 19995), board.Match("player5"));
+        Is(BgMmrStatus.Found, 19995, board.Match("Player5"));
         Assert.Equal(3, server.Requests.Count);
         Assert.All(server.Requests, r =>
         {
@@ -137,20 +168,38 @@ public sealed class BgOpponentMmrTests : IDisposable
     }
 
     [Fact]
-    public async Task A_cached_table_is_used_for_a_day()
+    public async Task A_cached_table_is_used_until_its_snapshot_is_a_day_old()
     {
         var server = new Server(total: 120);
         var source = Source(server);
         await source.LoadAsync("battlegrounds", "EU");
         Assert.Equal(2, server.Requests.Count);
 
-        var again = await source.LoadAsync("battlegrounds", "EU");
-        Assert.Equal(120, again!.Count);
+        Assert.Equal(120, (await source.LoadAsync("battlegrounds", "EU"))!.Count);
         Assert.Equal(2, server.Requests.Count);
 
-        File.SetLastWriteTimeUtc(CacheFile("battlegrounds", "eu"), DateTime.UtcNow.AddDays(-2));
-        await source.LoadAsync("battlegrounds", "EU");
+        source.Clock = () => DateTime.UtcNow.AddDays(1).AddHours(1);
+        server.Day = "2026-10-30";
+        server.CapturedAt = DateTime.UtcNow.AddDays(1);
+        var renewed = await source.LoadAsync("battlegrounds", "EU");
+        Assert.Equal("2026-10-30", renewed!.Day);
         Assert.Equal(4, server.Requests.Count);
+    }
+
+    [Fact]
+    public async Task The_age_counts_from_the_snapshot_and_an_unchanged_snapshot_costs_one_request()
+    {
+        // The server took this snapshot 23 hours ago: downloaded now, it is stale in an hour, not in a day.
+        var server = new Server(total: 120) { CapturedAt = DateTime.UtcNow.AddHours(-23) };
+        var source = Source(server);
+        await source.LoadAsync("battlegrounds", "EU");
+        Assert.Equal(2, server.Requests.Count);
+
+        source.Clock = () => DateTime.UtcNow.AddHours(2);
+        var again = await source.LoadAsync("battlegrounds", "EU");
+        Assert.Equal(120, again!.Count);
+        // The server has no newer snapshot yet: its first page says so, the rest is not downloaded again.
+        Assert.Equal(3, server.Requests.Count);
     }
 
     [Fact]
@@ -161,11 +210,40 @@ public sealed class BgOpponentMmrTests : IDisposable
         await source.LoadAsync("battlegroundsduo", "US");
         server.Offline = true;
 
-        File.SetLastWriteTimeUtc(CacheFile("battlegroundsduo", "us"), DateTime.UtcNow.AddDays(-3));
+        source.Clock = () => DateTime.UtcNow.AddDays(3);
         Assert.Equal(30, (await source.LoadAsync("battlegroundsduo", "US"))!.Count);
 
-        File.SetLastWriteTimeUtc(CacheFile("battlegroundsduo", "us"), DateTime.UtcNow.AddDays(-8));
+        source.Clock = () => DateTime.UtcNow.AddDays(8);
         Assert.Null(await source.LoadAsync("battlegroundsduo", "US"));
+    }
+
+    [Fact]
+    public async Task An_offline_copy_is_asked_for_again_every_half_hour_until_the_server_answers()
+    {
+        // A table three days old on disk, then the server down.
+        await Source(new Server(total: 30) { CapturedAt = DateTime.UtcNow.AddDays(-3) }).LoadAsync("battlegrounds", "EU");
+        var server = new Server(total: 40) { Offline = true };
+        var source = Source(server);
+        var now = DateTime.UtcNow;
+        source.Clock = () => now;
+        var changed = new SemaphoreSlim(0);
+        source.Changed += () => changed.Release();
+
+        Assert.Null(source.TryGet("battlegrounds", "EU", out _));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(30, source.TryGet("battlegrounds", "EU", out var loading)!.Count);
+        Assert.False(loading);
+
+        server.Offline = false;
+        now += TimeSpan.FromMinutes(5);
+        Assert.Equal(30, source.TryGet("battlegrounds", "EU", out loading)!.Count);
+        Assert.False(loading);
+
+        now += TimeSpan.FromMinutes(26);
+        source.TryGet("battlegrounds", "EU", out loading);
+        Assert.True(loading);
+        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(40, source.TryGet("battlegrounds", "EU", out _)!.Count);
     }
 
     [Fact]
@@ -186,6 +264,45 @@ public sealed class BgOpponentMmrTests : IDisposable
         var source = Source(server);
 
         Assert.Null(await source.LoadAsync("battlegrounds", "EU"));
+        Assert.False(File.Exists(CacheFile("battlegrounds", "eu")));
+    }
+
+    [Fact]
+    public async Task An_empty_table_matches_nobody_and_is_not_cached()
+    {
+        var source = Source(new Server(total: 0));
+
+        var board = await source.LoadAsync("battlegrounds", "EU");
+
+        Assert.False(board!.Complete);
+        Is(BgMmrStatus.Unknown, null, board.Match("Player1"));
+        Assert.False(File.Exists(CacheFile("battlegrounds", "eu")));
+    }
+
+    [Fact]
+    public async Task A_table_cut_short_matches_nobody_and_is_not_cached()
+    {
+        // The second page is short while the first said 250 rows.
+        var source = Source(new Server(total: 250) { ShortPageAt = 100 });
+
+        var board = await source.LoadAsync("battlegrounds", "EU");
+
+        Assert.False(board!.Complete);
+        Is(BgMmrStatus.Unknown, null, board.Match("Player5"));
+        Is(BgMmrStatus.Unknown, null, board.Match("Nobody"));
+        Assert.False(File.Exists(CacheFile("battlegrounds", "eu")));
+    }
+
+    [Fact]
+    public async Task A_table_past_the_page_bound_is_not_whole()
+    {
+        var server = new Server(total: BgLeaderboardSource.MaxPages * BgLeaderboardSource.PageSize + 50);
+        var source = Source(server);
+
+        var board = await source.LoadAsync("battlegrounds", "EU");
+
+        Assert.Equal(BgLeaderboardSource.MaxPages, server.Requests.Count);
+        Assert.False(board!.Complete);
         Assert.False(File.Exists(CacheFile("battlegrounds", "eu")));
     }
 
@@ -224,11 +341,14 @@ public sealed class BgOpponentMmrTests : IDisposable
     // ---- the live view --------------------------------------------------------------------------
 
     [Fact]
-    public void Off_by_default_no_names_are_read_and_no_ratings_shown()
+    public void Off_by_default_no_names_are_read_no_ratings_shown_and_nothing_is_downloaded()
     {
         Assert.False(new Hearthpulse.Core.AppSettings().ShowBgOpponentMmr);
-        _session.SetBgLeaderboards(SourceWith(new BgLeaderboard([("Alpha", 9000)])));
+        var server = new Server(total: 30);
+        _session.SetBgLeaderboards(Source(server));
         StartGame();
+        Tick();
+        Tick();
 
         Assert.False(_session.WantLobbyNames);
         var opponents = Opponents();
@@ -238,6 +358,7 @@ public sealed class BgOpponentMmrTests : IDisposable
             Assert.Null(o.PlayerName);
             Assert.Null(o.Mmr);
         });
+        Assert.Empty(server.Requests);
     }
 
     [Fact]
@@ -250,19 +371,23 @@ public sealed class BgOpponentMmrTests : IDisposable
 
         var ids = Opponents().Select(o => o.PlayerId).ToList();
         var names = ids.Skip(3).ToDictionary(id => id, id => "Gamma" + id);
-        names[ids[0]] = "alpha";
+        names[ids[0]] = "Alpha";
         names[ids[1]] = "Beta";
         // ids[2] has no name in memory yet.
         _session.SetLobbyNames(names);
         Tick();
 
         var view = Opponents().ToDictionary(o => o.PlayerId);
-        Assert.Equal("alpha", view[ids[0]].PlayerName);
-        Assert.Equal(new BgOpponentMmr(BgMmrStatus.Found, 9000), view[ids[0]].Mmr);
-        Assert.Equal(new BgOpponentMmr(BgMmrStatus.Ambiguous, null), view[ids[1]].Mmr);
+        Assert.Equal("Alpha", view[ids[0]].PlayerName);
+        Is(BgMmrStatus.Found, 9000, view[ids[0]].Mmr);
+        Is(BgMmrStatus.Ambiguous, null, view[ids[1]].Mmr);
         Assert.Null(view[ids[2]].PlayerName);
         Assert.Equal(BgMmrStatus.Unknown, view[ids[2]].Mmr!.Status);
-        Assert.All(ids.Skip(3), id => Assert.Equal(new BgOpponentMmr(BgMmrStatus.BelowThreshold, null), view[id].Mmr));
+        Assert.All(ids.Skip(3), id =>
+        {
+            Is(BgMmrStatus.BelowThreshold, null, view[id].Mmr);
+            Assert.Equal(8200, view[id].Mmr!.Floor);
+        });
         // A name still missing keeps the memory read going; with every name it stops.
         Assert.True(_session.WantLobbyNames);
 
@@ -270,6 +395,42 @@ public sealed class BgOpponentMmrTests : IDisposable
         _session.SetLobbyNames(new Dictionary<int, string>(names) { [ids[2]] = "Delta" });
         Tick();
         Assert.False(_session.WantLobbyNames);
+    }
+
+    [Fact]
+    public void Two_players_of_the_lobby_with_one_name_both_get_a_question_mark()
+    {
+        _session.SetBgLeaderboards(SourceWith(new BgLeaderboard([("Alpha", 9000)])));
+        _session.SetBgOpponentMmrEnabled(true);
+        StartGame();
+        var ids = Opponents().Select(o => o.PlayerId).ToList();
+        _session.SetLobbyNames(new Dictionary<int, string> { [ids[0]] = "Alpha", [ids[1]] = "ALPHA", [ids[2]] = "Gamma", [ids[3]] = "Delta", [ids[4]] = "delta" });
+        Tick();
+
+        var view = Opponents().ToDictionary(o => o.PlayerId);
+        // The one "Alpha" row could be either one's (L-m1); a shared name gets "?" also when no row has it.
+        Is(BgMmrStatus.Ambiguous, null, view[ids[0]].Mmr);
+        Is(BgMmrStatus.Ambiguous, null, view[ids[1]].Mmr);
+        Is(BgMmrStatus.BelowThreshold, null, view[ids[2]].Mmr);
+        Is(BgMmrStatus.Ambiguous, null, view[ids[3]].Mmr);
+        Is(BgMmrStatus.Ambiguous, null, view[ids[4]].Mmr);
+    }
+
+    [Fact]
+    public void An_opponent_with_the_players_own_name_gets_a_question_mark()
+    {
+        _session.SetBgLeaderboards(SourceWith(new BgLeaderboard([("Alpha", 9000), ("Player", 9500), ("Omega", 8800)])));
+        _session.SetBgOpponentMmrEnabled(true);
+        StartGame();
+        var ids = Opponents().Select(o => o.PlayerId).ToList();
+        // The player is "Alpha" in memory and "Player#1000" in Power.log.
+        _session.SetLobbyNames(new Dictionary<int, string> { [LocalId] = "Alpha", [ids[0]] = "Alpha", [ids[1]] = "Player", [ids[2]] = "Omega" });
+        Tick();
+
+        var view = Opponents().ToDictionary(o => o.PlayerId);
+        Is(BgMmrStatus.Ambiguous, null, view[ids[0]].Mmr);
+        Is(BgMmrStatus.Ambiguous, null, view[ids[1]].Mmr);
+        Is(BgMmrStatus.Found, 8800, view[ids[2]].Mmr);
     }
 
     [Fact]
@@ -288,7 +449,7 @@ public sealed class BgOpponentMmrTests : IDisposable
         Tick();
 
         var view = Opponents().ToDictionary(o => o.PlayerId);
-        Assert.Equal(new BgOpponentMmr(BgMmrStatus.Found, 9000), view[ids[0]].Mmr);
+        Is(BgMmrStatus.Found, 9000, view[ids[0]].Mmr);
         Assert.Equal("Omega", view[ids[1]].PlayerName);
         Assert.Equal(BgMmrStatus.BelowThreshold, view[ids[1]].Mmr!.Status);
     }
@@ -301,7 +462,7 @@ public sealed class BgOpponentMmrTests : IDisposable
         _session.SetBgOpponentMmrEnabled(true);
         StartGame();
         var id = Opponents()[0].PlayerId;
-        _session.SetLobbyNames(new Dictionary<int, string> { [id] = "player3" });
+        _session.SetLobbyNames(new Dictionary<int, string> { [id] = "Player3" });
         Tick();
         Assert.Equal(BgMmrStatus.Loading, Opponents().Single(o => o.PlayerId == id).Mmr!.Status);
 
@@ -313,7 +474,7 @@ public sealed class BgOpponentMmrTests : IDisposable
             Tick();
         }
 
-        Assert.Equal(new BgOpponentMmr(BgMmrStatus.Found, 19997), Opponents().Single(o => o.PlayerId == id).Mmr);
+        Is(BgMmrStatus.Found, 19997, Opponents().Single(o => o.PlayerId == id).Mmr);
     }
 
     [Fact]
@@ -384,6 +545,12 @@ public sealed class BgOpponentMmrTests : IDisposable
 
     // ---- helpers --------------------------------------------------------------------------------
 
+    private static void Is(BgMmrStatus status, int? rating, BgOpponentMmr? mmr)
+    {
+        Assert.NotNull(mmr);
+        Assert.Equal((status, rating), (mmr.Status, mmr.Rating));
+    }
+
     private BgLeaderboardSource Source(Server server) =>
         new(new HearthpulseApi(new HttpClient(server), "https://api.test/"), _folder);
 
@@ -415,8 +582,8 @@ public sealed class BgOpponentMmrTests : IDisposable
     private IReadOnlyList<BgOpponent> Opponents() => _session.Current.Battlegrounds?.Opponents ?? [];
 
     /// <summary>
-    /// The leaderboard endpoint over <c>total</c> rows named "Player{n}" rated 20000 - n, one snapshot day; records every
-    /// request. <see cref="Hold"/> keeps answers back until it is completed.
+    /// The leaderboard endpoint over <c>total</c> rows named "Player{n}" rated 20000 - n, one snapshot; records every
+    /// request, before anything else (an offline server too). <see cref="Hold"/> keeps answers back until it is completed.
     /// </summary>
     private sealed class Server(int total) : HttpMessageHandler
     {
@@ -428,10 +595,22 @@ public sealed class BgOpponentMmrTests : IDisposable
 
         public int FailOffset { get; set; } = -1;
 
+        /// <summary>The page at this offset holds half a page although <c>total</c> says more.</summary>
+        public int ShortPageAt { get; set; } = -1;
+
+        public string Day { get; set; } = "2026-10-29";
+
+        public DateTime CapturedAt { get; set; } = DateTime.UtcNow;
+
         public TaskCompletionSource? Hold { get; set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            lock (Requests)
+            {
+                Requests.Add(request.RequestUri!.PathAndQuery);
+            }
+
             if (Hold is { } hold)
             {
                 await hold.Task.WaitAsync(cancellationToken);
@@ -442,13 +621,7 @@ public sealed class BgOpponentMmrTests : IDisposable
                 throw new HttpRequestException("offline");
             }
 
-            var path = request.RequestUri!.PathAndQuery;
-            lock (Requests)
-            {
-                Requests.Add(path);
-            }
-
-            var query = System.Web.HttpUtility.ParseQueryString(request.RequestUri.Query);
+            var query = System.Web.HttpUtility.ParseQueryString(request.RequestUri!.Query);
             var offset = int.Parse(query["offset"]!);
             if (Status != HttpStatusCode.OK || offset == FailOffset)
             {
@@ -456,14 +629,15 @@ public sealed class BgOpponentMmrTests : IDisposable
                 return new HttpResponseMessage(status) { Content = new StringContent("{\"detail\":\"no\"}") };
             }
 
-            var rows = Enumerable.Range(offset, Math.Max(0, Math.Min(100, total - offset)))
+            var size = Math.Max(0, Math.Min(offset == ShortPageAt ? 50 : 100, total - offset));
+            var rows = Enumerable.Range(offset, size)
                 .Select(n => new { rank = n + 1, name = "Player" + n, rating = 20000.0 - n, previous_rank = (int?)null });
             var body = JsonSerializer.Serialize(new
             {
                 data = new
                 {
                     board = new { region = query["region"], mode = query["mode"], season_id = 19, rated = true },
-                    snapshot = new { day = "2026-10-29", total_size = total },
+                    snapshot = new { day = Day, captured_at = CapturedAt.ToString("yyyy-MM-dd'T'HH:mm:ss'+00:00'", CultureInfo.InvariantCulture), total_size = total },
                     total,
                     rows,
                 },

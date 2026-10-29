@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Hearthpulse.Core.Api;
@@ -7,22 +8,22 @@ namespace Hearthpulse.Core.Battlegrounds;
 
 /// <summary>
 /// The region's public Blizzard Battlegrounds leaderboard from the Hearthpulse API (<c>v1/leaderboards</c>, the
-/// server's copy of Blizzard's table), downloaded whole, page by page, and cached on disk for a day
-/// (docs/bg-opponent-mmr.md). Nothing is ever asked by player name: a lookup per opponent would tell the server whom
-/// the player met (L-M2), so names are matched on this computer. <see cref="TryGet"/> answers from memory and never
+/// server's copy of Blizzard's table), downloaded whole, page by page, and cached on disk for a day from the server's
+/// snapshot (docs/bg-opponent-mmr.md). Nothing is ever asked by player name: a lookup per opponent would tell the server
+/// whom the player met (L-M2), so names are matched on this computer. <see cref="TryGet"/> answers from memory and never
 /// waits; loads run on the thread pool and never throw.
 /// </summary>
 /// <param name="cacheDirectory">Where the tables are cached; the app's API cache folder by default (tests pass a scratch one).</param>
 public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirectory = null)
 {
-    /// <summary>The server takes a new snapshot once a day: a cached table is asked for again after this long.</summary>
+    /// <summary>The server takes a new snapshot once a day: a table whose snapshot is older is asked for again.</summary>
     public static readonly TimeSpan MaxAge = TimeSpan.FromDays(1);
 
     /// <summary>How old a cached table may be and still stand in when the server cannot be reached.</summary>
     private static readonly TimeSpan MaxStale = TimeSpan.FromDays(7);
 
-    /// <summary>A failed load is tried again after this long, not on every overlay update.</summary>
-    private static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(30);
+    /// <summary>A failed load, or one that gave an old or partial table, is tried again after this long.</summary>
+    internal static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(30);
 
     /// <summary>The API's largest page.</summary>
     internal const int PageSize = 100;
@@ -45,7 +46,7 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
     /// <summary>Raised on a worker thread when a load finished, found a table or not (the overlay builds its view again).</summary>
     public event Action? Changed;
 
-    /// <summary>Now, for the in-memory age; tests set it.</summary>
+    /// <summary>Now (UTC), for the tables' age; tests set it.</summary>
     internal Func<DateTime> Clock { get; set; } = () => DateTime.UtcNow;
 
     /// <summary>The leaderboard mode of a Battlegrounds game.</summary>
@@ -66,15 +67,17 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
 
     /// <summary>
     /// The table of <paramref name="mode"/> in <paramref name="region"/> when it is in memory, else null; starts loading
-    /// it (from the disk cache, else the server) when it is missing or a day old. <paramref name="loading"/> tells a table
-    /// still on its way from one that could not be had (offline without a cached copy, an unknown region).
+    /// it (from the disk cache, else the server) when it is missing, not whole, or its snapshot is a day old. A table kept
+    /// from before an outage, or one the server has not renewed yet, is asked for again every <see cref="RetryAfter"/>.
+    /// <paramref name="loading"/> tells a table still on its way from one that could not be had (offline without a
+    /// cached copy, an unknown region).
     /// </summary>
     public BgLeaderboard? TryGet(string mode, string region, out bool loading)
     {
         var key = mode + "|" + region;
         var now = Clock();
         var known = _known.TryGetValue(key, out var k) ? k : default;
-        if ((known.Board is null || now - known.At > MaxAge) && Ask(key, now))
+        if ((known.Board is null || !Fresh(known.Board, known.At, now)) && Ask(key, now))
         {
             _loading[key] = 0;
             Task.Run(async () =>
@@ -83,7 +86,7 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
                 {
                     if (await LoadAsync(mode, region).ConfigureAwait(false) is { } board)
                     {
-                        _known[key] = (board, Clock());
+                        _known[key] = (board, board.TakenAt ?? Clock());
                     }
                 }
                 finally
@@ -98,17 +101,18 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
         return known.Board;
     }
 
-    /// <summary>For tests and the render scenes: a table as if it had been loaded.</summary>
+    /// <summary>For tests and the render scenes: a table as if it had been loaded (fresh unless it says when it was taken).</summary>
     public void Set(string mode, string region, BgLeaderboard board)
     {
-        _known[mode + "|" + region] = (board, Clock());
+        _known[mode + "|" + region] = (board, board.TakenAt ?? Clock());
         Changed?.Invoke();
     }
 
     /// <summary>
-    /// The table from the disk cache when it is less than a day old, else from the server (then cached); a cached copy up
-    /// to a week old when the server fails. Null when there is none, or the server has no such table (remembered for a
-    /// day). Never throws.
+    /// The table from the disk cache when its snapshot is less than a day old, else from the server (then cached when
+    /// whole); a cached copy whose snapshot is up to a week old when the server fails. A partial or empty answer is
+    /// returned (it matches nobody) but not cached. Null when there is nothing, or the server has no such table
+    /// (remembered for a day). Never throws.
     /// </summary>
     internal async Task<BgLeaderboard?> LoadAsync(string mode, string region, CancellationToken cancellationToken = default)
     {
@@ -117,25 +121,38 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
             return null;
         }
 
+        var now = Clock();
         var file = Path.Combine(_cacheDirectory, $"bg-leaderboard-{mode}-{region.ToLowerInvariant()}.json");
         var info = new FileInfo(file);
-        var age = info.Exists ? DateTime.UtcNow - info.LastWriteTimeUtc : TimeSpan.MaxValue;
         BgLeaderboard? cached = null;
-        if (info.Exists && TryReadCache(file, out cached) && age <= MaxAge)
+        if (info.Exists && TryReadCache(file, info.LastWriteTimeUtc, out cached)
+            && (cached is null ? now - info.LastWriteTimeUtc <= MaxAge : Fresh(cached, cached.TakenAt!.Value, now)))
         {
             return cached;
         }
 
-        var (fetched, error) = await FetchAsync(mode, region, cancellationToken).ConfigureAwait(false);
+        var (fetched, error) = await FetchAsync(mode, region, cached, now, cancellationToken).ConfigureAwait(false);
         if (fetched is not null)
         {
-            Diag.Info($"Battlegrounds leaderboard {mode} {region}: {fetched.Count} rows ({fetched.Day ?? "day unknown"})");
-            await HearthpulseData.WriteCacheAsync(file, Serialize(mode, region, fetched), cancellationToken).ConfigureAwait(false);
+            if (ReferenceEquals(fetched, cached))
+            {
+                Diag.Info($"Battlegrounds leaderboard {mode} {region}: no newer snapshot than {cached!.Day ?? "the cached one"}");
+            }
+            else if (!fetched.Complete)
+            {
+                Diag.Info($"Battlegrounds leaderboard {mode} {region}: {fetched.Count} rows, not the whole table; not used");
+            }
+            else
+            {
+                Diag.Info($"Battlegrounds leaderboard {mode} {region}: {fetched.Count} rows ({fetched.Day ?? "day unknown"})");
+                await HearthpulseData.WriteCacheAsync(file, Serialize(mode, region, fetched), cancellationToken).ConfigureAwait(false);
+            }
+
             return fetched;
         }
 
         Diag.Info($"Battlegrounds leaderboard {mode} {region}: {error!.Code} {error.Message}");
-        var stale = age <= MaxStale ? cached : null;
+        var stale = cached is { Complete: true, TakenAt: { } taken } && now - taken <= MaxStale ? cached : null;
         if (stale is null && error.Code == "NOT_AVAILABLE")
         {
             // The server has no such table (404): remember that for a day instead of asking on every game.
@@ -145,11 +162,21 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
         return stale;
     }
 
-    /// <summary>Every page of the table, the later ones pinned to the first page's snapshot day so a new snapshot mid-way cannot mix two days.</summary>
-    private async Task<(BgLeaderboard? Board, ApiError? Error)> FetchAsync(string mode, string region, CancellationToken cancellationToken)
+    /// <summary>Whole, and its snapshot (taken <paramref name="at"/>) is less than a day old.</summary>
+    private static bool Fresh(BgLeaderboard board, DateTime at, DateTime now) => board.Complete && now - at <= MaxAge;
+
+    /// <summary>
+    /// Every page of the table, the later ones pinned to the first page's snapshot day so a new snapshot mid-way cannot
+    /// mix two days. When the first page shows the snapshot <paramref name="cached"/> already holds, that table is
+    /// returned after one request instead of the whole download.
+    /// </summary>
+    private async Task<(BgLeaderboard? Board, ApiError? Error)> FetchAsync(
+        string mode, string region, BgLeaderboard? cached, DateTime now, CancellationToken cancellationToken)
     {
         var rows = new List<(string Name, int Rating)>();
         string? day = null;
+        DateTime? takenAt = null;
+        int seen = 0, total = 0;
         for (var page = 0; page < MaxPages; page++)
         {
             var path = $"v1/leaderboards?mode={mode}&region={region}&limit={PageSize}&offset={page * PageSize}"
@@ -160,17 +187,20 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
                 return (null, result.Error);
             }
 
-            int count, total;
+            var count = 0;
             try
             {
                 var data = result.Data;
-                if (page == 0 && data.TryGetProperty("snapshot", out var snapshot) && snapshot.ValueKind == JsonValueKind.Object
-                    && snapshot.TryGetProperty("day", out var d) && d.ValueKind == JsonValueKind.String && DayPattern.IsMatch(d.GetString()!))
+                if (page == 0)
                 {
-                    day = d.GetString();
+                    (day, takenAt) = Snapshot(data);
+                    total = data.TryGetProperty("total", out var t) && t.ValueKind == JsonValueKind.Number ? t.GetInt32() : 0;
+                    if (cached is { Complete: true } && day is not null && takenAt is not null && cached.Day == day && cached.TakenAt == takenAt)
+                    {
+                        return (cached, null);
+                    }
                 }
 
-                count = 0;
                 foreach (var row in data.GetProperty("rows").EnumerateArray())
                 {
                     count++;
@@ -181,26 +211,47 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
                         rows.Add((name.GetString()!, (int)Math.Round(rating.GetDouble())));
                     }
                 }
-
-                total = data.TryGetProperty("total", out var t) && t.ValueKind == JsonValueKind.Number ? t.GetInt32() : 0;
             }
             catch (Exception ex) when (ex is InvalidOperationException or KeyNotFoundException or FormatException)
             {
                 return (null, new ApiError(200, "BAD_RESPONSE", "Unexpected leaderboard page."));
             }
 
-            if (count < PageSize || (total > 0 && (page + 1) * PageSize >= total))
+            seen += count;
+            if (count < PageSize || (total > 0 && seen >= total))
             {
-                return (new BgLeaderboard(rows, day), null);
+                // A short page before the reported total means the table was cut, not that it ended.
+                return (new BgLeaderboard(rows, day, takenAt ?? now, complete: total <= 0 || seen >= total), null);
             }
         }
 
         Diag.Info($"Battlegrounds leaderboard {mode} {region}: stopped after {MaxPages} pages");
-        return (new BgLeaderboard(rows, day), null);
+        return (new BgLeaderboard(rows, day, takenAt ?? now, complete: false), null);
     }
 
-    /// <summary>Reads the cached table; <paramref name="board"/> is null for a remembered "no such table". False when the file is unreadable.</summary>
-    private static bool TryReadCache(string file, out BgLeaderboard? board)
+    /// <summary>The snapshot's day (only when it looks like one: it goes into URLs) and capture time (UTC) from a page.</summary>
+    private static (string? Day, DateTime? TakenAt) Snapshot(JsonElement data)
+    {
+        if (!data.TryGetProperty("snapshot", out var snapshot) || snapshot.ValueKind != JsonValueKind.Object)
+        {
+            return (null, null);
+        }
+
+        var day = snapshot.TryGetProperty("day", out var d) && d.ValueKind == JsonValueKind.String && DayPattern.IsMatch(d.GetString()!)
+            ? d.GetString()
+            : null;
+        DateTime? takenAt = snapshot.TryGetProperty("captured_at", out var c) && c.ValueKind == JsonValueKind.String
+                            && DateTimeOffset.TryParse(c.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var at)
+            ? at.UtcDateTime
+            : null;
+        return (day, takenAt);
+    }
+
+    /// <summary>
+    /// Reads the cached table, its snapshot time from the file or else <paramref name="written"/>; <paramref name="board"/>
+    /// is null for a remembered "no such table". False when the file is unreadable.
+    /// </summary>
+    private static bool TryReadCache(string file, DateTime written, out BgLeaderboard? board)
     {
         board = null;
         try
@@ -223,7 +274,11 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
             }
 
             var day = root.TryGetProperty("day", out var d) && d.ValueKind == JsonValueKind.String ? d.GetString() : null;
-            board = new BgLeaderboard(rows, day);
+            var takenAt = root.TryGetProperty("taken_at", out var t) && t.ValueKind == JsonValueKind.String
+                          && DateTime.TryParse(t.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var at)
+                ? at.ToUniversalTime()
+                : written;
+            board = new BgLeaderboard(rows, day, takenAt);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or FormatException)
@@ -245,6 +300,11 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
             if (board?.Day is { } day)
             {
                 json.WriteString("day", day);
+            }
+
+            if (board?.TakenAt is { } takenAt)
+            {
+                json.WriteString("taken_at", takenAt.ToString("O", CultureInfo.InvariantCulture));
             }
 
             if (board is null)

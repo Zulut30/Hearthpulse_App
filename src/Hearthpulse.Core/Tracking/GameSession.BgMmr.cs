@@ -1,4 +1,5 @@
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Tracking;
@@ -114,13 +115,27 @@ public sealed partial class GameSession
             board = source.TryGet(BgLeaderboardSource.ModeOf(game.IsDuos), region, out loading);
         }
 
+        // Every name in the lobby, the player's own too (from memory, and from Power.log in case memory left it out).
+        var lobby = names?.Values.ToList() ?? [];
+        if (HearthstoneMemory.LobbyName(game.LocalPlayer?.Name) is { } own)
+        {
+            lobby.Add(own);
+        }
+
         var missing = false;
         var opponents = new List<BgOpponent>(view.Opponents.Count);
         foreach (var opponent in view.Opponents)
         {
             var name = names?.GetValueOrDefault(opponent.PlayerId);
             missing |= name is null;
-            opponents.Add(opponent with { PlayerName = name, Mmr = MmrOf(name, names is not null, region, board, loading) });
+            var mmr = MmrOf(name, names is not null, region, board, loading);
+            if (mmr.Status is BgMmrStatus.Found or BgMmrStatus.BelowThreshold && (lobby.Count(n => BgLeaderboard.SameName(n, name!)) > 1))
+            {
+                // Two players of this lobby with one name: the row could be either one's (L-m1).
+                mmr = mmr with { Status = BgMmrStatus.Ambiguous, Rating = null };
+            }
+
+            opponents.Add(opponent with { PlayerName = name, Mmr = mmr });
         }
 
         _lobbyNamesMissing = missing;
