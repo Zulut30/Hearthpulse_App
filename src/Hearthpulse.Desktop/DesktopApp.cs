@@ -111,7 +111,9 @@ internal sealed class DesktopApp : HearthpulseApp
             _mainLife.Open(CreateMain);
         }
 
-        _host.Notification += (title, text) =>
+        // The update check raises it on a pool thread, where showing a notification threw (and the update loop took it
+        // for a failed check, so a portable copy never told about a new version): it is shown on the UI thread.
+        _host.Notification += (title, text) => Dispatcher.UIThread.Post(() =>
         {
             if (_main is null)
             {
@@ -121,7 +123,7 @@ internal sealed class DesktopApp : HearthpulseApp
             {
                 _main.Notify(title, text);
             }
-        };
+        });
         _host.ExitRequested += Quit;
 
         _platform = OverlayPlatform.Create();

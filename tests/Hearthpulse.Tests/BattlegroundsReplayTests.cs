@@ -226,6 +226,48 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void A_choice_left_to_the_timer_is_still_a_step_with_its_options()
+    {
+        // No DebugPrintEntitiesChosen line for this offer (the server picked when the turn ran out): the choice is
+        // written when the combat starts, its pick (if the line comes late) joins it.
+        var events = Events(
+        [
+            .. Entity(80, "TB_BaconShop_Triples_01", Me, "HAND", "SPELL"),
+            .. Entity(81, "BG30_121", Me, "SETASIDE", "MINION"),
+            .. Entity(82, "BG32_340", Me, "SETASIDE", "MINION"),
+            Start("PLAY", 80),
+            Tag(80, "ZONE", "PLAY"),
+            .. Offer("GENERAL", 80, 81, 82),
+            End,
+            .. Combat(),
+        ]);
+
+        Assert.Contains("C DISCOVER TB_BaconShop_Triples_01 BG30_121,BG32_340", events);
+        Assert.True(events.IndexOf("C DISCOVER TB_BaconShop_Triples_01 BG30_121,BG32_340") < events.FindIndex(e => e.StartsWith("F ", StringComparison.Ordinal)));
+        var choice = Assert.Single(Frames(events), f => f.Kind == MatchStepKind.Choice).Choice!;
+        Assert.Empty(choice.Picked);
+    }
+
+    [Fact]
+    public void An_offer_replaced_by_the_next_one_keeps_its_step()
+    {
+        var events = Events(
+        [
+            .. Entity(81, "BG30_121", Me, "SETASIDE", "MINION"),
+            .. Entity(82, "BG32_340", Me, "SETASIDE", "MINION"),
+            .. Entity(83, "BG21_001", Me, "SETASIDE", "MINION"),
+            .. Entity(84, "BGS_004", Me, "SETASIDE", "MINION"),
+            .. Offer("GENERAL", null, 81, 82),
+            .. Offer("GENERAL", null, 83, 84),
+            .. Chosen(84),
+        ]);
+
+        Assert.Contains("C DISCOVER - BG30_121,BG32_340", events);
+        Assert.Contains("C DISCOVER - BG21_001,BGS_004", events);
+        Assert.Equal(["BGS_004"], Frames(events).Last(f => f.Kind == MatchStepKind.Choice).Choice!.Picked);
+    }
+
+    [Fact]
     public void The_hero_choice_opens_the_replay()
     {
         var recorder = Run(

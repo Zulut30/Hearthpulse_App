@@ -273,6 +273,12 @@ public sealed class MatchReplay
             }
 
             Step(null);
+            if (!_mulliganDone && _frames.Count > 0)
+            {
+                // Over before MAIN_READY (conceded in the mulligan): the mulligan is still the game's turn 0.
+                _turns.Add(new ReplayTurn(0, null, 0, _frames.Count - 1, 0) { Seconds = _turnSeconds });
+            }
+
             CloseTurn(null);
             replay.Frames = _frames;
             replay.Choices = _frames.Select(f => f.Action).Where(a => a.Kind == ReplayActionKind.Choice).ToList();

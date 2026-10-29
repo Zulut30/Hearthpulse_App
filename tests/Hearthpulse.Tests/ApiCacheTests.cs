@@ -40,6 +40,30 @@ public sealed class ApiCacheTests
         Assert.Empty(Directory.GetFiles(folder, "*.tmp"));
     }
 
+    [Fact]
+    public async Task A_fresh_cache_file_that_cannot_be_read_is_asked_for_again()
+    {
+        // Zeros after a power cut: the file is young, so the API was not asked and the data stayed empty for six hours.
+        var (folder, file) = CacheWith("\0\0\0\0", TimeSpan.FromMinutes(10));
+        var server = new Answers();
+
+        await new HearthpulseData(new HearthpulseApi(new HttpClient(server), "https://api.test/"), folder).LoadHeroesAsync();
+
+        Assert.Equal(1, server.Requests);
+        Assert.Contains("TB_BaconShop_HERO_01", File.ReadAllText(file), StringComparison.Ordinal);
+    }
+
+    private sealed class Answers : HttpMessageHandler
+    {
+        public int Requests { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Answer) });
+        }
+    }
+
     private static (string Folder, string File) CacheWith(string text, TimeSpan age)
     {
         var folder = Path.Combine(TestDataFolder.Path, "api-" + Guid.NewGuid().ToString("N"));

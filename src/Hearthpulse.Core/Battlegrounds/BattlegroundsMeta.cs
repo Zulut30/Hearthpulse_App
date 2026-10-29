@@ -58,6 +58,12 @@ public sealed class BattlegroundsMeta
 {
     public const string Attribution = Api.HearthpulseData.Attribution;
 
+    /// <summary>
+    /// How often both apps load the meta again: the stats pool rebuilds its totals every 6 hours and the API cache keeps
+    /// answers as long, so asking more often only spends the pool's free requests.
+    /// </summary>
+    public static readonly TimeSpan RefreshInterval = TimeSpan.FromHours(6);
+
     /// <summary>Attribution of stats read from the stats pool (<see cref="Pool.PoolClient"/>).</summary>
     public const string PoolAttribution = "Community stats: Hearthpulse players who share their games";
 

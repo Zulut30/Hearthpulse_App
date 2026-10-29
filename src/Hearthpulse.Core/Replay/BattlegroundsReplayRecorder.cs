@@ -351,11 +351,22 @@ public sealed class BattlegroundsReplayRecorder
 
     /// <summary>
     /// Our choice is kept open until we pick: the options can change meanwhile (a hero reroll is a CHANGE_ENTITY of the
-    /// option), so the <c>C</c> line is written at the pick with the cards offered then. A choice never picked is no step.
+    /// option), so the <c>C</c> line is written at the pick with the cards offered then. A choice the log never shows us
+    /// picking (the turn ran out) is written without a pick when the next choice comes, the combat starts or the game ends.
     /// </summary>
     internal void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
     {
+        WriteOpenChoice(game);
         _choice = _ended || options.Count == 0 ? null : new OpenChoice(choiceType, source, options.ToArray());
+    }
+
+    private void WriteOpenChoice(GameState game)
+    {
+        if (_choice is { } open && !_ended)
+        {
+            _choice = null;
+            WriteChoice(game, open);
+        }
     }
 
     internal void OnChosen(GameState game, Entity chosen)
@@ -409,6 +420,7 @@ public sealed class BattlegroundsReplayRecorder
 
     internal void OnGameEnded(GameState game)
     {
+        WriteOpenChoice(game);
         if (!Finished(game))
         {
             // Left mid-game: what was seen is kept as it is, an open combat without an end.
@@ -525,12 +537,15 @@ public sealed class BattlegroundsReplayRecorder
         }
         else if (tag == GameTag.PlayState && value is "WON" or "LOST" or "TIED" or "CONCEDED")
         {
-            Finish(game);
+            Finish(game, conceded: value == "CONCEDED");
         }
     }
 
     /// <summary>The game is over for the player: the open combat ends, nothing more is written but the place.</summary>
-    private void Finish(GameState game)
+    /// <param name="conceded">
+    /// The player conceded: a fight still playing with no hero attack yet has no known end and stays open (no result line).
+    /// </param>
+    private void Finish(GameState game, bool conceded = false)
     {
         if (_ended)
         {
@@ -538,7 +553,11 @@ public sealed class BattlegroundsReplayRecorder
         }
 
         EndStep(game);
-        EndCombat(game);
+        if (!(conceded && _combat && _fightResult is null && _heroAttack is null))
+        {
+            EndCombat(game);
+        }
+
         Flush();
         _ended = true;
     }
@@ -573,6 +592,7 @@ public sealed class BattlegroundsReplayRecorder
         }
 
         EndStep(game);
+        WriteOpenChoice(game);
         Marker(string.Create(CultureInfo.InvariantCulture, $"F {game.BattlegroundsTurn} {Seconds(game)}"));
         _combat = true;
         _combatSteps = 0;

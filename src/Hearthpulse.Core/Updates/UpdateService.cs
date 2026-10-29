@@ -101,6 +101,14 @@ public static class UpdateService
             : (OperatingSystem.IsMacOS() ? UpdateTarget.MacPackage : UpdateTarget.LinuxPackage);
 
     /// <summary>
+    /// False for a copy the update for its target would not fit: the Windows zip is the cross-platform preview, so only a
+    /// folder holding the preview (its Avalonia assembly) unpacks it; the Windows app run outside the folder its setup
+    /// registered (moved, copied) is only told about the release.
+    /// </summary>
+    internal static bool InstallsItself(UpdateTarget target, string appDirectory, Func<string, bool> exists) =>
+        target != UpdateTarget.WindowsPortable || exists(Path.Combine(appDirectory, "Avalonia.Base.dll"));
+
+    /// <summary>
     /// "deb" or "rpm" when the package manager installed this copy, "" for everything else (the tar.gz install, a copy
     /// run from its folder). Going by the distribution alone offered a .deb to everyone who had unpacked the tar.gz on
     /// Ubuntu, and opening it installed a second copy next to theirs.
@@ -191,21 +199,31 @@ public static class UpdateService
 
     /// <summary>
     /// The update loop both apps run in the background: 20 seconds after it starts, then every six hours, asks GitHub
-    /// for a newer release. One this copy must not install itself (<paramref name="notifyOnly"/>) goes to
+    /// for a newer release. One this copy must not install itself (<paramref name="notifyOnly"/>, or an update that would not
+    /// fit it, <see cref="InstallsItself"/>) goes to
     /// <paramref name="available"/>, one downloaded and verified to <paramref name="staged"/>; either ends the loop. A
     /// failed check, an unverifiable file or a failed download goes to <paramref name="failed"/> as the text to show
     /// (read when shown, so it follows the language) and is tried again later. Callbacks run on a pool thread.
     /// </summary>
-    public static async Task WatchAsync(HttpClient http, bool notifyOnly, Action<UpdateInfo> available, Action<UpdateInfo> staged, Action<Func<string>> failed)
+    public static Task WatchAsync(HttpClient http, bool notifyOnly, Action<UpdateInfo> available, Action<UpdateInfo> staged, Action<Func<string>> failed) =>
+        WatchAsync(http, notifyOnly, available, staged, failed, TimeSpan.FromSeconds(20), DetectTarget(), AppContext.BaseDirectory, File.Exists);
+
+    /// <summary>
+    /// <see cref="WatchAsync(HttpClient, bool, Action{UpdateInfo}, Action{UpdateInfo}, Action{Func{string}})"/> with the
+    /// first wait and this copy's target and folder passed in (tests). A copy the update would not fit
+    /// (<see cref="InstallsItself"/>) is only told about it, as with <paramref name="notifyOnly"/>.
+    /// </summary>
+    internal static async Task WatchAsync(HttpClient http, bool notifyOnly, Action<UpdateInfo> available, Action<UpdateInfo> staged, Action<Func<string>> failed,
+        TimeSpan firstWait, UpdateTarget target, string appDirectory, Func<string, bool> exists)
     {
-        await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
+        await Task.Delay(firstWait).ConfigureAwait(false);
         while (true)
         {
             try
             {
                 var check = await CheckForUpdateAsync(http).ConfigureAwait(false);
                 var info = check.Update;
-                if (info is not null && notifyOnly)
+                if (info is not null && (notifyOnly || !InstallsItself(target, appDirectory, exists)))
                 {
                     available(info);
                     return;
