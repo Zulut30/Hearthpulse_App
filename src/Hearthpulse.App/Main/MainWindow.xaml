@@ -314,8 +314,9 @@
                         <TextBlock Text="{Binding Busy}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,22,0">
-                        <!-- A downloaded update: one click installs now, otherwise it installs on the next close -->
-                        <Button Command="{Binding InstallUpdate}" VerticalAlignment="Center" Margin="0,0,8,0" Cursor="Hand" Focusable="False"
+                        <!-- A downloaded update: one click installs now, otherwise it installs on the next close (Tab reaches it too) -->
+                        <Button x:Name="InstallUpdateButton" Command="{Binding InstallUpdate}" VerticalAlignment="Center" Margin="0,0,8,0" Cursor="Hand"
+                                FocusVisualStyle="{StaticResource FocusRing}"
                                 WindowChrome.IsHitTestVisibleInChrome="True" Visibility="{Binding UpdateReady, Converter={StaticResource Vis}}"
                                 ToolTip="{Binding UpdateText}">
                             <Button.Template>

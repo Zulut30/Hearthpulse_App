@@ -117,6 +117,31 @@ public sealed class UxPolishContractTests
             LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view };
     }
 
+    /// <summary>
+    /// Tab moves through the settings sliders, the deck page's "+N / −N cards" chips and the update button, and the
+    /// keyboard focus ring shows where it is (WPF draws a FocusVisualStyle for keyboard focus only). Avalonia's Fluent
+    /// controls already draw theirs.
+    /// </summary>
+    [Fact]
+    public void Keyboard_focus_shows_on_sliders_diff_chips_and_the_update_button() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        var (window, _) = Open(model, "Settings", "Overlay");
+        var sliders = Logical<Slider>(Named<ScrollViewer>(window, "PageSettings")).ToList();
+        Assert.NotEmpty(sliders);
+        Assert.All(sliders, s => Assert.NotNull(s.FocusVisualStyle));
+
+        var update = Named<Button>(window, "InstallUpdateButton");
+        Assert.True(update.Focusable);
+        Assert.NotNull(update.FocusVisualStyle);
+        window.Close();
+
+        var deck = new Hearthpulse.App.Main.Decks.DeckDetailsView();
+        var diff = (Style)deck.Resources["DiffToggle"];
+        var ring = diff.Setters.OfType<Setter>().Single(x => x.Property == FrameworkElement.FocusVisualStyleProperty);
+        Assert.NotNull(ring.Value);
+    });
+
     // ---- harness ----
 
     /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>
