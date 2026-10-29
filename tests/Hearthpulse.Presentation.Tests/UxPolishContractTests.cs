@@ -307,6 +307,42 @@ public sealed class UxPolishContractTests
     private const string Done = "\U000F05E0";
     private const string Waiting = "\U000F0766";
 
+    /// <summary>
+    /// The overlay switched from the live bar or the tray: the Settings page's master switch, and with it the
+    /// "overlay is off" note, follows (AppSettings does not notify), as in Avalonia.
+    /// </summary>
+    [Fact]
+    public void Settings_follow_the_overlay_switched_from_the_live_bar_or_the_tray() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        var (window, root) = Open(model, "Settings", "Overlay");
+        var master = Named<CheckBox>(window, "OverlaySetting");
+        var note = Named<TextBlock>(window, "OverlayOffNote");
+        var saves = 0;
+        window.SettingsChanged += () => saves++;
+
+        // The live bar's switch: turned off and clicked.
+        var bar = Named<CheckBox>(window, "OverlaySwitch");
+        bar.IsChecked = false;
+        bar.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Settle(root);
+        Assert.False(model.Settings.OverlayEnabled);
+        Assert.False(master.IsChecked);
+        Assert.Equal(Visibility.Visible, note.Visibility);
+        // Synced, not changed again: the click saved once.
+        Assert.Equal(1, saves);
+
+        // The tray: the host sets the setting and asks the window to show it.
+        model.Settings.OverlayEnabled = true;
+        window.SyncOverlaySwitch();
+        Settle(root);
+        Assert.True(master.IsChecked);
+        Assert.True(bar.IsChecked);
+        Assert.Equal(Visibility.Collapsed, note.Visibility);
+        Assert.Equal(1, saves);
+        window.Close();
+    });
+
     // ---- harness ----
 
     /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>

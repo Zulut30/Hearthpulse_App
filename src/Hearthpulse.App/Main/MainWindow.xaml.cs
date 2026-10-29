@@ -76,7 +76,24 @@ public partial class MainWindow : Window
         UpdateSettingsTab(radio);
     }
 
-    public void SyncOverlaySwitch() => OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
+    /// <summary>
+    /// Both overlay switches show the setting after it changed elsewhere (the tray, the live bar): the live bar's, and the
+    /// Settings page's, which binds to AppSettings (it does not notify) and drives the "overlay is off" note.
+    /// </summary>
+    public void SyncOverlaySwitch()
+    {
+        OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
+        var syncing = _syncingSettings;
+        _syncingSettings = true;
+        try
+        {
+            BindingOperations.GetBindingExpression(OverlaySetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+        }
+        finally
+        {
+            _syncingSettings = syncing;
+        }
+    }
 
     /// <summary>The open page, as <see cref="ShowPage"/> takes it.</summary>
     public string CurrentPage =>
@@ -385,6 +402,7 @@ public partial class MainWindow : Window
     private void OnOverlaySwitch(object sender, RoutedEventArgs e)
     {
         _viewModel.Settings.OverlayEnabled = OverlaySwitch.IsChecked == true;
+        SyncOverlaySwitch();
         SettingsChanged?.Invoke();
     }
 
