@@ -47,7 +47,7 @@ public sealed partial class LocBindingTests
         // calibration has its cross-platform wording here.
         string[] cards =
         [
-            "Settings.Note.Language", "Settings.Note.Theme", "Settings.Note.App", "Settings.Note.Overlay", "Settings.Note.Layout",
+            "Settings.Note.Language", "Settings.Note.Theme", "Settings.Note.App", "Settings.Note.Overlay", "Settings.Note.Layout", "Overlay.Move.SettingsWindows",
             "Settings.Leaderboard.CaptionCrossPlatform", "Settings.Note.Tracker", "Settings.Note.Counters", "Settings.Note.Account",
             "Settings.Note.Data", "Settings.Note.Sources",
         ];

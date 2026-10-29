@@ -21,6 +21,29 @@ public static class PanelSnap
     /// <summary>Gap a panel snapped beside another keeps from it, as between the default spots.</summary>
     public const double Spacing = 8;
 
+    /// <summary>The smallest and largest size the player can give a panel (wheel, buttons, corner).</summary>
+    public const double MinScale = 0.6;
+
+    public const double MaxScale = 1.6;
+
+    /// <summary>
+    /// The size of a panel whose bottom-right corner was dragged by (<paramref name="dx"/>, <paramref name="dy"/>) from
+    /// where it was at <paramref name="scale"/>, <paramref name="width"/> x <paramref name="height"/> on screen. The drag
+    /// is taken along the panel's diagonal, so the corner follows the pointer while the top-left corner stays; in 5 %
+    /// steps like the wheel, between <see cref="MinScale"/> and <see cref="MaxScale"/>.
+    /// </summary>
+    public static double CornerScale(double scale, double width, double height, double dx, double dy)
+    {
+        var diagonal = (width * width) + (height * height);
+        if (diagonal <= 0)
+        {
+            return scale;
+        }
+
+        var grown = scale * (1 + (((dx * width) + (dy * height)) / diagonal));
+        return Math.Clamp(Math.Round(grown * 20, MidpointRounding.AwayFromZero) / 20, MinScale, MaxScale);
+    }
+
     /// <summary>
     /// The start of a panel of <paramref name="size"/> dragged to <paramref name="start"/> along a surface of
     /// <paramref name="surface"/>: moved onto the edge gutter or the centre line when one is within

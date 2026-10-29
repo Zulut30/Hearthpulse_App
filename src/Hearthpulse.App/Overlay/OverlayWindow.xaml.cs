@@ -66,11 +66,13 @@ public partial class OverlayWindow : Window
         _settings = settings;
         _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = ActiveTick };
         _timer.Tick += (_, _) => Tick();
+        // Hides the end-of-game toast and the one-time move tip a few seconds after either shows.
         _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(9) };
         _toastTimer.Tick += (_, _) =>
         {
             _toastTimer.Stop();
             ViewModel.ShowToast = false;
+            ViewModel.ShowMoveTip = false;
         };
         viewModel.ResetLayoutRequested += ResetLayout;
         Loaded += (_, _) =>
@@ -138,7 +140,8 @@ public partial class OverlayWindow : Window
 
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(OverlayViewModel.ShowToast) && ViewModel.ShowToast)
+        if ((e.PropertyName == nameof(OverlayViewModel.ShowToast) && ViewModel.ShowToast)
+            || (e.PropertyName == nameof(OverlayViewModel.ShowMoveTip) && ViewModel.ShowMoveTip))
         {
             _toastTimer.Stop();
             _toastTimer.Start();
@@ -189,6 +192,7 @@ public partial class OverlayWindow : Window
             Root.Visibility = Visibility.Visible;
             _shown = true;
             _lastRect = default; // reposition even if the game window did not move
+            OfferMoveTip();
         }
 
         if (!r.Equals(_lastRect))
@@ -230,6 +234,18 @@ public partial class OverlayWindow : Window
         UpdateClickThrough(cursor, r);
         UpdateLeaderboardHover(cursor, r);
         UpdateGuides(r);
+    }
+
+    /// <summary>
+    /// The overlay just appeared over the game: the first time ever, a tip at the top centre says that Ctrl over a
+    /// panel moves and resizes it, and the settings are saved with the tip marked shown.
+    /// </summary>
+    private void OfferMoveTip()
+    {
+        if (ViewModel.OfferMoveTip(_settings))
+        {
+            LayoutChanged?.Invoke();
+        }
     }
 
     private string? _visibilityNote;

@@ -1039,6 +1039,7 @@
                                     <StackPanel DataContext="{Binding Settings}">
                                         <c:Ornament Text="{i:Loc Settings.Layout.Title}" Icon="&#xF01BE;" Size="13" Margin="0,0,0,14" />
                                         <TextBlock Text="{i:Loc Settings.Note.Layout}" Style="{StaticResource CardNote}" />
+                                        <TextBlock x:Name="MoveHintLine" Text="{i:Loc Overlay.Move.Settings}" Style="{StaticResource CardNote}" />
                                         <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24"
                                                 ToolTip="{i:Loc Settings.Layout.Caption}" />
                                         <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />

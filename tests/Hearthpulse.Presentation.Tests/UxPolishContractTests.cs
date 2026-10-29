@@ -57,7 +57,7 @@ public sealed class UxPolishContractTests
     /// </summary>
     private static readonly string[] CardNotes =
     [
-        "Settings.Note.Language", "Settings.Note.Theme", "Settings.Note.App", "Settings.Note.Overlay", "Settings.Note.Layout",
+        "Settings.Note.Language", "Settings.Note.Theme", "Settings.Note.App", "Settings.Note.Overlay", "Settings.Note.Layout", "Overlay.Move.Settings",
         "Settings.Leaderboard.Caption", "Settings.Note.Tracker", "Settings.Note.Counters", "Settings.Note.Account", "Settings.Note.Data",
         "Settings.Note.Sources",
     ];
