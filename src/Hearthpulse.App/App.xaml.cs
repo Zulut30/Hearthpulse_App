@@ -52,10 +52,7 @@ public partial class App : Application
     /// <summary>Where the last window was (page, tabs, bounds), for the next one.</summary>
     private MainPlace? _mainPlace;
 
-    /// <summary>How long the window stays hidden in the tray before it is let go; a quick hide and show stays instant.</summary>
-    private static readonly TimeSpan MainReleaseDelay = TimeSpan.FromSeconds(60);
-
-    private readonly DispatcherTimer _releaseMain = new() { Interval = MainReleaseDelay };
+    private readonly DispatcherTimer _releaseMain = new() { Interval = MemoryTrimmer.HiddenWindowRelease };
     private MainViewModel _mainViewModel = null!;
     private OverlayWindow _overlay = null!;
     private OverlayViewModel _overlayViewModel = null!;

@@ -21,9 +21,6 @@ internal sealed class DesktopApp : HearthpulseApp
     /// </summary>
     private static readonly bool SmokeTest = Environment.GetCommandLineArgs().Contains("--smoke-test");
 
-    /// <summary>How long the dashboard stays hidden in the tray before it is let go; a quick hide and show stays instant.</summary>
-    private static readonly TimeSpan MainReleaseDelay = TimeSpan.FromSeconds(60);
-
     private SingleInstance? _instance;
     private AppHost? _host;
 
@@ -99,7 +96,7 @@ internal sealed class DesktopApp : HearthpulseApp
 
         var settings = AppSettings.Load();
         _host = new AppHost(settings) { ApplyAutostart = Autostart.Apply };
-        _releaseMain = new DispatcherTimer { Interval = MainReleaseDelay };
+        _releaseMain = new DispatcherTimer { Interval = MemoryTrimmer.HiddenWindowRelease };
         _releaseMain.Tick += (_, _) => ReleaseMain();
         // Started minimized, the dashboard is built the first time it is opened from the tray. A notification with no
         // dashboard goes to the log, as it would not show in a hidden one either.

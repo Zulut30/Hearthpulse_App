@@ -17,6 +17,12 @@ public sealed class MemoryTrimmer
     /// <summary>The shortest gap between two collections.</summary>
     public static readonly TimeSpan MinInterval = TimeSpan.FromMinutes(2);
 
+    /// <summary>
+    /// How long the hosts keep the main window hidden in the tray before they let it go with its pages: a quick hide and
+    /// show stays instant, a window put away for a game is given back within a minute.
+    /// </summary>
+    public static readonly TimeSpan HiddenWindowRelease = TimeSpan.FromSeconds(60);
+
     private readonly Action _collect;
     private readonly object _gate = new();
     private DateTime _activityAt = DateTime.MinValue;
