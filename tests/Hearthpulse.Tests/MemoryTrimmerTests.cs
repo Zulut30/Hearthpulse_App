@@ -213,6 +213,24 @@ public sealed class MemoryTrimmerTests : IDisposable
         Assert.Equal(1, _collections);
     }
 
+    /// <summary>
+    /// The collection (after a window is let go, also the wait for the finalizers) runs outside the session's lock: the
+    /// UI's calls into the session (settings, metas) and the log pipeline do not wait on it.
+    /// </summary>
+    [Fact]
+    public void The_collection_runs_outside_the_session_lock()
+    {
+        bool? lockFree = null;
+        _session.Trimmer = new MemoryTrimmer(() =>
+        {
+            var other = Task.Run(() => _session.SetCompMode(CompMode.Manual, null));
+            lockFree = other.Wait(TimeSpan.FromSeconds(5));
+        });
+        _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
+        TickAt(MemoryTrimmer.MinInterval);
+        Assert.True(lockFree);
+    }
+
     [Fact]
     public void The_watcher_slows_down_only_while_the_game_is_closed_and_its_log_is_quiet()
     {

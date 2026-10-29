@@ -465,13 +465,21 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
     public void OnTick()
     {
+        DateTime now;
+        bool gameInProgress;
         lock (_pipelineGate)
         {
-            OnTickCore();
+            (now, gameInProgress) = OnTickCore();
         }
+
+        // Last and outside the lock: a collection never delays this tick's view, and the pipeline and the UI's calls into
+        // the session do not wait on it (after a window is let go it also waits for the finalizers). A game in progress
+        // (not abandoned) puts it off.
+        Trimmer.Tick(now, busy: gameInProgress);
     }
 
-    private void OnTickCore()
+    /// <returns>The tick's time and whether a game is in progress, for the memory trim after it.</returns>
+    private (DateTime Now, bool GameInProgress) OnTickCore()
     {
         var now = Clock();
         if (_parser is { HasPending: true } parser && now - _lastPowerLinesAt >= QuietFlush)
@@ -554,8 +562,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _slowestPublishMs = 0;
         }
 
-        // Last, so a collection never delays this tick's view; a game in progress (not abandoned) puts it off.
-        Trimmer.Tick(now, busy: _parser?.Game is { IsComplete: false } && !_recordedAbandoned);
+        return (now, _parser?.Game is { IsComplete: false } && !_recordedAbandoned);
     }
 
     // ---- IPowerListener -----------------------------------------------------------------------
