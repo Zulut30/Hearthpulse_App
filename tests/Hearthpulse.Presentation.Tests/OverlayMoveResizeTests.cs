@@ -90,8 +90,15 @@ public sealed class OverlayMoveResizeTests
 
         // A shown panel during a game: no marker until Ctrl arms it.
         Assert.Equal(Visibility.Collapsed, Part(deck, "PART_Grip").Visibility);
+        var width = deck.ActualWidth;
+        var spot = deck.TranslatePoint(default, (FrameworkElement)deck.Parent);
         deck.IsDragArmed = true;
         root.UpdateLayout();
+        // Armed, the panel stays where and as wide as it was: the tag with the hint and buttons, wider than the deck,
+        // reaches past it without widening it (it widened the deck by about 190 units and moved it left).
+        Assert.Equal(width, deck.ActualWidth, 1);
+        Assert.Equal(spot, deck.TranslatePoint(default, (FrameworkElement)deck.Parent));
+        Assert.True(deck.ArmedArea().Width > width + 50, deck.ArmedArea().ToString());
         Assert.Equal(Visibility.Visible, Part(deck, "PART_Grip").Visibility);
         Assert.Equal(Visibility.Visible, Part(deck, "Frame").Visibility);
         var hint = (TextBlock)Part(deck, "ArmedHint");

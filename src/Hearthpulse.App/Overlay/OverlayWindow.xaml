@@ -740,32 +740,35 @@
                                        StrokeThickness="1.5" StrokeDashArray="4 3" IsHitTestVisible="False" />
                             <!-- Name tag and, under the mouse, the panel's buttons. The strip reaches down to the panel so the mouse
                                  can travel from the panel to the buttons without leaving it. -->
-                            <Grid x:Name="PART_Chrome" Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-26,0,0" Height="26">
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
-                                    <Border x:Name="Tag" Background="{StaticResource Accent}" CornerRadius="5" Padding="7,2" Height="19" IsHitTestVisible="False">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
-                                            <!-- The size and opacity the player gave it, so two panels can be given the same -->
-                                            <TextBlock x:Name="ScaleTag" Text="{TemplateBinding ScaleText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0" />
-                                            <TextBlock x:Name="OpacityTag" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0">
-                                                <Run Text="&#xF05CC;" FontFamily="{StaticResource IconFont}" /><Run Text="{Binding OpacityText, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}" />
-                                            </TextBlock>
-                                            <!-- Ctrl held during a game: what the mouse does now -->
-                                            <TextBlock x:Name="ArmedHint" Text="{i:Loc Overlay.Move.Hint}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="8,0,0,0"
-                                                       Visibility="Collapsed" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Border x:Name="Tools" Visibility="Collapsed" Background="{StaticResource Accent}" CornerRadius="5" Padding="2,0" Height="19" Margin="4,0,0,0">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button x:Name="PART_Smaller" Style="{StaticResource TagButton}" Content="&#xF0374;" ToolTip="{i:Loc Overlay.Layout.Smaller}" />
-                                            <Button x:Name="PART_Larger" Style="{StaticResource TagButton}" Content="&#xF0415;" ToolTip="{i:Loc Overlay.Layout.Larger}" />
-                                            <Button x:Name="PART_Fade" Style="{StaticResource TagButton}" Content="&#xF05CC;" ToolTip="{i:Loc Overlay.Layout.Fade}" />
-                                            <Button x:Name="PART_Compact" Style="{StaticResource TagButton}" Content="&#xF0451;" ToolTip="{i:Loc Overlay.Layout.Compact}" Visibility="Collapsed" />
-                                            <Button x:Name="PART_Reset" Style="{StaticResource TagButton}" Content="&#xF099B;" ToolTip="{i:Loc Overlay.Layout.ResetPanel}" />
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
+                            <!-- The strip keeps the tag out of the panel's size: wider than the panel, it widened and moved it when armed -->
+                            <o:PanelTagStrip>
+                                <Grid x:Name="PART_Chrome" Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-26,0,0" Height="26">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                                        <Border x:Name="Tag" Background="{StaticResource Accent}" CornerRadius="5" Padding="7,2" Height="19" IsHitTestVisible="False">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                                                <!-- The size and opacity the player gave it, so two panels can be given the same -->
+                                                <TextBlock x:Name="ScaleTag" Text="{TemplateBinding ScaleText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0" />
+                                                <TextBlock x:Name="OpacityTag" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0">
+                                                    <Run Text="&#xF05CC;" FontFamily="{StaticResource IconFont}" /><Run Text="{Binding OpacityText, RelativeSource={RelativeSource TemplatedParent}, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <!-- Ctrl held during a game: what the mouse does now -->
+                                                <TextBlock x:Name="ArmedHint" Text="{i:Loc Overlay.Move.Hint}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="8,0,0,0"
+                                                           Visibility="Collapsed" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="Tools" Visibility="Collapsed" Background="{StaticResource Accent}" CornerRadius="5" Padding="2,0" Height="19" Margin="4,0,0,0">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button x:Name="PART_Smaller" Style="{StaticResource TagButton}" Content="&#xF0374;" ToolTip="{i:Loc Overlay.Layout.Smaller}" />
+                                                <Button x:Name="PART_Larger" Style="{StaticResource TagButton}" Content="&#xF0415;" ToolTip="{i:Loc Overlay.Layout.Larger}" />
+                                                <Button x:Name="PART_Fade" Style="{StaticResource TagButton}" Content="&#xF05CC;" ToolTip="{i:Loc Overlay.Layout.Fade}" />
+                                                <Button x:Name="PART_Compact" Style="{StaticResource TagButton}" Content="&#xF0451;" ToolTip="{i:Loc Overlay.Layout.Compact}" Visibility="Collapsed" />
+                                                <Button x:Name="PART_Reset" Style="{StaticResource TagButton}" Content="&#xF099B;" ToolTip="{i:Loc Overlay.Layout.ResetPanel}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </o:PanelTagStrip>
                             <!-- Corner marker: dragged, it resizes the panel like the wheel (layout mode, or Ctrl held during a game).
                                  MovablePanel undoes the panel's scale on it (size and margin), so it is one size at every scale. -->
                             <Border x:Name="PART_Grip" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"

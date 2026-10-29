@@ -51,8 +51,13 @@ public sealed partial class LocBindingTests
             Assert.False(view.IsInteractiveAt(Inside()));
             Assert.False(view.UpdateDragArm(new Point(5, 5), controlDown: true));
 
+            var bounds = timer.Bounds;
             Arm();
             Assert.True(timer.IsDragArmed);
+            // Armed, the panel stays where and as wide as it was: the tag with the hint and buttons, wider than the
+            // turn timer, reaches past it without widening it.
+            Assert.Equal(bounds, timer.Bounds);
+            Assert.True(timer.ArmedArea().Width > bounds.Width + 50, timer.ArmedArea().ToString());
             Assert.True(view.IsInteractiveAt(Inside()));
             Assert.True(Part<Rectangle>(timer, "Frame").IsVisible);
             var hint = Part<TextBlock>(timer, "ArmedHint");

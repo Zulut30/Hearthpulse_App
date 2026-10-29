@@ -689,3 +689,34 @@ public sealed class MovablePanel : ContentControl
         e.Handled = true;
     }
 }
+
+/// <summary>
+/// Holds a movable panel's name tag and buttons (<c>PART_Chrome</c>) without taking part in the panel's size. With the
+/// move hint and the buttons the tag is wider than most panels: as a plain template child it widened the panel when
+/// Ctrl armed it, so the deck jumped about 190 units left with its content, and a drag saved the wider panel's spot.
+/// Each child gets the strip's width, or its own when wider, and places itself in it by its alignment.
+/// </summary>
+public sealed class PanelTagStrip : Panel
+{
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var height = 0.0;
+        foreach (UIElement child in InternalChildren)
+        {
+            child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+            height = Math.Max(height, child.DesiredSize.Height);
+        }
+
+        return new Size(0, height);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        foreach (UIElement child in InternalChildren)
+        {
+            child.Arrange(new Rect(0, 0, Math.Max(finalSize.Width, child.DesiredSize.Width), Math.Max(finalSize.Height, child.DesiredSize.Height)));
+        }
+
+        return finalSize;
+    }
+}
