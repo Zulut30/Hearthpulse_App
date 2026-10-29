@@ -2,6 +2,7 @@ using Hearthpulse.Core;
 using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
 using Hearthpulse.UI;
+using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.Desktop;
 
@@ -13,7 +14,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        RestoreBounds = new WindowRestoreBounds(this);
     }
+
+    /// <summary>The normal bounds and "maximized", for a dashboard rebuilt after the tray.</summary>
+    public WindowRestoreBounds RestoreBounds { get; }
 
     public MainWindow(AppHost host) : this()
     {
@@ -27,6 +32,20 @@ public partial class MainWindow : Window
     /// <summary>When false, closing only hides the window (the app keeps running in the tray).</summary>
     public bool AllowClose { get; set; }
 
+    /// <summary>Raised when closing only hid the window in the tray.</summary>
+    public event Action? HiddenToTray;
+
+    /// <summary>
+    /// Closes for good and lets go of the dashboard's view model, which lives on with the app: the view stops listening
+    /// to it, so nothing keeps this window and its pages.
+    /// </summary>
+    public void CloseForReal()
+    {
+        AllowClose = true;
+        Close();
+        View.DataContext = null;
+    }
+
     public void Notify(string title, string text)
     {
         _notifications ??= new WindowNotificationManager(this) { Position = NotificationPosition.BottomRight, MaxItems = 3 };
@@ -39,6 +58,7 @@ public partial class MainWindow : Window
         {
             e.Cancel = true;
             Hide();
+            HiddenToTray?.Invoke();
         }
 
         base.OnClosing(e);

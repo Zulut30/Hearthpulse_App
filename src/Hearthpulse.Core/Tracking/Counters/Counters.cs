@@ -328,6 +328,8 @@ public static class Counters
         var hero = opponent ? game.OpponentHero : game.LocalHero;
         var allDied = game.Players.Keys.Sum(id => tracker.For(id).Died.Count);
         var context = new CounterContext(game, playerId, player, tracker, tracker.For(playerId), cards, cards.Get(hero?.CardId)?.CardClass ?? string.Empty, allDied);
+        var views = tracker.Views;
+        views.Use(cards);
         // Built for both players on every overlay update (up to 10 a second): plain loops, and shared empty lists for
         // the many counters with nothing to list. LINQ here allocated about 200 KB per update.
         foreach (var def in Defs)
@@ -339,10 +341,18 @@ public static class Counters
                 continue;
             }
 
+            // Most counters read the same as on the last update: that view again, nothing built (these views and their
+            // card lists were about half of what an update allocated).
+            if (views.Same(opponent, def, value, related, seen) is { } same)
+            {
+                result.Add(same);
+                continue;
+            }
+
             var relatedCards = RelatedCards(cards, related, seen);
             var icon = relatedCards.Count > 0 ? relatedCards[0].CardId : null;
             var counted = Tally(cards, value.Counted);
-            result.Add(new CounterView(def.Id, def.LocalTitle, value.Value, value.Progress, opponent,
+            var view = new CounterView(def.Id, def.LocalTitle, value.Value, value.Progress, opponent,
                 icon ?? (counted.Count > 0 ? counted[0].CardId : related.Length > 0 ? related[0] : null), def.LocalDescription, value.Details ?? [],
                 icon is not null || value.Active)
             {
@@ -350,7 +360,9 @@ public static class Counters
                 RelatedCards = relatedCards,
                 Parts = value.Parts is { Count: > 0 } parts ? parts.Select(p => new CounterCard(p.CardId, cards.NameOf(p.CardId), 0, p.Done)).ToList() : [],
                 Goal = value.Goal,
-            });
+            };
+            views.Keep(opponent, def.Id, value, view);
+            result.Add(view);
         }
 
         foreach (var quest in game.Entities.Values.Where(e => e.Controller == playerId && e.GetInt("QUEST_PROGRESS_TOTAL") > 0 && e.Zone is "SECRET" or "PLAY"))
@@ -440,15 +452,20 @@ public static class Counters
         return -1;
     }
 
+    /// <param name="counted">Copied: a tracker's list goes on growing after this update.</param>
     private static CounterValue Num(int value, IReadOnlyList<string>? details = null, IEnumerable<string>? counted = null) =>
-        new(value.ToString(CultureInfo.InvariantCulture), Details: details, Active: false, Counted: counted?.ToList());
+        new(Number(value), Details: details, Active: false, Counted: counted?.ToList());
 
     /// <summary>A count of cards that are also what the tooltip lists.</summary>
-    private static CounterValue Ids(IEnumerable<string> cardIds)
-    {
-        var ids = cardIds.ToList();
-        return Num(ids.Count, counted: ids);
-    }
+    private static CounterValue Ids(IEnumerable<string> cardIds) => Ids(cardIds.ToList());
+
+    /// <summary>A count of cards that are also what the tooltip lists, from a list made for this update (kept, not copied).</summary>
+    private static CounterValue Ids(List<string> cardIds) => new(Number(cardIds.Count), Counted: cardIds);
+
+    private static readonly string[] SmallNumbers = Enumerable.Range(0, 100).Select(n => n.ToString(CultureInfo.InvariantCulture)).ToArray();
+
+    /// <summary>A count as text; the small ones every update shows are made once.</summary>
+    private static string Number(int value) => (uint)value < SmallNumbers.Length ? SmallNumbers[value] : value.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>The cards the player played that match, counted and listed.</summary>
     private static CounterValue PlayedNum(CounterContext c, Func<PlayedCardInfo, bool> match) => Ids(c.PlayedIds(match));
@@ -495,7 +512,7 @@ public static class Counters
 
     /// <param name="Title">English title; <see cref="LocalTitle"/> is what the player reads.</param>
     /// <param name="Description">English description; <see cref="LocalDescription"/> is what the player reads.</param>
-    private sealed record CounterDef(string Id, string Title, string Description, Func<CounterContext, CounterValue?> Compute)
+    internal sealed record CounterDef(string Id, string Title, string Description, Func<CounterContext, CounterValue?> Compute)
     {
         // Keys made once: Build reads them for every counter on every overlay update.
         private readonly string _titleKey = $"Core.Counter.{Id}.Title";
@@ -510,10 +527,10 @@ public static class Counters
 
     /// <param name="Counted">Card ids of what was counted, one per count (the tooltip groups them).</param>
     /// <param name="Parts">The parts of the goal and whether each is done.</param>
-    private sealed record CounterValue(string Value, double? Progress = null, IReadOnlyList<string>? Details = null, bool Active = false,
+    internal sealed record CounterValue(string Value, double? Progress = null, IReadOnlyList<string>? Details = null, bool Active = false,
         IReadOnlyList<string>? Counted = null, IReadOnlyList<(string CardId, bool Done)>? Parts = null, int? Goal = null);
 
-    private sealed record CounterContext(GameState Game, int PlayerId, Entity? Player, CounterTracker Tracker, CounterTracker.PlayerLog Log, CardDb Cards,
+    internal sealed record CounterContext(GameState Game, int PlayerId, Entity? Player, CounterTracker Tracker, CounterTracker.PlayerLog Log, CardDb Cards,
         string PlayerClass, int AllDied)
     {
         public int Tag(string tag) => Player?.GetInt(tag) ?? 0;
@@ -559,5 +576,114 @@ public static class Counters
 
         /// <summary>Turns this player has started, the current one included.</summary>
         public int OwnTurn => Game.Turn <= 0 ? 0 : Tag("FIRST_PLAYER") == 1 ? (Game.Turn + 1) / 2 : Game.Turn / 2;
+    }
+    /// <summary>
+    /// The counters of the last update, by side and id, with the value each was built from. A counter whose value,
+    /// title, description and related cards read the same is handed out again: the view is immutable, and every list in
+    /// a <see cref="CounterValue"/> is made for its update (a tracker's list is copied), so equal content means an equal view.
+    /// </summary>
+    internal sealed class CounterViews
+    {
+        private readonly Dictionary<(bool Opponent, string Id), (CounterValue Value, CounterView View)> _last = [];
+        private CardDb? _cards;
+
+        /// <summary>Off: every counter is built (tests compare both ways).</summary>
+        public bool Reuse { get; set; } = true;
+
+        /// <summary>Card names come from <paramref name="cards"/>: another card set (a language switch) builds everything again.</summary>
+        public void Use(CardDb cards)
+        {
+            if (!ReferenceEquals(cards, _cards))
+            {
+                _last.Clear();
+                _cards = cards;
+            }
+        }
+
+        public CounterView? Same(bool opponent, CounterDef def, CounterValue value, string[] related, Dictionary<string, int> seen) =>
+            Reuse && _last.TryGetValue((opponent, def.Id), out var last)
+                  && last.View.Title == def.LocalTitle
+                  && last.View.Description == def.LocalDescription
+                  && SameValue(last.Value, value)
+                  && SameRelated(last.View.RelatedCards, related, seen)
+                ? last.View
+                : null;
+
+        public void Keep(bool opponent, string id, CounterValue value, CounterView view)
+        {
+            if (Reuse)
+            {
+                _last[(opponent, id)] = (value, view);
+            }
+        }
+
+        private static bool SameValue(CounterValue a, CounterValue b) =>
+            a.Value == b.Value && a.Progress == b.Progress && a.Active == b.Active && a.Goal == b.Goal
+            && SameList(a.Details, b.Details) && SameList(a.Counted, b.Counted) && SameParts(a.Parts, b.Parts);
+
+        // Null and empty build the same view.
+        private static bool SameList(IReadOnlyList<string>? a, IReadOnlyList<string>? b)
+        {
+            if (ReferenceEquals(a, b))
+            {
+                return true;
+            }
+
+            if ((a?.Count ?? 0) != (b?.Count ?? 0))
+            {
+                return false;
+            }
+
+            for (var i = 0; i < (a?.Count ?? 0); i++)
+            {
+                if (!string.Equals(a![i], b![i], StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool SameParts(IReadOnlyList<(string CardId, bool Done)>? a, IReadOnlyList<(string CardId, bool Done)>? b)
+        {
+            if ((a?.Count ?? 0) != (b?.Count ?? 0))
+            {
+                return false;
+            }
+
+            for (var i = 0; i < (a?.Count ?? 0); i++)
+            {
+                if (a![i].Done != b![i].Done || !string.Equals(a[i].CardId, b[i].CardId, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>Whether <see cref="RelatedCards"/> would list what <paramref name="built"/> lists, without building it.</summary>
+        private static bool SameRelated(IReadOnlyList<CounterCard> built, string[] related, Dictionary<string, int> seen)
+        {
+            var at = 0;
+            for (var i = 0; i < related.Length; i++)
+            {
+                var id = related[i];
+                if (!seen.TryGetValue(id, out var copies) || Array.IndexOf(related, id, 0, i) >= 0)
+                {
+                    continue;
+                }
+
+                if (at >= built.Count || built[at].CardId != id || built[at].Count != copies)
+                {
+                    return false;
+                }
+
+                at++;
+            }
+
+            return at == built.Count;
+        }
     }
 }

@@ -160,6 +160,7 @@ public partial class MainWindow : Window
     {
         _viewModel.PropertyChanged -= OnViewModelChanged;
         _viewModel.HistoryRequested -= ShowHistoryGame;
+        _viewModel.PanelToggled -= OnPanelToggled;
         base.OnClosed(e);
     }
 
@@ -352,6 +353,58 @@ public partial class MainWindow : Window
         _ => TabMyDecks,
     }).IsChecked = true;
 
+    /// <summary>Where this window is: page, tabs and bounds.</summary>
+    public MainPlace Place => new(
+        CurrentPage,
+        BattlegroundsTab,
+        ConstructedTab,
+        WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds,
+        WindowState == WindowState.Maximized);
+
+    /// <summary>
+    /// Opens on the page, tabs and bounds of <paramref name="place"/>; before the window is shown (maximize after). The
+    /// Settings tab, an open deck and an open match come back by themselves (settings and view model).
+    /// </summary>
+    public void MoveTo(MainPlace place)
+    {
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Left = place.Bounds.Left;
+        Top = place.Bounds.Top;
+        Width = place.Bounds.Width;
+        Height = place.Bounds.Height;
+        ShowPage(place.Page);
+        BattlegroundsTab = place.BattlegroundsTab;
+        ConstructedTab = place.ConstructedTab;
+    }
+
+    /// <summary>The open Battlegrounds tab ("Heroes", "Comps", "Trinkets", "Cards", "Mine"), kept when the window is rebuilt.</summary>
+    public string BattlegroundsTab
+    {
+        get => TabComps.IsChecked == true ? "Comps"
+            : TabTrinkets.IsChecked == true ? "Trinkets"
+            : TabCards.IsChecked == true ? "Cards"
+            : TabMine.IsChecked == true ? "Mine"
+            : "Heroes";
+        set => (value switch
+        {
+            "Comps" => TabComps,
+            "Trinkets" => TabTrinkets,
+            "Cards" => TabCards,
+            "Mine" => TabMine,
+            _ => TabHeroes,
+        }).IsChecked = true;
+    }
+
+    /// <summary>The open Constructed tab ("Decks", "Tiers", "Top", "Matchups"), kept when the window is rebuilt.</summary>
+    public string ConstructedTab
+    {
+        get => TabMetaTiers.IsChecked == true ? "Tiers"
+            : TabMetaDecks.IsChecked == true ? "Top"
+            : TabMetaMatchups.IsChecked == true ? "Matchups"
+            : "Decks";
+        set => ShowConstructedTab(value);
+    }
+
     /// <summary>
     /// Opens a Battlegrounds tier list tab ("Heroes", "Comps", "Trinkets", "Cards") and scrolls the tabs to the top of the
     /// page (used by the UI render check).
@@ -526,3 +579,7 @@ public partial class MainWindow : Window
 
     private void OnClose(object sender, RoutedEventArgs e) => Close();
 }
+
+/// <summary>Where a main window is, so a rebuilt one (theme change, back from the tray) opens the same.</summary>
+/// <param name="Bounds">The normal (not maximized) bounds.</param>
+public sealed record MainPlace(string Page, string BattlegroundsTab, string ConstructedTab, Rect Bounds, bool Maximized);

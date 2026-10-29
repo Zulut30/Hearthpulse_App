@@ -145,11 +145,36 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     /// <summary>Collects the garbage of a catch-up or a game once the log is quiet; tests pass one with a counter.</summary>
     internal MemoryTrimmer Trimmer { get; set; } = new();
 
+    /// <summary>Off: every counter is built on every update instead of reusing the unchanged ones (tests compare both).</summary>
+    internal bool ReuseCounterViews
+    {
+        get => _constructed.Counters.Views.Reuse;
+        set => _constructed.Counters.Views.Reuse = value;
+    }
+
     /// <summary>
     /// The host finished something that left garbage behind (start-up, a meta load): the memory is handed back once the
     /// app is quiet and no game is being played.
     /// </summary>
     public void RequestMemoryTrim() => Trimmer.NoteActivity(Clock());
+
+    /// <summary>
+    /// The player's own action left garbage (a meta load for a page or a filter, minimizing, closing or letting go of the
+    /// main window): handed back once the window is minimized, closed or let go, not while the player looks at it (the
+    /// collection pauses the app for 30–110 ms).
+    /// </summary>
+    /// <param name="windowLetGo">A main window was let go or closed: the collection runs the finalizers that free it.</param>
+    public void RequestMemoryTrimWhenWindowAway(bool windowLetGo = false) => Trimmer.NoteActivityWhenWindowAway(Clock(), windowLetGo);
+
+    /// <summary>
+    /// The host's main window is on screen, or hidden in the tray and not let go yet; false when minimized, let go or
+    /// not built (see <see cref="MemoryTrimmer.WindowInUse"/>).
+    /// </summary>
+    public bool MainWindowInUse
+    {
+        get => Trimmer.WindowInUse;
+        set => Trimmer.WindowInUse = value;
+    }
 
     public event Action<LiveSnapshot>? SnapshotChanged;
 
@@ -440,13 +465,21 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
     public void OnTick()
     {
+        DateTime now;
+        bool gameInProgress;
         lock (_pipelineGate)
         {
-            OnTickCore();
+            (now, gameInProgress) = OnTickCore();
         }
+
+        // Last and outside the lock: a collection never delays this tick's view, and the pipeline and the UI's calls into
+        // the session do not wait on it (after a window is let go it also waits for the finalizers). A game in progress
+        // (not abandoned) puts it off.
+        Trimmer.Tick(now, busy: gameInProgress);
     }
 
-    private void OnTickCore()
+    /// <returns>The tick's time and whether a game is in progress, for the memory trim after it.</returns>
+    private (DateTime Now, bool GameInProgress) OnTickCore()
     {
         var now = Clock();
         if (_parser is { HasPending: true } parser && now - _lastPowerLinesAt >= QuietFlush)
@@ -529,8 +562,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             _slowestPublishMs = 0;
         }
 
-        // Last, so a collection never delays this tick's view; a game in progress (not abandoned) puts it off.
-        Trimmer.Tick(now, busy: _parser?.Game is { IsComplete: false } && !_recordedAbandoned);
+        return (now, _parser?.Game is { IsComplete: false } && !_recordedAbandoned);
     }
 
     // ---- IPowerListener -----------------------------------------------------------------------
