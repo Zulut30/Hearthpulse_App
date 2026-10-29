@@ -344,11 +344,18 @@
             <Grid RowDefinitions="52,*">
 
                 <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
-                <StackPanel Orientation="Horizontal" Margin="40,0,320,0" VerticalAlignment="Center" IsVisible="{Binding Busy, Converter={StaticResource Truthy}}"
-                            ToolTip.Tip="{i:Loc Main.Busy.Tip}">
+                <!-- A dock, not a horizontal stack: the stack measures the line at infinite width, so the ellipsis never showed.
+                     A long message (Hearthstone not found, startup problem) is read in full in the tip. -->
+                <DockPanel Name="BusyLine" Margin="40,0,320,0" VerticalAlignment="Center" IsVisible="{Binding Busy, Converter={StaticResource Truthy}}">
+                    <ToolTip.Tip>
+                        <StackPanel MaxWidth="420">
+                            <TextBlock Text="{Binding Busy}" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Main.Busy.Tip}" Classes="caption" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </ToolTip.Tip>
                     <TextBlock Text="&#xF04E6;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent2}" Margin="0,0,8,0" />
                     <TextBlock Text="{Binding Busy}" Classes="caption" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+                </DockPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,22,0">
                     <Button Classes="ghost primary" Content="{i:Loc Main.Update.Ready}" Command="{Binding InstallUpdate}" IsVisible="{Binding UpdateReady}"
                             VerticalAlignment="Center" Margin="0,0,8,0" ToolTip.Tip="{Binding UpdateText}" />

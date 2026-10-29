@@ -301,11 +301,18 @@
                     </Border>
 
                     <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
-                    <StackPanel Orientation="Horizontal" Margin="40,0,320,0" VerticalAlignment="Center" Visibility="{Binding Busy, Converter={StaticResource Vis}}"
-                                ToolTip="{i:Loc Main.Busy.Tip}">
+                    <!-- A dock, not a horizontal stack: the stack measures the line at infinite width, so the ellipsis never showed.
+                         A long message (Hearthstone not found, startup problem) is read in full in the tip. -->
+                    <DockPanel x:Name="BusyLine" Margin="40,0,320,0" VerticalAlignment="Center" Visibility="{Binding Busy, Converter={StaticResource Vis}}">
+                        <DockPanel.ToolTip>
+                            <StackPanel MaxWidth="420">
+                                <TextBlock Text="{Binding Busy}" TextWrapping="Wrap" />
+                                <TextBlock Text="{i:Loc Main.Busy.Tip}" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                            </StackPanel>
+                        </DockPanel.ToolTip>
                         <TextBlock Text="&#xF04E6;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent2}" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding Busy}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
+                    </DockPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,22,0">
                         <!-- A downloaded update: one click installs now, otherwise it installs on the next close -->
                         <Button Command="{Binding InstallUpdate}" VerticalAlignment="Center" Margin="0,0,8,0" Cursor="Hand" Focusable="False"
