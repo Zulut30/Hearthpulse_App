@@ -115,6 +115,9 @@ internal static class WindowBench
             LogReplay.Run(session, setClock, dir, path, start);
         }
 
+        // The replayed Battlegrounds fights leave their full combat simulation running on the thread pool: wait it out,
+        // or it lands in whichever window comes next.
+        Quiet();
         var history = new HistoryStore(db);
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
         var vm = new MainViewModel(history, settings);
@@ -185,13 +188,29 @@ internal static class WindowBench
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
             $"[match] {steps.Count} steps by hand: {Spread(steps)}; alloc {(GC.GetAllocatedBytesForCurrentThread() - stepAlloc) / 1024.0 / Math.Max(1, steps.Count):N1} KB/step"));
 
+        page.Faster.Execute(null);
+        page.Faster.Execute(null);
+        // 15 s of playback first: the runtime compiles the hot paths again in the background (tiered JIT) for about as
+        // long, and that is not what playing costs.
+        page.Frame = 0;
+        page.TogglePlay.Execute(null);
+        Run(TimeSpan.FromSeconds(15));
+        if (page.Playing)
+        {
+            page.TogglePlay.Execute(null);
+        }
+
         page.Frame = 0;
         WpfBench.Pump();
-        page.Faster.Execute(null);
-        page.Faster.Execute(null);
         var from = page.Frame;
         page.TogglePlay.Execute(null);
-        Window($"{game.Mode} playing x{page.Speed}");
+        // HP_BENCH_MATCH_TYPES=1: what the playback allocates, by type (all threads).
+        using (var types = Environment.GetEnvironmentVariable("HP_BENCH_MATCH_TYPES") == "1" ? new AllocationTypes() : null)
+        {
+            Window($"{game.Mode} playing x{page.Speed}");
+            types?.Report($"{game.Mode} playing");
+        }
+
         Console.WriteLine($"[match] played {page.Frame - from} steps, still playing {page.Playing}");
         if (page.Playing)
         {
@@ -201,6 +220,98 @@ internal static class WindowBench
         Memory($"{game.Mode} after playback");
         page.Back.Execute(null);
         WpfBench.Pump();
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern int GetCurrentThreadId();
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern IntPtr OpenThread(int access, bool inherit, int threadId);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern bool CloseHandle(IntPtr handle);
+
+    [System.Runtime.InteropServices.DllImport("ntdll.dll")]
+    private static extern int NtQueryInformationThread(IntPtr thread, int infoClass, out IntPtr info, int size, IntPtr returned);
+
+    /// <summary>The module a thread started in (wpfgfx: WPF's render thread; coreclr: a runtime or pool thread).</summary>
+    private static string StartModule(Process process, int threadId)
+    {
+        var handle = OpenThread(0x0040 /* THREAD_QUERY_INFORMATION */, false, threadId);
+        if (handle == IntPtr.Zero)
+        {
+            return "?";
+        }
+
+        try
+        {
+            // ThreadQuerySetWin32StartAddress
+            if (NtQueryInformationThread(handle, 9, out var start, IntPtr.Size, IntPtr.Zero) != 0)
+            {
+                return "?";
+            }
+
+            foreach (ProcessModule module in process.Modules)
+            {
+                var from = module.BaseAddress.ToInt64();
+                if (start.ToInt64() >= from && start.ToInt64() < from + module.ModuleMemorySize)
+                {
+                    return module.ModuleName;
+                }
+            }
+
+            return "?";
+        }
+        finally
+        {
+            CloseHandle(handle);
+        }
+    }
+
+    /// <summary>The OS id of the finalizer thread, read once by a finalizer.</summary>
+    private sealed class FinalizerThread
+    {
+        private static int _id;
+
+        public static int Id
+        {
+            get
+            {
+                if (_id == 0)
+                {
+                    Drop();
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                }
+
+                return _id;
+            }
+        }
+
+        ~FinalizerThread() => _id = GetCurrentThreadId();
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void Drop() => GC.KeepAlive(new FinalizerThread());
+    }
+
+    /// <summary>Waits (at most 2 min) for a second in which the process used under 20 ms of CPU.</summary>
+    private static void Quiet()
+    {
+        using var process = Process.GetCurrentProcess();
+        var waited = Stopwatch.StartNew();
+        while (waited.Elapsed < TimeSpan.FromMinutes(2))
+        {
+            process.Refresh();
+            var cpu = process.TotalProcessorTime;
+            Thread.Sleep(1000);
+            process.Refresh();
+            if ((process.TotalProcessorTime - cpu).TotalMilliseconds < 20)
+            {
+                break;
+            }
+        }
+
+        Console.WriteLine($"[match] background work done after {waited.Elapsed.TotalSeconds:N0} s");
     }
 
     /// <summary>Runs the dispatcher (timers, rendering) for <paramref name="time"/>.</summary>
@@ -218,7 +329,8 @@ internal static class WindowBench
     {
         using var process = Process.GetCurrentProcess();
         var cpu = process.TotalProcessorTime;
-        var ui = FrameBench.UiCpuMs();
+        var threads = FrameBench.Threads(process);
+        var uiCpu = FrameBench.UiCpuMs();
         var allocated = GC.GetTotalAllocatedBytes();
         var (gen0, gen1, gen2) = (GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2));
         var operations = 0;
@@ -229,7 +341,18 @@ internal static class WindowBench
         process.Refresh();
         var used = (process.TotalProcessorTime - cpu).TotalMilliseconds;
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"[rest] {what,-26} CPU {used / Seconds,6:N2} ms/s (UI thread {(FrameBench.UiCpuMs() - ui) / Seconds,5:N2}), alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1024.0 / Seconds,7:N1} KB/s, "
+            $"[rest] {what,-26} CPU {used / Seconds,6:N2} ms/s (UI thread {(FrameBench.UiCpuMs() - uiCpu) / Seconds,5:N2}), alloc {(GC.GetTotalAllocatedBytes() - allocated) / 1024.0 / Seconds,7:N1} KB/s, "
             + $"GCs gen0 {GC.CollectionCount(0) - gen0} gen1 {GC.CollectionCount(1) - gen1} gen2 {GC.CollectionCount(2) - gen2} in {Seconds} s, {operations / (double)Seconds:N1} dispatcher operations/s"));
+
+        // The busiest threads over the window (the UI thread among them): where CPU beyond the UI thread goes.
+        var busiest = FrameBench.Threads(process)
+            .Select(t => (t.Key, Ms: t.Value - threads.GetValueOrDefault(t.Key)))
+            .OrderByDescending(t => t.Ms)
+            .Take(4);
+        var ui = GetCurrentThreadId();
+        var finalizer = FinalizerThread.Id;
+        Console.WriteLine($"[rest]   finalizer #{finalizer}, UI #{ui}");
+        Console.WriteLine($"[rest]   busiest threads: {string.Join(", ", busiest.Select(t => string.Create(CultureInfo.InvariantCulture,
+            $"#{t.Key} ({(t.Key == ui ? "UI" : t.Key == finalizer ? "finalizer" : StartModule(process, t.Key))}) {t.Ms / Seconds:N1} ms/s")))}");
     }
 }

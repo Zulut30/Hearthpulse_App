@@ -179,7 +179,7 @@ internal static class FrameBench
             $"[frames] {label,-32} {what,-18} process CPU {total,7:N1} ms/s, UI thread {uiPerSecond,6:N1} ms/s, busiest other thread {other,6:N1} ms/s"));
     }
 
-    private static Dictionary<int, double> Threads(Process process)
+    internal static Dictionary<int, double> Threads(Process process)
     {
         var times = new Dictionary<int, double>();
         foreach (ProcessThread thread in process.Threads)
