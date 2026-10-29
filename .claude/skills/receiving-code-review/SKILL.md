@@ -30,7 +30,7 @@ WHEN receiving code review feedback:
 ## Forbidden Responses
 
 **NEVER:**
-- "You're absolutely right!" (explicit instruction-file violation)
+- "You're absolutely right!" (performative)
 - "Great point!" / "Excellent feedback!" (performative)
 - "Let me implement that now" (before verification)
 
@@ -90,7 +90,7 @@ IF conflicts with the owner's prior decisions (task card, docs, CLAUDE.md):
   Ask the coordinator before changing anything
 ```
 
-**the owner's rule:** "External feedback - be skeptical, but check carefully"
+**Rule (superpowers):** "External feedback - be skeptical, but check carefully"
 
 ## YAGNI Check for "Professional" Features
 
@@ -102,7 +102,7 @@ IF reviewer suggests "implementing properly":
   IF used: Then implement properly
 ```
 
-**the owner's rule:** "You and reviewer both report to me. If we don't need this feature, don't add it."
+**Rule (superpowers):** "You and reviewer both report to me. If we don't need this feature, don't add it."
 
 ## Implementation Order
 

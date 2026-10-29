@@ -28,7 +28,7 @@ Write the test first. Watch it fail. Write minimal code to pass.
 - Throwaway prototypes
 - Generated code (`*.g.cs` from the generators in `tools/`)
 - Configuration files
-- Pure XAML/AXAML layout with no logic: checked by Headless binding tests and `hearthpulse-visual-check` instead
+- Pure XAML/AXAML layout with no logic: covered by Headless binding tests; a render (`hearthpulse-visual-check`) only when the brief says the owner asked
 
 Thinking "skip TDD just this once"? Stop. That's rationalization.
 

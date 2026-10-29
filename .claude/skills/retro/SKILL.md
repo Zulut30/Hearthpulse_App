@@ -13,7 +13,7 @@ The user has asked for a **retrospective**. You are suggesting improvements to t
 
 1. Call the Skill tool with `writing-for-agents` for the writing style guide.
 
-2. Read the primary sources for the session the user specifies. This may mean searching through session logs on this machine. If the user doesn't specify a session, default to the current one.
+2. Read the primary sources for the session the user specifies. This may mean searching through session logs on this machine, only under `C:\Users\zulut\.claude\projects\D--HeartLens-main*`; quote no secrets from them (tokens, keys, passwords: write `<REDACTED>`). If the user doesn't specify a session, default to the current one.
 
 3. Look for candidates for improvement in these categories.
 
@@ -25,7 +25,7 @@ The user has asked for a **retrospective**. You are suggesting improvements to t
 - **No-ops**: look for instructions in steering files that don't modify the agent's behavior. _Use when_ the steering files are large and unwieldy.
 - **Information access**: look for opportunities to increase the agent's access to information. Teeing dev server logs, readonly access to third-party services. _Use when_ a crucial piece of information was not available to the agent.
 
-4. Present these candidates to the user, in order of severity. Changes the owner accepts go through [hearthpulse-ship](../hearthpulse-ship/SKILL.md) like any other task.
+4. Present these candidates to the user, in order of severity. Changes to the repo that the owner accepts go through [hearthpulse-ship](../hearthpulse-ship/SKILL.md) like any other task; changes outside the repo (`~/.claude`, `.git/hooks`, `settings.json`) are text for the owner only, not through `hearthpulse-ship`.
 
 ## Reference
 

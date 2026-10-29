@@ -96,7 +96,7 @@ Assert.Contains(viewModel.Rows, row => row.CardId == "CORE_EX1_169");
 Assert.True(fakePool.WasCalled);
 ```
 
-**the owner's correction:** "Are we testing the behavior of a
+**Rule (superpowers):** "Are we testing the behavior of a
 mock?"
 
 **Mock at the right level.** Learn every side effect of the real method
@@ -130,7 +130,7 @@ class own this resource's lifecycle? Wrong answers → test utility.
 **Prefer real components over complex mocks.** When mock setup outgrows
 the test logic, mocks miss methods the real components have, or tests
 break when the mock changes, switch to an integration test with real
-components. **the owner's question:** "Do we need to be using a
+components. **Rule (superpowers):** "Do we need to be using a
 mock here?"
 
 ### Gate Function

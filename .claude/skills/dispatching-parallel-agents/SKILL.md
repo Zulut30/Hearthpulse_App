@@ -55,6 +55,8 @@ digraph when_to_use {
 - Subagents in one worktree share `bin/` and `obj/`: at most one of them builds or runs tests at a time, with `-m:2`
   (the owner plays on this PC). Give the others read-only work.
 - Subagents that edit get disjoint files, written into their prompt as "you may edit only …".
+- Editing subagents only inside a `wt-*` worktree, on that session's `claude/*` branch; in the coordinating
+  session subagents are read-only. Subagents never commit, push or merge.
 
 ## The Pattern
 

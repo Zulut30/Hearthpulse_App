@@ -1,6 +1,6 @@
 ---
 name: research
-description: Investigate a question against high-trust primary sources and capture the findings as a Markdown file. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent.
+description: Investigate a question against high-trust primary sources and capture the findings as a Markdown file in the task folder or docs/. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent.
 ---
 
 > Source: [mattpocock/skills](https://github.com/mattpocock/skills) `skills/engineering/research/SKILL.md` at
