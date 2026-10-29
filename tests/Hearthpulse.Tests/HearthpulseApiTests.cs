@@ -79,4 +79,25 @@ public sealed class HearthpulseApiTests
     [InlineData("all", "ALL")]
     public void Ranks_map_to_hsreplay_ranges(string rank, string expected) =>
         Assert.Equal(expected, HearthpulseData.RankRange(rank));
+
+    [Fact]
+    public async Task An_answer_in_an_unknown_charset_is_a_failed_request_not_an_exception()
+    {
+        // A captive portal or a proxy answering with a charset .NET does not know: reading the text throws.
+        var api = new HearthpulseApi(new HttpClient(new Portal()), "https://api.test/");
+
+        var result = await api.GetAsync("api/v1/meta");
+
+        Assert.False(result.Ok);
+    }
+
+    private sealed class Portal : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var content = new ByteArrayContent("<html>log in</html>"u8.ToArray());
+            content.Headers.TryAddWithoutValidation("Content-Type", "text/html; charset=no-such-charset");
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content });
+        }
+    }
 }
