@@ -53,6 +53,7 @@ internal sealed class DesktopApp : HearthpulseApp
         base.OnFrameworkInitializationCompleted();
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "A dying background thread (never the UI thread: CheckAccess) waits up to 30 s for the error window before the process ends.")]
     private void Start(IClassicDesktopStyleApplicationLifetime desktop)
     {
         _instance = SingleInstance.Acquire();

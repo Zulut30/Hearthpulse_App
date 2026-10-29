@@ -456,7 +456,7 @@ public sealed class MovablePanel : ContentControl
         {
             _contentHeight = size.Height;
             // The margin is not changed in the middle of a layout pass.
-            Dispatcher.BeginInvoke(KeepOnScreen, DispatcherPriority.Render);
+            _ = Dispatcher.BeginInvoke(KeepOnScreen, DispatcherPriority.Render);
         }
 
         return size;

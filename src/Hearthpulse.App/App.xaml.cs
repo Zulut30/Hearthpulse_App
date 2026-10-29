@@ -149,7 +149,7 @@ public partial class App : Application
                 // This handler runs inside the dispatcher's exception filter, where a modal window is never drawn:
                 // show it once the failed operation has unwound.
                 var error = args.Exception;
-                Dispatcher.BeginInvoke(() => CrashDialog.Show(error, fatal: false));
+                _ = Dispatcher.BeginInvoke(() => CrashDialog.Show(error, fatal: false));
             }
         };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -303,9 +303,9 @@ public partial class App : Application
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Meta refresh");
 
         _session.SnapshotChanged += OnSnapshot;
-        _session.ConstructedMetaNeeded += format => Dispatcher.BeginInvoke(() => EnsureConstructedMeta(format));
-        _session.GameFinished += outcome => Dispatcher.BeginInvoke(() => OnGameFinished(outcome));
-        _history.Changed += () => Dispatcher.BeginInvoke(() =>
+        _session.ConstructedMetaNeeded += format => _ = Dispatcher.BeginInvoke(() => EnsureConstructedMeta(format));
+        _session.GameFinished += outcome => _ = Dispatcher.BeginInvoke(() => OnGameFinished(outcome));
+        _history.Changed += () => _ = Dispatcher.BeginInvoke(() =>
         {
             _historyDebounce.Stop();
             _historyDebounce.Start();
@@ -569,6 +569,7 @@ public partial class App : Application
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD103:Call async methods when in an async method", Justification = "Cancel runs before the new request registers, with no await point in between on the UI thread; LoadArchetypeNames only starts the shared load and does not block.")]
     private async Task LoadConstructedMetaAsync(string format)
     {
         // Filters can change while a download runs; only the latest request of a format may pass its stats on, and an
@@ -673,7 +674,7 @@ public partial class App : Application
             var delay = _pacer.Delay(now);
             if (delay == 0)
             {
-                Dispatcher.BeginInvoke(ApplySnapshot, DispatcherPriority.Background);
+                _ = Dispatcher.BeginInvoke(ApplySnapshot, DispatcherPriority.Background);
             }
             else
             {
@@ -729,7 +730,7 @@ public partial class App : Application
         }
 
         Volatile.Write(ref _probeSentAt, now);
-        Dispatcher.BeginInvoke(() =>
+        _ = Dispatcher.BeginInvoke(() =>
         {
             var lag = Environment.TickCount64 - Volatile.Read(ref _probeSentAt);
             Volatile.Write(ref _probeSentAt, 0);

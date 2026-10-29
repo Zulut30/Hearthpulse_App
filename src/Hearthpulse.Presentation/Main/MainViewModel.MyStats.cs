@@ -327,6 +327,7 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Builds a page off the UI thread; the returned action applies the result unless a newer build started.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Fire-and-forget page build on the UI thread; the build is awaited inside try/catch and logged. Moving to Task + Forget: TASK-2026-10-29-quality-analyzers, question Q1.")]
     private async void RunStatsBuild(int page, Func<Action> build)
     {
         var generation = ++_statsBuilds[page];

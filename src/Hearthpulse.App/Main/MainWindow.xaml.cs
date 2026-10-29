@@ -442,7 +442,7 @@ public partial class MainWindow : Window
 
     private void SelectHistoryRow(string key)
     {
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        _ = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
         {
             if (_viewModel.HistoryRowFor(key) is { } row)
             {

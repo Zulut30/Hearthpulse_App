@@ -9,7 +9,7 @@ public sealed partial class MainViewModel
 {
     private RelayCommand? _copyAccountCode;
 
-    private static void DispatchToUi(Action action) => Application.Current?.Dispatcher.BeginInvoke(action);
+    private static void DispatchToUi(Action action) => _ = Application.Current?.Dispatcher.BeginInvoke(action);
 
     public RelayCommand CopyAccountCode => _copyAccountCode ??= new RelayCommand(() =>
     {
