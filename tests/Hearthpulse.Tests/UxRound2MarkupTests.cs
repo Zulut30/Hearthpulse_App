@@ -324,6 +324,28 @@ public sealed class UxRound2MarkupTests
         Assert.EndsWith("{0}", text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The archetype's name is the panel's main text: the chance stands in the "likely archetype" line above it, as a
+    /// header note in the accent colour, and leaves the name row to the tier badge and the name.
+    /// </summary>
+    [Theory]
+    [InlineData("src/Hearthpulse.App/Overlay/OpponentArchetypePanel.xaml")]
+    [InlineData("src/Hearthpulse.UI/Overlay/OpponentArchetypePanel.axaml")]
+    public void Archetype_chance_sits_in_the_label_row_and_leaves_the_name_its_width(string file)
+    {
+        var texts = Markup(file).Descendants().Where(e => e.Name.LocalName == "TextBlock").ToList();
+        var chance = texts.Single(e => (string?)e.Attribute("Text") == "{Binding ArchetypeChance}");
+        var label = texts.Single(e => (string?)e.Attribute("Text") == "{i:Loc Widgets.Archetype.Title}");
+        var name = texts.Single(e => (string?)e.Attribute("Text") == "{Binding ArchetypeName}");
+        Assert.Same(label.Parent, chance.Parent);
+        Assert.NotSame(name.Parent, chance.Parent);
+        Assert.True((string?)chance.Attribute("Style") == "{StaticResource OverlayHeaderNote}" || Classes(chance).Contains("headerNote"));
+        Assert.Null(chance.Attribute("FontSize"));
+        Assert.Equal("{StaticResource Accent}", (string?)chance.Attribute("Foreground"));
+        // Still hovered for how many cards the guess rests on.
+        Assert.Contains(chance.Attributes(), a => a.Value == "{Binding ArchetypeNote}");
+    }
+
     /// <summary>The card pool browser stands below the top bar; its card ends above the screen's bottom edge, 16 clear.</summary>
     [Theory]
     [InlineData(WpfOverlay, "src/Hearthpulse.App/Overlay/CardPoolBrowser.xaml")]
