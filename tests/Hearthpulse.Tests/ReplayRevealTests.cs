@@ -198,6 +198,43 @@ public sealed class ReplayRevealTests : IDisposable
     }
 
     [Fact]
+    public void A_kept_card_transformed_on_the_table_later_is_still_a_deck_card_of_their_mulligan()
+    {
+        // 29.10 11:56: their kept JAIL_457 was played on turn 7 and turned into EDR_230 (CREATOR set) on turn 9; judged
+        // by its last state it counted as created and left their mulligan with two cards.
+        string[] game =
+        [
+            .. Setup.TakeWhile(l => !l.Contains("MULLIGAN_STATE", StringComparison.Ordinal)),
+            .. Card(63, "", "HAND", 2, ""),
+            .. Card(64, "", "HAND", 2, ""),
+            .. Card(65, "", "HAND", 2, ""),
+            .. Card(66, "", "DECK", 2, ""),
+            Turn(1),
+            Step("BEGIN_MULLIGAN"),
+            Zone(64, "DECK"),
+            Zone(66, "HAND"),
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=MULLIGAN_STATE value=DONE ",
+            Step("MAIN_READY"),
+            Turn(2),
+            .. TheyPlay(63, "TIME_700"),
+            Turn(3),
+            "DebugPrintPower() - CHANGE_ENTITY - Updating Entity=[entityName=X id=63 zone=PLAY zonePos=1 cardId=TIME_700 player=2] CardID=EDR_230",
+            "DebugPrintPower() -     tag=CARDTYPE value=MINION",
+            "DebugPrintPower() -     tag=CREATOR value=138",
+            "DebugPrintPower() -     tag=ZONE value=PLAY",
+            Turn(4),
+        ];
+        Play(out var recorder, game);
+        var text = recorder.Text(new ReplayHeader());
+
+        // The card is the deck card it was when the log named it; the transformation does not make it created.
+        Assert.Contains("K 63 TIME_700 2 played 0", text);
+        var mulligan = MatchReplay.Parse(text)!.OpponentMulligan!;
+        Assert.Equal(["TIME_700", null], mulligan.Kept);
+        Assert.Equal(3, mulligan.Kept.Count + mulligan.Replaced.Count);
+    }
+
+    [Fact]
     public void The_likely_deck_is_the_closest_archetype_and_says_it_is_a_guess()
     {
         // Three revealed cards fit two archetypes equally: no clear call, so the closest (the more played) is the guess.
