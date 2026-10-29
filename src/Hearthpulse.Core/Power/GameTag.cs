@@ -31,6 +31,9 @@ public static class GameTag
     public const string Windfury = "WINDFURY";
     public const string MegaWindfury = "MEGA_WINDFURY";
     public const string Stealth = "STEALTH";
+
+    /// <summary>The defender of the attack being resolved (1 while it is).</summary>
+    public const string Defending = "DEFENDING";
     public const string Secret = "SECRET";
     public const string Class = "CLASS";
     public const string CardRace = "CARDRACE";
@@ -47,6 +50,12 @@ public static class GameTag
     public const string NextOpponentPlayerId = "NEXT_OPPONENT_PLAYER_ID";
     public const string CurrentCombatPlayerId = "BACON_CURRENT_COMBAT_PLAYER_ID";
     public const string BoardVisualState = "BOARD_VISUAL_STATE";
+
+    /// <summary>
+    /// Game entity: 1 once a combat is set up (after <see cref="BoardVisualState"/> 2), 0 when the next tavern is dealt
+    /// (after <see cref="BoardVisualState"/> 1 and the next TURN). Printed by name in the 28.10 logs.
+    /// </summary>
+    public const string BaconInCombatPhase = "BACON_IN_COMBAT_PHASE";
     public const string BaconDummyPlayer = "BACON_DUMMY_PLAYER";
     public const string BaconAnomaly = "BACON_GLOBAL_ANOMALY_DBID";
     public const string BaconDeity = "BACON_GLOBAL_OLD_GOD_DBID";

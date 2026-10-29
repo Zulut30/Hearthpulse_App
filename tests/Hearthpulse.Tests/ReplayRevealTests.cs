@@ -89,7 +89,7 @@ public sealed class ReplayRevealTests : IDisposable
         Play(out var recorder, [.. BeforeReveal, .. Reveal]);
         var text = recorder.Text(new ReplayHeader());
 
-        Assert.StartsWith("HPR3\n", text);
+        Assert.StartsWith(ReplayFile.Magic + "\n", text);
         Assert.Contains("K 62 CS2_182 7 played 0", text);
         Assert.DoesNotContain("K 64 ", text);
         var replay = MatchReplay.Parse(text)!;
