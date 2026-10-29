@@ -101,6 +101,14 @@ public static class UpdateService
             : (OperatingSystem.IsMacOS() ? UpdateTarget.MacPackage : UpdateTarget.LinuxPackage);
 
     /// <summary>
+    /// False for a copy the update for its target would not fit: the Windows zip is the cross-platform preview, so only a
+    /// folder holding the preview (its Avalonia assembly) unpacks it; the Windows app run outside the folder its setup
+    /// registered (moved, copied) is only told about the release.
+    /// </summary>
+    internal static bool InstallsItself(UpdateTarget target, string appDirectory, Func<string, bool> exists) =>
+        target != UpdateTarget.WindowsPortable || exists(Path.Combine(appDirectory, "Avalonia.Base.dll"));
+
+    /// <summary>
     /// "deb" or "rpm" when the package manager installed this copy, "" for everything else (the tar.gz install, a copy
     /// run from its folder). Going by the distribution alone offered a .deb to everyone who had unpacked the tar.gz on
     /// Ubuntu, and opening it installed a second copy next to theirs.
@@ -205,7 +213,7 @@ public static class UpdateService
             {
                 var check = await CheckForUpdateAsync(http).ConfigureAwait(false);
                 var info = check.Update;
-                if (info is not null && notifyOnly)
+                if (info is not null && (notifyOnly || !InstallsItself(DetectTarget(), AppContext.BaseDirectory, File.Exists)))
                 {
                     available(info);
                     return;

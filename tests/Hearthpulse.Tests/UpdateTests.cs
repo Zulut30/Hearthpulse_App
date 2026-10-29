@@ -77,6 +77,19 @@ public sealed class UpdateTests
     public void The_linux_package_follows_how_this_copy_was_installed(string appDirectory, string existingFile, string expected) =>
         Assert.Equal(expected, UpdateService.LinuxFlavor(appDirectory, path => path == existingFile));
 
+    // The Windows zip is the cross-platform preview. The Windows app outside the folder its setup registered (moved, or
+    // copied elsewhere) is not a zip copy: unpacking the preview over it replaced the app with another one.
+    [Theory]
+    [InlineData(UpdateTarget.WindowsPortable, true, true)]
+    [InlineData(UpdateTarget.WindowsPortable, false, false)]
+    [InlineData(UpdateTarget.WindowsInstalled, false, true)]
+    [InlineData(UpdateTarget.LinuxPackage, false, true)]
+    public void Only_the_preview_s_own_folder_unpacks_the_preview_zip(UpdateTarget target, bool previewFolder, bool expected)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "hp-app");
+        Assert.Equal(expected, UpdateService.InstallsItself(target, folder, path => previewFolder && path == Path.Combine(folder, "Avalonia.Base.dll")));
+    }
+
     [Fact]
     public void The_reply_for_this_platform_gives_a_download_url()
     {
