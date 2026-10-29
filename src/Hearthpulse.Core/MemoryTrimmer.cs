@@ -24,7 +24,7 @@ public sealed class MemoryTrimmer
     public static readonly TimeSpan HiddenWindowRelease = TimeSpan.FromSeconds(60);
 
     private readonly Action<bool> _collect;
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private DateTime _activityAt = DateTime.MinValue;
     private DateTime _lastTrim = DateTime.MinValue;
     private bool _pending;

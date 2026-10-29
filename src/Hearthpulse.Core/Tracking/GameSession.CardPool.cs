@@ -14,7 +14,7 @@ public sealed partial class GameSession
 
     private readonly CardPoolTracker _cardPool = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, MatchRule?> _matchRules = new(StringComparer.Ordinal);
-    private readonly object _cardPoolGate = new();
+    private readonly Lock _cardPoolGate = new();
     private CardPoolCatalog _cardPoolCatalog = CardPoolCatalog.Empty;
     private WikiPoolSource? _cardPoolWiki;
     private DiscoverChoiceSource? _discoverPicks;

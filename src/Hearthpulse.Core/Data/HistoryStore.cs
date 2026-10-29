@@ -153,7 +153,7 @@ public sealed record RatingPoint(DateTime At, int Rating);
 public sealed partial class HistoryStore
 {
     private readonly string _connectionString;
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
 
     public HistoryStore(string path)
     {

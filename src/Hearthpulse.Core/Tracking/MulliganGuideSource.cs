@@ -13,7 +13,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
     /// <summary>A failed or unmatched lookup is tried again after this long (the deck may still be in the cache then).</summary>
     private static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(5);
 
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private DeckDefinition? _deck;
     private string? _key;
     private GuideArchetype? _result;

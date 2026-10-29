@@ -110,7 +110,7 @@ public sealed record MatchPlayerInfo(string? Name, RankInfo? Standard, RankInfo?
 /// </summary>
 public sealed partial class HearthstoneMemory : IDisposable
 {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private ProcessMemory? _memory;
     private MonoRuntime? _runtime;
     private DateTime _nextAttachAttempt = DateTime.MinValue;

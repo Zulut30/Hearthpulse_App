@@ -43,7 +43,7 @@ public sealed class SecretTracker : IPowerListener
     private readonly Dictionary<int, int> _playedOnTurn = new();
 
     private readonly HashSet<string> _crossed = new(StringComparer.Ordinal);
-    private readonly object _crossedGate = new();
+    private readonly Lock _crossedGate = new();
 
     private bool _windowFired;
     private LocalPlay? _play;

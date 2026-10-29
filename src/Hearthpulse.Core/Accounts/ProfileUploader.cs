@@ -57,7 +57,7 @@ public sealed class ProfileUploader : IDisposable
     private int _refused;
     private int _notSent;
     private long _sendGeneration;
-    private readonly object _queueChange = new();
+    private readonly Lock _queueChange = new();
 
     /// <param name="client">The site API (its base URL is the one the account signs in to).</param>
     /// <param name="accessToken">A token for the requested sign-in only, or null when it is gone or offline.</param>

@@ -38,11 +38,11 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     private readonly GameFactsTracker _facts = new();
     private readonly ConstructedPicksTracker _picks = new();
     private readonly ReplayRecorder _replay = new();
-    private readonly object _statsGate = new();
+    private readonly Lock _statsGate = new();
 
     // The watchdog can replace a wedged log watcher while its thread is still in here. This lock keeps the old and the
     // new thread from ever working on the parser at the same time.
-    private readonly object _pipelineGate = new();
+    private readonly Lock _pipelineGate = new();
     private readonly MemoryPoller _memoryPoller;
     private int _gameGeneration;
     private IReadOnlyList<string>? _offeredHeroes;
