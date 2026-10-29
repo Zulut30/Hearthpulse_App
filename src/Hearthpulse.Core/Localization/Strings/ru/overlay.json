@@ -153,6 +153,10 @@
   "Overlay.Lobby.Lost": "П {0}",
   "Overlay.Lobby.Tie": "Н",
 
+  "Overlay.BgLobby.Title": "Типы и таверны",
+  "Overlay.BgLobby.Tribes": "Типы существ",
+  "Overlay.BgLobby.Unconfirmed": "не подтверждено",
+
   "Overlay.Toast.Place": "{0} место",
   "Overlay.Toast.Victory": "Победа",
   "Overlay.Toast.Defeat": "Поражение",

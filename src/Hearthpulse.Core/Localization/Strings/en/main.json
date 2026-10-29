@@ -89,6 +89,7 @@
   "Main.Live.Panel.Boards": "Opponents' boards",
   "Main.Live.Panel.Odds": "Combat odds",
   "Main.Live.Panel.Lobby": "Lobby list",
+  "Main.Live.Panel.BgLobby": "Lobby tribes and tiers",
   "Main.Live.Panel.BgSession": "Battlegrounds session",
   "Main.Session.None": "No games this session",
   "Main.Session.Delta": "{0} this session",

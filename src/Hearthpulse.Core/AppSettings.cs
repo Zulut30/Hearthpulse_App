@@ -216,6 +216,9 @@ public sealed class AppSettings
 
     public bool ShowLobbyPanel { get; set; } = true;
 
+    /// <summary>The compact Battlegrounds lobby panel: the lobby's tribes, every player's tavern tier and main tribe.</summary>
+    public bool ShowBgLobbyPanel { get; set; } = true;
+
     public bool ShowSessionPanel { get; set; } = true;
 
     /// <summary>The ranked ladder session widget: in the overlay outside games and on the Overview page.</summary>

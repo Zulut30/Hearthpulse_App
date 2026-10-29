@@ -299,6 +299,7 @@ public sealed partial class OverlayViewModel : Observable
         var bg = enabled ? snapshot.Battlegrounds : null;
         _bg = bg;
         UpdateBgCounters(bg, settings);
+        UpdateBgLobby(bg, settings);
         UpdateArena(snapshot.ArenaDraft, settings);
         ShowBattlegrounds = bg is not null && settings.ShowBattlegroundsBar;
         ApplyPickSettings(settings);
@@ -537,7 +538,7 @@ public sealed partial class OverlayViewModel : Observable
     private void UpdateLobbyAndSession(BattlegroundsView view, LiveSnapshot snapshot)
     {
         var rows = view.Opponents
-            .Select(o => new LobbyRow(
+            .Select(o => WithMainTribe(new LobbyRow(
                 o.Place,
                 o.HeroCardId,
                 o.HeroName,
@@ -549,18 +550,18 @@ public sealed partial class OverlayViewModel : Observable
                 o.LastResult ?? string.Empty,
                 o.IsNextOpponent,
                 o.Dead,
-                false))
+                false), o.LastBoard, view.Races))
             .ToList();
         if (view.HeroCardId is { } hero)
         {
-            rows.Add(new LobbyRow(view.Place, hero, _cards.NameOf(hero), view.Health + view.Armor, 0, view.TechLevel, view.Triples,
-                string.Empty, string.Empty, false, view.Health <= 0, true));
+            rows.Add(WithMainTribe(new LobbyRow(view.Place, hero, _cards.NameOf(hero), view.Health + view.Armor, 0, view.TechLevel, view.Triples,
+                string.Empty, string.Empty, false, view.Health <= 0, true), view.Board, view.Races));
         }
 
         // Empty during hero selection: no opponents seen and no hero picked yet.
         var top = Math.Max(1, rows.Select(r => r.Health).DefaultIfEmpty(0).Max());
         // In place: a fight changes one or two rows, and the others keep their portraits.
-        Replace(nameof(LobbyRows), rows, r => $"{r.Place}{r.HeroCardId}{r.Health}{r.Tier}{r.Triples}{r.Last}{r.Next}{r.Dead}", () => Sync(ref _lobbyRows, nameof(LobbyRows), rows
+        Replace(nameof(LobbyRows), rows, r => $"{r.Place}{r.HeroCardId}{r.Health}{r.Tier}{r.Triples}{r.Last}{r.Next}{r.Dead}{r.Tribe?.Key}{r.TribeCount}", () => Sync(ref _lobbyRows, nameof(LobbyRows), rows
             .Select(r => r with { HealthFraction = r.Dead ? 0 : Math.Clamp(r.Health / (double)top, 0.04, 1) })
             .OrderBy(r => r.Place <= 0 ? 99 : r.Place)
             .ToList()));
@@ -720,13 +721,8 @@ public sealed partial class OverlayViewModel : Observable
 
         var turnsAgo = _bg!.Turn - opponent.LastBoardTurn;
         var fights = FightsWith(opponent);
-        // The tribe most of the board shares, once it is at least two minions (amalgams count for every tribe, so not here).
-        var tribe = opponent.LastBoard
-            .SelectMany(m => (_cards.Get(m.CardId)?.Races ?? Array.Empty<string>()).Where(r => r != "ALL"))
-            .GroupBy(r => r)
-            .Select(g => (Race: g.Key, Count: g.Count()))
-            .OrderByDescending(g => g.Count)
-            .FirstOrDefault();
+        // The tribe most of the board shares (as on the lobby panel), once it is at least two minions.
+        var tribe = MainTribe(opponent.LastBoard, _bg.Races) is { Count: >= 2 } main ? main : default;
         Lobby = new LobbyPopup(
             opponent.HeroCardId,
             opponent.HeroName,
@@ -749,7 +745,8 @@ public sealed partial class OverlayViewModel : Observable
         {
             ResultKey = opponent.LastResult ?? string.Empty,
             History = fights.Count >= 2 ? fights.TakeLast(8).Select(c => new CombatDot(c.Result, string.Empty)).ToList() : [],
-            Tribe = tribe.Count >= 2 ? $"{Races.Display(tribe.Race, _locale)} ×{tribe.Count}" : string.Empty,
+            Tribe = tribe.Count >= 2 ? $"{tribe.Tribe.Name} ×{tribe.Count}" : string.Empty,
+            TribeGlyph = tribe.Count >= 2 ? tribe.Tribe.Glyph : string.Empty,
         };
     }
 

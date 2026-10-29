@@ -1207,7 +1207,9 @@
                                 <ItemsControl ItemsSource="{Binding History}" ItemTemplate="{StaticResource CombatTemplate}" ItemsPanel="{StaticResource HRow}" Margin="0,0,8,0"
                                               VerticalAlignment="Center" IsVisible="{Binding History, Converter={StaticResource Truthy}}" />
                                 <TextBlock Text="{Binding LastSeen}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding Tribe}" FontSize="11" Foreground="{StaticResource Text}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                <TextBlock Text="{Binding TribeGlyph}" Classes="icon" FontSize="12" Foreground="{StaticResource Accent}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                           IsVisible="{Binding TribeGlyph, Converter={StaticResource Truthy}}" />
+                                <TextBlock Text="{Binding Tribe}" FontSize="11" Foreground="{StaticResource Text}" Margin="3,0,0,0" VerticalAlignment="Center"
                                            IsVisible="{Binding Tribe, Converter={StaticResource Truthy}}" />
                             </StackPanel>
                             <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource LobbyMinionTemplate}" ItemsPanel="{StaticResource HRow}" />
@@ -1261,6 +1263,11 @@
                             <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" />
                         </StackPanel>
                     </Border>
+                </o:MovablePanel>
+
+                <!-- ============ Battlegrounds: lobby tribes, tavern tiers and main tribes (left, beside the leaderboard) ============ -->
+                <o:MovablePanel Id="bg-lobby" Title="{i:Loc Overlay.BgLobby.Title}" Shown="{Binding ShowBgLobby}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,212,0,0">
+                    <o:BgLobbyPanel />
                 </o:MovablePanel>
 
                 <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->

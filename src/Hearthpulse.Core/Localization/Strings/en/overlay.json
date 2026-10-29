@@ -153,6 +153,10 @@
   "Overlay.Lobby.Lost": "L {0}",
   "Overlay.Lobby.Tie": "T",
 
+  "Overlay.BgLobby.Title": "Tribes and tiers",
+  "Overlay.BgLobby.Tribes": "Minion types",
+  "Overlay.BgLobby.Unconfirmed": "not confirmed",
+
   "Overlay.Toast.Place": "{0} place",
   "Overlay.Toast.Victory": "Victory",
   "Overlay.Toast.Defeat": "Defeat",

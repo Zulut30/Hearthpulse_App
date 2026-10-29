@@ -66,6 +66,9 @@ public sealed record LobbyMinion(string CardId, string Name, int Attack, int Hea
 /// <summary>A lobby tribe on the tavern bar; <see cref="Selected"/> when the tier list shows only this tribe.</summary>
 public sealed record TribeChip(string Key, string Name, bool Selected);
 
+/// <summary>A minion tribe with its Material Design Icons glyph (the lobby panel's tribes and main tribes).</summary>
+public sealed record TribeIcon(string Key, string Name, string Glyph);
+
 public sealed record LobbyPopup(
     string HeroCardId,
     string HeroName,
@@ -89,6 +92,9 @@ public sealed record LobbyPopup(
     /// <summary>The tribe most of the last seen board has ("Murloc ×4"); empty when no tribe stands out.</summary>
     public string Tribe { get; init; } = string.Empty;
 
+    /// <summary>The icon of <see cref="Tribe"/>; empty with it.</summary>
+    public string TribeGlyph { get; init; } = string.Empty;
+
     public string PlaceText => $"#{Place}";
 
     public string HealthText => Hearthpulse.Core.Localization.Loc.F("Overlay.LobbyPopup.HpShort", Health);
@@ -110,7 +116,14 @@ public sealed record LobbyRow(
     string LastKey,
     bool Next,
     bool Dead,
-    bool You);
+    bool You)
+{
+    /// <summary>The tribe most of the last seen board has (see <c>OverlayViewModel.MainTribe</c>); null before a board was seen.</summary>
+    public TribeIcon? Tribe { get; init; }
+
+    /// <summary>How many minions of <see cref="Tribe"/> that board had.</summary>
+    public int TribeCount { get; init; }
+}
 
 public sealed record PlaceChip(int Place, bool Top);
 
