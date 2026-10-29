@@ -1,7 +1,7 @@
 {
   "Host.AlreadyRunning": "Hearthpulse уже запущен — он в области уведомлений.",
   "Host.Busy.LookingForGame": "Ищем Hearthstone…",
-  "Host.Busy.LoadingCards": "Загружаем данные карт…",
+  "Host.Busy.LoadingCards": "Данные карт загружаются…",
   "Host.Busy.StartupProblem": "Ошибка запуска — подробности в hearthpulse.log в папке данных.",
   "Host.Busy.GameNotFound": "Hearthstone не найден. Если он установлен в необычное место, укажите папку в settings.json (HearthstonePath).",
   "Host.Busy.NothingToImport": "Hearthstone не найден — импортировать нечего.",

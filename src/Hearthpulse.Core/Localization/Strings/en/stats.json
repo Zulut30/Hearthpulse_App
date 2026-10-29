@@ -69,7 +69,7 @@
   "Stats.Bg.SimAccuracyTip": "Each fight's prediction is compared with what happened: the hero damage after the fight against the range the simulator gave for 8 of 10 fights, and the result it found most likely.",
   "Stats.Bg.MinPerGame": "{0:0}\u00a0min a game",
   "Stats.Bg.NoteDuos": "Community numbers are for solo games, so Duos has no vs Global.",
-  "Stats.Bg.NoteLoading": "Community numbers are loading…",
+  "Stats.Bg.NoteLoading": "Loading community data…",
   "Stats.Bg.NoteSource": "vs Global: {0}, {1}. Pick rate counts games that saved the hero offer.",
   "Stats.Bg.PlayedAs": "Played as",
   "Stats.Bg.Place": "Place",

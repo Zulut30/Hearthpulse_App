@@ -51,7 +51,7 @@ public sealed partial class LocBindingTests
             Assert.Contains("not confirmed", texts);
             Assert.Contains("Murloc", texts);
             Assert.Contains("Beast", texts);
-            Assert.DoesNotContain("Reading lobby…", texts);
+            Assert.DoesNotContain(Loc.T("Overlay.Bar.ReadingLobby"), texts);
 
             var rows = panel.GetVisualDescendants().OfType<Grid>().Where(g => g.Classes.Contains("bgLobbyRow")).ToList();
             Assert.Equal(3, rows.Count);
