@@ -77,6 +77,36 @@ public sealed class UpdateTests
     public void The_linux_package_follows_how_this_copy_was_installed(string appDirectory, string existingFile, string expected) =>
         Assert.Equal(expected, UpdateService.LinuxFlavor(appDirectory, path => path == existingFile));
 
+    // The Windows zip is the cross-platform preview. The Windows app outside the folder its setup registered (moved, or
+    // copied elsewhere) is not a zip copy: unpacking the preview over it replaced the app with another one.
+    [Theory]
+    [InlineData(UpdateTarget.WindowsPortable, true, true)]
+    [InlineData(UpdateTarget.WindowsPortable, false, false)]
+    [InlineData(UpdateTarget.WindowsInstalled, false, true)]
+    [InlineData(UpdateTarget.LinuxPackage, false, true)]
+    public void Only_the_preview_s_own_folder_unpacks_the_preview_zip(UpdateTarget target, bool previewFolder, bool expected)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "hp-app");
+        Assert.Equal(expected, UpdateService.InstallsItself(target, folder, path => previewFolder && path == Path.Combine(folder, "Avalonia.Base.dll")));
+    }
+
+    [Fact]
+    public async Task The_update_loop_only_tells_the_windows_app_outside_its_setup_folder_about_a_release()
+    {
+        // The loop itself, not only the check: a zip copy that is not the preview gets "available", never a download.
+        using var http = new HttpClient(new Stub(HttpStatusCode.OK, AllTargetsReply));
+        var outcome = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var folder = Path.Combine(Path.GetTempPath(), "hp-moved-app");
+
+        _ = UpdateService.WatchAsync(http, notifyOnly: false,
+            available: _ => outcome.TrySetResult("available"),
+            staged: _ => outcome.TrySetResult("staged"),
+            failed: _ => outcome.TrySetResult("failed"),
+            TimeSpan.Zero, UpdateTarget.WindowsPortable, folder, _ => false);
+
+        Assert.Equal("available", await outcome.Task.WaitAsync(TimeSpan.FromSeconds(10)));
+    }
+
     [Fact]
     public void The_reply_for_this_platform_gives_a_download_url()
     {

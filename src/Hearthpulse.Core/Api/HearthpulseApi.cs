@@ -92,6 +92,11 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
         {
             return ApiResult.Failure(ApiError.Offline(ex.Message));
         }
+        catch (InvalidOperationException ex)
+        {
+            // An answer in a charset .NET does not know (a captive portal, a proxy) cannot be read as text.
+            return ApiResult.Failure(ApiError.Offline(ex.Message));
+        }
     }
 
     internal static ApiResult Parse(int status, string text)

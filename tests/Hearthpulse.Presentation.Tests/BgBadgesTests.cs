@@ -190,9 +190,24 @@ public sealed class BgBadgesTests
         Assert.DoesNotContain(nameof(WpfOverlay.ShowBgBadges), changes);
         Assert.Same(badges, (object)model.BgBadges);
 
-        // A real change still comes through on the next frame.
+        // A real change still comes through on the next frame, in the same list: the items control replaces the badges
+        // that changed and keeps the rest (a new list built all of them again).
+        var tops = ((IEnumerable<dynamic>)model.BgBadges).Select(b => (double)b.Top).ToList();
         settings.LeaderboardTop = 0.2;
         model.ArrangeLeaderboard(1920.0, 1080.0, settings);
+        Assert.Same(badges, (object)model.BgBadges);
+        Assert.All(((IEnumerable<dynamic>)model.BgBadges).Select(b => (double)b.Top).Zip(tops), t => Assert.NotEqual(t.Second, t.First));
+
+        // One lobby row changing replaces its badge alone.
+        var kept = ((IEnumerable<object>)model.BgBadges).ToList();
+        model.Update(Live(Lobby([Murlocs, Tie with { TechLevel = Tie.TechLevel + 1 }, Dead])), Cards, settings, null, null);
+        var now = ((IEnumerable<object>)model.BgBadges).ToList();
+        Assert.Equal(1, now.Zip(kept).Count(p => !ReferenceEquals(p.First, p.Second)));
+
+        // Out of empty and into it the list is new and said to be, so bindings on the list itself look again.
+        settings.ShowBgLeaderboardBadges = false;
+        model.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
+        Assert.Empty((IEnumerable<object>)model.BgBadges);
         Assert.Contains(nameof(WpfOverlay.BgBadges), changes);
         Assert.NotSame(badges, (object)model.BgBadges);
     }

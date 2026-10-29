@@ -63,6 +63,26 @@ public sealed class HistoryMigrationTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void A_history_file_that_is_not_a_database_is_put_aside_and_a_new_one_started()
+    {
+        // A broken disk or a truncated copy: the app used to stop at startup (WPF stayed running without a window).
+        var path = TempDb();
+        var junk = "not a database, just junk bytes from a broken copy "u8.ToArray();
+        File.WriteAllBytes(path, junk);
+
+        var store = new HistoryStore(path);
+        Assert.Empty(store.Recent());
+        Assert.True(store.Add(new GameRecord { Key = "g", StartedAt = new DateTime(2026, 10, 29, 12, 0, 0), Mode = "Ranked", Result = "Win" }));
+        Assert.Single(store.Recent());
+
+        var aside = Assert.Single(Directory.GetFiles(Path.GetDirectoryName(path)!, Path.GetFileName(path) + ".broken-*"));
+        Assert.Equal(junk, File.ReadAllBytes(aside));
+        SqliteConnection.ClearAllPools();
+        File.Delete(path);
+        File.Delete(aside);
+    }
+
+    [Fact]
     public void New_fields_round_trip()
     {
         var path = TempDb();

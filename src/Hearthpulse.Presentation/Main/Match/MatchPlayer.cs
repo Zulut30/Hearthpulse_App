@@ -77,7 +77,18 @@ public sealed partial class MatchViewModel
     private int _timelineCurrent = -1;
     private double _timelinePosition;
     private MatchBgStepView? _battlegroundsStep;
-    private IReadOnlyList<MatchLeaderLine> _leaders = [];
+    private readonly SyncList<MatchLeaderLine> _leaders = new();
+
+    // The lists of the Battlegrounds step on screen: each step syncs them (see Keep) and the step shown holds them.
+    private readonly SyncList<MatchBgCardView> _bgShop = new();
+    private readonly SyncList<MatchBgCardView> _bgBoard = new();
+    private readonly SyncList<MatchBgCardView> _bgOpponentBoard = new();
+    private readonly SyncList<MatchBgCardView> _bgHand = new();
+    private readonly SyncList<MatchChoiceView> _bgChoices = new();
+    private readonly SyncList<MatchBgCardView> _heroPowers = new();
+    private readonly SyncList<MatchBgCardView> _heroTrinkets = new();
+    private readonly SyncList<MatchBgCardView> _opponentPowers = new();
+    private readonly SyncList<MatchBgCardView> _opponentTrinkets = new();
 
     public RelayCommand PreviousEvent { get; }
 
@@ -136,7 +147,7 @@ public sealed partial class MatchViewModel
         get => _battlegroundsStep;
         private set
         {
-            if (Set(ref _battlegroundsStep, value))
+            if (Set(ref _battlegroundsStep, BattlegroundsInPlace(value)))
             {
                 Raise(nameof(BattlegroundsWon));
                 Raise(nameof(BattlegroundsLost));
@@ -155,7 +166,7 @@ public sealed partial class MatchViewModel
     /// <summary>The step ends a combat (won, lost or tied): the step bar carries the result.</summary>
     public bool BattlegroundsCombatOver => _battlegroundsStep?.ResultKey is not null;
 
-    public IReadOnlyList<MatchLeaderLine> Leaders { get => _leaders; private set => Set(ref _leaders, value); }
+    public IReadOnlyList<MatchLeaderLine> Leaders { get => _leaders; private set => Keep(_leaders, value); }
 
     /// <summary>"This turn", or "This combat" during a Battlegrounds combat.</summary>
     public string ActionsTitle => Loc.T(_battlegroundsStep?.InCombat == true ? "Match.Player.ThisCombat" : "Match.View.ThisTurn");
@@ -354,6 +365,43 @@ public sealed partial class MatchViewModel
         Actions = _page is not null && TimelineCurrent >= 0 && TimelineCurrent < _segments.Count
             ? StretchActions(_page.Marks, _segments[TimelineCurrent], _frame)
             : [];
+    }
+
+    /// <summary>
+    /// The step with the lists the view already binds, synced to the step's: the cards, hero powers and trinkets that did
+    /// not change keep their rows. Without a step the lists are emptied.
+    /// </summary>
+    private MatchBgStepView? BattlegroundsInPlace(MatchBgStepView? step) => step is null
+        ? Emptied()
+        : step with
+        {
+            Hero = InPlace(step.Hero, _heroPowers, _heroTrinkets),
+            Opponent = InPlace(step.Opponent, _opponentPowers, _opponentTrinkets),
+            Board = Synced(_bgBoard, step.Board),
+            OpponentBoard = Synced(_bgOpponentBoard, step.OpponentBoard),
+            Shop = Synced(_bgShop, step.Shop),
+            Hand = Synced(_bgHand, step.Hand),
+            Choices = Synced(_bgChoices, step.Choices),
+        };
+
+    private MatchBgStepView? Emptied()
+    {
+        foreach (var list in new[] { _bgShop, _bgBoard, _bgOpponentBoard, _bgHand, _heroPowers, _heroTrinkets, _opponentPowers, _opponentTrinkets })
+        {
+            list.Sync([]);
+        }
+
+        _bgChoices.Sync([]);
+        return null;
+    }
+
+    private static MatchBgHeroView? InPlace(MatchBgHeroView? hero, SyncList<MatchBgCardView> powers, SyncList<MatchBgCardView> trinkets) =>
+        hero is null ? null : hero with { HeroPowers = Synced(powers, hero.HeroPowers), Trinkets = Synced(trinkets, hero.Trinkets) };
+
+    private static SyncList<T> Synced<T>(SyncList<T> list, IReadOnlyList<T> items)
+    {
+        list.Sync(items);
+        return list;
     }
 
     /// <summary>A leaderboard row as shown: health with armor, the state in the tooltip.</summary>

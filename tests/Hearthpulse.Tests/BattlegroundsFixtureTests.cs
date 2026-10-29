@@ -54,6 +54,31 @@ public sealed class BattlegroundsFixtureTests(ITestOutputHelper output)
         // Inferred from the shop: the two tier 1 shops showed a Dragon, a Murloc, a Pirate and a neutral minion.
         Assert.Equal(["DRAGON", "MURLOC", "PIRATE"], view.Races);
     }
+
+    /// <summary>
+    /// The minions in play counted at every block end (what a combat's result is read from) are what the two filtered
+    /// scans of every entity counted before stage 10 of the audit made it one pass.
+    /// </summary>
+    [Fact]
+    public void Minions_in_play_count_as_the_scans_did_at_every_block_end()
+    {
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        var blocks = 0;
+        foreach (var line in Lines())
+        {
+            parser.Feed(line);
+            if (parser.Game is not { IsBattlegrounds: true, LocalPlayerId: > 0 } game || !line.Contains("BLOCK_END", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            int Scan(int controller) => game.Entities.Values.Count(e => e.Controller == controller && e.InPlay && e.IsMinion);
+            Assert.Equal((Scan(game.LocalPlayerId), Scan(game.OpponentPlayerId)), BattlegroundsTracker.MinionsInPlay(game, game.LocalPlayerId, game.OpponentPlayerId));
+            blocks++;
+        }
+
+        Assert.True(blocks > 100, $"{blocks} block ends");
+    }
 }
 
 /// <summary>Feeds a Power log through <see cref="PowerParser"/> + <see cref="BattlegroundsTracker"/> and keeps the views a test looks at.</summary>

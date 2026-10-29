@@ -1,4 +1,9 @@
 using System.Globalization;
+#if HEARTHPULSE_WPF
+using Hearthpulse.App.Infrastructure;
+#else
+using Hearthpulse.UI.Infrastructure;
+#endif
 using Hearthpulse.Core;
 using Hearthpulse.Core.Tracking;
 
@@ -17,7 +22,7 @@ namespace Hearthpulse.UI.Overlay;
 public sealed partial class OverlayViewModel
 {
     private bool _showBgBadges;
-    private IReadOnlyList<BgBadge> _bgBadges = [];
+    private SyncList<BgBadge> _bgBadges = new();
     private bool _bgBadgesOn;
     private double _surfaceWidth;
     private double _surfaceHeight;
@@ -26,7 +31,11 @@ public sealed partial class OverlayViewModel
 
     public bool ShowBgBadges { get => _showBgBadges; private set => Set(ref _showBgBadges, value); }
 
-    public IReadOnlyList<BgBadge> BgBadges { get => _bgBadges; private set => Set(ref _bgBadges, value); }
+    /// <summary>
+    /// Changed in place (<see cref="Sync{T}"/>): a fight or a tavern turn changes one or two badges, and a new list made
+    /// the overlay build all seven again (audit, stage 10).
+    /// </summary>
+    public IReadOnlyList<BgBadge> BgBadges => _bgBadges;
 
     /// <summary>
     /// The view laid the surface out at <paramref name="surfaceWidth"/> x <paramref name="surfaceHeight"/> overlay units
@@ -88,7 +97,7 @@ public sealed partial class OverlayViewModel
         }
 
         ShowBgBadges = badges.Count > 0;
-        Replace(nameof(BgBadges), badges, Print, () => BgBadges = badges);
+        Replace(nameof(BgBadges), badges, Print, () => Sync(ref _bgBadges, nameof(BgBadges), badges));
 
         static string Print(BgBadge b) => string.Create(CultureInfo.InvariantCulture,
             $"{b.Place}:{b.Left:0.#}:{b.Top:0.#}:{b.Height:0.#}:{b.Tier}:{b.Tribe?.Key}:{b.Tribe?.Glyph}:{b.TribeCount}:{b.Dead}");

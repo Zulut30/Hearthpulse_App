@@ -71,9 +71,9 @@ internal static class LogReplay
             : [];
 
     /// <summary>A session with test hooks: replay clock, Hearthstone "running", no memory reads.</summary>
-    public static (GameSession Session, Action<DateTime> SetClock, string Db) NewSession(CardDb cards)
+    public static (GameSession Session, Action<DateTime> SetClock, string Db) NewSession(CardDb cards, string? db = null)
     {
-        var db = Path.Combine(Path.GetTempPath(), $"hp-bench-{Guid.NewGuid():N}.db");
+        db ??= Path.Combine(Path.GetTempPath(), $"hp-bench-{Guid.NewGuid():N}.db");
         var now = DateTime.UtcNow;
         var session = new GameSession(new HistoryStore(db), new HearthstoneMemory())
         {

@@ -158,6 +158,32 @@ public sealed partial class HistoryStore
     public HistoryStore(string path)
     {
         _connectionString = new SqliteConnectionStringBuilder { DataSource = path, Cache = SqliteCacheMode.Shared }.ToString();
+        try
+        {
+            CreateSchema();
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode is SqliteCorrupt or SqliteNotADatabase && File.Exists(path))
+        {
+            // A file that is not a database (a broken disk, a truncated copy) stopped the app at every start: it is kept
+            // next to the new one, and the history starts again.
+            SqliteConnection.ClearAllPools();
+            var aside = string.Create(CultureInfo.InvariantCulture, $"{path}.broken-{DateTime.UtcNow:yyyyMMddHHmmss}");
+            File.Move(path, aside);
+            foreach (var journal in new[] { "-wal", "-shm", "-journal" }.Where(j => File.Exists(path + j)))
+            {
+                File.Move(path + journal, aside + journal);
+            }
+
+            Diag.Error($"The history could not be read and was put aside as {Path.GetFileName(aside)}; a new one is started", ex);
+            CreateSchema();
+        }
+    }
+
+    private const int SqliteCorrupt = 11;
+    private const int SqliteNotADatabase = 26;
+
+    private void CreateSchema()
+    {
         using var connection = Open();
         Execute(connection, """
             CREATE TABLE IF NOT EXISTS games (

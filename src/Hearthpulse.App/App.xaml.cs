@@ -299,8 +299,7 @@ public partial class App : Application
 
         _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _mainViewModel.RefreshAsync().Forget("History refresh"));
         _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), _settings.Save);
-        // The pool rebuilds its totals every 6 hours, so asking more often only spends its free requests.
-        _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(6) };
+        _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Meta refresh");
 
         _session.SnapshotChanged += OnSnapshot;
@@ -422,7 +421,9 @@ public partial class App : Application
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();
             _uiProbe = new System.Threading.Timer(ProbeUiThread, null, 2000, 1000);
-            SetBusy(null);
+            SetBusy(_installDir is null
+                ? () => Loc.T("Host.Busy.GameNotFound")
+                : null);
 
             if (logConfigChanged && HearthstoneInstall.IsRunning())
             {
@@ -581,7 +582,8 @@ public partial class App : Application
             running.Cancel.Cancel();
         }
 
-        var cancel = new CancellationTokenSource();
+        // Disposed when this load ends: by then a newer request has replaced it in the table, or it removed itself.
+        using var cancel = new CancellationTokenSource();
         _constructedMetaLoads[format] = (request, cancel);
         bool Latest() => _constructedMetaLoads.TryGetValue(format, out var load) && load.Request == request;
         var done = false;

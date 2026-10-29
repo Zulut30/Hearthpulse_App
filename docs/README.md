@@ -26,6 +26,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [bg-opponent-mmr.md](bg-opponent-mmr.md) | Battlegrounds opponents' MMR from Blizzard's public leaderboard, its conditions |
 | [accounts-api.md](accounts-api.md) | Sign-in with a hearthpulse.net account (OAuth device flow) |
 | [profile-upload.md](profile-upload.md) | Finished games sent to the hearthpulse.net profile |
+| [local-data.md](local-data.md) | Broken or busy settings, history and API cache files; known limits |
 
 ## Project records
 

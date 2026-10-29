@@ -54,6 +54,26 @@ public sealed class MatchTimelineTests(ITestOutputHelper output) : IDisposable
     }
 
     [Fact]
+    public void A_game_conceded_in_the_mulligan_has_the_mulligan_on_its_timeline()
+    {
+        // The game ends before MAIN_READY: the mulligan was never closed as turn 0, so the bar had no stretch at all.
+        string[] events =
+        [
+            "T 1 L 0", "E 1 L PLAY 0 HERO_08 HERO HEALTH=30", "E 2 O PLAY 0 HERO_01 HERO HEALTH=30",
+            "S BEGIN_MULLIGAN", "C MULLIGAN - CS2_120,CS2_182,CS2_029", "c CS2_029",
+            "R LOST",
+        ];
+        var name = _store.Save(Game(null).Key, ReplayFile.Write(new ReplayHeader(), events));
+        var page = MatchPage.Load(Game(name), _store, CardDb.Empty, null);
+
+        var chip = Assert.Single(page.Turns);
+        Assert.True(chip.Mulligan);
+        Assert.Equal((0, page.FrameCount - 1), (chip.FirstFrame, chip.LastFrame));
+        var span = Assert.Single(page.Timeline);
+        Assert.Equal((0, page.FrameCount - 1), (span.FirstFrame, span.LastFrame));
+    }
+
+    [Fact]
     public void Constructed_marks_follow_the_frames_and_turn_starts_are_not_events()
     {
         var page = Page();

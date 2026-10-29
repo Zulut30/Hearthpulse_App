@@ -36,6 +36,7 @@ internal static class TickBench
             return;
         }
 
+        var bg = WpfBench.BgPanels(settings);
         var vm = new OverlayViewModel();
         vm.Update(snapshot, cards, settings, null, null);
         var window = new OverlayWindow(vm, settings)
@@ -82,6 +83,11 @@ internal static class TickBench
                 var a = GC.GetAllocatedBytesForCurrentThread();
                 var t = Stopwatch.GetTimestamp();
                 vm.Update(s, cards, settings, null, null);
+                if (bg)
+                {
+                    vm.ArrangeLeaderboard(Width, Height, settings);
+                }
+
                 var u = Stopwatch.GetElapsedTime(t).TotalMilliseconds;
                 update.Add(u);
                 t = Stopwatch.GetTimestamp();
@@ -107,6 +113,30 @@ internal static class TickBench
         foreach (var (name, c) in byProperty.OrderByDescending(x => x.Value.Ms).Take(12))
         {
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"[apply] {name,-24} changed {c.Count,5:N0}x  share of Update+layout {c.Ms,8:N0} ms ({c.Ms / c.Count:N2} ms each)"));
+        }
+
+        // HP_BENCH_BG_PANELS=1: one opponent's tier going up and back on the fullest Battlegrounds snapshot, laid out: one
+        // lobby row and one leaderboard badge change, what a tavern turn does to the badges.
+        if (bg && all.LastOrDefault(s => s.Battlegrounds is { IsHeroSelection: false, Opponents.Count: >= 7 }) is { Battlegrounds: { } view } full)
+        {
+            var first = view.Opponents[0];
+            var other = full with { Battlegrounds = view with { Opponents = [first with { TechLevel = (first.TechLevel % 6) + 1 }, .. view.Opponents.Skip(1)] } };
+            vm.Update(full, cards, settings, null, null);
+            vm.ArrangeLeaderboard(Width, Height, settings);
+            window.UpdateLayout();
+            var times = new List<double>();
+            var allocated = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 40; i++)
+            {
+                var t = Stopwatch.GetTimestamp();
+                vm.Update(i % 2 == 0 ? other : full, cards, settings, null, null);
+                vm.ArrangeLeaderboard(Width, Height, settings);
+                window.UpdateLayout();
+                times.Add(Stopwatch.GetElapsedTime(t).TotalMilliseconds);
+            }
+
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"[rebuild] one opponent's tier ({vm.BgBadges.Count} badges, {vm.LobbyRows.Count} lobby rows): {Spread(times)}; alloc {(GC.GetAllocatedBytesForCurrentThread() - allocated) / 40 / 1024} KB"));
         }
 
         vm.Update(snapshot, cards, settings, null, null);
