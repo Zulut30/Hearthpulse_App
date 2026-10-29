@@ -21,9 +21,21 @@ internal sealed class DesktopApp : HearthpulseApp
     /// </summary>
     private static readonly bool SmokeTest = Environment.GetCommandLineArgs().Contains("--smoke-test");
 
+    /// <summary>How long the dashboard stays hidden in the tray before it is let go; a quick hide and show stays instant.</summary>
+    private static readonly TimeSpan MainReleaseDelay = TimeSpan.FromSeconds(60);
+
     private SingleInstance? _instance;
     private AppHost? _host;
+
+    /// <summary>
+    /// Null while there is no dashboard to show: not built yet (start minimized) or let go after a while hidden in the
+    /// tray (<see cref="ReleaseMain"/>); <see cref="ShowMain"/> builds it again.
+    /// </summary>
     private MainWindow? _main;
+
+    /// <summary>Where the last dashboard was (page, tabs, bounds), for the next one.</summary>
+    private MainPlace? _mainPlace;
+    private DispatcherTimer? _releaseMain;
     private OverlayWindow? _overlay;
     private IOverlayPlatform? _platform;
     private NativeMenuItem? _overlayItem;
@@ -87,8 +99,22 @@ internal sealed class DesktopApp : HearthpulseApp
 
         var settings = AppSettings.Load();
         _host = new AppHost(settings) { ApplyAutostart = Autostart.Apply };
-        _main = new MainWindow(_host);
-        _host.Notification += (title, text) => _main.Notify(title, text);
+        _releaseMain = new DispatcherTimer { Interval = MainReleaseDelay };
+        _releaseMain.Tick += (_, _) => ReleaseMain();
+        // Started minimized, the dashboard is built the first time it is opened from the tray. A notification with no
+        // dashboard goes to the log, as it would not show in a hidden one either.
+        _main = settings.StartMinimized ? null : CreateMain(null);
+        _host.Notification += (title, text) =>
+        {
+            if (_main is null)
+            {
+                Diag.Info($"Notification while the dashboard is let go: {title}. {text}");
+            }
+            else
+            {
+                _main.Notify(title, text);
+            }
+        };
         _host.ExitRequested += Quit;
 
         _platform = OverlayPlatform.Create();
@@ -109,10 +135,7 @@ internal sealed class DesktopApp : HearthpulseApp
             Diag.Info("No overlay on this desktop session; the dashboard still works.");
         }
 
-        if (!settings.StartMinimized)
-        {
-            _main.Show();
-        }
+        _main?.Show();
 
         SetupTray();
         ListenForActivation();
@@ -134,7 +157,11 @@ internal sealed class DesktopApp : HearthpulseApp
         var cards = _host!.Cards.Count;
         Console.WriteLine($"Smoke test: start-up {(finished ? "done" : "timed out")}, {cards} cards, "
                           + $"overlay {(_platform!.Supported ? _platform.GetType().Name : "unsupported")}, data {AppPaths.Root}");
-        _main!.AllowClose = true;
+        if (_main is not null)
+        {
+            _main.AllowClose = true;
+        }
+
         desktop.Shutdown(finished && cards > 0 ? 0 : 1);
     }
 
@@ -148,7 +175,7 @@ internal sealed class DesktopApp : HearthpulseApp
         _overlayItem.Click += (_, _) =>
         {
             _host.Settings.OverlayEnabled = !_host.Settings.OverlayEnabled;
-            _main!.View.SyncOverlaySwitch();
+            _main?.View.SyncOverlaySwitch();
             _host.OnSettingsChanged();
             _overlayItem.IsChecked = _host.Settings.OverlayEnabled;
         };
@@ -184,19 +211,90 @@ internal sealed class DesktopApp : HearthpulseApp
 
     private void ShowMain()
     {
-        if (_main is null)
+        if (_host is null)
         {
             return;
         }
 
-        _main.Show();
-        if (_main.WindowState == WindowState.Minimized)
+        _releaseMain?.Stop();
+        if (_main is null)
         {
-            _main.WindowState = WindowState.Normal;
+            _main = CreateMain(_mainPlace);
+            _main.Show();
+            if (_mainPlace is { Maximized: true })
+            {
+                _main.WindowState = WindowState.Maximized;
+            }
+        }
+        else
+        {
+            _main.Show();
+            if (_main.WindowState == WindowState.Minimized)
+            {
+                _main.WindowState = WindowState.Normal;
+            }
         }
 
         _main.Activate();
     }
+
+    /// <summary>A new dashboard, on the page, tabs and bounds of <paramref name="place"/> when given.</summary>
+    private MainWindow CreateMain(MainPlace? place)
+    {
+        var main = new MainWindow(_host!);
+        main.HiddenToTray += () =>
+        {
+            if (ReferenceEquals(main, _main))
+            {
+                _host!.Session.RequestMemoryTrim();
+                _releaseMain?.Stop();
+                _releaseMain?.Start();
+            }
+        };
+        main.PropertyChanged += (_, e) =>
+        {
+            // Building and leaving pages leaves garbage an idle app would never collect.
+            if (e.Property == Window.WindowStateProperty && main.WindowState == WindowState.Minimized && ReferenceEquals(main, _main))
+            {
+                _host!.Session.RequestMemoryTrim();
+            }
+        };
+        if (place is not null)
+        {
+            main.WindowStartupLocation = WindowStartupLocation.Manual;
+            main.Position = place.Position;
+            main.Width = place.Width;
+            main.Height = place.Height;
+            main.View.ShowPage(place.Page);
+            main.View.BattlegroundsTab = place.BattlegroundsTab;
+            main.View.ConstructedTab = place.ConstructedTab;
+        }
+
+        return main;
+    }
+
+    /// <summary>
+    /// The dashboard stayed hidden in the tray: it is let go with every page it built, and built again on the same page
+    /// when opened.
+    /// </summary>
+    private void ReleaseMain()
+    {
+        _releaseMain?.Stop();
+        if (_main is not { IsVisible: false } main)
+        {
+            return;
+        }
+
+        _mainPlace = new MainPlace(main.View.CurrentPage, main.View.BattlegroundsTab, main.View.ConstructedTab, main.Position, main.Width, main.Height,
+            main.WindowState == WindowState.Maximized);
+        _main = null;
+        main.CloseForReal();
+        Diag.Info("Main window let go while hidden in the tray");
+        _host?.Session.RequestMemoryTrim();
+    }
+
+    /// <summary>Where a dashboard is: rebuilt (back from the tray) on the same page, tabs and bounds.</summary>
+    private sealed record MainPlace(string Page, string BattlegroundsTab, string ConstructedTab, Avalonia.PixelPoint Position, double Width, double Height, bool Maximized);
 
     private void ToggleSuppressed()
     {
@@ -216,6 +314,7 @@ internal sealed class DesktopApp : HearthpulseApp
 
     private void Quit()
     {
+        _releaseMain?.Stop();
         if (_main is not null)
         {
             _main.AllowClose = true;

@@ -330,6 +330,13 @@ internal static class WpfBench
 
         Memory("every tab visited, art loaded");
         ImageCaches();
+
+        // The tray (stage 9): before, the hidden window kept every page; now the app lets it go after a minute hidden,
+        // asks MemoryTrimmer for a collection, and builds a new window on the same place when it is opened again.
+        main.Hide();
+        Pump();
+        Memory("hidden to tray (held)");
+        var place = main.Place;
         Close(main, settings);
         main = null!;
         settle.Restart();
@@ -339,6 +346,29 @@ internal static class WpfBench
         }
 
         Memory("main window closed");
+        var trimmer = new MemoryTrimmer();
+        var clock = DateTime.UtcNow;
+        trimmer.NoteActivity(clock);
+        trimmer.Tick(clock + MemoryTrimmer.MinInterval, busy: false);
+        Memory("released + trim");
+
+        var reopen = Stopwatch.StartNew();
+        var again = new MainWindow(vm);
+        again.MoveTo(place);
+        again.ShowActivated = false;
+        var rendered = false;
+        again.ContentRendered += (_, _) => rendered = true;
+        again.Show();
+        while (!rendered && reopen.ElapsedMilliseconds < 10_000)
+        {
+            Pump(DispatcherPriority.Background);
+        }
+
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+            $"[ram] reopened on {place.Page}/{place.BattlegroundsTab}/{place.ConstructedTab}: first frame in {reopen.Elapsed.TotalMilliseconds:N0} ms"));
+        Pump();
+        Memory("reopened");
+        Close(again, settings);
         GC.KeepAlive(app);
         GC.KeepAlive(catalog);
     }

@@ -43,7 +43,19 @@ public partial class App : Application
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
     private LogWatcher? _watcher;
+    /// <summary>
+    /// Null while there is no window to show: not built yet (start minimized) or let go after a while hidden in the tray
+    /// (<see cref="ReleaseMain"/>); <see cref="ShowMain"/> builds it again. Render scenes always have one.
+    /// </summary>
     private MainWindow _main = null!;
+
+    /// <summary>Where the last window was (page, tabs, bounds), for the next one.</summary>
+    private MainPlace? _mainPlace;
+
+    /// <summary>How long the window stays hidden in the tray before it is let go; a quick hide and show stays instant.</summary>
+    private static readonly TimeSpan MainReleaseDelay = TimeSpan.FromSeconds(60);
+
+    private readonly DispatcherTimer _releaseMain = new() { Interval = MainReleaseDelay };
     private MainViewModel _mainViewModel = null!;
     private OverlayWindow _overlay = null!;
     private OverlayViewModel _overlayViewModel = null!;
@@ -256,7 +268,9 @@ public partial class App : Application
             _settingsDebounce.Start();
             LoadConstructedMetaAsync().Forget("Constructed meta load");
         };
-        _main = CreateMainWindow();
+        _releaseMain.Tick += (_, _) => ReleaseMain();
+        // Started minimized, the window is built the first time it is opened from the tray.
+        _main = _renderDir is null && _settings.StartMinimized ? null! : CreateMainWindow();
         _overlay = CreateOverlay();
         if (_renderDir is not null)
         {
@@ -828,13 +842,62 @@ public partial class App : Application
         }
     }
 
-    private MainWindow CreateMainWindow()
+    /// <summary>A new main window, on the page, tabs and bounds of <paramref name="place"/> when given.</summary>
+    private MainWindow CreateMainWindow(MainPlace? place = null)
     {
         var main = new MainWindow(_mainViewModel);
         main.SettingsChanged += OnSettingsChanged;
         main.ReimportRequested += () => ImportLogsAsync(force: true).Forget("Log import");
         main.ArrangeOverlayRequested += () => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing;
+        main.IsVisibleChanged += OnMainVisibleChanged;
+        main.StateChanged += (_, _) =>
+        {
+            // Building and leaving pages leaves garbage an idle app would never collect.
+            if (ReferenceEquals(main, _main) && main.WindowState == WindowState.Minimized)
+            {
+                _session.RequestMemoryTrim();
+            }
+        };
+        if (place is not null)
+        {
+            main.MoveTo(place);
+        }
+
         return main;
+    }
+
+    private void OnMainVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (!ReferenceEquals(sender, _main) || _renderDir is not null)
+        {
+            return;
+        }
+
+        _releaseMain.Stop();
+        if (!_main.IsVisible)
+        {
+            _session.RequestMemoryTrim();
+            _releaseMain.Start();
+        }
+    }
+
+    /// <summary>
+    /// The window stayed hidden in the tray: it is let go with every page it built, and built again on the same page when
+    /// opened (about half a second). Bench, all pages and tabs open, then the memory trim: private 214–233 → 166–172 MB.
+    /// </summary>
+    private void ReleaseMain()
+    {
+        _releaseMain.Stop();
+        if (_main is not { IsVisible: false } main)
+        {
+            return;
+        }
+
+        _mainPlace = main.Place;
+        _main = null!;
+        main.CloseForReal();
+        Diag.Info("Main window let go while hidden in the tray");
+        _session.RequestMemoryTrim();
     }
 
     private OverlayWindow CreateOverlay()
@@ -875,28 +938,18 @@ public partial class App : Application
             return;
         }
 
-        var oldMain = _main;
-        var bounds = oldMain.WindowState == WindowState.Normal ? new Rect(oldMain.Left, oldMain.Top, oldMain.Width, oldMain.Height) : oldMain.RestoreBounds;
-        var main = CreateMainWindow();
-        main.WindowStartupLocation = WindowStartupLocation.Manual;
-        main.Left = bounds.Left;
-        main.Top = bounds.Top;
-        main.Width = bounds.Width;
-        main.Height = bounds.Height;
-        main.ShowPage(oldMain.CurrentPage);
-        _main = main;
-        if (oldMain.IsVisible)
+        // A window hidden in the tray (or not built yet) takes the new colours when it is next opened.
+        if (_main is { } oldMain)
         {
-            main.Show();
-            if (oldMain.WindowState == WindowState.Maximized)
+            _mainPlace = oldMain.Place;
+            _main = null!;
+            if (oldMain.IsVisible)
             {
-                main.WindowState = WindowState.Maximized;
+                ShowMain();
             }
 
-            main.Activate();
+            oldMain.CloseForReal();
         }
-
-        oldMain.CloseForReal();
 
         var oldOverlay = _overlay;
         _overlay = CreateOverlay();
@@ -1032,10 +1085,23 @@ public partial class App : Application
 
     private void ShowMain()
     {
-        _main.Show();
-        if (_main.WindowState == WindowState.Minimized)
+        _releaseMain.Stop();
+        if (_main is null)
         {
-            _main.WindowState = WindowState.Normal;
+            _main = CreateMainWindow(_mainPlace);
+            _main.Show();
+            if (_mainPlace is { Maximized: true })
+            {
+                _main.WindowState = WindowState.Maximized;
+            }
+        }
+        else
+        {
+            _main.Show();
+            if (_main.WindowState == WindowState.Minimized)
+            {
+                _main.WindowState = WindowState.Normal;
+            }
         }
 
         _main.Activate();
@@ -1044,7 +1110,7 @@ public partial class App : Application
     private void ToggleOverlaySetting()
     {
         _settings.OverlayEnabled = !_settings.OverlayEnabled;
-        _main.SyncOverlaySwitch();
+        _main?.SyncOverlaySwitch();
         OnSettingsChanged();
     }
 
@@ -1191,7 +1257,10 @@ public partial class App : Application
 
     private void Quit(int exitCode = 0)
     {
-        _main.CloseForReal();
+        _releaseMain.Stop();
+        var main = _main;
+        _main = null!;
+        main?.CloseForReal();
         _overlay.Close();
         Shutdown(exitCode);
     }

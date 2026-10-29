@@ -27,6 +27,20 @@ public partial class MainWindow : Window
     /// <summary>When false, closing only hides the window (the app keeps running in the tray).</summary>
     public bool AllowClose { get; set; }
 
+    /// <summary>Raised when closing only hid the window in the tray.</summary>
+    public event Action? HiddenToTray;
+
+    /// <summary>
+    /// Closes for good and lets go of the dashboard's view model, which lives on with the app: the view stops listening
+    /// to it, so nothing keeps this window and its pages.
+    /// </summary>
+    public void CloseForReal()
+    {
+        AllowClose = true;
+        Close();
+        View.DataContext = null;
+    }
+
     public void Notify(string title, string text)
     {
         _notifications ??= new WindowNotificationManager(this) { Position = NotificationPosition.BottomRight, MaxItems = 3 };
@@ -39,6 +53,7 @@ public partial class MainWindow : Window
         {
             e.Cancel = true;
             Hide();
+            HiddenToTray?.Invoke();
         }
 
         base.OnClosing(e);

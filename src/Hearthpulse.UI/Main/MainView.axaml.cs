@@ -93,7 +93,7 @@ public partial class MainView : UserControl
     }
 
     /// <summary>The open page, as <see cref="ShowPage"/> takes it.</summary>
-    private string CurrentPage =>
+    public string CurrentPage =>
         NavBattlegrounds.IsChecked == true ? "Battlegrounds"
         : NavStandard.IsChecked == true ? ConstructedPage.Standard
         : NavWild.IsChecked == true ? ConstructedPage.Wild
@@ -159,6 +159,7 @@ public partial class MainView : UserControl
             _viewModel.HistoryRequested -= ShowHistoryGame;
             _viewModel.ThemeChanged -= OnThemeChanged;
             _viewModel.PanelToggled -= OnPanelToggled;
+            StopMenuListeners();
         }
 
         _viewModel = DataContext as MainViewModel;
@@ -410,6 +411,38 @@ public partial class MainView : UserControl
         Dispatcher.UIThread.Post(UpdateTilePanels, DispatcherPriority.Loaded);
     }
 
+    /// <summary>The open Battlegrounds tab ("Heroes", "Comps", "Trinkets", "Cards", "Mine"), kept when the window is rebuilt.</summary>
+    public string BattlegroundsTab
+    {
+        get => TabComps.IsChecked == true ? "Comps"
+            : TabTrinkets.IsChecked == true ? "Trinkets"
+            : TabCards.IsChecked == true ? "Cards"
+            : TabMine.IsChecked == true ? "Mine"
+            : "Heroes";
+        set
+        {
+            (value switch
+            {
+                "Comps" => TabComps,
+                "Trinkets" => TabTrinkets,
+                "Cards" => TabCards,
+                "Mine" => TabMine,
+                _ => TabHeroes,
+            }).IsChecked = true;
+            UpdateTabs();
+        }
+    }
+
+    /// <summary>The open Constructed tab ("Decks", "Tiers", "Top", "Matchups"), kept when the window is rebuilt.</summary>
+    public string ConstructedTab
+    {
+        get => TabMetaTiers.IsChecked == true ? "Tiers"
+            : TabMetaDecks.IsChecked == true ? "Top"
+            : TabMetaMatchups.IsChecked == true ? "Matchups"
+            : "Decks";
+        set => ShowConstructedTab(value);
+    }
+
     /// <summary>
     /// Opens a Battlegrounds tier list tab ("Heroes", "Comps", "Trinkets", "Cards") and scrolls the tabs to the top of the
     /// page (used by the UI render check).
@@ -545,6 +578,7 @@ public partial class MainView : UserControl
         }
 
         menu.Items.Clear();
+        StopMenuListeners();
         foreach (var toggle in viewModel.PanelToggles)
         {
             var name = new TextBlock { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
@@ -562,9 +596,27 @@ public partial class MainView : UserControl
             }
 
             Show();
-            toggle.PropertyChanged += (_, _) => Show();
+            PropertyChangedEventHandler listener = (_, _) => Show();
+            toggle.PropertyChanged += listener;
+            _menuListeners.Add(() => toggle.PropertyChanged -= listener);
             menu.Items.Add(item);
         }
+    }
+
+    /// <summary>
+    /// The toggles live with the view model: a menu item still listening to them keeps this view (its flyout once opened
+    /// is part of the window), and a new data context would add a second listener.
+    /// </summary>
+    private readonly List<Action> _menuListeners = [];
+
+    private void StopMenuListeners()
+    {
+        foreach (var stop in _menuListeners)
+        {
+            stop();
+        }
+
+        _menuListeners.Clear();
     }
 
     /// <summary>A live-bar button switched a panel: the settings page shows it too (its switches bind to AppSettings, which does not notify), then save and apply.</summary>
