@@ -17,7 +17,7 @@ public interface IChartValue
 /// tag of <see cref="StatsLineChart"/>, and the points, curve and tag of <see cref="RatingChart"/>. Numbers only: each UI measures its own
 /// text, passes the widths in and draws with its own framework.
 /// </summary>
-public static class ChartGeometry
+internal static class ChartGeometry
 {
     /// <summary>Line chart plot insets: room right of the last point, above the highest and for the game numbers below.</summary>
     public const double LineRight = 14;
@@ -213,7 +213,7 @@ public static class ChartGeometry
 /// <see cref="MiniBars"/> (a share per place with the community's as a tick) and <see cref="ResultBars"/> (wins under
 /// losses per column). Numbers only, like <see cref="ChartGeometry"/>.
 /// </summary>
-public static class SmallChartGeometry
+internal static class SmallChartGeometry
 {
     /// <summary>Space around a sparkline.</summary>
     public const double SparkPad = 3;
@@ -309,25 +309,25 @@ public static class SmallChartGeometry
 }
 
 /// <summary>One mini bar: left, width, fill height (0: none) and the compare tick's y (null: none).</summary>
-public sealed record MiniBar(double X, double Width, double Fill, double? Tick);
+internal sealed record MiniBar(double X, double Width, double Fill, double? Tick);
 
 /// <summary>Laid-out mini bars: the plot's height (above the labels), the bars and the marker's x (null: none).</summary>
-public sealed record MiniBarsPlot(double Plot, IReadOnlyList<MiniBar> Bars, double? MarkerX);
+internal sealed record MiniBarsPlot(double Plot, IReadOnlyList<MiniBar> Bars, double? MarkerX);
 
 /// <summary>One result column: its bar's left, the wins and losses and their heights.</summary>
-public sealed record ResultColumn(double X, int Won, int Lost, double WinHeight, double LossHeight);
+internal sealed record ResultColumn(double X, int Won, int Lost, double WinHeight, double LossHeight);
 
 /// <summary>Laid-out result bars: the baseline's y, each column's slot and bar width, and the columns.</summary>
-public sealed record ResultBarsPlot(double Baseline, double Slot, double Bar, IReadOnlyList<ResultColumn> Columns);
+internal sealed record ResultBarsPlot(double Baseline, double Slot, double Bar, IReadOnlyList<ResultColumn> Columns);
 
 /// <summary>A laid-out rating chart: each rating's position, the lowest and highest rating and the y of their guides.</summary>
-public sealed record RatingPlot((double X, double Y)[] At, int Min, int Max, double MinY, double MaxY);
+internal sealed record RatingPlot((double X, double Y)[] At, int Min, int Max, double MinY, double MaxY);
 
 /// <summary>One cubic Bézier of a curve: two control points and the end point.</summary>
-public readonly record struct CurveSegment(double X1, double Y1, double X2, double Y2, double X, double Y);
+internal readonly record struct CurveSegment(double X1, double Y1, double X2, double Y2, double X, double Y);
 
 /// <summary>A laid-out line chart: each point's position, the plot's left edge and the lowest and highest point.</summary>
-public sealed record LinePlot((double X, double Y)[] At, double Left, int Lowest, int Highest)
+internal sealed record LinePlot((double X, double Y)[] At, double Left, int Lowest, int Highest)
 {
     public static LinePlot Empty { get; } = new([], 10, 0, 0);
 }

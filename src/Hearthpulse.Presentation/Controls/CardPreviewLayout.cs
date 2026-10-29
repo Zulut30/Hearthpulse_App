@@ -24,7 +24,7 @@ public enum CardPreviewPlacement
 }
 
 /// <summary>A rectangle in the preview host's pixels.</summary>
-public readonly record struct PreviewRect(double X, double Y, double Width, double Height)
+internal readonly record struct PreviewRect(double X, double Y, double Width, double Height)
 {
     public double Right => X + Width;
 
@@ -36,7 +36,7 @@ public readonly record struct PreviewRect(double X, double Y, double Width, doub
 /// panel (in a window page: beside the row's list, at the row), so it never covers the row being read, and pulled
 /// back inside the host near its edges. Each UI measures the preview and the elements and passes them in.
 /// </summary>
-public static class CardPreviewLayout
+internal static class CardPreviewLayout
 {
     /// <summary>Gap between the preview and what it opens beside.</summary>
     public const double Gap = 10;

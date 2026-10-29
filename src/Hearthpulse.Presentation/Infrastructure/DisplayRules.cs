@@ -11,7 +11,7 @@ namespace Hearthpulse.UI.Infrastructure;
 /// The rules behind both UIs' value converters (<c>Converters.cs</c>): what counts as shown, which theme brush a value
 /// takes and how wide a share bar is. The converters only look the brush up or wrap the result for their framework.
 /// </summary>
-public static class DisplayRules
+internal static class DisplayRules
 {
     /// <summary>True when the value is something to show: true, non-zero, non-empty, non-null.</summary>
     public static bool Truthy(object? value) => value switch

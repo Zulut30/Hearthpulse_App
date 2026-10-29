@@ -9,7 +9,7 @@ namespace Hearthpulse.UI.Main.Match;
 /// ticks, position line and diamond go, which theme brushes they take, and which step a click or a drag goes to. Each
 /// UI builds and draws the children and takes the pointer.
 /// </summary>
-public static class MatchTimelineLayout
+internal static class MatchTimelineLayout
 {
     /// <summary>The tick row: its top, height and the width of a tick's click zone.</summary>
     public const double TickTop = 4;
