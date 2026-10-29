@@ -32,6 +32,7 @@
   "Overlay.Layout.Done": "Готово",
   "Overlay.Layout.AppearsInMenus": "Появится в меню между играми",
   "Overlay.Layout.AppearsInArenaDraft": "Появится во время драфта Арены",
+  "Overlay.Layout.AppearsInBg": "Появится на Полях сражений",
 
   "Overlay.Deck.Fallback": "Колода",
   "Overlay.Deck.Counts": "{0} в колоде · {1} в руке",

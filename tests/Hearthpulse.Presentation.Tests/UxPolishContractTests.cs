@@ -219,6 +219,58 @@ public sealed class UxPolishContractTests
         window.Close();
     });
 
+    /// <summary>
+    /// The Battlegrounds panels whose placeholders now say they show only there (LocBindingTests.UxPolish pins the
+    /// Avalonia set). Not the Discover row: the note would grow its placeholder onto the mulligan bars below.
+    /// </summary>
+    private static readonly string[] BgPanels = ["bg-counters", "bg-lobby", "bgbar", "hero-row", "trinket-row", "tavern-row", "odds", "session", "lobby"];
+
+    [Fact]
+    public void Layout_mode_names_the_battlegrounds_placeholders_and_its_banner_wraps() => Sta(() =>
+    {
+        var window = OpenOverlay(new WpfOverlay { LayoutEditing = true });
+        var root = (FrameworkElement)window.Content;
+        try
+        {
+            Loc.Instance.SetLanguage(Loc.Russian);
+            root.Measure(new Size(1920, 1080));
+            root.Arrange(new Rect(0, 0, 1920, 1080));
+            Settle(root);
+
+            var panels = Descendants<MovablePanel>(root).ToDictionary(p => p.Id);
+            Assert.All(BgPanels, id => Assert.Equal(Loc.T("Overlay.Layout.AppearsInBg"), panels[id].Hint));
+            Assert.True(string.IsNullOrEmpty(panels["deck"].Hint));
+            Assert.True(string.IsNullOrEmpty(panels["choice-row"].Hint));
+            Assert.Equal(Loc.T("Overlay.Layout.AppearsInMenus"), panels["ladder-session"].Hint);
+            Assert.Equal(Loc.T("Overlay.Layout.AppearsInArenaDraft"), panels["arena-draft"].Hint);
+
+            // In Russian too (longer notes), no placeholder frame lies on another one, as OverlayXamlLoadTests checks in English.
+            var frames = panels.Values
+                .Select(p => (p.Id, Part: (FrameworkElement)p.Template.FindName("Placeholder", p)))
+                .Select(p => (p.Id, Rect: new Rect(p.Part.TranslatePoint(default, root), p.Part.RenderSize)))
+                .ToList();
+            var overlaps = frames.SelectMany((f, i) => frames.Skip(i + 1)
+                    .Where(g => Rect.Intersect(Rect.Inflate(f.Rect, 3, 3), g.Rect) is { IsEmpty: false, Width: > 3, Height: > 3 })
+                    .Select(g => $"{f.Id} / {g.Id}"))
+                .ToList();
+            Assert.True(overlaps.Count == 0, string.Join(", ", overlaps));
+
+            // Measured with real fonts, in Russian: the hints wrap and the banner fits a 4:3 surface at a 120 % overlay
+            // (1440 / 1.2 = 1200 units).
+            var banner = Named<Border>(window, "LayoutBanner");
+            var hints = Logical<TextBlock>(banner).Where(t => t.Text == Loc.T("Overlay.Layout.Hint") || t.Text == Loc.T("Overlay.Layout.InGameHint")).ToList();
+            Assert.Equal(2, hints.Count);
+            Assert.All(hints, t => Assert.Equal(TextWrapping.Wrap, t.TextWrapping));
+            Assert.True(((FrameworkElement)hints[0].Parent).MaxWidth <= 880);
+            Assert.True(banner.ActualWidth is > 0 and <= 1200, $"banner {banner.ActualWidth}");
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+            window.Close();
+        }
+    });
+
     // ---- harness ----
 
     /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>
@@ -288,7 +340,7 @@ public sealed class UxPolishContractTests
         root.UpdateLayout();
     }
 
-    private static T Named<T>(WpfWindow window, string name) where T : class =>
+    private static T Named<T>(FrameworkElement window, string name) where T : class =>
         Assert.IsType<T>(window.FindName(name) ?? throw new InvalidOperationException(name + " is not in the window"));
 
     /// <summary>The width a text block would take with no limit.</summary>
