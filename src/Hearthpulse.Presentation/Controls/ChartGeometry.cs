@@ -14,7 +14,7 @@ public interface IChartValue
 
 /// <summary>
 /// Where the custom charts of both UIs put things, in pixels of the control: the points, ticks, hover card and latest-value
-/// tag of <see cref="StatsLineChart"/>, and the tag of <see cref="RatingChart"/>. Numbers only: each UI measures its own
+/// tag of <see cref="StatsLineChart"/>, and the points, curve and tag of <see cref="RatingChart"/>. Numbers only: each UI measures its own
 /// text, passes the widths in and draws with its own framework.
 /// </summary>
 public static class ChartGeometry
@@ -37,8 +37,92 @@ public static class ChartGeometry
 
     public const double TagPaddingY = 2;
 
+    /// <summary>Rating chart plot insets: room for the guide labels on the left, a little on the other sides.</summary>
+    public const double RatingLeft = 44;
+
+    public const double RatingRight = 12;
+
+    public const double RatingTop = 12;
+
+    public const double RatingBottom = 10;
+
     /// <summary>How far the latest-value tag sits above (or below) its point.</summary>
     private const double TagOffset = 14;
+
+    /// <summary>
+    /// Where each rating of a rating chart sits (two points or more), and the y of the lowest and highest rating for the
+    /// guides. The plot keeps 12 % of the range, and at least 20 rating points, above the highest and below the lowest.
+    /// </summary>
+    public static RatingPlot Rating(IReadOnlyList<Hearthpulse.Core.Data.RatingPoint> points, double width, double height)
+    {
+        var min = points.Min(p => p.Rating);
+        var max = points.Max(p => p.Rating);
+        var pad = Math.Max(20, (max - min) * 0.12);
+        var lo = min - pad;
+        var hi = max + pad;
+        double X(int i) => RatingLeft + ((width - RatingLeft - RatingRight) * i / (points.Count - 1));
+        double Y(int rating) => RatingTop + ((height - RatingTop - RatingBottom) * (1 - ((rating - lo) / (hi - lo))));
+        var at = new (double X, double Y)[points.Count];
+        for (var i = 0; i < at.Length; i++)
+        {
+            at[i] = (X(i), Y(points[i].Rating));
+        }
+
+        return new RatingPlot(at, min, max, Y(min), Y(max));
+    }
+
+    /// <summary>
+    /// A smooth line through <paramref name="p"/> (two points or more, left to right) as monotone cubic Béziers
+    /// (Fritsch-Carlson): the curve never overshoots a point, so a dip or a peak is drawn exactly as deep as the value
+    /// really went. One segment per gap; the line starts at the first point.
+    /// </summary>
+    public static CurveSegment[] MonotoneCurve(IReadOnlyList<(double X, double Y)> p)
+    {
+        var n = p.Count;
+        var secant = new double[n - 1];
+        for (var i = 0; i < n - 1; i++)
+        {
+            secant[i] = (p[i + 1].Y - p[i].Y) / (p[i + 1].X - p[i].X);
+        }
+
+        var slope = new double[n];
+        slope[0] = secant[0];
+        slope[n - 1] = secant[n - 2];
+        for (var i = 1; i < n - 1; i++)
+        {
+            slope[i] = secant[i - 1] * secant[i] <= 0 ? 0 : (secant[i - 1] + secant[i]) / 2;
+        }
+
+        for (var i = 0; i < n - 1; i++)
+        {
+            if (secant[i] == 0)
+            {
+                slope[i] = 0;
+                slope[i + 1] = 0;
+                continue;
+            }
+
+            var a = slope[i] / secant[i];
+            var b = slope[i + 1] / secant[i];
+            var s = (a * a) + (b * b);
+            if (s > 9)
+            {
+                var t = 3 / Math.Sqrt(s);
+                slope[i] = t * a * secant[i];
+                slope[i + 1] = t * b * secant[i];
+            }
+        }
+
+        var segments = new CurveSegment[n - 1];
+        for (var i = 0; i < n - 1; i++)
+        {
+            var third = (p[i + 1].X - p[i].X) / 3;
+            segments[i] = new CurveSegment(
+                p[i].X + third, p[i].Y + (slope[i] * third), p[i + 1].X - third, p[i + 1].Y - (slope[i + 1] * third), p[i + 1].X, p[i + 1].Y);
+        }
+
+        return segments;
+    }
 
     /// <summary>
     /// Where each point of a line chart sits, the plot's left edge (room for the wider of the two guide labels, at the
@@ -235,6 +319,12 @@ public sealed record ResultColumn(double X, int Won, int Lost, double WinHeight,
 
 /// <summary>Laid-out result bars: the baseline's y, each column's slot and bar width, and the columns.</summary>
 public sealed record ResultBarsPlot(double Baseline, double Slot, double Bar, IReadOnlyList<ResultColumn> Columns);
+
+/// <summary>A laid-out rating chart: each rating's position, the lowest and highest rating and the y of their guides.</summary>
+public sealed record RatingPlot((double X, double Y)[] At, int Min, int Max, double MinY, double MaxY);
+
+/// <summary>One cubic Bézier of a curve: two control points and the end point.</summary>
+public readonly record struct CurveSegment(double X1, double Y1, double X2, double Y2, double X, double Y);
 
 /// <summary>A laid-out line chart: each point's position, the plot's left edge and the lowest and highest point.</summary>
 public sealed record LinePlot((double X, double Y)[] At, double Left, int Lowest, int Highest)

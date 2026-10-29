@@ -186,6 +186,54 @@ public sealed class ChartGeometryTests
     }
 
     [Fact]
+    public void Ratings_spread_across_the_plot_with_at_least_20_points_of_room()
+    {
+        // 400 × 120 less the insets (44 left, 12 right, 12 top, 10 bottom): x from 44 to 388, 98 high.
+        Hearthpulse.Core.Data.RatingPoint[] points = [new(new DateTime(2026, 10, 1), 6400), new(new DateTime(2026, 10, 2), 7250)];
+
+        var plot = ChartGeometry.Rating(points, 400, 120);
+
+        Assert.Equal([44.0, 388.0], plot.At.Select(p => p.X));
+        // 12 % of the 850-point range above and below: 6298 to 7352.
+        Assert.Equal(12 + (98 * (1 - (102.0 / 1054))), plot.At[0].Y, 9);
+        Assert.Equal(12 + (98 * (1 - (952.0 / 1054))), plot.At[1].Y, 9);
+        Assert.Equal((6400, 7250), (plot.Min, plot.Max));
+        Assert.Equal(plot.At[0].Y, plot.MinY, 9);
+        Assert.Equal(plot.At[1].Y, plot.MaxY, 9);
+
+        // An unchanged rating still gets 20 points above and below: the line sits halfway.
+        var flat = ChartGeometry.Rating([new(new DateTime(2026, 10, 1), 5000), new(new DateTime(2026, 10, 2), 5000)], 400, 120);
+        Assert.All(flat.At, p => Assert.Equal(61, p.Y, 9));
+    }
+
+    [Fact]
+    public void The_rating_curve_passes_through_every_point_and_never_overshoots_one()
+    {
+        (double X, double Y)[] points = [(0, 50), (10, 47), (20, 10), (30, 9), (40, 9), (50, 40), (60, 38)];
+
+        var curve = ChartGeometry.MonotoneCurve(points);
+
+        Assert.Equal(points.Length - 1, curve.Length);
+        for (var i = 0; i < curve.Length; i++)
+        {
+            var (from, to) = (points[i], points[i + 1]);
+            Assert.Equal((to.X, to.Y), (curve[i].X, curve[i].Y));
+            // Control points a third of the way in, and between the two points' heights: no bump past a dip or a peak.
+            Assert.Equal(from.X + ((to.X - from.X) / 3), curve[i].X1, 9);
+            Assert.Equal(to.X - ((to.X - from.X) / 3), curve[i].X2, 9);
+            var (low, high) = (Math.Min(from.Y, to.Y), Math.Max(from.Y, to.Y));
+            Assert.InRange(curve[i].Y1, low - 1e-9, high + 1e-9);
+            Assert.InRange(curve[i].Y2, low - 1e-9, high + 1e-9);
+        }
+
+        // A flat stretch stays flat; a peak has a level tangent.
+        Assert.Equal((9.0, 9.0), (curve[3].Y1, curve[3].Y2));
+        var peak = ChartGeometry.MonotoneCurve([(0, 10), (10, 0), (20, 10)]);
+        Assert.Equal(0, peak[0].Y2, 9);
+        Assert.Equal(0, peak[1].Y1, 9);
+    }
+
+    [Fact]
     public void A_plot_narrower_than_the_tag_puts_it_at_the_left_edge()
     {
         // 60 wide, 44 for the labels and 12 on the right: 4 pixels for a 44-wide tag.

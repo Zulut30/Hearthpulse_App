@@ -59,38 +59,27 @@ public sealed class RatingChart : FrameworkElement
             return;
         }
 
-        const double left = 44;
-        const double right = 12;
-        const double top = 12;
-        const double bottom = 10;
-        var min = points.Min(p => p.Rating);
-        var max = points.Max(p => p.Rating);
-        var pad = Math.Max(20, (max - min) * 0.12);
-        var lo = min - pad;
-        var hi = max + pad;
-        double X(int i) => left + ((w - left - right) * i / (points.Count - 1));
-        double Y(int rating) => top + ((h - top - bottom) * (1 - ((rating - lo) / (hi - lo))));
-
-        foreach (var value in new[] { max, min })
+        const double left = ChartGeometry.RatingLeft;
+        const double right = ChartGeometry.RatingRight;
+        const double bottom = ChartGeometry.RatingBottom;
+        var plot = ChartGeometry.Rating(points, w, h);
+        foreach (var (value, guideY) in new[] { (plot.Max, plot.MaxY), (plot.Min, plot.MinY) })
         {
-            var y = Math.Round(Y(value)) + 0.5;
+            var y = Math.Round(guideY) + 0.5;
             dc.DrawLine(grid, new Point(left, y), new Point(w - right, y));
             var label = new FormattedText(value.ToString("N0", CultureInfo.CurrentCulture), CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight, typeface, 11, muted, dpi);
             dc.DrawText(label, new Point(left - label.Width - 8, y - (label.Height / 2)));
         }
 
-        var at = new Point[points.Count];
-        for (var i = 0; i < at.Length; i++)
-        {
-            at[i] = new Point(X(i), Y(points[i].Rating));
-        }
+        var at = Array.ConvertAll(plot.At, p => new Point(p.X, p.Y));
+        var curve = ChartGeometry.MonotoneCurve(plot.At);
 
         var line = new StreamGeometry();
         using (var ctx = line.Open())
         {
             ctx.BeginFigure(at[0], false, false);
-            Curve(ctx, at);
+            Curve(ctx, curve);
         }
 
         line.Freeze();
@@ -99,7 +88,7 @@ public sealed class RatingChart : FrameworkElement
         {
             ctx.BeginFigure(new Point(at[0].X, h - bottom), true, true);
             ctx.LineTo(at[0], false, true);
-            Curve(ctx, at);
+            Curve(ctx, curve);
             ctx.LineTo(new Point(at[^1].X, h - bottom), false, false);
         }
 
@@ -128,52 +117,12 @@ public sealed class RatingChart : FrameworkElement
         dc.DrawText(tag, new Point(bx + ChartGeometry.TagPaddingX, by + ChartGeometry.TagPaddingY));
     }
 
-    /// <summary>
-    /// Smooth line through the points as monotone cubic Béziers (Fritsch-Carlson): the curve never overshoots a
-    /// point, so a dip or a peak is drawn exactly as deep as the rating really went.
-    /// </summary>
-    private static void Curve(StreamGeometryContext ctx, Point[] p)
+    /// <summary>The smooth line through the points (<see cref="ChartGeometry.MonotoneCurve"/>).</summary>
+    private static void Curve(StreamGeometryContext ctx, CurveSegment[] curve)
     {
-        var n = p.Length;
-        var secant = new double[n - 1];
-        for (var i = 0; i < n - 1; i++)
+        foreach (var s in curve)
         {
-            secant[i] = (p[i + 1].Y - p[i].Y) / (p[i + 1].X - p[i].X);
-        }
-
-        var slope = new double[n];
-        slope[0] = secant[0];
-        slope[n - 1] = secant[n - 2];
-        for (var i = 1; i < n - 1; i++)
-        {
-            slope[i] = secant[i - 1] * secant[i] <= 0 ? 0 : (secant[i - 1] + secant[i]) / 2;
-        }
-
-        for (var i = 0; i < n - 1; i++)
-        {
-            if (secant[i] == 0)
-            {
-                slope[i] = 0;
-                slope[i + 1] = 0;
-                continue;
-            }
-
-            var a = slope[i] / secant[i];
-            var b = slope[i + 1] / secant[i];
-            var s = (a * a) + (b * b);
-            if (s > 9)
-            {
-                var t = 3 / Math.Sqrt(s);
-                slope[i] = t * a * secant[i];
-                slope[i + 1] = t * b * secant[i];
-            }
-        }
-
-        for (var i = 0; i < n - 1; i++)
-        {
-            var third = (p[i + 1].X - p[i].X) / 3;
-            ctx.BezierTo(new Point(p[i].X + third, p[i].Y + (slope[i] * third)),
-                new Point(p[i + 1].X - third, p[i + 1].Y - (slope[i + 1] * third)), p[i + 1], true, true);
+            ctx.BezierTo(new Point(s.X1, s.Y1), new Point(s.X2, s.Y2), new Point(s.X, s.Y), true, true);
         }
     }
 }
