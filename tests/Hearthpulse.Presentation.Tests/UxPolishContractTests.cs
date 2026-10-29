@@ -277,6 +277,14 @@ public sealed class UxPolishContractTests
         Assert.True(history.Add(Game(0)));
         await (Task)model.RefreshAsync();
         Assert.False((bool)model.ShowGettingStarted);
+
+        // Step 2, the logs: only once Hearthstone is found (it runs) and nothing is missing from its log settings.
+        model.Apply(LiveSnapshot.Empty);
+        Assert.False((bool)model.LogsReady);
+        model.Apply(LiveSnapshot.Empty with { HearthstoneRunning = true, LogConfigMissing = ["Power"] });
+        Assert.False((bool)model.LogsReady);
+        model.Apply(LiveSnapshot.Empty with { HearthstoneRunning = true });
+        Assert.True((bool)model.LogsReady);
     }
 
     [Fact]
@@ -298,6 +306,12 @@ public sealed class UxPolishContractTests
             model.Apply(LiveSnapshot.Empty with { LogConfigMissing = ["Power"] });
             Settle(root);
             Assert.Equal([Waiting, Waiting, Waiting], steps.Select(Glyph));
+
+            // Not found yet: with no install folder nothing reads as missing, yet the logs are not known to be ready.
+            model.Apply(LiveSnapshot.Empty);
+            Settle(root);
+            Assert.Equal([Waiting, Waiting, Waiting], steps.Select(Glyph));
+            Assert.Equal(Loc.T("Main.Home.Start.Step2Tip"), steps[1].Children.OfType<TextBlock>().Single(t => Grid.GetColumn(t) == 1).ToolTip);
 
             // Running with the logs ready: the first two are done; the match is still to be played.
             model.Apply(LiveSnapshot.Empty with { HearthstoneRunning = true });

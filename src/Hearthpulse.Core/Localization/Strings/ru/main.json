@@ -106,6 +106,7 @@
   "Main.Home.Start.Title": "С чего начать",
   "Main.Home.Start.Step1": "Запустите Hearthstone — Hearthpulse подключится сам",
   "Main.Home.Start.Step2": "Логи игры готовы (если Hearthpulse только что их включил, перезапустите Hearthstone один раз)",
+  "Main.Home.Start.Step2Tip": "Отметится, когда Hearthstone будет найден и его логи настроены: запустите Hearthstone, и Hearthpulse их проверит",
   "Main.Home.Start.Step3": "Сыграйте матч — оверлей появится сам, а игра попадёт в «Историю»",
   "Main.Tile.SoloRating": "Рейтинг соло",
   "Main.Tile.DuosRating": "Рейтинг дуэтов",

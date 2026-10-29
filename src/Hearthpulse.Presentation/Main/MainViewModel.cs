@@ -355,6 +355,7 @@ public sealed partial class MainViewModel : Observable
         SetupWarning = s.LogConfigMissing.Count > 0
             ? Loc.F("Main.Setup.LoggingEnabled", string.Join(", ", s.LogConfigMissing))
             : string.Empty;
+        LogsReady = s.HearthstoneRunning && s.LogConfigMissing.Count == 0;
         ParseErrorsText = s.ParseErrors is { } errors
             ? Loc.F("Main.Setup.ParseErrors", errors.Total, errors.ByType)
             : string.Empty;

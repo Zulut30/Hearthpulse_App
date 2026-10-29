@@ -398,9 +398,9 @@
                                     <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step1}" TextWrapping="Wrap" VerticalAlignment="Center" />
                                 </Grid>
                                 <Grid ColumnDefinitions="28,*" Margin="0,0,0,8">
-                                    <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top" IsVisible="{Binding SetupWarning, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                                    <TextBlock Text="&#xF0766;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" IsVisible="{Binding SetupWarning, Converter={StaticResource Truthy}}" />
-                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step2}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top" IsVisible="{Binding LogsReady}" />
+                                    <TextBlock Text="&#xF0766;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" IsVisible="{Binding !LogsReady}" />
+                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step2}" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Main.Home.Start.Step2Tip}" />
                                 </Grid>
                                 <Grid ColumnDefinitions="28,*" Margin="0,0,0,14">
                                     <TextBlock Text="&#xF0766;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" />

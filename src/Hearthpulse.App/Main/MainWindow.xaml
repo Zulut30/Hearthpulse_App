@@ -381,9 +381,9 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="&#xF05E0;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top"
-                                                   Visibility="{Binding SetupWarning, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                                        <TextBlock Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" Visibility="{Binding SetupWarning, Converter={StaticResource Vis}}" />
-                                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step2}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                                   Visibility="{Binding LogsReady, Converter={StaticResource Vis}}" />
+                                        <TextBlock Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" Visibility="{Binding LogsReady, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step2}" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip="{i:Loc Main.Home.Start.Step2Tip}" />
                                     </Grid>
                                     <Grid Margin="0,0,0,14">
                                         <Grid.ColumnDefinitions>

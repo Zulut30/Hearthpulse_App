@@ -106,6 +106,7 @@
   "Main.Home.Start.Title": "Getting started",
   "Main.Home.Start.Step1": "Start Hearthstone: Hearthpulse attaches by itself",
   "Main.Home.Start.Step2": "Game logs are ready (if Hearthpulse has just turned them on, restart Hearthstone once)",
+  "Main.Home.Start.Step2Tip": "Ticked once Hearthstone is found and its log settings are right: start Hearthstone and Hearthpulse checks them",
   "Main.Home.Start.Step3": "Play a match: the overlay appears by itself and the game lands in History",
   "Main.Tile.SoloRating": "Solo rating",
   "Main.Tile.DuosRating": "Duos rating",

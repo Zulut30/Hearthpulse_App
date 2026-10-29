@@ -231,6 +231,12 @@ public sealed partial class LocBindingTests
             Dispatcher.UIThread.RunJobs();
             Assert.Equal([Waiting, Waiting, Waiting], steps.Select(Glyph));
 
+            // Not found yet: with no install folder nothing reads as missing, yet the logs are not known to be ready.
+            model.Apply(LiveSnapshot.Empty);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal([Waiting, Waiting, Waiting], steps.Select(Glyph));
+            Assert.Equal(Loc.T("Main.Home.Start.Step2Tip"), ToolTip.GetTip(steps[1].Children.OfType<TextBlock>().Single(t => Grid.GetColumn(t) == 1)));
+
             model.Apply(LiveSnapshot.Empty with { HearthstoneRunning = true });
             Dispatcher.UIThread.RunJobs();
             Assert.Equal([Done, Done, Waiting], steps.Select(Glyph));
