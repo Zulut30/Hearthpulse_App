@@ -1,5 +1,7 @@
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Hearthpulse.Core;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Tests;
@@ -28,4 +30,25 @@ public sealed partial class LocBindingTests
         Assert.Equal(Avalonia.Media.TextWrapping.Wrap, text.TextWrapping);
         Assert.Equal(model.SetupWarning, text.Text);
     }));
+
+    [Fact]
+    public void Overlay_size_and_opacity_sit_right_under_the_master_switch() => Headless.Run(() => WithMainView((view, _) =>
+    {
+        view.ShowSettingsTab("Overlay");
+        Dispatcher.UIThread.RunJobs();
+        var master = view.FindControl<CheckBox>("OverlaySetting")!;
+        var switches = view.FindControl<StackPanel>("OverlayPanelSwitches")!;
+        var card = Assert.IsType<StackPanel>(master.Parent);
+        var blocks = card.Children.ToList();
+
+        // Told apart by the values bound from the settings (distinct on purpose): they act on the whole overlay, so they
+        // come before the panels' switches, not after all of them.
+        foreach (var value in new[] { 1.25, 0.55 })
+        {
+            var slider = card.GetLogicalDescendants().OfType<Slider>().Single(s => Math.Abs(s.Value - value) < 0.001);
+            Assert.DoesNotContain(slider, switches.GetLogicalDescendants().OfType<Slider>());
+            var block = blocks.Single(b => b == slider || b.GetLogicalDescendants().Contains(slider));
+            Assert.True(blocks.IndexOf(master) < blocks.IndexOf(block) && blocks.IndexOf(block) < blocks.IndexOf(switches), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+    }, new AppSettings { OverlayScale = 1.25, OverlayOpacity = 0.55 }));
 }

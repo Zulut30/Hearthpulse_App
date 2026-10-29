@@ -40,6 +40,28 @@ public sealed partial class UxPolishContractTests
     });
 
     [Fact]
+    public void Overlay_size_and_opacity_sit_right_under_the_master_switch() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        var (window, _) = Open(model, "Settings", "Overlay");
+        var master = Named<CheckBox>(window, "OverlaySetting");
+        var switches = Named<StackPanel>(window, "OverlayPanelSwitches");
+        var card = Assert.IsType<StackPanel>(master.Parent);
+        var blocks = card.Children.Cast<UIElement>().ToList();
+
+        // They act on the whole overlay, so they come before the panels' switches, not after all of them.
+        foreach (var path in new[] { "OverlayScale", "OverlayOpacity" })
+        {
+            var slider = Logical<Slider>(card).Single(s => System.Windows.Data.BindingOperations.GetBinding(s, System.Windows.Controls.Primitives.RangeBase.ValueProperty)?.Path?.Path == path);
+            Assert.DoesNotContain(slider, Logical<Slider>(switches));
+            var block = blocks.Single(b => b == slider || Logical<Slider>(b).Contains(slider));
+            Assert.True(blocks.IndexOf(master) < blocks.IndexOf(block) && blocks.IndexOf(block) < blocks.IndexOf(switches), path);
+        }
+
+        window.Close();
+    });
+
+    [Fact]
     public void Compact_deck_row_keeps_its_name_size() => Sta(() =>
     {
         var window = OpenOverlay(new WpfOverlay());
