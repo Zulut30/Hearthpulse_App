@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Threading;
 using Hearthpulse.Core;
@@ -32,6 +33,10 @@ public sealed partial class LocBindingTests
             var view = BuildAndLetGo(model);
             for (var i = 0; i < 5 && view.IsAlive; i++)
             {
+                // The compositor keeps the closed window in a frame it has not sent yet; the app sends it on its next
+                // frame, the headless platform only when asked. Without this the window stayed whenever no earlier test
+                // on this thread had rendered (1 run of 3 on main).
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 Dispatcher.UIThread.RunJobs();
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
