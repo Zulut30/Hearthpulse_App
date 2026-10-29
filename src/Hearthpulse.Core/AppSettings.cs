@@ -325,7 +325,7 @@ public sealed class AppSettings
         {
             if (File.Exists(path))
             {
-                return FromJson(File.ReadAllText(path));
+                return FromJson(ReadWithRetry(path));
             }
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
@@ -344,6 +344,25 @@ public sealed class AppSettings
         var fresh = new AppSettings { _unpreservedFile = unpreserved };
         fresh.Migrate();
         return fresh;
+    }
+
+    /// <summary>
+    /// The file's text. A file another program holds for a moment (an antivirus scan, a cloud sync) is read again for up
+    /// to a second before it counts as unreadable: defaults would otherwise be saved over it later.
+    /// </summary>
+    private static string ReadWithRetry(string path)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return File.ReadAllText(path);
+            }
+            catch (IOException) when (attempt < 10 && File.Exists(path))
+            {
+                Thread.Sleep(100);
+            }
+        }
     }
 
     /// <summary>
