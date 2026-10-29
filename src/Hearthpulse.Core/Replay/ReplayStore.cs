@@ -209,9 +209,9 @@ public sealed class ReplayStore(string directory)
     private int DeleteLeftovers()
     {
         var deleted = 0;
-        var directory = new DirectoryInfo(Directory);
-        foreach (var file in directory.EnumerateFiles("*" + Extension).Where(f => IsOldFormat(f.FullName))
-                     .Concat(directory.EnumerateFiles("*.tmp").Where(f => f.LastWriteTimeUtc < DateTime.UtcNow.AddHours(-1))))
+        var folder = new DirectoryInfo(Directory);
+        foreach (var file in folder.EnumerateFiles("*" + Extension).Where(f => IsOldFormat(f.FullName))
+                     .Concat(folder.EnumerateFiles("*.tmp").Where(f => f.LastWriteTimeUtc < DateTime.UtcNow.AddHours(-1))))
         {
             try
             {

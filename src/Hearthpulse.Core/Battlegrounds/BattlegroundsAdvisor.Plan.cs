@@ -129,19 +129,19 @@ public sealed partial class BattlegroundsAdvisor
 
         void AddRoll()
         {
-            var cost = view.RerollCost;
-            if (gold < cost)
+            var rollCost = view.RerollCost;
+            if (gold < rollCost)
             {
                 return;
             }
 
-            gold -= cost;
+            gold -= rollCost;
             var lookFor = target is null ? Loc.T("Core.Bg.LookForBetterBoard") : Loc.F("Core.Bg.LookForComp", target.Name);
             steps.Add(new ShopStep(
                 ShopAction.Roll,
                 Loc.T("Core.Bg.Step.Roll"),
-                Loc.F("Core.Bg.Step.RollDetail", lookFor, cost, gold),
-                cost,
+                Loc.F("Core.Bg.Step.RollDetail", lookFor, rollCost, gold),
+                rollCost,
                 gold));
         }
 

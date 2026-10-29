@@ -295,7 +295,7 @@ public sealed class CardPreviewHost : Canvas
     private static FrameworkElement? ListOf(FrameworkElement element, FrameworkElement panel)
     {
         DependencyObject node = element;
-        while (VisualTreeHelper.GetParent(node) is { } parent && parent != panel)
+        while (VisualTreeHelper.GetParent(node) is { } parent && !ReferenceEquals(parent, panel))
         {
             if (parent is ItemsControl list)
             {
@@ -316,7 +316,7 @@ public sealed class CardPreviewHost : Canvas
     {
         var surface = VisualParent;
         DependencyObject node = element;
-        while (VisualTreeHelper.GetParent(node) is { } parent && parent != surface)
+        while (VisualTreeHelper.GetParent(node) is { } parent && !ReferenceEquals(parent, surface))
         {
             node = parent;
         }
