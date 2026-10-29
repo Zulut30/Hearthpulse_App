@@ -17,6 +17,11 @@ HOW IT WORKS
   - in Battlegrounds with opponent boards on, the leaderboard hero under
     your mouse, at most four times a second and only while the mouse is
     near the leaderboard;
+  - in Battlegrounds with "Opponents' MMR" on (off by default), the names
+    of the lobby's players, as the game shows them on its leaderboard. They
+    are matched on this computer against Blizzard's public leaderboard of
+    your region, which is downloaded whole once a day; the names are never
+    sent, saved or written to a log;
   - in a Constructed game with the card pool on, the card under your
     mouse, at most four times a second and only while a card in your
     hand has a pool to show;
@@ -32,7 +37,9 @@ SHORTCUTS
 DATA AND CREDITS
 - Community statistics: Hearthpulse data (api.kolodahearthstone.com), and the
   Hearthpulse stats pool when it is set up. Russian archetype names: the
-  Hearthpulse archetype dictionary (api.blizzcore.ru).
+  Hearthpulse archetype dictionary (api.blizzcore.ru). Opponents' MMR:
+  Blizzard's public Battlegrounds leaderboard (8000 and up), through
+  Hearthpulse data.
 - Card data and art: HearthstoneJSON. The mana gem picture is cut from a
   HearthstoneJSON card render; it is (c) Blizzard Entertainment, Inc.
 - Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font

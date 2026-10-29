@@ -128,7 +128,42 @@ public sealed record BgOpponent(
     int LastBoardTurn,
     string? LastResult,
     int LastDamage,
-    bool IsNextOpponent);
+    bool IsNextOpponent)
+{
+    /// <summary>
+    /// The player's name as the client shows it when the leaderboard tile is hovered; null while the opponent MMR
+    /// setting is off or the name is not read. Never saved (docs/bg-opponent-mmr.md).
+    /// </summary>
+    public string? PlayerName { get; init; }
+
+    /// <summary>Rating from the public Blizzard leaderboard matched by <see cref="PlayerName"/>; null when the setting is off.</summary>
+    public BgOpponentMmr? Mmr { get; init; }
+}
+
+/// <summary>Where an opponent's rating stands (docs/bg-opponent-mmr.md).</summary>
+public enum BgMmrStatus
+{
+    /// <summary>The setting is off.</summary>
+    Off,
+
+    /// <summary>The leaderboard is still downloading, or the lobby names are not read yet.</summary>
+    Loading,
+
+    /// <summary>Exactly one leaderboard row has this name: <see cref="BgOpponentMmr.Rating"/> is its rating.</summary>
+    Found,
+
+    /// <summary>No row has this name: the player is below the leaderboard's floor (about 8000), shown as "&lt;8000".</summary>
+    BelowThreshold,
+
+    /// <summary>Several rows share this name: no rating is picked, shown as "?".</summary>
+    Ambiguous,
+
+    /// <summary>No name, no region, or no leaderboard (offline without a cached copy).</summary>
+    Unknown,
+}
+
+/// <summary>An opponent's rating from the public leaderboard; <see cref="Rating"/> is set only for <see cref="BgMmrStatus.Found"/>.</summary>
+public sealed record BgOpponentMmr(BgMmrStatus Status, int? Rating);
 
 public sealed record HeroStats(int Games, double AveragePlace, double Top4Rate, double WinRate);
 

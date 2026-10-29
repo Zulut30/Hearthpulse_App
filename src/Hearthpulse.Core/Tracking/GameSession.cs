@@ -729,7 +729,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             WantRaces: battlegrounds && !_racesRead,
             WantRanks: inGame && game!.IsConstructedLike && !_ranksRead && game.Turn >= 1,
             _awaitingRatingKey,
-            WantDraftChoices: WantDraftChoices);
+            WantDraftChoices: WantDraftChoices,
+            WantLobbyNames: battlegrounds && WantLobbyNames);
     }
 
     /// <summary>Applies a memory reading on the tracking thread. Values read for an earlier game are dropped.</summary>
@@ -755,6 +756,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             return;
         }
 
+        ApplyLobbyMemory(reading);
         if (request.WantRaces && !_racesRead)
         {
             var raceIds = reading.Races;
@@ -942,6 +944,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
 
                 var rating = _rating is null ? (int?)null : game.IsDuos ? _rating.Duos : _rating.Solo;
                 battlegrounds = Advisor.Enrich(battlegrounds, rating, _cards);
+                // After the copy kept for the finished game above: the names and ratings stay in the live view only.
+                battlegrounds = WithOpponentMmr(battlegrounds, game);
             }
             else if (inGame && game!.IsConstructedLike && game.LocalPlayerId != 0)
             {
