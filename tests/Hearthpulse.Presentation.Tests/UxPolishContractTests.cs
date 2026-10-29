@@ -173,6 +173,52 @@ public sealed class UxPolishContractTests
         window.Close();
     });
 
+    [Fact]
+    public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_dims_its_panel_switches() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        var (window, root) = Open(model, "Settings", "Overlay");
+
+        Named<Button>(window, "OpenTrackerTab").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.Equal(Visibility.Visible, Named<StackPanel>(window, "SettingsTracker").Visibility);
+        Assert.Equal(Visibility.Collapsed, Named<StackPanel>(window, "SettingsOverlay").Visibility);
+        Assert.Equal("Tracker", model.Settings.SettingsTab);
+        Named<Button>(window, "OpenOverlayTab").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.Equal(Visibility.Visible, Named<StackPanel>(window, "SettingsOverlay").Visibility);
+        Assert.Equal("Overlay", model.Settings.SettingsTab);
+
+        var master = Named<CheckBox>(window, "OverlaySetting");
+        var note = Named<TextBlock>(window, "OverlayOffNote");
+        var groups = new[] { Named<StackPanel>(window, "OverlayPanelSwitches"), Named<StackPanel>(window, "TrackerPanelSwitches") };
+        Assert.Equal(Visibility.Collapsed, note.Visibility);
+        Assert.All(groups, g => Assert.Equal(1, g.Opacity));
+
+        master.IsChecked = false;
+        Settle(root);
+        Assert.Equal(Visibility.Visible, note.Visibility);
+        Assert.Equal(Loc.T("Settings.Overlay.OffNote"), note.Text);
+        // Dimmed, not disabled: panels can still be set up before the overlay is turned back on.
+        Assert.All(groups, g => Assert.True(g.Opacity < 1));
+        Assert.All(groups, g => Assert.True(g.IsEnabled));
+        Assert.All(groups.SelectMany(Logical<CheckBox>), c => Assert.True(c.IsEnabled));
+
+        master.IsChecked = true;
+        Settle(root);
+        Assert.Equal(Visibility.Collapsed, note.Visibility);
+        Assert.All(groups, g => Assert.Equal(1, g.Opacity));
+
+        // The live bar's panel buttons follow the live bar's own overlay switch.
+        var quick = Named<ItemsControl>(window, "QuickPanels");
+        Named<CheckBox>(window, "OverlaySwitch").IsChecked = false;
+        Settle(root);
+        Assert.True(quick.Opacity < 1);
+        Assert.All(Descendants<System.Windows.Controls.Primitives.ToggleButton>(quick), b => Assert.True(b.IsEnabled));
+        Named<CheckBox>(window, "OverlaySwitch").IsChecked = true;
+        Settle(root);
+        Assert.Equal(1, quick.Opacity);
+        window.Close();
+    });
+
     // ---- harness ----
 
     /// <summary>Runs <paramref name="body"/> on its own STA thread (WPF windows need one), in English.</summary>

@@ -440,6 +440,10 @@ public partial class MainWindow : Window
 
     private void OnArrangeOverlay(object sender, RoutedEventArgs e) => ArrangeOverlayRequested?.Invoke();
 
+    private void OnOpenTrackerTab(object sender, RoutedEventArgs e) => ShowSettingsTab("Tracker");
+
+    private void OnOpenOverlayTab(object sender, RoutedEventArgs e) => ShowSettingsTab("Overlay");
+
     private bool _syncingSettings;
 
     /// <summary>A live-bar button switched a panel: the settings page shows it too (its switches bind to AppSettings, which does not notify), then save and apply.</summary>

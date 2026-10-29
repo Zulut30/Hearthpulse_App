@@ -119,6 +119,49 @@ public sealed partial class LocBindingTests
         }
     }));
 
+    [Fact]
+    public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_dims_its_panel_switches() => Headless.Run(() => WithMainView((view, model) =>
+    {
+        view.ShowSettingsTab("Overlay");
+        view.FindControl<Button>("OpenTrackerTab")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(view.FindControl<StackPanel>("SettingsTracker")!.IsVisible);
+        Assert.False(view.FindControl<StackPanel>("SettingsOverlay")!.IsVisible);
+        Assert.Equal("Tracker", model.Settings.SettingsTab);
+        view.FindControl<Button>("OpenOverlayTab")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(view.FindControl<StackPanel>("SettingsOverlay")!.IsVisible);
+        Assert.Equal("Overlay", model.Settings.SettingsTab);
+
+        var master = view.FindControl<CheckBox>("OverlaySetting")!;
+        var note = view.FindControl<TextBlock>("OverlayOffNote")!;
+        var groups = new[] { view.FindControl<StackPanel>("OverlayPanelSwitches")!, view.FindControl<StackPanel>("TrackerPanelSwitches")! };
+        Assert.False(note.IsVisible);
+        Assert.All(groups, g => Assert.Equal(1, g.Opacity));
+
+        master.IsChecked = false;
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(note.IsVisible);
+        // Dimmed, not disabled: panels can still be set up before the overlay is turned back on.
+        Assert.All(groups, g => Assert.True(g.Opacity < 1));
+        Assert.All(groups.SelectMany(g => g.GetLogicalDescendants().OfType<CheckBox>()), c => Assert.True(c.IsEnabled));
+
+        master.IsChecked = true;
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(note.IsVisible);
+        Assert.All(groups, g => Assert.Equal(1, g.Opacity));
+
+        // The live bar's panel buttons follow the live bar's own overlay switch.
+        var quick = view.FindControl<ItemsControl>("QuickPanels")!;
+        view.FindControl<CheckBox>("OverlaySwitch")!.IsChecked = false;
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(quick.Opacity < 1);
+        Assert.True(quick.IsEnabled);
+        view.FindControl<CheckBox>("OverlaySwitch")!.IsChecked = true;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(1, quick.Opacity);
+    }));
+
     /// <summary>The main view over a fresh view model with the theme applied, in English.</summary>
     private static void WithMainView(Action<MainView, MainViewModel> body, AppSettings? settings = null)
     {

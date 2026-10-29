@@ -531,6 +531,10 @@ public partial class MainView : UserControl
 
     private void OnArrangeOverlay(object? sender, RoutedEventArgs e) => ArrangeOverlayRequested?.Invoke();
 
+    private void OnOpenTrackerTab(object? sender, RoutedEventArgs e) => ShowSettingsTab("Tracker");
+
+    private void OnOpenOverlayTab(object? sender, RoutedEventArgs e) => ShowSettingsTab("Overlay");
+
     private bool _syncingSettings;
 
     /// <summary>
