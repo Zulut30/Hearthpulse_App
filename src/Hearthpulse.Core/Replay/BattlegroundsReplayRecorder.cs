@@ -95,6 +95,7 @@ public sealed class BattlegroundsReplayRecorder
     private readonly HashSet<int> _offer = new();
     private GameState? _game;
     private Step? _step;
+    private OpenChoice? _choice;
 
     // The parser's block depth that is the log's top level. Real logs leave some blocks without their BLOCK_END (a play
     // with a choice or a minion's activated power), so the parser's stack keeps them: the base moves up past them where
@@ -164,6 +165,7 @@ public sealed class BattlegroundsReplayRecorder
         _leaders.Clear();
         _game = null;
         _step = null;
+        _choice = null;
         _base = 0;
         _nextId = 0;
         _combat = false;
@@ -330,29 +332,13 @@ public sealed class BattlegroundsReplayRecorder
         }
     }
 
+    /// <summary>
+    /// Our choice is kept open until we pick: the options can change meanwhile (a hero reroll is a CHANGE_ENTITY of the
+    /// option), so the <c>C</c> line is written at the pick with the cards offered then. A choice never picked is no step.
+    /// </summary>
     internal void OnChoices(GameState game, string choiceType, Entity? source, IReadOnlyList<Entity> options)
     {
-        var ids = options.Select(o => o.CardId).Where(id => id.Length > 0).ToList();
-        if (_ended || ids.Count == 0)
-        {
-            return;
-        }
-
-        var kind = choiceType == "MULLIGAN" ? "HERO"
-            : options.All(o => o.CardType == "BATTLEGROUND_TRINKET") ? "TRINKET"
-            : options.All(o => o.Has("QUEST")) ? "QUEST"
-            : "DISCOVER";
-        var from = source is { CardId.Length: > 0 } s && s.Controller == game.LocalPlayerId ? s.CardId : "-";
-        var line = $"C {kind} {from} {string.Join(',', ids)}";
-        if (_step is not null)
-        {
-            // Offered inside a step (a Discover spell): the choice is the step after it.
-            _deferred.Add(line);
-        }
-        else
-        {
-            Marker(line);
-        }
+        _choice = _ended || options.Count == 0 ? null : new OpenChoice(choiceType, source, options.ToArray());
     }
 
     internal void OnChosen(GameState game, Entity chosen)
@@ -360,6 +346,12 @@ public sealed class BattlegroundsReplayRecorder
         if (_ended || chosen.CardId.Length == 0)
         {
             return;
+        }
+
+        if (_choice is { } choice)
+        {
+            _choice = null;
+            WriteChoice(game, choice);
         }
 
         var line = $"c {chosen.CardId}";
@@ -370,6 +362,31 @@ public sealed class BattlegroundsReplayRecorder
         else
         {
             Pending(line);
+        }
+    }
+
+    private void WriteChoice(GameState game, OpenChoice choice)
+    {
+        var ids = choice.Options.Select(o => o.CardId).Where(id => id.Length > 0).ToList();
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        var kind = choice.Type == "MULLIGAN" ? "HERO"
+            : choice.Options.All(o => o.CardType == "BATTLEGROUND_TRINKET") ? "TRINKET"
+            : choice.Options.All(o => o.Has("QUEST")) ? "QUEST"
+            : "DISCOVER";
+        var from = choice.Source is { CardId.Length: > 0 } s && s.Controller == game.LocalPlayerId ? s.CardId : "-";
+        var line = $"C {kind} {from} {string.Join(',', ids)}";
+        if (_step is not null)
+        {
+            // Picked inside a step (a Discover spell): the choice is the step after it.
+            _deferred.Add(line);
+        }
+        else
+        {
+            Marker(line);
         }
     }
 
@@ -949,6 +966,9 @@ public sealed class BattlegroundsReplayRecorder
 
         public string Type { get; set; } = string.Empty;
     }
+
+    /// <summary>Our choice offered and not picked yet: its option entities, read again at the pick.</summary>
+    private sealed record OpenChoice(string Type, Entity? Source, IReadOnlyList<Entity> Options);
 
     /// <summary>A hero attacking after the fight: the defender's health + armor before it.</summary>
     private sealed record HeroAttack(bool Ours, Entity? Defender, int Before, int Depth);

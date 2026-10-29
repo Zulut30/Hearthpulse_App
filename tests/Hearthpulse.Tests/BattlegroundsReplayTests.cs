@@ -223,6 +223,49 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void A_rerolled_hero_option_is_offered_as_the_hero_it_became()
+    {
+        var recorder = Run(
+        [
+            .. Setup.Take(14),
+            .. Entity(70, "BG26_HERO_104", Me, "HAND", "HERO"),
+            .. Entity(71, "TB_BaconShop_HERO_94", Me, "HAND", "HERO"),
+            .. Offer("MULLIGAN", null, 70, 71),
+            // The reroll (BACON_MULLIGAN_HERO_REROLL_ACTIVE in the 28.10 log) turns the option into another hero.
+            "DebugPrintPower() - CHANGE_ENTITY - Updating Entity=71 CardID=BG36_HERO_000",
+            "DebugPrintPower() -     tag=CARDTYPE value=HERO",
+            "DebugPrintPower() -     tag=ZONE value=HAND",
+            .. Chosen(71),
+            Tag(71, "ZONE", "PLAY"),
+            Game("TURN", 1),
+        ]);
+        var events = recorder.Events;
+        Assert.Equal(["C HERO - BG26_HERO_104,BG36_HERO_000", "c BG36_HERO_000"], events.Take(2));
+        AssertPicksOffered(events);
+        var choice = Frames(events)[0].Choice!;
+        Assert.Equal(["BG36_HERO_000"], choice.Picked);
+        Assert.Contains("BG36_HERO_000", choice.Options);
+        Assert.DoesNotContain("TB_BaconShop_HERO_94", events.Single(e => e.StartsWith("C ", StringComparison.Ordinal)));
+    }
+
+    /// <summary>Every pick is one of the options of the choice before it.</summary>
+    internal static void AssertPicksOffered(IEnumerable<string> events)
+    {
+        string[] options = [];
+        foreach (var line in events)
+        {
+            if (line.StartsWith("C ", StringComparison.Ordinal))
+            {
+                options = line.Split(' ')[3].Split(',');
+            }
+            else if (line.StartsWith("c ", StringComparison.Ordinal))
+            {
+                Assert.Contains(line[2..], options);
+            }
+        }
+    }
+
+    [Fact]
     public void A_trigger_of_our_card_in_the_tavern_is_a_step_and_shows_its_buff()
     {
         var events = Events(
@@ -408,6 +451,11 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         Assert.Equal(12, body.Count(l => l.StartsWith("f ", StringComparison.Ordinal)));
         Assert.Equal("R 4", body[header.Events - 1]);
         AssertSeenOnly(body.Take(header.Events).ToList());
+        // The hero was rerolled before the pick (BG28_HERO_400_SKIN_C -> BG36_HERO_000): the first step offers it.
+        AssertPicksOffered(body);
+        var steps = BattlegroundsMatchReplay.Parse(text)!.Frames;
+        Assert.Equal(["BG36_HERO_000"], steps[0].Choice!.Picked);
+        Assert.Contains("BG36_HERO_000", steps[0].Choice!.Options);
         Assert.True(with / without <= 1.25, $"x{with / without:F2}");
     }
 
