@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -478,7 +479,7 @@ public static class UpdateService
     public static string BuildApplyScript(int pid, string stagedFile, string sourceDir, string targetDir, string? relaunchExe, bool installer, string? cleanupDir)
     {
         // cmd expands %NAME% even inside quotes, so a "%" in a path is doubled.
-        static string Cmd(string path) => path.Replace("%", "%%");
+        static string Cmd(string path) => path.Replace("%", "%%", StringComparison.Ordinal);
         stagedFile = Cmd(stagedFile);
         sourceDir = Cmd(sourceDir);
         targetDir = Cmd(targetDir);
@@ -705,7 +706,7 @@ public static class UpdateService
                 break;
             }
 
-            parts[index++] = int.TryParse(piece, out var number) && number > 0 ? number : 0;
+            parts[index++] = int.TryParse(piece, CultureInfo.InvariantCulture, out var number) && number > 0 ? number : 0;
         }
 
         return parts;

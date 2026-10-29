@@ -144,7 +144,7 @@ public sealed partial class BattlegroundsAdvisor
         }
 
         if (text.Contains("stats", StringComparison.Ordinal)
-            || (text.Contains('+') && (text.Contains("attack", StringComparison.Ordinal) || text.Contains("health", StringComparison.Ordinal))))
+            || (text.Contains('+', StringComparison.Ordinal) && (text.Contains("attack", StringComparison.Ordinal) || text.Contains("health", StringComparison.Ordinal))))
         {
             score += board >= 4 ? 12 : 8;
             reasons.Add(board >= 4 ? "Spell · buffs your board" : "Spell · stats");

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Hearthpulse.Core.Cards;
 
@@ -78,7 +79,7 @@ public sealed partial class ArenaDraftTracker
         if (DeckIdRegex().Match(line) is { Success: true } deck)
         {
             // The client lists the whole deck after this line, so the list starts over.
-            long.TryParse(deck.Groups["deck"].Value, out _deckId);
+            _ = long.TryParse(deck.Groups["deck"].Value, CultureInfo.InvariantCulture, out _deckId);
             _hero = deck.Groups["hero"].Value;
             _cards.Clear();
             return Publish();

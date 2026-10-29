@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Constructed;
@@ -753,5 +754,5 @@ public sealed class SecretTracker : IPowerListener
     /// <summary>Only plain Mana is judged: temporary crystals and Overload make "no Mana left" uncertain.</summary>
     private static bool ManaKnown(Entity player) => player.GetInt("TEMP_RESOURCES") == 0 && player.GetInt("OVERLOAD_LOCKED") == 0;
 
-    private static int Int(string value) => int.TryParse(value, out var n) ? n : 0;
+    private static int Int(string value) => int.TryParse(value, CultureInfo.InvariantCulture, out var n) ? n : 0;
 }

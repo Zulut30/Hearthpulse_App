@@ -45,7 +45,7 @@ public static class DecksLog
             }
             else if (content.StartsWith("# Deck ID: ", StringComparison.Ordinal))
             {
-                long.TryParse(content.AsSpan(11), NumberStyles.Integer, CultureInfo.InvariantCulture, out id);
+                _ = long.TryParse(content.AsSpan(11), NumberStyles.Integer, CultureInfo.InvariantCulture, out id);
             }
             else if (content.EndsWith(':'))
             {
@@ -54,7 +54,7 @@ public static class DecksLog
                 name = null;
                 id = 0;
             }
-            else if (name is not null && !content.StartsWith('#') && !content.Contains(' '))
+            else if (name is not null && !content.StartsWith('#') && !content.Contains(' ', StringComparison.Ordinal))
             {
                 entries.Add(new DecksLogEntry(date.ToDateTime(TimeOnly.FromTimeSpan(time)), finding, name, id, content));
                 name = null;

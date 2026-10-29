@@ -61,7 +61,7 @@ public sealed class SignBrush : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var key = "Muted";
-        if (parameter is string cut && int.TryParse(cut, out var top) && value is int place)
+        if (parameter is string cut && int.TryParse(cut, CultureInfo.InvariantCulture, out var top) && value is int place)
         {
             key = place <= 0 ? "Muted" : place <= top ? "Positive" : "Negative";
         }

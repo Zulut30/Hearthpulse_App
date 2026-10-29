@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
@@ -931,7 +932,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         }
         else if (content.StartsWith("# Deck ID: ", StringComparison.Ordinal))
         {
-            long.TryParse(content.AsSpan(11), out _pendingDeckId);
+            _ = long.TryParse(content.AsSpan(11), CultureInfo.InvariantCulture, out _pendingDeckId);
         }
         else if (!content.StartsWith('#'))
         {

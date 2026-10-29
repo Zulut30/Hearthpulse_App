@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -133,7 +134,7 @@ public sealed class BgCardDb
         var complete = false;
         for (var page = 0; page < MaxPages; page++)
         {
-            var url = string.Format(ListUrl, PageSize, offset);
+            var url = string.Format(CultureInfo.InvariantCulture, ListUrl, PageSize, offset);
             using var doc = await GetJsonAsync(http, url, cancellationToken).ConfigureAwait(false);
             // A third-party answer of another shape ends the download; it must not escape from a "never throws" load.
             if (doc is null || doc.RootElement.ValueKind != JsonValueKind.Object

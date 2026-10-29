@@ -246,7 +246,7 @@ public sealed class ArchetypeTranslations
         {
             if (File.Exists(marker))
             {
-                int.TryParse(File.ReadAllText(marker).Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out failures);
+                _ = int.TryParse(File.ReadAllText(marker).Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out failures);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Tracking.Counters;
@@ -206,7 +207,7 @@ public sealed class CounterTracker : IPowerListener
     internal static bool IsCurrentPlayer(GameState game, int playerId) =>
         game.Players.TryGetValue(playerId, out var slot) && game.Entities.GetValueOrDefault(slot.EntityId)?.GetInt("CURRENT_PLAYER") == 1;
 
-    private static int Parse(string value) => int.TryParse(value, out var n) ? n : 0;
+    private static int Parse(string value) => int.TryParse(value, CultureInfo.InvariantCulture, out var n) ? n : 0;
 
     private static int Delta(string previous, string value) => Parse(value) - Parse(previous);
 }

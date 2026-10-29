@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -148,7 +149,7 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
         (int)HttpStatusCode.Unauthorized => "INVALID_TOKEN",
         (int)HttpStatusCode.TooManyRequests => "RATE_LIMITED",
         >= 500 => "SERVER_ERROR",
-        _ => "HTTP_" + status,
+        _ => "HTTP_" + status.ToString(CultureInfo.InvariantCulture),
     };
 
     private static string EnsureSlash(string url) => url.EndsWith('/') ? url : url + "/";

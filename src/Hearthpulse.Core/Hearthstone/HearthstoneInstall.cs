@@ -470,7 +470,7 @@ public static class LogConfig
                 current = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 result[line[1..^1]] = current;
             }
-            else if (current is not null && line.IndexOf('=') is > 0 and var eq)
+            else if (current is not null && line.IndexOf('=', StringComparison.Ordinal) is > 0 and var eq)
             {
                 current[line[..eq].Trim()] = line[(eq + 1)..].Trim();
             }
@@ -528,7 +528,7 @@ public static class ClientConfig
                 continue;
             }
 
-            if (inSection && line.IndexOf('=') is > 0 and var eq && line[..eq].Trim().Equals(Key, StringComparison.OrdinalIgnoreCase))
+            if (inSection && line.IndexOf('=', StringComparison.Ordinal) is > 0 and var eq && line[..eq].Trim().Equals(Key, StringComparison.OrdinalIgnoreCase))
             {
                 return int.TryParse(line[(eq + 1)..].Trim(), System.Globalization.NumberStyles.Integer,
                     System.Globalization.CultureInfo.InvariantCulture, out var value) ? value : DefaultLimitKilobytes;
@@ -588,7 +588,7 @@ public static class ClientConfig
                 continue;
             }
 
-            if (section >= 0 && line.IndexOf('=') is > 0 and var eq && line[..eq].Trim().Equals(Key, StringComparison.OrdinalIgnoreCase))
+            if (section >= 0 && line.IndexOf('=', StringComparison.Ordinal) is > 0 and var eq && line[..eq].Trim().Equals(Key, StringComparison.OrdinalIgnoreCase))
             {
                 lines[i] = setting;
                 replaced = true;

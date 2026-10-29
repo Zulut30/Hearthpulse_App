@@ -252,7 +252,7 @@ public static class ApiConstructedMeta
     /// <summary>The class HSGuru's lists are written for (the most common real class), else the class the name spells out.</summary>
     internal static string? ClassOf(string archetype, IReadOnlyList<HsguruDeck> lists)
     {
-        var fromLists = lists.Select(d => d.Class.Replace(" ", string.Empty).ToUpperInvariant()).Where(Classes.Contains)
+        var fromLists = lists.Select(d => d.Class.Replace(" ", string.Empty, StringComparison.Ordinal).ToUpperInvariant()).Where(Classes.Contains)
             .GroupBy(c => c).OrderByDescending(g => g.Count()).FirstOrDefault()?.Key;
         return fromLists ?? ArchetypeNames.ClassOf(archetype);
     }
