@@ -85,8 +85,29 @@ public sealed class GameState
 
     public PlayerSlot? LocalPlayer => Players.GetValueOrDefault(LocalPlayerId);
 
-    public PlayerSlot? OpponentPlayer =>
-        LocalPlayerId == 0 ? null : Players.Values.FirstOrDefault(p => p.PlayerId != LocalPlayerId);
+    // The player lookups below are loops, not LINQ: they run on every tag change of a game (the Battlegrounds replay asks
+    // for the opponent on each), and a closure with a boxed enumerator per call was a quarter of what a Battlegrounds
+    // log allocated (docs/perf-architecture-audit.md, stage 10).
+    public PlayerSlot? OpponentPlayer
+    {
+        get
+        {
+            if (LocalPlayerId == 0)
+            {
+                return null;
+            }
+
+            foreach (var player in Players.Values)
+            {
+                if (player.PlayerId != LocalPlayerId)
+                {
+                    return player;
+                }
+            }
+
+            return null;
+        }
+    }
 
     public int OpponentPlayerId => OpponentPlayer?.PlayerId ?? 0;
 
@@ -118,7 +139,32 @@ public sealed class GameState
         return entity;
     }
 
-    public PlayerSlot? PlayerByEntity(int entityId) => Players.Values.FirstOrDefault(p => p.EntityId == entityId);
+    public PlayerSlot? PlayerByEntity(int entityId)
+    {
+        foreach (var player in Players.Values)
+        {
+            if (player.EntityId == entityId)
+            {
+                return player;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The player the log names <paramref name="name"/> (its BattleTag), or null.</summary>
+    public PlayerSlot? PlayerByName(string name)
+    {
+        foreach (var player in Players.Values)
+        {
+            if (player.Name == name)
+            {
+                return player;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>A player's own turn number for a game TURN: game turns 2N-1 and 2N are turn N of each player (0 before the first).</summary>
     public static int PlayerTurnOf(int turn) => turn <= 0 ? 0 : (turn + 1) / 2;
@@ -168,7 +214,7 @@ public sealed class GameState
             return;
         }
 
-        var match = Players.Values.FirstOrDefault(p => p.Name == name);
+        var match = PlayerByName(name);
         if (match is not null)
         {
             LocalPlayerId = match.PlayerId;

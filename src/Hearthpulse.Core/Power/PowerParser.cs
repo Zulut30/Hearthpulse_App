@@ -639,8 +639,7 @@ public sealed partial class PowerParser
             return game.GameEntityId == 0 ? null : game.GetOrCreate(game.GameEntityId);
         }
 
-        var player = game.Players.Values.FirstOrDefault(p => p.Name == reference)
-            ?? AdoptUnknownPlayerName(game, reference);
+        var player = game.PlayerByName(reference) ?? AdoptUnknownPlayerName(game, reference);
         return player is null ? null : game.GetOrCreate(player.EntityId);
     }
 

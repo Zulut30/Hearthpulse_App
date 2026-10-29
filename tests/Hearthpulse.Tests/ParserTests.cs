@@ -53,6 +53,55 @@ public sealed class ParserTests
         Assert.True(game.Entities[4].IsOriginalDeckCard);
     }
 
+    /// <summary>
+    /// The player lookups run on every tag change (the Battlegrounds replay asks for the opponent on each): they find
+    /// the same players and allocate nothing. A closure and a boxed enumerator per call were a quarter of what a
+    /// Battlegrounds log allocated (docs/perf-architecture-audit.md, stage 10).
+    /// </summary>
+    [Fact]
+    public void Player_lookups_find_each_player_and_allocate_nothing()
+    {
+        var game = Feed(
+            "DebugPrintPower() - CREATE_GAME",
+            "DebugPrintPower() -     GameEntity EntityID=1",
+            "DebugPrintPower() -     Player EntityID=2 PlayerID=1 GameAccountId=[hi=144115198130930503 lo=11]",
+            "DebugPrintPower() -     Player EntityID=3 PlayerID=2 GameAccountId=[hi=144115198130930503 lo=22]",
+            "DebugPrintGame() - GameType=GT_RANKED",
+            "DebugPrintGame() - PlayerID=1, PlayerName=velox#21276",
+            "DebugPrintGame() - PlayerID=2, PlayerName=Rival#1234",
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=MULLIGAN_STATE value=INPUT ").Game!;
+        game.SetLocalPlayerByName("velox#21276");
+
+        Assert.Equal((1, 2), (game.LocalPlayerId, game.OpponentPlayerId));
+        Assert.Equal(3, game.OpponentPlayer!.EntityId);
+        Assert.Equal((1, 2), (game.PlayerByEntity(2)!.PlayerId, game.PlayerByEntity(3)!.PlayerId));
+        Assert.Null(game.PlayerByEntity(1));
+        Assert.Equal(2, game.PlayerByName("Rival#1234")!.PlayerId);
+        Assert.Null(game.PlayerByName("Nobody#1"));
+        Assert.Equal("INPUT", game.Entities[2].GetString(GameTag.MulliganState));
+
+        void Lookups()
+        {
+            _ = game.OpponentPlayerId;
+            _ = game.OpponentPlayerEntity;
+            _ = game.PlayerByEntity(3);
+            _ = game.PlayerByName("Rival#1234");
+        }
+
+        for (var i = 0; i < 10; i++)
+        {
+            Lookups();
+        }
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 100; i++)
+        {
+            Lookups();
+        }
+
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
     [Fact]
     public void Show_entity_reveals_card_before_zone_change_events()
     {
