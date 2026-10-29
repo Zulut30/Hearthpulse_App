@@ -292,8 +292,14 @@ public sealed partial class BattlegroundsTracker : IPowerListener
                 {
                     LocalFinished = true;
                     // The fight that ends the game for us never gets its closing BOARD_VISUAL_STATE line: it is over now,
-                    // before the game is recorded.
-                    if (_inCombat)
+                    // before the game is recorded. Conceded while it played and before any hero attack, its end is not
+                    // known: it is no result (not a tie).
+                    if (_inCombat && value == "CONCEDED" && _heroHit is null && _heroBlow is null)
+                    {
+                        _inCombat = false;
+                        _combatOpponent = 0;
+                    }
+                    else if (_inCombat)
                     {
                         EndCombat(game);
                     }

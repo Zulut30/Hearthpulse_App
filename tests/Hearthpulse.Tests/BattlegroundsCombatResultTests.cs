@@ -97,6 +97,26 @@ public sealed class BattlegroundsCombatResultTests
         Assert.Equal("Loss", Assert.Single(tracker.ReplayData(game).Rounds).Result);
     }
 
+    [Fact]
+    public void A_fight_left_by_conceding_before_any_hero_attack_is_no_combat_result()
+    {
+        // Conceded while the fight plays: nobody hit a hero, so the boards say nothing about its end - no "Tie 0/0" in
+        // the history, the stats or the replay's result line.
+        var (_, recorder, tracker) = Play([
+            .. Setup,
+            .. CombatStart(),
+            Start("ATTACK", 101), Tag(111, "DAMAGE", 1), Tag(101, "DAMAGE", 1), End,
+            Player("PLAYSTATE", "CONCEDED"),
+            Player("PLAYSTATE", "LOST"),
+            Tag(10, "PLAYER_LEADERBOARD_PLACE", 8),
+            Game("STATE", "COMPLETE"),
+        ]);
+
+        Assert.Empty(tracker.Combats);
+        Assert.DoesNotContain(recorder.Events, e => e.StartsWith("f ", StringComparison.Ordinal));
+        Assert.Contains("R 8", recorder.Events);
+    }
+
     /// <summary>Turn 1 ends, the combat starts against lobby player 4: our 4/6 against their hero and a 1/2.</summary>
     private static string[] CombatStart() =>
     [

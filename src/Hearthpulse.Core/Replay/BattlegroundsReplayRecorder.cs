@@ -537,12 +537,15 @@ public sealed class BattlegroundsReplayRecorder
         }
         else if (tag == GameTag.PlayState && value is "WON" or "LOST" or "TIED" or "CONCEDED")
         {
-            Finish(game);
+            Finish(game, conceded: value == "CONCEDED");
         }
     }
 
     /// <summary>The game is over for the player: the open combat ends, nothing more is written but the place.</summary>
-    private void Finish(GameState game)
+    /// <param name="conceded">
+    /// The player conceded: a fight still playing with no hero attack yet has no known end and stays open (no result line).
+    /// </param>
+    private void Finish(GameState game, bool conceded = false)
     {
         if (_ended)
         {
@@ -550,7 +553,11 @@ public sealed class BattlegroundsReplayRecorder
         }
 
         EndStep(game);
-        EndCombat(game);
+        if (!(conceded && _combat && _fightResult is null && _heroAttack is null))
+        {
+            EndCombat(game);
+        }
+
         Flush();
         _ended = true;
     }
