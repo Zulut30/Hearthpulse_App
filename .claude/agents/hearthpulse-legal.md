@@ -64,6 +64,7 @@ The line that matters: an app may read what the game writes and what the player 
   - Blocker: any other change to game files, the client, or its network traffic (proxy, pcap, certificates).
 - **Hidden information**
   - Blocker: overlay or stats that reveal what the player could not see. Examples: opponent hand or deck contents, `CREATOR_DBID` of hidden cards, shuffled-entity tracking, Discover options of the opponent, BG lobby data not shown in the client.
+    - Exception approved by the owner on 2026-10-29 (L-M1 of `reference/reviews/LEGAL-HeartLens-bg-opponent-mmr.md`): BG opponents' MMR from Blizzard's public leaderboard, matched by the names the client shows. Its conditions are in `docs/bg-opponent-mmr.md`: off by default; the whole table downloaded, no request per name; names and ratings never in history, SQLite, exports, `Diag` or uploads; "?" for a name shared in the lobby or matching only without case; "<floor" below the table and "unknown" for an empty or cut table; no lobby average; no Firestone data; free. Anything beyond that is still a Blocker.
   - Use the `hearthpulse-review` skill, checklist item 2, for the technical detail.
 - **Mode-specific requests from Blizzard**
   - Blizzard has at times asked tracker authors to disable particular features in particular modes.
