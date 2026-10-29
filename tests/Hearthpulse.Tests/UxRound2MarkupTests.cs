@@ -65,4 +65,34 @@ public sealed class UxRound2MarkupTests
         Assert.Contains(language == Loc.Russian ? "недоступн" : "unavailable", noData, StringComparison.Ordinal);
         Assert.DoesNotContain(language == Loc.Russian ? "не загрузились" : "did not load", noData, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// The names one panel goes by in the live bar's "⋯" menu, in Settings and over its layout placeholder: the player
+    /// looks in Settings for what the menu called it.
+    /// </summary>
+    private static readonly string[][] PanelNames =
+    [
+        ["Main.Live.Panel.OpponentDeck", "Settings.Tracker.Opponent"],
+        ["Main.Live.Panel.Secrets", "Settings.Overlay.Secrets", "Overlay.Panel.Secrets"],
+        ["Main.Live.Panel.BgBar", "Overlay.Panel.BgBar"],
+        ["Main.Live.Panel.BgSession", "Settings.Overlay.Session"],
+        ["Settings.Tracker.Summary", "Overlay.Panel.Toast"],
+        ["Main.Live.Panel.Odds", "Settings.Overlay.Odds", "Overlay.Panel.Odds"],
+        ["Main.Live.Panel.Boards", "Settings.Overlay.Boards"],
+    ];
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("ru")]
+    public void Each_panel_has_one_name_everywhere(string language)
+    {
+        var table = Loc.Table(language);
+        foreach (var keys in PanelNames)
+        {
+            Assert.All(keys.Skip(1), key => Assert.True(table[keys[0]] == table[key], $"{keys[0]} \"{table[keys[0]]}\" vs {key} \"{table[key]}\""));
+        }
+
+        // Inside the Battlegrounds group of Settings the short name stands for the same bar.
+        Assert.Contains(table["Settings.Overlay.TopBar"], table["Main.Live.Panel.BgBar"], StringComparison.OrdinalIgnoreCase);
+    }
 }
