@@ -499,11 +499,15 @@ public partial class App : Application
         }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
-        _session.RequestMemoryTrim();
+        _session.RequestMemoryTrimWhenWindowAway();
     }
 
-    /// <summary>The 6-hour refresh of both metas (each asks for the collection of its parsing garbage).</summary>
-    private Task RefreshMetaAsync() => Task.WhenAll(LoadMetaAsync(), LoadConstructedMetaAsync());
+    /// <summary>The 6-hour refresh of both metas; their parsing garbage is collected once things are quiet.</summary>
+    private async Task RefreshMetaAsync()
+    {
+        await Task.WhenAll(LoadMetaAsync(), LoadConstructedMetaAsync());
+        _session.RequestMemoryTrim();
+    }
 
     /// <summary>Russian archetype names, once per run and only while the interface is Russian (the only language that uses them).</summary>
     private void LoadArchetypeNames()
@@ -625,8 +629,8 @@ public partial class App : Application
         finally
         {
             // A load (another format, filters, language) leaves about 30 MB of parsing garbage that an idle app would
-            // never collect: once things are quiet, it is given back.
-            _session.RequestMemoryTrim();
+            // never collect: it is given back once the window is minimized or let go and things are quiet.
+            _session.RequestMemoryTrimWhenWindowAway();
         }
     }
 
@@ -849,8 +853,14 @@ public partial class App : Application
         main.IsVisibleChanged += OnMainVisibleChanged;
         main.StateChanged += (_, _) =>
         {
+            if (!ReferenceEquals(main, _main))
+            {
+                return;
+            }
+
+            SyncWindowInUse();
             // Building and leaving pages leaves garbage an idle app would never collect.
-            if (ReferenceEquals(main, _main) && main.WindowState == WindowState.Minimized)
+            if (main.WindowState == WindowState.Minimized)
             {
                 _session.RequestMemoryTrim();
             }
@@ -871,12 +881,16 @@ public partial class App : Application
         }
 
         _releaseMain.Stop();
+        SyncWindowInUse();
+        // Hidden in the tray: no collection of its own; the one after the release takes the pages and the rest.
         if (!_main.IsVisible)
         {
-            _session.RequestMemoryTrim();
             _releaseMain.Start();
         }
     }
+
+    /// <summary>A collection asked for by a meta load waits while the window is on screen or waiting in the tray.</summary>
+    private void SyncWindowInUse() => _session.MainWindowInUse = _main is { WindowState: not WindowState.Minimized };
 
     /// <summary>
     /// The window stayed hidden in the tray: it is let go with every page it built, and built again on the same page when
@@ -894,6 +908,7 @@ public partial class App : Application
         _main = null!;
         main.CloseForReal();
         Diag.Info("Main window let go while hidden in the tray");
+        SyncWindowInUse();
         _session.RequestMemoryTrim();
     }
 
@@ -946,6 +961,8 @@ public partial class App : Application
             }
 
             oldMain.CloseForReal();
+            SyncWindowInUse();
+            _session.RequestMemoryTrimWhenWindowAway();
         }
 
         var oldOverlay = _overlay;

@@ -28,6 +28,8 @@ public sealed class MemoryTrimmer
     private DateTime _activityAt = DateTime.MinValue;
     private DateTime _lastTrim = DateTime.MinValue;
     private bool _pending;
+    private bool _pendingAway;
+    private bool _windowInUse;
 
     /// <param name="collect">The collection; tests pass a counter, the app the real one.</param>
     public MemoryTrimmer(Action? collect = null)
@@ -35,16 +37,56 @@ public sealed class MemoryTrimmer
         _collect = collect ?? Collect;
     }
 
-    /// <summary>Something just left garbage behind (game lines, a meta load): collect once the app has been quiet.</summary>
+    /// <summary>
+    /// The main window is on screen, or hidden in the tray and not let go yet (its release asks for the collection):
+    /// a collection asked for with <see cref="NoteActivityWhenWindowAway"/> waits, as its pause would stall the window.
+    /// </summary>
+    public bool WindowInUse
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _windowInUse;
+            }
+        }
+        set
+        {
+            lock (_gate)
+            {
+                _windowInUse = value;
+            }
+        }
+    }
+
+    /// <summary>Something just left garbage behind (game lines, the start-up): collect once the app has been quiet.</summary>
     public void NoteActivity(DateTime now)
     {
         lock (_gate)
         {
             _pending = true;
-            if (now > _activityAt)
-            {
-                _activityAt = now;
-            }
+            Note(now);
+        }
+    }
+
+    /// <summary>
+    /// Garbage the player's own action left (a meta load for a page or a filter): collect once the main window is out of
+    /// the way (minimized or let go) and the app has been quiet, not while the player is looking at it.
+    /// </summary>
+    public void NoteActivityWhenWindowAway(DateTime now)
+    {
+        lock (_gate)
+        {
+            _pendingAway = true;
+            Note(now);
+        }
+    }
+
+    private void Note(DateTime now)
+    {
+        if (now > _activityAt)
+        {
+            _activityAt = now;
         }
     }
 
@@ -54,12 +96,15 @@ public sealed class MemoryTrimmer
     {
         lock (_gate)
         {
-            if (!_pending || busy || now - _activityAt < Settle || now - _lastTrim < MinInterval)
+            var due = _pending || (_pendingAway && !_windowInUse);
+            if (!due || busy || now - _activityAt < Settle || now - _lastTrim < MinInterval)
             {
                 return false;
             }
 
+            // One collection takes all the garbage, whoever asked.
             _pending = false;
+            _pendingAway = false;
             _lastTrim = now;
         }
 

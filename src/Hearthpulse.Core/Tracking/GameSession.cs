@@ -158,6 +158,22 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     /// </summary>
     public void RequestMemoryTrim() => Trimmer.NoteActivity(Clock());
 
+    /// <summary>
+    /// The player's own action left garbage (a meta load for a page or a filter): handed back once the main window is
+    /// minimized or let go, not while the player looks at it (the collection pauses the app for 30–110 ms).
+    /// </summary>
+    public void RequestMemoryTrimWhenWindowAway() => Trimmer.NoteActivityWhenWindowAway(Clock());
+
+    /// <summary>
+    /// The host's main window is on screen, or hidden in the tray and not let go yet; false when minimized, let go or
+    /// not built (see <see cref="MemoryTrimmer.WindowInUse"/>).
+    /// </summary>
+    public bool MainWindowInUse
+    {
+        get => Trimmer.WindowInUse;
+        set => Trimmer.WindowInUse = value;
+    }
+
     public event Action<LiveSnapshot>? SnapshotChanged;
 
     /// <summary>Raised when a game result is final (rating included when available).</summary>

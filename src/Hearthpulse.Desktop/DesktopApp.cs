@@ -133,6 +133,7 @@ internal sealed class DesktopApp : HearthpulseApp
         }
 
         _main?.Show();
+        SyncWindowInUse();
 
         SetupTray();
         ListenForActivation();
@@ -233,6 +234,16 @@ internal sealed class DesktopApp : HearthpulseApp
         }
 
         _main.Activate();
+        SyncWindowInUse();
+    }
+
+    /// <summary>A collection asked for by a meta load waits while the dashboard is on screen or waiting in the tray.</summary>
+    private void SyncWindowInUse()
+    {
+        if (_host is not null)
+        {
+            _host.Session.MainWindowInUse = _main is { WindowState: not WindowState.Minimized };
+        }
     }
 
     /// <summary>A new dashboard, on the page, tabs and bounds of <paramref name="place"/> when given.</summary>
@@ -241,17 +252,23 @@ internal sealed class DesktopApp : HearthpulseApp
         var main = new MainWindow(_host!);
         main.HiddenToTray += () =>
         {
+            // No collection of its own: the one after the release takes the pages and the rest.
             if (ReferenceEquals(main, _main))
             {
-                _host!.Session.RequestMemoryTrim();
                 _releaseMain?.Stop();
                 _releaseMain?.Start();
             }
         };
         main.PropertyChanged += (_, e) =>
         {
+            if (e.Property != Window.WindowStateProperty || !ReferenceEquals(main, _main))
+            {
+                return;
+            }
+
+            SyncWindowInUse();
             // Building and leaving pages leaves garbage an idle app would never collect.
-            if (e.Property == Window.WindowStateProperty && main.WindowState == WindowState.Minimized && ReferenceEquals(main, _main))
+            if (main.WindowState == WindowState.Minimized)
             {
                 _host!.Session.RequestMemoryTrim();
             }
@@ -287,6 +304,7 @@ internal sealed class DesktopApp : HearthpulseApp
         _main = null;
         main.CloseForReal();
         Diag.Info("Main window let go while hidden in the tray");
+        SyncWindowInUse();
         _host?.Session.RequestMemoryTrim();
     }
 

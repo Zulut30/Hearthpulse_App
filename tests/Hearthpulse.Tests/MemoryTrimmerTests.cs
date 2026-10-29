@@ -83,6 +83,33 @@ public sealed class MemoryTrimmerTests : IDisposable
     }
 
     /// <summary>
+    /// A meta load the player asked for (a page, a filter) does not pause the window they are looking at: its collection
+    /// waits while the window is on screen or waiting in the tray, and runs once it is minimized or let go. Start-up and
+    /// game garbage is collected as before, window or not, and that collection takes the waiting garbage too.
+    /// </summary>
+    [Fact]
+    public void A_meta_load_collects_only_once_the_window_is_away()
+    {
+        var count = 0;
+        var trimmer = new MemoryTrimmer(() => count++) { WindowInUse = true };
+
+        trimmer.NoteActivityWhenWindowAway(T0);
+        Assert.False(trimmer.Tick(T0 + TimeSpan.FromMinutes(10), busy: false));
+        trimmer.WindowInUse = false;
+        Assert.True(trimmer.Tick(T0 + TimeSpan.FromMinutes(10), busy: false));
+        Assert.Equal(1, count);
+
+        var later = T0 + TimeSpan.FromMinutes(20);
+        trimmer.WindowInUse = true;
+        trimmer.NoteActivityWhenWindowAway(later);
+        trimmer.NoteActivity(later + TimeSpan.FromSeconds(5));
+        Assert.True(trimmer.Tick(later + TimeSpan.FromSeconds(5) + MemoryTrimmer.Settle, busy: false));
+        trimmer.WindowInUse = false;
+        Assert.False(trimmer.Tick(later + TimeSpan.FromMinutes(30), busy: false));
+        Assert.Equal(2, count);
+    }
+
+    /// <summary>
     /// The hosts ask after every meta load and when the window hides: a burst (meta, language, tray) collects once,
     /// and a request soon after a collection is kept for the next allowed one, not dropped.
     /// </summary>
