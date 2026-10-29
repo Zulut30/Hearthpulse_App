@@ -302,7 +302,7 @@
                 <WrapPanel />
             </ItemsPanelTemplate>
 
-            <ItemsPanelTemplate x:Key="Row">
+            <ItemsPanelTemplate x:Key="RowPanel">
                 <StackPanel Orientation="Horizontal" />
             </ItemsPanelTemplate>
 
@@ -423,7 +423,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <ItemsControl ItemsSource="{Binding Trinkets}" ItemTemplate="{StaticResource BgChip}" ItemsPanel="{StaticResource Row}" HorizontalAlignment="Right"
+                    <ItemsControl ItemsSource="{Binding Trinkets}" ItemTemplate="{StaticResource BgChip}" ItemsPanel="{StaticResource RowPanel}" HorizontalAlignment="Right"
                                   VerticalAlignment="Center" Margin="0,0,14,0" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <Grid Width="62" Height="62" ToolTip="{Binding Name}">
@@ -434,7 +434,7 @@
                                 <TextBlock Text="{Binding HealthText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12" />
                             </Border>
                         </Grid>
-                        <ItemsControl ItemsSource="{Binding HeroPowers}" ItemTemplate="{StaticResource BgChip}" ItemsPanel="{StaticResource Row}" Margin="10,0,0,0"
+                        <ItemsControl ItemsSource="{Binding HeroPowers}" ItemTemplate="{StaticResource BgChip}" ItemsPanel="{StaticResource RowPanel}" Margin="10,0,0,0"
                                       VerticalAlignment="Center" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Margin="18,0,0,0" VerticalAlignment="Center">
