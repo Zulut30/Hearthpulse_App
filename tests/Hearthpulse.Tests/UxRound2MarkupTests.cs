@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Xml;
 using System.Xml.Linq;
 using Hearthpulse.Core.Localization;
 
@@ -139,6 +140,84 @@ public sealed class UxRound2MarkupTests
         Assert.Equal(2, gems.Count);
         Assert.All(gems, s => Assert.Equal("18", (string?)s.Attribute("Value")));
     }
+
+    private const string WpfOverlay = "src/Hearthpulse.App/Overlay/OverlayWindow.xaml";
+    private const string AvaOverlay = "src/Hearthpulse.UI/Overlay/OverlayView.axaml";
+
+    /// <summary>
+    /// What may sit on the overlay surface without being a <c>MovablePanel</c>, and why: each one follows something in the
+    /// game or belongs to layout mode itself. Everything else the player can move (Ctrl, Ctrl+Shift+L) and resize.
+    /// </summary>
+    private static readonly (string Role, Func<XElement, bool> Is)[] SurfaceExceptions =
+    [
+        // Stands at the leaderboard portraits and follows their calibration.
+        ("leaderboard badges", e => e.Name.LocalName == "BgBadgesLayer"),
+        // Follows the hand card or Discover option it is about; the same pool is the movable "card-pool" panel too.
+        ("card pool at its card", e => e.Name.LocalName == "Canvas"
+            && e.Elements().Any(c => c.Name.LocalName == "CardPoolPanel" && (string?)c.Attribute("Anchored") == "True")),
+        // Opens at the hovered leaderboard portrait.
+        ("leaderboard hover", e => e.Name.LocalName == "Canvas" && NameOf(e) == "LobbyLayer"),
+        // Shows only while the leaderboard is calibrated.
+        ("calibration guides", e => e.Name.LocalName == "Canvas" && NameOf(e) == "GuideLayer"),
+        // Layout mode's own banner.
+        ("layout banner", e => e.Name.LocalName == "Border"
+            && e.Attributes().Any(a => a.Name.LocalName is "Visibility" or "IsVisible" && a.Value.StartsWith("{Binding LayoutEditing", StringComparison.Ordinal))),
+        // The one-time "hold Ctrl" tip: shown once, never takes the mouse.
+        ("move tip", e => e.Name.LocalName == "Border" && NameOf(e) == "MoveTip"),
+        // The card render at the pointer or card.
+        ("card preview", e => e.Name.LocalName == "CardPreviewHost" && NameOf(e) == "PreviewHost"),
+    ];
+
+    [Theory]
+    [InlineData(WpfOverlay)]
+    [InlineData(AvaOverlay)]
+    public void Every_overlay_block_is_a_movable_panel_or_a_listed_exception(string file)
+    {
+        var surface = Surface(file);
+        var roles = new List<string>();
+        foreach (var block in surface.Elements().Where(e => !e.Name.LocalName.Contains('.', StringComparison.Ordinal)))
+        {
+            if (block.Name.LocalName == "MovablePanel")
+            {
+                continue;
+            }
+
+            var exception = SurfaceExceptions.FirstOrDefault(x => x.Is(block));
+            Assert.True(exception.Role is not null,
+                $"{file}:{((IXmlLineInfo)block).LineNumber}: a {block.Name.LocalName} on the overlay surface is not a MovablePanel; wrap it, or list it with its reason");
+            roles.Add(exception.Role);
+        }
+
+        // Every exception is still there once (a stale entry would let a new block slip through under its name).
+        Assert.Equal(SurfaceExceptions.Select(x => x.Role).Order(), roles.Order());
+    }
+
+    [Fact]
+    public void Movable_panels_have_ids_and_titles_alike_in_both_uis()
+    {
+        static List<(string Id, string Title)> Panels(string file)
+        {
+            var panels = Surface(file).Elements().Where(e => e.Name.LocalName == "MovablePanel")
+                .Select(e => (Id: (string?)e.Attribute("Id") ?? string.Empty, Title: (string?)e.Attribute("Title") ?? string.Empty)).ToList();
+            Assert.All(panels, p =>
+            {
+                Assert.False(string.IsNullOrWhiteSpace(p.Id), file);
+                // The placeholder in layout mode carries a localized name.
+                Assert.Matches(@"^\{i:Loc [A-Za-z0-9.]+\}$", p.Title);
+                Assert.True(Loc.Has(p.Title[7..^1]), p.Title);
+            });
+            Assert.Equal(panels.Count, panels.Select(p => p.Id).Distinct().Count());
+            return panels;
+        }
+
+        var wpf = Panels(WpfOverlay);
+        var ava = Panels(AvaOverlay);
+        Assert.Equal(26, wpf.Count);
+        Assert.Equal(wpf.Order(), ava.Order());
+    }
+
+    private static XElement Surface(string file) =>
+        XDocument.Load(Path.Combine(RepoRoot(), file), LoadOptions.SetLineInfo).Root!.Descendants().Single(e => NameOf(e) == "Surface");
 
     private static bool IsHeader(XElement element) =>
         element.Name.LocalName == "Border"
