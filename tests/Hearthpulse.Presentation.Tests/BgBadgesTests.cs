@@ -155,6 +155,52 @@ public sealed class BgBadgesTests
         Assert.Equal([1], ((IEnumerable<dynamic>)model.BgBadges).Select(b => (int)b.Place));
     }
 
+    /// <summary>A frame outside Battlegrounds, and one with nothing new in a match, builds nothing: no list, no fingerprints.</summary>
+    [Fact]
+    public void Frames_with_nothing_new_allocate_nothing()
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        var settings = new AppSettings();
+        var wpf = new WpfOverlay();
+        var ava = new AvaOverlay();
+        void Frame()
+        {
+            wpf.ArrangeLeaderboard(1920, 1080, settings);
+            ava.ArrangeLeaderboard(1920, 1080, settings);
+        }
+
+        // Constructed or the menus: no Battlegrounds snapshot.
+        var constructed = LiveSnapshot.Empty with { InGame = true, HearthstoneRunning = true };
+        wpf.Update(constructed, Cards, settings, null, null);
+        ava.Update(constructed, Cards, settings, null, null);
+        Assert.Equal(0, Allocated(Frame));
+
+        // A match with the badges up.
+        wpf.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
+        ava.Update(Live(Lobby([Murlocs, Tie, Dead])), Cards, settings, null, null);
+        Frame();
+        Assert.Equal(3, wpf.BgBadges.Count);
+        Assert.Equal(3, ava.BgBadges.Count);
+        Assert.Equal(0, Allocated(Frame));
+    }
+
+    /// <summary>Managed bytes this thread allocates over 100 calls of <paramref name="frame"/>, after a warm-up.</summary>
+    private static long Allocated(Action frame)
+    {
+        for (var i = 0; i < 10; i++)
+        {
+            frame();
+        }
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 100; i++)
+        {
+            frame();
+        }
+
+        return GC.GetAllocatedBytesForCurrentThread() - before;
+    }
+
     /// <summary>Each badge stands beside its tile: right of the tile by the popup's gap, over the tile's height.</summary>
     [Theory]
     [InlineData(true, 1920, 240)]

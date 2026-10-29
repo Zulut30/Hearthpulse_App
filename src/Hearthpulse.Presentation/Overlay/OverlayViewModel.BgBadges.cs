@@ -22,6 +22,7 @@ public sealed partial class OverlayViewModel
     private double _surfaceWidth;
     private double _surfaceHeight;
     private AppSettings? _leaderboardSettings;
+    private BadgeInputs _badgeInputs;
 
     public bool ShowBgBadges { get => _showBgBadges; private set => Set(ref _showBgBadges, value); }
 
@@ -48,6 +49,27 @@ public sealed partial class OverlayViewModel
 
     private void RebuildBgBadges()
     {
+        // Off (outside Battlegrounds, the hero pick, the setting) with nothing shown: every frame ends here.
+        if (!_bgBadgesOn && _bgBadges.Count == 0)
+        {
+            return;
+        }
+
+        // Unchanged size, calibration, mode and lobby rows (their fingerprint): the badges stay as they are.
+        var inputs = new BadgeInputs(_surfaceWidth, _surfaceHeight, _leaderboardSettings?.LeaderboardTop, _leaderboardSettings?.LeaderboardSlotHeight,
+            _leaderboardSettings?.LeaderboardWidth, IsDuos, _bgBadgesOn, _fingerprints.GetValueOrDefault(nameof(LobbyRows)));
+        if (inputs == _badgeInputs)
+        {
+            return;
+        }
+
+        _badgeInputs = inputs;
+        PlaceBgBadges();
+    }
+
+    /// <summary>Builds the badges; kept out of <see cref="RebuildBgBadges"/> so its closure is not allocated every frame.</summary>
+    private void PlaceBgBadges()
+    {
         var badges = new List<BgBadge>();
         if (_bgBadgesOn && _leaderboardSettings is { } settings && _surfaceHeight > 0)
         {
@@ -71,4 +93,7 @@ public sealed partial class OverlayViewModel
         static string Print(BgBadge b) => string.Create(CultureInfo.InvariantCulture,
             $"{b.Place}:{b.Left:0.#}:{b.Top:0.#}:{b.Height:0.#}:{b.Tier}:{b.Tribe?.Key}:{b.Tribe?.Glyph}:{b.TribeCount}:{b.Dead}");
     }
+
+    /// <summary>Everything the badges are built from; <c>Rows</c> is the fingerprint of <see cref="LobbyRows"/>.</summary>
+    private readonly record struct BadgeInputs(double Width, double Height, double? Top, double? Slot, double? TileWidth, bool Duos, bool On, string? Rows);
 }
