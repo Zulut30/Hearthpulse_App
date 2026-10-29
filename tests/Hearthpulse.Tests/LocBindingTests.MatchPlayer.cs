@@ -147,7 +147,11 @@ public sealed partial class LocBindingTests
         }
     }
 
-    /// <summary>A Battlegrounds game recorded step by step (won on turn 1, lost on turn 2): the table draws each step.</summary>
+    /// <summary>
+    /// A Battlegrounds game recorded step by step (won on turn 1, lost on turn 2): the table draws each step, every list
+    /// with one row per item and nothing left over, and a row whose item equals the one at its place a step before is
+    /// still that control (the lists change in place; a new list each step built every row again).
+    /// </summary>
     private static void RecordedBattlegrounds()
     {
         var folder = Path.Combine(Path.GetTempPath(), $"hp-match-bg-rec-{Guid.NewGuid():N}");
@@ -165,6 +169,8 @@ public sealed partial class LocBindingTests
             var timeline = view.GetVisualDescendants().OfType<MatchTimeline>().Single();
             Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
 
+            var shown = new Dictionary<ItemsControl, (List<object> Items, List<Control> Rows)>();
+            var kept = 0;
             for (var frame = 0; frame <= model.FrameMax; frame++)
             {
                 model.GoFrame.Execute(frame);
@@ -172,11 +178,36 @@ public sealed partial class LocBindingTests
                 window.UpdateLayout();
                 var step = model.BattlegroundsStep!;
                 Assert.Contains(step.Title, table.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
-                var ovals = table.GetVisualDescendants().OfType<Border>().Count(b => b.Classes.Contains("oval"));
-                Assert.True(ovals >= step.Board.Count + step.OpponentBoard.Count, $"step {frame}: {ovals} minions drawn");
                 var bar = table.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("bgStep"));
                 Assert.Equal(step.Phase == MatchPhase.Combat, bar.Classes.Contains("combat"));
+
+                // Every list on screen: one container per item, each showing its item, none left over.
+                var lists = table.GetVisualDescendants().OfType<ItemsControl>().Where(i => i.IsEffectivelyVisible && i.ItemsPanelRoot is not null).ToList();
+                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, step.Board));
+                Assert.Contains(lists, i => ReferenceEquals(i.ItemsSource, model.Leaders));
+                foreach (var list in lists)
+                {
+                    var items = list.Items.Cast<object>().ToList();
+                    Assert.Equal(items.Count, list.ItemsPanelRoot!.Children.Count);
+                    var rows = Enumerable.Range(0, items.Count).Select(i => list.ContainerFromIndex(i)!).ToList();
+                    Assert.All(rows.Zip(items), r => Assert.Same(r.Second, r.First.DataContext));
+                    if (shown.TryGetValue(list, out var before) && before.Items.Count == items.Count)
+                    {
+                        for (var i = 0; i < items.Count; i++)
+                        {
+                            if (Equals(before.Items[i], items[i]))
+                            {
+                                Assert.Same(before.Rows[i], rows[i]);
+                                kept++;
+                            }
+                        }
+                    }
+
+                    shown[list] = (items, rows);
+                }
             }
+
+            Assert.True(kept > 0, "no row was kept from one step to the next");
         }
         finally
         {

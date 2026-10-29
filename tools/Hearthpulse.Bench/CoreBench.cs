@@ -55,16 +55,29 @@ internal static class CoreBench
             var gen0 = GC.CollectionCount(0);
             var gen1 = GC.CollectionCount(1);
             var gen2 = GC.CollectionCount(2);
+            // HP_BENCH_REPLAY_TYPES=1: what the whole round allocates, by type (runtime allocation ticks).
+            using var types = Environment.GetEnvironmentVariable("HP_BENCH_REPLAY_TYPES") == "1" ? new AllocationTypes() : null;
             var wall = Stopwatch.StartNew();
+            var logTime = TimeSpan.Zero;
             foreach (var (dir, path, start) in logs)
             {
-                var (session, setClock, db) = LogReplay.NewSession(cards);
+                var (session, sessionClock, db) = LogReplay.NewSession(cards);
+                // The log time the replay covers: what "a second of the game" in the per-second cost below means.
+                DateTime? first = null;
+                var last = DateTime.MinValue;
+                void SetClock(DateTime t)
+                {
+                    first ??= t;
+                    last = t;
+                    sessionClock(t);
+                }
+
                 session.SetMeta(meta);
                 session.SetCardPoolCatalog(catalog);
                 var published = false;
                 session.SnapshotChanged += _ => published = true;
                 parts?.Watch(session, cards);
-                lines += LogReplay.Run(session, setClock, dir, path, start,
+                lines += LogReplay.Run(session, SetClock, dir, path, start,
                     onBatch: feed =>
                     {
                         var t = Stopwatch.GetTimestamp();
@@ -85,14 +98,22 @@ internal static class CoreBench
                             publishAlloc += GC.GetAllocatedBytesForCurrentThread() - a;
                         }
                     });
+                logTime += last - (first ?? last);
                 LogReplay.Delete(db);
             }
 
             Console.WriteLine($"[replay r{round}] {logs.Count} logs, {lines:N0} lines, wall {wall.ElapsedMilliseconds:N0} ms, {lines / Math.Max(0.001, wall.Elapsed.TotalSeconds):N0} lines/s");
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"[replay r{round}] log time {logTime.TotalMinutes:N1} min: {(parse.Sum() + publish.Sum()) / Math.Max(1, logTime.TotalSeconds):N3} ms of parse + publish per second of log, wall {wall.Elapsed.TotalMilliseconds / Math.Max(1, logTime.TotalSeconds):N3} ms/s"));
             Console.WriteLine($"[replay r{round}] parse {parse.Count:N0} batches: {Spread(parse)}; alloc {Mb(parseAlloc)} ({parseAlloc / Math.Max(1, lines)} B/line)");
             Console.WriteLine($"[replay r{round}] publish {publish.Count:N0}: {Spread(publish)}; alloc {Mb(publishAlloc)} ({publishAlloc / Math.Max(1, publish.Count) / 1024} KB/publish)");
             Console.WriteLine($"[replay r{round}] GCs gen0 {GC.CollectionCount(0) - gen0}, gen1 {GC.CollectionCount(1) - gen1}, gen2 {GC.CollectionCount(2) - gen2}");
             parts?.Report($"r{round}");
+            if (types is not null)
+            {
+                Thread.Sleep(500);
+                types.Report($"replay r{round}");
+            }
         }
 
         // The parser alone, no listeners, lines already in memory: what reading Power.log costs before the trackers.
@@ -475,6 +496,7 @@ internal sealed class PublishParts
             }
             else if (snapshot.Battlegrounds is not null)
             {
+                _lastBattlegrounds = (game, battlegrounds);
                 Time("Battlegrounds view", () => battlegrounds.BuildView(game));
             }
         };
@@ -498,6 +520,8 @@ internal sealed class PublishParts
 
     private (Hearthpulse.Core.Power.GameState Game, ConstructedTracker Tracker, CardDb Cards)? _last;
 
+    private (Hearthpulse.Core.Power.GameState Game, BattlegroundsTracker Tracker)? _lastBattlegrounds;
+
     public void Report(string round)
     {
         // HP_BENCH_PUBLISH_TYPES=1: what the counters allocate, by type (runtime allocation ticks, one per ~100 KB),
@@ -512,6 +536,21 @@ internal sealed class PublishParts
 
             Thread.Sleep(500);
             types.Report($"publish {round} counters");
+        }
+
+        // The same for the Battlegrounds view of the last Battlegrounds game seen.
+        if (Environment.GetEnvironmentVariable("HP_BENCH_PUBLISH_TYPES") == "1" && _lastBattlegrounds is { } bg)
+        {
+            using var types = new AllocationTypes();
+            var allocated = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 3000; i++)
+            {
+                GC.KeepAlive(bg.Tracker.BuildView(bg.Game));
+            }
+
+            Console.WriteLine($"[publish {round}] Battlegrounds view of the last game, 3 000 builds: {(GC.GetAllocatedBytesForCurrentThread() - allocated) / 3000 / 1024} KB each, {bg.Game.Entities.Count} entities");
+            Thread.Sleep(500);
+            types.Report($"publish {round} battlegrounds view");
         }
 
         foreach (var (part, (ms, bytes)) in _parts)
@@ -556,7 +595,7 @@ internal sealed class AllocationTypes : System.Diagnostics.Tracing.EventListener
         lock (_bytes)
         {
             var total = Math.Max(1, _bytes.Values.Sum());
-            foreach (var (type, bytes) in _bytes.OrderByDescending(p => p.Value).Take(20))
+            foreach (var (type, bytes) in _bytes.OrderByDescending(p => p.Value).Take(30))
             {
                 Console.WriteLine($"[alloc] {label}: {100.0 * bytes / total,5:N1} %  {type}");
             }

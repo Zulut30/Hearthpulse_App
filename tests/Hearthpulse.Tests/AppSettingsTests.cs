@@ -185,6 +185,29 @@ public sealed class AppSettingsTests : IDisposable
         Assert.False(AppSettings.Load(FilePath).OverlayEnabled);
     }
 
+    [WindowsFact]
+    public void A_valid_file_held_open_for_a_moment_at_startup_is_read_not_reset()
+    {
+        // An antivirus scan or a cloud sync can hold the file for a moment: it was taken for unreadable, the app started
+        // with defaults and later wrote them over the valid file.
+        var saved = new AppSettings { OverlayEnabled = false };
+        saved.Save(FilePath);
+        var held = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.None);
+        // A thread of its own: in a full parallel run the pool can be too busy to let go in time.
+        var release = new Thread(() =>
+        {
+            Thread.Sleep(150);
+            held.Dispose();
+        });
+        release.Start();
+
+        var settings = AppSettings.Load(FilePath);
+        release.Join();
+
+        Assert.False(settings.OverlayEnabled);
+        Assert.False(File.Exists(FilePath + ".invalid"));
+    }
+
     [Fact]
     public void Missing_and_valid_files_need_no_diagnostic_copy()
     {

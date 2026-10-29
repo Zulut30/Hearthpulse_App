@@ -17,7 +17,6 @@
   "Host.Update.DownloadFailed": "Не удалось скачать версию {0}; Hearthpulse попробует позже.",
   "Host.Notify.RestartTitle": "Перезапустите Hearthstone",
   "Host.Notify.LogSettingsChanged": "Hearthpulse изменил настройки логов игры. Перезапустите Hearthstone один раз, чтобы отслеживание заработало и охватывало игры целиком.",
-  "Host.Notify.LoggingEnabled": "Hearthpulse включил логи игры. Перезапустите Hearthstone один раз, чтобы заработало отслеживание.",
   "Host.Notify.LogCapped": "Hearthstone перестал писать лог игры на пределе в 10 МБ, и отслеживание остановилось. Hearthpulse снял ограничение: перезапустите Hearthstone, чтобы продолжить.",
   "Host.Notify.RefreshedTitle": "Hearthpulse обновлён",
   "Host.Notify.Refreshed": "Текущая игра заново прочитана из лога Hearthstone.",

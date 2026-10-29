@@ -109,7 +109,7 @@ public sealed partial class AppHost : IDisposable
             _settingsDebounce.Stop();
             _settingsDebounce.Start();
         };
-        _metaRefresh = new DispatcherTimer { Interval = TimeSpan.FromHours(3) };
+        _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Battlegrounds meta load");
 
         Session.SnapshotChanged += OnSnapshot;
@@ -176,8 +176,11 @@ public sealed partial class AppHost : IDisposable
     /// <summary>Formats kept fresh: the one loaded at start, the pages opened and the formats played.</summary>
     private readonly HashSet<string> _constructedFormats = new(StringComparer.Ordinal);
 
-    /// <summary>Formats whose download runs now, with the number of the latest request (only that one passes its stats on).</summary>
-    private readonly Dictionary<string, int> _constructedLoading = new(StringComparer.Ordinal);
+    /// <summary>
+    /// Formats whose download runs now, with the number of the latest request (only that one passes its stats on) and
+    /// what stops it when a newer one overtakes it.
+    /// </summary>
+    private readonly Dictionary<string, (int Request, CancellationTokenSource Cancel)> _constructedLoading = new(StringComparer.Ordinal);
 
     private int _constructedRequest;
 
@@ -266,7 +269,7 @@ public sealed partial class AppHost : IDisposable
 
             if (logConfigChanged && HearthstoneInstall.IsRunning())
             {
-                Notification?.Invoke(Loc.T("Host.Notify.RestartTitle"), Loc.T("Host.Notify.LoggingEnabled"));
+                Notification?.Invoke(Loc.T("Host.Notify.RestartTitle"), Loc.T("Host.Notify.LogSettingsChanged"));
             }
 
             await LoadMetaAsync();
@@ -363,11 +366,14 @@ public sealed partial class AppHost : IDisposable
         ArchetypeTranslations.Current = names;
         if (Loc.IsRussian)
         {
-            await LoadMetaAsync();
+            // Only the Constructed labels use the names: those formats load again (not the Battlegrounds and Arena stats),
+            // overtaking a download still running so the names reach it.
+            _constructedFormats.Add(ConstructedMeta.Key(ConstructedMeta.Formats, Settings.MetaFormat));
+            await Task.WhenAll(_constructedFormats.ToList().Select(format => LoadConstructedMetaAsync(format, restart: true)));
         }
     }
 
-    /// <summary>The 3-hour refresh of the Battlegrounds meta; its parsing garbage is collected once things are quiet.</summary>
+    /// <summary>The 6-hour refresh of the Battlegrounds meta; its parsing garbage is collected once things are quiet.</summary>
     private async Task RefreshMetaAsync()
     {
         await LoadMetaAsync();
@@ -435,16 +441,24 @@ public sealed partial class AppHost : IDisposable
 
     /// <param name="format">The format key ("standard", "wild").</param>
     /// <param name="restart">The filters changed: a download already running is overtaken instead of waited for.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD103:Call async methods when in an async method", Justification = "Cancel runs before the new request registers, with no await point in between on the UI thread.")]
     private async Task LoadConstructedMetaAsync(string format, bool restart)
     {
-        if (_constructedLoading.ContainsKey(format) && !restart)
+        if (_constructedLoading.TryGetValue(format, out var running))
         {
-            return;
+            if (!restart)
+            {
+                return;
+            }
+
+            // Overtaken: its many requests (mulligan numbers, matchups) stop instead of running on for nothing.
+            running.Cancel.Cancel();
         }
 
         var request = ++_constructedRequest;
-        _constructedLoading[format] = request;
-        bool Latest() => _constructedLoading.TryGetValue(format, out var latest) && latest == request;
+        using var cancel = new CancellationTokenSource();
+        _constructedLoading[format] = (request, cancel);
+        bool Latest() => _constructedLoading.TryGetValue(format, out var latest) && latest.Request == request;
         var done = false;
 
         // The tier list shows as soon as it is in; the mulligan numbers and matchups follow with the full answer.
@@ -457,7 +471,8 @@ public sealed partial class AppHost : IDisposable
         });
         try
         {
-            var constructed = await Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale, tierList);
+            var constructed = await Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale, tierList,
+                cancel.Token);
             done = true;
             if (!Latest())
             {
@@ -482,6 +497,9 @@ public sealed partial class AppHost : IDisposable
                 Session.SetConstructedMeta(constructed);
                 Main.SetConstructedMeta(constructed);
             }
+        }
+        catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+        {
         }
         catch (Exception ex)
         {

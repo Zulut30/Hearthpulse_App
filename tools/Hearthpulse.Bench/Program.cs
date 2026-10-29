@@ -27,6 +27,11 @@ internal static class Program
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
           idle      the overlay window with no Hearthstone window: CPU time over 20 s (run with Hearthstone closed)
+          rest      the main window at rest with the overlay and the log watcher: shown, in the tray, let go; CPU,
+                    allocations, GCs over 30 s each, then memory (run with Hearthstone closed)
+          match     record the kept logs' games, open the newest Battlegrounds match page, every step by hand, then play
+                    the replay at x4 for 30 s: time, allocations, CPU
+          (HP_BENCH_BG_PANELS=1 with overlay/tick: leaderboard badges and the lobby panel on, the leaderboard arranged)
           watch     LogWatcher + GameSession on the installed game's logs: CPU time over 20 s
           poll      one idle watcher pass and one "is Hearthstone running" (game closed): thread CPU per call
           meta      Battlegrounds meta, Constructed meta and the card pool catalog from the cache: time and allocations
@@ -110,6 +115,12 @@ internal static class Program
                 break;
             case "idle":
                 WpfBench.OverlayIdle();
+                break;
+            case "rest":
+                WindowBench.Rest(options);
+                break;
+            case "match":
+                WindowBench.Match(options);
                 break;
             case "all":
                 CoreBench.Cards();

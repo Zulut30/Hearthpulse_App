@@ -174,7 +174,7 @@ foreign file can start from it.
 | `M kind n` | A step about one card or none: `BUY n`, `SELL n`, `MOVE n`, `TRIGGER n` (a card's trigger); `n` may be `-` (no `CARD_TARGET`, a source never shown) |
 | `M kind n t` | A step with a target: `PLAY n t`, `POWER n t` (hero power), `USE n t` (an activated power of our minion on the table), `ATTACK n t`; either may be `-` |
 | `M kind -` | A step about no card: `REFRESH -`, `UPGRADE -`, `FREEZE -` (freeze or unfreeze), `DEATHS -` |
-| `C kind source opt,opt,..` | Our choice, written at the pick with the options as they were then (a hero reroll changes one): `HERO`, `DISCOVER`, `TRINKET`, `QUEST`; `source` a card id or `-`; 1-16 option card ids. Step (the hero choice opens the game) |
+| `C kind source opt,opt,..` | Our choice, written at the pick with the options as they were then (a hero reroll changes one): `HERO`, `DISCOVER`, `TRINKET`, `QUEST`; `source` a card id or `-`; 1-16 option card ids. Step (the hero choice opens the game). A choice the log never shows picked (the turn ran out) is written without `c` when the next choice comes, the combat starts or the game ends |
 | `c card` | Our pick, one of the options of the `C` before it (several lines for several picks) |
 | `R place` | The game is over for us: our hero's leaderboard place when it ended (`0` when the game gave none). Step |
 | `E n side zone pos card type [TAG=v ...]` | Card `n` is shown at `zone` slot `pos` (`0` for a hero, a hero power, a trinket, a card just put in hand). `side` + `zone` + `type`: `L PLAY` `HERO HERO_POWER MINION BATTLEGROUND_TRINKET BATTLEGROUND_QUEST_REWARD`; `L HAND` `MINION BATTLEGROUND_SPELL SPELL`; `L SECRET` `SPELL` (our quest); `B PLAY` (Bob's offer) `MINION BATTLEGROUND_SPELL SPELL`; `O PLAY` (the combat opponent) the types of `L PLAY`. Nothing else. Tags from `ATK HEALTH DAMAGE ARMOR PREMIUM TAUNT DIVINE_SHIELD REBORN POISONOUS VENOMOUS WINDFURY MEGA_WINDFURY STEALTH FROZEN TECH_LEVEL`, written when not 0 |
@@ -286,3 +286,6 @@ lines, the whole fight within a second), not the client's animation; in Duos onl
 written (the partner's board in combat is not) and no real Duos log was checked; the result and damage of a combat come
 from the hero attack after the fight (none: a tie, unless our hero lost health otherwise); a recording that starts
 during a combat would hide an opponent's minion frozen at that moment (it is taken for Bob's frozen offer).
+The Rounds tab, History and My Stats take a combat's result and damage from the same hero attack: against the ghost of
+an eliminated player the damage to its combat copy counts (owner, 2026-10-29), and a fight conceded before any hero
+attack has no result (no `f` line).

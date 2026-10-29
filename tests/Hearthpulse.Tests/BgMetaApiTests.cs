@@ -29,6 +29,34 @@ public sealed class BgMetaApiTests : IDisposable
     }
 
     [Fact]
+    public void Both_apps_ask_for_the_meta_again_no_more_often_than_its_answers_are_kept()
+    {
+        // The stats pool rebuilds its totals every 6 hours and the API cache keeps answers as long: Avalonia asked every
+        // 3 hours (WPF every 6), which only spent the pool's free requests. Both hosts read this one interval now.
+        Assert.Equal(TimeSpan.FromHours(6), BattlegroundsMeta.RefreshInterval);
+        Assert.True(BattlegroundsMeta.RefreshInterval >= HearthpulseData.MaxAge);
+
+        // The hosts are not built in tests: their refresh timers are read from the source, so neither can drift again.
+        foreach (var host in new[] { Path.Combine("src", "Hearthpulse.App", "App.xaml.cs"), Path.Combine("src", "Hearthpulse.UI", "AppHost.cs") })
+        {
+            var timer = System.Text.RegularExpressions.Regex.Match(System.IO.File.ReadAllText(Path.Combine(RepoRoot(), host)), @"_metaRefresh = new DispatcherTimer \{ Interval = ([^,}]+?) \}");
+            Assert.True(timer.Success, $"{host}: no meta refresh timer");
+            Assert.Equal("BattlegroundsMeta.RefreshInterval", timer.Groups[1].Value.Trim());
+        }
+    }
+
+    private static string RepoRoot([System.Runtime.CompilerServices.CallerFilePath] string source = "")
+    {
+        var dir = new DirectoryInfo(Path.GetDirectoryName(source)!);
+        while (dir is not null && !System.IO.File.Exists(Path.Combine(dir.FullName, "Hearthpulse.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        return dir!.FullName;
+    }
+
+    [Fact]
     public void Hero_slice_parses_from_the_real_answer()
     {
         var slice = HearthpulseData.ParseHeroSlice(Fixture("heroes-top_50_percent.json"));

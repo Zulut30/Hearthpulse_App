@@ -483,6 +483,12 @@ public sealed class LogWatcher : IDisposable
 
                 _firstSession = false;
                 _session = latest;
+                if (_stopped)
+                {
+                    // Replaced while looking for the session (a slow folder): the new watcher starts it.
+                    return;
+                }
+
                 _consumer.OnSessionStarted(latest, HearthstoneInstall.SessionStart(latest) ?? DateTime.Now, midSession);
                 Diag.Info($"Reading {Path.GetFileName(latest)}: Power.log {PowerTail.FileLength:N0} bytes, starting at {PowerTail.Position:N0}");
                 var caughtUpFrom = Environment.TickCount64;
@@ -553,6 +559,13 @@ public sealed class LogWatcher : IDisposable
             {
                 tail.Reset(latest, TailStart.End);
             }
+        }
+
+        if (_stopped)
+        {
+            // Replaced while the tails were reset (a slow disk): the new watcher has replayed the game already, and
+            // resetting it here would leave the overlay empty until the next game.
+            return;
         }
 
         _consumer.OnResync();

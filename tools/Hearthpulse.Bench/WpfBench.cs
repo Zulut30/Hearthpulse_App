@@ -35,10 +35,42 @@ internal static class WpfBench
         using var http = Http();
         var cards = CardDb.LoadAsync("ruRU", http).GetAwaiter().GetResult();
         var settings = AppSettings.Load();
+        var bg = BgPanels(settings);
         var wpf = new OverlayViewModel();
-        OverlayRun("WPF", wpf, typeof(OverlayViewModel), s => wpf.Update(s, cards, settings, null, null), cards, options);
+        OverlayRun("WPF", wpf, typeof(OverlayViewModel), s =>
+        {
+            wpf.Update(s, cards, settings, null, null);
+            if (bg)
+            {
+                wpf.ArrangeLeaderboard(1920, 1080, settings);
+            }
+        }, cards, options);
         var avalonia = new Hearthpulse.UI.Overlay.OverlayViewModel();
-        OverlayRun("Avalonia", avalonia, avalonia.GetType(), s => avalonia.Update(s, cards, settings, null, null), cards, options);
+        OverlayRun("Avalonia", avalonia, avalonia.GetType(), s =>
+        {
+            avalonia.Update(s, cards, settings, null, null);
+            if (bg)
+            {
+                avalonia.ArrangeLeaderboard(1920, 1080, settings);
+            }
+        }, cards, options);
+    }
+
+    /// <summary>
+    /// HP_BENCH_BG_PANELS=1: the leaderboard badges and the lobby panel on, and the leaderboard arranged after each
+    /// snapshot as every overlay frame does (a 1080-unit surface). Off, the numbers stay comparable with stages 2-9.
+    /// </summary>
+    internal static bool BgPanels(AppSettings settings)
+    {
+        if (Environment.GetEnvironmentVariable("HP_BENCH_BG_PANELS") != "1")
+        {
+            return false;
+        }
+
+        settings.ShowBgLeaderboardBadges = true;
+        settings.ShowBgLobbyPanel = true;
+        settings.ShowLobbyPanel = true;
+        return true;
     }
 
     /// <summary>
@@ -676,7 +708,7 @@ internal static class WpfBench
         return (app, settings);
     }
 
-    private static MainWindow OffScreen(MainWindow window)
+    internal static MainWindow OffScreen(MainWindow window)
     {
         window.WindowStartupLocation = WindowStartupLocation.Manual;
         window.Left = -20000;
@@ -688,7 +720,7 @@ internal static class WpfBench
     }
 
     /// <summary>Closes for real: with "minimize to tray" on, Close() only hides the window.</summary>
-    private static void Close(MainWindow window, AppSettings settings)
+    internal static void Close(MainWindow window, AppSettings settings)
     {
         var tray = settings.MinimizeToTray;
         settings.MinimizeToTray = false;
@@ -777,7 +809,7 @@ internal static class WpfBench
             : "-";
 
     /// <summary>Visuals in the window's tree (templates that were never applied add none).</summary>
-    private static int Elements(System.Windows.Media.Visual root)
+    internal static int Elements(System.Windows.Media.Visual root)
     {
         var count = 1;
         for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
@@ -791,7 +823,7 @@ internal static class WpfBench
         return count;
     }
 
-    private static void Pump(DispatcherPriority until = DispatcherPriority.ApplicationIdle)
+    internal static void Pump(DispatcherPriority until = DispatcherPriority.ApplicationIdle)
     {
         var frame = new DispatcherFrame();
         Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() => frame.Continue = false), until);
