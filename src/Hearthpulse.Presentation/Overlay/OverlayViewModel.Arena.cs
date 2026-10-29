@@ -171,9 +171,9 @@ public sealed partial class OverlayViewModel
 
         // Snapshots arrive every 100 ms while anything changes; rebuild only when what the panels show changed.
         var print = $"{Loc.Instance.Language}|{draft.PlayerClass}|{draft.HasData}|{draft.Score.Average:0.00}|{draft.Phase}|{draft.Underground}|{draft.ScoresFromOtherMode}|"
-                    + string.Join(",", draft.Options.Select(o => $"{o.CardId}:{o.Score}:{o.WinRate}:{o.IsBest}:{o.SameCost}:{o.SameType}:{o.Package?.Count}")) + "|"
-                    + string.Join(",", draft.Deck.Select(c => $"{c.CardId}:{c.Count}:{c.Score}")) + "|"
-                    + string.Join(",", draft.Classes.Select(c => $"{c.PlayerClass}:{c.WinRate}:{c.Offered}")) + "|"
+                    + string.Join(',', draft.Options.Select(o => $"{o.CardId}:{o.Score}:{o.WinRate}:{o.IsBest}:{o.SameCost}:{o.SameType}:{o.Package?.Count}")) + "|"
+                    + string.Join(',', draft.Deck.Select(c => $"{c.CardId}:{c.Count}:{c.Score}")) + "|"
+                    + string.Join(',', draft.Classes.Select(c => $"{c.PlayerClass}:{c.WinRate}:{c.Offered}")) + "|"
                     + $"{draft.RunClass?.WinRate}:{draft.RunClass?.SevenPlus}:{draft.RunClass?.Rank}";
         if (print == _arenaPrint)
         {

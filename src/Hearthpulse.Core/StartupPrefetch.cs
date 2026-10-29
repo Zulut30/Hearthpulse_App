@@ -40,8 +40,8 @@ public sealed class StartupPrefetch
     /// </summary>
     public async Task<CardDb> CardsAsync(string locale)
     {
-        var (loaded, cards) = await _cards;
-        return loaded == locale ? cards : await CardDb.LoadAsync(locale, _http);
+        var (loaded, cards) = await _cards.ConfigureAwait(false);
+        return loaded == locale ? cards : await CardDb.LoadAsync(locale, _http).ConfigureAwait(false);
     }
 
     private async Task<(string?, CardDb)> LoadCardsAsync(string locale, string language)

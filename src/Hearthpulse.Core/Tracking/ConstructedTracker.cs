@@ -195,7 +195,7 @@ public sealed class ConstructedTracker : IPowerListener
     private OpponentArchetypeView? OpponentArchetypeFor(CardDb cards, string? opponentClass, string gameType, string formatType, IReadOnlyList<PlayedCard> played)
     {
         var shown = played.Where(p => !p.IsCreated).Select(p => p.CardId).ToList();
-        var key = $"{opponentClass}|{gameType}|{formatType}|{string.Join(",", shown)}";
+        var key = $"{opponentClass}|{gameType}|{formatType}|{string.Join(',', shown)}";
         if (ReferenceEquals(_opponentArchetype.Meta, Meta) && _opponentArchetype.Key == key)
         {
             return _opponentArchetype.View;

@@ -14,12 +14,12 @@ public static class GameRecords
 {
     public static string ModeOf(string gameType) => gameType switch
     {
-        _ when gameType.Contains("BATTLEGROUNDS") && gameType.Contains("DUO") => "Duos",
-        _ when gameType.Contains("BATTLEGROUNDS") => "Battlegrounds",
-        _ when gameType.Contains("MERCENARIES") => "Mercenaries",
+        _ when gameType.Contains("BATTLEGROUNDS", StringComparison.Ordinal) && gameType.Contains("DUO", StringComparison.Ordinal) => "Duos",
+        _ when gameType.Contains("BATTLEGROUNDS", StringComparison.Ordinal) => "Battlegrounds",
+        _ when gameType.Contains("MERCENARIES", StringComparison.Ordinal) => "Mercenaries",
         "GT_RANKED" => "Ranked",
         "GT_CASUAL" => "Casual",
-        _ when gameType.Contains("ARENA") => "Arena",
+        _ when gameType.Contains("ARENA", StringComparison.Ordinal) => "Arena",
         "GT_TAVERNBRAWL" or "GT_FSG_BRAWL" or "GT_FSG_BRAWL_VS_FRIEND" or "GT_FSG_BRAWL_1P_VS_AI" or "GT_FSG_BRAWL_2P_COOP" => "Brawl",
         "GT_VS_AI" => "Practice",
         "GT_VS_FRIEND" => "Friendly",
@@ -102,7 +102,7 @@ public static class GameRecords
                 Source = source,
                 CombatResults = CombatJson(battlegrounds.Combats),
                 CombatOdds = CombatOddsJson(battlegrounds.Combats),
-                OfferedHeroes = facts is { OfferedHeroes.Count: > 0 } ? string.Join(",", facts.OfferedHeroes) : null,
+                OfferedHeroes = facts is { OfferedHeroes.Count: > 0 } ? string.Join(',', facts.OfferedHeroes) : null,
                 AnomalyCardId = game.GameEntity?.GetInt(GameTag.BaconAnomaly) is > 0 and var anomaly ? cards.Get(anomaly)?.Id : null,
             };
         }

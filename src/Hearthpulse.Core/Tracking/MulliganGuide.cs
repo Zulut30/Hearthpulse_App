@@ -202,7 +202,7 @@ public static class MulliganGuide
             offered[c.DbfId] = Math.Max(offered.GetValueOrDefault(c.DbfId), c.Offered);
         }
 
-        var top = offered.Values.OrderByDescending(o => o).Take(10).DefaultIfEmpty(0).Average();
+        var top = offered.Values.OrderDescending().Take(10).DefaultIfEmpty(0).Average();
         if (top <= 0)
         {
             return 0;
@@ -330,9 +330,9 @@ public static class MulliganGuide
         {
             ReplaceDelta = replace,
             CardBaseline = baseline,
-            OpponentClass = classShift is not null || rows.Any(r => r.OpponentShift is not null) ? opponentClass : null,
+            OpponentClass = classShift is not null || rows.Exists(r => r.OpponentShift is not null) ? opponentClass : null,
             ClassShift = classShift,
-            GoingFirst = initiativeShift is not null || rows.Any(r => r.CoinShift is not null) ? goingFirst : null,
+            GoingFirst = initiativeShift is not null || rows.Exists(r => r.CoinShift is not null) ? goingFirst : null,
             HasPairData = data.Pairs.Count > 0,
             Synergies = synergies,
             SliceRank = rows.Select(r => r.Slice?.Rank).OfType<string>().GroupBy(r => r).MaxBy(g => g.Count())?.Key,
@@ -358,7 +358,7 @@ public static class MulliganGuide
         var keptSet = kept.ToHashSet();
         var keptCards = view.Cards.Where(c => keptSet.Contains(c.EntityId)).ToList();
         var warnings = new List<string>();
-        if (keptCards.Count > 0 && !keptCards.Any(IsEarly))
+        if (keptCards.Count > 0 && !keptCards.Exists(IsEarly))
         {
             warnings.Add(Loc.F("Mulligan.Warn.NoEarly", EarlyCost));
         }
@@ -581,7 +581,7 @@ public static class MulliganGuide
                 }
 
                 var interaction = pair.WinRate - (baseline + da + db);
-                if (Math.Abs(interaction) >= MinInteraction && !result.Any(s => (s.EntityA == a.EntityId || s.EntityB == a.EntityId) && (s.EntityA == b.EntityId || s.EntityB == b.EntityId)))
+                if (Math.Abs(interaction) >= MinInteraction && !result.Exists(s => (s.EntityA == a.EntityId || s.EntityB == a.EntityId) && (s.EntityA == b.EntityId || s.EntityB == b.EntityId)))
                 {
                     result.Add(new MulliganSynergy(a.EntityId, b.EntityId, a.Name, b.Name, interaction, pair.Games));
                 }

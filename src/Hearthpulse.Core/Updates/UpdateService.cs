@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -197,12 +198,12 @@ public static class UpdateService
     /// </summary>
     public static async Task WatchAsync(HttpClient http, bool notifyOnly, Action<UpdateInfo> available, Action<UpdateInfo> staged, Action<Func<string>> failed)
     {
-        await Task.Delay(TimeSpan.FromSeconds(20));
+        await Task.Delay(TimeSpan.FromSeconds(20)).ConfigureAwait(false);
         while (true)
         {
             try
             {
-                var check = await CheckForUpdateAsync(http);
+                var check = await CheckForUpdateAsync(http).ConfigureAwait(false);
                 var info = check.Update;
                 if (info is not null && notifyOnly)
                 {
@@ -210,7 +211,7 @@ public static class UpdateService
                     return;
                 }
 
-                if (info is { Sha256: not null } && await DownloadAsync(http, info) is not null)
+                if (info is { Sha256: not null } && await DownloadAsync(http, info).ConfigureAwait(false) is not null)
                 {
                     staged(info);
                     return;
@@ -224,13 +225,13 @@ public static class UpdateService
                 Diag.Error("Update check failed", ex);
             }
 
-            await Task.Delay(TimeSpan.FromHours(6));
+            await Task.Delay(TimeSpan.FromHours(6)).ConfigureAwait(false);
         }
     }
 
     /// <summary>Asks GitHub for the newest release; null when this copy is current or when anything goes wrong.</summary>
     public static async Task<UpdateInfo?> CheckAsync(HttpClient http, CancellationToken cancellationToken = default) =>
-        (await CheckForUpdateAsync(http, cancellationToken)).Update;
+        (await CheckForUpdateAsync(http, cancellationToken).ConfigureAwait(false)).Update;
 
     /// <summary>
     /// Asks GitHub for the newest release. Never throws: a failed request or an answer other than 200 is written to the
@@ -249,7 +250,7 @@ public static class UpdateService
             cts.CancelAfter(TimeSpan.FromSeconds(20));
             using var request = new HttpRequestMessage(HttpMethod.Get, LatestApi);
             request.Headers.TryAddWithoutValidation("Accept", "application/vnd.github+json");
-            using var response = await http.SendAsync(request, cts.Token);
+            using var response = await http.SendAsync(request, cts.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 var status = (int)response.StatusCode;
@@ -273,7 +274,7 @@ public static class UpdateService
                 return new UpdateCheck(UpdateCheckOutcome.Failed, null, Loc.F("Core.Update.GitHubFailed", status, shownReason));
             }
 
-            var json = await response.Content.ReadAsStringAsync(cts.Token);
+            var json = await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
             var info = ParseLatest(json, DetectTarget(), RuntimeArchitecture(), LinuxFlavor());
             if (info is null && LatestTag(json) is { } tag && IsNewer(tag))
             {
@@ -323,7 +324,7 @@ public static class UpdateService
             var existing = new FileInfo(staged);
             if (existing.Exists && existing.Length > 0)
             {
-                if (await MatchesDigestAsync(staged, info, cancellationToken))
+                if (await MatchesDigestAsync(staged, info, cancellationToken).ConfigureAwait(false))
                 {
                     return staged;
                 }
@@ -336,20 +337,22 @@ public static class UpdateService
             var part = staged + ".part";
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromMinutes(30));
-            using (var response = await http.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token))
+            using (var response = await http.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false))
             {
                 if (!response.IsSuccessStatusCode)
                 {
                     return null;
                 }
 
-                await using var source = await response.Content.ReadAsStreamAsync(cts.Token);
-                await using var file = File.Create(part);
-                await source.CopyToAsync(file, cts.Token);
+                var source = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
+                await using var sourceScope = source.ConfigureAwait(false);
+                var file = File.Create(part);
+                await using var fileScope = file.ConfigureAwait(false);
+                await source.CopyToAsync(file, cts.Token).ConfigureAwait(false);
             }
 
             // The setup runs silently, so a file that is not exactly the published one is never kept.
-            if (!await MatchesDigestAsync(part, info, cancellationToken))
+            if (!await MatchesDigestAsync(part, info, cancellationToken).ConfigureAwait(false))
             {
                 Diag.Info($"Update {info.Version} failed its checksum and was discarded.");
                 File.Delete(part);
@@ -376,8 +379,9 @@ public static class UpdateService
             return false;
         }
 
-        await using var stream = File.OpenRead(path);
-        var hash = await System.Security.Cryptography.SHA256.HashDataAsync(stream, cancellationToken);
+        var stream = File.OpenRead(path);
+        await using var streamScope = stream.ConfigureAwait(false);
+        var hash = await System.Security.Cryptography.SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
         return Convert.ToHexStringLower(hash) == info.Sha256;
     }
 
@@ -478,7 +482,7 @@ public static class UpdateService
     public static string BuildApplyScript(int pid, string stagedFile, string sourceDir, string targetDir, string? relaunchExe, bool installer, string? cleanupDir)
     {
         // cmd expands %NAME% even inside quotes, so a "%" in a path is doubled.
-        static string Cmd(string path) => path.Replace("%", "%%");
+        static string Cmd(string path) => path.Replace("%", "%%", StringComparison.Ordinal);
         stagedFile = Cmd(stagedFile);
         sourceDir = Cmd(sourceDir);
         targetDir = Cmd(targetDir);
@@ -705,7 +709,7 @@ public static class UpdateService
                 break;
             }
 
-            parts[index++] = int.TryParse(piece, out var number) && number > 0 ? number : 0;
+            parts[index++] = int.TryParse(piece, CultureInfo.InvariantCulture, out var number) && number > 0 ? number : 0;
         }
 
         return parts;

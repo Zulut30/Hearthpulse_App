@@ -56,7 +56,7 @@ public partial class DeckDetailsView : UserControl
 
         page.StartRename.Execute(null);
         VersionsCard.BringIntoView();
-        Dispatcher.BeginInvoke(() =>
+        _ = Dispatcher.BeginInvoke(() =>
         {
             NameBox.Focus();
             NameBox.SelectAll();

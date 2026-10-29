@@ -14,7 +14,7 @@ public sealed partial class GameSession
 
     private readonly CardPoolTracker _cardPool = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, MatchRule?> _matchRules = new(StringComparer.Ordinal);
-    private readonly object _cardPoolGate = new();
+    private readonly Lock _cardPoolGate = new();
     private CardPoolCatalog _cardPoolCatalog = CardPoolCatalog.Empty;
     private WikiPoolSource? _cardPoolWiki;
     private DiscoverChoiceSource? _discoverPicks;
@@ -144,19 +144,19 @@ public sealed partial class GameSession
     /// The rule of a card, from its English text: the pool catalog's, or the card data's in an English client. Cached;
     /// cards whose text the catalog does not have (an uncollectible card in a non-English client) have none.
     /// </summary>
-    private MatchRule? MatchRuleOf(string cardId) => _matchRules.GetOrAdd(cardId, id =>
+    private MatchRule? MatchRuleOf(string cardId) => _matchRules.GetOrAdd(cardId, static (id, self) =>
     {
         CardPoolCatalog catalog;
-        lock (_cardPoolGate)
+        lock (self._cardPoolGate)
         {
-            catalog = _cardPoolCatalog;
+            catalog = self._cardPoolCatalog;
         }
 
         var english = catalog.Get(id) is { } known ? (known.Text, known.Name)
-            : _cards.Locale.StartsWith("en", StringComparison.OrdinalIgnoreCase) && _cards.Get(id) is { } card ? (card.Text, card.Name)
+            : self._cards.Locale.StartsWith("en", StringComparison.OrdinalIgnoreCase) && self._cards.Get(id) is { } card ? (card.Text, card.Name)
             : (Text: string.Empty, Name: string.Empty);
         return english.Text.Length == 0 ? null : MatchLists.Parse(english.Text, english.Name);
-    });
+    }, this);
 
     /// <summary>
     /// The pick hint while the player's own choice is open and its pool is up: from the card's choices in memory (the

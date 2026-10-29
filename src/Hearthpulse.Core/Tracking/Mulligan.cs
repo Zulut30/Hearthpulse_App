@@ -271,7 +271,7 @@ public static class Mulligan
         return new GuideArchetype(0, Loc.F("Mulligan.ClassPool", className), playerClass, pooled, [], meta.Source)
         {
             // Mixed sources (HSGuru win rates, HSReplay cards): the cards' own sample gives the baseline.
-            BaselineWinRate = games > 0 && archetypes.All(a => a.MulliganBaseline is null) ? archetypes.Sum(a => a.WinRate * a.Games) / games : null,
+            BaselineWinRate = games > 0 && archetypes.TrueForAll(a => a.MulliganBaseline is null) ? archetypes.Sum(a => a.WinRate * a.Games) / games : null,
         };
     }
 

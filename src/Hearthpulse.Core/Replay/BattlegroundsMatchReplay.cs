@@ -210,7 +210,7 @@ public sealed class BattlegroundsMatchReplay
                     card.Tags.Clear();
                     foreach (var tag in t.Skip(7))
                     {
-                        var eq = tag.IndexOf('=');
+                        var eq = tag.IndexOf('=', StringComparison.Ordinal);
                         if (eq > 0)
                         {
                             card.Tags[tag[..eq]] = tag[(eq + 1)..];

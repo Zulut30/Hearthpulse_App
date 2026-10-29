@@ -339,7 +339,7 @@ public sealed partial class MatchViewModel
                 var look = events.TrueForAll(m => m.Local) ? MatchTimelineLook.Mine
                     : events.TrueForAll(m => !m.Local) ? MatchTimelineLook.Theirs : MatchTimelineLook.Neutral;
                 var lines = events.Take(3).Select(m => m.Caption);
-                var tooltip = string.Join("\n", events.Count > 3 ? lines.Append(Loc.F("Match.Timeline.More", events.Count - 3)) : lines);
+                var tooltip = string.Join('\n', events.Count > 3 ? lines.Append(Loc.F("Match.Timeline.More", events.Count - 3)) : lines);
                 return new MatchTimelineTick((events[0].Frame + 0.5) / count, events[0].Frame, look, tooltip);
             })
             .ToList();

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.CardPool;
 using Hearthpulse.Core.Constructed;
@@ -42,7 +43,7 @@ public sealed class SecretTracker : IPowerListener
     private readonly Dictionary<int, int> _playedOnTurn = new();
 
     private readonly HashSet<string> _crossed = new(StringComparer.Ordinal);
-    private readonly object _crossedGate = new();
+    private readonly Lock _crossedGate = new();
 
     private bool _windowFired;
     private LocalPlay? _play;
@@ -573,7 +574,7 @@ public sealed class SecretTracker : IPowerListener
             }
 
             var possible = pool
-                .Where(o => o.Rule is null || !secret.Seen.Any(s => RulesOut(o.Rule, s.Trigger, s.Held)))
+                .Where(o => o.Rule is null || !secret.Seen.Exists(s => RulesOut(o.Rule, s.Trigger, s.Held)))
                 // The same Secret cannot be in play twice.
                 .Where(o => !o.CardIds.Any(known.Contains))
                 .Where(o => !limitCopies || !secret.FromDeck || o.CardIds.Sum(id => shown.GetValueOrDefault(id)) < (o.Legendary ? 1 : 2))
@@ -753,5 +754,5 @@ public sealed class SecretTracker : IPowerListener
     /// <summary>Only plain Mana is judged: temporary crystals and Overload make "no Mana left" uncertain.</summary>
     private static bool ManaKnown(Entity player) => player.GetInt("TEMP_RESOURCES") == 0 && player.GetInt("OVERLOAD_LOCKED") == 0;
 
-    private static int Int(string value) => int.TryParse(value, out var n) ? n : 0;
+    private static int Int(string value) => int.TryParse(value, CultureInfo.InvariantCulture, out var n) ? n : 0;
 }

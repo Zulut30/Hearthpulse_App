@@ -132,7 +132,8 @@ public sealed class CardDb
 
         try
         {
-            await using var stream = File.OpenRead(path);
+            var stream = File.OpenRead(path);
+            await using var streamScope = stream.ConfigureAwait(false);
             return ParseList(stream);
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)

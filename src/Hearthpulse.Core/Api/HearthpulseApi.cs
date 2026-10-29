@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -132,7 +133,7 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
                 case JsonValueKind.Array:
                     // FastAPI validation errors: [{"loc": [...], "msg": "..."}].
                     code = "VALIDATION_ERROR";
-                    message = string.Join(" ", detail.EnumerateArray()
+                    message = string.Join(' ', detail.EnumerateArray()
                         .Select(e => e.ValueKind == JsonValueKind.Object && e.TryGetProperty("msg", out var msg) ? msg.GetString() : null)
                         .Where(s => !string.IsNullOrEmpty(s)));
                     break;
@@ -148,7 +149,7 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
         (int)HttpStatusCode.Unauthorized => "INVALID_TOKEN",
         (int)HttpStatusCode.TooManyRequests => "RATE_LIMITED",
         >= 500 => "SERVER_ERROR",
-        _ => "HTTP_" + status,
+        _ => "HTTP_" + status.ToString(CultureInfo.InvariantCulture),
     };
 
     private static string EnsureSlash(string url) => url.EndsWith('/') ? url : url + "/";

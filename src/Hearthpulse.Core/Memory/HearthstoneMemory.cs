@@ -110,7 +110,7 @@ public sealed record MatchPlayerInfo(string? Name, RankInfo? Standard, RankInfo?
 /// </summary>
 public sealed partial class HearthstoneMemory : IDisposable
 {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private ProcessMemory? _memory;
     private MonoRuntime? _runtime;
     private DateTime _nextAttachAttempt = DateTime.MinValue;
@@ -212,6 +212,7 @@ public sealed partial class HearthstoneMemory : IDisposable
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposed on every failed path (including exceptions); on success it is returned to the caller, which owns it.")]
     private static (ProcessMemory? Memory, MonoRuntime? Runtime, string Status, bool Found) Attach()
     {
         var processes = Process.GetProcessesByName("Hearthstone");

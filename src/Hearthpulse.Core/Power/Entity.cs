@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Hearthpulse.Core.Power;
 
 /// <summary>An entity from the Power.log stream: a card, hero, player or the game itself.</summary>
@@ -95,7 +97,7 @@ public sealed class Entity
             return 0;
         }
 
-        return int.TryParse(value, out var result) ? result : GameTag.EnumValue(tag, value);
+        return int.TryParse(value, CultureInfo.InvariantCulture, out var result) ? result : GameTag.EnumValue(tag, value);
     }
 
     public string GetString(string tag) => _tags.TryGetValue(tag, out var value) ? value : string.Empty;

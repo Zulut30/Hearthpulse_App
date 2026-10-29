@@ -613,7 +613,7 @@ public sealed partial class OverlayViewModel
     {
         var pool = CardPoolBrowserOpen ? _cardPool : null;
         var key = pool is null ? string.Empty
-            : $"{Loc.Instance.Language}|{pool.SourceCardId}|{pool.Description}|{pool.Count}|{_cardPoolSection}|{string.Join(",", _cardPoolSelected.Order(StringComparer.Ordinal))}";
+            : $"{Loc.Instance.Language}|{pool.SourceCardId}|{pool.Description}|{pool.Count}|{_cardPoolSection}|{string.Join(',', _cardPoolSelected.Order(StringComparer.Ordinal))}";
         if (key == _cardPoolBrowserKey)
         {
             return;

@@ -23,7 +23,8 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     private static readonly TimeSpan MaxStaleForMissing = TimeSpan.FromDays(2);
 
     /// <summary>Values from answers that become part of a URL or cache file name must look like the API's own keys.</summary>
-    private static readonly System.Text.RegularExpressions.Regex SafeKey = new("^[a-z0-9_.]{1,64}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-z0-9_.]{1,64}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant)]
+    private static partial System.Text.RegularExpressions.Regex SafeKey { get; }
 
     private readonly string _cacheDirectory = cacheDirectory ?? Path.Combine(AppPaths.Cache, "api");
 
@@ -103,7 +104,8 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     }
 
     /// <summary>Card ids that may go into a URL and a cache file name.</summary>
-    private static readonly System.Text.RegularExpressions.Regex CardIdKey = new("^[A-Za-z0-9_]{1,48}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    [System.Text.RegularExpressions.GeneratedRegex("^[A-Za-z0-9_]{1,48}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant)]
+    private static partial System.Text.RegularExpressions.Regex CardIdKey { get; }
 
     public async Task<IReadOnlyList<GuideMatchup>> LoadArchetypeMatchupsAsync(int archetypeId, CancellationToken cancellationToken = default)
     {

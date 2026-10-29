@@ -166,9 +166,9 @@ public static partial class CombatRelevance
             return string.Empty;
         }
 
-        var at = text.IndexOf('@');
+        var at = text.IndexOf('@', StringComparison.Ordinal);
         var t = at >= 0 ? text[..at] : text;
-        t = TagRegex().Replace(t, string.Empty).Replace("[x]", string.Empty).Replace('_', ' ').Replace('\n', ' ');
+        t = TagRegex().Replace(t, string.Empty).Replace("[x]", string.Empty, StringComparison.Ordinal).Replace('_', ' ').Replace('\n', ' ');
         return SpaceRegex().Replace(t, " ").Trim();
     }
 

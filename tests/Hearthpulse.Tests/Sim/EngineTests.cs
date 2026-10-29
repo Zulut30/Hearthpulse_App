@@ -272,6 +272,8 @@ public sealed class EngineTests(ITestOutputHelper output)
     }
 
     [Fact]
+    // Asserts on wall-clock time: CI runs it without coverage instrumentation (hearthpulse-testing, "Timing").
+    [Trait("Category", "Timing")]
     public void Full_boards_with_effects_run_fast_enough()
     {
         var effects = Effects(typeof(SummonTwo), typeof(ExtraTrigger), typeof(RallyPlusTen), typeof(AvengeTwo), typeof(AuraPlusTwo),

@@ -157,7 +157,7 @@ public static class CardArt
     private static string Key(ArtKind kind, string cardId) => $"{kind}:{cardId}";
 
     public static Task<Bitmap?> GetAsync(ArtKind kind, string cardId) =>
-        Pending.GetOrAdd(Key(kind, cardId), _ => Task.Run(() => LoadAsync(kind, cardId)));
+        Pending.GetOrAdd(Key(kind, cardId), static (_, art) => Task.Run(() => LoadAsync(art.kind, art.cardId)), (kind, cardId));
 
     private static async Task<Bitmap?> LoadAsync(ArtKind kind, string cardId)
     {

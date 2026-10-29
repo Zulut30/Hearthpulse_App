@@ -46,8 +46,11 @@ public sealed class ProfileUploader : IDisposable
     private readonly Func<bool> _enabled;
     private readonly HistoryStore _history;
     private readonly ProfileUploadQueue _queue;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Deliberately not disposed: the loop may still be using it while it winds down after Dispose cancels _stop.")]
     private readonly SemaphoreSlim _wake = new(0, int.MaxValue);
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Deliberately not disposed: the loop may still be using it while it winds down after Dispose cancels _stop.")]
     private readonly SemaphoreSlim _pass = new(1, 1);
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Deliberately not disposed: the loop may still be using it while it winds down after Dispose cancels _stop.")]
     private readonly CancellationTokenSource _stop = new();
     private Task? _loop;
     private int _failures;
@@ -57,7 +60,7 @@ public sealed class ProfileUploader : IDisposable
     private int _refused;
     private int _notSent;
     private long _sendGeneration;
-    private readonly object _queueChange = new();
+    private readonly Lock _queueChange = new();
 
     /// <param name="client">The site API (its base URL is the one the account signs in to).</param>
     /// <param name="accessToken">A token for the requested sign-in only, or null when it is gone or offline.</param>
@@ -493,7 +496,7 @@ public sealed class ProfileUploader : IDisposable
     {
         var text = s.Kind switch
         {
-            StatusKind.Waiting or StatusKind.Retrying => string.Join(" ", new[]
+            StatusKind.Waiting or StatusKind.Retrying => string.Join(' ', new[]
             {
                 Loc.P("Upload.Status.Waiting", s.Pending),
                 s.Backfilling ? Loc.T("Upload.Status.MoreFollow") : null,

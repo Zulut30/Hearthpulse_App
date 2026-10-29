@@ -21,6 +21,7 @@ namespace Hearthpulse.Desktop;
 /// </summary>
 internal static partial class OffscreenRenderer
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "Dispatcher.Post takes an Action; the posted body catches everything and ends the main loop in finally (--render-ui dev path).")]
     public static int Run(string folder)
     {
         AppBuilder.Configure<HearthpulseApp>()

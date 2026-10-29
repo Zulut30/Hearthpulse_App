@@ -169,7 +169,7 @@ public sealed partial class OverlayViewModel
 
         // A new hand starts from the recommendation. The player's clicks last for the whole hand, also when the numbers
         // arrive from another source mid-mulligan; untouched keeps follow the newest recommendation.
-        var hand = string.Join(",", mulligan.Cards.Select(c => $"{c.EntityId}:{c.CardId}"));
+        var hand = string.Join(',', mulligan.Cards.Select(c => $"{c.EntityId}:{c.CardId}"));
         if (hand != _mulliganHand)
         {
             _mulliganHand = hand;
@@ -197,8 +197,8 @@ public sealed partial class OverlayViewModel
         // Snapshots arrive every 100 ms while anything changes; rebuild the badges only when what they show changed. The
         // language is part of it: after a switch the host pushes the last snapshot again and the texts are made anew.
         var print = $"{Loc.Instance.Language}|{view.Context}|{view.Source}|{view.NoStats}|{view.BaseWinRate:0.0000}|{view.ReplaceDelta:0.0000}|{view.OpponentClass}|{view.ClassShift:0.0000}|{view.GoingFirst}|{view.SliceRank}|{view.ArenaBasis}|{_mulliganCompact}|"
-                    + $"{string.Join(",", _mulliganKept.Order())}|"
-                    + string.Join(";", view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.Edge:0.0000}|{c.KeepRate:0.0000}|{c.KeptDelta:0.0000}|{c.DrawnDelta:0.0000}"));
+                    + $"{string.Join(',', _mulliganKept.Order())}|"
+                    + string.Join(';', view.Cards.Select(c => $"{c.EntityId}|{c.CardId}|{c.Call}|{c.Delta:0.0000}|{c.Edge:0.0000}|{c.KeepRate:0.0000}|{c.KeptDelta:0.0000}|{c.DrawnDelta:0.0000}"));
         if (print == _mulliganPrint)
         {
             return;
@@ -212,7 +212,7 @@ public sealed partial class OverlayViewModel
             MulliganSummary = missing;
             MulliganSource = initiative ?? string.Empty;
             // The source line heads the tooltip: the strip itself carries only the impact.
-            MulliganDetails = string.Join("\n", new[] { MulliganSource, Loc.T("Mulligan.NoNumbers") }.Where(s => s.Length > 0));
+            MulliganDetails = string.Join('\n', new[] { MulliganSource, Loc.T("Mulligan.NoNumbers") }.Where(s => s.Length > 0));
             MulliganImpactGood = MulliganImpactBad = MulliganHasWarnings = false;
         }
         else
@@ -231,7 +231,7 @@ public sealed partial class OverlayViewModel
             var notes = impact.Warnings
                 .Concat(impact.Synergies.Select(s => Loc.F("Mulligan.SynergyKept", s.NameA, s.NameB, Points(s.Interaction))))
                 .ToList();
-            MulliganDetails = string.Join("\n", new[]
+            MulliganDetails = string.Join('\n', new[]
             {
                 view.ArenaBasis is null ? string.Empty : Loc.T("Mulligan.Arena.Note"),
                 MulliganSource,
@@ -352,7 +352,7 @@ public sealed partial class OverlayViewModel
                 c.Copy > 1,
                 late,
                 kept,
-                string.Join("\n", lines),
+                string.Join('\n', lines),
                 _mulliganCompact ? string.Empty : c.PickTier ?? string.Empty,
                 arena);
         }).ToList();

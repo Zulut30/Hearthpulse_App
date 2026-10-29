@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Cards;
@@ -427,7 +428,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
             combat,
             !heroChosen && options.Count > 0,
             options,
-            MemoryRaces ?? _shopRaces.OrderBy(r => r, StringComparer.Ordinal).ToList(),
+            MemoryRaces ?? _shopRaces.Order(StringComparer.Ordinal).ToList(),
             MemoryRaces is not null,
             opponents,
             _combats.ToList(),
@@ -911,7 +912,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
 
         foreach (var (tag, value) in entity.Tags)
         {
-            if (int.TryParse(value, out var number))
+            if (int.TryParse(value, CultureInfo.InvariantCulture, out var number))
             {
                 tags[tag] = number;
             }
@@ -982,7 +983,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
 
     /// <summary>CARDRACE as Power.log prints it: a name ("BEAST") or, for races the client does not name, a number.</summary>
     private static Tribe TribeTag(string value) =>
-        int.TryParse(value, out var id) ? Traits.ParseTribe(Races.ById.GetValueOrDefault(id)) : Traits.ParseTribe(value);
+        int.TryParse(value, CultureInfo.InvariantCulture, out var id) ? Traits.ParseTribe(Races.ById.GetValueOrDefault(id)) : Traits.ParseTribe(value);
 
     private BgMinion ToMinion(Entity e)
     {

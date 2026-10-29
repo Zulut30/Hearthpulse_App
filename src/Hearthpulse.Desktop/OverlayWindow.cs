@@ -188,7 +188,7 @@ internal sealed class OverlayWindow : Window
         }
 
         _nextHoverRead = now.AddMilliseconds(250);
-        Task.Run(() =>
+        _ = Task.Run(() =>
         {
             try
             {

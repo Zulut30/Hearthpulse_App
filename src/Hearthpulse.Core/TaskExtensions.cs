@@ -10,7 +10,7 @@ public static class TaskExtensions
     /// (an image load on every card while the disk is full) is logged as <see cref="CrashLog.Record"/> does: three times,
     /// then every hundredth.</param>
     public static void Forget(this Task task, string what) =>
-        task.ContinueWith(
+        _ = task.ContinueWith(
             t => CrashLog.Record($"{what} failed", t.Exception!.InnerExceptions.Count == 1 ? t.Exception.InnerException! : t.Exception),
             CancellationToken.None,
             TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,

@@ -12,7 +12,7 @@ public sealed class MonoRuntime
     private readonly Dictionary<string, ulong> _byFullName = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ulong> _bySimpleName = new(StringComparer.Ordinal);
     private readonly Dictionary<ulong, MonoClass> _classes = new();
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
 
     /// <summary>Stale objects can point anywhere; the class cache is dropped before it grows without end.</summary>
     private const int MaxCachedClasses = 50_000;

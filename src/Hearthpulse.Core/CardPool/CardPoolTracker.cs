@@ -17,7 +17,7 @@ public sealed class CardPoolTracker : IPowerListener
     /// </summary>
     public static readonly TimeSpan HoverLinger = TimeSpan.FromSeconds(0.8);
 
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private string? _choiceSource;
     private int _choiceOptions;
     private (string Source, IReadOnlyList<string> Offered)? _openChoice;

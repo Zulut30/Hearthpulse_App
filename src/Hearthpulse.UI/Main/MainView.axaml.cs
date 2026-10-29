@@ -80,6 +80,7 @@ public partial class MainView : UserControl
     public Action<string>? OpenFolder { get; set; } = path =>
         Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Event handler: the signature is fixed and the body catches its own errors.")]
     private async void OnCopyAccountCode(object? sender, RoutedEventArgs e)
     {
         if (_viewModel is not { AccountUserCode.Length: > 0 } viewModel)

@@ -8,7 +8,7 @@ namespace Hearthpulse.Core;
 public sealed class SizedCache<TValue>(long budget, Func<TValue, long> sizeOf)
     where TValue : class
 {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly Dictionary<string, LinkedListNode<Entry>> _entries = new(StringComparer.Ordinal);
 
     // Most recently used first.

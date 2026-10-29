@@ -69,7 +69,7 @@ public static class CardRender
         }
 
         image.Source = null;
-        var loaded = await Pending.GetOrAdd(key, _ => LoadAsync(cardId));
+        var loaded = await Pending.GetOrAdd(key, static (_, id) => LoadAsync(id), cardId);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             // Cropping makes an Avalonia object: on the UI thread only.

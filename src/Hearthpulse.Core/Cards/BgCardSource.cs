@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -115,7 +116,8 @@ public sealed class BgCardDb
 
         try
         {
-            await using var stream = File.OpenRead(path);
+            var stream = File.OpenRead(path);
+            await using var streamScope = stream.ConfigureAwait(false);
             return Parse(stream);
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
@@ -133,7 +135,7 @@ public sealed class BgCardDb
         var complete = false;
         for (var page = 0; page < MaxPages; page++)
         {
-            var url = string.Format(ListUrl, PageSize, offset);
+            var url = string.Format(CultureInfo.InvariantCulture, ListUrl, PageSize, offset);
             using var doc = await GetJsonAsync(http, url, cancellationToken).ConfigureAwait(false);
             // A third-party answer of another shape ends the download; it must not escape from a "never throws" load.
             if (doc is null || doc.RootElement.ValueKind != JsonValueKind.Object
@@ -208,7 +210,8 @@ public sealed class BgCardDb
                 return null;
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using var streamScope = stream.ConfigureAwait(false);
             return await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException or IOException)

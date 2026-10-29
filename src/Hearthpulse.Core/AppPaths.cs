@@ -117,7 +117,7 @@ public static class AppPaths
 /// <summary>Tiny append-only diagnostic log.</summary>
 public static class Diag
 {
-    private static readonly object Gate = new();
+    private static readonly Lock Gate = new();
 
     public static void Info(string message) => Write("INFO", message);
 

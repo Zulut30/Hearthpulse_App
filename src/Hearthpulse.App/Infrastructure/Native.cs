@@ -24,7 +24,7 @@ internal static partial class Native
     public static readonly IntPtr HWND_MESSAGE = new(-3);
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct RECT
+    public record struct RECT
     {
         public int Left, Top, Right, Bottom;
         public readonly int Width => Right - Left;

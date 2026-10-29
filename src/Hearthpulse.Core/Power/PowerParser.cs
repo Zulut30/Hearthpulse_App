@@ -481,7 +481,7 @@ public sealed partial class PowerParser
             return;
         }
 
-        var separator = body.IndexOf('=');
+        var separator = body.IndexOf('=', StringComparison.Ordinal);
         if (separator <= 0)
         {
             return;

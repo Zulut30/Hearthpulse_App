@@ -64,7 +64,7 @@ public static class CardRender
         }
 
         image.Source = null;
-        var loaded = await Pending.GetOrAdd(key, _ => LoadAsync(cardId));
+        var loaded = await Pending.GetOrAdd(key, static (_, id) => LoadAsync(id), cardId);
         // A virtualized row may show another card by now.
         if (Equals(image.GetValue(CardProperty), cardId))
         {

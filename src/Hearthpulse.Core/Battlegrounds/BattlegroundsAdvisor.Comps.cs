@@ -117,7 +117,7 @@ public sealed partial class BattlegroundsAdvisor
             }
         }
 
-        if (target.Comp is not null && !shown.Any(x => x.Comp.Id == target.Comp.Id))
+        if (target.Comp is not null && !shown.Exists(x => x.Comp.Id == target.Comp.Id))
         {
             shown[^1] = target;
         }

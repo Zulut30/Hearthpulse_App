@@ -133,7 +133,7 @@ public static partial class MatchLists
         }
 
         var side = clause.Contains("enemy", StringComparison.OrdinalIgnoreCase) || clause.Contains("opponent", StringComparison.OrdinalIgnoreCase) ? MatchSide.Enemy
-            : kind != MatchEvent.Died || words.Any(w => w.Equals("friendly", StringComparison.OrdinalIgnoreCase) || w.Equals("your", StringComparison.OrdinalIgnoreCase)) ? MatchSide.Friendly
+            : kind != MatchEvent.Died || words.Exists(w => w.Equals("friendly", StringComparison.OrdinalIgnoreCase) || w.Equals("your", StringComparison.OrdinalIgnoreCase)) ? MatchSide.Friendly
             : MatchSide.Both;
         if (side == MatchSide.Enemy && kind != MatchEvent.Died)
         {
@@ -142,7 +142,7 @@ public static partial class MatchLists
 
         var mechanic = Mechanics.FirstOrDefault(m => clause.Contains(m.Word, StringComparison.Ordinal)).Mechanic;
         var race = words.Select(w => Races.GetValueOrDefault(w)).FirstOrDefault(r => r is not null);
-        var spell = words.Any(w => w.StartsWith("spell", StringComparison.OrdinalIgnoreCase));
+        var spell = words.Exists(w => w.StartsWith("spell", StringComparison.OrdinalIgnoreCase));
         int? school = null;
         for (var i = 0; i + 1 < words.Count; i++)
         {
@@ -154,7 +154,7 @@ public static partial class MatchLists
 
         var type = kind is MatchEvent.Died or MatchEvent.Summoned ? "MINION"
             : kind == MatchEvent.Cast || spell ? "SPELL"
-            : words.Any(w => w.StartsWith("minion", StringComparison.OrdinalIgnoreCase)) || race is not null ? "MINION"
+            : words.Exists(w => w.StartsWith("minion", StringComparison.OrdinalIgnoreCase)) || race is not null ? "MINION"
             : null;
         // "a 1, 2, and 3-Cost minion" names several costs: the list keeps them all.
         int? cost = CostRegex().Match(clause) is { Success: true } c && !clause.Contains(',', StringComparison.Ordinal)
@@ -260,7 +260,7 @@ public static partial class MatchLists
         return text[start..at];
     }
 
-    private static string Clean(string text) => TagRegex().Replace(text.Replace("\n", " ", StringComparison.Ordinal), string.Empty).Replace("[x]", string.Empty, StringComparison.Ordinal);
+    private static string Clean(string text) => TagRegex().Replace(text.Replace('\n', ' '), string.Empty).Replace("[x]", string.Empty, StringComparison.Ordinal);
 
     [GeneratedRegex(@"\b(?:that |which |who )?(?:have |has |had )?died this (?:game|match)\b", RegexOptions.IgnoreCase)]
     private static partial Regex DiedRegex();

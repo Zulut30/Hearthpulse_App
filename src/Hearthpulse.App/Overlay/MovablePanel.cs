@@ -251,7 +251,7 @@ public sealed class MovablePanel : ContentControl
     /// <summary>Whether the mouse went down on one of the tag's buttons, which must click rather than start a drag.</summary>
     private bool OnTool(object source)
     {
-        for (var node = source as DependencyObject; node is not null && node != this; node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
+        for (var node = source as DependencyObject; node is not null && !ReferenceEquals(node, this); node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
         {
             if (node is ButtonBase)
             {
@@ -265,9 +265,9 @@ public sealed class MovablePanel : ContentControl
     /// <summary>Whether the mouse went down on the corner marker, which resizes the panel instead of moving it.</summary>
     private bool OnGrip(object source)
     {
-        for (var node = source as DependencyObject; node is not null && node != this; node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
+        for (var node = source as DependencyObject; node is not null && !ReferenceEquals(node, this); node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
         {
-            if (node == _grip)
+            if (ReferenceEquals(node, _grip))
             {
                 return true;
             }
@@ -456,7 +456,7 @@ public sealed class MovablePanel : ContentControl
         {
             _contentHeight = size.Height;
             // The margin is not changed in the middle of a layout pass.
-            Dispatcher.BeginInvoke(KeepOnScreen, DispatcherPriority.Render);
+            _ = Dispatcher.BeginInvoke(KeepOnScreen, DispatcherPriority.Render);
         }
 
         return size;

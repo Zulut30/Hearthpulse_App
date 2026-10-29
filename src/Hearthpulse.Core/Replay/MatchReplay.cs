@@ -487,7 +487,7 @@ public sealed class MatchReplay
             state.Tags.Clear();
             foreach (var pair in t.Skip(7))
             {
-                var eq = pair.IndexOf('=');
+                var eq = pair.IndexOf('=', StringComparison.Ordinal);
                 if (eq > 0)
                 {
                     state.Tags[pair[..eq]] = pair[(eq + 1)..];

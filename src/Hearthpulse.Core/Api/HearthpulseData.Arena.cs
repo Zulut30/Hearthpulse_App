@@ -162,9 +162,12 @@ public sealed partial class HearthpulseData
     private static string? GameTypeOf(JsonElement structured)
     {
         var url = structured.ValueKind == JsonValueKind.Object && structured.TryGetProperty("source", out var source) ? Str(source, "api_url") : null;
-        var match = url is null ? null : System.Text.RegularExpressions.Regex.Match(url, @"ArenaGameTypeFilter=(BGT_[A-Z_]+)");
+        var match = url is null ? null : ArenaGameTypeFilter.Match(url);
         return match is { Success: true } ? match.Groups[1].Value : null;
     }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"ArenaGameTypeFilter=(BGT_[A-Z_]+)")]
+    private static partial System.Text.RegularExpressions.Regex ArenaGameTypeFilter { get; }
 
     /// <summary>"64.40%" or 64.4 as 64.4; null when the field is missing or not a number.</summary>
     private static double? PercentOrNull(JsonElement e, string name) =>

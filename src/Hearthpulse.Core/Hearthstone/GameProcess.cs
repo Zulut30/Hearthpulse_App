@@ -11,7 +11,7 @@ namespace Hearthpulse.Core.Hearthstone;
 /// </summary>
 public static class GameProcess
 {
-    private static readonly object Gate = new();
+    private static readonly Lock Gate = new();
     private static Process? _held;
 
     /// <summary>

@@ -288,6 +288,7 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Rebuilds the deck list, suggestions, overall matchups and the open deck page from the loaded games.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Fire-and-forget rebuild on the UI thread, also the DeckFamiliesChanged handler (Action); the build is awaited inside try/catch and logged. Moving to Task + Forget: TASK-2026-10-29-quality-analyzers, question Q1.")]
     private async void RebuildDecks()
     {
         if (!_familiesWatching)

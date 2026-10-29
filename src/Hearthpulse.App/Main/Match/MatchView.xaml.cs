@@ -104,7 +104,7 @@ public partial class MatchView : UserControl
         }
         else if (e.PropertyName == nameof(MatchViewModel.Actions) && _model is { ShowBattlegroundsTable: true })
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, KeepCurrentActionInView);
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, KeepCurrentActionInView);
         }
     }
 
@@ -113,7 +113,7 @@ public partial class MatchView : UserControl
     {
         if (_model is { ShowReplay: true } && IsVisible && !IsKeyboardFocusWithin)
         {
-            Dispatcher.BeginInvoke(DispatcherPriority.Input, () => Focus());
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, () => Focus());
         }
     }
 

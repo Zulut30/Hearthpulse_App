@@ -31,7 +31,7 @@ public sealed class ProfileUploadQueue
 
     private readonly string _path;
     private readonly string _settledPath;
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly LinkedList<Item> _pending = new();
     private readonly Dictionary<string, LinkedListNode<Item>> _index = new(StringComparer.OrdinalIgnoreCase);
     private readonly LinkedList<string> _settledOrder = new();

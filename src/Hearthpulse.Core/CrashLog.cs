@@ -6,7 +6,7 @@ namespace Hearthpulse.Core;
 /// </summary>
 public static class CrashLog
 {
-    private static readonly object Gate = new();
+    private static readonly Lock Gate = new();
     private static readonly Dictionary<string, int> Seen = new(StringComparer.Ordinal);
 
     /// <summary>

@@ -106,7 +106,7 @@ public sealed class PageRowsPanel : VirtualizingPanel
         }
 
         _aheadQueued = true;
-        Dispatcher.InvokeAsync(() =>
+        _ = Dispatcher.InvokeAsync(() =>
         {
             _aheadQueued = false;
             // A hidden page builds nothing: it carries on when it is measured again.

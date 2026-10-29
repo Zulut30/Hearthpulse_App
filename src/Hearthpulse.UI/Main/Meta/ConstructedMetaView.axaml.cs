@@ -45,6 +45,7 @@ public partial class ConstructedMetaView : UserControl
     }
 
     // Avalonia's clipboard belongs to the top level, not the view model.
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Handler of the row's copy command (Action); the body catches its own errors.")]
     private async void OnCopyDeck(MetaDeckRow deck)
     {
         var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;

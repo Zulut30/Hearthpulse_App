@@ -47,7 +47,7 @@ public sealed class CardPoolEngine
     public CardPoolCatalog Catalog { get; }
 
     /// <summary>The generator text of a card: exception table, then the catalog's English text, then the generated table.</summary>
-    public PoolParse Parse(string cardId) => _parsed.GetOrAdd(cardId, id =>
+    public PoolParse Parse(string cardId) => _parsed.GetOrAdd(cardId, static (id, self) =>
     {
         if (CardPoolTables.Overrides.TryGetValue(id, out var o))
         {
@@ -62,8 +62,8 @@ public sealed class CardPoolEngine
             }
         }
 
-        return PoolTextParser.Parse(TextOf(id));
-    });
+        return PoolTextParser.Parse(self.TextOf(id));
+    }, this);
 
     /// <summary>The pool cards the card text describes, or null when the text has no pool (see <see cref="Parse"/>).</summary>
     public IReadOnlyList<PoolCard>? Pool(string cardId, PoolContext context)
@@ -149,7 +149,7 @@ public sealed class CardPoolEngine
             var listed = wiki.SelectMany(w => w.Cards).DistinctBy(c => c.Id).ToList();
             // The wiki page is read now and then: a list the card text finds whole, and more, is an older one (Hematurge's
             // list of 2026-10-12 misses the 6 Blood Rune cards of the newest set). The text pool is the better list then.
-            if (text is { Count: > 0 } && text.Count > listed.Count && listed.All(c => text.Any(t => t.Id == c.Id)))
+            if (text is { Count: > 0 } && text.Count > listed.Count && listed.TrueForAll(c => text.Any(t => t.Id == c.Id)))
             {
                 LogOnce(cardId, $"Card pool: {NameOf(cardId)} ({cardId}) uses its card text: the Hearthstone Wiki list has {listed.Count} of its {text.Count} cards");
                 return View(cardId, trigger, parse.Generator!.Phrase, Describe(parse.Generator, context), text, [],
@@ -247,11 +247,11 @@ public sealed class CardPoolEngine
     /// Whether a card Excavates or counts Excavates (its mechanics or referenced tags, or the English text), or is a
     /// treasure: the cards whose panel is the Excavate pool.
     /// </summary>
-    public bool Excavates(string cardId) => _excavates.GetOrAdd(cardId, id =>
+    public bool Excavates(string cardId) => _excavates.GetOrAdd(cardId, static (id, self) =>
         CardPool.Excavate.TreasureOf(id) is not null
-        || Catalog.Get(id) is { } card && (card.Mechanics.Contains(CardPool.Excavate.Mechanic) || card.ReferencedTags.Contains(CardPool.Excavate.Mechanic))
-        || _cards.Get(id)?.Mechanics.Contains(CardPool.Excavate.Mechanic) == true
-        || CardPool.Excavate.Mentions(TextOf(id)));
+        || self.Catalog.Get(id) is { } card && (card.Mechanics.Contains(CardPool.Excavate.Mechanic) || card.ReferencedTags.Contains(CardPool.Excavate.Mechanic))
+        || self._cards.Get(id)?.Mechanics.Contains(CardPool.Excavate.Mechanic) == true
+        || CardPool.Excavate.Mentions(self.TextOf(id)), this);
 
     /// <summary>
     /// The Excavate pool: every treasure of the player's cycle (the tier-4 one of their class), tagged with its tier as

@@ -196,7 +196,8 @@ public sealed class ArchetypeTranslations
                 return null;
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
+            var stream = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
+            await using var streamScope = stream.ConfigureAwait(false);
             var buffer = new MemoryStream();
             var chunk = new byte[16 * 1024];
             int read;
@@ -208,7 +209,7 @@ public sealed class ArchetypeTranslations
                     return null;
                 }
 
-                buffer.Write(chunk, 0, read);
+                await buffer.WriteAsync(chunk.AsMemory(0, read)).ConfigureAwait(false);
             }
 
             return Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
@@ -246,7 +247,7 @@ public sealed class ArchetypeTranslations
         {
             if (File.Exists(marker))
             {
-                int.TryParse(File.ReadAllText(marker).Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out failures);
+                _ = int.TryParse((await File.ReadAllTextAsync(marker).ConfigureAwait(false)).Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out failures);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

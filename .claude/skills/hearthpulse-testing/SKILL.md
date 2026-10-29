@@ -44,6 +44,12 @@ properties) in contract tests rather than forcing the two UIs to have identical 
   `TypeInitializationException` - that is the path, not your change.
 - Test output follows the machine's language. When parsing output, handle `Не пройден` / `пройдено` as well as
   `Failed` / `Passed`; prefer a TRX report for machine-readable results.
+- Coverage (coverlet, both suites): add `--collect:"XPlat Code Coverage" --results-directory <dir>`; the report is
+  `<dir>/<guid>/coverage.cobertura.xml` (per assembly `line-rate` / `branch-rate`; the WPF app is `Hearthpulse`). CI's
+  Windows job collects it and writes the per-project table into the job summary (artifact `coverage-windows`).
+  Instrumentation makes hot code ~15x slower: a test that asserts on wall-clock time gets
+  `[Trait("Category", "Timing")]`, and coverage runs use `--filter "Category!=Timing"` (CI runs those in a step of
+  their own).
 
 ## Establish the baseline for the change
 

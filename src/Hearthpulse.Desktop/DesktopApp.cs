@@ -53,6 +53,7 @@ internal sealed class DesktopApp : HearthpulseApp
         base.OnFrameworkInitializationCompleted();
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "A dying background thread (never the UI thread: CheckAccess) waits up to 30 s for the error window before the process ends.")]
     private void Start(IClassicDesktopStyleApplicationLifetime desktop)
     {
         _instance = SingleInstance.Acquire();
@@ -172,6 +173,7 @@ internal sealed class DesktopApp : HearthpulseApp
         desktop.Shutdown(finished && cards > 0 ? 0 : 1);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The tray icon is registered with the application (TrayIcon.SetIcons) and lives until the process ends.")]
     private void SetupTray()
     {
         _overlayItem = new NativeMenuItem(Loc.T("Host.Tray.Overlay"))
