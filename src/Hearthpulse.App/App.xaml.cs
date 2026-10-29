@@ -44,15 +44,16 @@ public partial class App : Application
     private GameSession _session = null!;
     private LogWatcher? _watcher;
     /// <summary>
-    /// Null while there is no window to show: not built yet (start minimized) or let go after a while hidden in the tray
-    /// (<see cref="ReleaseMain"/>); <see cref="ShowMain"/> builds it again. Render scenes always have one.
+    /// The main window: built when first shown (start minimized: from the tray), let go after a minute hidden in the tray
+    /// (<see cref="ReleaseMain"/>), forgotten once closed for good; <see cref="ShowMain"/> builds it again where it was.
     /// </summary>
-    private MainWindow _main = null!;
+    private readonly MainWindowLife<MainWindow, MainPlace> _mainLife = new(main => main.Place);
 
-    /// <summary>Where the last window was (page, tabs, bounds), for the next one.</summary>
-    private MainPlace? _mainPlace;
+    /// <summary>Null while there is no window to show (see <see cref="_mainLife"/>). Render scenes always have one.</summary>
+    private MainWindow _main => _mainLife.Window!;
 
-    private readonly DispatcherTimer _releaseMain = new() { Interval = MemoryTrimmer.HiddenWindowRelease };
+    /// <summary>While the window waits in the tray: is it time to let it go? (A game in progress puts it off.)</summary>
+    private readonly DispatcherTimer _releaseMain = new() { Interval = TimeSpan.FromSeconds(10) };
     private MainViewModel _mainViewModel = null!;
     private OverlayWindow _overlay = null!;
     private OverlayViewModel _overlayViewModel = null!;
@@ -267,7 +268,11 @@ public partial class App : Application
         };
         _releaseMain.Tick += (_, _) => ReleaseMain();
         // Started minimized, the window is built the first time it is opened from the tray.
-        _main = _renderDir is null && _settings.StartMinimized ? null! : CreateMainWindow();
+        if (_renderDir is not null || !_settings.StartMinimized)
+        {
+            _mainLife.Open(CreateMainWindow);
+        }
+
         _overlay = CreateOverlay();
         if (_renderDir is not null)
         {
@@ -851,6 +856,14 @@ public partial class App : Application
         main.ReimportRequested += () => ImportLogsAsync(force: true).Forget("Log import");
         main.ArrangeOverlayRequested += () => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing;
         main.IsVisibleChanged += OnMainVisibleChanged;
+        main.Closing += (_, e) =>
+        {
+            if (!e.Cancel)
+            {
+                _mainLife.Closing(main);
+            }
+        };
+        main.Closed += (_, _) => OnMainClosed(main);
         main.StateChanged += (_, _) =>
         {
             if (!ReferenceEquals(main, _main))
@@ -880,32 +893,60 @@ public partial class App : Application
             return;
         }
 
-        _releaseMain.Stop();
         SyncWindowInUse();
         // Hidden in the tray: no collection of its own; the one after the release takes the pages and the rest.
-        if (!_main.IsVisible)
+        if (_main.IsVisible)
         {
+            _mainLife.Shown(_main);
+            _releaseMain.Stop();
+        }
+        else
+        {
+            _mainLife.Hidden(_main, DateTime.UtcNow);
             _releaseMain.Start();
         }
+    }
+
+    /// <summary>
+    /// Closed for good (no tray to hide it in): forgotten, so the tray's Open builds a new one instead of showing a closed
+    /// window (which threw). Its pages are garbage now.
+    /// </summary>
+    private void OnMainClosed(MainWindow main)
+    {
+        if (!ReferenceEquals(main, _main))
+        {
+            return;
+        }
+
+        _releaseMain.Stop();
+        _mainLife.Closed(main);
+        SyncWindowInUse();
+        _session.RequestMemoryTrim();
     }
 
     /// <summary>A collection asked for by a meta load waits while the window is on screen or waiting in the tray.</summary>
     private void SyncWindowInUse() => _session.MainWindowInUse = _main is { WindowState: not WindowState.Minimized };
 
     /// <summary>
-    /// The window stayed hidden in the tray: it is let go with every page it built, and built again on the same page when
-    /// opened (about half a second). Bench, all pages and tabs open, then the memory trim: private 214–233 → 166–172 MB.
+    /// The window stayed hidden in the tray for a minute, and no game is being played: it is let go with every page it
+    /// built, and built again on the same page when opened (about half a second). Bench, all pages and tabs open, then
+    /// the memory trim: private 217–222 → 154–157 MB.
     /// </summary>
     private void ReleaseMain()
     {
-        _releaseMain.Stop();
-        if (_main is not { IsVisible: false } main)
+        if (!_mainLife.Waiting)
+        {
+            _releaseMain.Stop();
+            return;
+        }
+
+        if (!_mainLife.ReleaseDue(DateTime.UtcNow, _mainViewModel.InGame) || _main is not { IsVisible: false })
         {
             return;
         }
 
-        _mainPlace = main.Place;
-        _main = null!;
+        _releaseMain.Stop();
+        var main = _mainLife.Release()!;
         main.CloseForReal();
         Diag.Info("Main window let go while hidden in the tray");
         SyncWindowInUse();
@@ -953,8 +994,8 @@ public partial class App : Application
         // A window hidden in the tray (or not built yet) takes the new colours when it is next opened.
         if (_main is { } oldMain)
         {
-            _mainPlace = oldMain.Place;
-            _main = null!;
+            _releaseMain.Stop();
+            _mainLife.Release();
             if (oldMain.IsVisible)
             {
                 ShowMain();
@@ -1100,25 +1141,19 @@ public partial class App : Application
     private void ShowMain()
     {
         _releaseMain.Stop();
-        if (_main is null)
+        var built = _main is null;
+        var main = _mainLife.Open(CreateMainWindow);
+        main.Show();
+        if (built && _mainLife.Place is { Maximized: true })
         {
-            _main = CreateMainWindow(_mainPlace);
-            _main.Show();
-            if (_mainPlace is { Maximized: true })
-            {
-                _main.WindowState = WindowState.Maximized;
-            }
+            main.WindowState = WindowState.Maximized;
         }
-        else
+        else if (!built && main.WindowState == WindowState.Minimized)
         {
-            _main.Show();
-            if (_main.WindowState == WindowState.Minimized)
-            {
-                _main.WindowState = WindowState.Normal;
-            }
+            main.WindowState = WindowState.Normal;
         }
 
-        _main.Activate();
+        main.Activate();
     }
 
     private void ToggleOverlaySetting()
@@ -1272,9 +1307,7 @@ public partial class App : Application
     private void Quit(int exitCode = 0)
     {
         _releaseMain.Stop();
-        var main = _main;
-        _main = null!;
-        main?.CloseForReal();
+        _mainLife.Release()?.CloseForReal();
         _overlay.Close();
         Shutdown(exitCode);
     }

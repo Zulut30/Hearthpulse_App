@@ -25,13 +25,15 @@ internal sealed class DesktopApp : HearthpulseApp
     private AppHost? _host;
 
     /// <summary>
-    /// Null while there is no dashboard to show: not built yet (start minimized) or let go after a while hidden in the
-    /// tray (<see cref="ReleaseMain"/>); <see cref="ShowMain"/> builds it again.
+    /// The dashboard: built when first shown (start minimized: from the tray), let go after a minute hidden in the tray
+    /// (<see cref="ReleaseMain"/>), forgotten once closed for good; <see cref="ShowMain"/> builds it again where it was.
     /// </summary>
-    private MainWindow? _main;
+    private readonly MainWindowLife<MainWindow, MainPlace> _mainLife = new(PlaceOf);
 
-    /// <summary>Where the last dashboard was (page, tabs, bounds), for the next one.</summary>
-    private MainPlace? _mainPlace;
+    /// <summary>Null while there is no dashboard to show (see <see cref="_mainLife"/>).</summary>
+    private MainWindow? _main => _mainLife.Window;
+
+    /// <summary>While the dashboard waits in the tray: is it time to let it go? (A game in progress puts it off.)</summary>
     private DispatcherTimer? _releaseMain;
     private OverlayWindow? _overlay;
     private IOverlayPlatform? _platform;
@@ -96,11 +98,15 @@ internal sealed class DesktopApp : HearthpulseApp
 
         var settings = AppSettings.Load();
         _host = new AppHost(settings) { ApplyAutostart = Autostart.Apply };
-        _releaseMain = new DispatcherTimer { Interval = MemoryTrimmer.HiddenWindowRelease };
+        _releaseMain = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _releaseMain.Tick += (_, _) => ReleaseMain();
         // Started minimized, the dashboard is built the first time it is opened from the tray. A notification with no
         // dashboard goes to the log, as it would not show in a hidden one either.
-        _main = settings.StartMinimized ? null : CreateMain(null);
+        if (!settings.StartMinimized)
+        {
+            _mainLife.Open(CreateMain);
+        }
+
         _host.Notification += (title, text) =>
         {
             if (_main is null)
@@ -215,25 +221,20 @@ internal sealed class DesktopApp : HearthpulseApp
         }
 
         _releaseMain?.Stop();
-        if (_main is null)
+        var built = _main is null;
+        var main = _mainLife.Open(CreateMain);
+        _mainLife.Shown(main);
+        main.Show();
+        if (built && _mainLife.Place is { Maximized: true })
         {
-            _main = CreateMain(_mainPlace);
-            _main.Show();
-            if (_mainPlace is { Maximized: true })
-            {
-                _main.WindowState = WindowState.Maximized;
-            }
+            main.WindowState = WindowState.Maximized;
         }
-        else
+        else if (!built && main.WindowState == WindowState.Minimized)
         {
-            _main.Show();
-            if (_main.WindowState == WindowState.Minimized)
-            {
-                _main.WindowState = WindowState.Normal;
-            }
+            main.WindowState = WindowState.Normal;
         }
 
-        _main.Activate();
+        main.Activate();
         SyncWindowInUse();
     }
 
@@ -255,10 +256,18 @@ internal sealed class DesktopApp : HearthpulseApp
             // No collection of its own: the one after the release takes the pages and the rest.
             if (ReferenceEquals(main, _main))
             {
-                _releaseMain?.Stop();
+                _mainLife.Hidden(main, DateTime.UtcNow);
                 _releaseMain?.Start();
             }
         };
+        main.Closing += (_, e) =>
+        {
+            if (!e.Cancel)
+            {
+                _mainLife.Closing(main);
+            }
+        };
+        main.Closed += (_, _) => OnMainClosed(main);
         main.PropertyChanged += (_, e) =>
         {
             if (e.Property != Window.WindowStateProperty || !ReferenceEquals(main, _main))
@@ -288,25 +297,51 @@ internal sealed class DesktopApp : HearthpulseApp
     }
 
     /// <summary>
-    /// The dashboard stayed hidden in the tray: it is let go with every page it built, and built again on the same page
-    /// when opened.
+    /// Closed for good (no tray to hide it in): forgotten, so the tray's Open builds a new one instead of showing a closed
+    /// window (which threw), and its view lets go of the view model, so the window and its pages are garbage now.
     /// </summary>
-    private void ReleaseMain()
+    private void OnMainClosed(MainWindow main)
     {
-        _releaseMain?.Stop();
-        if (_main is not { IsVisible: false } main)
+        if (!ReferenceEquals(main, _main))
         {
             return;
         }
 
-        _mainPlace = new MainPlace(main.View.CurrentPage, main.View.BattlegroundsTab, main.View.ConstructedTab, main.Position, main.Width, main.Height,
-            main.WindowState == WindowState.Maximized);
-        _main = null;
+        _releaseMain?.Stop();
+        _mainLife.Closed(main);
+        main.View.DataContext = null;
+        SyncWindowInUse();
+        _host?.Session.RequestMemoryTrim();
+    }
+
+    /// <summary>
+    /// The dashboard stayed hidden in the tray for a minute, and no game is being played: it is let go with every page it
+    /// built, and built again on the same page when opened.
+    /// </summary>
+    private void ReleaseMain()
+    {
+        if (!_mainLife.Waiting)
+        {
+            _releaseMain?.Stop();
+            return;
+        }
+
+        if (!_mainLife.ReleaseDue(DateTime.UtcNow, _host?.Main.InGame == true) || _main is not { IsVisible: false })
+        {
+            return;
+        }
+
+        _releaseMain?.Stop();
+        var main = _mainLife.Release()!;
         main.CloseForReal();
         Diag.Info("Main window let go while hidden in the tray");
         SyncWindowInUse();
         _host?.Session.RequestMemoryTrim();
     }
+
+    private static MainPlace PlaceOf(MainWindow main) =>
+        new(main.View.CurrentPage, main.View.BattlegroundsTab, main.View.ConstructedTab, main.Position, main.Width, main.Height,
+            main.WindowState == WindowState.Maximized);
 
     /// <summary>Where a dashboard is: rebuilt (back from the tray) on the same page, tabs and bounds.</summary>
     private sealed record MainPlace(string Page, string BattlegroundsTab, string ConstructedTab, Avalonia.PixelPoint Position, double Width, double Height, bool Maximized);
@@ -330,9 +365,9 @@ internal sealed class DesktopApp : HearthpulseApp
     private void Quit()
     {
         _releaseMain?.Stop();
-        if (_main is not null)
+        if (_mainLife.Release() is { } main)
         {
-            _main.AllowClose = true;
+            main.AllowClose = true;
         }
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
