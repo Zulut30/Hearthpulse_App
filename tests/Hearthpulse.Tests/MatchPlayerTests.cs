@@ -386,6 +386,61 @@ public sealed class MatchPlayerTests : IDisposable
         Assert.Equal((MatchPhase.Shop, 2), (model.BattlegroundsStep!.Phase, model.BattlegroundsStep.Turn));
     }
 
+    /// <summary>
+    /// A step changes the table's lists in place: the items controls keep the rows of cards, leaders and events that did
+    /// not change. A new list on every step built every row again, about 50 ms and 3.5 MB a step (audit, stage 10).
+    /// </summary>
+    [Fact]
+    public void Each_battlegrounds_step_changes_the_lists_on_screen_in_place()
+    {
+        var model = Model(out _);
+        var page = BattlegroundsPage("bg-5th", Bg.Game5th());
+        model.Show(page);
+        var first = model.BattlegroundsStep!;
+        var lists = new object[] { first.Board, first.Shop, first.Hand, first.OpponentBoard, first.Choices, model.Leaders, model.Actions, model.Turns };
+        var raised = new List<string?>();
+        model.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        var before = first;
+        var powers = first.Hero?.HeroPowers;
+        for (var frame = 1; frame <= model.FrameMax; frame++)
+        {
+            model.GoFrame.Execute(frame);
+            var step = model.BattlegroundsStep!;
+            var shown = page.BattlegroundsStep(frame)!;
+            Assert.Equal(lists, new object[] { step.Board, step.Shop, step.Hand, step.OpponentBoard, step.Choices, model.Leaders, model.Actions, model.Turns });
+            Assert.Equal(shown.Board, step.Board);
+            Assert.Equal(shown.Shop, step.Shop);
+            Assert.Equal(shown.Hand, step.Hand);
+            Assert.Equal(shown.OpponentBoard, step.OpponentBoard);
+            Assert.Equal(shown.Choices.Count, step.Choices.Count);
+            Assert.Equal(shown.Leaderboard.Select(MatchViewModel.Leader), model.Leaders);
+            Assert.Equal(shown.Hero?.HeroPowers ?? [], step.Hero?.HeroPowers ?? []);
+            Assert.Equal(shown.Hero?.Trinkets ?? [], step.Hero?.Trinkets ?? []);
+            if (step.Hero is { } hero)
+            {
+                powers ??= hero.HeroPowers;
+                Assert.Same(powers, hero.HeroPowers);
+            }
+
+            // A card equal to the one shown at its place a step before is still that row.
+            var board = step.Board.ToList();
+            for (var i = 0; i < Math.Min(board.Count, before.Board.Count) && board[i] == before.Board[i]; i++)
+            {
+                Assert.Same(before.Board[i], board[i]);
+            }
+
+            before = step with { Board = board };
+        }
+
+        // The views keep the current event in view when the list says it changed.
+        Assert.Contains(nameof(MatchViewModel.Actions), raised);
+
+        // Leaving the game lets go of its rows.
+        model.Clear();
+        Assert.Null(model.BattlegroundsStep);
+        Assert.All(lists, list => Assert.Empty((System.Collections.IEnumerable)list));
+    }
+
     [Fact]
     public void A_minion_used_on_the_table_is_an_event_with_the_power_icon()
     {

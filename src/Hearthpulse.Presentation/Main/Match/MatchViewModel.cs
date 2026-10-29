@@ -3,6 +3,7 @@ using Hearthpulse.App.Infrastructure;
 #else
 using Hearthpulse.UI.Infrastructure;
 #endif
+using System.Runtime.CompilerServices;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Replay;
 
@@ -31,8 +32,8 @@ public sealed partial class MatchViewModel : Observable
     private MatchHeader? _header;
     private string _missing = string.Empty;
     private MatchStepView? _step;
-    private IReadOnlyList<MatchActionRow> _actions = [];
-    private IReadOnlyList<MatchTurnRow> _turns = [];
+    private readonly SyncList<MatchActionRow> _actions = new();
+    private readonly SyncList<MatchTurnRow> _turns = new();
     private IReadOnlyList<MatchDeckRow> _localDeck = [];
     private IReadOnlyList<MatchDeckRow> _opponentCards = [];
     private IReadOnlyList<MatchDeckRow> _opponentPredicted = [];
@@ -197,9 +198,9 @@ public sealed partial class MatchViewModel : Observable
     public string Position => _page is null ? string.Empty
         : TurnAt(Frame) is > 0 and var turn ? Loc.F("Match.Player.Position", Frame + 1, FrameMax + 1, turn) : Loc.F("Match.Position", Frame + 1, FrameMax + 1);
 
-    public IReadOnlyList<MatchActionRow> Actions { get => _actions; private set => Set(ref _actions, value); }
+    public IReadOnlyList<MatchActionRow> Actions { get => _actions; private set => Keep(_actions, value); }
 
-    public IReadOnlyList<MatchTurnRow> Turns { get => _turns; private set => Set(ref _turns, value); }
+    public IReadOnlyList<MatchTurnRow> Turns { get => _turns; private set => Keep(_turns, value); }
 
     public IReadOnlyList<MatchDeckRow> LocalDeck { get => _localDeck; private set => Set(ref _localDeck, value); }
 
@@ -367,6 +368,19 @@ public sealed partial class MatchViewModel : Observable
         var current = _page.TurnOf(_frame);
         Turns = _page.Turns.Select(t => new MatchTurnRow(t.FirstFrame, t.Label, t.Tooltip, t.Local, t.Mulligan, t == current)).ToList();
         Raise(nameof(Position));
+    }
+
+    /// <summary>
+    /// Changes a list the view binds in place (<see cref="SyncList{T}"/>) and tells the view when it changed. A new list
+    /// on every step made the items control build every row again: with the Battlegrounds table about 50 ms of the UI
+    /// thread and 3.5 MB a step, 100 ms of CPU a second at x4 (docs/perf-architecture-audit.md, stage 10).
+    /// </summary>
+    private void Keep<T>(SyncList<T> list, IReadOnlyList<T> items, [CallerMemberName] string? name = null)
+    {
+        if (list.Sync(items))
+        {
+            Raise(name);
+        }
     }
 
     private void RaiseTabs()
