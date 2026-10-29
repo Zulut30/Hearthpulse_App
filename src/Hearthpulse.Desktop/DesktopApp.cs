@@ -7,6 +7,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Desktop.Platform;
 using Hearthpulse.UI;
+using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.Desktop;
 
@@ -98,6 +99,8 @@ internal sealed class DesktopApp : HearthpulseApp
 
         var settings = AppSettings.Load();
         _host = new AppHost(settings) { ApplyAutostart = Autostart.Apply };
+        // Before any window: started minimized there is no dashboard to apply it, and the overlay comes first.
+        ThemeEngine.ApplySaved(this, settings);
         _releaseMain = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
         _releaseMain.Tick += (_, _) => ReleaseMain();
         // Started minimized, the dashboard is built the first time it is opened from the tray. A notification with no

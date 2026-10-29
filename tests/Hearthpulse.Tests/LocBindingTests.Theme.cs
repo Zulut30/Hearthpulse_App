@@ -64,4 +64,38 @@ public sealed partial class LocBindingTests
             Dispatcher.UIThread.RunJobs();
         }
     }
+
+    /// <summary>
+    /// Started minimized there is no dashboard, whose view used to be the only place the saved theme was applied: the
+    /// host applies it at start, so the overlay shows in the player's colours too.
+    /// </summary>
+    [Fact]
+    public void Avalonia_saved_theme_is_applied_with_no_dashboard() => Headless.Run(SavedTheme);
+
+    private static void SavedTheme()
+    {
+        var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))
+        {
+            Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml"),
+        };
+        var app = Application.Current!;
+        app.Styles.Add(theme);
+        try
+        {
+            var accent = Assert.IsType<SolidColorBrush>(((Styles)theme.Loaded).Resources["Accent"]);
+            var gold = accent.Color;
+            var settings = new AppSettings { Theme = "Frost" };
+
+            Assert.True(ThemeEngine.ApplySaved(app, settings));
+            var frost = ThemePalette.Resolve(settings.Theme, settings.ThemeAccentHue, settings.ThemeBaseHue, settings.ThemeBaseTint);
+            Assert.Equal(Color.FromUInt32(ThemePalette.Map(gold.ToUInt32(), frost)), accent.Color);
+            Assert.NotEqual(gold, accent.Color);
+        }
+        finally
+        {
+            ThemeEngine.Apply(app, ThemePalette.Presets[0]);
+            app.Styles.Remove(theme);
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
 }
