@@ -151,6 +151,40 @@ public sealed class ViewModelContractTests
         Assert.True((bool)model.ShowReplay);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Replay_player_bar_moves_by_event_and_turn_and_changes_speed_alike(bool wpf)
+    {
+        var history = History();
+        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new Hearthpulse.App.Main.Match.MatchViewModel(owner)
+            : new Hearthpulse.UI.Main.Match.MatchViewModel(owner);
+        var store = new ReplayStore(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N")));
+        var game = Game(0);
+        // Steps: 0 start, 1 our turn starts, 2 theirs starts, 3 they play a minion.
+        var replay = store.Save(game.Key, ReplayFile.Write(new ReplayHeader(),
+            ["T 1 L 0", "E 1 L PLAY 0 HERO_08 HERO HEALTH=30", "E 2 O PLAY 0 HERO_01 HERO HEALTH=30",
+             "S MAIN_READY", "T 2 O 30", "V O RESOURCES 2", "B", "E 3 O PLAY 1 CS2_120 MINION ATK=2 HEALTH=3", "P 3 -"]));
+        model.Show(MatchPage.Load(game with { Replay = replay }, store, CardDb.Empty, null));
+
+        Assert.True((bool)model.ShowSide);
+        model.NextEvent.Execute(null);
+        Assert.Equal(3, (int)model.Frame);
+        model.PreviousTurn.Execute(null);
+        Assert.Equal(1, (int)model.Frame);
+        model.NextTurn.Execute(null);
+        Assert.Equal(2, (int)model.Frame);
+        model.Faster.Execute(null);
+        model.CycleSpeed.Execute(null);
+        Assert.Equal(4, (int)model.Speed);
+        Assert.Equal("×4", (string)model.SpeedText);
+        Assert.Equal(3, ((System.Collections.ICollection)model.TimelineSegments).Count);
+        Assert.Single((System.Collections.IEnumerable)model.TimelineTicks);
+        Assert.Equal(2, (int)model.TimelineCurrent);
+        Assert.False((bool)model.Playing);
+    }
+
     private static BattlegroundsView Fight() => new(9, 4, 6, "TB_BaconShop_HERO_72", 5, 2, 6,
         false, true, false, [], ["BEAST", "DRAGON"], true, [], [], [], [], null, 0, [], [])
     { CombatOdds = new CombatOdds(0.6, 0.1, 0.3, 0) { Runs = 1000 } };
