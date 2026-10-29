@@ -75,6 +75,28 @@ public sealed class BattlegroundsCombatResultTests
         Assert.Equal(0, combat.DamageDealt);
     }
 
+    [Fact]
+    public void The_combat_that_knocks_us_out_is_recorded_though_the_game_ends_inside_it()
+    {
+        // The last fight never gets its closing BOARD_VISUAL_STATE line: the game is over for us first.
+        var (game, _, tracker) = Play([
+            .. Setup,
+            .. CombatStart(),
+            Start("ATTACK", 111), Tag(101, "DAMAGE", 6), End,
+            Start("DEATHS", 1), Tag(101, "ZONE", "GRAVEYARD"), End,
+            Start("TRIGGER", 46), Start("ATTACK", 110), Game("PROPOSED_DEFENDER", 10), Tag(10, "DAMAGE", 30), End, End,
+            Player("PLAYSTATE", "LOST"),
+            Tag(10, "PLAYER_LEADERBOARD_PLACE", 5),
+            Game("STATE", "COMPLETE"),
+        ]);
+
+        var combat = Assert.Single(tracker.Combats);
+        Assert.Equal(1, combat.Turn);
+        Assert.Equal("Loss", combat.Result);
+        Assert.Equal(30, combat.DamageTaken);
+        Assert.Equal("Loss", Assert.Single(tracker.ReplayData(game).Rounds).Result);
+    }
+
     /// <summary>Turn 1 ends, the combat starts against lobby player 4: our 4/6 against their hero and a 1/2.</summary>
     private static string[] CombatStart() =>
     [

@@ -283,6 +283,12 @@ public sealed partial class BattlegroundsTracker : IPowerListener
                 if (value is "WON" or "LOST" or "TIED" or "CONCEDED")
                 {
                     LocalFinished = true;
+                    // The fight that ends the game for us never gets its closing BOARD_VISUAL_STATE line: it is over now,
+                    // before the game is recorded.
+                    if (_inCombat)
+                    {
+                        EndCombat(game);
+                    }
                 }
 
                 break;
