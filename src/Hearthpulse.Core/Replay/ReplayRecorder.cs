@@ -20,7 +20,7 @@ namespace Hearthpulse.Core.Replay;
 /// Only <see cref="Text"/>, called once the game is over, adds the post-game part (<see cref="PostGame"/>): which game
 /// entity each opponent card back was and what the log revealed about it by the end of the game. The match page shows
 /// it after the game; nothing seen during a game reads it.
-/// Battlegrounds and Mercenaries games are not recorded here (see <see cref="BattlegroundsReplayData"/>).
+/// A Battlegrounds game goes to <see cref="Battlegrounds"/> under its own rules; Mercenaries games are not recorded.
 /// </summary>
 public sealed class ReplayRecorder : IPowerListener
 {
@@ -59,29 +59,47 @@ public sealed class ReplayRecorder : IPowerListener
     // Where a card was when it last left the table or a deck (it may come back from SETASIDE), for a card back's origin.
     private readonly Dictionary<int, (string Zone, char Side)> _left = new();
     // Post-game part, kept aside from the events: opponent card backs by replay id -> game entity id, the opponent
-    // entities that were hidden (hand, secret, deck), the first card id the log gave each entity and on which game turn
-    // (later ids are transformations: python-hearthstone's initial_card_id works the same way), cards played from hand
+    // entities that were hidden (hand, secret, deck), the first card id the log gave each entity, on which game turn and
+    // whether it was created during the game then (later ids are transformations: python-hearthstone's initial_card_id
+    // works the same way; a deck card transformed on the table gets a CREATOR it did not have), cards played from hand
     // and cards that were on the table.
     private readonly Dictionary<int, int> _backs = new();
     private readonly HashSet<int> _hiddenEntities = new();
-    private readonly Dictionary<int, (string Card, int Turn)> _known = new();
+    private readonly Dictionary<int, (string Card, int Turn, bool Created)> _known = new();
     private readonly HashSet<int> _played = new();
     private readonly HashSet<int> _wasInPlay = new();
+    private readonly BattlegroundsReplayRecorder _battlegrounds = new();
     private GameState? _game;
     private int _nextId;
     private bool _synced;
     private bool _ignored;
     private bool _snapshot;
     private bool _ended;
+    private bool _bg;
 
     /// <summary>The events recorded for the current game, in order.</summary>
-    public IReadOnlyList<string> Events => _events;
+    public IReadOnlyList<string> Events => _bg ? _battlegrounds.Events : _events;
 
     /// <summary>True when the game hit <see cref="MaxEvents"/> and the rest was not recorded.</summary>
-    public bool Truncated { get; private set; }
+    public bool Truncated
+    {
+        get => _bg ? _battlegrounds.Truncated : _truncated;
+        private set => _truncated = value;
+    }
 
-    /// <summary>True once anything was recorded for the current game (a Constructed-like game with a known local player).</summary>
-    public bool HasGame => _synced && !_ignored && _events.Count > 0;
+    private bool _truncated;
+
+    /// <summary>
+    /// True once anything was recorded for the current game (a Constructed-like or Battlegrounds game with a known local
+    /// player).
+    /// </summary>
+    public bool HasGame => _synced && !_ignored && Events.Count > 0;
+
+    /// <summary>True when the current game is a Battlegrounds game, recorded by <see cref="Battlegrounds"/>.</summary>
+    public bool IsBattlegrounds => _bg;
+
+    /// <summary>The Battlegrounds recording of the current game (empty for other games).</summary>
+    public BattlegroundsReplayRecorder Battlegrounds => _battlegrounds;
 
     /// <summary>
     /// The replay file text for the current game: the events, then the post-game part. <paramref name="postGame"/> is
@@ -106,7 +124,7 @@ public sealed class ReplayRecorder : IPowerListener
         foreach (var entityId in _hiddenEntities.Order())
         {
             var entity = _game?.Entities.GetValueOrDefault(entityId);
-            var (card, turn) = _known.TryGetValue(entityId, out var known) ? known : (entity?.CardId ?? string.Empty, _game?.Turn ?? 0);
+            var (card, turn, created) = _known.TryGetValue(entityId, out var known) ? known : (entity?.CardId ?? string.Empty, _game?.Turn ?? 0, Created(entity));
             if (card.Length == 0)
             {
                 continue;
@@ -116,9 +134,8 @@ public sealed class ReplayRecorder : IPowerListener
                 : _wasInPlay.Contains(entityId) ? "summoned"
                 : entity?.Zone == "GRAVEYARD" ? "burned"
                 : "shown";
-            var created = entity is { IsOriginalDeckCard: false } || entity?.GetInt("COIN_CARD") == 1 ? 1 : 0;
             var from = entity?.GetInt("TRANSFORMED_FROM_CARD") ?? 0;
-            yield return string.Create(CultureInfo.InvariantCulture, $"K {entityId} {card} {turn} {how} {created}{(from > 0 ? $" {from}" : string.Empty)}");
+            yield return string.Create(CultureInfo.InvariantCulture, $"K {entityId} {card} {turn} {how} {(created ? 1 : 0)}{(from > 0 ? $" {from}" : string.Empty)}");
         }
     }
 
@@ -141,29 +158,53 @@ public sealed class ReplayRecorder : IPowerListener
         _synced = false;
         _ignored = false;
         _ended = false;
+        _bg = false;
+        _battlegrounds.Reset();
         Truncated = false;
     }
 
     public void OnEntityCreated(GameState game, Entity entity)
     {
-        if (Live(game))
+        if (!Live(game))
         {
-            Sync(game, entity, created: true);
+            return;
         }
+
+        if (_bg)
+        {
+            _battlegrounds.OnEntityCreated(game, entity);
+            return;
+        }
+
+        Sync(game, entity, created: true);
     }
 
     public void OnEntityRevealed(GameState game, Entity entity)
     {
-        if (Live(game))
+        if (!Live(game))
         {
-            Sync(game, entity, created: false);
+            return;
         }
+
+        if (_bg)
+        {
+            _battlegrounds.OnEntityRevealed(game, entity);
+            return;
+        }
+
+        Sync(game, entity, created: false);
     }
 
     public void OnTagChanged(GameState game, Entity entity, string tag, string previous, string value)
     {
         if (!Live(game))
         {
+            return;
+        }
+
+        if (_bg)
+        {
+            _battlegrounds.OnTagChanged(game, entity, tag, value);
             return;
         }
 
@@ -203,6 +244,12 @@ public sealed class ReplayRecorder : IPowerListener
             return;
         }
 
+        if (_bg)
+        {
+            _battlegrounds.OnBlockStart(game, blockType, source);
+            return;
+        }
+
         if (_blocks.Count >= MaxBlockDepth)
         {
             _blocks.Clear();
@@ -231,6 +278,12 @@ public sealed class ReplayRecorder : IPowerListener
 
     public void OnBlockEnd(GameState game)
     {
+        if (_bg && Live(game))
+        {
+            _battlegrounds.OnBlockEnd(game);
+            return;
+        }
+
         if (!Live(game) || _blocks.Count == 0)
         {
             return;
@@ -261,6 +314,12 @@ public sealed class ReplayRecorder : IPowerListener
             return;
         }
 
+        if (_bg)
+        {
+            _battlegrounds.OnChoices(game, choiceType, source, options);
+            return;
+        }
+
         // The mulligan offers the chooser's own hand. Options held by the other player mean the local player was taken
         // wrongly: the whole filter would be reversed, so nothing of this game is kept.
         if (choiceType == "MULLIGAN" && options.Any(o => o.Controller != 0 && o.Controller != game.LocalPlayerId))
@@ -280,7 +339,11 @@ public sealed class ReplayRecorder : IPowerListener
 
     public void OnChosen(GameState game, Entity chosen)
     {
-        if (Live(game) && chosen.CardId.Length > 0)
+        if (_bg && Live(game))
+        {
+            _battlegrounds.OnChosen(game, chosen);
+        }
+        else if (Live(game) && chosen.CardId.Length > 0)
         {
             Emit($"c {chosen.CardId}");
         }
@@ -288,7 +351,11 @@ public sealed class ReplayRecorder : IPowerListener
 
     public void OnGameEnded(GameState game)
     {
-        if (Ready(game) && game.LocalPlayerEntity?.GetString(GameTag.PlayState) is { Length: > 0 } result)
+        if (_bg && Live(game))
+        {
+            _battlegrounds.OnGameEnded(game);
+        }
+        else if (Ready(game) && !_bg && game.LocalPlayerEntity?.GetString(GameTag.PlayState) is { Length: > 0 } result)
         {
             Emit($"R {Token(result)}");
         }
@@ -316,6 +383,13 @@ public sealed class ReplayRecorder : IPowerListener
         }
 
         _synced = true;
+        if (game.IsBattlegrounds)
+        {
+            _bg = true;
+            _battlegrounds.Start(game);
+            return true;
+        }
+
         if (!game.IsConstructedLike || !LocalPlayerHoldsUp(game))
         {
             _ignored = true;
@@ -504,14 +578,30 @@ public sealed class ReplayRecorder : IPowerListener
         AfterMove(entity);
     }
 
-    /// <summary>Notes the first card id the log gives an entity, for the post-game part only (never written as an event).</summary>
+    /// <summary>
+    /// Notes the first card id the log gives an entity, for the post-game part only (never written as an event), and
+    /// whether it was created: kept up to date while the entity still is that card (a reveal's tags come one by one), then
+    /// left as it was (a transformation on the table brings a CREATOR the deck card never had).
+    /// </summary>
     private void Learn(GameState game, Entity entity)
     {
-        if (entity.CardId.Length > 0 && !_known.ContainsKey(entity.Id))
+        if (entity.CardId.Length == 0)
         {
-            _known[entity.Id] = (entity.CardId, game.Turn);
+            return;
+        }
+
+        if (!_known.TryGetValue(entity.Id, out var known))
+        {
+            _known[entity.Id] = (entity.CardId, game.Turn, Created(entity));
+        }
+        else if (known.Card == entity.CardId)
+        {
+            _known[entity.Id] = known with { Created = Created(entity) };
         }
     }
+
+    /// <summary>Created during the game (not a deck card), or the Coin.</summary>
+    private static bool Created(Entity? entity) => entity is { IsOriginalDeckCard: false } || entity?.GetInt("COIN_CARD") == 1;
 
     /// <summary>How a card back got into the opponent's hand, as the player saw it happen.</summary>
     private static string OriginOf(GameState game, Entity entity, (string Zone, char Side)? from, bool created, bool snapshot)

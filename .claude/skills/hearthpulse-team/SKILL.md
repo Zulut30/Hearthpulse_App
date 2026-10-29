@@ -15,7 +15,9 @@ That skill's standing permission and its stop cases apply unchanged.
 Ideas borrowed (not code): role split and a fixed assignment format from vijaythecoder/awesome-claude-agents
 (`tech-lead-orchestrator`, MIT); fresh implementer per task, review against the spec before quality, rulings instead
 of stalls and a ledger on disk from obra/superpowers (`subagent-driven-development`, MIT); the task card as the
-developer's whole context from BMAD-METHOD.
+developer's whole context from BMAD-METHOD; дано/когда/тогда criteria, `[NEEDS CLARIFICATION]` markers and the card
+check from github/spec-kit (MIT); a check that closes each phase and the "Сейчас" state line from
+gsd-build/get-shit-done (MIT) - see [notices](../THIRD-PARTY-NOTICES.md).
 
 ## Roster
 
@@ -42,8 +44,11 @@ developer's whole context from BMAD-METHOD.
 - **S** (one area, a few files, no UI decision): no lead. Write `$task\task.md` yourself from
   [the template](reference/task-template.md), only goal, AC, files and one package. Go to step 3.
 - **M / L:** lead subagent with the owner's request verbatim, today's date and `$task`. Read the card it writes.
-  "Вопросы владельцу" not empty: `AskUserQuestion` with those questions only, write the answers into the card.
-  Otherwise ask nothing.
+  "Вопросы владельцу" not empty: `AskUserQuestion` with those questions only, write the answers into the card in
+  place of their `[NEEDS CLARIFICATION]` markers. Otherwise ask nothing. Packages go out only when its "Проверка
+  карточки" is fully ticked.
+- The card's "Журнал" opens with a "Сейчас" line (phase, next step, what we wait for): update it at every step
+  below, and close a phase only after the check named in its table.
 
 ## 2. Design
 

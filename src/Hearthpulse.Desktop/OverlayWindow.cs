@@ -124,6 +124,7 @@ internal sealed class OverlayWindow : Window
         {
             _view.IsVisible = true;
             _shown = true;
+            _view.OfferMoveTip();
         }
 
         // Window positions are in screen pixels (points on macOS); sizes are device-independent.
@@ -145,9 +146,12 @@ internal sealed class OverlayWindow : Window
         }
 
         // In layout mode the whole overlay takes the mouse so panels can be dragged anywhere; during a game only a panel
-        // under the pointer with Ctrl held (or one being dragged) does.
+        // under the pointer with Ctrl held does. A panel being dragged or resized keeps it wherever the pointer goes,
+        // until the button is up.
+        var buttons = _platform.MouseButtons();
+        _view.EndReleasedDrags(buttons);
         var armed = _view.UpdateDragArm(local, _platform.ControlDown());
-        var interactive = local is { } point && (vm.LayoutEditing || armed || _view.IsInteractiveAt(point));
+        var interactive = armed || (local is { } point && (vm.LayoutEditing || _view.IsInteractiveAt(point)));
         _platform.SetClickThrough(!interactive);
         if (!interactive)
         {
@@ -165,7 +169,7 @@ internal sealed class OverlayWindow : Window
         }
 
         _view.UpdateLeaderboardHover(local, _memoryHover);
-        _view.UpdateCardPoolPointer(local, _platform.MouseButtons());
+        _view.UpdateCardPoolPointer(local, buttons);
     }
 
     /// <summary>Reads the hovered leaderboard hero from the game (Windows memory reader) at most four times a second.</summary>

@@ -101,6 +101,12 @@ while the cross-platform test project continues to reference Avalonia UI.
   `<Trigger SourceName="RowRoot" Property="o:MovablePanel.Compact" Value="True">` (inherited attached property),
   Avalonia: `o|MovablePanel.compact Grid.cardRow` styles (heights in styles, not local values, or they never yield).
 - Dragging snaps to the screen guides and to the edges of other shown panels (`PanelSnap.Snap` with neighbours).
+- During a game Ctrl over a shown panel arms it (`IsDragArmed`; the overlay tick, `ArmedArea`): frame, the
+  `Overlay.Move.Hint` tag and the corner marker `PART_Grip`, whose drag resizes in wheel steps
+  (`PanelSnap.CornerScale`, top-left fixed). A drag ends on button up or when the panel loses the mouse
+  (`OnLostMouseCapture` / `PointerCaptureLost`); the overlay keeps the mouse while a panel `IsDragging`. The first
+  show over the game puts a one-time tip at the top centre (`ShowMoveTip` via `OverlayViewModel.OfferMoveTip`,
+  `AppSettings.OverlayMoveTipShown`), hidden by the toast timer.
 - `MovablePanel.KeepOnScreen` pulls a saved panel back onto the surface using its measured content size; a panel
   that grows while shown (lists, tooltips) should be checked at the bottom/right edge in layout mode.
 

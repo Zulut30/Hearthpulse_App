@@ -10,10 +10,10 @@ using Hearthpulse.Core;
 namespace Hearthpulse.App.Overlay;
 
 /// <summary>
-/// Overlay panel host the player can drag, resize (mouse wheel), fade (Shift+wheel) and reset (right-click) while the
-/// overlay is in layout mode, and the same during a game while holding Ctrl over it (<see cref="IsDragArmed"/>). Its
-/// name tag carries buttons for size, opacity, compact lists and reset. Without a saved placement it keeps the
-/// alignment and margin from XAML.
+/// Overlay panel host the player can drag, resize (corner marker or mouse wheel), fade (Shift+wheel) and reset
+/// (right-click) while the overlay is in layout mode, and the same during a game while holding Ctrl over it
+/// (<see cref="IsDragArmed"/>). Its name tag carries buttons for size, opacity, compact lists and reset. Without a saved
+/// placement it keeps the alignment and margin from XAML.
 /// </summary>
 public sealed class MovablePanel : ContentControl
 {
@@ -83,6 +83,11 @@ public sealed class MovablePanel : ContentControl
     private Point _originStart;
     private bool _dragging;
 
+    // A drag that started on the corner marker resizes from the size the panel had then (scale, on-screen size).
+    private bool _resizing;
+    private double _startScale;
+    private Size _startSize;
+
     // Saved top-left in surface units (null = XAML default). Kept apart from Margin so a panel that grows
     // past the screen edge is pulled back inside, then returns to its spot when it shrinks again.
     private Point? _saved;
@@ -124,8 +129,11 @@ public sealed class MovablePanel : ContentControl
     /// </summary>
     public bool IsDragArmed { get => (bool)GetValue(IsDragArmedProperty); set => SetValue(IsDragArmedProperty, value); }
 
-    /// <summary>The player is dragging the panel right now (the overlay keeps it armed until the button is released).</summary>
+    /// <summary>The player is moving or resizing the panel right now (the overlay keeps it armed until the button is released).</summary>
     public bool IsDragging => _dragging;
+
+    /// <summary>The drag started on the corner marker: it resizes the panel rather than moving it.</summary>
+    public bool IsResizing => _resizing;
 
     private bool CanMove => IsEditing || IsDragArmed;
 
@@ -147,6 +155,30 @@ public sealed class MovablePanel : ContentControl
     {
         _scale.ScaleX = _scale.ScaleY = scale;
         ScaleText = PanelSnap.ScaleText(scale);
+        UpdateGrip();
+    }
+
+    /// <summary>How far the corner marker sticks out of the panel's corner, in overlay units.</summary>
+    private const double GripOverhang = 6;
+
+    // Undoes the panel's scale on the corner marker.
+    private readonly ScaleTransform _gripScale = new(1, 1);
+
+    /// <summary>
+    /// The corner marker keeps one size and sticks out of the corner as far at every panel size, as in the Avalonia
+    /// overlay, where it sits outside the scaled content: at 60 % it shrank to 8 units, the hardest to hit just where
+    /// the player wants a small panel bigger.
+    /// </summary>
+    private void UpdateGrip()
+    {
+        if (_grip is null)
+        {
+            return;
+        }
+
+        var undo = 1 / _scale.ScaleX;
+        _gripScale.ScaleX = _gripScale.ScaleY = undo;
+        _grip.Margin = new Thickness(0, 0, -GripOverhang * undo, -GripOverhang * undo);
     }
 
     /// <summary>Raised when the player moves, resizes or resets the panel (null = reset).</summary>
@@ -180,6 +212,13 @@ public sealed class MovablePanel : ContentControl
         Hook("PART_Compact", () => ChangeLook(PanelOpacity, !GetCompact(this)));
         Hook("PART_Reset", Reset);
         _chrome = GetTemplateChild("PART_Chrome") as FrameworkElement;
+        _grip = GetTemplateChild("PART_Grip") as FrameworkElement;
+        if (_grip is not null)
+        {
+            _grip.LayoutTransform = _gripScale;
+        }
+
+        UpdateGrip();
         UpdateChrome();
 
         void Hook(string name, Action action)
@@ -197,6 +236,9 @@ public sealed class MovablePanel : ContentControl
 
     // The name tag and its buttons, which follow a wide row's placeholder to its end of the row.
     private FrameworkElement? _chrome;
+
+    // The corner marker that resizes the panel.
+    private FrameworkElement? _grip;
 
     /// <summary>Back to the XAML spot and size, opaque with full rows.</summary>
     private void Reset()
@@ -220,6 +262,20 @@ public sealed class MovablePanel : ContentControl
         return false;
     }
 
+    /// <summary>Whether the mouse went down on the corner marker, which resizes the panel instead of moving it.</summary>
+    private bool OnGrip(object source)
+    {
+        for (var node = source as DependencyObject; node is not null && node != this; node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
+        {
+            if (node == _grip)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void UpdateState()
     {
         // Entering or leaving layout mode switches every panel at once: no fades there, only for a panel the game shows.
@@ -234,18 +290,23 @@ public sealed class MovablePanel : ContentControl
     }
 
     /// <summary>
-    /// Where the mouse keeps an armed panel armed, in its own coordinates: the panel and the strip with its name tag
-    /// and buttons, which can reach past a narrow panel's right edge.
+    /// Where the mouse keeps an armed panel armed, in its own coordinates: the panel, the strip with its name tag and
+    /// buttons, which can reach past a narrow panel's right edge, and the corner marker just outside its corner.
     /// </summary>
     public Rect ArmedArea()
     {
         var area = new Rect(RenderSize);
-        if (_chrome is { Visibility: Visibility.Visible } chrome)
-        {
-            area.Union(new Rect(chrome.TranslatePoint(new Point(0, 0), this), chrome.RenderSize));
-        }
-
+        Add(_chrome);
+        Add(_grip);
         return area;
+
+        void Add(FrameworkElement? part)
+        {
+            if (part is { Visibility: Visibility.Visible })
+            {
+                area.Union(new Rect(part.TranslatePoint(new Point(0, 0), this), part.RenderSize));
+            }
+        }
     }
 
     /// <summary>A placeholder in a wide row sits at one end of it: its tag buttons go with it.</summary>
@@ -371,7 +432,7 @@ public sealed class MovablePanel : ContentControl
             return;
         }
 
-        SetScale(Math.Clamp(placement.Scale, 0.6, 1.6));
+        SetScale(Math.Clamp(placement.Scale, PanelSnap.MinScale, PanelSnap.MaxScale));
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         _saved = new Point(placement.X * surface.Width, placement.Y * surface.Height);
@@ -459,6 +520,9 @@ public sealed class MovablePanel : ContentControl
 
         CaptureDefaults();
         _dragging = true;
+        _resizing = OnGrip(e.OriginalSource);
+        _startScale = _scale.ScaleX;
+        _startSize = new Size(ActualWidth * _scale.ScaleX, ActualHeight * _scale.ScaleY);
         _dragStart = e.GetPosition(surface);
         _originStart = TopLeft();
         CaptureMouse();
@@ -473,7 +537,27 @@ public sealed class MovablePanel : ContentControl
             return;
         }
 
-        var position = e.GetPosition(surface);
+        DragTo(e.GetPosition(surface));
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// One step of the drag, for the mouse at <paramref name="position"/> on the surface: the panel moves, or from the
+    /// corner marker it resizes. A no-op when no drag is going.
+    /// </summary>
+    public void DragTo(Point position)
+    {
+        if (!_dragging || Surface is not { } surface)
+        {
+            return;
+        }
+
+        if (_resizing)
+        {
+            Resize(position - _dragStart);
+            return;
+        }
+
         var width = ActualWidth * _scale.ScaleX;
         var height = ActualHeight * _scale.ScaleY;
         // Edges, the centre line and the other panels' edges pull the panel in, so panels line up without pixel hunting.
@@ -483,7 +567,6 @@ public sealed class MovablePanel : ContentControl
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         Margin = new Thickness(left, top, 0, 0);
-        e.Handled = true;
     }
 
     protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
@@ -494,12 +577,48 @@ public sealed class MovablePanel : ContentControl
             return;
         }
 
-        _dragging = false;
-        _neighbours = null;
+        EndDrag();
         ReleaseMouseCapture();
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// The panel lost the mouse in the middle of a drag: it hid because the game moved on, or the player switched
+    /// windows. The drag ends where the panel is; before, it stayed dragging, so the overlay kept it armed and taking
+    /// clicks, and it followed the mouse the next time it showed.
+    /// </summary>
+    protected override void OnLostMouseCapture(MouseEventArgs e)
+    {
+        base.OnLostMouseCapture(e);
+        if (_dragging)
+        {
+            EndDrag();
+        }
+    }
+
+    /// <summary>Ends a move or resize and saves where the panel is and how big, like the wheel does.</summary>
+    private void EndDrag()
+    {
+        _dragging = false;
+        _resizing = false;
+        _neighbours = null;
         _saved = TopLeft();
         PlacementChanged?.Invoke(this, CurrentPlacement());
-        e.Handled = true;
+    }
+
+    /// <summary>The corner marker: the size follows the pointer and the top-left corner stays where it was.</summary>
+    private void Resize(Vector moved)
+    {
+        var next = PanelSnap.CornerScale(_startScale, _startSize.Width, _startSize.Height, moved.X, moved.Y);
+        if (Math.Abs(next - _scale.ScaleX) < 0.001)
+        {
+            return;
+        }
+
+        SetScale(next);
+        HorizontalAlignment = HorizontalAlignment.Left;
+        VerticalAlignment = VerticalAlignment.Top;
+        Margin = new Thickness(_originStart.X, _originStart.Y, 0, 0);
     }
 
     // The other shown panels' spans on the surface (left-right, top-bottom), taken once per drag.
@@ -547,7 +666,7 @@ public sealed class MovablePanel : ContentControl
     private void StepScale(bool up)
     {
         CaptureDefaults();
-        var next = Math.Clamp(Math.Round(_scale.ScaleX + (up ? 0.05 : -0.05), 2), 0.6, 1.6);
+        var next = Math.Clamp(Math.Round(_scale.ScaleX + (up ? 0.05 : -0.05), 2), PanelSnap.MinScale, PanelSnap.MaxScale);
         var origin = TopLeft();
         SetScale(next);
         HorizontalAlignment = HorizontalAlignment.Left;
@@ -568,5 +687,36 @@ public sealed class MovablePanel : ContentControl
 
         Reset();
         e.Handled = true;
+    }
+}
+
+/// <summary>
+/// Holds a movable panel's name tag and buttons (<c>PART_Chrome</c>) without taking part in the panel's size. With the
+/// move hint and the buttons the tag is wider than most panels: as a plain template child it widened the panel when
+/// Ctrl armed it, so the deck jumped about 190 units left with its content, and a drag saved the wider panel's spot.
+/// Each child gets the strip's width, or its own when wider, and places itself in it by its alignment.
+/// </summary>
+public sealed class PanelTagStrip : Panel
+{
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var height = 0.0;
+        foreach (UIElement child in InternalChildren)
+        {
+            child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+            height = Math.Max(height, child.DesiredSize.Height);
+        }
+
+        return new Size(0, height);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        foreach (UIElement child in InternalChildren)
+        {
+            child.Arrange(new Rect(0, 0, Math.Max(finalSize.Width, child.DesiredSize.Width), Math.Max(finalSize.Height, child.DesiredSize.Height)));
+        }
+
+        return finalSize;
     }
 }
