@@ -64,6 +64,7 @@
   "Main.Live.ChoosingHero": "Выбор героя",
   "Main.Live.BgDetail": "{0} · ход {1} · уровень {2} · {3} ОЗ · место {4}",
   "Main.Live.CtDetail": "{0} vs {1} · ход {2}",
+  "Main.Live.DeckUnknown": "колода не распознана, панель колоды скрыта",
   "Main.Live.SessionTip": "Эта сессия с запуска Hearthpulse",
   "Main.Live.ArrangeTip": "Расставить панели оверлея (Ctrl+Shift+L)",
   "Main.Live.ArrangeTipShort": "Расставить панели оверлея",

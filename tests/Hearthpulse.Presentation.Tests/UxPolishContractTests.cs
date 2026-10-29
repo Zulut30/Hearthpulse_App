@@ -7,6 +7,8 @@ using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Tracking;
+using AvaMain = Hearthpulse.UI.Main.MainViewModel;
 using WpfMain = Hearthpulse.App.Main.MainViewModel;
 using WpfOverlay = Hearthpulse.App.Overlay.OverlayViewModel;
 using WpfWindow = Hearthpulse.App.Main.MainWindow;
@@ -88,6 +90,32 @@ public sealed class UxPolishContractTests
         Assert.All(grid.Children.OfType<FrameworkElement>().Where(c => Grid.GetColumn(c) == 0), c => Assert.IsNotType<Button>(c));
         window.Close();
     });
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Live_line_says_when_the_deck_panel_waits_for_an_unknown_deck(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        dynamic model = wpf ? new WpfMain(History(), new AppSettings()) : new AvaMain(History(), new AppSettings());
+        var unknown = Ranked(new ConstructedView(5, null, false, "HERO_08", "MAGE", "HERO_01", "WARRIOR", null, [], 30, 4, [], [], 0, 0, 0, null, null));
+        model.Apply(unknown);
+        var detail = (string)model.LiveDetail;
+        Assert.EndsWith(" · " + Loc.T("Main.Live.DeckUnknown"), detail);
+        // Only about your own deck: the line before it is the one the overlay already showed.
+        Assert.StartsWith(Loc.F("Main.Live.CtDetail", WpfOverlay.ClassName("MAGE"), WpfOverlay.ClassName("WARRIOR"), 5), detail);
+
+        model.Apply(Ranked(new ConstructedView(5, "Big Mage", true, "HERO_08", "MAGE", "HERO_01", "WARRIOR", null, [], 30, 4, [], [], 0, 0, 0, null, null)));
+        Assert.DoesNotContain(Loc.T("Main.Live.DeckUnknown"), (string)model.LiveDetail);
+
+        // With the deck tracker off the panel is hidden anyway: nothing to explain.
+        model.Settings.ShowDeckTracker = false;
+        model.Apply(unknown);
+        Assert.DoesNotContain(Loc.T("Main.Live.DeckUnknown"), (string)model.LiveDetail);
+
+        static LiveSnapshot Ranked(ConstructedView view) =>
+            LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = view };
+    }
 
     // ---- harness ----
 

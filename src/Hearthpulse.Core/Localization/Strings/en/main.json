@@ -64,6 +64,7 @@
   "Main.Live.ChoosingHero": "Choosing a hero",
   "Main.Live.BgDetail": "{0} · turn {1} · tier {2} · {3} HP · place {4}",
   "Main.Live.CtDetail": "{0} vs {1} · turn {2}",
+  "Main.Live.DeckUnknown": "deck not recognised, the deck panel is hidden",
   "Main.Live.SessionTip": "This session since Hearthpulse started",
   "Main.Live.ArrangeTip": "Arrange overlay panels (Ctrl+Shift+L)",
   "Main.Live.ArrangeTipShort": "Arrange overlay panels",

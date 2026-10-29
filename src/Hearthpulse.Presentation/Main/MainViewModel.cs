@@ -383,7 +383,9 @@ public sealed partial class MainViewModel : Observable
         else if (s.Constructed is { } c)
         {
             LiveTitle = Loc.F("Main.Live.Mode", Mode(s.GameType));
-            LiveDetail = Loc.F("Main.Live.CtDetail", c.DeckName is { Length: > 0 } deck ? Hearthpulse.Core.Stats.DeckName.Display(deck) : OverlayViewModel.ClassName(c.PlayerClass), OverlayViewModel.ClassName(c.OpponentClass), c.Turn);
+            LiveDetail = Loc.F("Main.Live.CtDetail", c.DeckName is { Length: > 0 } deck ? Hearthpulse.Core.Stats.DeckName.Display(deck) : OverlayViewModel.ClassName(c.PlayerClass), OverlayViewModel.ClassName(c.OpponentClass), c.Turn)
+                // The overlay's deck panel waits for a known deck: say why it is missing instead of leaving the player to guess.
+                + (c.DeckKnown || !Settings.ShowDeckTracker ? string.Empty : " · " + Loc.T("Main.Live.DeckUnknown"));
         }
         else
         {
