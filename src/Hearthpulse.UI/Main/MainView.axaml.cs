@@ -24,12 +24,31 @@ public partial class MainView : UserControl
 
     private MainViewModel? _viewModel;
 
+    /// <summary>The page the sidebar went to last (<see cref="MainViewModel.NavPages"/>).</summary>
+    private string _page;
+
     public MainView()
     {
         InitializeComponent();
-        foreach (var nav in new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavHistory, NavSettings })
+        _page = CurrentPage;
+        var pages = PageButtons;
+        for (var i = 0; i < pages.Length; i++)
         {
-            nav.IsCheckedChanged += (_, _) => UpdatePages();
+            var (nav, page) = (pages[i], MainViewModel.NavPages[i]);
+            // Avalonia raises this for the newly checked button while the old one is still checked: the page shown is
+            // the sender's, and the old button's uncheck that follows only updates what is visible.
+            nav.IsCheckedChanged += (_, _) =>
+            {
+                if (nav.IsChecked == true)
+                {
+                    _page = page;
+                    UpdatePages(page);
+                }
+                else
+                {
+                    UpdatePages(null);
+                }
+            };
         }
 
         foreach (var tab in new[] { TabHeroes, TabComps, TabTrinkets, TabCards, TabMine })
@@ -362,7 +381,7 @@ public partial class MainView : UserControl
                 LivePulse.Fill = ThemeBrushes.Get(_viewModel.InGame ? "AccentContainer" : "Surface4");
                 break;
             case nameof(MainViewModel.DeckOpen):
-                UpdatePages();
+                UpdatePages(_page);
                 PageDeck.Offset = default;
                 break;
             case nameof(MainViewModel.ConstructedFormat):
@@ -380,7 +399,7 @@ public partial class MainView : UserControl
                     NavHistory.IsChecked = true;
                 }
 
-                UpdatePages();
+                UpdatePages(_page);
                 PageMatch.Offset = default;
                 break;
         }
@@ -389,9 +408,10 @@ public partial class MainView : UserControl
     /// <summary>True while the Standard or Wild page (or a deck page standing in for it) is open.</summary>
     private bool ConstructedShown => NavStandard.IsChecked == true || NavWild.IsChecked == true;
 
-    private void UpdatePages()
+    /// <summary>Tells the view model the page <paramref name="shown"/> (null: no page change) and shows the checked pages.</summary>
+    private void UpdatePages(string? shown)
     {
-        _viewModel?.PageShown(MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)));
+        _viewModel?.PageShown(shown);
 
         PageOverview.IsVisible = NavOverview.IsChecked == true;
         PageBattlegrounds.IsVisible = NavBattlegrounds.IsChecked == true;
