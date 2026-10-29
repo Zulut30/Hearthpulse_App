@@ -538,23 +538,29 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         var all = File.ReadAllLines(RealLog);
         var type = Array.FindIndex(all, l => l.Contains("GameType=GT_BATTLEGROUNDS", StringComparison.Ordinal));
         var lines = all[Array.FindLastIndex(all, type, l => l.Contains("GameState.DebugPrintPower() - CREATE_GAME", StringComparison.Ordinal))..];
-        // Alternated runs, the fastest of each: the tracker's background simulations and the GC make single runs noisy.
-        var (without, with) = (TimeSpan.MaxValue, TimeSpan.MaxValue);
+        // Three alternated runs of each, the median of each: the tracker's background simulations and the GC make a
+        // single run noisy. A first pair warms the JIT up.
+        Time(lines, record: false, out _);
+        Time(lines, record: true, out _);
+        var (plain, recorded) = (new List<TimeSpan>(), new List<TimeSpan>());
         (ReplayRecorder Recorder, BattlegroundsTracker Tracker, GameState? Game) end = default;
-        for (var run = 0; run < 5; run++)
+        for (var run = 0; run < 3; run++)
         {
-            var plain = Time(lines, record: false, out _);
-            var recorded = Time(lines, record: true, out end);
-            without = plain < without ? plain : without;
-            with = recorded < with ? recorded : with;
+            plain.Add(Time(lines, record: false, out _));
+            recorded.Add(Time(lines, record: true, out end));
         }
+
+        var without = plain.Order().ElementAt(1);
+        var with = recorded.Order().ElementAt(1);
 
         var text = end.Recorder!.Battlegrounds.Text(new ReplayHeader(), end.Tracker!.ReplayData(end.Game!));
         var frames = BattlegroundsMatchReplay.Parse(text)!.Frames.Count;
         var (header, body) = ReplayFile.Read(text)!.Value;
         var gzip = Gzip(text);
         output.WriteLine($"events {header.Events}, lines {body.Count}, frames {frames}, text {Encoding.UTF8.GetByteCount(text)} B, gzip {gzip} B, truncated {header.Truncated}");
-        output.WriteLine($"parse {without.TotalMilliseconds:F0} ms, with the recorder {with.TotalMilliseconds:F0} ms, x{with / without:F2}");
+        output.WriteLine($"parse {without.TotalMilliseconds:F0} ms, with the recorder {with.TotalMilliseconds:F0} ms (medians of "
+                         + $"{string.Join("/", plain.Select(t => t.TotalMilliseconds.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)))} and "
+                         + $"{string.Join("/", recorded.Select(t => t.TotalMilliseconds.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)))}), x{with / without:F2}");
 
         Assert.False(header.Truncated);
         Assert.InRange(header.Events, 1, BattlegroundsReplayRecorder.MaxEvents - 1);

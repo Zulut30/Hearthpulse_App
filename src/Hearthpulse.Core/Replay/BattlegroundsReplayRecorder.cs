@@ -123,7 +123,10 @@ public sealed class BattlegroundsReplayRecorder
     private int _taken;
     private int _dealt;
 
-    /// <summary>The events recorded for the current game, in order.</summary>
+    /// <summary>
+    /// The events recorded for the current game, in order, the current step's lines included. Builds a list while a step
+    /// is open: for saving and tests, not for frequent calls.
+    /// </summary>
     public IReadOnlyList<string> Events => _pending.Count == 0 ? _events : _events.Concat(_pending.OfType<string>()).ToList();
 
     /// <summary>True when the game hit <see cref="MaxEvents"/> or a combat hit <see cref="MaxCombatSteps"/>.</summary>
