@@ -70,16 +70,45 @@ jobs:
       - name: Build
         run: dotnet build Hearthpulse.slnx --no-restore -c Release
       # One after the other: run together on the 2-core runner, the presentation tests' 10 s waits timed out.
+      # Code coverage (coverlet, cobertura XML) is collected in this job only, the one that runs both suites. Tests that
+      # assert on wall-clock time (Category=Timing) run in their own step without the instrumentation, which slows hot code.
       - name: Tests
-        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --logger "trx;LogFileName=tests.trx" --results-directory TestResults
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "Category!=Timing" --collect:"XPlat Code Coverage" --logger "trx;LogFileName=tests.trx" --results-directory TestResults/tests
+      - name: Timing tests (without coverage)
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "Category=Timing" --logger "trx;LogFileName=timing.trx" --results-directory TestResults/timing
       - name: WPF and Avalonia presentation contracts
-        run: dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-build -c Release --logger "trx;LogFileName=presentation.trx" --results-directory TestResults
+        run: dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-build -c Release --collect:"XPlat Code Coverage" --logger "trx;LogFileName=presentation.trx" --results-directory TestResults/presentation
+      # Line and branch coverage per project into the job summary; no external service.
+      - name: Coverage summary
+        if: always()
+        shell: pwsh
+        run: |
+          $invariant = [cultureinfo]::InvariantCulture
+          $lines = @('### Code coverage (Windows)', '', '| Test suite | Project | Lines | Branches |', '|---|---|---:|---:|')
+          foreach ($suite in @(@{ Dir = 'tests'; Name = 'Hearthpulse.Tests' }, @{ Dir = 'presentation'; Name = 'Hearthpulse.Presentation.Tests' })) {
+            $file = Get-ChildItem "TestResults/$($suite.Dir)" -Recurse -Filter coverage.cobertura.xml -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $file) { $lines += "| $($suite.Name) | no coverage file | | |"; continue }
+            foreach ($package in ([xml](Get-Content $file.FullName -Raw)).coverage.packages.package) {
+              # The WPF app's assembly is called Hearthpulse.
+              $project = if ($package.name -eq 'Hearthpulse') { 'Hearthpulse.App (WPF)' } else { $package.name }
+              $lines += [string]::Format($invariant, '| {0} | {1} | {2:0.0} % | {3:0.0} % |', $suite.Name, $project, 100 * [double]$package.'line-rate', 100 * [double]$package.'branch-rate')
+            }
+          }
+          $lines | Write-Output
+          $lines | Add-Content $env:GITHUB_STEP_SUMMARY
       - name: Test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results-windows
           path: TestResults
+      - name: Coverage (cobertura)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-windows
+          path: TestResults/**/coverage.cobertura.xml
+          if-no-files-found: ignore
 
   # Linux and macOS: the tests, then the self-contained app as the installers ship it (native SQLite, Skia, HarfBuzz for
   # the runtime identifier), started for real with an empty data folder: windows, tray, overlay platform, card data.

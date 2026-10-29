@@ -526,6 +526,8 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
     }
 
     [RealLogsFact]
+    // Asserts on wall-clock time: CI runs it without coverage instrumentation (hearthpulse-testing, "Timing").
+    [Trait("Category", "Timing")]
     public void The_28_10_game_is_recorded_whole_under_a_megabyte_and_without_slowing_the_parser()
     {
         if (!File.Exists(RealLog))
