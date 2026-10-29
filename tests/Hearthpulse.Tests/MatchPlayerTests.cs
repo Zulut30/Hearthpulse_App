@@ -441,6 +441,46 @@ public sealed class MatchPlayerTests : IDisposable
         Assert.All(lists, list => Assert.Empty((System.Collections.IEnumerable)list));
     }
 
+    /// <summary>
+    /// The Constructed table does the same: each step syncs the hands, boards, secrets and choices the view binds, from
+    /// either side at the bottom. A new list on every step built every card again, about 28 ms and 3.3 MB a step.
+    /// </summary>
+    [Fact]
+    public void Each_constructed_step_changes_the_lists_on_screen_in_place()
+    {
+        var model = Model(out _);
+        var page = Page();
+        model.Show(page);
+        object[] Lists(MatchStepView s) => [s.Top.Board, s.Top.Hand, s.Top.Secrets, s.Bottom.Board, s.Bottom.Hand, s.Bottom.Secrets, s.Choices, model.Actions, model.Turns];
+        var lists = Lists(model.Step!);
+        foreach (var local in new[] { true, false })
+        {
+            // The side buttons are radio buttons: each one only turns itself on.
+            model.BottomLocal = local;
+            model.BottomOpponent = !local;
+            for (var frame = 0; frame <= model.FrameMax; frame++)
+            {
+                model.GoFrame.Execute(frame);
+                var step = model.Step!;
+                var shown = page.Step(frame, local ? ReplayPlayer.Local : ReplayPlayer.Opponent)!;
+                Assert.Equal(lists, Lists(step));
+                Assert.Equal(shown.Top.Board, step.Top.Board);
+                Assert.Equal(shown.Top.Hand, step.Top.Hand);
+                Assert.Equal(shown.Top.Secrets, step.Top.Secrets);
+                Assert.Equal(shown.Bottom.Board, step.Bottom.Board);
+                Assert.Equal(shown.Bottom.Hand, step.Bottom.Hand);
+                Assert.Equal(shown.Bottom.Secrets, step.Bottom.Secrets);
+                Assert.Equal(shown.Choices.Count, step.Choices.Count);
+                Assert.Equal((shown.Top.Hero, shown.Bottom.Hero, shown.Action), (step.Top.Hero, step.Bottom.Hero, step.Action));
+                Assert.Equal(page.Actions(frame), model.Actions);
+            }
+        }
+
+        model.Clear();
+        Assert.Null(model.Step);
+        Assert.All(lists, list => Assert.Empty((System.Collections.IEnumerable)list));
+    }
+
     [Fact]
     public void A_minion_used_on_the_table_is_an_event_with_the_power_icon()
     {

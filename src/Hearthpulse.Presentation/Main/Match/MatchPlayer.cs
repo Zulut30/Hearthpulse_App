@@ -147,7 +147,7 @@ public sealed partial class MatchViewModel
         get => _battlegroundsStep;
         private set
         {
-            if (Set(ref _battlegroundsStep, value))
+            if (Set(ref _battlegroundsStep, BattlegroundsInPlace(value)))
             {
                 Raise(nameof(BattlegroundsWon));
                 Raise(nameof(BattlegroundsLost));
@@ -275,7 +275,7 @@ public sealed partial class MatchViewModel
         TimelineTicks = count == 0 ? [] : Ticks(page.Marks, count);
         if (!page.HasBattlegroundsSteps)
         {
-            BattlegroundsStep = InPlace(null);
+            BattlegroundsStep = null;
             Leaders = [];
         }
 
@@ -291,7 +291,7 @@ public sealed partial class MatchViewModel
         TimelineTicks = [];
         TimelineCurrent = -1;
         TimelinePosition = 0;
-        BattlegroundsStep = InPlace(null);
+        BattlegroundsStep = null;
         Leaders = [];
         Raise(nameof(Truncated));
     }
@@ -359,7 +359,7 @@ public sealed partial class MatchViewModel
     /// <summary>A Battlegrounds step on the table, its leaderboard and the events of its tavern or combat.</summary>
     private void ShowBattlegroundsStep(MatchBgStepView? step)
     {
-        BattlegroundsStep = InPlace(step);
+        BattlegroundsStep = step;
         Step = null;
         Leaders = step?.Leaderboard.Select(Leader).ToList() ?? [];
         Actions = _page is not null && TimelineCurrent >= 0 && TimelineCurrent < _segments.Count
@@ -371,7 +371,7 @@ public sealed partial class MatchViewModel
     /// The step with the lists the view already binds, synced to the step's: the cards, hero powers and trinkets that did
     /// not change keep their rows. Without a step the lists are emptied.
     /// </summary>
-    private MatchBgStepView? InPlace(MatchBgStepView? step) => step is null
+    private MatchBgStepView? BattlegroundsInPlace(MatchBgStepView? step) => step is null
         ? Emptied()
         : step with
         {

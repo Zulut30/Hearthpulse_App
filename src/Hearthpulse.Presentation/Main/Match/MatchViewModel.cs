@@ -34,6 +34,11 @@ public sealed partial class MatchViewModel : Observable
     private MatchStepView? _step;
     private readonly SyncList<MatchActionRow> _actions = new();
     private readonly SyncList<MatchTurnRow> _turns = new();
+
+    // The lists of the Constructed step on screen, synced to each step (see Keep): the top side's board, hand and
+    // secrets, the bottom side's, and the step's choices.
+    private readonly SyncList<MatchCardView>[] _sides = [new(), new(), new(), new(), new(), new()];
+    private readonly SyncList<MatchChoiceView> _choices = new();
     private IReadOnlyList<MatchDeckRow> _localDeck = [];
     private IReadOnlyList<MatchDeckRow> _opponentCards = [];
     private IReadOnlyList<MatchDeckRow> _opponentPredicted = [];
@@ -192,7 +197,7 @@ public sealed partial class MatchViewModel : Observable
     public int FrameOf(ReplayActionKind kind) => _page?.Replay?.Frames.FirstOrDefault(f => f.Action.Kind == kind)?.Index ?? -1;
 
     /// <summary>The Constructed step on screen.</summary>
-    public MatchStepView? Step { get => _step; private set => Set(ref _step, value); }
+    public MatchStepView? Step { get => _step; private set => Set(ref _step, TableInPlace(value)); }
 
     /// <summary>"Step 34 of 210 · turn 7"; before the first turn "Step 2 of 210".</summary>
     public string Position => _page is null ? string.Empty
@@ -382,6 +387,29 @@ public sealed partial class MatchViewModel : Observable
             Raise(name);
         }
     }
+
+    /// <summary>
+    /// The Constructed step with the lists the view already binds, synced to the step's: the cards that did not change
+    /// keep their rows. Without a step the lists are emptied.
+    /// </summary>
+    private MatchStepView? TableInPlace(MatchStepView? step)
+    {
+        if (step is null)
+        {
+            foreach (var list in _sides)
+            {
+                list.Sync([]);
+            }
+
+            _choices.Sync([]);
+            return null;
+        }
+
+        return step with { Top = SideInPlace(step.Top, 0), Bottom = SideInPlace(step.Bottom, 3), Choices = Synced(_choices, step.Choices) };
+    }
+
+    private MatchSideView SideInPlace(MatchSideView side, int first) =>
+        side with { Board = Synced(_sides[first], side.Board), Hand = Synced(_sides[first + 1], side.Hand), Secrets = Synced(_sides[first + 2], side.Secrets) };
 
     private void RaiseTabs()
     {
