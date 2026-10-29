@@ -124,6 +124,118 @@ public static class ChartGeometry
     }
 }
 
+/// <summary>
+/// The small charts of the stats cards: <see cref="Sparkline"/> (a value per day, gaps where there is none),
+/// <see cref="MiniBars"/> (a share per place with the community's as a tick) and <see cref="ResultBars"/> (wins under
+/// losses per column). Numbers only, like <see cref="ChartGeometry"/>.
+/// </summary>
+public static class SmallChartGeometry
+{
+    /// <summary>Space around a sparkline.</summary>
+    public const double SparkPad = 3;
+
+    /// <summary>Room under mini bars for the place numbers.</summary>
+    public const double MiniBarsLabelHeight = 15;
+
+    /// <summary>
+    /// The unbroken stretches of a sparkline of <paramref name="count"/> slots: a null value breaks the line. A stretch of
+    /// one point is drawn as a dot.
+    /// </summary>
+    public static IReadOnlyList<(double X, double Y)[]> SparkRuns(
+        IReadOnlyList<double?> values, int count, double width, double height, double minimum, double maximum)
+    {
+        var span = Math.Max(1e-9, maximum - minimum);
+        (double X, double Y) At(int i, double v) => (
+            count == 1 ? width / 2 : SparkPad + ((width - (2 * SparkPad)) * i / (count - 1)),
+            SparkPad + ((height - (2 * SparkPad)) * (1 - Math.Clamp((v - minimum) / span, 0, 1))));
+
+        var runs = new List<(double X, double Y)[]>();
+        var run = new List<(double X, double Y)>();
+        foreach (var (value, i) in values.Select((v, i) => (v, i)))
+        {
+            if (value is { } v)
+            {
+                run.Add(At(i, v));
+            }
+            else if (run.Count > 0)
+            {
+                runs.Add([.. run]);
+                run.Clear();
+            }
+        }
+
+        if (run.Count > 0)
+        {
+            runs.Add([.. run]);
+        }
+
+        return runs;
+    }
+
+    /// <summary>
+    /// Mini bars, one slot per value (at least one value or compare value): each bar's left and width, the height of its
+    /// fill (0 for none, at least 2 otherwise), the y of the compare tick, and the x of the average-place marker
+    /// (<paramref name="marker"/> is a place, 1-based, or NaN for none).
+    /// </summary>
+    public static MiniBarsPlot MiniBars(IReadOnlyList<double> values, IReadOnlyList<double> compare, double width, double height, bool labels, double marker)
+    {
+        var count = Math.Max(values.Count, compare.Count);
+        var plot = height - (labels ? MiniBarsLabelHeight : 0);
+        var max = Math.Max(1e-9, values.Concat(compare).DefaultIfEmpty(0).Max());
+        var slot = width / count;
+        var gap = Math.Min(4, slot * 0.25);
+        var bars = new MiniBar[count];
+        for (var i = 0; i < count; i++)
+        {
+            bars[i] = new MiniBar(
+                (i * slot) + (gap / 2),
+                Math.Max(1, slot - gap),
+                i < values.Count && values[i] > 0 ? Math.Max(2, plot * values[i] / max) : 0,
+                i < compare.Count && compare[i] > 0 ? Math.Round(plot - (plot * compare[i] / max)) + 0.5 : null);
+        }
+
+        // Place p is centred on its bar, so the marker's x is the centre of bar p plus the fraction.
+        double? markerX = !double.IsNaN(marker) && marker >= 1 ? Math.Round((marker - 0.5) * slot) + 0.5 : null;
+        return new MiniBarsPlot(plot, bars, markerX);
+    }
+
+    /// <summary>
+    /// Result bars, one column per entry of the longer list (at least one): the baseline, the slot and bar widths and per
+    /// column its left and the heights of its wins and losses, scaled so the busiest column fills the plot.
+    /// </summary>
+    public static ResultBarsPlot ResultBars(IReadOnlyList<int> wins, IReadOnlyList<int> losses, bool labels, double width, double height)
+    {
+        const double top = 18;
+        var bottom = labels ? 20.0 : 4.0;
+        var count = Math.Max(wins.Count, losses.Count);
+        var plot = Math.Max(1, height - top - bottom);
+        var slot = width / count;
+        var bar = Math.Min(44, slot * 0.56);
+        static int At(IReadOnlyList<int> list, int index) => index < list.Count ? list[index] : 0;
+        var max = Math.Max(1, Enumerable.Range(0, count).Max(i => At(wins, i) + At(losses, i)));
+        var columns = new ResultColumn[count];
+        for (var i = 0; i < count; i++)
+        {
+            var (won, lost) = (At(wins, i), At(losses, i));
+            columns[i] = new ResultColumn((slot * i) + ((slot - bar) / 2), won, lost, plot * won / max, plot * lost / max);
+        }
+
+        return new ResultBarsPlot(height - bottom, slot, bar, columns);
+    }
+}
+
+/// <summary>One mini bar: left, width, fill height (0: none) and the compare tick's y (null: none).</summary>
+public sealed record MiniBar(double X, double Width, double Fill, double? Tick);
+
+/// <summary>Laid-out mini bars: the plot's height (above the labels), the bars and the marker's x (null: none).</summary>
+public sealed record MiniBarsPlot(double Plot, IReadOnlyList<MiniBar> Bars, double? MarkerX);
+
+/// <summary>One result column: its bar's left, the wins and losses and their heights.</summary>
+public sealed record ResultColumn(double X, int Won, int Lost, double WinHeight, double LossHeight);
+
+/// <summary>Laid-out result bars: the baseline's y, each column's slot and bar width, and the columns.</summary>
+public sealed record ResultBarsPlot(double Baseline, double Slot, double Bar, IReadOnlyList<ResultColumn> Columns);
+
 /// <summary>A laid-out line chart: each point's position, the plot's left edge and the lowest and highest point.</summary>
 public sealed record LinePlot((double X, double Y)[] At, double Left, int Lowest, int Highest)
 {

@@ -117,6 +117,75 @@ public sealed class ChartGeometryTests
     }
 
     [Fact]
+    public void A_sparkline_breaks_where_a_day_has_no_value_and_a_lone_point_is_its_own_run()
+    {
+        // 100 × 20 with 3 px around: x = 3 + 94 i / 3, y = 3 + 14 (1 - v).
+        var runs = SmallChartGeometry.SparkRuns([0.5, null, 1, 0], 4, 100, 20, 0, 1);
+
+        Assert.Equal(2, runs.Count);
+        Assert.Equal([(3.0, 10.0)], runs[0]);
+        Assert.Equal(3 + (94.0 * 2 / 3), runs[1][0].X, 9);
+        Assert.Equal(3, runs[1][0].Y, 9);
+        Assert.Equal((97.0, 17.0), runs[1][1]);
+    }
+
+    [Fact]
+    public void Sparkline_slots_follow_the_longer_series_and_values_stay_inside()
+    {
+        // The compare series has 5 days: 2 values here still sit on the first two of 5 slots; 2 clamps to the top.
+        var runs = SmallChartGeometry.SparkRuns([2, -1], 5, 100, 20, 0, 1);
+        Assert.Equal([(3.0, 3.0), (26.5, 17.0)], Assert.Single(runs));
+
+        Assert.Equal(50, Assert.Single(Assert.Single(SmallChartGeometry.SparkRuns([0.5], 1, 100, 20, 0, 1))).X);
+        Assert.Empty(SmallChartGeometry.SparkRuns([null, null], 2, 100, 20, 0, 1));
+    }
+
+    [Fact]
+    public void Mini_bars_fill_to_their_share_of_the_largest_with_the_compare_tick_and_the_marker()
+    {
+        // 90 wide in 3 slots of 30 with a 4 px gap; 60 high less 15 for the labels.
+        var layout = SmallChartGeometry.MiniBars([0.5, 0, 0.25], [0.4], 90, 60, labels: true, marker: 2.5);
+
+        Assert.Equal(45, layout.Plot);
+        Assert.Equal([2.0, 32.0, 62.0], layout.Bars.Select(b => b.X));
+        Assert.All(layout.Bars, b => Assert.Equal(26, b.Width));
+        Assert.Equal([45.0, 0.0, 22.5], layout.Bars.Select(b => b.Fill));
+        Assert.Equal([9.5, null, null], layout.Bars.Select(b => b.Tick));
+        // Place 2.5: halfway between the centres of bars 2 and 3.
+        Assert.Equal(60.5, layout.MarkerX);
+    }
+
+    [Fact]
+    public void A_tiny_share_still_shows_and_no_marker_without_a_place()
+    {
+        var layout = SmallChartGeometry.MiniBars([1, 0.001], [], 40, 30, labels: false, marker: double.NaN);
+
+        Assert.Equal(30, layout.Plot);
+        Assert.Equal(2, layout.Bars[1].Fill);
+        Assert.Null(layout.MarkerX);
+        Assert.Null(SmallChartGeometry.MiniBars([1], [], 40, 30, labels: false, marker: 0.5).MarkerX);
+    }
+
+    [Fact]
+    public void Result_bars_stack_losses_on_wins_scaled_to_the_busiest_column()
+    {
+        // 200 × 140: two slots of 100, bars 44 wide; 140 - 18 above - 20 for the labels = 102 high; busiest column 4.
+        var layout = SmallChartGeometry.ResultBars([3, 1], [1], labels: true, 200, 140);
+
+        Assert.Equal(120, layout.Baseline);
+        Assert.Equal(100, layout.Slot);
+        Assert.Equal(44, layout.Bar);
+        Assert.Equal(new ResultColumn(28, 3, 1, 76.5, 25.5), layout.Columns[0]);
+        Assert.Equal(new ResultColumn(128, 1, 0, 25.5, 0), layout.Columns[1]);
+
+        // Without labels the baseline is 4 from the bottom; narrow slots keep bars at 56 % of the slot.
+        var plain = SmallChartGeometry.ResultBars([], [2, 0, 0, 0, 0], labels: false, 100, 140);
+        Assert.Equal(136, plain.Baseline);
+        Assert.Equal(20 * 0.56, plain.Bar, 9);
+        Assert.Equal(5, plain.Columns.Count);
+    }
+
+    [Fact]
     public void A_plot_narrower_than_the_tag_puts_it_at_the_left_edge()
     {
         // 60 wide, 44 for the labels and 12 on the right: 4 pixels for a 44-wide tag.

@@ -59,51 +59,27 @@ public sealed class Sparkline : Control
 
     private void Draw(DrawingContext context, IReadOnlyList<double?> values, int count, double w, double h, Pen pen)
     {
-        const double pad = 3;
-        var span = Math.Max(1e-9, Maximum - Minimum);
-        Point At(int i, double v) => new(
-            count == 1 ? w / 2 : pad + ((w - (2 * pad)) * i / (count - 1)),
-            pad + ((h - (2 * pad)) * (1 - Math.Clamp((v - Minimum) / span, 0, 1))));
-
-        var run = new List<Point>();
-        void Flush()
+        foreach (var run in SmallChartGeometry.SparkRuns(values, count, w, h, Minimum, Maximum))
         {
-            if (run.Count == 1)
+            if (run.Length == 1)
             {
-                context.DrawEllipse(pen.Brush, null, run[0], 1.6, 1.6);
+                context.DrawEllipse(pen.Brush, null, new Point(run[0].X, run[0].Y), 1.6, 1.6);
+                continue;
             }
-            else if (run.Count > 1)
-            {
-                var geometry = new StreamGeometry();
-                using (var ctx = geometry.Open())
-                {
-                    ctx.BeginFigure(run[0], false);
-                    foreach (var p in run.Skip(1))
-                    {
-                        ctx.LineTo(p);
-                    }
 
-                    ctx.EndFigure(false);
+            var geometry = new StreamGeometry();
+            using (var ctx = geometry.Open())
+            {
+                ctx.BeginFigure(new Point(run[0].X, run[0].Y), false);
+                foreach (var p in run.Skip(1))
+                {
+                    ctx.LineTo(new Point(p.X, p.Y));
                 }
 
-                context.DrawGeometry(null, pen, geometry);
+                ctx.EndFigure(false);
             }
 
-            run.Clear();
+            context.DrawGeometry(null, pen, geometry);
         }
-
-        for (var i = 0; i < values.Count; i++)
-        {
-            if (values[i] is { } v)
-            {
-                run.Add(At(i, v));
-            }
-            else
-            {
-                Flush();
-            }
-        }
-
-        Flush();
     }
 }
