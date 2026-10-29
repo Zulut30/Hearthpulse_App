@@ -427,7 +427,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
             combat,
             !heroChosen && options.Count > 0,
             options,
-            MemoryRaces ?? _shopRaces.OrderBy(r => r, StringComparer.Ordinal).ToList(),
+            MemoryRaces ?? _shopRaces.Order(StringComparer.Ordinal).ToList(),
             MemoryRaces is not null,
             opponents,
             _combats.ToList(),

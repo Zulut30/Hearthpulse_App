@@ -165,7 +165,7 @@ public static class CardArt
     {
         var key = Key(kind, cardId);
         TrimPending();
-        return Pending.GetOrAdd(key, _ => LoadAsync(kind, cardId));
+        return Pending.GetOrAdd(key, static (_, art) => LoadAsync(art.kind, art.cardId), (kind, cardId));
     }
 
     /// <summary>Keeps the task dictionary from growing for every card the session ever shows.</summary>

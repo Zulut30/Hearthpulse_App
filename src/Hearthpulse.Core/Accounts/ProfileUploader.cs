@@ -493,7 +493,7 @@ public sealed class ProfileUploader : IDisposable
     {
         var text = s.Kind switch
         {
-            StatusKind.Waiting or StatusKind.Retrying => string.Join(" ", new[]
+            StatusKind.Waiting or StatusKind.Retrying => string.Join(' ', new[]
             {
                 Loc.P("Upload.Status.Waiting", s.Pending),
                 s.Backfilling ? Loc.T("Upload.Status.MoreFollow") : null,

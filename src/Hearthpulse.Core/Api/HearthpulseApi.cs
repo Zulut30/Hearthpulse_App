@@ -132,7 +132,7 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
                 case JsonValueKind.Array:
                     // FastAPI validation errors: [{"loc": [...], "msg": "..."}].
                     code = "VALIDATION_ERROR";
-                    message = string.Join(" ", detail.EnumerateArray()
+                    message = string.Join(' ', detail.EnumerateArray()
                         .Select(e => e.ValueKind == JsonValueKind.Object && e.TryGetProperty("msg", out var msg) ? msg.GetString() : null)
                         .Where(s => !string.IsNullOrEmpty(s)));
                     break;

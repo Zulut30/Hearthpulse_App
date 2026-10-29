@@ -177,7 +177,7 @@ public sealed class BattlegroundsMeta
     public int WidestBracket => HeroesByBracket.Count > 0 ? HeroesByBracket.Keys.Max() : 100;
 
     /// <summary>The hero brackets this meta has, widest first: what a bracket picker can offer.</summary>
-    public IReadOnlyList<int> HeroBrackets => HeroesByBracket.Keys.OrderByDescending(b => b).ToList();
+    public IReadOnlyList<int> HeroBrackets => HeroesByBracket.Keys.OrderDescending().ToList();
 
     /// <summary>True when the stats pool is part of these numbers (alone or laid over the API).</summary>
     public bool FromPool => _source != Attribution;
@@ -269,7 +269,7 @@ public sealed class BattlegroundsMeta
             return hero;
         }
 
-        foreach (var wider in HeroesByBracket.Keys.OrderByDescending(b => b))
+        foreach (var wider in HeroesByBracket.Keys.OrderDescending())
         {
             if (HeroesByBracket[wider].TryGetValue(baseHeroId, out var found))
             {
@@ -350,7 +350,7 @@ public sealed class BattlegroundsMeta
             }
         }
 
-        Diag.Info($"Battlegrounds meta from the Hearthpulse API: heroes in brackets {string.Join("/", heroes.Keys)}, minions in {string.Join("/", cards.Keys)}");
+        Diag.Info($"Battlegrounds meta from the Hearthpulse API: heroes in brackets {string.Join('/', heroes.Keys)}, minions in {string.Join('/', cards.Keys)}");
         return new BattlegroundsMeta(heroes, [], [], new Dictionary<string, MetaTrinket>(StringComparer.Ordinal), cards,
             updated == default ? DateTime.UtcNow : updated);
     }

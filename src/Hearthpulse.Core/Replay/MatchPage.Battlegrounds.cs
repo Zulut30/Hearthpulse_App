@@ -53,7 +53,7 @@ public sealed partial class MatchPage
                     combat && !l.Local && l.HeroCardId == opponent?.CardId, l.Dead))
                 .ToList(),
             Gold = !combat && f.MaxGold > 0 ? string.Create(CultureInfo.CurrentCulture, $"{f.Gold} / {f.MaxGold}") : string.Empty,
-            ShopFrozen = shop.Any(c => c.Frozen),
+            ShopFrozen = shop.Exists(c => c.Frozen),
             ResultKey = f.Kind == MatchStepKind.CombatEnd ? ResultKeyOf(f.Result) : null,
         };
     }

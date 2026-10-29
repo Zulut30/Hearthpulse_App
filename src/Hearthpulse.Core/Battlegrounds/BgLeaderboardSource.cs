@@ -14,7 +14,7 @@ namespace Hearthpulse.Core.Battlegrounds;
 /// waits; loads run on the thread pool and never throw.
 /// </summary>
 /// <param name="cacheDirectory">Where the tables are cached; the app's API cache folder by default (tests pass a scratch one).</param>
-public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirectory = null)
+public sealed partial class BgLeaderboardSource(HearthpulseApi api, string? cacheDirectory = null)
 {
     /// <summary>The server takes a new snapshot once a day: a table whose snapshot is older is asked for again.</summary>
     public static readonly TimeSpan MaxAge = TimeSpan.FromDays(1);
@@ -36,7 +36,8 @@ public sealed class BgLeaderboardSource(HearthpulseApi api, string? cacheDirecto
     private static readonly HashSet<string> Regions = new(StringComparer.Ordinal) { "EU", "US", "AP" };
 
     /// <summary>The snapshot day goes into the next pages' URL, so it must look like one.</summary>
-    private static readonly Regex DayPattern = new(@"^\d{4}-\d{2}-\d{2}$", RegexOptions.CultureInvariant);
+    [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}$", RegexOptions.CultureInvariant)]
+    private static partial Regex DayPattern { get; }
 
     private readonly string _cacheDirectory = cacheDirectory ?? Path.Combine(AppPaths.Cache, "api");
     private readonly ConcurrentDictionary<string, (BgLeaderboard Board, DateTime At)> _known = new(StringComparer.Ordinal);

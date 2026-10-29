@@ -573,7 +573,7 @@ public sealed class SecretTracker : IPowerListener
             }
 
             var possible = pool
-                .Where(o => o.Rule is null || !secret.Seen.Any(s => RulesOut(o.Rule, s.Trigger, s.Held)))
+                .Where(o => o.Rule is null || !secret.Seen.Exists(s => RulesOut(o.Rule, s.Trigger, s.Held)))
                 // The same Secret cannot be in play twice.
                 .Where(o => !o.CardIds.Any(known.Contains))
                 .Where(o => !limitCopies || !secret.FromDeck || o.CardIds.Sum(id => shown.GetValueOrDefault(id)) < (o.Legendary ? 1 : 2))

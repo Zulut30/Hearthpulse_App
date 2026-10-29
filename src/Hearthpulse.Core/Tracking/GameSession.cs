@@ -660,7 +660,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
         var duos = game.IsDuos;
         int? before = _ratingAtGameStart is { } r ? (duos ? r.Duos : r.Solo) : null;
         var rank = _constructed.LocalRank?.Text;
-        var races = _battlegrounds.MemoryRaces is { Count: > 0 } list ? string.Join(",", list) : null;
+        var races = _battlegrounds.MemoryRaces is { Count: > 0 } list ? string.Join(',', list) : null;
         var record = GameRecords.Build(game, _battlegrounds, _cards, _constructed.Deck, "live", before is > 0 ? before : null, null, rank, races,
             _facts, _constructed.LocalRank, abandoned, _constructed.MetaFor(game.FormatType));
         if (record is null)
@@ -797,7 +797,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                 _racesRead = true;
                 _battlegrounds.MemoryRaces = raceIds
                     .Select(id => Races.ById.GetValueOrDefault(id, $"RACE_{id}"))
-                    .OrderBy(r => r, StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal)
                     .ToList();
                 _dirty = true;
             }

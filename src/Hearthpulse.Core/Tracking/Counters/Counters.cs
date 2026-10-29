@@ -259,7 +259,7 @@ public static class Counters
             var rafaams = c.Log.Played.Where(p => p.CardId.StartsWith("TIME_005t", StringComparison.Ordinal) && p.CardId.Length == 10).ToList();
             var distinct = rafaams.Select(p => p.CardId).Distinct().Count();
             return new($"{distinct}/9", distinct / 9.0, [Loc.P("Core.Counter.RafaamsPlayed", rafaams.Count)], distinct > 0, Goal: 9,
-                Parts: Enumerable.Range(1, 9).Select(i => ($"TIME_005t{i}", rafaams.Any(p => p.CardId == $"TIME_005t{i}"))).ToList());
+                Parts: Enumerable.Range(1, 9).Select(i => ($"TIME_005t{i}", rafaams.Exists(p => p.CardId == $"TIME_005t{i}"))).ToList());
         }),
         new("tyrande", "Tyrande", "Spells you play next that cast twice (Tyrande).", c =>
         {

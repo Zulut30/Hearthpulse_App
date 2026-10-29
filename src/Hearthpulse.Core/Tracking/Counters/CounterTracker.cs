@@ -98,7 +98,7 @@ public sealed class CounterTracker : IPowerListener
         if (blockType == "PLAY" && source.CardType is not ("HERO_POWER" or "GAME" or "PLAYER" or "ENCHANTMENT") && source.Zone is "HAND" or "")
         {
             var log = For(source.Controller);
-            if (log.Played.All(p => p.Entity.Id != source.Id))
+            if (log.Played.TrueForAll(p => p.Entity.Id != source.Id))
             {
                 log.Played.Add(new PlayedCardInfo(source, PlayerTurn(game)));
             }

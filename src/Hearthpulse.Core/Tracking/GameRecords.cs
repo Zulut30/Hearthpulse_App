@@ -102,7 +102,7 @@ public static class GameRecords
                 Source = source,
                 CombatResults = CombatJson(battlegrounds.Combats),
                 CombatOdds = CombatOddsJson(battlegrounds.Combats),
-                OfferedHeroes = facts is { OfferedHeroes.Count: > 0 } ? string.Join(",", facts.OfferedHeroes) : null,
+                OfferedHeroes = facts is { OfferedHeroes.Count: > 0 } ? string.Join(',', facts.OfferedHeroes) : null,
                 AnomalyCardId = game.GameEntity?.GetInt(GameTag.BaconAnomaly) is > 0 and var anomaly ? cards.Get(anomaly)?.Id : null,
             };
         }

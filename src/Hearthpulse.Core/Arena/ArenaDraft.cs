@@ -126,8 +126,8 @@ public static class ArenaDraft
         var types = TypesOf(deckIds, cards);
         var options = offer is { CardIds.Count: > 0 } ? Options(offer, meta, cards, score, types) : [];
         var phase = options.Count == 0 ? ArenaDraftPhase.None
-            : options.All(o => o.Kind == ArenaChoiceKind.Hero) ? ArenaDraftPhase.Hero
-            : options.All(o => o.Kind == ArenaChoiceKind.HeroPower) ? ArenaDraftPhase.HeroPower
+            : options.TrueForAll(o => o.Kind == ArenaChoiceKind.Hero) ? ArenaDraftPhase.Hero
+            : options.TrueForAll(o => o.Kind == ArenaChoiceKind.HeroPower) ? ArenaDraftPhase.HeroPower
             : ArenaDraftPhase.Cards;
         var heroPick = phase == ArenaDraftPhase.Hero;
         var offeredClasses = heroPick ? options.Select(o => o.PlayerClass!).ToHashSet(StringComparer.Ordinal) : [];

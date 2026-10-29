@@ -190,7 +190,7 @@ public sealed partial class GameSession
 
     private static string Describe(ArenaDraftOffer offer)
     {
-        var cards = string.Join(", ", offer.CardIds.Select((id, i) => offer.PackageOf(i) is { Count: > 0 } package ? $"{id} (+{string.Join(" ", package)})" : id));
+        var cards = string.Join(", ", offer.CardIds.Select((id, i) => offer.PackageOf(i) is { Count: > 0 } package ? $"{id} (+{string.Join(' ', package)})" : id));
         return offer.Underground is { } underground ? $"{cards}; {(underground ? "Underground" : "normal")} Arena" : cards;
     }
 }

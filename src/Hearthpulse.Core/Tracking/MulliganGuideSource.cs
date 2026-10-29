@@ -46,7 +46,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
         {
             if (!ReferenceEquals(deck, _deck))
             {
-                var key = format + "|" + playerClass + "|" + string.Join(",", deck.Cards.OrderBy(c => c.Key).Select(c => $"{c.Key}x{c.Value}"));
+                var key = format + "|" + playerClass + "|" + string.Join(',', deck.Cards.OrderBy(c => c.Key).Select(c => $"{c.Key}x{c.Value}"));
                 _deck = deck;
                 if (key != _key)
                 {

@@ -452,7 +452,7 @@ public sealed partial class OverlayViewModel : Observable
 
         // Lobby-adjusted numbers only mean something once the tribes are known.
         var lobbyKnown = view.Races.Count >= 4;
-        var heroTierTip = string.Join("\n", new[] { view.MetaSource ?? string.Empty, Loc.T("Overlay.Tier.Heroes") }.Where(s => s.Length > 0));
+        var heroTierTip = string.Join('\n', new[] { view.MetaSource ?? string.Empty, Loc.T("Overlay.Tier.Heroes") }.Where(s => s.Length > 0));
         Replace(nameof(HeroPicks), view.HeroOptions, h => $"{heroTierTip}{lobbyKnown}{h.CardId}{h.Meta?.AdjustedPosition:0.000}{highlight && h.Recommended}{string.Join(',', h.TopComps ?? [])}", () => HeroPicks = !view.HeroOptions.Any(h => h.Meta is not null) ? [] : view.HeroOptions
             .Select(h =>
             {
@@ -650,7 +650,7 @@ public sealed partial class OverlayViewModel : Observable
         // Before the lobby is known, show every tribe in the pool.
         var order = lobby.Count > 0
             ? bg.Races.ToList()
-            : minions.SelectMany(c => c.Races).Where(r => r != "ALL").Distinct().OrderBy(r => r, StringComparer.Ordinal).ToList();
+            : minions.SelectMany(c => c.Races).Where(r => r != "ALL").Distinct().Order(StringComparer.Ordinal).ToList();
         var known = order.ToHashSet(StringComparer.Ordinal);
         var groups = new List<BrowserGroup>();
         foreach (var race in order.Append("ALL").Append(string.Empty))
