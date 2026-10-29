@@ -2,7 +2,10 @@ using System.Windows;
 using System.Windows.Controls;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
+using AvaMain = Hearthpulse.UI.Main.MainViewModel;
 using WpfMain = Hearthpulse.App.Main.MainViewModel;
 using WpfOverlay = Hearthpulse.App.Overlay.OverlayViewModel;
 
@@ -60,6 +63,79 @@ public sealed partial class UxPolishContractTests
 
         window.Close();
     });
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Constructed_meta_says_unavailable_instead_of_blaming_the_filters(bool wpf)
+    {
+        Loc.Instance.SetLanguage(Loc.English);
+        dynamic model = wpf ? new WpfMain(History(), new AppSettings()) : new AvaMain(History(), new AppSettings());
+        model.ShowConstructedFormat("FT_STANDARD");
+        AssertStates(model, loading: true, unavailable: false, empty: false, status: false);
+
+        // No network: the page says the stats are unavailable, not that the filters left nothing.
+        model.SetConstructedMeta(null);
+        AssertStates(model, loading: false, unavailable: true, empty: false, status: false);
+        Assert.Equal(Loc.T("Main.Meta.Unavailable"), (string)model.ConstructedMetaStatus);
+
+        // A filter change loads again.
+        model.SetMetaRank.Execute("legend");
+        AssertStates(model, loading: true, unavailable: false, empty: false, status: false);
+
+        // Stats came, nothing passes the filters: now the filters' empty states and the source line show.
+        model.SetConstructedMeta(EmptyMeta());
+        AssertStates(model, loading: false, unavailable: false, empty: true, status: true);
+
+        static void AssertStates(dynamic m, bool loading, bool unavailable, bool empty, bool status)
+        {
+            Assert.Equal(loading, (bool)m.MetaLoading);
+            Assert.Equal(unavailable, (bool)m.MetaUnavailable);
+            Assert.Equal(empty, (bool)m.MetaEmpty);
+            Assert.Equal(empty, (bool)m.MetaDecksEmpty);
+            Assert.Equal(empty, (bool)m.MetaMatchupsEmpty);
+            Assert.Equal(status, (bool)m.MetaStatusShown);
+        }
+    }
+
+    [Fact]
+    public void Constructed_meta_tabs_show_one_state_at_a_time() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings());
+        var (window, root) = Open(model, "Standard");
+        var view = Logical<Hearthpulse.App.Main.Meta.ConstructedMetaView>(window).Single();
+        // The view merges its own copy of the main look: its empty-state style, not the window's.
+        var empty = view.FindResource("EmptyState");
+        var panels = new[] { "MetaTiersPanel", "MetaDecksPanel", "MetaMatchupsPanel" }.Select(n => (FrameworkElement)view.FindName(n)).ToList();
+
+        model.ShowConstructedFormat("FT_STANDARD");
+        Settle(root);
+        AssertTabs("Main.Meta.Loading");
+
+        model.SetConstructedMeta(null);
+        Settle(root);
+        AssertTabs("Main.Meta.Unavailable");
+        window.Close();
+
+        // On every tab: exactly one empty state shows, with this text, and the status line under it is hidden.
+        void AssertTabs(string key)
+        {
+            foreach (var panel in panels)
+            {
+                var shown = Logical<ContentControl>(panel).Where(c => ReferenceEquals(c.Style, empty) && c.Visibility == Visibility.Visible).ToList();
+                Assert.Equal(Loc.T(key), Assert.Single(shown).Content);
+                var status = Logical<TextBlock>(panel).Where(t => BindingPath(t) == "ConstructedMetaStatus").ToList();
+                Assert.NotEmpty(status);
+                Assert.All(status, t => Assert.Equal(Visibility.Collapsed, t.Visibility));
+            }
+        }
+    });
+
+    /// <summary>Stats of the standard format with no archetype in them (Core builds these from the API; its constructor is internal).</summary>
+    private static ConstructedMeta EmptyMeta() => (ConstructedMeta)Activator.CreateInstance(
+        typeof(ConstructedMeta), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null,
+        ["standard", "legend", "past_week", new DateTime(2026, 10, 27, 12, 0, 0, DateTimeKind.Utc), 0, Array.Empty<MetaArchetype>(), Array.Empty<MetaDeck>()],
+        null)!;
 
     [Fact]
     public void Compact_deck_row_keeps_its_name_size() => Sta(() =>

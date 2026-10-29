@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Tests;
@@ -51,4 +52,39 @@ public sealed partial class LocBindingTests
             Assert.True(blocks.IndexOf(master) < blocks.IndexOf(block) && blocks.IndexOf(block) < blocks.IndexOf(switches), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
     }, new AppSettings { OverlayScale = 1.25, OverlayOpacity = 0.55 }));
+
+    [Fact]
+    public void Constructed_meta_tabs_show_one_state_at_a_time() => Headless.Run(() => WithMainView((_, model) =>
+    {
+        var view = new Hearthpulse.UI.Main.Meta.ConstructedMetaView { DataContext = model };
+        var window = new Window { Content = view };
+        try
+        {
+            model.ShowConstructedFormat("FT_STANDARD");
+            Dispatcher.UIThread.RunJobs();
+            AssertTabs("Main.Meta.Loading");
+
+            model.SetConstructedMeta(null);
+            Dispatcher.UIThread.RunJobs();
+            AssertTabs("Main.Meta.Unavailable");
+        }
+        finally
+        {
+            window.Close();
+        }
+
+        // On every tab: exactly one empty state shows, with this text, and the status line under it is hidden.
+        void AssertTabs(string key)
+        {
+            foreach (var name in new[] { "MetaTiersPanel", "MetaDecksPanel", "MetaMatchupsPanel" })
+            {
+                var panel = view.FindControl<Control>(name)!;
+                var shown = panel.GetLogicalDescendants().OfType<ContentControl>().Where(c => c.Classes.Contains("emptyState") && c.IsVisible).ToList();
+                Assert.Equal(Loc.T(key), Assert.Single(shown).Content);
+                var status = panel.GetLogicalDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("caption") && t.Text == model.ConstructedMetaStatus).ToList();
+                Assert.NotEmpty(status);
+                Assert.All(status, t => Assert.False(t.IsVisible));
+            }
+        }
+    }));
 }
