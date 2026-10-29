@@ -111,14 +111,18 @@ public partial class MainView : UserControl
     }
 
     /// <summary>The open page, as <see cref="ShowPage"/> takes it.</summary>
-    public string CurrentPage =>
-        NavBattlegrounds.IsChecked == true ? "Battlegrounds"
-        : NavStandard.IsChecked == true ? ConstructedPage.Standard
-        : NavWild.IsChecked == true ? ConstructedPage.Wild
-        : NavArena.IsChecked == true ? "Arena"
-        : NavHistory.IsChecked == true ? "History"
-        : NavSettings.IsChecked == true ? "Settings"
-        : "Overview";
+    public string CurrentPage => MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)) ?? MainViewModel.NavPages[0];
+
+    /// <summary>The sidebar buttons in <see cref="MainViewModel.NavPages"/> order.</summary>
+    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavHistory, NavSettings];
+
+    /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
+    private ToggleButton[] BattlegroundsTabButtons => [TabHeroes, TabComps, TabTrinkets, TabCards, TabMine];
+
+    /// <summary>The Constructed tabs in <see cref="MainViewModel.ConstructedTabs"/> order.</summary>
+    private ToggleButton[] ConstructedTabButtons => [TabMyDecks, TabMetaTiers, TabMetaDecks, TabMetaMatchups];
+
+    private static bool?[] States(ToggleButton[] buttons) => Array.ConvertAll(buttons, b => b.IsChecked);
 
     // Keys are taken from the window: with nothing focused yet they never reach the view itself.
     private TopLevel? _keyHost;
@@ -284,20 +288,7 @@ public partial class MainView : UserControl
     }
 
     /// <summary>Opens a page by name ("Overview", "Battlegrounds", "Standard", "Wild", ...); the old "Constructed" opens Standard.</summary>
-    public void ShowPage(string page)
-    {
-        var nav = ConstructedPage.Migrate(page) switch
-        {
-            "Battlegrounds" => NavBattlegrounds,
-            ConstructedPage.Standard => NavStandard,
-            ConstructedPage.Wild => NavWild,
-            "Arena" => NavArena,
-            "History" => NavHistory,
-            "Settings" => NavSettings,
-            _ => NavOverview,
-        };
-        nav.IsChecked = true;
-    }
+    public void ShowPage(string page) => PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, ConstructedPage.Migrate(page))].IsChecked = true;
 
     /// <summary>Shows the hover card of one point of the Battlegrounds rating chart (-1 hides it), for the render check.</summary>
     public void HoverBattlegroundsGame(int index) => BgStats.HoverGame(index);
@@ -400,18 +391,7 @@ public partial class MainView : UserControl
 
     private void UpdatePages()
     {
-        // Leaving History lets go of the open match: only the match on screen is kept in memory.
-        if (_viewModel is { MatchOpen: true } && NavHistory.IsChecked != true
-            && new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavSettings }.Any(n => n.IsChecked == true))
-        {
-            _viewModel.CloseMatch();
-        }
-
-        // Standard and Wild are one page shown for a format.
-        if (ConstructedShown)
-        {
-            _viewModel?.ShowConstructedFormat(ConstructedPage.FormatOf(NavWild.IsChecked == true ? ConstructedPage.Wild : ConstructedPage.Standard));
-        }
+        _viewModel?.PageShown(MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)));
 
         PageOverview.IsVisible = NavOverview.IsChecked == true;
         PageBattlegrounds.IsVisible = NavBattlegrounds.IsChecked == true;
@@ -432,21 +412,10 @@ public partial class MainView : UserControl
     /// <summary>The open Battlegrounds tab ("Heroes", "Comps", "Trinkets", "Cards", "Mine"), kept when the window is rebuilt.</summary>
     public string BattlegroundsTab
     {
-        get => TabComps.IsChecked == true ? "Comps"
-            : TabTrinkets.IsChecked == true ? "Trinkets"
-            : TabCards.IsChecked == true ? "Cards"
-            : TabMine.IsChecked == true ? "Mine"
-            : "Heroes";
+        get => MainViewModel.NavChecked(MainViewModel.BattlegroundsTabs, States(BattlegroundsTabButtons)) ?? MainViewModel.BattlegroundsTabs[0];
         set
         {
-            (value switch
-            {
-                "Comps" => TabComps,
-                "Trinkets" => TabTrinkets,
-                "Cards" => TabCards,
-                "Mine" => TabMine,
-                _ => TabHeroes,
-            }).IsChecked = true;
+            BattlegroundsTabButtons[MainViewModel.NavIndex(MainViewModel.BattlegroundsTabs, value)].IsChecked = true;
             UpdateTabs();
         }
     }
@@ -454,10 +423,7 @@ public partial class MainView : UserControl
     /// <summary>The open Constructed tab ("Decks", "Tiers", "Top", "Matchups"), kept when the window is rebuilt.</summary>
     public string ConstructedTab
     {
-        get => TabMetaTiers.IsChecked == true ? "Tiers"
-            : TabMetaDecks.IsChecked == true ? "Top"
-            : TabMetaMatchups.IsChecked == true ? "Matchups"
-            : "Decks";
+        get => MainViewModel.NavChecked(MainViewModel.ConstructedTabs, States(ConstructedTabButtons)) ?? MainViewModel.ConstructedTabs[0];
         set => ShowConstructedTab(value);
     }
 
@@ -480,24 +446,14 @@ public partial class MainView : UserControl
 
     private void UpdateTabs()
     {
-        BgTiers.ShowTab(TabComps.IsChecked == true ? "Comps"
-            : TabTrinkets.IsChecked == true ? "Trinkets"
-            : TabCards.IsChecked == true ? "Cards"
-            : TabMine.IsChecked == true ? "Mine"
-            : "Heroes");
+        BgTiers.ShowTab(BattlegroundsTab);
         BracketPicker.IsVisible = TabMine.IsChecked != true;
     }
 
     /// <summary>Opens a Constructed tab: "Decks", "Tiers", "Top" or "Matchups" (used by the UI render check).</summary>
     public void ShowConstructedTab(string tab)
     {
-        (tab switch
-        {
-            "Tiers" => TabMetaTiers,
-            "Top" => TabMetaDecks,
-            "Matchups" => TabMetaMatchups,
-            _ => TabMyDecks,
-        }).IsChecked = true;
+        ConstructedTabButtons[MainViewModel.NavIndex(MainViewModel.ConstructedTabs, tab)].IsChecked = true;
         UpdateConstructedTabs();
     }
 
@@ -506,10 +462,8 @@ public partial class MainView : UserControl
         var mine = TabMyDecks.IsChecked == true;
         CtStats.IsVisible = mine;
         DeckColumns.IsVisible = mine;
-        CtMeta.ShowTab(TabMetaTiers.IsChecked == true ? "Tiers"
-            : TabMetaDecks.IsChecked == true ? "Top"
-            : TabMetaMatchups.IsChecked == true ? "Matchups"
-            : null);
+        var tab = ConstructedTab;
+        CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
     }
 
     private void OnSettingChanged(CheckBox box)
