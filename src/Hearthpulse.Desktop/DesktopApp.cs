@@ -343,9 +343,11 @@ internal sealed class DesktopApp : HearthpulseApp
     }
 
     // The normal bounds, not those of a maximized window or the parking spot of a minimized one.
-    private static MainPlace PlaceOf(MainWindow main) =>
-        new(main.View.CurrentPage, main.View.BattlegroundsTab, main.View.ConstructedTab, main.RestoreBounds.Position,
-            main.RestoreBounds.Size.Width, main.RestoreBounds.Size.Height, main.RestoreBounds.Maximized);
+    private static MainPlace PlaceOf(MainWindow main)
+    {
+        var (position, size, maximized) = main.RestoreBounds.Current;
+        return new(main.View.CurrentPage, main.View.BattlegroundsTab, main.View.ConstructedTab, position, size.Width, size.Height, maximized);
+    }
 
     /// <summary>Where a dashboard is: rebuilt (back from the tray) on the same page, tabs and normal bounds.</summary>
     private sealed record MainPlace(string Page, string BattlegroundsTab, string ConstructedTab, Avalonia.PixelPoint Position, double Width, double Height, bool Maximized);
