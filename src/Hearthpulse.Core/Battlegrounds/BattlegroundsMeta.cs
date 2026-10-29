@@ -287,6 +287,9 @@ public sealed class BattlegroundsMeta
     /// </summary>
     public static async Task<BattlegroundsMeta?> LoadCommunityAsync(Api.HearthpulseApi api, HttpClient http, AppSettings settings)
     {
+        // The settings belong to the UI thread: read them before the first await moves on to the pool.
+        var endpoint = PoolClient.Endpoint(settings);
+        var poolAvailable = PoolClient.Available(settings);
         BattlegroundsMeta? meta = null;
         try
         {
@@ -297,11 +300,11 @@ public sealed class BattlegroundsMeta
             Diag.Error("Community stats unavailable", ex);
         }
 
-        if (PoolClient.Available(settings))
+        if (poolAvailable)
         {
             try
             {
-                meta = await PoolClient.OverlayAsync(http, PoolClient.Endpoint(settings), meta).ConfigureAwait(false);
+                meta = await PoolClient.OverlayAsync(http, endpoint, meta).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
