@@ -131,6 +131,7 @@ Keep terms consistent with the Russian Hearthstone client.
 | turn, going first / on the coin | ход, первым / с монеткой |
 | hand, board, graveyard | рука, стол, кладбище |
 | Discover | Раскопка |
+| Excavate | Добыча |
 | Battlecry / Deathrattle | Боевой клич / Предсмертный хрип |
 | minion, spell, weapon, hero power | существо, заклинание, оружие, сила героя |
 | tavern, tavern tier, Bob | таверна, уровень таверны, Боб |

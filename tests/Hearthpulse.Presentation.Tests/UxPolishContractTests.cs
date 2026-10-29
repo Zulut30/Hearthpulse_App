@@ -19,7 +19,7 @@ namespace Hearthpulse.Presentation.Tests;
 /// The usability pass (TASK-2026-10-29-ux-polish): what was hidden in tips or easy to hit by mistake, checked in the
 /// WPF window laid out off screen with the real theme and fonts, and in both hosts' view models.
 /// </summary>
-public sealed class UxPolishContractTests
+public sealed partial class UxPolishContractTests
 {
     private static HistoryStore History() => new(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
 
@@ -188,28 +188,38 @@ public sealed class UxPolishContractTests
         Assert.Equal("Overlay", model.Settings.SettingsTab);
 
         var master = Named<CheckBox>(window, "OverlaySetting");
+        var banners = new[] { Named<Border>(window, "OverlayOffBanner"), Named<Border>(window, "TrackerOverlayOffBanner") };
         var note = Named<TextBlock>(window, "OverlayOffNote");
         var groups = new[] { Named<StackPanel>(window, "OverlayPanelSwitches"), Named<StackPanel>(window, "TrackerPanelSwitches") };
         var switches = groups.SelectMany(Logical<CheckBox>).ToList();
-        var headings = Logical<TextBlock>(groups[0]).Where(t => ReferenceEquals(t.Style, window.FindResource("SettingGroupOverlayOff"))).ToList();
-        Assert.Equal(3, headings.Count);
-        Assert.Equal(Visibility.Collapsed, note.Visibility);
-        Assert.All(headings, h => Assert.Equal(1, h.Opacity));
+        string[] sections = ["Widgets.Settings.Section", "Settings.Overlay.Constructed", "Settings.Overlay.Battlegrounds"];
+        var headings = Logical<TextBlock>(groups[0]).Where(t => ReferenceEquals(t.Style, window.FindResource("SettingGroup"))).ToList();
+        Assert.Equal(sections.Select(Loc.T), headings.Select(h => h.Text));
+        // The dimmed heading style is gone: headings read at Muted on the card (AA in every preset) whatever the switch.
+        Assert.Null(window.TryFindResource("SettingGroupOverlayOff"));
+        Assert.All(banners, b => Assert.Equal(Visibility.Collapsed, b.Visibility));
+        Assert.All(headings, h => Assert.Equal(1, Opacity(h, card: groups[0].Parent)));
 
         master.IsChecked = false;
         Settle(root);
-        Assert.Equal(Visibility.Visible, note.Visibility);
+        // "Off" is said by a banner in the accent container colours on both tabs, as the setup warning on Home.
+        Assert.All(banners, b => Assert.Equal(Visibility.Visible, b.Visibility));
+        Assert.All(banners, b => Assert.Same(window.FindResource("AccentContainer"), b.Background));
+        Assert.Same(banners[0], Ancestors(note).OfType<Border>().First());
         Assert.Equal(Loc.T("Settings.Overlay.OffNote"), note.Text);
-        // Only the explanatory section headings dim. The switches keep their theme contrast (Text on the card, AA in
-        // ThemeContrastTests): nothing above them is see-through, and they still work for setting panels up ahead.
-        Assert.All(headings, h => Assert.True(h.Opacity < 1));
+        Assert.Equal(TextWrapping.Wrap, note.TextWrapping);
+        Assert.Same(window.FindResource("OnAccentContainer"), note.Foreground);
+        Assert.Equal(Loc.T("Settings.Overlay.OffNote"), Logical<TextBlock>(banners[1]).Last().Text);
+        // Nothing dims: the headings and the switches keep their theme contrast, and the switches still work for setting
+        // panels up ahead.
+        Assert.All(headings, h => Assert.Equal(1, Opacity(h, card: groups[0].Parent)));
         Assert.All(groups, g => Assert.All(Logical<CheckBox>(g), c => Assert.Equal(1, Opacity(c, card: g.Parent))));
         Assert.All(switches, c => Assert.True(c.IsEnabled));
 
         master.IsChecked = true;
         Settle(root);
-        Assert.Equal(Visibility.Collapsed, note.Visibility);
-        Assert.All(headings, h => Assert.Equal(1, h.Opacity));
+        Assert.All(banners, b => Assert.Equal(Visibility.Collapsed, b.Visibility));
+        Assert.All(headings, h => Assert.Equal(1, Opacity(h, card: groups[0].Parent)));
 
         // The live bar's panel buttons stay at full contrast whatever the overlay switch says.
         var quick = Named<ItemsControl>(window, "QuickPanels");
@@ -344,7 +354,7 @@ public sealed class UxPolishContractTests
         var model = new WpfMain(History(), new AppSettings());
         var (window, root) = Open(model, "Settings", "Overlay");
         var master = Named<CheckBox>(window, "OverlaySetting");
-        var note = Named<TextBlock>(window, "OverlayOffNote");
+        var banner = Named<Border>(window, "OverlayOffBanner");
         var saves = 0;
         window.SettingsChanged += () => saves++;
 
@@ -355,7 +365,7 @@ public sealed class UxPolishContractTests
         Settle(root);
         Assert.False(model.Settings.OverlayEnabled);
         Assert.False(master.IsChecked);
-        Assert.Equal(Visibility.Visible, note.Visibility);
+        Assert.Equal(Visibility.Visible, banner.Visibility);
         // Synced, not changed again: the click saved once.
         Assert.Equal(1, saves);
 
@@ -365,7 +375,7 @@ public sealed class UxPolishContractTests
         Settle(root);
         Assert.True(master.IsChecked);
         Assert.True(bar.IsChecked);
-        Assert.Equal(Visibility.Collapsed, note.Visibility);
+        Assert.Equal(Visibility.Collapsed, banner.Visibility);
         Assert.Equal(1, saves);
         window.Close();
     });
@@ -494,6 +504,14 @@ public sealed class UxPolishContractTests
             {
                 yield return nested;
             }
+        }
+    }
+
+    private static IEnumerable<DependencyObject> Ancestors(DependencyObject element)
+    {
+        for (var e = LogicalTreeHelper.GetParent(element); e is not null; e = LogicalTreeHelper.GetParent(e))
+        {
+            yield return e;
         }
     }
 

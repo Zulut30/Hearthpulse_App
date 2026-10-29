@@ -135,26 +135,37 @@ public sealed partial class LocBindingTests
         Assert.Equal("Overlay", model.Settings.SettingsTab);
 
         var master = view.FindControl<CheckBox>("OverlaySetting")!;
+        var banners = new[] { view.FindControl<Border>("OverlayOffBanner")!, view.FindControl<Border>("TrackerOverlayOffBanner")! };
         var note = view.FindControl<TextBlock>("OverlayOffNote")!;
         var groups = new[] { view.FindControl<StackPanel>("OverlayPanelSwitches")!, view.FindControl<StackPanel>("TrackerPanelSwitches")! };
         var switches = groups.SelectMany(g => g.GetLogicalDescendants().OfType<CheckBox>()).ToList();
         var headings = groups[0].GetLogicalDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("settingGroup")).ToList();
-        Assert.Equal(3, headings.Count);
-        Assert.False(note.IsVisible);
-        Assert.All(headings, h => Assert.Equal(1, h.Opacity));
+        string[] sections = ["Widgets.Settings.Section", "Settings.Overlay.Constructed", "Settings.Overlay.Battlegrounds"];
+        Assert.Equal(sections.Select(Loc.T), headings.Select(h => h.Text));
+        Assert.All(banners, b => Assert.False(b.IsVisible));
+        Assert.All(headings, h => Assert.Equal(1, Opacity(h, groups[0].Parent!)));
 
         master.IsChecked = false;
         Dispatcher.UIThread.RunJobs();
-        Assert.True(note.IsVisible);
-        // Only the explanatory section headings dim; the switches keep their theme contrast and still work.
-        Assert.All(headings, h => Assert.True(h.Opacity < 1));
+        // "Off" is said by a banner in the accent container colours on both tabs, as the setup warning on Home.
+        Assert.All(banners, b => Assert.True(b.IsVisible));
+        Assert.True(view.TryFindResource("AccentContainer", out var container));
+        Assert.True(view.TryFindResource("OnAccentContainer", out var onContainer));
+        Assert.All(banners, b => Assert.Same(container, b.Background));
+        Assert.Same(banners[0], note.GetLogicalAncestors().OfType<Border>().First());
+        Assert.Equal(Loc.T("Settings.Overlay.OffNote"), note.Text);
+        Assert.Equal(Avalonia.Media.TextWrapping.Wrap, note.TextWrapping);
+        Assert.Same(onContainer, note.Foreground);
+        Assert.Equal(Loc.T("Settings.Overlay.OffNote"), banners[1].GetLogicalDescendants().OfType<TextBlock>().Last().Text);
+        // Nothing dims: the headings and the switches keep their theme contrast, and the switches still work.
+        Assert.All(headings, h => Assert.Equal(1, Opacity(h, groups[0].Parent!)));
         Assert.All(groups, g => Assert.All(g.GetLogicalDescendants().OfType<CheckBox>(), c => Assert.Equal(1, Opacity(c, g.Parent!))));
         Assert.All(switches, c => Assert.True(c.IsEnabled));
 
         master.IsChecked = true;
         Dispatcher.UIThread.RunJobs();
-        Assert.False(note.IsVisible);
-        Assert.All(headings, h => Assert.Equal(1, h.Opacity));
+        Assert.All(banners, b => Assert.False(b.IsVisible));
+        Assert.All(headings, h => Assert.Equal(1, Opacity(h, groups[0].Parent!)));
 
         // The live bar's panel buttons stay at full contrast whatever the overlay switch says.
         var quick = view.FindControl<ItemsControl>("QuickPanels")!;

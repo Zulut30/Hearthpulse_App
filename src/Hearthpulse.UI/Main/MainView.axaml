@@ -115,11 +115,6 @@
 
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/MainLook.axaml" />
-        <!-- The overlay card's section headings while the overlay itself is off: dimmed. Only these explanatory lines: the
-             switches keep their full contrast and still work (panels can be set up ahead); the "overlay is off" note says why. -->
-        <Style Selector="TextBlock.settingGroup.overlayOff">
-            <Setter Property="Opacity" Value="0.45" />
-        </Style>
         <!-- A History row is selected only when a deck page sends a game there -->
         <Style Selector="ListBox.history ListBoxItem:selected /template/ ContentPresenter#Presenter">
             <Setter Property="Background" Value="{StaticResource SelectedFill}" />
@@ -379,11 +374,11 @@
                         <TextBlock Text="{i:Loc Main.Nav.Home}" Classes="display pageTitle" />
                         <c:Wave Classes="pageRule" />
 
-                        <Border Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
+                        <Border Name="SetupBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
                                 IsVisible="{Binding SetupWarning, Converter={StaticResource Truthy}}">
                             <Grid ColumnDefinitions="Auto,*">
                                 <TextBlock Text="&#xF002A;" Classes="icon" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,12,0" />
-                                <TextBlock Grid.Column="1" Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                                <TextBlock Name="SetupWarningText" Grid.Column="1" Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
                             </Grid>
                         </Border>
 
@@ -863,10 +858,28 @@
                                     <TextBlock Text="{i:Loc Settings.Note.Overlay}" Classes="caption cardNote" />
                                     <CheckBox Name="OverlaySetting" Classes="switch" Content="{i:Loc Settings.Overlay.Enabled}" IsChecked="{Binding OverlayEnabled}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.EnabledTipWindows}" />
-                                    <TextBlock Name="OverlayOffNote" Text="{i:Loc Settings.Overlay.OffNote}" Classes="caption" TextWrapping="Wrap" Margin="0,-4,0,14"
-                                               IsVisible="{Binding !#OverlaySetting.IsChecked}" />
+                                    <!-- The overlay is off: said by a banner in the accent container colours (as the setup warning on Home); the
+                                         headings and switches below keep their full contrast and still work, so panels can be set up ahead -->
+                                    <Border Name="OverlayOffBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,-4,0,14"
+                                            IsVisible="{Binding !#OverlaySetting.IsChecked}">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <TextBlock Text="&#xF002A;" Classes="icon" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,10,0" />
+                                            <TextBlock Name="OverlayOffNote" Grid.Column="1" Text="{i:Loc Settings.Overlay.OffNote}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                                        </Grid>
+                                    </Border>
+                                    <!-- Size and opacity act on the whole overlay: right under its switch, before the panels -->
+                                    <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Size}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
+                                        <Slider Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
+                                        <TextBlock Grid.Column="2" Text="{Binding OverlayScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,18" ColumnDefinitions="160,*,56">
+                                        <TextBlock Text="{i:Loc Settings.Overlay.Opacity}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
+                                        <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
+                                        <TextBlock Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
+                                    </Grid>
                                     <StackPanel Name="OverlayPanelSwitches">
-                                    <TextBlock Text="{i:Loc Widgets.Settings.Section}" Classes="label settingGroup" Classes.overlayOff="{Binding !#OverlaySetting.IsChecked}" />
+                                    <TextBlock Text="{i:Loc Widgets.Settings.Section}" Classes="label settingGroup" />
                                     <CheckBox Classes="switch" Content="{i:Loc Widgets.Turn.Setting}" IsChecked="{Binding ShowTurnTimer}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Widgets.Turn.SettingTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Widgets.Archetype.Setting}" IsChecked="{Binding ShowOpponentArchetype}" Margin="0,0,0,14"
@@ -881,10 +894,10 @@
                                             <Run Text="{Binding LadderSessionBreakHours, Mode=OneWay}" /><Run Text=" " /><Run Text="{i:Loc Widgets.Ladder.HoursUnit}" />
                                         </TextBlock>
                                     </Grid>
-                                    <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Classes="label settingGroup" Classes.overlayOff="{Binding !#OverlaySetting.IsChecked}" />
+                                    <TextBlock Text="{i:Loc Settings.Overlay.Constructed}" Classes="label settingGroup" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Secrets}" IsChecked="{Binding ShowSecrets}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.SecretsTip}" />
-                                    <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Classes="label settingGroup" Classes.overlayOff="{Binding !#OverlaySetting.IsChecked}" />
+                                    <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Classes="label settingGroup" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.TopBar}" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.TopBarTip}" />
                                     <!-- Pick suggestions: badges over heroes, trinkets, tavern minions and every Discover. Each option explains itself
@@ -915,19 +928,8 @@
                                               ToolTip.Tip="{i:Loc Settings.Overlay.BgBadgesTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Odds}" IsChecked="{Binding ShowCombatOdds}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.OddsTip}" />
-                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,18"
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.SessionTip}" />
-
-                                    <Grid Margin="0,0,0,12" ColumnDefinitions="160,*,56">
-                                        <TextBlock Text="{i:Loc Settings.Overlay.Size}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Overlay.SizeTip}" />
-                                        <Slider Grid.Column="1" Minimum="0.7" Maximum="1.4" Value="{Binding OverlayScale}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
-                                        <TextBlock Grid.Column="2" Text="{Binding OverlayScale, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
-                                    </Grid>
-                                    <Grid ColumnDefinitions="160,*,56">
-                                        <TextBlock Text="{i:Loc Settings.Overlay.Opacity}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Overlay.OpacityTip}" />
-                                        <Slider Grid.Column="1" Minimum="0.4" Maximum="1" Value="{Binding OverlayOpacity}" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True" TickFrequency="0.05" />
-                                        <TextBlock Grid.Column="2" Text="{Binding OverlayOpacity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" Classes="caption" />
-                                    </Grid>
                                     </StackPanel>
                                     <!-- The deck tracker's panels are overlay panels too, one tab over -->
                                     <TextBlock Text="{i:Loc Settings.Overlay.TrackerLink}" Classes="caption" TextWrapping="Wrap" Margin="0,22,0,10" />
@@ -974,8 +976,13 @@
                                 <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
                                     <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
                                     <TextBlock Text="{i:Loc Settings.Note.Tracker}" Classes="caption cardNote" />
-                                    <TextBlock Text="{i:Loc Settings.Overlay.OffNote}" Classes="caption" TextWrapping="Wrap" Margin="0,-4,0,14"
-                                               IsVisible="{Binding !#OverlaySetting.IsChecked}" />
+                                    <Border Name="TrackerOverlayOffBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,-4,0,14"
+                                            IsVisible="{Binding !#OverlaySetting.IsChecked}">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <TextBlock Text="&#xF002A;" Classes="icon" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,10,0" />
+                                            <TextBlock Grid.Column="1" Text="{i:Loc Settings.Overlay.OffNote}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                                        </Grid>
+                                    </Border>
                                     <StackPanel Name="TrackerPanelSwitches">
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Deck}" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />

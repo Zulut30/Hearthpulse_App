@@ -5,7 +5,12 @@
     <!-- One player's turn timer (DataContext: a TurnTimerSide). While the turn runs: the time spent over the limit,
          red with the time left once the rope burns; otherwise the last turn. The average turn underneath. -->
     <UserControl.Resources>
-        <i:VisibleWhen x:Key="Vis" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="OverlayLook.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <i:VisibleWhen x:Key="Vis" />
+        </ResourceDictionary>
     </UserControl.Resources>
     <!-- The card keeps its solid fill; the rope's red wash goes on an inner plate so the time stays readable over the board -->
     <Border MinWidth="150">
@@ -33,7 +38,7 @@
                 </Style>
             </Border.Style>
             <StackPanel>
-                <TextBlock Text="{Binding Label}" FontSize="10.5" Foreground="{StaticResource Muted}" />
+                <TextBlock Text="{Binding Label}" Style="{StaticResource OverlayHeaderNote}" Margin="0" />
                 <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
                     <TextBlock Text="{Binding Time}" FontFamily="{StaticResource DisplayFont}" FontSize="20" VerticalAlignment="Bottom">
                         <TextBlock.Style>

@@ -35,7 +35,7 @@ public sealed partial class MainViewModel
         RebuildConstructedMeta();
         if (_meta is null || _cards.Count == 0)
         {
-            MetaUpdated = Loc.T("Main.Bg.CommunityLoading");
+            MetaUpdated = Loc.T(_bgMetaFailed ? "Main.Bg.CommunityUnavailable" : "Main.Bg.CommunityLoading");
         }
 
         RebuildLanguagePlatformData();

@@ -491,8 +491,8 @@
             <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="o|MovablePanel.compact c|ManaCost.cost">
-            <Setter Property="Width" Value="17" />
-            <Setter Property="Height" Value="17" />
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
         </Style>
         <Style Selector="Grid.tileRow.empty Image.tileArt">
             <Setter Property="Opacity" Value="0.22" />
@@ -867,8 +867,8 @@
                         <StackPanel>
                             <Border Classes="overlayHeader" Margin="0,0,0,6">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding DeckName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding DeckRecord}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"
+                                    <TextBlock Text="{Binding DeckName}" Classes="headerTitle" />
+                                    <TextBlock Text="{Binding DeckRecord}" Classes="headerNote"
                                                Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
                                 </StackPanel>
                             </Border>
@@ -895,8 +895,8 @@
                                         <Border CornerRadius="16" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding OpponentHeroId}" />
                                     </Border>
                                     <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding OpponentTitle}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding OpponentSubtitle}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding OpponentTitle}" Classes="headerTitle" />
+                                        <TextBlock Text="{Binding OpponentSubtitle}" Classes="headerNote" />
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -1051,7 +1051,7 @@
                         <Border Classes="overlayCard" Padding="10,5" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
                             <StackPanel Orientation="Horizontal">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Overlay.Bar.TurnTip}">
-                                    <TextBlock Text="{i:Loc Overlay.Bar.Turn}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Text="{i:Loc Overlay.Bar.Turn}" Classes="headerNote" VerticalAlignment="Center" Margin="0,0,6,0" />
                                     <TextBlock Text="{Binding Turn}" Classes="number" VerticalAlignment="Center" />
                                 </StackPanel>
                                 <Border Classes="divider" />
@@ -1267,7 +1267,7 @@
                 <o:MovablePanel Id="session" Title="{i:Loc Overlay.Session.Title}" Shown="{Binding ShowSession}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,12,0">
                     <Border Classes="overlayCard" Padding="12,7">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{i:Loc Overlay.Session.Title}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Text="{i:Loc Overlay.Session.Title}" Classes="headerNote" VerticalAlignment="Center" Margin="0,0,8,0" />
                             <TextBlock Text="{Binding SessionRating}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
                             <TextBlock Text="{Binding RatingDelta}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"
                                        Foreground="{Binding RatingDeltaValue, Converter={StaticResource SignBrush}}" />
@@ -1286,13 +1286,17 @@
 
                 <!-- ============ Battlegrounds: lobby list (bottom-right) ============ -->
                 <o:MovablePanel Id="lobby" Title="{i:Loc Overlay.Lobby.Title}" Shown="{Binding ShowLobby}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,14">
-                    <Border Classes="overlayCard" Width="230" Padding="12,9,12,8">
+                    <Border Classes="overlayCard" Width="230">
                         <StackPanel>
-                            <Grid Margin="0,0,0,6">
-                                <TextBlock Text="{i:Loc Overlay.Lobby.Title}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
-                                <TextBlock Text="{i:Loc Overlay.Lobby.Header}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                            </Grid>
-                            <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" />
+                            <!-- The header every list panel has: glyph, title, and the columns' legend on the right -->
+                            <Border Classes="overlayHeader">
+                                <DockPanel>
+                                    <TextBlock Text="&#xF126F;" Classes="icon headerIcon" />
+                                    <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.Lobby.Header}" Classes="headerNote" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{i:Loc Overlay.Lobby.Title}" Classes="headerTitle" />
+                                </DockPanel>
+                            </Border>
+                            <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" Margin="12,6,12,8" />
                         </StackPanel>
                     </Border>
                 </o:MovablePanel>

@@ -84,7 +84,6 @@
                     <Setter TargetName="Fade" Property="Visibility" Value="Collapsed" />
                     <Setter TargetName="Gem" Property="Width" Value="18" />
                     <Setter TargetName="Gem" Property="Height" Value="18" />
-                    <Setter TargetName="CardName" Property="FontSize" Value="11.5" />
                 </Trigger>
                 <DataTrigger Binding="{Binding Empty}" Value="True">
                     <Setter TargetName="Art" Property="Opacity" Value="0.22" />
@@ -147,8 +146,8 @@
                     <Setter TargetName="RowRoot" Property="Height" Value="18" />
                     <Setter TargetName="Art" Property="Visibility" Value="Collapsed" />
                     <Setter TargetName="Fade" Property="Visibility" Value="Collapsed" />
-                    <Setter TargetName="Gem" Property="Width" Value="17" />
-                    <Setter TargetName="Gem" Property="Height" Value="17" />
+                    <Setter TargetName="Gem" Property="Width" Value="18" />
+                    <Setter TargetName="Gem" Property="Height" Value="18" />
                 </Trigger>
             </DataTemplate.Triggers>
         </DataTemplate>
@@ -901,8 +900,8 @@
                     <StackPanel>
                         <Border Style="{StaticResource OverlayHeader}" Margin="0,0,0,6">
                             <StackPanel>
-                                <TextBlock Text="{Binding DeckName}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding DeckRecord}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"
+                                <TextBlock Text="{Binding DeckName}" Style="{StaticResource OverlayHeaderTitle}" />
+                                <TextBlock Text="{Binding DeckRecord}" Style="{StaticResource OverlayHeaderNote}"
                                            Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
                             </StackPanel>
                         </Border>
@@ -933,8 +932,8 @@
                                     <Border CornerRadius="16" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding OpponentHeroId}" />
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding OpponentTitle}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding OpponentSubtitle}" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding OpponentTitle}" Style="{StaticResource OverlayHeaderTitle}" />
+                                    <TextBlock Text="{Binding OpponentSubtitle}" Style="{StaticResource OverlayHeaderNote}" />
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -1089,7 +1088,7 @@
                     <Border Style="{StaticResource OverlayCard}" Padding="10,5" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
                         <StackPanel Orientation="Horizontal">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{i:Loc Overlay.Bar.TurnTip}">
-                                <TextBlock Text="{i:Loc Overlay.Bar.Turn}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <TextBlock Text="{i:Loc Overlay.Bar.Turn}" Style="{StaticResource OverlayHeaderNote}" VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <TextBlock Text="{Binding Turn}" Style="{StaticResource Number}" VerticalAlignment="Center" />
                             </StackPanel>
                             <Border Style="{StaticResource Divider}" />
@@ -1338,7 +1337,7 @@
             <o:MovablePanel Id="session" Title="{i:Loc Overlay.Session.Title}" Shown="{Binding ShowSession}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,12,0">
                 <Border Style="{StaticResource OverlayCard}" Padding="12,7">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{i:Loc Overlay.Session.Title}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="{i:Loc Overlay.Session.Title}" Style="{StaticResource OverlayHeaderNote}" VerticalAlignment="Center" Margin="0,0,8,0" />
                         <TextBlock Text="{Binding SessionRating}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <TextBlock Text="{Binding RatingDelta}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"
                                    Foreground="{Binding RatingDeltaValue, Converter={StaticResource SignBrush}}" />
@@ -1364,13 +1363,17 @@
 
             <!-- ============ Battlegrounds: lobby list (bottom-right) ============ -->
             <o:MovablePanel Id="lobby" Title="{i:Loc Overlay.Lobby.Title}" Shown="{Binding ShowLobby}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,14">
-                <Border Style="{StaticResource OverlayCard}" Width="230" Padding="12,9,12,8">
+                <Border Style="{StaticResource OverlayCard}" Width="230">
                     <StackPanel>
-                        <Grid Margin="0,0,0,6">
-                            <TextBlock Text="{i:Loc Overlay.Lobby.Title}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
-                            <TextBlock Text="{i:Loc Overlay.Lobby.Header}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                        </Grid>
-                        <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" />
+                        <!-- The header every list panel has: glyph, title, and the columns' legend on the right -->
+                        <Border Style="{StaticResource OverlayHeader}">
+                            <DockPanel>
+                                <TextBlock Text="&#xF126F;" Style="{StaticResource OverlayHeaderIcon}" />
+                                <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.Lobby.Header}" Style="{StaticResource OverlayHeaderNote}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Overlay.Lobby.Title}" Style="{StaticResource OverlayHeaderTitle}" />
+                            </DockPanel>
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" Margin="12,6,12,8" />
                     </StackPanel>
                 </Border>
             </o:MovablePanel>

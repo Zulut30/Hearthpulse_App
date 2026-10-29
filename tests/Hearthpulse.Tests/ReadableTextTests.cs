@@ -67,6 +67,64 @@ public sealed class ReadableTextTests
             setter.Name.LocalName == "Setter" && (string?)setter.Attribute("Property") == "Foreground" && (string?)setter.Attribute("Value") == Faint;
     }
 
+    /// <summary>
+    /// Bound texts dimmed on purpose: the tier list's build line (Text at 0.85, still above 9:1 on its card).
+    /// </summary>
+    private static readonly (string File, string Text)[] DimmedOnPurpose =
+    [
+        ("src/Hearthpulse.App/Main/Meta/BattlegroundsTiersView.xaml", "{Binding Commit}"),
+        ("src/Hearthpulse.UI/Main/Meta/BattlegroundsTiersView.axaml", "{Binding Commit}"),
+    ];
+
+    /// <summary>
+    /// Opacity is the other way to drop text below AA: a readable text is not dimmed by its own <c>Opacity</c>, by its
+    /// WPF keyed TextBlock style in the same file (triggers included), or by an Avalonia <c>TextBlock.a.b</c> style whose
+    /// classes it carries (<c>Classes</c> or <c>Classes.name</c>). Whole rows dimmed as "gone" (template setters by
+    /// TargetName, Grid/Border styles) are disabled things and not checked here.
+    /// </summary>
+    [Fact]
+    public void Bound_texts_are_not_dimmed_with_opacity_in_either_ui()
+    {
+        var dimmed = new List<string>();
+        foreach (var (path, root) in Markup())
+        {
+            var texts = root.Descendants().Where(e => e.Name.LocalName == "TextBlock" && Readable(e))
+                .Where(e => !DimmedOnPurpose.Contains((path, (string)e.Attribute("Text")!))).ToList();
+            dimmed.AddRange(texts.Where(e => Dims((string?)e.Attribute("Opacity"))).Select(e => Where(path, e)));
+
+            var keyed = root.Descendants()
+                .Where(e => e.Name.LocalName == "Style" && ((string?)e.Attribute("TargetType"))?.EndsWith("TextBlock", StringComparison.Ordinal) == true)
+                .Where(e => e.Descendants().Any(s => s.Name.LocalName == "Setter" && s.Attribute("TargetName") is null && OpacitySetter(s)))
+                .Select(e => (string?)e.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml")))
+                .Where(k => k is not null)
+                .Select(k => "{StaticResource " + k + "}")
+                .ToHashSet(StringComparer.Ordinal);
+            dimmed.AddRange(texts.Where(e => keyed.Contains((string?)e.Attribute("Style") ?? string.Empty)).Select(e => Where(path, e)));
+
+            var classed = root.Descendants()
+                .Where(e => e.Name.LocalName == "Style" && (string?)e.Attribute("Selector") is { } selector
+                            && selector.StartsWith("TextBlock.", StringComparison.Ordinal) && selector.IndexOfAny([' ', ',', '>', '/']) < 0)
+                .Where(e => e.Elements().Any(OpacitySetter))
+                .Select(e => ((string)e.Attribute("Selector")!)["TextBlock.".Length..].Split(':')[0].Split('.'))
+                .ToList();
+            dimmed.AddRange(texts.Where(e => classed.Any(needed => needed.All(Classes(e).Contains))).Select(e => Where(path, e)));
+        }
+
+        Assert.True(dimmed.Count == 0, "Readable text dimmed with Opacity (keep it at its brush, say \"off\" another way):"
+            + Environment.NewLine + string.Join(Environment.NewLine, dimmed));
+
+        static bool Dims(string? value) =>
+            double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var opacity) && opacity < 1;
+
+        static bool OpacitySetter(XElement setter) =>
+            setter.Name.LocalName == "Setter" && (string?)setter.Attribute("Property") == "Opacity" && Dims((string?)setter.Attribute("Value"));
+
+        static HashSet<string> Classes(XElement text) =>
+            ((string?)text.Attribute("Classes") ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Concat(text.Attributes().Select(a => a.Name.LocalName).Where(n => n.StartsWith("Classes.", StringComparison.Ordinal)).Select(n => n["Classes.".Length..]))
+                .ToHashSet(StringComparer.Ordinal);
+    }
+
     private static bool Readable(XElement e) =>
         (string?)e.Attribute("Text") is { } text
         && (text.StartsWith("{Binding", StringComparison.Ordinal) || text.StartsWith("{i:Loc", StringComparison.Ordinal))

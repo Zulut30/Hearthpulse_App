@@ -220,10 +220,11 @@
                     <ItemsControl Name="MetaTable" ItemsSource="{Binding MetaArchetypes}" ItemTemplate="{StaticResource ArchetypeRowTemplate}"
                                   IsVisible="{Binding MetaTableView}" />
 
-                    <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.LoadingShort}" IsVisible="{Binding MetaLoading}" />
+                    <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
+                    <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Main.Meta.Unavailable}" IsVisible="{Binding MetaUnavailable}" />
                     <ContentControl Classes="emptyState" Tag="&#xF0233;" Content="{i:Loc Main.Meta.Empty}" IsVisible="{Binding MetaEmpty}" />
                     <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
-                               TextWrapping="Wrap" />
+                               TextWrapping="Wrap" IsVisible="{Binding MetaStatusShown}" />
                 </StackPanel>
             </Border>
 
@@ -284,12 +285,13 @@
                     <TextBlock Grid.Column="4" Text="{i:Loc Main.Table.Dust}" Classes="tableHead" HorizontalAlignment="Right" />
                 </Grid>
                 <ItemsControl ItemsSource="{Binding MetaDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" />
-                <ContentControl Classes="emptyState" Tag="&#xF0639;" Content="{i:Loc Main.Meta.DecksEmpty}"
-                                IsVisible="{Binding MetaDecks, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
+                <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Main.Meta.Unavailable}" IsVisible="{Binding MetaUnavailable}" />
+                <ContentControl Classes="emptyState" Tag="&#xF0639;" Content="{i:Loc Main.Meta.DecksEmpty}" IsVisible="{Binding MetaDecksEmpty}" />
                 <TextBlock Text="{Binding CopyNote}" Classes="caption" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                            IsVisible="{Binding CopyNote, Converter={StaticResource Truthy}}" />
                 <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
-                           TextWrapping="Wrap" />
+                           TextWrapping="Wrap" IsVisible="{Binding MetaStatusShown}" />
             </StackPanel>
         </Border>
 
@@ -358,10 +360,11 @@
                         </ItemsControl>
                     </StackPanel>
                 </ScrollViewer>
-                <ContentControl Classes="emptyState" Tag="&#xF04E5;" Content="{i:Loc Main.Meta.MatchupsEmpty}"
-                                IsVisible="{Binding !HasMatchupMatrix}" />
+                <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Main.Meta.Loading}" IsVisible="{Binding MetaLoading}" />
+                <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Main.Meta.Unavailable}" IsVisible="{Binding MetaUnavailable}" />
+                <ContentControl Classes="emptyState" Tag="&#xF04E5;" Content="{i:Loc Main.Meta.MatchupsEmpty}" IsVisible="{Binding MetaMatchupsEmpty}" />
                 <TextBlock Text="{Binding ConstructedMetaStatus}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
-                           TextWrapping="Wrap" />
+                           TextWrapping="Wrap" IsVisible="{Binding MetaStatusShown}" />
             </StackPanel>
         </Border>
     </StackPanel>

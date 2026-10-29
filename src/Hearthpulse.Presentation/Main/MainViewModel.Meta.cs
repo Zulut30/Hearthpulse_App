@@ -110,6 +110,7 @@ public sealed partial class MainViewModel
     private bool _metaTable;
     private int _metaMinGames = MetaMinGameChoices[0];
     private bool _metaLoading = true;
+    private bool _metaUnavailable;
     private Func<string> _constructedMetaStatus = () => Loc.T("Main.Meta.Loading");
     private string _archetypeSummary = string.Empty;
     private Func<string> _copyNote = () => string.Empty;
@@ -166,16 +167,28 @@ public sealed partial class MainViewModel
     public MetaSortArrows MetaArrows => new(Arrow("Tier"), Arrow("Name"), Arrow("WinRate"), Arrow("Popularity"), Arrow("Games"));
 
     /// <summary>The page's stats are being downloaded (nothing to show yet).</summary>
-    public bool MetaLoading { get => _metaLoading; private set { if (Set(ref _metaLoading, value)) Raise(nameof(MetaEmpty)); } }
+    public bool MetaLoading { get => _metaLoading; private set { if (Set(ref _metaLoading, value)) RaiseMetaStates(); } }
+
+    /// <summary>The page's format could not be loaded: the "unavailable" state shows, not the filters' empty one.</summary>
+    public bool MetaUnavailable { get => _metaUnavailable; private set { if (Set(ref _metaUnavailable, value)) RaiseMetaStates(); } }
 
     /// <summary>Stats are in but nothing passes the filters: the empty state shows.</summary>
-    public bool MetaEmpty => !_metaLoading && _metaArchetypes.Count == 0;
+    public bool MetaEmpty => MetaStatusShown && _metaArchetypes.Count == 0;
+
+    /// <summary>Stats are in and the top-decks tab has no list.</summary>
+    public bool MetaDecksEmpty => MetaStatusShown && _metaDecks.Count == 0;
+
+    /// <summary>Stats are in and the matchups tab has no matrix.</summary>
+    public bool MetaMatchupsEmpty => MetaStatusShown && !HasMatchupMatrix;
+
+    /// <summary>The status line under each tab (games, source, updated): only with stats in, never a second "Loading".</summary>
+    public bool MetaStatusShown => !_metaLoading && !_metaUnavailable;
 
     /// <summary>The "1st"/"Coin" columns: shown only when the source has those numbers, not as a column of dashes.</summary>
     public bool MetaHasPlaySplit => _metaArchetypes.Any(r => r.HasPlaySplit);
 
     /// <summary>Most played decklists, best first among those with enough games.</summary>
-    public IReadOnlyList<MetaDeckRow> MetaDecks { get => _metaDecks; private set => Set(ref _metaDecks, value); }
+    public IReadOnlyList<MetaDeckRow> MetaDecks { get => _metaDecks; private set { if (Set(ref _metaDecks, value)) Raise(nameof(MetaDecksEmpty)); } }
 
     public IReadOnlyList<MetaDeckRow> ArchetypeDecks { get => _archetypeDecks; private set => Set(ref _archetypeDecks, value); }
 
@@ -193,6 +206,7 @@ public sealed partial class MainViewModel
             if (Set(ref _matchupMatrix, value))
             {
                 Raise(nameof(HasMatchupMatrix));
+                Raise(nameof(MetaMatchupsEmpty));
             }
         }
     }
@@ -284,11 +298,18 @@ public sealed partial class MainViewModel
         if (meta is null)
         {
             MetaLoading = false;
+            // Stats shown before stay; with none the page says so instead of blaming the filters.
+            MetaUnavailable = PageMeta is null;
             ShowMetaStatus(() => Loc.T("Main.Meta.Unavailable"));
             return;
         }
 
         _constructedMetas[meta.Format] = meta;
+        if (PageMeta is not null)
+        {
+            MetaUnavailable = false;
+        }
+
         RebuildConstructedMeta();
         RebuildConstructedStats();
 
@@ -329,6 +350,14 @@ public sealed partial class MainViewModel
     /// <summary>The platform copies the deck code and reports through <see cref="DeckCodeCopied"/>.</summary>
     partial void CopyDeckCode(MetaDeckRow deck);
 
+    private void RaiseMetaStates()
+    {
+        Raise(nameof(MetaEmpty));
+        Raise(nameof(MetaDecksEmpty));
+        Raise(nameof(MetaMatchupsEmpty));
+        Raise(nameof(MetaStatusShown));
+    }
+
     private void ShowMetaStatus(Func<string> text)
     {
         _constructedMetaStatus = text;
@@ -347,6 +376,7 @@ public sealed partial class MainViewModel
         Raise(nameof(MetaRanks));
         Raise(nameof(MetaPeriods));
         MetaLoading = true;
+        MetaUnavailable = false;
         ShowMetaStatus(() => Loc.T("Main.Meta.LoadingShort"));
         ConstructedMetaRequested?.Invoke(null);
     }
@@ -357,6 +387,7 @@ public sealed partial class MainViewModel
         if (PageMeta is null && ConstructedMeta.FormatKeyOf(_ctFormat) is { } key)
         {
             MetaLoading = true;
+            MetaUnavailable = false;
             ShowMetaStatus(() => Loc.T("Main.Meta.LoadingShort"));
             ConstructedMetaRequested?.Invoke(key);
         }

@@ -29,6 +29,7 @@ public sealed partial class AppHost
         catch (Exception ex)
         {
             Diag.Error("Arena stats unavailable", ex);
+            Main.ArenaMetaUnavailable();
         }
     }
 }

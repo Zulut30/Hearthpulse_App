@@ -16,9 +16,9 @@ public sealed class ThemeContrastTests
 
     private static readonly (string Text, string[] On, double Min)[] Pairs =
     [
-        ("Text", ["Bg", "Surface", "Surface2", "Surface3", "Surface4", "Row", "CardFill", "GhostFill", "SelectedFill", "OverlayCardFill"], 4.5),
-        ("Muted", ["Bg", "Surface", "Surface2", "Surface3", "Surface4", "Row", "CardFill", "OverlayCardFill"], 4.5),
-        ("Accent", ["Bg", "Surface", "Surface2", "CardFill", "SelectedFill", "OverlayCardFill"], 4.5),
+        ("Text", ["Bg", "Surface", "Surface2", "Surface3", "Surface4", "Row", "CardFill", "GhostFill", "SelectedFill", "OverlayCardFill", "OverlayPanelSolid", "OverlayBadgeShade"], 4.5),
+        ("Muted", ["Bg", "Surface", "Surface2", "Surface3", "Surface4", "Row", "CardFill", "OverlayCardFill", "OverlayPanelSolid", "OverlayBadgeShade"], 4.5),
+        ("Accent", ["Bg", "Surface", "Surface2", "CardFill", "SelectedFill", "OverlayCardFill", "OverlayPanelSolid", "OverlayBadgeShade"], 4.5),
         ("OnAccent", ["Accent", "PrimaryFill", "PrimaryFillHover"], 4.5),
         ("OnSecondaryContainer", ["SecondaryContainer", "GhostFill"], 4.5),
         ("OnAccentContainer", ["AccentContainer"], 4.5),

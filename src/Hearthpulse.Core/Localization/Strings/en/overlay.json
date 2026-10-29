@@ -7,7 +7,7 @@
   "Overlay.Panel.CardPoolBrowser": "Card pool: all options",
   "Overlay.Panel.MulliganStrip": "Mulligan bars",
   "Overlay.Panel.MulliganSummary": "Mulligan summary",
-  "Overlay.Panel.BgBar": "Battlegrounds bar",
+  "Overlay.Panel.BgBar": "Battlegrounds top bar",
   "Overlay.Panel.HeroPick": "Hero pick",
   "Overlay.Panel.TrinketPick": "Trinket pick",
   "Overlay.Panel.TavernRow": "Tavern buy hints",
@@ -40,7 +40,7 @@
 
   "Overlay.Deck.Fallback": "Deck",
   "Overlay.Deck.Counts": "{0} in deck · {1} in hand",
-  "Overlay.Deck.NextDraw": "Next draw: {0} {1:P0}",
+  "Overlay.Deck.NextDraw": "Next draw ({1:P0}): {0}",
 
   "Overlay.Opponent.Hand": "Hand",
   "Overlay.Opponent.Deck": "Deck",
@@ -80,7 +80,7 @@
   "Overlay.Bar.TierTip": "Click to see this tier's minions in your lobby. Filled = your tavern tier.",
   "Overlay.Bar.TribesTip": "Tribes in this lobby. Comps that need other tribes are left out.",
   "Overlay.Bar.TribeFilterTip": "Click to show only this tribe in the tier list; again for every tribe",
-  "Overlay.Bar.ReadingLobby": "Reading lobby…",
+  "Overlay.Bar.ReadingLobby": "Reading the lobby…",
   "Overlay.Bar.RatingTip": "Your Battlegrounds rating and the change this session",
   "Overlay.Bar.Anomaly": "Anomaly",
   "Overlay.Phase.HeroSelection": "Hero selection",

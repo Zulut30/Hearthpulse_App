@@ -174,8 +174,10 @@
                     <c:Ornament Text="{i:Loc Arena.Page.Community}" Icon="&#xF0127;" Size="13" Margin="0,0,0,10" />
                     <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Visibility="{Binding ArenaCommunity, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding ArenaCommunity}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
-                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0127;" Content="{i:Loc Arena.Page.CommunityEmpty}"
-                                    Visibility="{Binding ArenaCommunity, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Arena.Page.CommunityLoading}"
+                                    Visibility="{Binding ArenaCommunityLoading, Converter={StaticResource Vis}}" />
+                    <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}"
+                                    Visibility="{Binding ArenaCommunityUnavailable, Converter={StaticResource Vis}}" />
                     <TextBlock Text="{Binding ArenaCommunitySource}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
                 </StackPanel>
             </Border>
