@@ -1013,6 +1013,12 @@
                     <o:MulliganSummary />
                 </o:MovablePanel>
 
+                <!-- ============ Battlegrounds: lobby tribes, tavern tiers and main tribes (top-right: clear of the leaderboard on 16:9,
+                     16:10 and 4:3; declared before the bar, so the bar's tier list draws over it) ============ -->
+                <o:MovablePanel Id="bg-lobby" Title="{i:Loc Overlay.BgLobby.Title}" Shown="{Binding ShowBgLobby}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,124,12,0">
+                    <o:BgLobbyPanel />
+                </o:MovablePanel>
+
                 <!-- ============ Battlegrounds: slim top bar + minion browser (top-left) ============ -->
                 <o:MovablePanel Id="bgbar" Title="{i:Loc Overlay.Panel.BgBar}" Shown="{Binding ShowBattlegrounds}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,10,0,0">
                     <StackPanel>
@@ -1263,11 +1269,6 @@
                             <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" />
                         </StackPanel>
                     </Border>
-                </o:MovablePanel>
-
-                <!-- ============ Battlegrounds: lobby tribes, tavern tiers and main tribes (left, beside the leaderboard) ============ -->
-                <o:MovablePanel Id="bg-lobby" Title="{i:Loc Overlay.BgLobby.Title}" Shown="{Binding ShowBgLobby}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,212,0,0">
-                    <o:BgLobbyPanel />
                 </o:MovablePanel>
 
                 <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->

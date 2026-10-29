@@ -3,8 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
-    <!-- The compact lobby panel ("bg-lobby", DataContext: the overlay view model): the lobby's minion types, then one
-         line per player - place, portrait, hero, tavern tier and the main type of the board last seen with its count. -->
+    <!-- The compact lobby panel ("bg-lobby", DataContext: the overlay view model): the lobby's tribes, then one line per
+         player - place, portrait, hero, tavern tier and the main tribe of the board last seen with its count. -->
     <UserControl.Resources>
         <i:VisibleWhen x:Key="Vis" />
     </UserControl.Resources>
@@ -37,8 +37,8 @@
             <ItemsControl ItemsSource="{Binding LobbyRows}" Margin="0,4,0,0" Visibility="{Binding LobbyRows, Converter={StaticResource Vis}}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type o:LobbyRow}">
-                        <!-- Column 3 is kept empty for the opponents' rating (up to 6 characters, P4): it takes its width from
-                             that text, and the name column gives way -->
+                        <!-- Column 3 is kept empty for the opponents' rating (up to 6 characters): it takes its width from that
+                             text, and the name column gives way -->
                         <Grid x:Name="Row" Height="22">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="14" />

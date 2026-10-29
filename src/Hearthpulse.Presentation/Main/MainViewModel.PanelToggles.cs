@@ -119,7 +119,7 @@ public sealed partial class MainViewModel
             Make(nameof(AppSettings.ShowOpponentBoards), "\U000F0B58", "Boards", false, s => s.ShowOpponentBoards, (s, v) => s.ShowOpponentBoards = v),
             Make(nameof(AppSettings.ShowCombatOdds), "\U000F0787", "Odds", false, s => s.ShowCombatOdds, (s, v) => s.ShowCombatOdds = v),
             Make(nameof(AppSettings.ShowLobbyPanel), "\U000F126F", "Lobby", false, s => s.ShowLobbyPanel, (s, v) => s.ShowLobbyPanel = v),
-            Make(nameof(AppSettings.ShowBgLobbyPanel), "\U000F03E9", "BgLobby", false, s => s.ShowBgLobbyPanel, (s, v) => s.ShowBgLobbyPanel = v),
+            Make(nameof(AppSettings.ShowBgLobbyPanel), "\U000F0849", "BgLobby", false, s => s.ShowBgLobbyPanel, (s, v) => s.ShowBgLobbyPanel = v),
             Make(nameof(AppSettings.ShowSessionPanel), "\U000F012A", "BgSession", false, s => s.ShowSessionPanel, (s, v) => s.ShowSessionPanel = v),
         ];
     }

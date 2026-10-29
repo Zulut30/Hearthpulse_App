@@ -43,8 +43,9 @@ public sealed partial class OverlayViewModel
         MainTribe(board, lobby) is { } main ? row with { Tribe = main.Tribe, TribeCount = main.Count } : row;
 
     /// <summary>
-    /// The tribe most minions of <paramref name="board"/> have, and how many: a minion of every tribe (amalgam) counts
-    /// for each, and a tie goes to the tribe listed first in the lobby. Null for an empty board or one without tribes.
+    /// The tribe most minions of <paramref name="board"/> have, and how many: a minion of every tribe (amalgam) adds one
+    /// to each tribe the other minions have, and a tie goes to the tribe listed first in the lobby. Null for an empty
+    /// board or one with no tribe besides amalgams.
     /// </summary>
     private (TribeIcon Tribe, int Count)? MainTribe(IReadOnlyList<BgMinion> board, IReadOnlyList<string> lobby)
     {
@@ -65,14 +66,26 @@ public sealed partial class OverlayViewModel
             }
         }
 
-        // Lobby tribes first (their order breaks ties), then any other tribe on the board.
-        var best = lobby.Concat(counts.Keys.Order(StringComparer.Ordinal))
-            .Distinct()
-            .Select((race, order) => (Race: race, Count: counts.GetValueOrDefault(race) + amalgams, Order: order))
-            .OrderByDescending(t => t.Count)
-            .ThenBy(t => t.Order)
+        // Ties: lobby tribes in the lobby's order, then any other tribe by name.
+        var best = counts
+            .OrderByDescending(c => c.Value)
+            .ThenBy(c => LobbyOrder(c.Key))
+            .ThenBy(c => c.Key, StringComparer.Ordinal)
             .FirstOrDefault();
-        return best.Count > 0 ? (ToTribeIcon(best.Race), best.Count) : null;
+        return best.Key is { } main ? (ToTribeIcon(main), best.Value + amalgams) : null;
+
+        int LobbyOrder(string tribe)
+        {
+            for (var i = 0; i < lobby.Count; i++)
+            {
+                if (lobby[i] == tribe)
+                {
+                    return i;
+                }
+            }
+
+            return int.MaxValue;
+        }
     }
 
     private TribeIcon ToTribeIcon(string race) => new(race, Races.Display(race, _locale), TribeGlyph(race));

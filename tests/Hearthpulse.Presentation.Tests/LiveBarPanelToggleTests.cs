@@ -40,18 +40,20 @@ public sealed class LiveBarPanelToggleTests
         foreach (var toggle in wpf.PanelToggles)
         {
             var property = Assert.Single(bools, p => p.Name == toggle.Id);
-            Assert.True(toggle.IsOn);
+            // Every panel starts shown but the lobby tribes panel, whose player lines repeat the lobby list's.
+            var initial = toggle.IsOn;
+            Assert.Equal(toggle.Id != nameof(AppSettings.ShowBgLobbyPanel), initial);
             var before = bools.ToDictionary(p => p.Name, p => (bool)p.GetValue(wpf.Settings)!);
 
             toggle.Toggle.Execute(null);
-            Assert.False((bool)property.GetValue(wpf.Settings)!);
-            Assert.False(toggle.IsOn);
+            Assert.Equal(!initial, (bool)property.GetValue(wpf.Settings)!);
+            Assert.Equal(!initial, toggle.IsOn);
             Assert.All(bools.Where(p => p != property), p => Assert.Equal(before[p.Name], (bool)p.GetValue(wpf.Settings)!));
 
             // Setting the same state again is not a change.
-            toggle.IsOn = false;
-            toggle.IsOn = true;
-            Assert.True((bool)property.GetValue(wpf.Settings)!);
+            toggle.IsOn = !initial;
+            toggle.IsOn = initial;
+            Assert.Equal(initial, (bool)property.GetValue(wpf.Settings)!);
         }
 
         Assert.Equal(wpf.PanelToggles.SelectMany(t => new[] { t.Id, t.Id }), toggled);

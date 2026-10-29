@@ -47,7 +47,7 @@ public sealed partial class LocBindingTests
             Dispatcher.UIThread.RunJobs();
 
             var texts = panel.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToList();
-            Assert.Contains("Minion types", texts);
+            Assert.Contains("Tribes", texts);
             Assert.Contains("not confirmed", texts);
             Assert.Contains("Murloc", texts);
             Assert.Contains("Beast", texts);
