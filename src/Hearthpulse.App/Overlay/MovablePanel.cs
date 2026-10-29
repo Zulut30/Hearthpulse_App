@@ -432,7 +432,7 @@ public sealed class MovablePanel : ContentControl
             return;
         }
 
-        SetScale(Math.Clamp(placement.Scale, 0.6, 1.6));
+        SetScale(Math.Clamp(placement.Scale, PanelSnap.MinScale, PanelSnap.MaxScale));
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         _saved = new Point(placement.X * surface.Width, placement.Y * surface.Height);
