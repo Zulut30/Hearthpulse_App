@@ -125,6 +125,13 @@ public sealed record LobbyRow(
     public int TribeCount { get; init; }
 }
 
+/// <summary>
+/// The badge beside one leaderboard tile: the player's tavern tier and the main tribe of the board last seen, from
+/// that player's <see cref="LobbyRow"/>. <see cref="Left"/>, <see cref="Top"/> and <see cref="Height"/> are the strip
+/// beside the tile in overlay units (<see cref="LeaderboardGeometry"/>); the badge centres on it.
+/// </summary>
+public sealed record BgBadge(int Place, double Left, double Top, double Height, int Tier, TribeIcon? Tribe, int TribeCount, bool Dead);
+
 public sealed record PlaceChip(int Place, bool Top);
 
 /// <summary>One counter chip in the overlay: value, optional progress toward a goal, and the cards for its tooltip.</summary>

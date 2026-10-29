@@ -1271,6 +1271,9 @@
                 </StackPanel>
             </o:MovablePanel>
 
+            <!-- ============ Battlegrounds: tier and main tribe beside every leaderboard tile (under the hover popup) ============ -->
+            <o:BgBadgesLayer />
+
             <!-- ============ Battlegrounds: leaderboard hover ============ -->
             <Canvas x:Name="LobbyLayer" IsHitTestVisible="False">
                 <Border x:Name="LobbyCard" Style="{StaticResource OverlayCard}" Background="{StaticResource OverlayPanelSolid}" Padding="10,8"

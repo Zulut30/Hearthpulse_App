@@ -234,6 +234,7 @@ public partial class OverlayWindow : Window
         UpdateClickThrough(cursor, r);
         UpdateLeaderboardHover(cursor, r);
         UpdateGuides(r);
+        ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
     }
 
     /// <summary>
@@ -379,7 +380,7 @@ public partial class OverlayWindow : Window
         {
             _memoryHover = null;
         }
-        var left = LeaderboardLeft() + ((_settings.LeaderboardWidth + 0.012) * units);
+        var left = LeaderboardGeometry.Beside(Surface.Width, units, _settings);
         var top = Math.Clamp(y - 40, 8, Math.Max(8, units - 240));
 
         if (_memoryHover is { } hero)
@@ -435,25 +436,10 @@ public partial class OverlayWindow : Window
     /// Left edge of the leaderboard in overlay units. Hearthstone draws it at the edge of the centred 4:3 area,
     /// so on wide screens it sits well right of the window edge.
     /// </summary>
-    private double LeaderboardLeft() => Math.Max(0, (Surface.Width - (Surface.Height * 4.0 / 3.0)) / 2);
+    private double LeaderboardLeft() => LeaderboardGeometry.Left(Surface.Width, Surface.Height);
 
     /// <summary>Top and height of leaderboard tile <paramref name="index"/> (0..7) in overlay units.</summary>
-    private (double Top, double Height) LeaderboardTile(int index)
-    {
-        var units = Surface.Height;
-        var slot = _settings.LeaderboardSlotHeight * units;
-        var top = _settings.LeaderboardTop * units;
-        if (ViewModel.IsDuos)
-        {
-            // Duos: teams of two tiles with a gap between teams (HDT: 13.7% of the column is spacing).
-            const double spacingShare = 0.137;
-            var tile = slot * (1 - spacingShare);
-            var spacing = slot * 8 * spacingShare / 3;
-            return (top + (tile * index) + (spacing * (index / 2)), tile);
-        }
-
-        return (top + (slot * index), slot);
-    }
+    private (double Top, double Height) LeaderboardTile(int index) => LeaderboardGeometry.Tile(index, Surface.Height, _settings, ViewModel.IsDuos);
 
     /// <summary>Leaderboard place (1..8) under the given overlay point, or 0.</summary>
     private int LeaderboardSlotAt(double x, double y)
@@ -540,10 +526,11 @@ public partial class OverlayWindow : Window
         Surface.Height = height / _scale;
         _layoutSize = new Size(Surface.Width, Surface.Height);
         ApplyLayout();
+        ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
         if (hoverSlot > 0)
         {
             var (top, _) = LeaderboardTile(hoverSlot - 1);
-            ViewModel.HoverLeaderboard(hoverSlot, Math.Max(8, top - 20), LeaderboardLeft() + ((_settings.LeaderboardWidth + 0.012) * Surface.Height));
+            ViewModel.HoverLeaderboard(hoverSlot, Math.Max(8, top - 20), LeaderboardGeometry.Beside(Surface.Width, Surface.Height, _settings));
         }
 
         // Give card art time to download and decode.

@@ -226,6 +226,12 @@ public sealed class AppSettings
     public bool ShowBgLobbyPanel { get; set; }
 
     /// <summary>
+    /// Battlegrounds: a badge beside every opponent's leaderboard tile with their tavern tier and, after a fight with
+    /// them, the main tribe of their board. Placed by the leaderboard calibration; never takes the mouse.
+    /// </summary>
+    public bool ShowBgLeaderboardBadges { get; set; } = true;
+
+    /// <summary>
     /// Battlegrounds opponents' MMR: the lobby names the client shows, read from memory, matched on this computer
     /// against the region's public Blizzard leaderboard (8000 and up), which is downloaded whole once a day. Off by
     /// default; names and ratings are never saved or sent (docs/bg-opponent-mmr.md).

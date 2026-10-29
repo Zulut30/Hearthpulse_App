@@ -911,6 +911,8 @@
                                               ToolTip.Tip="{i:Loc Settings.Overlay.LobbyTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.BgLobby}" IsChecked="{Binding ShowBgLobbyPanel}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.BgLobbyTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.BgBadges}" IsChecked="{Binding ShowBgLeaderboardBadges}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Settings.Overlay.BgBadgesTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Odds}" IsChecked="{Binding ShowCombatOdds}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.OddsTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.Session}" IsChecked="{Binding ShowSessionPanel}" Margin="0,0,0,18"

@@ -323,6 +323,7 @@ public sealed partial class OverlayViewModel : Observable
             Browser = Array.Empty<BrowserGroup>();
         }
 
+        UpdateBgBadges(bg, settings);
         if (bg is null)
         {
             Lobby = null;

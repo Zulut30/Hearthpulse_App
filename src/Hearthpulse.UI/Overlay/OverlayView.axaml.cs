@@ -104,6 +104,7 @@ public partial class OverlayView : UserControl
 
         Surface.Opacity = Math.Clamp(Settings.OverlayOpacity, 0.3, 1);
         UpdateGuides();
+        _viewModel?.ArrangeLeaderboard(Surface.Width, Surface.Height, Settings);
     }
 
     /// <summary>Hides the card hover preview (the overlay went click-through, so no pointer-exit will come).</summary>
@@ -235,7 +236,7 @@ public partial class OverlayView : UserControl
         var x = p.X / _scale;
         var y = p.Y / _scale;
         var units = Surface.Height;
-        var left = LeaderboardLeft() + ((Settings.LeaderboardWidth + 0.012) * units);
+        var left = LeaderboardGeometry.Beside(Surface.Width, units, Settings);
         var top = Math.Clamp(y - 40, 8, Math.Max(8, units - 240));
         if (hoveredHero is not null)
         {
@@ -272,32 +273,17 @@ public partial class OverlayView : UserControl
         }
 
         var (top, _) = LeaderboardTile(slot - 1);
-        _viewModel.HoverLeaderboard(slot, Math.Max(8, top - 20), LeaderboardLeft() + ((Settings.LeaderboardWidth + 0.012) * Surface.Height));
+        _viewModel.HoverLeaderboard(slot, Math.Max(8, top - 20), LeaderboardGeometry.Beside(Surface.Width, Surface.Height, Settings));
     }
 
     /// <summary>
     /// Left edge of the leaderboard in overlay units. Hearthstone draws it at the edge of the centred 4:3 area, so on
     /// wide screens it sits well right of the window edge.
     /// </summary>
-    private double LeaderboardLeft() => Math.Max(0, (Surface.Width - (Surface.Height * 4.0 / 3.0)) / 2);
+    private double LeaderboardLeft() => LeaderboardGeometry.Left(Surface.Width, Surface.Height);
 
     /// <summary>Top and height of leaderboard tile <paramref name="index"/> (0..7) in overlay units.</summary>
-    private (double Top, double Height) LeaderboardTile(int index)
-    {
-        var units = Surface.Height;
-        var slot = Settings.LeaderboardSlotHeight * units;
-        var top = Settings.LeaderboardTop * units;
-        if (_viewModel?.IsDuos == true)
-        {
-            // Duos: teams of two tiles with a gap between teams (HDT: 13.7% of the column is spacing).
-            const double spacingShare = 0.137;
-            var tile = slot * (1 - spacingShare);
-            var spacing = slot * 8 * spacingShare / 3;
-            return (top + (tile * index) + (spacing * (index / 2)), tile);
-        }
-
-        return (top + (slot * index), slot);
-    }
+    private (double Top, double Height) LeaderboardTile(int index) => LeaderboardGeometry.Tile(index, Surface.Height, Settings, _viewModel?.IsDuos == true);
 
     /// <summary>Leaderboard place (1..8) under the given overlay point, or 0.</summary>
     private int LeaderboardSlotAt(double x, double y)
