@@ -402,7 +402,8 @@ public static class PoolClient
     {
         try
         {
-            await using var stream = await http.GetStreamAsync(endpoint + "/v1/stats?mode=solo", cancellationToken).ConfigureAwait(false);
+            var stream = await http.GetStreamAsync(endpoint + "/v1/stats?mode=solo", cancellationToken).ConfigureAwait(false);
+            await using var streamScope = stream.ConfigureAwait(false);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
             return Parse(doc.RootElement);
         }
@@ -444,7 +445,8 @@ public static class PoolClient
     {
         try
         {
-            await using var stream = await http.GetStreamAsync(endpoint + "/v1/meta", cancellationToken).ConfigureAwait(false);
+            var stream = await http.GetStreamAsync(endpoint + "/v1/meta", cancellationToken).ConfigureAwait(false);
+            await using var streamScope = stream.ConfigureAwait(false);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
             return ParseMeta(doc.RootElement);
         }

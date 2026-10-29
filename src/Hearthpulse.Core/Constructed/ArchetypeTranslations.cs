@@ -196,7 +196,8 @@ public sealed class ArchetypeTranslations
                 return null;
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
+            var stream = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
+            await using var streamScope = stream.ConfigureAwait(false);
             var buffer = new MemoryStream();
             var chunk = new byte[16 * 1024];
             int read;

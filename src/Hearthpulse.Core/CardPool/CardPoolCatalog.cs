@@ -269,7 +269,8 @@ public sealed class CardPoolCatalog
                 return Empty;
             }
 
-            await using var stream = File.OpenRead(path);
+            var stream = File.OpenRead(path);
+            await using var streamScope = stream.ConfigureAwait(false);
             var cards = ParseHearthstoneJson(stream);
             Diag.Info($"Card pool: {cards.Count} cards from HearthstoneJSON (API unavailable)");
             return new CardPoolCatalog(cards, HearthstoneJsonSource, File.GetLastWriteTimeUtc(path));

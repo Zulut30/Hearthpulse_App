@@ -290,7 +290,7 @@ public sealed class BattlegroundsMeta
         BattlegroundsMeta? meta = null;
         try
         {
-            meta = await LoadAsync(new Api.HearthpulseData(api));
+            meta = await LoadAsync(new Api.HearthpulseData(api)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -301,7 +301,7 @@ public sealed class BattlegroundsMeta
         {
             try
             {
-                meta = await PoolClient.OverlayAsync(http, PoolClient.Endpoint(settings), meta);
+                meta = await PoolClient.OverlayAsync(http, PoolClient.Endpoint(settings), meta).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
