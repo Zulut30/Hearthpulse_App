@@ -875,7 +875,7 @@ public partial class App : Application
             // Building and leaving pages leaves garbage an idle app would never collect.
             if (main.WindowState == WindowState.Minimized)
             {
-                _session.RequestMemoryTrim();
+                _session.RequestMemoryTrimWhenWindowAway();
             }
         };
         if (place is not null)
@@ -921,7 +921,7 @@ public partial class App : Application
         _releaseMain.Stop();
         _mainLife.Closed(main);
         SyncWindowInUse();
-        _session.RequestMemoryTrim();
+        _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
     }
 
     /// <summary>A collection asked for by a meta load waits while the window is on screen or waiting in the tray.</summary>
@@ -950,7 +950,7 @@ public partial class App : Application
         main.CloseForReal();
         Diag.Info("Main window let go while hidden in the tray");
         SyncWindowInUse();
-        _session.RequestMemoryTrim();
+        _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
     }
 
     private OverlayWindow CreateOverlay()
@@ -1003,7 +1003,7 @@ public partial class App : Application
 
             oldMain.CloseForReal();
             SyncWindowInUse();
-            _session.RequestMemoryTrimWhenWindowAway();
+            _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
         }
 
         var oldOverlay = _overlay;

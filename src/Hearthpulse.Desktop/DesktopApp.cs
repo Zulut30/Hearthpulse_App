@@ -282,7 +282,7 @@ internal sealed class DesktopApp : HearthpulseApp
             // Building and leaving pages leaves garbage an idle app would never collect.
             if (main.WindowState == WindowState.Minimized)
             {
-                _host!.Session.RequestMemoryTrim();
+                _host!.Session.RequestMemoryTrimWhenWindowAway();
             }
         };
         if (place is not null)
@@ -314,7 +314,7 @@ internal sealed class DesktopApp : HearthpulseApp
         _mainLife.Closed(main);
         main.View.DataContext = null;
         SyncWindowInUse();
-        _host?.Session.RequestMemoryTrim();
+        _host?.Session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
     }
 
     /// <summary>
@@ -339,7 +339,7 @@ internal sealed class DesktopApp : HearthpulseApp
         main.CloseForReal();
         Diag.Info("Main window let go while hidden in the tray");
         SyncWindowInUse();
-        _host?.Session.RequestMemoryTrim();
+        _host?.Session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
     }
 
     // The normal bounds, not those of a maximized window or the parking spot of a minimized one.

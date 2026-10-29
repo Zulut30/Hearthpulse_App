@@ -349,7 +349,7 @@ internal static class WpfBench
 
         var trimmer = new MemoryTrimmer();
         var clock = DateTime.UtcNow;
-        trimmer.NoteActivity(clock);
+        trimmer.NoteActivityWhenWindowAway(clock, windowLetGo: true);
         trimmer.Tick(clock + MemoryTrimmer.MinInterval, busy: false);
         Memory("released + trim");
 

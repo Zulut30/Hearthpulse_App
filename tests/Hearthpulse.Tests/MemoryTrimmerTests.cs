@@ -110,6 +110,56 @@ public sealed class MemoryTrimmerTests : IDisposable
     }
 
     /// <summary>
+    /// Minimizing, closing and letting go of the window ask too, while the window is away. Shown again before the
+    /// collection (within the settle time, or while the minimum interval holds it), the window puts it off: the pause
+    /// never lands on a window the player just brought back.
+    /// </summary>
+    [Fact]
+    public void A_window_brought_back_before_its_collection_puts_it_off()
+    {
+        var count = 0;
+        var trimmer = new MemoryTrimmer(() => count++);
+
+        trimmer.NoteActivityWhenWindowAway(T0);
+        trimmer.WindowInUse = true;
+        Assert.False(trimmer.Tick(T0 + MemoryTrimmer.Settle, busy: false));
+        Assert.False(trimmer.Tick(T0 + TimeSpan.FromMinutes(5), busy: false));
+        trimmer.WindowInUse = false;
+        Assert.True(trimmer.Tick(T0 + TimeSpan.FromMinutes(5), busy: false));
+        Assert.Equal(1, count);
+    }
+
+    /// <summary>
+    /// Only a collection after a window was let go or closed runs the finalizers too (the window is garbage only after
+    /// them); start-up, game and meta collections stay single, as their pause was 31–62 ms against 87–102 with it.
+    /// </summary>
+    [Fact]
+    public void Only_a_collection_after_a_window_was_let_go_runs_the_finalizers()
+    {
+        var kinds = new List<bool>();
+        var trimmer = new MemoryTrimmer(kinds.Add);
+        var at = T0;
+        void CollectAfter(Action ask)
+        {
+            ask();
+            at += MemoryTrimmer.MinInterval;
+            Assert.True(trimmer.Tick(at, busy: false));
+        }
+
+        CollectAfter(() => trimmer.NoteActivity(at));
+        CollectAfter(() => trimmer.NoteActivityWhenWindowAway(at));
+        CollectAfter(() => trimmer.NoteActivityWhenWindowAway(at, windowLetGo: true));
+        // Let go, then a meta load before the collection: still one collection, with the finalizers.
+        CollectAfter(() =>
+        {
+            trimmer.NoteActivityWhenWindowAway(at, windowLetGo: true);
+            trimmer.NoteActivityWhenWindowAway(at);
+        });
+        CollectAfter(() => trimmer.NoteActivity(at));
+        Assert.Equal([false, false, true, true, false], kinds);
+    }
+
+    /// <summary>
     /// The hosts ask after every meta load and when the window hides: a burst (meta, language, tray) collects once,
     /// and a request soon after a collection is kept for the next allowed one, not dropped.
     /// </summary>

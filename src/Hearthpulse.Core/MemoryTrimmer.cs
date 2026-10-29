@@ -23,18 +23,25 @@ public sealed class MemoryTrimmer
     /// </summary>
     public static readonly TimeSpan HiddenWindowRelease = TimeSpan.FromSeconds(60);
 
-    private readonly Action _collect;
+    private readonly Action<bool> _collect;
     private readonly object _gate = new();
     private DateTime _activityAt = DateTime.MinValue;
     private DateTime _lastTrim = DateTime.MinValue;
     private bool _pending;
     private bool _pendingAway;
+    private bool _windowLetGo;
     private bool _windowInUse;
 
     /// <param name="collect">The collection; tests pass a counter, the app the real one.</param>
     public MemoryTrimmer(Action? collect = null)
     {
-        _collect = collect ?? Collect;
+        _collect = collect is null ? Collect : _ => collect();
+    }
+
+    /// <param name="collect">The collection, told whether a main window was let go since the last one (tests).</param>
+    public MemoryTrimmer(Action<bool> collect)
+    {
+        _collect = collect;
     }
 
     /// <summary>
@@ -70,14 +77,19 @@ public sealed class MemoryTrimmer
     }
 
     /// <summary>
-    /// Garbage the player's own action left (a meta load for a page or a filter): collect once the main window is out of
-    /// the way (minimized or let go) and the app has been quiet, not while the player is looking at it.
+    /// Garbage the player's own action left (a meta load for a page or a filter, minimizing, closing or letting go of the
+    /// main window): collect once the window is out of the way (minimized, closed or let go) and the app has been quiet,
+    /// not while the player is looking at it. A window shown again before the collection puts it off again.
     /// </summary>
-    public void NoteActivityWhenWindowAway(DateTime now)
+    /// <param name="windowLetGo">
+    /// A main window was let go or closed: the collection runs its finalizers too, or the window would stay.
+    /// </param>
+    public void NoteActivityWhenWindowAway(DateTime now, bool windowLetGo = false)
     {
         lock (_gate)
         {
             _pendingAway = true;
+            _windowLetGo |= windowLetGo;
             Note(now);
         }
     }
@@ -94,6 +106,7 @@ public sealed class MemoryTrimmer
     /// <returns>True when it collected.</returns>
     public bool Tick(DateTime now, bool busy)
     {
+        bool windowLetGo;
         lock (_gate)
         {
             var due = _pending || (_pendingAway && !_windowInUse);
@@ -106,32 +119,41 @@ public sealed class MemoryTrimmer
             _pending = false;
             _pendingAway = false;
             _lastTrim = now;
+            windowLetGo = _windowLetGo;
+            _windowLetGo = false;
         }
 
-        _collect();
+        _collect(windowLetGo);
         return true;
     }
 
     /// <summary>
-    /// A full blocking collection that compacts the large object heap too and decommits what it frees. A closed window
-    /// is garbage only once its finalizable parts have run: a first collection queues them, the finalizers run, and the
-    /// compacting one takes the window (one collection left a main window let go in the tray in 2 bench runs of 3).
-    /// Runs on the log watcher's thread, not the UI's.
+    /// A full blocking collection that compacts the large object heap too and decommits what it frees. Runs on the log
+    /// watcher's thread, outside the session's lock, not on the UI's.
     /// </summary>
-    private static void Collect()
+    /// <param name="windowLetGo">
+    /// A main window was let go: it is garbage only once its finalizable parts have run, so a first collection queues
+    /// them and the finalizers run before the compacting one (one collection left the window in 2 bench runs of 3). Only
+    /// then: the extra pass made a collection 87–102 ms instead of 31–62.
+    /// </param>
+    private static void Collect(bool windowLetGo)
     {
         const double mb = 1024 * 1024;
         using var process = Process.GetCurrentProcess();
         var managedBefore = GC.GetTotalMemory(false);
         var privateBefore = process.PrivateMemorySize64;
         var started = Stopwatch.GetTimestamp();
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
+        if (windowLetGo)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
         GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
         GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
         var took = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         process.Refresh();
-        Diag.Info($"Memory trim: managed {managedBefore / mb:N0} -> {GC.GetTotalMemory(false) / mb:N0} MB, "
+        Diag.Info($"Memory trim{(windowLetGo ? " (window let go)" : string.Empty)}: managed {managedBefore / mb:N0} -> {GC.GetTotalMemory(false) / mb:N0} MB, "
                   + $"private {privateBefore / mb:N0} -> {process.PrivateMemorySize64 / mb:N0} MB in {took:N0} ms");
     }
 }
