@@ -41,15 +41,15 @@
                 <StackPanel>
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xF0538;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent}" VerticalAlignment="Center" />
-                            <TextBlock Text="{i:Loc Arena.Panel.Title}" Style="{StaticResource Label}" FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xF0538;" Style="{StaticResource OverlayHeaderIcon}" />
+                            <TextBlock Text="{i:Loc Arena.Panel.Title}" Style="{StaticResource OverlayHeaderNote}" Margin="0" VerticalAlignment="Center" />
                         </StackPanel>
                         <Border Style="{StaticResource Pill}" Padding="7,1" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <TextBlock Text="{Binding ArenaDraftPicks}" FontFamily="{StaticResource DisplayFont}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}" />
                         </Border>
                     </Grid>
-                    <TextBlock Text="{Binding ArenaDraftTitle}" FontSize="15" FontWeight="SemiBold" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding ArenaMode}" FontSize="10.5" Foreground="{StaticResource Muted}" Visibility="{Binding ArenaMode, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="{Binding ArenaDraftTitle}" Style="{StaticResource OverlayHeaderTitle}" Margin="0,4,0,0" />
+                    <TextBlock Text="{Binding ArenaMode}" Style="{StaticResource OverlayHeaderNote}" Visibility="{Binding ArenaMode, Converter={StaticResource Vis}}" />
                 </StackPanel>
             </Border>
 

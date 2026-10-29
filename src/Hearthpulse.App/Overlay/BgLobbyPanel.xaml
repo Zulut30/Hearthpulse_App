@@ -6,76 +6,88 @@
     <!-- The compact lobby panel ("bg-lobby", DataContext: the overlay view model): the lobby's tribes, then one line per
          player - place, portrait, hero, tavern tier and the main tribe of the board last seen with its count. -->
     <UserControl.Resources>
-        <i:VisibleWhen x:Key="Vis" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="OverlayLook.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <i:VisibleWhen x:Key="Vis" />
+        </ResourceDictionary>
     </UserControl.Resources>
-    <Border Style="{StaticResource OverlayCard}" Width="226" Padding="10,8,10,7">
+    <Border Style="{StaticResource OverlayCard}" Width="226">
         <StackPanel>
-            <DockPanel Margin="0,0,0,5">
-                <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.BgLobby.Unconfirmed}" FontSize="9.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
-                           Visibility="{Binding LobbyTribesUnconfirmed, Converter={StaticResource Vis}}" />
-                <TextBlock Text="{i:Loc Overlay.BgLobby.Tribes}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" />
-            </DockPanel>
-            <ItemsControl ItemsSource="{Binding LobbyTribes}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type o:TribeIcon}">
-                        <Border Height="20" CornerRadius="10" Padding="5,0,7,0" Margin="0,0,3,3" Background="{StaticResource Surface3}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,3,0" />
-                                <TextBlock Text="{Binding Name}" FontSize="10.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="10.5" Foreground="{StaticResource Muted}"
-                       Visibility="{Binding LobbyTribes, Converter={StaticResource Vis}, ConverterParameter=!}" />
-            <ItemsControl ItemsSource="{Binding LobbyRows}" Margin="0,4,0,0" Visibility="{Binding LobbyRows, Converter={StaticResource Vis}}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type o:LobbyRow}">
-                        <!-- Column 3 is kept empty for the opponents' rating (up to 6 characters): it takes its width from that
-                             text, and the name column gives way -->
-                        <Grid x:Name="Row" Height="22">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="14" />
-                                <ColumnDefinition Width="22" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="30" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Place}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                            <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
-                                    i:CardArt.Portrait="{Binding HeroCardId}" />
-                            <TextBlock x:Name="Name" Grid.Column="2" Text="{Binding Name}" FontSize="11" FontWeight="Medium" TextTrimming="CharacterEllipsis"
-                                       VerticalAlignment="Center" Margin="0,0,4,0" />
-                            <Border Grid.Column="4" Width="18" Height="16" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center" HorizontalAlignment="Left">
-                                <TextBlock Text="{Binding Tier}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <!-- The header every list panel has: glyph and title, "not confirmed" on the right while the tribes are a guess -->
+            <Border Style="{StaticResource OverlayHeader}">
+                <DockPanel>
+                    <TextBlock Text="&#xF0849;" Style="{StaticResource OverlayHeaderIcon}" />
+                    <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.BgLobby.Unconfirmed}" Style="{StaticResource OverlayHeaderNote}" Margin="8,0,0,0" VerticalAlignment="Center"
+                               Visibility="{Binding LobbyTribesUnconfirmed, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="{i:Loc Overlay.BgLobby.Title}" Style="{StaticResource OverlayHeaderTitle}" />
+                </DockPanel>
+            </Border>
+            <StackPanel Margin="12,7,12,7">
+                <TextBlock Text="{i:Loc Overlay.BgLobby.Tribes}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="0,0,0,5" />
+                <ItemsControl ItemsSource="{Binding LobbyTribes}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type o:TribeIcon}">
+                            <Border Height="20" CornerRadius="10" Padding="5,0,7,0" Margin="0,0,3,3" Background="{StaticResource Surface3}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,3,0" />
+                                    <TextBlock Text="{Binding Name}" FontSize="10.5" VerticalAlignment="Center" />
+                                </StackPanel>
                             </Border>
-                            <!-- Empty until a board was seen: an opponent's only after a fight with them -->
-                            <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                        Visibility="{Binding Tribe, Converter={StaticResource Vis}}">
-                                <Border Width="16" Height="16" CornerRadius="8" Background="{StaticResource Surface3}">
-                                    <TextBlock Text="{Binding Tribe.Glyph}" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="10.5" Foreground="{StaticResource Muted}"
+                           Visibility="{Binding LobbyTribes, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                <ItemsControl ItemsSource="{Binding LobbyRows}" Margin="0,4,0,0" Visibility="{Binding LobbyRows, Converter={StaticResource Vis}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type o:LobbyRow}">
+                            <!-- Column 3 is kept empty for the opponents' rating (up to 6 characters): it takes its width from that
+                                 text, and the name column gives way -->
+                            <Grid x:Name="Row" Height="22">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="22" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="30" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Place}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                                <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                                        i:CardArt.Portrait="{Binding HeroCardId}" />
+                                <TextBlock x:Name="Name" Grid.Column="2" Text="{Binding Name}" FontSize="11" FontWeight="Medium" TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <Border Grid.Column="4" Width="18" Height="16" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                    <TextBlock Text="{Binding Tier}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
-                                <TextBlock Text="{Binding TribeCount}" FontSize="10.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="3,0,0,0" />
-                            </StackPanel>
-                        </Grid>
-                        <DataTemplate.Triggers>
-                            <DataTrigger Binding="{Binding You}" Value="True">
-                                <Setter TargetName="Name" Property="Foreground" Value="{StaticResource Accent}" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Dead}" Value="True">
-                                <Setter TargetName="Row" Property="Opacity" Value="0.35" />
-                            </DataTrigger>
-                        </DataTemplate.Triggers>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                                <!-- Empty until a board was seen: an opponent's only after a fight with them -->
+                                <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                            Visibility="{Binding Tribe, Converter={StaticResource Vis}}">
+                                    <Border Width="16" Height="16" CornerRadius="8" Background="{StaticResource Surface3}">
+                                        <TextBlock Text="{Binding Tribe.Glyph}" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock Text="{Binding TribeCount}" FontSize="10.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="3,0,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding You}" Value="True">
+                                    <Setter TargetName="Name" Property="Foreground" Value="{StaticResource Accent}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Dead}" Value="True">
+                                    <Setter TargetName="Row" Property="Opacity" Value="0.35" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
         </StackPanel>
     </Border>
 </UserControl>

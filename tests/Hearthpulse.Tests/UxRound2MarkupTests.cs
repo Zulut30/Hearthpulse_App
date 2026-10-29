@@ -217,6 +217,102 @@ public sealed class UxRound2MarkupTests
         Assert.Equal(wpf.Order(), ava.Order());
     }
 
+    /// <summary>The overlay panels that are lists under a header (not strips like the Battlegrounds bar or a timer).</summary>
+    private static readonly string[] ListPanels =
+        ["deck", "opponent", "opponent-archetype", "secrets", "ladder-session", "card-pool", "arena-draft", "lobby", "bg-lobby"];
+
+    /// <summary>
+    /// One header for every list panel: the gold band first in the card, then an optional glyph, the title and a muted line
+    /// in the shared header styles, which alone size them; a figure (a number in the display font) may stand at the right.
+    /// The same parts in both UIs.
+    /// </summary>
+    [Fact]
+    public void List_panels_share_one_header_in_both_uis()
+    {
+        var wpf = Headers(WpfOverlay, ".xaml");
+        var ava = Headers(AvaOverlay, ".axaml");
+        Assert.Equal(wpf, ava);
+
+        static SortedDictionary<string, string> Headers(string overlay, string extension)
+        {
+            var panels = Surface(overlay).Elements().Where(e => e.Name.LocalName == "MovablePanel").ToDictionary(e => (string)e.Attribute("Id")!);
+            var headers = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            foreach (var id in ListPanels)
+            {
+                var content = panels[id].Elements().First(e => !e.Name.LocalName.Contains('.', StringComparison.Ordinal));
+                if (content.Name.LocalName is not ("Border" or "StackPanel" or "Grid"))
+                {
+                    // An extracted panel: its own file next to the overlay.
+                    content = Markup(Path.Combine(Path.GetDirectoryName(overlay)!, content.Name.LocalName + extension));
+                }
+
+                var card = content.DescendantsAndSelf().First(e => e.Name.LocalName == "Border"
+                    && ((string?)e.Attribute("Style") == "{StaticResource OverlayCard}" || Classes(e).Contains("overlayCard")));
+                var header = card.Descendants().First(e => e.Name.LocalName == "Border");
+                Assert.True(IsHeader(header), $"{overlay} {id}: the first border in the card is not the header band");
+
+                var parts = new List<string>();
+                foreach (var text in header.Descendants().Where(e => e.Name.LocalName == "TextBlock"
+                             && !e.Ancestors().TakeWhile(a => a != header).Any(a => a.Name.LocalName.Contains('.', StringComparison.Ordinal) && a.Name.LocalName.Contains("ToolTip", StringComparison.Ordinal))))
+                {
+                    var part = Part(text);
+                    Assert.True(part is not null, $"{overlay} {id}: \"{(string?)text.Attribute("Text")}\" is not a header glyph, title, note or figure");
+                    Assert.True(part == "figure" || text.Attribute("FontSize") is null, $"{overlay} {id}: \"{(string?)text.Attribute("Text")}\" sizes itself");
+                    parts.Add(part!);
+                }
+
+                Assert.Contains("title", parts);
+                Assert.Contains("note", parts);
+                headers[id] = string.Join(",", parts.Distinct().Order(StringComparer.Ordinal));
+            }
+
+            return headers;
+        }
+
+        static string? Part(XElement text) =>
+            (string?)text.Attribute("Style") switch
+            {
+                "{StaticResource OverlayHeaderIcon}" => "icon",
+                "{StaticResource OverlayHeaderTitle}" => "title",
+                "{StaticResource OverlayHeaderNote}" => "note",
+                _ when Classes(text).Contains("headerIcon") => "icon",
+                _ when Classes(text).Contains("headerTitle") => "title",
+                _ when Classes(text).Contains("headerNote") => "note",
+                _ when ((string?)text.Attribute("FontFamily"))?.Contains("DisplayFont", StringComparison.Ordinal) == true => "figure",
+                _ => null,
+            };
+    }
+
+    [Fact]
+    public void Header_notes_and_strip_labels_are_one_style_of_11()
+    {
+        var wpf = Markup("src/Hearthpulse.App/Overlay/OverlayLook.xaml").Elements()
+            .Single(e => (string?)e.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml")) == "OverlayHeaderNote");
+        Assert.Equal("11", FontSize(wpf));
+        var ava = Markup("src/Hearthpulse.UI/Overlay/OverlayLook.axaml").Elements().Single(e => (string?)e.Attribute("Selector") == "TextBlock.headerNote");
+        Assert.Equal("11", FontSize(ava));
+
+        // The strips without a header (the Battlegrounds bar's turn, the session, the turn timers) label their figures alike.
+        foreach (var (file, text) in new[]
+                 {
+                     (WpfOverlay, "{i:Loc Overlay.Bar.Turn}"), (WpfOverlay, "{i:Loc Overlay.Session.Title}"),
+                     ("src/Hearthpulse.App/Overlay/TurnTimerPanel.xaml", "{Binding Label}"),
+                     (AvaOverlay, "{i:Loc Overlay.Bar.Turn}"), (AvaOverlay, "{i:Loc Overlay.Session.Title}"),
+                     ("src/Hearthpulse.UI/Overlay/TurnTimerPanel.axaml", "{Binding Label}"),
+                 })
+        {
+            var label = Markup(file).Descendants().Single(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Text") == text);
+            Assert.True((string?)label.Attribute("Style") == "{StaticResource OverlayHeaderNote}" || Classes(label).Contains("headerNote"), $"{file}: {text}");
+            Assert.Null(label.Attribute("FontSize"));
+        }
+
+        static string? FontSize(XElement style) =>
+            (string?)style.Elements().Single(s => (string?)s.Attribute("Property") == "FontSize").Attribute("Value");
+    }
+
+    private static HashSet<string> Classes(XElement element) =>
+        ((string?)element.Attribute("Classes") ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
+
     private static XElement Surface(string file) =>
         XDocument.Load(Path.Combine(RepoRoot(), file), LoadOptions.SetLineInfo).Root!.Descendants().Single(e => NameOf(e) == "Surface");
 

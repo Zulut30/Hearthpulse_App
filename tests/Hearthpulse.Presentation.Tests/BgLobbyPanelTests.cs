@@ -182,7 +182,9 @@ public sealed class BgLobbyPanelTests
         panel.UpdateLayout();
 
         string[] Shown(DependencyObject root) => Descendants<TextBlock>(root).Where(t => Visible(t, root)).Select(t => t.Text).ToArray();
-        Assert.Equal(["not confirmed", "Tribes", model.LobbyTribes[0].Glyph, "Murloc", model.LobbyTribes[1].Glyph, "Beast"], Shown(panel).Take(6));
+        // The header first (glyph, "not confirmed" docked right, title), then the tribes.
+        Assert.Equal(["\U000F0849", "not confirmed", Loc.T("Overlay.BgLobby.Title"), "Tribes", model.LobbyTribes[0].Glyph, "Murloc", model.LobbyTribes[1].Glyph, "Beast"],
+            Shown(panel).Take(8));
 
         var rows = Descendants<Grid>(panel).Where(g => g.Name == "Row").ToList();
         Assert.Equal(3, rows.Count);
