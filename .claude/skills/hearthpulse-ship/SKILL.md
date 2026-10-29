@@ -93,3 +93,16 @@ For each merged branch:
 
 What now works in the app, the commits on `main`, build/test counts, CI result, what was not checked (e.g. no render,
 no live game), and anything left for later. Nothing else to confirm unless one of the stop cases above came up.
+
+## 8. Keep the coordinator's context small
+
+The owner (2026-10-29): `/clear` and `/compact` save the most context, so the coordinating session uses them as a rule.
+
+- **After a merge round** (step 6 done, no session mid-review): write a handoff with the `handoff` skill to
+  `D:\HeartLens-main\reference\tasks\HANDOFF-<yyyy-MM-dd-HHmm>.md` - open branches and their sessions, task cards in
+  progress, owner decisions pending, red or flaky tests - and end the report with one line asking the owner to run
+  `/clear`. The coordinator cannot clear itself. A fresh coordinator reads the newest handoff and the "Журнал" of
+  each open card before anything else.
+- **Mid-task, when the conversation is long**: ask the owner for `/compact` with a focus line, for example
+  `/compact keep: open branches and sessions, task card paths, red tests, pending owner decisions`.
+- Developer sessions need neither: one package per session, deleted after its merge (step 6).
