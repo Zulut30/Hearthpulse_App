@@ -217,6 +217,12 @@ public sealed class AppSettings
     /// <summary>The overlay told once, over the game, that Ctrl held over a panel moves and resizes it.</summary>
     public bool OverlayMoveTipShown { get; set; }
 
+    /// <summary>
+    /// Overlay panels are unlocked: during a game each panel off the game's cards moves and resizes with the mouse,
+    /// without Ctrl. Set from the panel's "Unlock panels" button or Settings, kept until the player locks them.
+    /// </summary>
+    public bool OverlayPanelsUnlocked { get; set; }
+
     public bool ShowLobbyPanel { get; set; } = true;
 
     /// <summary>

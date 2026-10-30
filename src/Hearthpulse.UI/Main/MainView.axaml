@@ -942,6 +942,8 @@
                                     <c:Ornament Text="{i:Loc Settings.Layout.Title}" Icon="&#xF01BE;" Size="13" Margin="0,0,0,14" />
                                     <TextBlock Text="{i:Loc Settings.Note.Layout}" Classes="caption cardNote" />
                                     <TextBlock Name="MoveHintLine" Text="{i:Loc Overlay.Move.SettingsWindows}" Classes="caption cardNote" />
+                                    <CheckBox Name="PanelLockSetting" Classes="switch" Content="{i:Loc Settings.Layout.Unlocked}" IsChecked="{Binding OverlayPanelsUnlocked}"
+                                              Margin="0,0,0,14" ToolTip.Tip="{i:Loc Settings.Layout.UnlockedCaption}" />
                                     <Button Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24"
                                             ToolTip.Tip="{i:Loc Settings.Layout.CaptionWindows}" />
                                     <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />

@@ -25,9 +25,10 @@ public static class OverlayHit
 
 /// <summary>
 /// Overlay panel host the player can drag, resize (corner marker or mouse wheel), fade (Shift+wheel) and reset
-/// (right-click) while the overlay is in layout mode, and the same during a game while holding Ctrl over it
-/// (<see cref="IsDragArmed"/>). Its name tag carries buttons for size, opacity, compact lists and reset. Without a saved
-/// placement it keeps the alignment and margin from XAML.
+/// (right-click) while the overlay is in layout mode, and the same during a game while holding Ctrl over it or, with
+/// the panels unlocked, while the pointer is on it (<see cref="IsDragArmed"/>). Its name tag carries buttons for size,
+/// opacity, compact lists, reset and the panels' lock (<see cref="OffersLock"/>). Without a saved placement it keeps
+/// the alignment and margin from XAML.
 /// </summary>
 public sealed class MovablePanel : ContentControl
 {
@@ -42,6 +43,10 @@ public sealed class MovablePanel : ContentControl
     public static readonly StyledProperty<bool> IsEditingProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(IsEditing));
 
     public static readonly StyledProperty<bool> IsDragArmedProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(IsDragArmed));
+
+    public static readonly StyledProperty<bool> IsUnlockedProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(IsUnlocked));
+
+    public static readonly StyledProperty<bool> OffersLockProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(OffersLock));
 
     public static readonly StyledProperty<bool> InteractiveContentProperty =
         AvaloniaProperty.Register<MovablePanel, bool>(nameof(InteractiveContent));
@@ -97,6 +102,8 @@ public sealed class MovablePanel : ContentControl
         ShownProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         IsEditingProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         IsDragArmedProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
+        IsUnlockedProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
+        OffersLockProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         InteractiveContentProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         HintProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
     }
@@ -134,10 +141,29 @@ public sealed class MovablePanel : ContentControl
     public bool IsEditing { get => GetValue(IsEditingProperty); set => SetValue(IsEditingProperty, value); }
 
     /// <summary>
-    /// Set by the overlay while Ctrl is held over this panel outside layout mode: the panel takes the mouse, shows its
-    /// frame and name tag, and moves or resizes like in layout mode. Without Ctrl it lets every click through as before.
+    /// Set by the overlay while Ctrl is held over this panel outside layout mode, or the pointer is on it with the panels
+    /// unlocked: the panel takes the mouse, shows its frame and name tag, and moves or resizes like in layout mode.
+    /// Otherwise it lets every click through as before.
     /// </summary>
     public bool IsDragArmed { get => GetValue(IsDragArmedProperty); set => SetValue(IsDragArmedProperty, value); }
+
+    /// <summary>The player unlocked the panels (from the overlay's view model): free panels show their frame.</summary>
+    public bool IsUnlocked { get => GetValue(IsUnlockedProperty); set => SetValue(IsUnlockedProperty, value); }
+
+    /// <summary>
+    /// Set by the overlay while the pointer rests on the panel or arms it: the name tag shows the lock button,
+    /// "Unlock panels" or, once unlocked, "Lock panels". Only that button takes the mouse on a locked panel.
+    /// </summary>
+    public bool OffersLock { get => GetValue(OffersLockProperty); set => SetValue(OffersLockProperty, value); }
+
+    /// <summary>
+    /// The panel lies on the game's own cards (the mulligan, picks, Discover and tavern rows): unlocked panels leave it
+    /// alone, so it moves only with Ctrl or in layout mode and never takes a click meant for a card.
+    /// </summary>
+    public bool SitsOnGame => GameAnchored || PlaceholderAlignment != HorizontalAlignment.Stretch;
+
+    /// <summary>Raised when the player presses the lock button on the panel's tag.</summary>
+    public event Action<MovablePanel>? LockToggled;
 
     /// <summary>The player is moving or resizing the panel right now (the overlay keeps it armed until the button is released).</summary>
     public bool IsDragging => _dragging;
@@ -195,6 +221,7 @@ public sealed class MovablePanel : ContentControl
         Hook("PART_Fade", () => ChangeLook(PanelSnap.NextOpacity(PanelOpacity), IsCompact));
         Hook("PART_Compact", () => ChangeLook(PanelOpacity, !IsCompact));
         Hook("PART_Reset", Reset);
+        Hook("PART_Lock", () => LockToggled?.Invoke(this));
         ApplyScale();
         UpdateChrome();
 
@@ -264,6 +291,10 @@ public sealed class MovablePanel : ContentControl
         Classes.Set("placeholder", IsEditing && !Shown);
         Classes.Set("hinted", !string.IsNullOrEmpty(Hint));
         Classes.Set("armed", IsDragArmed && !IsEditing);
+        // Unlocked and off the game's cards: the frame shows and the pointer alone moves the panel.
+        Classes.Set("free", IsUnlocked && !IsEditing && !SitsOnGame);
+        Classes.Set("unlocked", IsUnlocked);
+        Classes.Set("offers", OffersLock && !IsEditing);
         OverlayHit.SetInteractive(this, CanMove || InteractiveContent);
         Cursor = CanMove ? new Cursor(StandardCursorType.SizeAll) : null;
         UpdateChrome();
@@ -521,6 +552,7 @@ public sealed class MovablePanel : ContentControl
         _dragStart = e.GetPosition(surface);
         _originStart = TopLeft();
         e.Pointer.Capture(this);
+        Diag.Debug(PanelArming.DragStarted(Id, _resizing));
         e.Handled = true;
     }
 

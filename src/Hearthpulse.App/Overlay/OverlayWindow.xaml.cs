@@ -82,6 +82,7 @@ public partial class OverlayWindow : Window
                 _panels.Add(panel);
                 panel.PlacementChanged += OnPlacementChanged;
                 panel.LookChanged += OnLookChanged;
+                panel.LockToggled += OnLockToggled;
             }
         };
         viewModel.PropertyChanged += OnViewModelChanged;
@@ -91,6 +92,9 @@ public partial class OverlayWindow : Window
 
     /// <summary>Raised when the player moved, resized or reset panels; settings should be saved.</summary>
     public event Action? LayoutChanged;
+
+    /// <summary>Raised when the player locked or unlocked the panels on the overlay, so Settings shows it too.</summary>
+    public event Action? PanelLockChanged;
 
     /// <summary>Temporarily hides the overlay (hotkey) without changing settings.</summary>
     public bool Suppressed { get; set; }
@@ -231,7 +235,7 @@ public partial class OverlayWindow : Window
         Surface.Opacity = Math.Clamp(_settings.OverlayOpacity, 0.3, 1);
 
         Native.GetCursorPos(out var cursor);
-        UpdateClickThrough(cursor, r);
+        UpdateClickThrough(cursor, r, now);
         UpdateLeaderboardHover(cursor, r);
         UpdateGuides(r);
         ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
@@ -285,11 +289,11 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void UpdateClickThrough(Native.POINT cursor, Native.RECT r)
+    private void UpdateClickThrough(Native.POINT cursor, Native.RECT r, DateTime now)
     {
         var inside = cursor.X >= r.Left && cursor.X < r.Right && cursor.Y >= r.Top && cursor.Y < r.Bottom;
         var point = new Point((cursor.X - r.Left) / _dpi, (cursor.Y - r.Top) / _dpi);
-        var interactive = UpdateDragArm(inside ? point : null) || Mouse.Captured is not null;
+        var interactive = UpdateDragArm(inside ? point : null, PoolInput.IsDown(ControlKey), now) || Mouse.Captured is not null;
         if (!interactive && inside)
         {
             var hit = Root.InputHitTest(point) as DependencyObject;
@@ -321,40 +325,72 @@ public partial class OverlayWindow : Window
         }
     }
 
+    private readonly PanelArming _arming = new();
+
     /// <summary>
-    /// Ctrl held over a panel during a game arms that panel (the topmost one under the mouse): it takes the mouse and
-    /// can be dragged or resized as in layout mode, and the placement is saved the same way. Without Ctrl, or over
-    /// empty space, clicks keep going to the game. A panel being dragged stays armed until the button comes up.
+    /// Ctrl held over a panel during a game arms that panel (the topmost one under the mouse, <paramref name="point"/>
+    /// in window units): it takes the mouse and can be dragged or resized as in layout mode, and the placement is saved
+    /// the same way. With the panels unlocked the mouse alone arms it, unless it lies on the game's cards. A locked
+    /// panel the mouse rests on shows the "Unlock panels" button, the only part of it that takes the mouse. Without
+    /// Ctrl, or over empty space, clicks keep going to the game. A panel being dragged stays armed until the button
+    /// comes up. Every change is one line in the log (<see cref="PanelArming"/>).
     /// </summary>
-    /// <returns>Whether a panel is under the mouse with Ctrl held, so the overlay must take the mouse.</returns>
-    private bool UpdateDragArm(Point? point)
+    /// <returns>Whether a panel under the mouse is armed, so the overlay must take the mouse.</returns>
+    internal bool UpdateDragArm(Point? point, bool controlDown, DateTime now)
     {
-        MovablePanel? target = null;
-        if (point is { } p && !ViewModel.LayoutEditing && PoolInput.IsDown(ControlKey))
+        var editing = ViewModel.LayoutEditing;
+        MovablePanel? over = null;
+        if (point is { } p && !editing)
         {
-            // Later panels draw over earlier ones.
-            for (var i = _panels.Count - 1; i >= 0 && target is null; i--)
+            // Later panels draw over earlier ones. The tick runs only while the overlay shows, so the panel's own
+            // visibility is the one that counts (IsVisible also needs a window on screen).
+            for (var i = _panels.Count - 1; i >= 0 && over is null; i--)
             {
                 var panel = _panels[i];
-                // An armed panel also owns the strip above it where its name tag and buttons show.
-                var area = panel.IsDragArmed ? panel.ArmedArea() : new Rect(panel.RenderSize);
-                if (panel is { Shown: true, IsVisible: true, ActualWidth: > 0 } && area.Contains(Root.TranslatePoint(p, panel)))
+                if (panel is not { Shown: true, Visibility: Visibility.Visible, ActualWidth: > 0 })
                 {
-                    target = panel;
+                    continue;
+                }
+
+                // A panel with its tag up also owns the strip above it where the tag and buttons show.
+                var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.RenderSize);
+                if (area.Contains(Root.TranslatePoint(p, panel)))
+                {
+                    over = panel;
                 }
             }
         }
 
+        var (armed, offered, note) = _arming.Update(over?.Id, over?.SitsOnGame == true, controlDown, ViewModel.PanelsUnlocked, now);
+        if (note is not null)
+        {
+            Diag.Debug(note);
+        }
+
         foreach (var panel in _panels)
         {
-            var armed = panel == target || (panel.IsDragging && !ViewModel.LayoutEditing);
-            if (panel.IsDragArmed != armed)
+            var arm = (armed && panel == over) || (panel.IsDragging && !editing);
+            if (panel.IsDragArmed != arm)
             {
-                panel.IsDragArmed = armed;
+                panel.IsDragArmed = arm;
+            }
+
+            var offer = offered && panel == over;
+            if (panel.OffersLock != offer)
+            {
+                panel.OffersLock = offer;
             }
         }
 
-        return target is not null;
+        return armed;
+    }
+
+    /// <summary>The lock button on a panel's tag: the panels unlock (or lock again), and the setting is saved.</summary>
+    private void OnLockToggled(MovablePanel _)
+    {
+        ViewModel.TogglePanelLock(_settings);
+        PanelLockChanged?.Invoke();
+        LayoutChanged?.Invoke();
     }
 
     private void UpdateLeaderboardHover(Native.POINT cursor, Native.RECT r)
@@ -497,6 +533,7 @@ public partial class OverlayWindow : Window
             _settings.Panels[panel.Id] = placement;
         }
 
+        Diag.Debug(PanelArming.Placed(panel.Id, placement));
         panel.Apply(placement, _layoutSize, Math.Clamp(_settings.OverlayScale, 0.6, 1.6));
         LayoutChanged?.Invoke();
     }

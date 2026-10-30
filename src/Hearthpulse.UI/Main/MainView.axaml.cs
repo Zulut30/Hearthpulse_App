@@ -330,6 +330,8 @@ public partial class MainView : UserControl
         {
             OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
             OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
+            // The overlay's own lock button changes this one too.
+            PanelLockSetting.IsChecked = _viewModel.Settings.OverlayPanelsUnlocked;
         }
     }
 

@@ -714,9 +714,33 @@
             </Setter>
         </Style>
 
+        <!-- The panels' lock on a name tag: "Unlock panels" / "Lock panels", an icon and a word on the accent plate -->
+        <Style x:Key="LockButton" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{StaticResource Accent}" CornerRadius="5" Height="19">
+                            <Border x:Name="Plate" CornerRadius="5" Background="Transparent" Padding="6,0,7,0">
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </Border>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Plate" Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Movable panel host: frame, label and placeholder in layout mode -->
         <Style TargetType="{x:Type o:MovablePanel}">
             <Setter Property="IsEditing" Value="{Binding LayoutEditing}" />
+            <Setter Property="IsUnlocked" Value="{Binding PanelsUnlocked}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type o:MovablePanel}">
@@ -767,6 +791,18 @@
                                                 <Button x:Name="PART_Reset" Style="{StaticResource TagButton}" Content="&#xF099B;" ToolTip="{i:Loc Overlay.Layout.ResetPanel}" />
                                             </StackPanel>
                                         </Border>
+                                        <!-- The panels' lock: on a locked panel the only part that takes the mouse -->
+                                        <Button x:Name="PART_Lock" Style="{StaticResource LockButton}" Visibility="Collapsed" Margin="4,0,0,0" o:OverlayHit.Interactive="True"
+                                                ToolTip="{i:Loc Overlay.Lock.UnlockTip}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock x:Name="LockIcon" Text="&#xF033F;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource OnAccent}"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock x:Name="UnlockLabel" Text="{i:Loc Overlay.Lock.Unlock}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}"
+                                                           Margin="4,0,0,0" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="LockLabel" Text="{i:Loc Overlay.Lock.Lock}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}"
+                                                           Margin="4,0,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
+                                            </StackPanel>
+                                        </Button>
                                     </StackPanel>
                                 </Grid>
                             </o:PanelTagStrip>
@@ -809,6 +845,29 @@
                                 <Setter TargetName="PART_Chrome" Property="Background" Value="Transparent" />
                                 <Setter TargetName="PART_Grip" Property="Visibility" Value="Visible" />
                             </Trigger>
+                            <!-- Panels unlocked: every free panel shows its frame, and the one under the pointer arms as with Ctrl -->
+                            <Trigger Property="IsFree" Value="True">
+                                <Setter TargetName="Frame" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <!-- The pointer rests on the panel, or arms it: the lock button on the tag -->
+                            <Trigger Property="OffersLock" Value="True">
+                                <Setter TargetName="PART_Chrome" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="PART_Lock" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsUnlocked" Value="True">
+                                <Setter TargetName="LockIcon" Property="Text" Value="&#xF033E;" />
+                                <Setter TargetName="UnlockLabel" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="LockLabel" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="PART_Lock" Property="ToolTip" Value="{i:Loc Overlay.Lock.LockTip}" />
+                            </Trigger>
+                            <!-- Resting on a locked panel: the button alone, without the name tag, so the panel does not look armed -->
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="OffersLock" Value="True" />
+                                    <Condition Property="IsDragArmed" Value="False" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Tag" Property="Visibility" Value="Collapsed" />
+                            </MultiTrigger>
                             <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours.
                                  Only the placeholder itself takes the mouse, so a wide row's empty width never hides its neighbours. -->
                             <Trigger Property="ShowPlaceholder" Value="True">

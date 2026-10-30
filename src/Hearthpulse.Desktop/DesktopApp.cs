@@ -130,6 +130,7 @@ internal sealed class DesktopApp : HearthpulseApp
         if (_platform.Supported)
         {
             _overlay = new OverlayWindow(_host, _platform);
+            _overlay.PanelLockChanged += () => _main?.View.SyncOverlaySwitch();
             _overlay.Show();
             _overlay.Opened += (_, _) =>
             {

@@ -67,6 +67,9 @@ internal sealed class OverlayWindow : Window
 
     private void SetTitle() => Title = Loc.T("Pool.OverlayWindow.Title");
 
+    /// <summary>Raised when the player locked or unlocked the panels on the overlay, so Settings shows it too.</summary>
+    public event Action? PanelLockChanged { add => _view.PanelLockChanged += value; remove => _view.PanelLockChanged -= value; }
+
     /// <summary>Temporarily hides the overlay (hotkey or tray) without changing settings.</summary>
     public bool Suppressed { get; set; }
 
@@ -146,11 +149,11 @@ internal sealed class OverlayWindow : Window
         }
 
         // In layout mode the whole overlay takes the mouse so panels can be dragged anywhere; during a game only a panel
-        // under the pointer with Ctrl held does. A panel being dragged or resized keeps it wherever the pointer goes,
+        // under the pointer with Ctrl held (or with the panels unlocked) does, and a locked panel's unlock button. A panel being dragged or resized keeps it wherever the pointer goes,
         // until the button is up.
         var buttons = _platform.MouseButtons();
         _view.EndReleasedDrags(buttons);
-        var armed = _view.UpdateDragArm(local, _platform.ControlDown());
+        var armed = _view.UpdateDragArm(local, _platform.ControlDown(), DateTime.UtcNow);
         var interactive = armed || (local is { } point && (vm.LayoutEditing || _view.IsInteractiveAt(point)));
         _platform.SetClickThrough(!interactive);
         if (!interactive)

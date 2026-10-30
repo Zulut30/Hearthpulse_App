@@ -78,6 +78,8 @@
   "Settings.Layout.Caption": "Drag every overlay panel where you want it in game. Scroll over a panel to resize it, right-click to reset it. Shortcut: Ctrl+Shift+L.",
   "Settings.Layout.CaptionWindows": "Drag every overlay panel where you want it in game. Scroll over a panel to resize it, right-click to reset it. Shortcut on Windows: Ctrl+Shift+L.",
   "Settings.Layout.Arrange": "Arrange overlay panels",
+  "Settings.Layout.Unlocked": "Unlock panels: move them with the mouse in game",
+  "Settings.Layout.UnlockedCaption": "Unlocked panels show a frame and drag with the mouse, no Ctrl. Their buttons and hover cards wait until you lock the panels again. Rows over the game's cards (mulligan, hero pick, Discover, tavern) move only with Ctrl or in layout mode, so they never block a click on a card.",
 
   "Settings.Leaderboard.Title": "Leaderboard hover",
   "Settings.Leaderboard.Caption": "Hovered heroes are read from the game directly. These boxes are only a fallback: line them up with the leaderboard if a hover shows the wrong board.",

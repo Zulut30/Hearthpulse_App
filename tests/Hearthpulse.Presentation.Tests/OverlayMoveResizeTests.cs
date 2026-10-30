@@ -177,7 +177,7 @@ public sealed class OverlayMoveResizeTests
         Assert.Equal((HorizontalAlignment.Center, VerticalAlignment.Top), (tip.HorizontalAlignment, tip.VerticalAlignment));
         Assert.True(tip.TranslatePoint(default, surface).Y < 40);
         Assert.False(tip.IsHitTestVisible);
-        Assert.Contains("Hold Ctrl over a panel to move and resize it", Descendants<TextBlock>(tip).Select(t => t.Text));
+        Assert.Contains("Point at a panel and press “Unlock panels”, or hold Ctrl over it", Descendants<TextBlock>(tip).Select(t => t.Text));
         Assert.False(model.ShowToast);
 
         // Layout mode: the marker on every shown panel, none on the placeholders.

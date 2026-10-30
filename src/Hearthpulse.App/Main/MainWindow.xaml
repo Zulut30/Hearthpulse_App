@@ -1048,6 +1048,8 @@
                                         <c:Ornament Text="{i:Loc Settings.Layout.Title}" Icon="&#xF01BE;" Size="13" Margin="0,0,0,14" />
                                         <TextBlock Text="{i:Loc Settings.Note.Layout}" Style="{StaticResource CardNote}" />
                                         <TextBlock x:Name="MoveHintLine" Text="{i:Loc Overlay.Move.Settings}" Style="{StaticResource CardNote}" />
+                                        <CheckBox x:Name="PanelLockSetting" Style="{StaticResource Switch}" Content="{i:Loc Settings.Layout.Unlocked}" IsChecked="{Binding OverlayPanelsUnlocked}"
+                                                  Margin="0,0,0,14" ToolTip="{i:Loc Settings.Layout.UnlockedCaption}" />
                                         <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" HorizontalAlignment="Left" Click="OnArrangeOverlay" Margin="0,0,0,24"
                                                 ToolTip="{i:Loc Settings.Layout.Caption}" />
                                         <c:Ornament Text="{i:Loc Settings.Leaderboard.Title}" Icon="&#xF01A3;" Size="13" Margin="0,0,0,14" />

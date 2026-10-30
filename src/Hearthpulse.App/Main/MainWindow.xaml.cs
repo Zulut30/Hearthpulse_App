@@ -65,7 +65,8 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Both overlay switches show the setting after it changed elsewhere (the tray, the live bar): the live bar's, and the
-    /// Settings page's, which binds to AppSettings (it does not notify) and drives the "overlay is off" note.
+    /// Settings page's, which binds to AppSettings (it does not notify) and drives the "overlay is off" note. The
+    /// panels' lock switch is refreshed the same way after the overlay's own button.
     /// </summary>
     public void SyncOverlaySwitch()
     {
@@ -75,6 +76,7 @@ public partial class MainWindow : Window
         try
         {
             BindingOperations.GetBindingExpression(OverlaySetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+            BindingOperations.GetBindingExpression(PanelLockSetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
         }
         finally
         {

@@ -52,6 +52,7 @@ public partial class OverlayView : UserControl
             _panels.Add(panel);
             panel.PlacementChanged += OnPlacementChanged;
             panel.LookChanged += OnLookChanged;
+            panel.LockToggled += OnLockToggled;
         }
     }
 
@@ -60,6 +61,9 @@ public partial class OverlayView : UserControl
 
     /// <summary>Raised when the player moved, resized or reset panels; settings should be saved.</summary>
     public event Action? LayoutChanged;
+
+    /// <summary>Raised when the player locked or unlocked the panels on the overlay, so Settings shows it too.</summary>
+    public event Action? PanelLockChanged;
 
     protected override void OnDataContextChanged(EventArgs e)
     {
@@ -132,49 +136,82 @@ public partial class OverlayView : UserControl
         return false;
     }
 
+    private readonly PanelArming _arming = new();
+
     /// <summary>
     /// Ctrl held over a panel during a game arms that panel (the topmost one under the pointer, view coordinates; null
     /// when outside): it takes the mouse and can be dragged or resized as in layout mode, and the placement is saved
-    /// the same way. Without Ctrl, or over empty space, clicks keep going to the game. A panel being dragged or resized
-    /// stays armed until the button comes up.
+    /// the same way. With the panels unlocked the pointer alone arms it, unless it lies on the game's cards. A locked
+    /// panel the pointer rests on shows the "Unlock panels" button, the only part of it that takes the mouse. Without
+    /// Ctrl, or over empty space, clicks keep going to the game. A panel being dragged or resized stays armed until the
+    /// button comes up. Every change is one line in the log (<see cref="PanelArming"/>).
     /// </summary>
     /// <returns>
-    /// Whether a panel is under the pointer with Ctrl held, or one is being dragged or resized, so the overlay must take
+    /// Whether a panel under the pointer is armed, or one is being dragged or resized, so the overlay must take
     /// the mouse. During a drag that holds wherever the pointer is, as the WPF overlay keeps the mouse while it is
     /// captured: once Ctrl was let go and the pointer left the panel, the overlay went click-through mid-drag.
     /// </returns>
-    public bool UpdateDragArm(Point? pointer, bool controlDown)
+    public bool UpdateDragArm(Point? pointer, bool controlDown, DateTime now)
     {
         var editing = _viewModel?.LayoutEditing == true;
-        MovablePanel? target = null;
-        if (pointer is { } p && controlDown && !editing)
+        MovablePanel? over = null;
+        if (pointer is { } p && !editing)
         {
             // Later panels draw over earlier ones.
-            for (var i = _panels.Count - 1; i >= 0 && target is null; i--)
+            for (var i = _panels.Count - 1; i >= 0 && over is null; i--)
             {
                 var panel = _panels[i];
-                // An armed panel also owns the strip above it where its name tag and buttons show.
-                var area = panel.IsDragArmed ? panel.ArmedArea() : new Rect(panel.Bounds.Size);
-                if (panel is { Shown: true, IsVisible: true, Bounds.Width: > 0 } && this.TranslatePoint(p, panel) is { } local
-                    && area.Contains(local))
+                if (panel is not { Shown: true, IsVisible: true, Bounds.Width: > 0 })
                 {
-                    target = panel;
+                    continue;
+                }
+
+                // A panel with its tag up also owns the strip above it where the tag and buttons show.
+                var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.Bounds.Size);
+                if (this.TranslatePoint(p, panel) is { } local && area.Contains(local))
+                {
+                    over = panel;
                 }
             }
+        }
+
+        var (armed, offered, note) = _arming.Update(over?.Id, over?.SitsOnGame == true, controlDown, _viewModel?.PanelsUnlocked == true, now);
+        if (note is not null)
+        {
+            Diag.Debug(note);
         }
 
         var dragging = false;
         foreach (var panel in _panels)
         {
-            var armed = panel == target || (panel.IsDragging && !editing);
+            var arm = (armed && panel == over) || (panel.IsDragging && !editing);
             dragging |= panel.IsDragging;
-            if (panel.IsDragArmed != armed)
+            if (panel.IsDragArmed != arm)
             {
-                panel.IsDragArmed = armed;
+                panel.IsDragArmed = arm;
+            }
+
+            var offer = offered && panel == over;
+            if (panel.OffersLock != offer)
+            {
+                panel.OffersLock = offer;
             }
         }
 
-        return target is not null || dragging;
+        return armed || dragging;
+    }
+
+    /// <summary>The lock button on a panel's tag: the panels unlock (or lock again), and the setting is saved.</summary>
+    private void OnLockToggled(MovablePanel _)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        _viewModel.TogglePanelLock(Settings);
+        PanelLockChanged?.Invoke();
+        LayoutChanged?.Invoke();
     }
 
     /// <summary>
@@ -341,6 +378,7 @@ public partial class OverlayView : UserControl
             Settings.Panels[panel.Id] = placement;
         }
 
+        Diag.Debug(PanelArming.Placed(panel.Id, placement));
         panel.Apply(placement, _layoutSize, Math.Clamp(Settings.OverlayScale, 0.6, 1.6));
         LayoutChanged?.Invoke();
     }
