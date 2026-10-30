@@ -87,8 +87,15 @@ public static class BoardDamage
             return Swings(minion);
         }
 
-        // Summoned without Charge, or out of attacks; and a Rush minion's first turn is for minions only.
-        if (minion.Has("EXHAUSTED") || (minion.EnteredPlayTurn == turn && !minion.Has("CHARGE")))
+        // Summoned without Charge, or out of attacks.
+        if (minion.Has("EXHAUSTED"))
+        {
+            return 0;
+        }
+
+        // A Rush minion's first turn is for minions only. Asked of Rush minions alone: after a reconnect the whole board
+        // is created anew on the current turn.
+        if (minion.Has("RUSH") && !minion.Has("CHARGE") && minion.EnteredPlayTurn == turn)
         {
             return 0;
         }

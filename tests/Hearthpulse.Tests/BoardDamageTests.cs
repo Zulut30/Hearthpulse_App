@@ -213,6 +213,16 @@ public sealed class BoardDamageTests
     }
 
     [Fact]
+    public void After_a_reconnect_on_your_turn_the_board_still_counts()
+    {
+        // A reconnect replays the game from CREATE_GAME: every minion is created in play on the current turn. Those that
+        // are not EXHAUSTED can attack; only a Rush minion created this turn (summoned by an effect, or seen again after
+        // the reconnect) waits for its next turn.
+        var state = Play([Game("TURN", 7)], Minion(40, 1, 3), Minion(41, 1, 4), Minion(42, 1, 5, "RUSH value=1"), Minion(43, 1, 6, "EXHAUSTED value=1"));
+        Assert.Equal(7, Damage(state, 1).Minions);
+    }
+
+    [Fact]
     public void A_weapon_gives_its_attack_only_while_it_lasts()
     {
         // Our turn: a Windfury weapon of 3 with one use left (DURABILITY 2, DAMAGE 1): one swing of 3, then it breaks.
