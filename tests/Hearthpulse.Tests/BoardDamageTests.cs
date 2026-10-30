@@ -165,7 +165,8 @@ public sealed class BoardDamageTests
     public void When_the_turn_passes_each_side_switches_between_this_turn_and_the_next()
     {
         // The opponent's turn: its turn start readies its board, its hero takes the weapon's attack.
-        var state = Play([.. Board, NextTurn(6, 2, 70, 72), [Tag(30, "ATK", 2)]]);
+        // As in a real log: our hero's ATK reads 0 off our turn, the opponent's takes its weapon's on theirs.
+        var state = Play([.. Board, NextTurn(6, 2, 70, 72), [Tag(20, "ATK", 0), Tag(30, "ATK", 2)]]);
 
         // Ours now counts for our next turn: every minion ready again, Rush and Charge alike, but not the frozen one,
         // the one that cannot attack or the dormant one.
@@ -199,12 +200,13 @@ public sealed class BoardDamageTests
             [Game("TURN", 5), Tag(20, "ATK", 3), Tag(20, "NUM_ATTACKS_THIS_TURN", 1)]);
         Assert.Equal(3, Damage(once, 1).Hero);
 
-        // Off our turn the buff has ended (ATK back to the weapon's): next turn is the weapon twice.
+        // Off our turn the hero's ATK reads 0 (the weapon put away, the buff gone), as in a real log: next turn is the
+        // weapon twice.
         var later = Play(
             Card(60, "W_A", "PLAY", 1, "WEAPON", "ATK value=2", "WINDFURY value=1"),
             [Game("TURN", 5), Tag(20, "ATK", 3)],
             NextTurn(6, 2),
-            [Tag(20, "ATK", 2)]);
+            [Tag(20, "ATK", 0)]);
         Assert.Equal(4, Damage(later, 1).Hero);
 
         // A frozen hero swings neither now nor on its next turn; no weapon and no buff is no hero damage.
