@@ -126,6 +126,8 @@ public sealed partial class LocBindingTests
             Assert.False(choice.IsDragArmed);
             Assert.False(choice.OffersLock);
             Settle();
+            // Directly as well: the empty row may have nothing at that point for the hit test to find.
+            Assert.False(OverlayHit.GetInteractive(choice));
             Assert.False(view.IsInteractiveAt(Inside(choice)));
             Assert.False(timer.IsDragArmed);
             Assert.True(view.UpdateDragArm(Inside(choice), controlDown: true, At(2033)));
