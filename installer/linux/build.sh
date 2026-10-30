@@ -191,6 +191,9 @@ HERE="$(dirname "$(readlink -f "$0")")"
 exec "$HERE/usr/lib/Hearthpulse" "$@"
 SH
   chmod +x "$APPDIR/AppRun"
+  # appimagetool (continuous build 333, 2026-10-29) refuses files executable only by their owner (the publish leaves
+  # 0744): everyone reads everything, and whatever is executable is executable for everyone.
+  chmod -R a+rX "$APPDIR"
   # Optional extra: a failure here (e.g. no network for the AppImage runtime) must not lose the other packages.
   if ARCH="$APPIMAGE_ARCH" appimagetool --no-appstream "$APPDIR" "$DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage" >/dev/null; then
     echo "wrote $DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage"
