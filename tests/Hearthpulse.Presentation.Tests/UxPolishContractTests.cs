@@ -377,6 +377,15 @@ public sealed partial class UxPolishContractTests
         Assert.True(bar.IsChecked);
         Assert.Equal(Visibility.Collapsed, banner.Visibility);
         Assert.Equal(1, saves);
+
+        // The overlay's own lock button: the host sets the setting and asks the window to show it, without a save.
+        var unlock = Named<CheckBox>(window, "PanelLockSetting");
+        Assert.False(unlock.IsChecked);
+        model.Settings.OverlayPanelsUnlocked = true;
+        window.SyncOverlaySwitch();
+        Settle(root);
+        Assert.True(unlock.IsChecked);
+        Assert.Equal(1, saves);
         window.Close();
     });
 

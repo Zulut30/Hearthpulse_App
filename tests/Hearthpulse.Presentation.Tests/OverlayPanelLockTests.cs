@@ -55,6 +55,10 @@ public sealed class OverlayPanelLockTests
             Assert.Equal((false, false, "Overlay panel deck released"), arm("choice-row", true, false, true, At(766)));
             Assert.Equal((false, false, null), arm("choice-row", true, false, true, At(2000)));
             Assert.Equal((true, false, "Overlay panel choice-row armed (Ctrl)"), arm("choice-row", true, true, true, At(2033)));
+
+            // Locked again with the pointer still on the panel: it lets go at once, and its button waits again.
+            Assert.Equal((true, true, "Overlay panel deck armed (panels unlocked)"), arm("deck", false, false, true, At(2066)));
+            Assert.Equal((false, false, "Overlay panel deck released"), arm("deck", false, false, false, At(2100)));
         }
     }
 
@@ -195,6 +199,7 @@ public sealed class OverlayPanelLockTests
         Assert.False(window.UpdateDragArm(Inside(choice), controlDown: false, At(2000)));
         Assert.False(choice.IsDragArmed);
         Assert.False(choice.OffersLock);
+        Assert.False(OverlayHit.GetInteractive(choice));
         Assert.False(deck.IsDragArmed);
         Assert.True(window.UpdateDragArm(Inside(choice), controlDown: true, At(2033)));
         Assert.True(choice.IsDragArmed);
@@ -209,6 +214,7 @@ public sealed class OverlayPanelLockTests
         Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false, At(2100)));
         root.UpdateLayout();
         Assert.False(deck.IsDragArmed);
+        Assert.False(OverlayHit.GetInteractive(deck));
         Assert.Equal(Visibility.Collapsed, Part(deck, "Frame").Visibility);
 
         // Layout mode keeps its own tools: no lock button there.

@@ -22,6 +22,19 @@ public sealed partial class LocBindingTests
     [Fact]
     public void Avalonia_panels_unlock_from_the_button_on_a_resting_pointer_and_move_without_ctrl() => Headless.Run(PanelLock);
 
+    /// <summary>The overlay's lock button changes the setting; the host asks the main view, and its switch shows it.</summary>
+    [Fact]
+    public void Avalonia_settings_switch_follows_the_overlay_lock_button() => Headless.Run(() => WithMainView((view, model) =>
+    {
+        var unlock = view.FindControl<CheckBox>("PanelLockSetting")!;
+        Assert.False(unlock.IsChecked);
+        model.Settings.OverlayPanelsUnlocked = true;
+        view.SyncOverlaySwitch();
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(unlock.IsChecked);
+        Assert.True(model.Settings.OverlayPanelsUnlocked);
+    }));
+
     private static void PanelLock()
     {
         Loc.Instance.SetLanguage(Loc.English);
@@ -108,6 +121,8 @@ public sealed partial class LocBindingTests
             Assert.False(view.UpdateDragArm(Inside(choice), controlDown: false, At(2000)));
             Assert.False(choice.IsDragArmed);
             Assert.False(choice.OffersLock);
+            Settle();
+            Assert.False(view.IsInteractiveAt(Inside(choice)));
             Assert.False(timer.IsDragArmed);
             Assert.True(view.UpdateDragArm(Inside(choice), controlDown: true, At(2033)));
             Assert.True(choice.IsDragArmed);
@@ -125,6 +140,7 @@ public sealed partial class LocBindingTests
             Assert.False(view.UpdateDragArm(Inside(timer), controlDown: false, At(2100)));
             Settle();
             Assert.False(timer.IsDragArmed);
+            Assert.False(view.IsInteractiveAt(Inside(timer)));
             Assert.False(Part<Rectangle>(timer, "Frame").IsVisible);
 
             // Layout mode keeps its own tools: no lock button there.
