@@ -213,6 +213,32 @@ public sealed class BoardDamageTests
     }
 
     [Fact]
+    public void A_weapon_gives_its_attack_only_while_it_lasts()
+    {
+        // Our turn: a Windfury weapon of 3 with one use left (DURABILITY 2, DAMAGE 1): one swing of 3, then it breaks.
+        var windfury = Play(
+            Card(60, "W_A", "PLAY", 1, "WEAPON", "ATK value=3", "DURABILITY value=2", "DAMAGE value=1", "WINDFURY value=1"),
+            [Game("TURN", 5), Tag(20, "ATK", 3)]);
+        Assert.Equal(3, Damage(windfury, 1).Hero);
+        // The same weapon with both uses left swings twice.
+        var full = Play(
+            Card(60, "W_A", "PLAY", 1, "WEAPON", "ATK value=3", "DURABILITY value=2", "WINDFURY value=1"),
+            [Game("TURN", 5), Tag(20, "ATK", 3)]);
+        Assert.Equal(6, Damage(full, 1).Hero);
+
+        // Azshara (CATA_151) gives the hero Windfury; with a 4/1 weapon the second swing has no weapon: 4. With a +2
+        // buff this turn as well (ATK 6): 6, then 2.
+        var azshara = Play(Card(60, "W_A", "PLAY", 1, "WEAPON", "ATK value=4", "DURABILITY value=1"), [Game("TURN", 5), Tag(20, "ATK", 4), Tag(20, "WINDFURY", 1)]);
+        Assert.Equal(4, Damage(azshara, 1).Hero);
+        var buffed = Play(Card(60, "W_A", "PLAY", 1, "WEAPON", "ATK value=4", "DURABILITY value=1"), [Game("TURN", 5), Tag(20, "ATK", 6), Tag(20, "WINDFURY", 1)]);
+        Assert.Equal(8, Damage(buffed, 1).Hero);
+
+        // The opponent on their next turn: a Windfury weapon of 3 with one use left (DURABILITY 3, DAMAGE 2): 3.
+        var theirs = Play(Card(80, "W_A", "PLAY", 2, "WEAPON", "ATK value=3", "DURABILITY value=3", "DAMAGE value=2", "WINDFURY value=1"));
+        Assert.Equal(3, Damage(theirs, 2).Hero);
+    }
+
+    [Fact]
     public void Characters_that_cannot_attack_heroes_add_nothing()
     {
         // Air Support (CATA_564): Mega-Windfury, and it cannot attack heroes. Without the tag the same minion is 12.
