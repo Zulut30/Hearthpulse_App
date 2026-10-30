@@ -51,6 +51,10 @@ public sealed partial class LocBindingTests
             timer.Apply(new PanelPlacement { X = 0.05, Y = 0.6, Scale = 1 }, new Size(1920, 1080));
             Settle();
             var button = Part<Button>(timer, "PART_Lock");
+            // The shield takes a drag over the panel's gaps at the overlay's lowest opacity (0.3, the clamp in Fit):
+            // its alpha times that stays at least 1 of 255, or the window's pixels would hand the press to the game.
+            var shield = (Avalonia.Media.ISolidColorBrush)Part<Border>(timer, "Shield").Background!;
+            Assert.True(shield.Color.A * 0.3 >= 1, shield.Color.ToString());
             var clock = new DateTime(2026, 10, 30, 12, 0, 0, DateTimeKind.Utc);
             DateTime At(int milliseconds) => clock.AddMilliseconds(milliseconds);
 

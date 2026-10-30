@@ -138,6 +138,12 @@ public sealed class OverlayPanelLockTests
         Point Inside(MovablePanel panel) => panel.TranslatePoint(new Point(10, 10), root);
         var button = (ButtonBase)Part(deck, "PART_Lock");
 
+        // The shield takes a drag over the panel's gaps. The overlay is a per-pixel layered window, so its pixels decide
+        // where the mouse goes, and the overlay's opacity (down to 0.3, the clamp in Tick) multiplies the shield's alpha:
+        // at 1/255 it rounded to 0 from 50 % on and the press went to the game.
+        var shield = (SolidColorBrush)((Border)Part(deck, "Shield")).Background;
+        Assert.True(shield.Color.A * 0.3 >= 1, shield.Color.ToString());
+
         // Locked: the pointer passing over the deck changes nothing; resting on it shows the unlock button alone,
         // and only the button takes the mouse.
         Assert.False(window.UpdateDragArm(Inside(deck), controlDown: false, At(0)));

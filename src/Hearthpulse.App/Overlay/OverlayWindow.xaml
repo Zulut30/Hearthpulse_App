@@ -760,7 +760,9 @@
                             </Grid>
                             <!-- The player's opacity fades the content only; the frame and tag stay readable -->
                             <ContentPresenter x:Name="Body" Opacity="{TemplateBinding PanelOpacity}" />
-                            <Border x:Name="Shield" Background="#01000000" Visibility="Collapsed" />
+                            <!-- Takes the drag over the panel's gaps. The window's pixels decide where the mouse goes, and the overlay's
+                                 opacity (down to 0.3) multiplies this alpha: 1/255 rounded to 0 at 50 % and let the click into the game -->
+                            <Border x:Name="Shield" Background="#04000000" Visibility="Collapsed" />
                             <Rectangle x:Name="Frame" Visibility="Collapsed" Margin="-4" RadiusX="12" RadiusY="12" Stroke="{StaticResource Accent}"
                                        StrokeThickness="1.5" StrokeDashArray="4 3" IsHitTestVisible="False" />
                             <!-- Name tag and, under the mouse, the panel's buttons. The strip reaches down to the panel so the mouse

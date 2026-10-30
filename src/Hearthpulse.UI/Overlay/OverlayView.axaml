@@ -723,7 +723,9 @@
                                 </Panel>
                                 <!-- The player's opacity fades the content only; the frame and tag stay readable -->
                                 <ContentPresenter Name="Body" Content="{TemplateBinding Content}" Opacity="{TemplateBinding PanelOpacity}" />
-                                <Border Name="Shield" Background="#01000000" IsVisible="False" />
+                                <!-- Takes the drag over the panel's gaps; its alpha survives the overlay's opacity down to 0.3 (1/255 rounded
+                                     to 0 at 50 % in the WPF overlay's window and let the click into the game) -->
+                                <Border Name="Shield" Background="#04000000" IsVisible="False" />
                             </Panel>
                         </LayoutTransformControl>
                         <!-- Layout-mode frame and name tag sit outside the scaler so they are never clipped. -->
