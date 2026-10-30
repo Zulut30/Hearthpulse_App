@@ -138,6 +138,13 @@ public sealed class DiscoverChoiceSource(HearthpulseData data)
     public event Action? Changed;
 
     /// <summary>
+    /// Starts a load (the list or a card's choices) off the caller's thread. Tests keep the started task to await it:
+    /// on a busy thread pool a load may wait seconds to start (Windows CI, dd5354b), so a fixed wait for
+    /// <see cref="Changed"/> was a race.
+    /// </summary>
+    internal Action<Func<Task>, string> Start { get; init; } = static (load, what) => Task.Run(load).Forget(what);
+
+    /// <summary>
     /// The choices of <paramref name="sourceCardId"/> in <paramref name="format"/> when loaded; starts loading them
     /// (or the list first) otherwise. Null too when the API has no numbers for the card in that format.
     /// </summary>
@@ -184,7 +191,7 @@ public sealed class DiscoverChoiceSource(HearthpulseData data)
             return;
         }
 
-        Run(async () =>
+        Start(async () =>
         {
             var cards = await data.LoadChoiceCardsAsync().ConfigureAwait(false);
             if (cards.Count > 0)
@@ -202,7 +209,7 @@ public sealed class DiscoverChoiceSource(HearthpulseData data)
             return;
         }
 
-        Run(async () =>
+        Start(async () =>
         {
             if (await data.LoadCardChoicesAsync(cardId, format).ConfigureAwait(false) is { } choices)
             {
@@ -222,8 +229,6 @@ public sealed class DiscoverChoiceSource(HearthpulseData data)
         _asked[key] = now;
         return true;
     }
-
-    private static void Run(Func<Task> load, string what) => Task.Run(load).Forget(what);
 
     /// <summary>The API's cards by card id and by dbfId.</summary>
     private sealed class ChoiceList

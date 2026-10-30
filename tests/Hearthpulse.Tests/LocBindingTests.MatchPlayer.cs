@@ -148,6 +148,31 @@ public sealed partial class LocBindingTests
     }
 
     /// <summary>
+    /// The Decks tab draws its rows: their tile takes the theme's Row brush, not the page's own horizontal panel (a local
+    /// key of the same name made the tab throw InvalidCastException).
+    /// </summary>
+    [Fact]
+    public void Match_decks_tab_draws_the_deck_rows() => Headless.Run(() =>
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"hp-match-decks-{Guid.NewGuid():N}");
+        var (view, model, window, theme) = OpenMatch(folder);
+        try
+        {
+            model.SetTab.Execute("Decks");
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            Assert.True(model.ShowDecks);
+            Assert.NotEmpty(model.LocalDeck.Concat(model.OpponentCards));
+            var rows = view.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Classes.Contains("unusedTile") || p.DataContext is MatchDeckRow).ToList();
+            Assert.NotEmpty(rows);
+        }
+        finally
+        {
+            CloseMatch(model, window, theme, folder);
+        }
+    });
+
+    /// <summary>
     /// A Battlegrounds game recorded step by step (won on turn 1, lost on turn 2): the table draws each step, every list
     /// with one row per item and nothing left over, and a row whose item equals the one at its place a step before is
     /// still that control (the lists change in place; a new list each step built every row again).

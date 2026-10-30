@@ -49,29 +49,23 @@ public sealed class MiniBars : Control
             return;
         }
 
-        var labelHeight = ShowLabels ? 15 : 0;
-        var plot = h - labelHeight;
-        var max = Math.Max(1e-9, values.Concat(compare).DefaultIfEmpty(0).Max());
-        var slot = w / count;
-        var gap = Math.Min(4, slot * 0.25);
+        var layout = SmallChartGeometry.MiniBars(values, compare, w, h, ShowLabels, Marker);
+        var plot = layout.Plot;
         var accent = ThemeBrushes.Get("Accent");
         var soft = ThemeBrushes.Get("AccentContainer");
         var tick = new Pen(ThemeBrushes.Get("Muted"), 1.6, lineCap: PenLineCap.Round);
         var family = this.TryFindResource("UiFont", ActualThemeVariant, out var font) && font is FontFamily f ? f : FontFamily.Default;
         for (var i = 0; i < count; i++)
         {
-            var x = (i * slot) + (gap / 2);
-            var bw = Math.Max(1, slot - gap);
+            var (x, bw, bh, tickY) = layout.Bars[i];
             context.DrawRectangle(soft, null, new Rect(x, 0, bw, plot), 2, 2);
-            if (i < values.Count && values[i] > 0)
+            if (bh > 0)
             {
-                var bh = Math.Max(2, plot * values[i] / max);
                 context.DrawRectangle(accent, null, new Rect(x, plot - bh, bw, bh), 2, 2);
             }
 
-            if (i < compare.Count && compare[i] > 0)
+            if (tickY is { } y)
             {
-                var y = Math.Round(plot - (plot * compare[i] / max)) + 0.5;
                 context.DrawLine(tick, new Point(x + 1, y), new Point(x + bw - 1, y));
             }
 
@@ -83,10 +77,8 @@ public sealed class MiniBars : Control
             }
         }
 
-        if (!double.IsNaN(Marker) && Marker >= 1)
+        if (layout.MarkerX is { } mx)
         {
-            // Place p is centred on its bar, so the marker's x is the centre of bar p plus the fraction.
-            var mx = Math.Round((Marker - 0.5) * slot) + 0.5;
             var text = ThemeBrushes.Get("Text");
             context.DrawLine(new Pen(text, 1.6), new Point(mx, -2), new Point(mx, plot));
             context.DrawEllipse(text, null, new Point(mx, -2), 2.6, 2.6);

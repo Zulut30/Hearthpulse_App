@@ -134,6 +134,9 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
   `Main/Stats/` (`BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView` + `StatsResources`) of both UIs.
 - `ResultBars` - wins/losses stacked per group with "W–L" and labels (deck page "Results by length",
   `Main/Decks/DeckDetailsView` of both UIs; WPF rows that click use the `RowButton` style, Avalonia `Button.bare` + `row`).
+- The charts' numbers (insets, padding, ticks, tags, bar slots), the `CardPreview` placement and the match
+  `MatchTimeline` geometry are shared: `src/Hearthpulse.Presentation/Controls/ChartGeometry.cs`, `CardPreviewLayout.cs`,
+  `Main/Match/MatchTimelineLayout.cs`. Change them there once; each UI's control only measures text and draws.
 - `RoundClip` (WPF only, attached `RoundClip.Radius`) - clips art to rounded corners; WPF `ClipToBounds` ignores
   CornerRadius.
 - `CardPreview` - attached `CardPreview.CardId` / `Caption` / `Placement` shows a full card render on hover through

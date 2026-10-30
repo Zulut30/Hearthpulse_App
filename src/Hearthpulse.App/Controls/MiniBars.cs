@@ -64,28 +64,22 @@ public sealed class MiniBars : FrameworkElement
 
         dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, w, h));
         var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-        var labelHeight = ShowLabels ? 15 : 0;
-        var plot = h - labelHeight;
-        var max = Math.Max(1e-9, values.Concat(compare).DefaultIfEmpty(0).Max());
-        var slot = w / count;
-        var gap = Math.Min(4, slot * 0.25);
+        var layout = SmallChartGeometry.MiniBars(values, compare, w, h, ShowLabels, Marker);
+        var plot = layout.Plot;
         var accent = Brush("Accent");
         var soft = Brush("AccentContainer");
         var tick = new Pen(Brush("Muted"), 1.6) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         for (var i = 0; i < count; i++)
         {
-            var x = (i * slot) + (gap / 2);
-            var bw = Math.Max(1, slot - gap);
+            var (x, bw, bh, tickY) = layout.Bars[i];
             dc.DrawRoundedRectangle(soft, null, new Rect(x, 0, bw, plot), 2, 2);
-            if (i < values.Count && values[i] > 0)
+            if (bh > 0)
             {
-                var bh = Math.Max(2, plot * values[i] / max);
                 dc.DrawRoundedRectangle(accent, null, new Rect(x, plot - bh, bw, bh), 2, 2);
             }
 
-            if (i < compare.Count && compare[i] > 0)
+            if (tickY is { } y)
             {
-                var y = Math.Round(plot - (plot * compare[i] / max)) + 0.5;
                 dc.DrawLine(tick, new Point(x + 1, y), new Point(x + bw - 1, y));
             }
 
@@ -98,10 +92,8 @@ public sealed class MiniBars : FrameworkElement
             }
         }
 
-        if (!double.IsNaN(Marker) && Marker >= 1)
+        if (layout.MarkerX is { } mx)
         {
-            // Place p is centred on its bar, so the marker's x is the centre of bar p plus the fraction.
-            var mx = Math.Round(((Marker - 0.5) * slot)) + 0.5;
             var pen = new Pen(Brush("Text"), 1.6);
             dc.DrawLine(pen, new Point(mx, -2), new Point(mx, plot));
             dc.DrawEllipse(Brush("Text"), null, new Point(mx, -2), 2.6, 2.6);

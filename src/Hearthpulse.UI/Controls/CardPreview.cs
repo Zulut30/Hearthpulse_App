@@ -8,25 +8,6 @@ using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Controls;
 
-/// <summary>Where the hover preview opens relative to the hovered element.</summary>
-public enum CardPreviewPlacement
-{
-    /// <summary>
-    /// Beside the panel that holds the element, on the side facing the screen centre (deck and counter rows); on a
-    /// window page beside the element's list, right of it when there is room, at the element's height.
-    /// </summary>
-    Beside,
-
-    /// <summary>Under the element itself (small marks along the top of the screen).</summary>
-    Below,
-
-    /// <summary>
-    /// Right against the element itself, right of it when there is room, at its height (cards in a grid: the preview
-    /// opens next to the hovered card instead of beside the whole panel).
-    /// </summary>
-    Adjacent,
-}
-
 /// <summary>
 /// Hover preview of a whole card. Any control sets <c>CardPreview.CardId</c> (and optionally <c>Caption</c>); while
 /// the pointer is over it, the <see cref="CardPreviewHost"/> of the same top level shows the card render next to it.
@@ -109,10 +90,6 @@ public sealed class CardPreviewHost : Canvas
 {
     private const double CardWidth = 236;
     private const double CardHeight = CardWidth * 388 / 256;
-    private const double Gap = 10;
-
-    /// <summary>Gap of an <see cref="CardPreviewPlacement.Adjacent"/> preview: right against the hovered card.</summary>
-    private const double TightGap = 4;
 
     private static readonly List<WeakReference<CardPreviewHost>> Hosts = new();
 
@@ -238,57 +215,20 @@ public sealed class CardPreviewHost : Canvas
 
         _frame.Measure(Size.Infinity);
         var size = _frame.DesiredSize;
-        var row = new Rect(control.Bounds.Size).TransformToAABB(toHost);
-        double left, top;
-        if (CardPreview.GetPlacement(control) == CardPreviewPlacement.Below)
-        {
-            left = row.X + (row.Width / 2) - (size.Width / 2);
-            top = row.Bottom + Gap;
-        }
-        else if (CardPreview.GetPlacement(control) == CardPreviewPlacement.Adjacent)
-        {
-            left = row.Right + TightGap + size.Width <= Bounds.Width - 4 ? row.Right + TightGap : row.X - TightGap - size.Width;
-            top = row.Y + (row.Height / 2) - (size.Height / 2);
-        }
-        else
-        {
-            var panel = PanelOf(control, surface);
-            var anchor = panel.TransformToVisual(this) is { } toAnchor ? new Rect(panel.Bounds.Size).TransformToAABB(toAnchor) : row;
-            if (anchor.Width > Bounds.Width / 2)
-            {
-                // A page rather than a floating panel: right beside the list that holds the row (left of it when the
-                // right has no room), else beside the row itself, else under or over the row, never on top of it.
-                var list = ListOf(control, panel) is { } owner && owner.TransformToVisual(this) is { } toList
-                    ? new Rect(owner.Bounds.Size).TransformToAABB(toList)
-                    : row;
-                top = row.Y + (row.Height / 2) - (size.Height / 2);
-                if ((Beside(list, size.Width) ?? Beside(row, size.Width)) is { } x)
-                {
-                    left = x;
-                }
-                else
-                {
-                    left = row.X + Gap;
-                    top = row.Bottom + Gap + size.Height <= Bounds.Height - 4 ? row.Bottom + Gap : row.Y - Gap - size.Height;
-                }
-            }
-            else
-            {
-                var onRight = anchor.X + (anchor.Width / 2) > Bounds.Width / 2;
-                left = onRight ? anchor.X - size.Width - Gap : anchor.Right + Gap;
-                top = row.Y + (row.Height / 2) - (size.Height / 2);
-            }
-        }
-
-        SetLeft(_frame, Math.Clamp(left, 4, Math.Max(4, Bounds.Width - size.Width - 4)));
-        SetTop(_frame, Math.Clamp(top, 4, Math.Max(4, Bounds.Height - size.Height - 4)));
+        var row = Box(new Rect(control.Bounds.Size).TransformToAABB(toHost));
+        Visual? panel = null;
+        var (left, top) = CardPreviewLayout.Place(CardPreview.GetPlacement(control), row, size.Width, size.Height, Bounds.Width, Bounds.Height,
+            () => BoundsIn(panel ??= PanelOf(control, surface)) ?? row,
+            () => ListOf(control, panel ??= PanelOf(control, surface)) is { } owner && BoundsIn(owner) is { } list ? list : row);
+        SetLeft(_frame, left);
+        SetTop(_frame, top);
     }
 
-    /// <summary>Left edge of a preview right of <paramref name="rect"/>, or left of it; null when neither side has room.</summary>
-    private double? Beside(Rect rect, double width) =>
-        rect.Right + Gap + width <= Bounds.Width - 4 ? rect.Right + Gap
-        : rect.X - Gap - width >= 4 ? rect.X - Gap - width
-        : null;
+    /// <summary>Where <paramref name="visual"/> is on this host; null when it cannot be mapped onto it.</summary>
+    private PreviewRect? BoundsIn(Visual visual) =>
+        visual.TransformToVisual(this) is { } to ? Box(new Rect(visual.Bounds.Size).TransformToAABB(to)) : null;
+
+    private static PreviewRect Box(Rect rect) => new(rect.X, rect.Y, rect.Width, rect.Height);
 
     /// <summary>The nearest list (items control) holding <paramref name="control"/> below <paramref name="panel"/>, if any.</summary>
     private static Visual? ListOf(Control control, Visual panel)

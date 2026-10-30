@@ -23,6 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The shared presentation's layout modules (ChartGeometry, CardPreviewLayout, ...) are internal; the tests read them. -->
+    <InternalsVisibleTo Include="Hearthpulse.Tests" />
+    <InternalsVisibleTo Include="Hearthpulse.Presentation.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Hearthpulse.Core\Hearthpulse.Core.csproj" />
   </ItemGroup>
 

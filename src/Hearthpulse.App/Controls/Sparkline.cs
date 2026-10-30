@@ -73,48 +73,24 @@ public sealed class Sparkline : FrameworkElement
 
     private void Draw(DrawingContext dc, IReadOnlyList<double?> values, int count, double w, double h, Pen pen)
     {
-        const double pad = 3;
-        var span = Math.Max(1e-9, Maximum - Minimum);
-        Point At(int i, double v) => new(
-            count == 1 ? w / 2 : pad + ((w - (2 * pad)) * i / (count - 1)),
-            pad + ((h - (2 * pad)) * (1 - Math.Clamp((v - Minimum) / span, 0, 1))));
-
-        var run = new List<Point>();
-        void Flush()
+        foreach (var run in SmallChartGeometry.SparkRuns(values, count, w, h, Minimum, Maximum))
         {
-            if (run.Count == 1)
+            if (run.Length == 1)
             {
-                dc.DrawEllipse(pen.Brush, null, run[0], 1.6, 1.6);
-            }
-            else if (run.Count > 1)
-            {
-                var geometry = new StreamGeometry();
-                using (var ctx = geometry.Open())
-                {
-                    ctx.BeginFigure(run[0], false, false);
-                    ctx.PolyLineTo(run.Skip(1).ToList(), true, true);
-                }
-
-                geometry.Freeze();
-                dc.DrawGeometry(null, pen, geometry);
+                dc.DrawEllipse(pen.Brush, null, new Point(run[0].X, run[0].Y), 1.6, 1.6);
+                continue;
             }
 
-            run.Clear();
+            var geometry = new StreamGeometry();
+            using (var ctx = geometry.Open())
+            {
+                ctx.BeginFigure(new Point(run[0].X, run[0].Y), false, false);
+                ctx.PolyLineTo(run.Skip(1).Select(p => new Point(p.X, p.Y)).ToList(), true, true);
+            }
+
+            geometry.Freeze();
+            dc.DrawGeometry(null, pen, geometry);
         }
-
-        for (var i = 0; i < values.Count; i++)
-        {
-            if (values[i] is { } v)
-            {
-                run.Add(At(i, v));
-            }
-            else
-            {
-                Flush();
-            }
-        }
-
-        Flush();
     }
 
     private Brush Brush(string key) => TryFindResource(key) as Brush ?? Brushes.Gray;

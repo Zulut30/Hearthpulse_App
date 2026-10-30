@@ -53,20 +53,12 @@ public sealed class ResultBars : FrameworkElement
         var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
         var muted = Brush("Muted");
         var faint = Brush("Faint");
-        var top = 18.0;
-        var bottom = labels.Count > 0 ? 20.0 : 4.0;
-        var plot = Math.Max(1, h - top - bottom);
-        var slot = w / count;
-        var bar = Math.Min(44, slot * 0.56);
-        var max = Math.Max(1, Enumerable.Range(0, count).Max(i => At(wins, i) + At(losses, i)));
-        dc.DrawLine(new Pen(Brush("Border"), 1), new Point(0, Math.Round(h - bottom) + 0.5), new Point(w, Math.Round(h - bottom) + 0.5));
+        var layout = SmallChartGeometry.ResultBars(wins, losses, labels.Count > 0, w, h);
+        var (y, slot, bar) = (layout.Baseline, layout.Slot, layout.Bar);
+        dc.DrawLine(new Pen(Brush("Border"), 1), new Point(0, Math.Round(y) + 0.5), new Point(w, Math.Round(y) + 0.5));
         for (var i = 0; i < count; i++)
         {
-            var (won, lost) = (At(wins, i), At(losses, i));
-            var x = (slot * i) + ((slot - bar) / 2);
-            var y = h - bottom;
-            var winHeight = plot * won / max;
-            var lossHeight = plot * lost / max;
+            var (x, won, lost, winHeight, lossHeight) = layout.Columns[i];
             if (won > 0)
             {
                 dc.DrawRoundedRectangle(Brush("Positive"), null, new Rect(x, y - winHeight, bar, winHeight), 3, 3);
@@ -86,12 +78,10 @@ public sealed class ResultBars : FrameworkElement
             if (i < labels.Count)
             {
                 var label = Text(labels[i], 11, faint, dpi);
-                dc.DrawText(label, new Point((slot * i) + ((slot - label.Width) / 2), h - bottom + 4));
+                dc.DrawText(label, new Point((slot * i) + ((slot - label.Width) / 2), y + 4));
             }
         }
     }
-
-    private static int At(IReadOnlyList<int> list, int index) => index < list.Count ? list[index] : 0;
 
     private Brush Brush(string key) => TryFindResource(key) as Brush ?? Brushes.Gray;
 

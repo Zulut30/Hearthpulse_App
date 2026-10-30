@@ -34,6 +34,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The shared presentation's layout modules (ChartGeometry, CardPreviewLayout, ...) are internal; the tests read them. -->
+    <InternalsVisibleTo Include="Hearthpulse.Presentation.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="Assets\hearthpulse.ico" />
     <Resource Include="Assets\hearthpulse.png" />
     <!-- Hearthstone's mana gem (c) Blizzard Entertainment, cut by tools/mana/extract_mana_gem.py -->

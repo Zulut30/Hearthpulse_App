@@ -52,20 +52,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Opens a page by name (see <see cref="CurrentPage"/>); the old "Constructed" opens Standard.</summary>
-    public void ShowPage(string page)
-    {
-        var nav = ConstructedPage.Migrate(page) switch
-        {
-            "Battlegrounds" => NavBattlegrounds,
-            ConstructedPage.Standard => NavStandard,
-            ConstructedPage.Wild => NavWild,
-            "Arena" => NavArena,
-            "History" => NavHistory,
-            "Settings" => NavSettings,
-            _ => NavOverview,
-        };
-        nav.IsChecked = true;
-    }
+    public void ShowPage(string page) => PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, ConstructedPage.Migrate(page))].IsChecked = true;
 
     /// <summary>Shows a Settings tab by its tag ("General", "Overlay", "Tracker", "Account", "Data", "About"); unknown names show General.</summary>
     public void ShowSettingsTab(string tab)
@@ -96,14 +83,18 @@ public partial class MainWindow : Window
     }
 
     /// <summary>The open page, as <see cref="ShowPage"/> takes it.</summary>
-    public string CurrentPage =>
-        NavBattlegrounds.IsChecked == true ? "Battlegrounds"
-        : NavStandard.IsChecked == true ? ConstructedPage.Standard
-        : NavWild.IsChecked == true ? ConstructedPage.Wild
-        : NavArena.IsChecked == true ? "Arena"
-        : NavHistory.IsChecked == true ? "History"
-        : NavSettings.IsChecked == true ? "Settings"
-        : "Overview";
+    public string CurrentPage => MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)) ?? MainViewModel.NavPages[0];
+
+    /// <summary>The sidebar buttons in <see cref="MainViewModel.NavPages"/> order.</summary>
+    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavHistory, NavSettings];
+
+    /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
+    private ToggleButton[] BattlegroundsTabButtons => [TabHeroes, TabComps, TabTrinkets, TabCards, TabMine];
+
+    /// <summary>The Constructed tabs in <see cref="MainViewModel.ConstructedTabs"/> order.</summary>
+    private ToggleButton[] ConstructedTabButtons => [TabMyDecks, TabMetaTiers, TabMetaDecks, TabMetaMatchups];
+
+    private static bool?[] States(ToggleButton[] buttons) => Array.ConvertAll(buttons, b => b.IsChecked);
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -219,18 +210,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Leaving History lets go of the open match: only the match on screen is kept in memory.
-        if (_viewModel.MatchOpen && NavHistory.IsChecked != true
-            && new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavSettings }.Any(n => n.IsChecked == true))
-        {
-            _viewModel.CloseMatch();
-        }
-
-        // Standard and Wild are one page shown for a format.
-        if (ConstructedShown)
-        {
-            _viewModel.ShowConstructedFormat(ConstructedPage.FormatOf(NavWild.IsChecked == true ? ConstructedPage.Wild : ConstructedPage.Standard));
-        }
+        _viewModel.PageShown(MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)));
 
         PageOverview.Visibility = NavOverview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageBattlegrounds.Visibility = NavBattlegrounds.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -309,11 +289,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var shown = BgTiers.ShowTab(TabComps.IsChecked == true ? "Comps"
-            : TabTrinkets.IsChecked == true ? "Trinkets"
-            : TabCards.IsChecked == true ? "Cards"
-            : TabMine.IsChecked == true ? "Mine"
-            : "Heroes");
+        var shown = BgTiers.ShowTab(BattlegroundsTab);
         BracketPicker.Visibility = TabMine.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
         if (sender is RadioButton { IsChecked: true })
         {
@@ -331,10 +307,8 @@ public partial class MainWindow : Window
         var meta = TabMyDecks.IsChecked != true;
         MyDecksPanel.Visibility = meta ? Visibility.Collapsed : Visibility.Visible;
         CtStats.Visibility = MyDecksPanel.Visibility;
-        var shown = CtMeta.ShowTab(TabMetaTiers.IsChecked == true ? "Tiers"
-            : TabMetaDecks.IsChecked == true ? "Top"
-            : TabMetaMatchups.IsChecked == true ? "Matchups"
-            : null);
+        var tab = ConstructedTab;
+        var shown = CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
         if (sender is RadioButton { IsChecked: true })
         {
             Reveal(shown ?? CtStats, 8);
@@ -345,13 +319,8 @@ public partial class MainWindow : Window
     public Decks.DeckDetailsView DeckDetailsPage => DeckDetails;
 
     /// <summary>Opens a Constructed tab: "Decks", "Tiers", "Top" or "Matchups" (used by the UI render check).</summary>
-    public void ShowConstructedTab(string tab) => (tab switch
-    {
-        "Tiers" => TabMetaTiers,
-        "Top" => TabMetaDecks,
-        "Matchups" => TabMetaMatchups,
-        _ => TabMyDecks,
-    }).IsChecked = true;
+    public void ShowConstructedTab(string tab) =>
+        ConstructedTabButtons[MainViewModel.NavIndex(MainViewModel.ConstructedTabs, tab)].IsChecked = true;
 
     /// <summary>Where this window is: page, tabs and bounds.</summary>
     public MainPlace Place => new(
@@ -380,28 +349,14 @@ public partial class MainWindow : Window
     /// <summary>The open Battlegrounds tab ("Heroes", "Comps", "Trinkets", "Cards", "Mine"), kept when the window is rebuilt.</summary>
     public string BattlegroundsTab
     {
-        get => TabComps.IsChecked == true ? "Comps"
-            : TabTrinkets.IsChecked == true ? "Trinkets"
-            : TabCards.IsChecked == true ? "Cards"
-            : TabMine.IsChecked == true ? "Mine"
-            : "Heroes";
-        set => (value switch
-        {
-            "Comps" => TabComps,
-            "Trinkets" => TabTrinkets,
-            "Cards" => TabCards,
-            "Mine" => TabMine,
-            _ => TabHeroes,
-        }).IsChecked = true;
+        get => MainViewModel.NavChecked(MainViewModel.BattlegroundsTabs, States(BattlegroundsTabButtons)) ?? MainViewModel.BattlegroundsTabs[0];
+        set => BattlegroundsTabButtons[MainViewModel.NavIndex(MainViewModel.BattlegroundsTabs, value)].IsChecked = true;
     }
 
     /// <summary>The open Constructed tab ("Decks", "Tiers", "Top", "Matchups"), kept when the window is rebuilt.</summary>
     public string ConstructedTab
     {
-        get => TabMetaTiers.IsChecked == true ? "Tiers"
-            : TabMetaDecks.IsChecked == true ? "Top"
-            : TabMetaMatchups.IsChecked == true ? "Matchups"
-            : "Decks";
+        get => MainViewModel.NavChecked(MainViewModel.ConstructedTabs, States(ConstructedTabButtons)) ?? MainViewModel.ConstructedTabs[0];
         set => ShowConstructedTab(value);
     }
 
