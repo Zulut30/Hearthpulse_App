@@ -13,7 +13,8 @@ namespace Hearthpulse.Core.Tracking.Counters;
 /// Its controller's turn start clears EXHAUSTED. An attack raises NUM_ATTACKS_THIS_TURN, and the last attack sets
 /// EXHAUSTED; NUM_ATTACKS_THIS_TURN clears at the next turn start, EXHAUSTED only at the controller's own. A Rush
 /// minion enters not EXHAUSTED: on that turn it can attack only minions. A temporary hero attack buff ends with the
-/// turn (ATK back to the weapon's).
+/// turn (ATK back to the weapon's). CANNOT_ATTACK_HEROES ("can't attack heroes": Air Support, an Infinite weapon,
+/// Icehowl) is the tag's name in the client's enumeration; no kept log had such a card yet.
 /// </remarks>
 public static class BoardDamage
 {
@@ -24,6 +25,8 @@ public static class BoardDamage
     {
         public int Total => Minions + Hero;
     }
+
+    private const string CannotAttackHeroes = "CANNOT_ATTACK_HEROES";
 
     public static Result Of(GameState game, int playerId)
     {
@@ -95,7 +98,7 @@ public static class BoardDamage
     /// <summary>The hero's damage: its attack (with the weapon) times the attacks left, or on the next turn the attack it keeps.</summary>
     private static int HeroDamage(Entity hero, Entity? weapon, bool thisTurn)
     {
-        if (Held(hero))
+        if (Held(hero) || (weapon is not null && weapon.Has(CannotAttackHeroes)))
         {
             return 0;
         }
@@ -110,8 +113,11 @@ public static class BoardDamage
         return hero.Has("EXHAUSTED") ? 0 : hero.Attack * Math.Max(0, swings - hero.GetInt("NUM_ATTACKS_THIS_TURN"));
     }
 
-    /// <summary>Frozen or unable to attack: the character attacks neither this turn nor, frozen now, on its next one.</summary>
-    private static bool Held(Entity character) => character.Has("FROZEN") || character.Has("CANT_ATTACK");
+    /// <summary>
+    /// Frozen, unable to attack, or unable to attack heroes: the character does not hit the hero this turn nor, frozen
+    /// now, on its next one.
+    /// </summary>
+    private static bool Held(Entity character) => character.Has("FROZEN") || character.Has("CANT_ATTACK") || character.Has(CannotAttackHeroes);
 
     private static int Swings(Entity character) => character.Has(GameTag.MegaWindfury) ? 4 : character.Has(GameTag.Windfury) ? 2 : 1;
 }

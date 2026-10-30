@@ -213,6 +213,29 @@ public sealed class BoardDamageTests
     }
 
     [Fact]
+    public void Characters_that_cannot_attack_heroes_add_nothing()
+    {
+        // Air Support (CATA_564): Mega-Windfury, and it cannot attack heroes. Without the tag the same minion is 12.
+        Assert.Equal(12, Damage(Play(Minion(40, 1, 3), [Game("TURN", 5), Tag(40, "MEGA_WINDFURY", 1)]), 1).Minions);
+        var air = Play(Minion(40, 1, 3), [Game("TURN", 5), Tag(40, "MEGA_WINDFURY", 1), Tag(40, "CANNOT_ATTACK_HEROES", 1)]);
+        Assert.Equal(0, Damage(air, 1).Minions);
+
+        // Icehowl (AT_125): Charge, played this turn, and it cannot attack heroes.
+        var charge = Play([Game("TURN", 5)], Played(41, 1, 10, "CHARGE value=1", "CANNOT_ATTACK_HEROES value=1"));
+        Assert.Equal(0, Damage(charge, 1).Minions);
+
+        // A weapon that cannot attack heroes (END_012): the hero adds nothing with it, this turn or the next.
+        var weapon = Play(
+            Card(60, "W_A", "PLAY", 1, "WEAPON", "ATK value=3", "DURABILITY value=3", "CANNOT_ATTACK_HEROES value=1"),
+            [Game("TURN", 5), Tag(20, "ATK", 3)]);
+        Assert.Equal(0, Damage(weapon, 1).Hero);
+        var later = Play(
+            Card(60, "W_A", "PLAY", 1, "WEAPON", "ATK value=3", "DURABILITY value=3", "CANNOT_ATTACK_HEROES value=1"),
+            [Game("TURN", 5)], NextTurn(6, 2));
+        Assert.Equal(0, Damage(later, 1).Hero);
+    }
+
+    [Fact]
     public void The_counter_shows_both_sides_with_the_parts_and_the_attackers()
     {
         Loc.Instance.SetLanguage(Loc.English);
