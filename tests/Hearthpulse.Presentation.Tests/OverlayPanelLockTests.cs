@@ -167,6 +167,7 @@ public sealed class OverlayPanelLockTests
         Assert.False(OverlayHit.GetInteractive(deck));
         // The button sits above the panel; the pointer on its way there keeps it up.
         var lockSpot = button.TranslatePoint(new Point(button.ActualWidth / 2, button.ActualHeight / 2), root);
+        var lockCorner = button.TranslatePoint(default, root);
         Assert.True(lockSpot.Y < deck.TranslatePoint(default, root).Y, lockSpot.ToString());
         Assert.False(window.UpdateDragArm(lockSpot, controlDown: false, At(500)));
         Assert.True(deck.OffersLock);
@@ -193,6 +194,9 @@ public sealed class OverlayPanelLockTests
         Assert.Equal(Visibility.Visible, Part(deck, "LockLabel").Visibility);
         Assert.Equal(Visibility.Collapsed, Part(deck, "UnlockLabel").Visibility);
         Assert.Equal("Lock panels", ((TextBlock)Part(deck, "LockLabel")).Text);
+        // The button stays where it was pressed: the tag and tools appear beside it, so a second click is not a drag.
+        var moved = button.TranslatePoint(default, root) - lockCorner;
+        Assert.True(Math.Abs(moved.X) < 0.5 && Math.Abs(moved.Y) < 0.5, moved.ToString());
 
         // The Discover row stays the game's however long the pointer rests on it; Ctrl still moves it.
         Assert.False(window.UpdateDragArm(Inside(choice), controlDown: false, At(600)));

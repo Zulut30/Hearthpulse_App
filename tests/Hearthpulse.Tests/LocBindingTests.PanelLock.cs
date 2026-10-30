@@ -86,6 +86,7 @@ public sealed partial class LocBindingTests
             Assert.False(Part<Border>(timer, "Tag").IsEffectivelyVisible);
             Assert.False(Part<Rectangle>(timer, "Frame").IsVisible);
             var lockSpot = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), view)!.Value;
+            var lockCorner = button.TranslatePoint(default, view)!.Value;
             Assert.True(view.IsInteractiveAt(lockSpot));
             Assert.False(view.IsInteractiveAt(Inside(timer)));
             Assert.False(view.UpdateDragArm(lockSpot, controlDown: false, At(500)));
@@ -115,6 +116,9 @@ public sealed partial class LocBindingTests
             Assert.True(Part<TextBlock>(timer, "LockLabel").IsEffectivelyVisible);
             Assert.False(Part<TextBlock>(timer, "UnlockLabel").IsEffectivelyVisible);
             Assert.Equal("Lock panels", Part<TextBlock>(timer, "LockLabel").Text);
+            // The button stays where it was pressed: the tag and tools appear beside it, so a second click is not a drag.
+            var moved = button.TranslatePoint(default, view)!.Value - lockCorner;
+            Assert.True(Math.Abs(moved.X) < 0.5 && Math.Abs(moved.Y) < 0.5, moved.ToString());
 
             // The Discover row stays the game's however long the pointer rests on it; Ctrl still moves it.
             Assert.False(view.UpdateDragArm(Inside(choice), controlDown: false, At(600)));

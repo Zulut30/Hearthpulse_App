@@ -737,6 +737,20 @@
                         <o:PanelTagStrip>
                             <Panel Name="PART_Chrome" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-26,0,0" Height="26">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                                    <!-- The panels' lock, first so it stays under the pointer when the tag and tools appear beside it; on a
+                                         locked panel the only part that takes the mouse -->
+                                    <Button Name="PART_Lock" Classes="lockButton" IsVisible="False" Margin="0,0,4,0" o:OverlayHit.Interactive="True"
+                                            ToolTip.Tip="{i:Loc Overlay.Lock.UnlockTip}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Name="UnlockIcon" Text="&#xF033F;" Classes="icon" FontSize="11" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" />
+                                            <TextBlock Name="LockIcon" Text="&#xF033E;" Classes="icon" FontSize="11" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center"
+                                                       IsVisible="False" />
+                                            <TextBlock Name="UnlockLabel" Text="{i:Loc Overlay.Lock.Unlock}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}"
+                                                       Margin="4,0,0,0" VerticalAlignment="Center" />
+                                            <TextBlock Name="LockLabel" Text="{i:Loc Overlay.Lock.Lock}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}"
+                                                       Margin="4,0,0,0" VerticalAlignment="Center" IsVisible="False" />
+                                        </StackPanel>
+                                    </Button>
                                     <Border Name="Tag" Height="18" Background="{StaticResource Accent}" CornerRadius="5" Padding="7,0" IsHitTestVisible="False">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
@@ -763,19 +777,6 @@
                                             <Button Name="PART_Reset" Classes="icon tagButton" Content="&#xF099B;" ToolTip.Tip="{i:Loc Overlay.Layout.ResetPanel}" />
                                         </StackPanel>
                                     </Border>
-                                    <!-- The panels' lock: on a locked panel the only part that takes the mouse -->
-                                    <Button Name="PART_Lock" Classes="lockButton" IsVisible="False" Margin="4,0,0,0" o:OverlayHit.Interactive="True"
-                                            ToolTip.Tip="{i:Loc Overlay.Lock.UnlockTip}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Name="UnlockIcon" Text="&#xF033F;" Classes="icon" FontSize="11" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" />
-                                            <TextBlock Name="LockIcon" Text="&#xF033E;" Classes="icon" FontSize="11" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center"
-                                                       IsVisible="False" />
-                                            <TextBlock Name="UnlockLabel" Text="{i:Loc Overlay.Lock.Unlock}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}"
-                                                       Margin="4,0,0,0" VerticalAlignment="Center" />
-                                            <TextBlock Name="LockLabel" Text="{i:Loc Overlay.Lock.Lock}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}"
-                                                       Margin="4,0,0,0" VerticalAlignment="Center" IsVisible="False" />
-                                        </StackPanel>
-                                    </Button>
                                 </StackPanel>
                             </Panel>
                         </o:PanelTagStrip>
