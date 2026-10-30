@@ -58,6 +58,34 @@ public sealed class OverlayMoveMarkupTests
         }
     }
 
+    /// <summary>
+    /// The lock button's word stays readable under the mouse in every theme: the plate turns the primary button's hover
+    /// fill and the icon and labels stay OnAccent, the pair ThemeContrastTests holds to 4.5:1 in every preset. The tag
+    /// buttons' dark shade left "Unlock panels" at 1.31:1 in Tavern.
+    /// </summary>
+    [Fact]
+    public void The_lock_button_keeps_its_word_readable_under_the_mouse()
+    {
+        var wpf = XDocument.Load(Path.Combine(RepoRoot(), "src/Hearthpulse.App/Overlay/OverlayWindow.xaml")).Root!;
+        var style = wpf.Descendants().Single(e => e.Name.LocalName == "Style" && e.Attributes().Any(a => a.Name.LocalName == "Key" && a.Value == "LockButton"));
+        var hover = style.Descendants().Single(e => e.Name.LocalName == "Trigger" && (string?)e.Attribute("Property") == "IsMouseOver").Elements().Single();
+        Assert.Equal(("Plate", "Background", "{StaticResource PrimaryFillHover}"),
+            ((string?)hover.Attribute("TargetName"), (string?)hover.Attribute("Property"), (string?)hover.Attribute("Value")));
+
+        var ava = XDocument.Load(Path.Combine(RepoRoot(), "src/Hearthpulse.UI/Overlay/OverlayView.axaml")).Root!;
+        var pointer = ava.Descendants().Single(e => e.Name.LocalName == "Style" && (string?)e.Attribute("Selector") == "Button.lockButton:pointerover /template/ Border#Plate")
+            .Elements().Single();
+        Assert.Equal(("Background", "{StaticResource PrimaryFillHover}"), ((string?)pointer.Attribute("Property"), (string?)pointer.Attribute("Value")));
+
+        foreach (var view in new[] { wpf, ava })
+        {
+            var button = view.Descendants().Single(e => e.Attributes().Any(a => a.Name.LocalName == "Name" && a.Value == "PART_Lock"));
+            var texts = button.Descendants().Where(e => e.Name.LocalName == "TextBlock").ToList();
+            Assert.Equal(4 - (view == wpf ? 1 : 0), texts.Count);
+            Assert.All(texts, t => Assert.Equal("{StaticResource OnAccent}", (string?)t.Attribute("Foreground")));
+        }
+    }
+
     private static string RepoRoot([CallerFilePath] string source = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", ".."));
 }

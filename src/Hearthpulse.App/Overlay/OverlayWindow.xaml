@@ -714,7 +714,8 @@
             </Setter>
         </Style>
 
-        <!-- The panels' lock on a name tag: "Unlock panels" / "Lock panels", an icon and a word on the accent plate -->
+        <!-- The panels' lock on a name tag: "Unlock panels" / "Lock panels", an icon and a word on the accent plate. Under
+             the mouse the primary button's hover fill: the tag buttons' dark shade left the word at 1.3:1 -->
         <Style x:Key="LockButton" TargetType="Button">
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Cursor" Value="Hand" />
@@ -729,7 +730,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Plate" Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+                                <Setter TargetName="Plate" Property="Background" Value="{StaticResource PrimaryFillHover}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

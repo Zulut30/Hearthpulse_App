@@ -868,7 +868,8 @@
         <Style Selector="o|MovablePanel.editing.placeholder /template/ Border#PART_Grip">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <!-- The panels' lock on a name tag: "Unlock panels" / "Lock panels", an icon and a word on the accent plate -->
+        <!-- The panels' lock on a name tag: "Unlock panels" / "Lock panels", an icon and a word on the accent plate. Under
+             the pointer the primary button's hover fill: the tag buttons' dark shade left the word at 1.3:1 -->
         <Style Selector="Button.lockButton">
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Cursor" Value="Hand" />
@@ -883,7 +884,7 @@
             </Setter>
         </Style>
         <Style Selector="Button.lockButton:pointerover /template/ Border#Plate">
-            <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+            <Setter Property="Background" Value="{StaticResource PrimaryFillHover}" />
         </Style>
         <!-- Panels unlocked: every free panel shows its frame, and the one under the pointer arms as with Ctrl -->
         <Style Selector="o|MovablePanel.free /template/ Rectangle#Frame">
