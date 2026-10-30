@@ -213,6 +213,15 @@ public sealed class BoardDamageTests
     }
 
     [Fact]
+    public void Mega_windfury_written_as_windfury_3_swings_four_times()
+    {
+        // No kept log had Mega-Windfury: whether the client writes MEGA_WINDFURY or WINDFURY=3, both count 4 attacks.
+        Assert.Equal(8, Damage(Play(Minion(40, 1, 2, "WINDFURY value=3"), [Game("TURN", 5)]), 1).Minions);
+        Assert.Equal(8, Damage(Play(Minion(40, 1, 2, "MEGA_WINDFURY value=1"), [Game("TURN", 5)]), 1).Minions);
+        Assert.Equal(4, Damage(Play(Minion(40, 1, 2, "WINDFURY value=1"), [Game("TURN", 5)]), 1).Minions);
+    }
+
+    [Fact]
     public void After_a_reconnect_on_your_turn_the_board_still_counts()
     {
         // A reconnect replays the game from CREATE_GAME: every minion is created in play on the current turn. Those that

@@ -144,5 +144,7 @@ public static class BoardDamage
     /// </summary>
     private static bool Held(Entity character) => character.Has("FROZEN") || character.Has("CANT_ATTACK") || character.Has(CannotAttackHeroes);
 
-    private static int Swings(Entity character) => character.Has(GameTag.MegaWindfury) ? 4 : character.Has(GameTag.Windfury) ? 2 : 1;
+    /// <summary>Attacks a turn: Mega-Windfury 4 (its own tag, or WINDFURY 3 as the client may write it), Windfury 2.</summary>
+    private static int Swings(Entity character) =>
+        character.Has(GameTag.MegaWindfury) || character.GetInt(GameTag.Windfury) >= 3 ? 4 : character.Has(GameTag.Windfury) ? 2 : 1;
 }
