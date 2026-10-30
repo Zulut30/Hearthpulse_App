@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Hearthpulse.UI</RootNamespace>
-    <Version>0.13.0</Version>
+    <Version>0.14.0</Version>
     <HearthpulsePresentationFlavor>Avalonia</HearthpulsePresentationFlavor>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>

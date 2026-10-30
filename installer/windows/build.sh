@@ -7,7 +7,7 @@
 # (the release workflow builds the two on separate runners at the same time).
 set -euo pipefail
 
-VERSION="${1:-0.13.0}"
+VERSION="${1:-0.14.0}"
 PART="${2:-all}"
 case "$PART" in all|app|preview) ;; *) echo "unknown part '$PART' (all, app or preview)" >&2; exit 2 ;; esac
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
