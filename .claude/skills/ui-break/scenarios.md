@@ -53,7 +53,7 @@ options.
 | --- | --- |
 | Zero items | Blank regions, missing empty states |
 | One item | Layouts designed around plural content |
-| The realistic count (a 30-card deck, 6 BG opponents, 3 Discover options) | The baseline |
+| The realistic count (a 30-card deck, 7 BG opponents, 3 Discover options) | The baseline |
 | The game's maximum (40 cards with Renathal, 10 cards in hand, 7 minions a side) | Lists that never scroll, panels that leave the screen |
 | Ten times the realistic count (history: 3000 games) | Missing virtualisation or paging, slow first render |
 
@@ -69,7 +69,7 @@ Zero-item breaks land in `better-writing` for the empty state and `better-layout
 | WPF minimum window `1040 × 660` | Clipping, controls leaving the page |
 | Avalonia compact, 420 wide | Columns that do not stack, `.wide` content that stays |
 | A cramped `*` column beside fixed columns | A child refusing to shrink |
-| Overlay at `OverlayScale` 0.6 and 1.6, panel scale 0.6 and 1.6 | Unreadable text at the small end, a panel off screen at the large end |
+| Overlay at `OverlayScale` 0.7 and 1.4 (the slider's ends), panel scale 0.6 and 1.6 | Unreadable text at the small end, a panel off screen at the large end |
 | A very wide container (1920 for a main-window piece) | Unbounded line length, controls pinned to opposite edges |
 
 Breaks land in `better-layout`; text too small to read lands in `better-typography`.

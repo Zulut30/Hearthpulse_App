@@ -25,7 +25,7 @@ recipes belong to `better-ui`. Focus ring styles are tokens of `hearthpulse-desi
 
 ## Owner's rules
 
-Every UI change here holds to these, whatever a skill says elsewhere:
+These are the owner's rules and CLAUDE.md; a session brief may narrow them (for example, no render):
 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window
@@ -51,7 +51,8 @@ than 24×24. The thresholds below are exact; keep an established, usable density
 A `Button` for actions, a `CheckBox Style="{StaticResource Switch}"` / `Classes="switch"` for toggles, a
 `RadioButton` (`Segment`, `NavItem`, `Tab`) for one-of choices, a `ToolTip` for hover help. Never a `Border` or `Grid`
 with `MouseLeftButtonUp` / `PointerPressed` doing a button's job: it has no focus, no Enter or Space and no automation
-role. Where a row must click, use the project's `RowButton` style (WPF) or `Button.bare` + `row` (Avalonia). See
+role. Where a row must click, use the project's `RowButton` style (WPF) or `Button.bare` + `row` (Avalonia); a row that
+does not click stays a `RowBorder` / `row`. See
 [names-and-announcements.md](names-and-announcements.md).
 
 ## Disabled means unavailable
@@ -64,7 +65,7 @@ keyboard. Disabled controls are exempt from contrast minimums.
 ## Visible focus rings
 
 Every focusable control in the main window shows where focus is. WPF draws it through `FocusVisualStyle` with the
-theme's `FocusRing`, `FocusRingChip`, `FocusRingNav`, `FocusRingRow` and `FocusRingRound` styles; Avalonia's Fluent
+theme's `FocusRing`, `FocusRingChip`, `FocusRingNav`, `FocusRingRow`, `FocusRingRound` and `FocusRingSwitch` styles; Avalonia's Fluent
 theme draws its focus adorner. `FocusVisualStyle="{x:Null}"` or `FocusAdorner="{x:Null}"` without a replacement is
 a finding. A new ring reaches 3:1 against everything it crosses (1.4.11), measured with `better-colors`. Recipes are
 in [keyboard-and-focus.md](keyboard-and-focus.md).
@@ -94,8 +95,9 @@ reset (2.5.7). Details are in [hit-areas.md](hit-areas.md).
 
 ## Label every input
 
-A `TextBox`, `ComboBox` or `Slider` gets a visible label tied to it: `Label Target="{Binding ElementName=X}"`, or
-`AutomationProperties.LabeledBy` pointing at the visible `TextBlock`. A placeholder (`Watermark`) is never a label.
+A `TextBox`, `ComboBox` or `Slider` gets a visible label tied to it: by default a `TextBlock` with the `Label` style
+(Avalonia `label` class) that the control names through `AutomationProperties.LabeledBy`. A `Label` control with
+`Target` only once `hearthpulse-design` has a style for it. A placeholder (`Watermark`) is never a label.
 A `CheckBox` or `RadioButton` carries its label as `Content`, so the label and the control share one hit target.
 See [names-and-announcements.md](names-and-announcements.md).
 
@@ -127,8 +129,9 @@ leave the colours alone unless asked.
 ## Honour the Windows animation setting
 
 WPF animates only when `SystemParameters.ClientAreaAnimation` is on, and every new animation takes the same guard
-(`hearthpulse-design`). Under the setting off, a slide or scale becomes an instant change or an opacity fade. The
-Avalonia UI has no animations; the first one there is a design decision with the same guard. See
+(`hearthpulse-design`); the theme's own storyboards are made instant by `ThemeEngine`. Under the setting off, a slide
+or scale becomes an instant change or an opacity fade. Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press): state feedback
+with no guard yet. Any other Avalonia motion is a `hearthpulse-design` decision. See
 [motion-and-scale.md](motion-and-scale.md).
 
 ## Nothing the player needs runs on a timer
@@ -152,7 +155,8 @@ After `ShowPage`, focus lands on the new page, not on a control left behind on t
 ## Survive scale
 
 Nothing clips or overlaps at the minimum window size (WPF `MinWidth="1040" MinHeight="660"`), in Avalonia compact
-(rendered 420 wide), with Russian text, or in the overlay at `OverlayScale` 0.6 and 1.6 and panel scale 0.6 to 1.6.
+(rendered 420 wide), with Russian text, or in the overlay at `OverlayScale` 0.7 and 1.4 (the Settings slider; the code clamps to 0.6-1.6)
+and panel scale 0.6 to 1.6.
 Fixed `Height` on a text container is the usual cause; `better-layout` owns the fix.
 
 ## Before you finish
@@ -166,10 +170,10 @@ Fixed `Height` on a text container is the usual cause; `better-layout` owns the 
 | An icon-only `Button` (`IconButton`, `icon`) without `AutomationProperties.Name` | `AutomationProperties.Name="{i:Loc Key}"` in both views |
 | `AutomationProperties.Name` that omits the visible label's words | Start the name with the visible text |
 | `IsEnabled="False"` with the reason only in `ToolTip` | Visible text beside it, or `ShowOnDisabled` |
-| `Watermark` or `PlaceholderText` as the only label | A `Label Target` or `LabeledBy` |
+| `Watermark` or `PlaceholderText` as the only label | A `Label`-style `TextBlock` and `LabeledBy` |
 | A clickable `Border` or `Grid` with no `Background` (WPF) | `Background="Transparent"` |
 | `OverlayHit.Interactive` on a panel root that is not all clickable | Mark only the clickable element |
-| A new `Storyboard`, `DoubleAnimation` or Avalonia `Transitions` with no animation-setting guard | Guard it, or drop the motion |
+| A new `Storyboard` outside `Themes/`, or an animation started from code, with no animation-setting guard | Guard it, or drop the motion |
 | A status `TextBlock` created with its text at the moment it should announce | Keep the element, change its text, set `LiveSetting` |
 | `Positive`/`Negative` brush as the only signal of a result | Add the sign, letter or icon |
 | A dragged control with no click alternative | Buttons or a menu that reach the same result |

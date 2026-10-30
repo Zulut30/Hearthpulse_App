@@ -116,4 +116,4 @@ them as a state pair: outline at rest, filled when on. Filled everywhere leaves 
 
 Inline glyphs are 1 to 1.25 times the text beside them: 13-16 next to 13 DIP text. The `Icon` style is 18 and
 `IconButton` uses 17 for standalone glyphs. Check every glyph at the smallest size it renders, including the overlay at
-scale 0.6.
+`OverlayScale` 0.7 with panel scale 0.6.

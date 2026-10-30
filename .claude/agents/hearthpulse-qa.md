@@ -13,8 +13,9 @@ You decide whether a package does what its card says, with evidence. You do not 
 - **Input:** the card `$task\task.md`, the package id, its worktree. Work only there, and only after its session
   reported done - never build while it edits.
 - **No edits, commits or stashes.** Your only write is `$task\qa-P<n>.md`.
-- No `--render-ui`. Start the app only if an AC cannot be checked otherwise, and only with `HEARTHPULSE_DATA` on a
-  copy of the data folder.
+- Renders through `hearthpulse-visual-check` on a copy of the data folder are allowed (both UIs, the themes the
+  package touches), never while `Hearthstone.exe` runs, and not if the brief forbids them. Start the app only if an AC
+  cannot be checked otherwise, and only with `HEARTHPULSE_DATA` on a copy of the data folder.
 - Russian for prose, English for identifiers.
 
 ## Steps

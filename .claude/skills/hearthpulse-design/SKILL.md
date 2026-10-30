@@ -68,8 +68,10 @@ Consequences:
   secondary text the player reads (AA on every surface and preset). `Faint` is below AA: only separators, glyphs, an
   empty box's placeholder and disabled things. `ReadableTextTests` fails on a bound or localized text painted `Faint`,
   directly or through its style (outside `Themes/` and `Main/Match/`).
-- Avalonia has **no theme engine**: Theme.axaml is static Tavern and `ThemePalette` is not used in `Hearthpulse.UI`.
-  Still use tokens so a future engine works.
+- Avalonia has its own engine, `src/Hearthpulse.UI/Infrastructure/ThemeEngine.cs`: it rewrites the brushes of
+  Theme.axaml in place through the same `ThemePalette.Map` and fixed prefixes, picked in Settings like WPF
+  (`MainView.axaml.cs` `ApplyTheme`). A hex outside Theme.axaml is not recoloured there either. The Avalonia renderer
+  ignores `HEARTHPULSE_THEME` and renders Tavern only.
 
 Core tokens (details in reference): `Bg`, `Surface`, `Surface2`-`Surface4`, `Border`, `Outline`, `Text`, `Muted`,
 `Faint`, `Accent`, `AccentDeep`, `AccentSoft`, `AccentLine`, `AccentContainer`, `OnAccent`, `OnAccentContainer`,
@@ -156,8 +158,9 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
 
 WPF only animates when Windows' animation setting is on: `MainWindow.xaml.cs` checks
 `SystemParameters.ClientAreaAnimation` before the nav pill slide (340 ms, BackEase) and page reveal (280 ms rise +
-220 ms fade, CubicEase). Hover layers fade in 0.12 s / out 0.22 s. Any new animation must take the same guard. The
-Avalonia UI currently has no animations.
+220 ms fade, CubicEase). Hover layers fade in 0.12 s / out 0.22 s. Any new animation must take the same guard; the
+theme's own storyboards are made instant by `ThemeEngine` when the setting is off. Avalonia's Theme.axaml has
+`Transitions` of 0.25 s or less (hover, press) with no guard yet; anything beyond them is a design decision here.
 
 ## Adding a page, panel or setting
 
@@ -171,10 +174,8 @@ no hex literals outside the theme files, new tokens in both theme files, animati
 
 ## Known UI gaps (checked on main 2e8d9be, Oct 2026)
 
-- WPF only: the
-  theme picker (`MainViewModel.Theme.cs`: `Themes`, `SelectTheme`, custom hue sliders), page reveal and nav pill
-  animation, the faded hero banner, and the overlay tribe focus (`CompFocus`, `FocusChoices` in the WPF
-  `OverlayViewModel`).
-- Avalonia only: compact layout below 900 px, an extra overlay switch in
-  Settings. Avalonia has no theme engine (static Tavern).
+- WPF only: page reveal and nav pill animation, the faded hero banner, and the overlay tribe focus (`CompFocus`,
+  `FocusChoices` in the WPF `OverlayViewModel`). Theme renders: `HEARTHPULSE_THEME` works in the WPF renderer only;
+  Avalonia renders Tavern.
+- Avalonia only: compact layout below 900 px, an extra overlay switch in Settings.
 - Compact hero/comp tier tables (Avalonia): fixed column widths leave no room for the name column at phone width.

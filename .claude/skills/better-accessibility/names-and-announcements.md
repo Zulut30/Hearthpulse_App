@@ -42,14 +42,13 @@ Name precedence: `AutomationProperties.Name` > `AutomationProperties.LabeledBy` 
 ## Labels for inputs
 
 ```xml
-<!-- WPF and Avalonia: the label is visible and tied to the box -->
-<Label Content="{i:Loc Settings.<Area>.<Field>}" Target="{Binding ElementName=FieldBox}" />
-<TextBox x:Name="FieldBox" Text="{Binding Field}" />
-
-<!-- Or, where the label is a TextBlock -->
-<TextBlock x:Name="HueLabel" Text="{i:Loc Settings.Theme.Accent}" />
+<!-- WPF (Avalonia: Classes="label"): a visible label the control points at -->
+<TextBlock x:Name="HueLabel" Style="{StaticResource Label}" Text="{i:Loc Settings.Theme.Accent}" />
 <Slider AutomationProperties.LabeledBy="{Binding ElementName=HueLabel}" />
 ```
+
+A `Label` control with `Target` gives the same tie and an access key, but the theme has no style for it yet; use it
+only after `hearthpulse-design` adds one.
 
 A `Watermark` / `PlaceholderText` disappears on typing and is never the label.
 

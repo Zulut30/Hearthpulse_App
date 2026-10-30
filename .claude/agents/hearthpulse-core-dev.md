@@ -26,7 +26,8 @@ the branch.
 - Build `dotnet build Hearthpulse.slnx -c Release -m:2`; restore with
   `--source https://api.nuget.org/v3/index.json`. Tests with `--filter` while working, one full
   `tests/Hearthpulse.Tests` run at the end.
-- The app only with `HEARTHPULSE_DATA` on a copy of the data folder. No `--render-ui`.
+- The app only with `HEARTHPULSE_DATA` on a copy of the data folder. `--render-ui` only through
+  `hearthpulse-visual-check` on a copy, never while `Hearthstone.exe` runs, and not if the brief forbids renders.
 - No game-memory writes, input to the game or hidden information (`hearthpulse-review`, checklist item 2).
 
 ## Finish

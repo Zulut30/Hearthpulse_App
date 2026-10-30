@@ -29,7 +29,7 @@ contrast belong to `better-colors`.
 
 ## Owner's rules
 
-Every UI change here holds to these, whatever a skill says elsewhere:
+These are the owner's rules and CLAUDE.md; a session brief may narrow them (for example, no render):
 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window
@@ -95,8 +95,10 @@ Every animated state change leaves a static cue (colour, glyph or text) behind, 
 ## Gate motion behind the Windows setting
 
 `better-accessibility` owns the requirement and no recipe here ships without it: WPF checks
-`SystemParameters.ClientAreaAnimation`, and with it off the change is instant or an opacity fade. The Avalonia UI has
-no animations yet; the first one there is a `hearthpulse-design` decision. See [motion.md](motion.md#the-guard).
+`SystemParameters.ClientAreaAnimation`, and with it off the change is instant or an opacity fade; the theme's own
+storyboards are made instant by `ThemeEngine`. Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press): state feedback
+with no guard yet. Any other Avalonia motion is a `hearthpulse-design` decision. See
+[motion.md](motion.md#the-guard).
 
 ## Stagger rare entrances by 100 ms
 
@@ -141,7 +143,7 @@ glyphs are 1 to 1.25 times the text size beside them. See [surfaces-and-icons.md
 | A press scale other than `0.96` (`0.9` for icon buttons) | The theme's value |
 | A press scale with no `IsEnabled` exclusion | Scale only when enabled |
 | A hover fade longer than `0.25 s`, or `RepeatBehavior="Forever"` on decoration | `0.12 s` in, `0.22 s` out; no loop |
-| A storyboard or `Transitions` with no `ClientAreaAnimation` guard | Guard it |
+| A storyboard outside `Themes/`, or a code-started animation, with no `ClientAreaAnimation` guard | Guard it |
 | An animation started from `Loaded` for a default state | Start it from the change |
 | A hex `Foreground` on a glyph, or a PNG icon | A token on an MDI glyph |
 | A glyph from another icon font | The MDI code point |

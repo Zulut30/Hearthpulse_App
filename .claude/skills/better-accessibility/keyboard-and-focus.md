@@ -11,7 +11,7 @@ Focus rings, tab order, groups, dialogs and popups, and the overlay exception.
 
 WPF shows a focus visual only for keyboard focus, which matches what the player expects. The theme defines one ring
 per shape in `src/Hearthpulse.App/Themes/Theme.xaml`: `FocusRing`, `FocusRingChip`, `FocusRingNav`, `FocusRingRow`,
-`FocusRingRound`. A control style points at the one that fits its shape:
+`FocusRingRound`, `FocusRingSwitch`. A control style points at the one that fits its shape:
 
 ```xml
 <Style x:Key="GhostButton" TargetType="Button">
@@ -72,7 +72,9 @@ control, so focus does not stay on a control the player can no longer see. The w
 
 ## Shortcuts
 
-Global shortcuts live as `KeyBinding`s on the window and in the tray menu; the overlay's layout mode is Ctrl+Shift+L.
+System-wide hotkeys, which work while the game has focus, are registered in `App.xaml.cs` through
+`_hotkeys.Register`; shortcuts that only work in the main window are `KeyBinding`s on it. The overlay's layout mode is
+Ctrl+Shift+L.
 A new shortcut does not override a key the focused control uses (arrows in lists, Space on buttons, typing in a
 `TextBox`), and its action is also reachable without the shortcut.
 

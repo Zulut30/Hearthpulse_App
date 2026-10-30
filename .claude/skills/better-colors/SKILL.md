@@ -23,7 +23,7 @@ changes with the theme are findings.
 
 ## Owner's rules
 
-Every UI change here holds to these, whatever a skill says elsewhere:
+These are the owner's rules and CLAUDE.md; a session brief may narrow them (for example, no render):
 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window
@@ -41,9 +41,10 @@ Every UI change here holds to these, whatever a skill says elsewhere:
 ## Colours live in the theme files only
 
 Every colour is a key in `Themes/Theme.xaml` and `Themes/Theme.axaml`, the same key in both (`ThemeFileTests`). A hex
-literal, `Color.FromRgb`, `Colors.*` or `Brushes.*` in a view, a control or render code is not recoloured by the WPF
-theme engine and leaves a Tavern-gold spot under Frost or Arcane. The deliberate exceptions are listed in
-`hearthpulse-design` (the hue-slider rainbow, transparent stops).
+literal, `Color.FromRgb`, `Colors.*` or `Brushes.*` in a view, a control or render code is not recoloured by either
+theme engine and leaves a Tavern-gold spot under Frost or Arcane. Deliberate exceptions: the hue-slider rainbow and
+transparent stops (`hearthpulse-design`), `Brushes.Transparent`, and the `ManaCost` control's white digit and
+near-black outline, which copy the game's gem.
 
 ## A token names a job
 
@@ -55,11 +56,13 @@ goes with them. `Faint` is below AA: separators, glyphs, an empty box's placehol
 
 ## Meaning colours never recolour
 
-The WPF engine maps every hex in Theme.xaml through `ThemePalette.Map`: gold-range hues become the preset's accent,
+Both engines (WPF and Avalonia `ThemeEngine`) map the theme file's colours through `ThemePalette.Map`: gold-range hues become the preset's accent,
 patina teal becomes its second accent, wood and parchment follow its surface. A colour that carries meaning (win,
 loss, tier, rarity, mana, pool stat, neutral info) lives under a key starting with `Positive`, `Negative`, `Info`,
 `Rarity`, `Tier`, `ManaGem` or `PoolStat`, which the engine skips. A new meaning colour outside those prefixes turns
-purple under Arcane. See [palette-and-tokens.md](palette-and-tokens.md#what-the-engine-recolours).
+purple under Arcane. The WPF engine checks the key line by line, so a `GradientStop` (no `x:Key` of its own) inside a
+meaning gradient is recoloured unless it references a prefixed colour key. See
+[palette-and-tokens.md](palette-and-tokens.md#what-the-engine-recolours).
 
 ## One colour, one meaning
 
@@ -84,8 +87,8 @@ value and the threshold, then leave the colours alone unless asked. See [contras
 
 A new theme is one `ThemeSpec` in `src/Hearthpulse.Core/ThemePalette.cs` (accent hue, base hue and tint, second
 accent hue, accent and surface lift, motif), not a second Theme.xaml. `ThemeContrastTests` runs every preset through
-the contrast table, and the preset needs a `Motif<Name>` geometry (`hearthpulse-design`). Avalonia has no theme engine
-and stays Tavern.
+the contrast table, and the preset needs a `Motif<Name>` geometry (`hearthpulse-design`). Avalonia's `ThemeEngine`
+maps the same presets in place; only the Avalonia renderer stays Tavern, so theme renders are WPF's.
 
 ## Before you finish
 
@@ -94,7 +97,7 @@ and stays Tavern.
 | `#RRGGBB`, `#AARRGGBB`, `FromRgb`, `FromArgb`, `Color.Parse`, `Colors.` or `Brushes.` outside the theme files | A token, existing or new in both theme files |
 | A new key in one theme file only | Add it to the other with the same key |
 | A win/loss/tier/rarity colour under a key without the fixed prefix | Rename the key with the prefix |
-| A meaning colour in the gold (15-60°) or teal (150-186°) hue range | Move it out of the range, or it recolours |
+| A hex `GradientStop` inside a meaning gradient (the stop's line has no prefixed `x:Key`) | `Color="{StaticResource PositiveColor}"` or another prefixed colour key |
 | `Faint` on a bound or localized text | `Muted` |
 | `Accent2` carrying meaning | A meaning token, plus a non-colour cue |
 | `Negative` on a non-destructive action, or `Positive` for "selected" | The role's own token |

@@ -30,8 +30,9 @@ You implement one package of a task card in both UIs. The brief gives the card `
 - Build `dotnet build Hearthpulse.slnx -c Release -m:2`; restore with
   `--source https://api.nuget.org/v3/index.json`. Tests with `--filter` while working, one full run of both suites at
   the end.
-- Render scenes (`DevRender.<Feature>.cs`, `OffscreenRenderer.<Feature>.cs`) may be added, not run: no `--render-ui`
-  unless the brief says the owner asked. The app only with `HEARTHPULSE_DATA` on a copy.
+- Render scenes (`DevRender.<Feature>.cs`, `OffscreenRenderer.<Feature>.cs`) may be added and run with
+  `hearthpulse-visual-check` on a data copy: both UIs, the themes the change touches, never while `Hearthstone.exe`
+  runs, and not at all if the brief forbids renders. The app only with `HEARTHPULSE_DATA` on a copy.
 
 ## Finish
 

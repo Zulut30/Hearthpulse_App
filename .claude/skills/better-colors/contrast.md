@@ -41,7 +41,8 @@ dotnet test tests/Hearthpulse.Tests --filter "FullyQualifiedName~ThemeContrastTe
 ```
 
 A failure names the token, the surface, the mapped colour and the ratio. The test reads WPF's Theme.xaml; Avalonia's
-Theme.axaml holds the same Tavern values (`ThemeFileTests`), so a Tavern pass covers it.
+Theme.axaml holds the same values (`ThemeFileTests`) and its engine maps them with the same `ThemePalette.Map`, so the
+test covers both.
 
 ## Measure rendered pairs from a PNG
 

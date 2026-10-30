@@ -19,7 +19,7 @@ stress testing one component is `ui-break` and working through a component's sta
 
 ## Owner's rules
 
-Every UI change here holds to these, whatever a skill says elsewhere:
+These are the owner's rules and CLAUDE.md; a session brief may narrow them (for example, no render):
 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window

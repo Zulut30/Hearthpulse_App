@@ -19,7 +19,7 @@ copy to `better-writing`, type to `better-typography`, colour to `better-colors`
 
 ## Owner's rules
 
-Every UI change here holds to these, whatever a skill says elsewhere:
+These are the owner's rules and CLAUDE.md; a session brief may narrow them (for example, no render):
 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window
@@ -135,7 +135,7 @@ because the surface is minor.
 - A main-window control or path reachable by mouse but not by keyboard.
 - An animation that ignores Windows' animation setting (`SystemParameters.ClientAreaAnimation`).
 - Content or a control clipped, overlapped or unreachable at the minimum window size, at Avalonia compact width, with
-  Russian text, or at overlay scale 0.6 and 1.6.
+  Russian text, or at `OverlayScale` 0.7 and 1.4 (the Settings slider; the code clamps to 0.6-1.6) and panel scale 0.6 and 1.6.
 - Text whose rendered pair fails its required ratio in any preset, or readable text painted `Faint`.
 - State or meaning carried by colour alone.
 - A semantic colour used against its meaning, or a meaning colour (`Positive`, `Negative`, `Tier*`, `Rarity*`) that

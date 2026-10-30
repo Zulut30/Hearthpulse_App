@@ -26,7 +26,7 @@ pass.
 
 ## Owner's rules
 
-Every UI change here holds to these, whatever a skill says elsewhere:
+These are the owner's rules and CLAUDE.md; a session brief may narrow them (for example, no render):
 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window
@@ -85,7 +85,7 @@ Findings as a table, broken scenarios first:
 | --- | --- | --- | --- |
 | Longest Russian card name | both | Runs under the cost column, no trimming | `better-typography` |
 | Zero games | Avalonia | Blank card with no message | `better-writing` |
-| Overlay scale 0.6 | WPF | Counter label 7 DIP, unreadable | `better-typography` |
+| Overlay scale 0.7, panel scale 0.6 | WPF | Counter label 5 DIP, unreadable | `better-typography` |
 
 This skill owns no domain rules and issues no verdict. "Everything survived" is a complete report: list the scenarios
 and the PNG paths so the owner can look. Do not pad a clean run with preferences.

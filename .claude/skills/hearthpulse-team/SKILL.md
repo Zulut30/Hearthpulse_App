@@ -67,7 +67,9 @@ Per package, when its inputs exist (design.md, a contract from another package):
   ```
   Твоя роль — <role>: прочитай и выполняй .claude/agents/<role>.md.
   Задача: <$task>\task.md, пакет P<n>. Дизайн: <$task>\design.md (если есть).
-  Worktree <path>, ветка claude/<slug>-<pkg>. Коммить только в неё, без push и merge, без render.
+  Worktree <path>, ветка claude/<slug>-<pkg>. Коммить только в неё, без push и merge.
+  Рендер — через hearthpulse-visual-check на копии данных, оба UI, нужные темы, никогда при запущенном
+  Hearthstone.exe. <Или «Без рендера», если задача его запрещает.>
   Сборка -m:2, тесты --filter в работе и один полный прогон в конце.
   В конце: <$task>\handover-P<n>.md и отчёт — коммиты, счёт тестов, закрытые AC, что не проверено.
   ```

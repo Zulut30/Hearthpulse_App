@@ -98,9 +98,12 @@ seven themes, Loc ru/en and `hearthpulse-visual-check` renders. Each rewritten s
 and resizable panels, all seven themes, no render while `Hearthstone.exe` runs, both UIs, only what the player sees
 during a game) and the project's B/M/m/n severity. Not imported: `teardown` (JS/CJS drawing tool), `explain-interface`
 (reads other sites by URL), `build-design` (Figma MCP; designs arrive as `design.md`), `agents/openai.yaml`,
-`.claude-plugin/*`, `AGENTS.md`, `CLAUDE.md`, `opencode.json`, `README.md`.
+`.claude-plugin/*`, `AGENTS.md`, `CLAUDE.md`, `opencode.json`, `README.md`; `better-typography/choosing-fonts.md`,
+`spacing-and-sizing.md`, `details-and-accessibility.md` and `variable-fonts-and-opentype.md` (fonts and ramp are
+`hearthpulse-design`'s, the rest is web: `@font-face`, iOS zoom, `text-box`); `state-machine/switcher.md` and
+`variant/picker.md` (URL switchers).
 
-- Source: https://github.com/jakubkrehel/skills, commit `592aedc44d7d5b3e29740984252902f3e5402a1c` (v1.17.0)
+- Source: https://github.com/jakubkrehel/skills, commit `592aedc44d7d5b3e29740984252902f3e5402a1c` (plugin version 1.17.0)
 - Licence: MIT, Copyright (c) 2026 Jakub Krehel (text below)
 
 | Project path | Source path | Changes |

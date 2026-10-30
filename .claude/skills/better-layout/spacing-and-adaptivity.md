@@ -56,7 +56,7 @@ or a choice row runs out of room.
   ```
 
 - **WPF** has no compact mode; its `MinWidth="1040" MinHeight="660"` is the floor. Check new content at that size.
-- **The overlay** scales as a whole (`OverlayScale` 0.6-1.6) and per panel (0.6-1.6). Check the panel at both ends:
+- **The overlay** scales as a whole (`OverlayScale`: 0.7-1.4 on the Settings slider, clamped to 0.6-1.6 in code) and per panel (0.6-1.6). Check the panel at both ends:
   text must stay readable at 0.6 and the panel must stay on screen at 1.6 (`MovablePanel.KeepOnScreen` pulls it back,
   check it at the bottom and right edges in layout mode).
 

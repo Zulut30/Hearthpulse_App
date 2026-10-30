@@ -8,9 +8,9 @@ Line length, typographic characters in both languages and how to type them.
 
 ## Measure
 
-Long text (an explanation in Settings, a tooltip, an empty state) caps at 60-75 characters per line. At the base 13
-DIP that is a `MaxWidth` of roughly 480-600; settings content already caps at 780 for the whole column. Tooltips set
-their own `MaxWidth` so a long Russian hint wraps instead of crossing the screen.
+Long text (an explanation in Settings, a tooltip, an empty state) caps at about 65 characters per line:
+`MaxWidth="480"` at the base 13 DIP. Settings content already caps at 780 for the whole column. Tooltips set their
+own `MaxWidth` so a long Russian hint wraps instead of crossing the screen.
 
 ## Typographic characters
 
@@ -18,7 +18,7 @@ their own `MaxWidth` so a long Russian hint wraps instead of crossing the screen
 | --- | --- | --- |
 | Straight quotes `"…"` | «ёлочки»; „лапки“ inside them | “double”, ‘single’ inside |
 | Hyphen for an aside | em dash with spaces: «колода — с этой версии» | em dash with spaces, as the existing strings do: "deck — from this version" |
-| Hyphen in a range | en dash without spaces: «3–5 ход» | en dash: "turns 3–5" |
+| Hyphen in a range | en dash without spaces: «ходы 3–5» | en dash: "turns 3–5" |
 | Three dots | `…` | `…` |
 | Space between number and unit | non-breaking: «54 %», «10 с» | non-breaking where a break would split it: "10 s" |
 | Apostrophe | ’ | ’ ("don’t") |
@@ -28,7 +28,8 @@ area's file when it already decided.
 
 ## Writing them
 
-- **JSON string files:** type the character itself (UTF-8). A non-breaking space is ` `.
+- **JSON string files:** type the character itself (UTF-8). A non-breaking space is U+00A0, typed as the
+  character itself.
 - **XAML:** the character itself, or an entity: `&#x2014;` em dash, `&#x2013;` en dash, `&#x2026;` ellipsis,
   `&#160;` non-breaking space. User-facing text belongs in a Loc key anyway.
 - **Code and identifiers:** deck codes, paths and log lines keep straight characters.

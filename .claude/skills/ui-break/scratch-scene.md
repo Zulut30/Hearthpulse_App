@@ -59,7 +59,8 @@ Do not re-theme or translate inside the scene. Render again instead: WPF `--them
 1. Check the game is closed: `Get-Process Hearthstone -ErrorAction SilentlyContinue` prints nothing. If it runs, stop
    and say so.
 2. Render both UIs in the background:
-   `python -B -I .claude/skills/hearthpulse-visual-check/scripts/render.py <out-dir> both`.
+   `python -B -I .claude/skills/hearthpulse-visual-check/scripts/render.py <out-dir> both --data %TEMP%\hpd-<name> --artifacts %TEMP%\hpa-<name>`,
+   with your own data copy and artifacts folder, so parallel sessions never share them.
 3. Open the `scratch-*` PNGs with the Read tool.
 
 ## Never committed, removed in one step

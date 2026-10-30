@@ -49,8 +49,8 @@ packages out (skill `hearthpulse-team`).
   sees or what the data holds) - and names its check: a test, a log replay or a code path. "Работает хорошо" is not
   one.
 - **Always in "Ограничения":** the ground rules of `$repo\CLAUDE.md` are the project's constitution - hidden
-  information (during a game only what the player sees), both UIs, Loc keys ru + en, no render unless the owner asked,
-  the app only with `HEARTHPULSE_DATA` on a copy. Each one holds for the card or is "н/п" with a reason.
+  information (during a game only what the player sees), both UIs, Loc keys ru + en, renders on a data copy and
+  never while `Hearthstone.exe` runs (a card may forbid them), the app only with `HEARTHPULSE_DATA` on a copy. Each one holds for the card or is "н/п" with a reason.
 - **Check before handing over.** Go through the card's "Проверка карточки" as the developer who gets only this card;
   fix what fails. An item you cannot tick stays unticked and goes into your reply.
 

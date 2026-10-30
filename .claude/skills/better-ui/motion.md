@@ -25,8 +25,10 @@ else
 }
 ```
 
-The theme's hover and press feedback (0.25 s or less, no loop) is state feedback and stays. The Avalonia UI has no
-animations; its first one is a `hearthpulse-design` decision with the same guard.
+The theme's hover and press feedback (0.25 s or less, no loop) is state feedback and stays; with the setting off,
+`ThemeEngine` rebuilds Theme.xaml with every `Duration` and `BeginTime` at zero, so only storyboards in views and
+animations started from code need the guard. Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press): state feedback
+with no guard yet. Any other Avalonia motion is a `hearthpulse-design` decision.
 
 ## Animations that reverse
 

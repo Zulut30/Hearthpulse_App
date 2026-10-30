@@ -12,8 +12,8 @@ Recipes for grouping, control distinction, shared edges and ordering.
 Reach for each tool only where the one before it cannot carry the structure:
 
 1. **Space**, the default.
-2. **A plate**: `Card` / `card` for a section, `Row` / `row` for a selectable line, where a group must read as one
-   unit.
+2. **A plate**: `Card` / `card` for a section, `RowBorder` / `row` for a line (`RowButton` / `Button.bare` + `row`
+   when it clicks), where a group must read as one unit.
 3. **A hairline**: a 1 DIP `Border` brush line or the `Wave` rule, for dense data such as tables and long settings
    lists.
 

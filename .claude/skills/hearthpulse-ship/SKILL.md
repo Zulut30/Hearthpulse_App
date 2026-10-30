@@ -17,8 +17,11 @@ Still stop and ask only for:
 - a release: version bump, tag `v*`, GitHub release (see [hearthpulse-release](../hearthpulse-release/SKILL.md));
 - a `hearthpulse-legal` Blocker the owner has not already accepted;
 - a choice that changes what the feature does (two reasonable behaviours, the request does not say which);
-- tests or build still red after a real fix attempt; deleting anything that is not merged;
-- `--render-ui` / `render.py` - only when the user asks for a render in words (the PC is used for playing).
+- tests or build still red after a real fix attempt; deleting anything that is not merged.
+
+Renders (`--render-ui`, `render.py`) need no question: allowed on a data copy (`HEARTHPULSE_DATA`), both UIs, all
+themes, never while `Hearthstone.exe` runs - then skip the render and say so (owner, 2026-10-29). A brief may forbid
+them.
 
 Related: [hearthpulse-parallel-work](../hearthpulse-parallel-work/SKILL.md) (how to split by files),
 [hearthpulse-review](../hearthpulse-review/SKILL.md), [hearthpulse-testing](../hearthpulse-testing/SKILL.md).
@@ -35,8 +38,9 @@ Paths: repo `D:\HeartLens-main\HeartLens-main` (`$repo`), worktrees `D:\HeartLen
   `git -C $repo worktree add D:\HeartLens-main\wt-<name> -b claude/<name> main`.
 - `start_session` with `initiation: "user_asked"`, `cwd` = the worktree, `use_worktree: false`, `context: "fresh"`.
 - Brief: goal in the user's words, owned files, both UIs (WPF + Avalonia) when user-facing, build `-m:2`,
-  tests `--filter` while working and one full run at the end, no render, **commit to `claude/<name>` only, no push,
-  no merge**, final report = commits + test counts + what was not checked.
+  tests `--filter` while working and one full run at the end, renders through `hearthpulse-visual-check` on a data
+  copy and never while `Hearthstone.exe` runs (or "no render" when this task forbids it), **commit to
+  `claude/<name>` only, no push, no merge**, final report = commits + test counts + what was not checked.
 
 ## 2. Verify each finished session
 

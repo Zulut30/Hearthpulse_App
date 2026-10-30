@@ -20,7 +20,7 @@ the text to `better-layout`. Measure contrast with `better-colors`.
 
 ## Owner's rules
 
-Every UI change here holds to these, whatever a skill says elsewhere:
+These are the owner's rules and CLAUDE.md; a session brief may narrow them (for example, no render):
 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window
@@ -53,7 +53,8 @@ question for `hearthpulse-design`, not a new local value.
 ## Weights the font ships
 
 Montserrat ships Bold and ExtraBold only (`Assets/Fonts/`). `DisplayFont` with `Normal`, `Medium` or `SemiBold`
-renders a synthesized or substituted face. `UiFont` (Segoe UI Variable on Windows, Inter elsewhere in Avalonia) carries
+renders a synthesized or substituted face. The Avalonia `number` class (DisplayFont SemiBold 15) is a known deviation,
+not a finding. `UiFont` (Segoe UI Variable on Windows, Inter elsewhere in Avalonia) carries
 the regular range. Below 18 DIP, use `Normal` or heavier; `Light` and `Thin` only at 28 DIP and up, checked against the
 surface even there.
 
@@ -121,14 +122,14 @@ A deck code, a path or an error id the player may copy is a read-only `TextBox` 
 | --- | --- |
 | `FontSize="…"` on a `TextBlock` that a ramp style or class covers | The style or class |
 | `FontFamily="Segoe UI"`, a font file path or a new font in a view | `UiFont`, `DisplayFont` or `IconFont` |
-| `DisplayFont` with `FontWeight` `Normal`, `Medium` or `SemiBold` | `Bold` or `ExtraBold`, or `UiFont` |
+| `DisplayFont` with `FontWeight` `Normal`, `Medium` or `SemiBold`, outside the existing `number` class | `Bold` or `ExtraBold`, or `UiFont` |
 | `FontWeight="Light"` or `"Thin"` under 18 DIP | `Normal` or heavier |
 | `LineHeight` smaller than `FontSize` on text that can wrap | 1.4 × the size, or the default |
 | A WPF multi-line clamp with `MaxHeight` but no `BlockLineHeight` | Add `LineStackingStrategy="BlockLineHeight"` and a `LineHeight` |
 | `TextTrimming` with `TextWrapping="Wrap"` and no height cap | Pick one: trim one line, or cap the lines |
 | A changing number in Avalonia with no tabular setting | `FontFeatures` with `tnum`, or name the difference |
 | `"..."`, `--`, `"…"` with straight quotes, or a hyphen in a range in a Loc string | `…`, an em dash, «» / “”, an en dash |
-| A number and unit split by an ordinary space («54 %», "10 s") | A non-breaking space ` ` in the string |
+| A number and unit split by an ordinary space («54 %», "10 s") | A non-breaking space: U+00A0 in the string, `&#160;` in XAML |
 | An ALL CAPS Loc string | Sentence case |
 | `TextAlignment="Justify"` | Left |
 

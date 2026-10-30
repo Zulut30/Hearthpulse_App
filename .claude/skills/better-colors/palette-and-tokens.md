@@ -27,7 +27,9 @@ today.
 
 ## What the engine recolours
 
-`ThemeEngine` (WPF) runs every `#RRGGBB` / `#AARRGGBB` of Theme.xaml through `ThemePalette.Map(argb, theme)`:
+Both engines run the theme's colours through `ThemePalette.Map(argb, theme)`: WPF `ThemeEngine` rewrites every
+`#RRGGBB` / `#AARRGGBB` of Theme.xaml line by line; Avalonia `ThemeEngine` rewrites the brushes of Theme.axaml in place,
+brush by brush.
 
 | Source colour | Becomes |
 | --- | --- |
@@ -38,8 +40,10 @@ today.
 | Any other hue | Unchanged |
 | A line whose `x:Key` starts `Positive`, `Negative`, `Info`, `Rarity`, `Tier`, `ManaGem` or `PoolStat` | Never touched |
 
-So a decorative gold that should follow the theme sits in 15-60°, and a meaning colour sits outside 15-60° and
-150-186° under a fixed-prefix key. Avalonia has no engine: its Theme.axaml is Tavern and must hold the same keys.
+So a decorative gold that should follow the theme sits in 15-60°, and a meaning colour sits under a fixed-prefix key,
+whatever its hue. In WPF the check is per line: a `GradientStop` line has no `x:Key`, so a hex stop inside a meaning
+gradient is recoloured; give the stop a prefixed colour (`Color="{StaticResource PositiveColor}"`). Both theme files
+hold the same keys (`ThemeFileTests`); the Avalonia renderer draws Tavern only.
 
 ## Use tokens in their role
 

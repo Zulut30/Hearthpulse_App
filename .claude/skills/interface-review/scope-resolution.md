@@ -19,7 +19,7 @@ so `origin/main` can lag behind; use it only when the brief says so. Name the ba
 | A branch name | `git diff main...<branch>` (three dots: from the merge base) |
 | `working` | `git diff HEAD` plus `git ls-files --others --exclude-standard` |
 | `<a>..<b>` / `<a>...<b>` | Exactly as written; two dots compare the endpoints, three the merge base |
-| `pr <n>` | `gh pr view <n> --json baseRefName,headRefName,title,body`, then fetch the head into `refs/remotes/pr/<n>` and diff against the PR's own base |
+| `pr <n>` | `gh pr view <n> --repo Zulut30/Hearthpulse_App --json baseRefName,headRefName,title,body`, then `git fetch origin pull/<n>/head:refs/remotes/pr/<n>` and diff against the PR's own base |
 
 Diff a branch with three dots; two dots report every commit that landed on `main` meanwhile as part of the change. A
 target with uncommitted work must also list untracked files, or a new view is silently dropped.
@@ -48,7 +48,8 @@ Keep these in scope; they reach what the player sees:
 | Kind | Paths |
 | --- | --- |
 | Views | `src/Hearthpulse.App/**/*.xaml(.cs)`, `src/Hearthpulse.UI/**/*.axaml(.cs)`, `src/Hearthpulse.Desktop/**/*.axaml(.cs)` |
-| Theme and controls | `**/Themes/**`, `**/Controls/**`, `src/Hearthpulse.Core/ThemePalette.cs`, `tools/themes/**` |
+| Theme and controls | `**/Themes/**`, `**/Controls/**`, `*/Infrastructure/ThemeEngine.cs`, `*/Infrastructure/Converters.cs`, `src/Hearthpulse.Core/ThemePalette.cs`, `tools/themes/**` |
+| Overlay host | `*/Overlay/MovablePanel.cs`, `src/Hearthpulse.App/App.CardPool.cs` |
 | Shared view models | `src/Hearthpulse.Presentation/**` |
 | Text | `src/Hearthpulse.Core/Localization/Strings/**` |
 | Render scenes | `src/Hearthpulse.App/DevRender*.cs`, `src/Hearthpulse.Desktop/OffscreenRenderer*.cs`, `CardPoolRender.cs` |

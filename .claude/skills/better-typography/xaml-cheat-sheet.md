@@ -27,7 +27,7 @@ value (`hearthpulse-design`).
 | --- | --- | --- |
 | Line height | `LineHeight="18" LineStackingStrategy="BlockLineHeight"` | `LineHeight="18"` |
 | Letter spacing | none on `TextBlock`; leave it | `LetterSpacing="0.5"` |
-| Measure cap | `MaxWidth` on the `TextBlock` (about 560-680 DIP at 13) | `MaxWidth` |
+| Measure cap | `MaxWidth="480"` on the `TextBlock` (about 65 characters at 13 DIP) | `MaxWidth="480"` |
 | Alignment | `TextAlignment="Left"` / `"Right"` for number columns | same |
 
 ## Wrapping and overflow

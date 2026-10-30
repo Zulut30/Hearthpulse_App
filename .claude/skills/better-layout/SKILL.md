@@ -23,7 +23,7 @@ wrapping mechanics belong to `better-typography`. The words belong to `better-wr
 
 ## Owner's rules
 
-Every UI change here holds to these, whatever a skill says elsewhere:
+These are the owner's rules and CLAUDE.md; a session brief may narrow them (for example, no render):
 
 - **Everything moves and resizes.** Every overlay element sits in a `MovablePanel` that is a direct child of the
   overlay `Surface`, so the player can drag, resize, fade and reset it (`hearthpulse-overlay-panel`). Main-window
@@ -40,7 +40,7 @@ Every UI change here holds to these, whatever a skill says elsewhere:
 
 ## Group with space, not lines
 
-Space groups first, a `Card` / `card` or `Row` plate second, a hairline (`Border` brush, the `Wave` rule) last and only
+Space groups first, a `Card` / `card` or `RowBorder` / `row` plate second, a hairline (`Border` brush, the `Wave` rule) last and only
 where space alone cannot carry the structure. The gap between groups is at least twice the gap within one: `8` inside
 a group means `16` or more between groups. Recipes are in
 [grouping-and-alignment.md](grouping-and-alignment.md#group-with-space-not-lines).
@@ -124,7 +124,7 @@ chrome. See [spacing-and-adaptivity.md](spacing-and-adaptivity.md#plan-for-growt
 ## Reporting
 
 **Severity.** Use `better-interface`'s scale. Clipping or overlap at the minimum window size, in compact, at overlay
-scale 0.6 or 1.6 or with Russian text is `M` on sight, as are truncated content with no way to the full value, content
+scale 0.7 or 1.4 (the slider's ends), at panel scale 0.6 or 1.6 or with Russian text is `M` on sight, as are truncated content with no way to the full value, content
 past a scroll edge with no cue, an overlay element outside a `MovablePanel` and a panel over the game's own controls.
 Harm to hierarchy, reading order or adaptability is `m`; isolated alignment or spacing polish is `n`.
 

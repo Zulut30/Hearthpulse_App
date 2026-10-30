@@ -20,12 +20,12 @@ else
     element.Opacity = 1;
 ```
 
-A storyboard started from XAML (`EventTrigger` + `BeginStoryboard`) cannot read the setting, so a motion that must
-honour it starts from code or from a trigger bound to a view-model flag set from the setting. Hover and press fades of
-0.25 s or less in the theme styles are state feedback and stay.
+Storyboards in `Themes/Theme.xaml` are covered already: with the setting off, `ThemeEngine` rebuilds the theme with
+every `Duration` and `BeginTime` at zero. A storyboard in a view's XAML (`EventTrigger` + `BeginStoryboard`) or one
+started from code is not, so it starts from code behind the guard or moves into a theme style.
 
-The Avalonia UI has no animations. Adding the first one is a design decision recorded in `hearthpulse-design`, with
-the same setting honoured.
+Avalonia's Theme.axaml has `Transitions` of 0.25 s or less (hover, press): state feedback
+with no guard yet. Any other Avalonia motion is a `hearthpulse-design` decision.
 
 | Remove under the setting off | Replace | Keep |
 | --- | --- | --- |
@@ -53,7 +53,7 @@ screen, not the layout rules. The sizes every change must survive:
 | --- | --- | --- |
 | WPF main window | Minimum `1040 × 660` and the default `1260 × 840` | Resize by hand; the render uses 1260 × 840 |
 | Avalonia main window | Compact below 900 px, rendered 420 wide (`main-*-compact`) | `hearthpulse-visual-check` |
-| Overlay | `OverlayScale` 0.6 and 1.6 of the 1080-high reference surface | `OverlayScale` in the data copy's `settings.json`, then a render |
+| Overlay | `OverlayScale` 0.7 and 1.4 (the Settings slider; the code clamps to 0.6-1.6), on the 1080-high reference surface | `OverlayScale` in the data copy's `settings.json`, then a render |
 | One overlay panel | Panel scale 0.6 to 1.6, `Compact` on and off | Layout mode, wheel and tag buttons |
 | Any text | Russian interface text and Russian card names | A `"Language": "ru"` data copy |
 
