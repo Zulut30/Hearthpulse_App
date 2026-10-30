@@ -415,6 +415,10 @@ public sealed partial class PowerParser
                 entity.EnteredHandTurn = game.Turn;
                 entity.EnteredOpeningHand = game.InOpeningHand(entity.Controller);
             }
+            else if (entity.InPlay)
+            {
+                entity.EnteredPlayTurn = game.Turn;
+            }
 
             game.TryResolveLocalPlayer();
             foreach (var listener in _listeners) listener.OnEntityCreated(game, entity);
@@ -442,7 +446,12 @@ public sealed partial class PowerParser
                 entity.EnteredHandTurn = game.Turn;
                 entity.EnteredOpeningHand = game.InOpeningHand(entity.Controller);
             }
-            else if (previous == "HAND")
+            else if (value == "PLAY")
+            {
+                entity.EnteredPlayTurn = game.Turn;
+            }
+
+            if (value != "HAND" && previous == "HAND")
             {
                 entity.LeftHandTurn = game.Turn;
                 // TURN is 1 during the mulligan in real logs: the controller's MULLIGAN_STATE says it is the mulligan.

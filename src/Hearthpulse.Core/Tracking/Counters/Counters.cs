@@ -57,6 +57,13 @@ public static class Counters
 
     private static readonly CounterDef[] Defs =
     [
+        // Shown in Auto whenever the board has damage: it needs no card to care about it.
+        new("board-damage", "Board damage", "Damage your minions and hero can deal to the enemy hero from the board: what is left on your turn, what your board can deal next turn otherwise. Weapons, Windfury, Mega-Windfury, Charge and Rush count; Frozen and Dormant minions, those that cannot attack and those that already attacked do not.", c =>
+        {
+            var damage = BoardDamage.Of(c.Game, c.PlayerId);
+            var parts = Loc.F(damage.ThisTurn ? "Core.Counter.BoardDamageNow" : "Core.Counter.BoardDamageNext", damage.Minions, damage.Hero);
+            return new(damage.Total.ToString(CultureInfo.InvariantCulture), Details: [parts], Active: damage.Total > 0, Counted: damage.Attackers);
+        }),
         new("cthun", "C'Thun abilities", "C'Thun abilities triggered this game. C'Thun, Eye of the Empire triples its abilities at 4/4.", c =>
         {
             // The abilities are the tokens BE_013t1..t4; real logs set CTHUN_ABILITYn_USED when BE_013tn resolves.

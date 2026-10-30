@@ -187,8 +187,9 @@ public sealed class CounterReuseTests
         }
 
         var before = Counters.Build(parser.Game!, tracker.Counters, Cards, null);
-        // Only an opponent's hero changes: no counter reads differently, every view is handed out again.
-        parser.Feed("D 12:30:00.0000000 GameState." + Tag(Entity(21, "HERO_01", 2), "ATK", 3));
+        // Only an opponent's hero changes, in a way no counter reads (its Armor; its attack is board damage now): every
+        // view is handed out again.
+        parser.Feed("D 12:30:00.0000000 GameState." + Tag(Entity(21, "HERO_01", 2), "ARMOR", 3));
         var opponentOnly = Counters.Build(parser.Game!, tracker.Counters, Cards, null);
         Assert.Equal(before.Count, opponentOnly.Count);
         Assert.All(before.Zip(opponentOnly), pair => Assert.Same(pair.First, pair.Second));

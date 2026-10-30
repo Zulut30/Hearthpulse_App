@@ -79,6 +79,12 @@ public sealed class Entity
 
     public int LeftHandTurn { get; internal set; } = -1;
 
+    /// <summary>
+    /// The turn the card last came into play (created there, played, summoned, returned to the board). A Rush minion's
+    /// first turn: real logs leave it not EXHAUSTED, yet it can attack only minions.
+    /// </summary>
+    public int EnteredPlayTurn { get; internal set; } = -1;
+
     public bool Mulliganed { get; internal set; }
 
     public bool WasRevealed { get; internal set; }
