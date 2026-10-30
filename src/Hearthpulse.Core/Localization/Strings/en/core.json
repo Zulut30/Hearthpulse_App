@@ -1,6 +1,6 @@
 {
   "Core.Counter.board-damage.Title": "Board damage",
-  "Core.Counter.board-damage.Description": "Damage your minions and hero can deal to the enemy hero from the board: what is left on your turn, what your board can deal next turn otherwise. Weapons, Windfury, Mega-Windfury, Charge and Rush count. Frozen and Dormant minions, those that cannot attack and those that already attacked do not.",
+  "Core.Counter.board-damage.Description": "Damage your minions and hero can deal to the enemy hero from the board: what is left on your turn, what your board can deal next turn otherwise. Weapons, Windfury, Mega-Windfury and Charge count; Rush from its second turn. Frozen and Dormant minions, those that cannot attack or cannot attack heroes, and those that already attacked do not.",
   "Core.Counter.cthun.Title": "C'Thun abilities",
   "Core.Counter.cthun.Description": "C'Thun abilities triggered this game. C'Thun, Eye of the Empire triples its abilities at 4/4.",
   "Core.Counter.herald.Title": "Herald",

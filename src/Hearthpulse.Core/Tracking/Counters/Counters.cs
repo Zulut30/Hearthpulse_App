@@ -58,7 +58,7 @@ public static class Counters
     private static readonly CounterDef[] Defs =
     [
         // Shown in Auto whenever the board has damage: it needs no card to care about it.
-        new("board-damage", "Board damage", "Damage your minions and hero can deal to the enemy hero from the board: what is left on your turn, what your board can deal next turn otherwise. Weapons, Windfury, Mega-Windfury, Charge and Rush count; Frozen and Dormant minions, those that cannot attack and those that already attacked do not.", c =>
+        new("board-damage", "Board damage", "Damage your minions and hero can deal to the enemy hero from the board: what is left on your turn, what your board can deal next turn otherwise. Weapons, Windfury, Mega-Windfury and Charge count; Rush from its second turn. Frozen and Dormant minions, those that cannot attack or cannot attack heroes, and those that already attacked do not.", c =>
         {
             var damage = BoardDamage.Of(c.Game, c.PlayerId);
             var parts = Loc.F(damage.ThisTurn ? "Core.Counter.BoardDamageNow" : "Core.Counter.BoardDamageNext", damage.Minions, damage.Hero);
