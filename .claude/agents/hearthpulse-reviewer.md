@@ -21,6 +21,10 @@ tools: Read, Grep, Glob, Bash, Write
 1. **Card compliance** (`$task\task.md`, the package): every AC of the package is implemented; nothing outside its
    owned files except the allowed shared touches; no feature the card did not ask for; contracts exactly as written.
 2. **Quality:** the hearthpulse-review checklist.
+3. **Interface**, when the diff touches `*.xaml`, `*.axaml`, `Themes/`, `Controls/`, `src/Hearthpulse.Presentation`
+   or `Localization/Strings`: `$repo\.claude\skills\interface-review\SKILL.md` on the same range, findings in the
+   report's «Дизайн и паритет» section with the same B/M/m numbering. Renders only if the brief asks, never while
+   `Hearthstone.exe` runs.
 
 Re-review after fixes: only the new commits, and whether each earlier finding is closed.
 

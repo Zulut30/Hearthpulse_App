@@ -36,6 +36,17 @@ Project skills live in `.claude/skills/`. Start from the one that matches the ta
 | Splitting a big task into parallel sessions | `hearthpulse-parallel-work` |
 | Task -> sessions -> merge, push, build, restart, no confirmations | `hearthpulse-ship` |
 | Task -> lead's card -> designer, developers, QA, reviewer | `hearthpulse-team` |
+| UI review of a screen or panel, one ranked report | `better-interface` |
+| UI regressions in a branch (reviewer's UI pass) | `interface-review` |
+| Keyboard, focus, names, hit areas, motion, scale | `better-accessibility` |
+| Grouping, spacing, compact, room for long Russian | `better-layout` |
+| Interface text ru/en, errors, empty states | `better-writing` |
+| Type ramp, wrapping, trimming, numbers, punctuation | `better-typography` |
+| Colour roles, meaning colours, contrast in 7 themes | `better-colors` |
+| Polish: radii, depth, MDI glyphs, animation values | `better-ui` |
+| One component under hostile data, PNGs (owner-invoked) | `ui-break` |
+| Every state of one component, PNGs (owner-invoked) | `ui-states` |
+| Variants of one UI piece to pick from (owner-invoked) | `ui-variant` |
 | Test first, red -> green, honest tests | `test-driven-development` |
 | Acting on QA / review findings | `receiving-code-review` |
 | Parallel subagents inside one session | `dispatching-parallel-agents` |
@@ -48,7 +59,8 @@ Project skills live in `.claude/skills/`. Start from the one that matches the ta
 | Session retrospective (owner-invoked) | `retro` |
 | Re-explain the last message plainly (owner-invoked) | `wait-what` |
 
-The last eleven rows are general practices adapted from mattpocock/skills and obra/superpowers (MIT): sources and
+The rows from `better-interface` to `ui-variant` are UI skills rewritten for WPF/Avalonia from jakubkrehel/skills;
+the last eleven rows are general practices adapted from mattpocock/skills and obra/superpowers (all MIT): sources and
 changes in `.claude/skills/THIRD-PARTY-NOTICES.md`.
 
 Team agents (`.claude/agents/`, run by `hearthpulse-team`): `hearthpulse-lead` (task card and work packages),

@@ -62,6 +62,7 @@ It is optional external material; if absent, keep the report in the agreed works
 - New token in **both** theme files, with a fixed-prefix key if its colour carries meaning; no duplicate keys.
 - Styles/classes from the table in the design skill; animations behind `SystemParameters.ClientAreaAnimation` (and
   none unguarded in Avalonia).
+- The full UI pass of a change (names, focus, layout, text, type, colour, polish): [interface-review](../interface-review/SKILL.md).
 
 **5. Parity**
 - The feature exists, is bound and is reachable in both UIs; same overlay Ids, same settings, same PNG scene names.
