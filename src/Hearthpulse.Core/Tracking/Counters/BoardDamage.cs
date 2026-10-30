@@ -14,8 +14,9 @@ namespace Hearthpulse.Core.Tracking.Counters;
 /// EXHAUSTED; NUM_ATTACKS_THIS_TURN clears at the next turn start, EXHAUSTED only at the controller's own. A Rush
 /// minion enters not EXHAUSTED: on that turn it can attack only minions. Each swing of the weapon raises its DAMAGE,
 /// and at DURABILITY it breaks. On its own turn the hero's ATK is the weapon's plus this turn's buffs; off its turn it
-/// reads 0, the weapon put away, and a buff of that turn is gone. CANNOT_ATTACK_HEROES ("can't attack heroes": Air Support, an Infinite weapon,
-/// Icehowl) is the tag's name in the client's enumeration; no kept log had such a card yet.
+/// reads 0, the weapon put away, and a buff of that turn is gone. CANNOT_ATTACK_HEROES ("can't attack heroes": Air
+/// Support, an Infinite weapon, Icehowl) is the tag's name in the client's enumeration; no kept log had such a card
+/// yet.
 /// </remarks>
 public static class BoardDamage
 {
