@@ -215,12 +215,13 @@ public sealed class DiscoverPicksTests
     {
         var cache = Path.Combine(TestDataFolder.Path, "card-choices-" + Guid.NewGuid().ToString("N"));
         var server = new ChoicesServer();
-        var source = new DiscoverChoiceSource(new HearthpulseData(new HearthpulseApi(new HttpClient(server), "https://api.test/"), cache));
+        var (source, loads) = Source(server, cache);
+        var changed = 0;
+        source.Changed += () => Interlocked.Increment(ref changed);
 
-        var changed = new SemaphoreSlim(0);
-        source.Changed += () => changed.Release();
         Assert.Null(source.TryGet("standard", "BE_555", CardDb.Empty));
-        await Arrived(changed, server);
+        await Arrived(loads, 1, server);
+        Assert.Equal(1, changed);
         Assert.Equal(["https://api.test/v1/hsreplay/card-choices/cards"], server.Urls);
 
         // Cards the API has no numbers for (or not in this format) are never asked for.
@@ -229,11 +230,13 @@ public sealed class DiscoverPicksTests
         Assert.Null(source.TryGet("standard", "UNKNOWN", CardDb.Empty));
 
         Assert.Null(source.TryGet("standard", "BE_555", CardDb.Empty));
-        await Arrived(changed, server);
+        await Arrived(loads, 2, server);
+        Assert.Equal(2, changed);
         var choices = source.TryGet("standard", "BE_555", CardDb.Empty);
         Assert.Equal(0.8, Assert.Single(choices!.Options).PickRate);
         // Every later publish answers from memory.
         source.TryGet("standard", "BE_555", CardDb.Empty);
+        Assert.Equal(2, loads.Count);
         Assert.Equal(["https://api.test/v1/hsreplay/card-choices/cards", "https://api.test/v1/hsreplay/card-choices?card=BE_555&format=standard&rank=legend"], server.Urls);
 
         // A new session reads both answers from the disk cache, without the network; only what is read is kept.
@@ -241,6 +244,28 @@ public sealed class DiscoverPicksTests
         Assert.Equal(4, (await offline.LoadChoiceCardsAsync()).Count);
         Assert.Equal(0.5, Assert.Single((await offline.LoadCardChoicesAsync("BE_555", "standard"))!.Options).WinRate);
         Assert.DoesNotContain("Frostbolt", File.ReadAllText(Path.Combine(cache, "card-choices-standard-legend-BE_555.json")));
+    }
+
+    /// <summary>
+    /// A choice that opens before the list has arrived: the card is not asked for then (nor the list twice), and is once
+    /// the list is in - the session publishes again on <see cref="DiscoverChoiceSource.Changed"/> and asks again.
+    /// </summary>
+    [Fact]
+    public async Task A_card_asked_for_before_the_list_arrives_is_loaded_once_the_list_is_in()
+    {
+        var server = new ChoicesServer { HoldList = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        var (source, loads) = Source(server, Path.Combine(TestDataFolder.Path, "card-choices-" + Guid.NewGuid().ToString("N")));
+
+        Assert.Null(source.TryGet("standard", "BE_555", CardDb.Empty));
+        Assert.Null(source.TryGet("standard", "BE_555", CardDb.Empty));
+        _ = Assert.Single(loads);
+
+        server.HoldList.SetResult();
+        await Arrived(loads, 1, server);
+        Assert.Null(source.TryGet("standard", "BE_555", CardDb.Empty));
+        await Arrived(loads, 2, server);
+        Assert.Equal(0.8, Assert.Single(source.TryGet("standard", "BE_555", CardDb.Empty)!.Options).PickRate);
+        Assert.Equal(["https://api.test/v1/hsreplay/card-choices/cards", "https://api.test/v1/hsreplay/card-choices?card=BE_555&format=standard&rank=legend"], server.Urls);
     }
 
     private static GameOutcome Outcome(string gameType, string format, string result) =>
@@ -291,14 +316,41 @@ public sealed class DiscoverPicksTests
     private static string Ref(int id, string cardId, string zone, int player) =>
         $"[entityName=X id={id} zone={zone} zonePos=0 cardId={cardId} player={player}]";
 
-    /// <summary>
-    /// Waits for the source's Changed. A miss says what happened (once on the macOS runner, 2f64b57): whether the request
-    /// went out, and what the background load wrote to the log if it failed.
-    /// </summary>
-    private static async Task Arrived(SemaphoreSlim changed, ChoicesServer server)
+    /// <summary>A source over <paramref name="server"/> whose loads start as in the app (Task.Run) and are kept for <see cref="Arrived"/>.</summary>
+    private static (DiscoverChoiceSource Source, List<Task> Loads) Source(HttpMessageHandler server, string cache)
     {
-        if (await changed.WaitAsync(TimeSpan.FromSeconds(5)))
+        var loads = new List<Task>();
+        var source = new DiscoverChoiceSource(new HearthpulseData(new HearthpulseApi(new HttpClient(server), "https://api.test/"), cache))
         {
+            Start = (load, _) =>
+            {
+                lock (loads)
+                {
+                    loads.Add(Task.Run(load));
+                }
+            },
+        };
+        return (source, loads);
+    }
+
+    /// <summary>
+    /// The call before started load number <paramref name="count"/>, and that load has finished (Changed is raised inside
+    /// it). The load itself is awaited, not a clock: on a busy runner it waited over 5 s for a pool thread to start
+    /// (Windows CI, dd5354b). A minute without an end says what happened: whether the request went out, and what the
+    /// load wrote to the log if it failed.
+    /// </summary>
+    private static async Task Arrived(List<Task> loads, int count, ChoicesServer server)
+    {
+        Task load;
+        lock (loads)
+        {
+            Assert.Equal(count, loads.Count);
+            load = loads[^1];
+        }
+
+        if (await Task.WhenAny(load, Task.Delay(TimeSpan.FromMinutes(1))) == load)
+        {
+            await load;
             return;
         }
 
@@ -309,7 +361,7 @@ public sealed class DiscoverPicksTests
         }
 
         var log = TestDataFolder.ReadLog().Split('\n').Where(l => l.Contains("Card choice", StringComparison.Ordinal) || l.Contains("card choices", StringComparison.Ordinal));
-        Assert.Fail($"No Changed within 5 s. Requests: [{string.Join(", ", urls)}]. Log: [{string.Join(" | ", log)}]");
+        Assert.Fail($"Load {count} not done within a minute. Requests: [{string.Join(", ", urls)}]. Log: [{string.Join(" | ", log)}]");
     }
 
     private sealed class ChoicesServer : HttpMessageHandler
@@ -318,7 +370,10 @@ public sealed class DiscoverPicksTests
 
         public bool Offline { get; init; }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        /// <summary>The card list is answered only once this completes.</summary>
+        public TaskCompletionSource? HoldList { get; init; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (Offline)
             {
@@ -331,10 +386,15 @@ public sealed class DiscoverPicksTests
                 Urls.Add(url);
             }
 
+            if (HoldList is { } hold && url.EndsWith("/cards", StringComparison.Ordinal))
+            {
+                await hold.Task.ConfigureAwait(false);
+            }
+
             var body = url.EndsWith("/cards", StringComparison.Ordinal)
                 ? """{"data":[{"card_id":"BE_555","dbf_id":129823,"name":"Reload","formats":["standard","wild"],"has_hsreplay_stats":true},{"card_id":"NO_STATS","dbf_id":2,"formats":["standard"],"has_hsreplay_stats":false},{"card_id":"WILD_ONLY","dbf_id":3,"formats":["wild"],"has_hsreplay_stats":true},{"card_id":"X","dbf_id":4,"formats":["standard"],"has_hsreplay_stats":true}],"meta":{"count":4}}"""
                 : """{"data":{"card":{"card_id":"BE_555","name":"Reload","text":"Discover a spell"},"format":"standard","rank":"legend","stats":{"state":"ok","as_of":"2026-10-26T03:57:45Z"},"options":[{"dbf_id":111365,"card_id":"CORE_CS2_024","name":"Frostbolt","popularity":80.0,"win_rate":50.0,"low_sample":false}],"pool":{"cards":[]}}}""";
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) };
         }
     }
 }
