@@ -11,8 +11,9 @@ namespace Hearthpulse.Tests;
 /// Board damage, from synthetic Power.log lines written the way the real logs of October 2026 set the tags. A minion
 /// played without Charge or Rush enters EXHAUSTED. A turn start clears EXHAUSTED for its controller only. An attack
 /// raises NUM_ATTACKS_THIS_TURN, and the last attack sets EXHAUSTED. A Rush minion enters not EXHAUSTED but hits only
-/// minions that turn.
+/// minions that turn. One check sets the interface language: the class runs with the others that do (GlobalLanguage).
 /// </summary>
+[Collection(nameof(GlobalLanguage))]
 public sealed class BoardDamageTests
 {
     private static readonly CardDb Cards = CardDb.Parse("enUS", new MemoryStream("""
