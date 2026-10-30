@@ -27,6 +27,7 @@
   "Pool.List.Played": "Сыгранные вами карты",
   "Pool.List.PlayedMinions": "Сыгранные вами существа",
   "Pool.List.Summoned": "Призванные вами существа",
+  "Pool.List.SlimedDeaths": "Ваши погибшие скользкой смертью",
   "Pool.List.Cost": "стоимость {0}",
   "Pool.List.Empty": "Пока ни одной за матч",
   "Pool.List.More": "и ещё {0}",

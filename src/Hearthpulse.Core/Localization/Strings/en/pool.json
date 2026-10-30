@@ -27,6 +27,7 @@
   "Pool.List.Played": "Cards you played",
   "Pool.List.PlayedMinions": "Minions you played",
   "Pool.List.Summoned": "Minions you summoned",
+  "Pool.List.SlimedDeaths": "Your minions that died to Slime 'em!",
   "Pool.List.Cost": "Cost {0}",
   "Pool.List.Empty": "None this game yet",
   "Pool.List.More": "+{0} more",

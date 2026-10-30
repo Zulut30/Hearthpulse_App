@@ -146,6 +146,12 @@ public sealed partial class GameSession
     /// </summary>
     private MatchRule? MatchRuleOf(string cardId) => _matchRules.GetOrAdd(cardId, static (id, self) =>
     {
+        // A card known by its id (Ectoplasm) needs no English text.
+        if (MatchLists.RuleOf(id) is { } byId)
+        {
+            return byId;
+        }
+
         CardPoolCatalog catalog;
         lock (self._cardPoolGate)
         {

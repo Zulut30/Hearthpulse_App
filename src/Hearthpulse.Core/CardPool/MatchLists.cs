@@ -20,6 +20,9 @@ public enum MatchEvent
 
     /// <summary>Minions you've summoned this game.</summary>
     Summoned,
+
+    /// <summary>Your minions that died to Slime 'em! (CAP_805): the Ectoplasm it hands you resummons them.</summary>
+    SlimedDeaths,
 }
 
 public enum MatchSide
@@ -74,6 +77,15 @@ public static partial class MatchLists
         ("Deathrattle", "DEATHRATTLE"), ("Taunt", "TAUNT"), ("Divine Shield", "DIVINE_SHIELD"), ("Rush", "RUSH"), ("Lifesteal", "LIFESTEAL"),
         ("Reborn", "REBORN"), ("Battlecry", "BATTLECRY"),
     ];
+
+    /// <summary>Ectoplasm (CAP_805t), the 3-Cost spell Slime 'em! (CAP_805) gives each player.</summary>
+    public const string Ectoplasm = "CAP_805t";
+
+    /// <summary>
+    /// The rule of a card that cannot be read from its text: Ectoplasm, uncollectible, so the pool catalog has no English
+    /// text for it in other client languages. Null for every other card.
+    /// </summary>
+    public static MatchRule? RuleOf(string cardId) => cardId == Ectoplasm ? new MatchRule(MatchEvent.SlimedDeaths, MatchSide.Friendly) : null;
 
     /// <summary>The rule of a card text, or null when it does not look back at this game.</summary>
     /// <param name="ownName">The card's English name: a text that counts the card itself ("each time Ysondre has died") has no list.</param>
@@ -172,6 +184,7 @@ public static partial class MatchLists
             var log = tracker.For(player);
             ids.AddRange(rule.Event switch
             {
+                MatchEvent.SlimedDeaths => SlimedDeaths(game, player),
                 MatchEvent.Died => log.Died,
                 MatchEvent.Summoned => log.Summoned,
                 _ => log.Played.Where(p => rule.School is null || p.SpellSchool == rule.School).Select(p => p.CardId),
@@ -193,6 +206,7 @@ public static partial class MatchLists
     {
         var what = rule switch
         {
+            { Event: MatchEvent.SlimedDeaths } => Loc.T("Pool.List.SlimedDeaths"),
             { Event: MatchEvent.Died, Side: MatchSide.Friendly } => Loc.T("Pool.List.Died.Friendly"),
             { Event: MatchEvent.Died, Side: MatchSide.Enemy } => Loc.T("Pool.List.Died.Enemy"),
             { Event: MatchEvent.Died } => Loc.T("Pool.List.Died.Both"),
@@ -223,6 +237,43 @@ public static partial class MatchLists
         }
 
         return string.Join(" · ", parts);
+    }
+
+    /// <summary>
+    /// The minions Slime 'em! (CAP_805) destroyed for the player, in the order their Ectoplasm summons them back, for the
+    /// Ectoplasms in the player's hand. The cast sets a copy of each destroyed minion aside (SETASIDE, CREATOR = the
+    /// cast, COPIED_FROM_ENTITY_ID = the minion) and gives each player an Ectoplasm with the same CREATOR. Played, the
+    /// Ectoplasm summons its cast's copies of that player (four real games of October 2026). Only the player's own
+    /// copies: the opponent's are logged without a card id.
+    /// </summary>
+    private static List<string> SlimedDeaths(GameState game, int player)
+    {
+        var casts = new HashSet<int>();
+        foreach (var card in game.Controlled(player, "HAND"))
+        {
+            var cast = card.GetInt(GameTag.Creator);
+            if (card.CardId == Ectoplasm && cast != 0)
+            {
+                casts.Add(cast);
+            }
+        }
+
+        var ids = new List<string>();
+        if (casts.Count == 0)
+        {
+            return ids;
+        }
+
+        foreach (var copy in game.Entities.Values.OrderBy(e => e.Id))
+        {
+            if (copy.Zone == "SETASIDE" && copy.IsMinion && copy.Controller == player && copy.CardId.Length > 0
+                && copy.Has("COPIED_FROM_ENTITY_ID") && casts.Contains(copy.GetInt(GameTag.Creator)))
+            {
+                ids.Add(copy.CardId);
+            }
+        }
+
+        return ids;
     }
 
     private static bool Fits(Card? card, MatchRule rule) =>
