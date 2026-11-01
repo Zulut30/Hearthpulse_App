@@ -186,6 +186,41 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
         return TrackerBatchAnswer.Parse(status, body);
     }
 
+    /// <summary>
+    /// <c>POST tracker/replays</c> (plan 2.2): a replay the player chose to upload, gzip in base64. Returns the status and the
+    /// body; only a failed transport throws (<c>OFFLINE</c>).
+    /// </summary>
+    public async Task<(int Status, string Body)> PostReplayAsync(string accessToken, string gzipBase64, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(BaseUri, "tracker/replays"))
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new { v = 1, hpr = gzipBase64 }), System.Text.Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return await SendRawAsync(request, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary><c>DELETE tracker/replays/{id}</c> with the token the upload handed out (no sign-in needed).</summary>
+    public async Task<int> DeleteReplayAsync(string id, string deleteToken, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, new Uri(BaseUri, "tracker/replays/" + Uri.EscapeDataString(id)));
+        request.Headers.Add("X-Delete-Token", deleteToken);
+        return (await SendRawAsync(request, cancellationToken).ConfigureAwait(false)).Status;
+    }
+
+    private async Task<(int Status, string Body)> SendRawAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            return ((int)response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+        }
+        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            throw new AccountException("OFFLINE", ex.Message);
+        }
+    }
+
     internal static (AccountUser User, Uri? ProfileUrl) ParseMe(JsonElement root)
     {
         if (!root.TryGetProperty("user", out var user) || Text(user, "id") is not { Length: > 0 } id)

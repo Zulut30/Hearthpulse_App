@@ -77,8 +77,8 @@ takes one, else the copy's folder opens with the file selected and the status li
 (the path itself is never put on the clipboard: it holds the system user's name).
 
 A shared file is a valid import: it is format 4 with a summary, no names, BattleTags, account ids, device data,
-ranks, ratings or legend number, and no time of day. That is also the upload format the site will take (stage 2.2
-of the 2026-11-01 roadmap): the server can run the same checks.
+ranks, ratings or legend number, and no time of day. "Upload to the site" sends the same copy without the post-game
+`N`/`K` lines of a Constructed game, and the server checks it again: [web-replays.md](web-replays.md).
 
 ## Screens
 

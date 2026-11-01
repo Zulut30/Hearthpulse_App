@@ -62,6 +62,7 @@ public partial class ReplayLibraryView : UserControl
         {
             _model.PickFileRequested -= OnPickFile;
             _model.ShareFileRequested -= OnShareFile;
+            _model.CopyLinkRequested -= OnCopyLink;
         }
 
         _model = model;
@@ -69,6 +70,7 @@ public partial class ReplayLibraryView : UserControl
         {
             model.PickFileRequested += OnPickFile;
             model.ShareFileRequested += OnShareFile;
+            model.CopyLinkRequested += OnCopyLink;
         }
     }
 
@@ -83,6 +85,19 @@ public partial class ReplayLibraryView : UserControl
         if (dialog.ShowDialog(Window.GetWindow(this)) == true)
         {
             _model?.ImportPath(dialog.FileName);
+        }
+    }
+
+    /// <summary>An uploaded replay's link (plan 2.2); the status line shows it too, so a busy clipboard loses nothing.</summary>
+    private static void OnCopyLink(string url)
+    {
+        try
+        {
+            Clipboard.SetText(url);
+        }
+        catch (ExternalException)
+        {
+            // Another program holds the clipboard: the link is in the status line.
         }
     }
 

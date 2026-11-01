@@ -90,6 +90,10 @@
                     <Button Style="{StaticResource CardIcon}" Content="&#xF0497;" ToolTip="{i:Loc Library.Share}" AutomationProperties.Name="{i:Loc Library.Share}"
                             Command="{Binding DataContext.Share, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                             Visibility="{Binding HasReplay, Converter={StaticResource Vis}}" />
+                    <!-- Plan 2.2: upload to the site / delete from it, after the confirmation in the card -->
+                    <Button Style="{StaticResource CardIcon}" Content="{Binding SiteGlyph}" ToolTip="{Binding SiteTip}" AutomationProperties.Name="{Binding SiteTip}"
+                            Command="{Binding DataContext.SiteAction, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            Visibility="{Binding CanUpload, Converter={StaticResource Vis}}" />
                     <TextBlock Text="&#xF1036;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Faint}" Margin="7,0" VerticalAlignment="Center"
                                ToolTip="{i:Loc Library.NoReplay}" Visibility="{Binding NoReplay, Converter={StaticResource Vis}}" />
                     <Button x:Name="Delete" Style="{StaticResource CardIcon}" Content="&#xF09E7;" ToolTip="{i:Loc Library.Delete}" AutomationProperties.Name="{i:Loc Library.Delete}"
