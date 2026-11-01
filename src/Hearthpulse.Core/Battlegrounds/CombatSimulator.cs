@@ -50,6 +50,12 @@ public sealed record SimMinion(
 
     public int ScriptData2 { get; init; }
 
+    /// <summary>
+    /// Card id of the entity that created this minion (its CREATOR tag), when known: e.g. a hero power that summoned it at
+    /// the start of this combat. Empty when unknown.
+    /// </summary>
+    public string CreatorCardId { get; init; } = string.Empty;
+
     /// <summary>Card ids of enchantments attached to the minion (Dark Gifts, granted deathrattles, ...).</summary>
     public IReadOnlyList<string> Enchantments { get; init; } = Array.Empty<string>();
 
@@ -129,6 +135,9 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
 
     /// <summary>The hero's health plus armor when the fight starts (public on the leaderboard); 0 when unknown.</summary>
     public int Health { get; init; }
+
+    /// <summary>The Battlegrounds turn of the fight (hero powers that unlock on a turn); 0 when unknown.</summary>
+    public int Turn { get; init; }
 
     internal static readonly IReadOnlyDictionary<string, int> EmptyTags = new Dictionary<string, int>();
 }
@@ -401,6 +410,12 @@ public static class CombatSimulator
                 foreach (var enchantment in m.Enchantments)
                 {
                     AddText(enchantment);
+                }
+
+                // Only when known, so boards without it keep the seeds they had.
+                if (m.CreatorCardId.Length > 0)
+                {
+                    AddText(m.CreatorCardId);
                 }
 
                 foreach (var remembered in m.Remembered)

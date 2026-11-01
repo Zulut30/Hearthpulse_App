@@ -150,6 +150,12 @@ public abstract class CombatEffect
     /// <summary>After a friendly minion was Reborn (<paramref name="reborn"/> is the new copy; its origin is <see cref="Unit.RebornFrom"/>).</summary>
     public virtual void AfterFriendlyReborn(Fight fight, Unit self, Unit reborn) { }
 
+    /// <summary>
+    /// What <paramref name="dead"/> (carrying this effect) comes back as with Reborn, before it is summoned: the default
+    /// fresh copy, or another one ("Is Reborn with full stats"). Summon buffs and hooks then apply to what this returns.
+    /// </summary>
+    public virtual SimMinion RebornAs(Fight fight, Unit dead, SimMinion copy) => copy;
+
     /// <summary>After the owner cast a spell in combat (see <see cref="Fight.CastSpell"/>).</summary>
     public virtual void AfterFriendlySpellCast(Fight fight, Unit self, string spellCardId, Unit? target) { }
 

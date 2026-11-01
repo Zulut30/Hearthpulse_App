@@ -713,8 +713,8 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         // Health for lethal comes from the leaderboard heroes (the fighting heroes are copies), as it was when the fight
         // started; an opponent tier the combat copy lacks comes from there too.
         var opponentHero = LeaderboardHero(game, _combatOpponent);
-        var ours = BuildSide(game, game.LocalPlayerId, isOpponent: false, enchantments) with { Health = _localHealthAtCombat };
-        var theirs = BuildSide(game, game.OpponentPlayerId, isOpponent: true, enchantments) with { Health = _opponentHealthAtCombat };
+        var ours = BuildSide(game, game.LocalPlayerId, isOpponent: false, enchantments) with { Health = _localHealthAtCombat, Turn = game.BattlegroundsTurn };
+        var theirs = BuildSide(game, game.OpponentPlayerId, isOpponent: true, enchantments) with { Health = _opponentHealthAtCombat, Turn = game.BattlegroundsTurn };
         if (theirs.TavernTier == 0 && opponentHero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var opponentTier)
         {
             theirs = theirs with { TavernTier = opponentTier };
@@ -953,7 +953,12 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     /// </summary>
     private SimSide BuildSide(GameState game, int controller, bool isOpponent, ILookup<int, string> enchantments)
     {
-        var minions = Minions(game, controller).Select(e => ToSim(e, isOpponent, enchantments)).ToList();
+        var minions = Minions(game, controller)
+            .Select(e => ToSim(e, isOpponent, enchantments) with
+            {
+                CreatorCardId = e.GetInt(GameTag.Creator) is > 0 and var creator ? game.Entities.GetValueOrDefault(creator)?.CardId ?? string.Empty : string.Empty,
+            })
+            .ToList();
         var player = game.Players.TryGetValue(controller, out var slot) ? game.Entities.GetValueOrDefault(slot.EntityId) : null;
         var hero = game.HeroOf(player);
         var played = game.Controlled(controller, "PLAY").Where(e => e.CardId.Length > 0).OrderBy(e => e.Id).ToList();
@@ -1020,7 +1025,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
             ? CombatRelevance.TagsSuggestCombatEffect(e.Has)
             : CombatRelevance.IsCombatRelevant(e.CardId, card, Cards.Locale);
         // A deathrattle, Avenge or Rally the card does not print came from an enchantment (Dark Gift, Tamsin...).
-        var granted = card is not null && CombatRelevance.HasGrantedEffect(e.Has, mechanics);
+        var granted = card is not null ? CombatRelevance.GrantedMechanics(e.Has, mechanics) : [];
         var unsimulated = CombatRelevance.IsUnsimulated(cardId, golden, relevant, granted, attached, isOpponent, Effects);
 
         var keywords = KeywordsOf(e);

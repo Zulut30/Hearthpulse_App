@@ -32,6 +32,9 @@ public enum Origin
 
     /// <summary>Classified by the text heuristic (Timewarped minions).</summary>
     Heuristic,
+
+    /// <summary>Hero power, trinket or Dark Gift enchantment labelled by hand (<see cref="PlayerCardTable"/>).</summary>
+    Player,
 }
 
 /// <summary>One row of the generated table.</summary>
@@ -114,16 +117,46 @@ public static partial class CombatRelevance
     /// the entity has the marker tag but the card's mechanics do not.
     /// </summary>
     public static bool HasGrantedEffect(Func<string, bool> hasTag, IReadOnlyList<string> cardMechanics) =>
-        GrantableMechanics.Any(m => hasTag(m) && !cardMechanics.Contains(m));
+        GrantedMechanics(hasTag, cardMechanics).Count > 0;
 
-    /// <summary>
-    /// "Not simulated": the card is combat-relevant and has no registered effect for this side, or an enchantment granted
-    /// it an effect that no registered enchantment effect covers.
-    /// </summary>
+    /// <summary>The effect markers (DEATHRATTLE, AVENGE, BACON_RALLY) the minion has and its card does not print.</summary>
+    public static IReadOnlyList<string> GrantedMechanics(Func<string, bool> hasTag, IReadOnlyList<string> cardMechanics) =>
+        GrantableMechanics.Where(m => hasTag(m) && !cardMechanics.Contains(m)).ToList();
+
+    /// <summary>"Not simulated" with an unknown kind of granted effect: any of the three markers must be explained.</summary>
     public static bool IsUnsimulated(string cardId, bool golden, bool combatRelevant, bool grantedEffect,
                                      IReadOnlyList<string> enchantments, bool isOpponent, EffectRegistry effects) =>
+        IsUnsimulated(cardId, golden, combatRelevant, grantedEffect ? GrantableMechanics : [], enchantments, isOpponent, effects);
+
+    /// <summary>
+    /// "Not simulated": the card is combat-relevant and has no registered effect for this side; or a granted marker that
+    /// no enchantment explains (an enchantment with a registered effect, or a <see cref="PlayerCardTable"/> row for that
+    /// same marker that acts only in the Tavern or has an effect); or an enchantment the table marks as acting in combat
+    /// that has no effect.
+    /// </summary>
+    public static bool IsUnsimulated(string cardId, bool golden, bool combatRelevant, IReadOnlyList<string> grantedMechanics,
+                                     IReadOnlyList<string> enchantments, bool isOpponent, EffectRegistry effects) =>
         (combatRelevant && !effects.Implements(cardId, golden, isOpponent))
-        || (grantedEffect && !enchantments.Any(e => effects.Implements(e, golden: false, isOpponent)));
+        || grantedMechanics.Any(m => !enchantments.Any(e => Explains(e, m, isOpponent, effects)))
+        || enchantments.Any(e => Find(e) is { Relevance: Relevance.Relevant } && !effects.Implements(e, golden: false, isOpponent));
+
+    /// <summary>
+    /// Whether <paramref name="enchantment"/> accounts for the granted <paramref name="mechanic"/>: a table row only for the
+    /// marker its category names (GIFT_DR_* = DEATHRATTLE, GIFT_RALLY_* = BACON_RALLY); another enchantment with an effect
+    /// for any marker.
+    /// </summary>
+    private static bool Explains(string enchantment, string mechanic, bool isOpponent, EffectRegistry effects)
+    {
+        if (Find(enchantment) is { Origin: Origin.Player } row)
+        {
+            var marker = row.Category.StartsWith("GIFT_DR_", StringComparison.Ordinal) ? "DEATHRATTLE"
+                : row.Category.StartsWith("GIFT_RALLY_", StringComparison.Ordinal) ? "BACON_RALLY"
+                : null;
+            return marker == mechanic && (row.Relevance == Relevance.None || effects.Implements(enchantment, golden: false, isOpponent));
+        }
+
+        return effects.Implements(enchantment, golden: false, isOpponent);
+    }
 
     /// <summary>
     /// Text heuristic for "needs combat simulation" (English card text). Mirrors needs_sim() in
@@ -177,7 +210,7 @@ public static partial class CombatRelevance
     private static Dictionary<string, (CardRelevance, bool)> BuildIndex()
     {
         var index = new Dictionary<string, (CardRelevance, bool)>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in CombatRelevanceTable.Entries)
+        foreach (var row in CombatRelevanceTable.Entries.Concat(PlayerCardTable.Entries))
         {
             index[row.CardId] = (row, false);
             if (row.GoldenCardId.Length > 0)
