@@ -203,9 +203,11 @@ public sealed partial class MatchPage
     public bool Truncated => Replay?.Header.Truncated ?? BgReplay?.Header.Truncated ?? false;
 
     /// <summary>Loads the page for a history game: its replay file, the card names and the meta for the archetype calls.</summary>
-    public static MatchPage Load(GameRecord game, ReplayStore store, CardDb cards, ConstructedMeta? meta)
+    public static MatchPage Load(GameRecord game, ReplayStore store, CardDb cards, ConstructedMeta? meta) => Load(game, store.Load(game.Replay), cards, meta);
+
+    /// <summary>Loads the page for a history game from its replay text (null: no file), e.g. a starred copy (<c>MatchPage.File.cs</c>).</summary>
+    public static MatchPage Load(GameRecord game, string? text, CardDb cards, ConstructedMeta? meta)
     {
-        var text = store.Load(game.Replay);
         var file = text is null ? null : ReplayFile.Read(text);
         var header = BuildHeader(game, cards, file?.Header);
         if (file is null)

@@ -18,6 +18,9 @@ public sealed class ReplayStore(string directory)
     /// <summary>A replay text larger than this is not saved (the event cap keeps real games far below it).</summary>
     private const int MaxTextChars = 32 * 1024 * 1024;
 
+    /// <summary>The longest header line <see cref="ReadHeader"/> reads (real ones are under 2 KB).</summary>
+    private const int MaxHeaderChars = 64 * 1024;
+
     private const string Extension = ".hpr";
 
     private int _oldFormatChecked;
@@ -133,6 +136,125 @@ public sealed class ReplayStore(string directory)
         }
     }
 
+    /// <summary>
+    /// The header of a saved file from its first two lines only (the library cards read it for every game), or null
+    /// when the file is gone, unreadable or not a replay this version reads.
+    /// </summary>
+    public ReplayHeader? ReadHeader(string? fileName)
+    {
+        if (PathOf(fileName) is not { } path)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var gzip = new GZipStream(file, CompressionMode.Decompress);
+            using var reader = new StreamReader(gzip, Encoding.UTF8);
+            var magic = ReadLine(reader, 8);
+            var json = magic is null ? null : ReadLine(reader, MaxHeaderChars);
+            return json is null ? null : ReplayFile.Read($"{magic}\n{json}\n")?.Header;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>True when the folder holds <paramref name="fileName"/>.</summary>
+    public bool Contains(string? fileName) => PathOf(fileName) is { } path && File.Exists(path);
+
+    /// <summary>The replay file names in the folder, newest game first (by the start time in the name, as <see cref="Prune"/> orders them).</summary>
+    public IReadOnlyList<string> Names()
+    {
+        if (!System.IO.Directory.Exists(Directory))
+        {
+            return [];
+        }
+
+        try
+        {
+            return new DirectoryInfo(Directory).EnumerateFiles("*" + Extension).OrderByDescending(Age, StringComparer.Ordinal).Select(f => f.Name).ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error($"Listing replays in {Directory} failed", ex);
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Copies a replay of another folder here under the same name (the star of the library). True when the copy is
+    /// there afterwards (also when it already was).
+    /// </summary>
+    public bool CopyFrom(ReplayStore source, string fileName)
+    {
+        if (source.PathOf(fileName) is not { } from || PathOf(fileName) is not { } to)
+        {
+            return false;
+        }
+
+        try
+        {
+            if (File.Exists(to))
+            {
+                return true;
+            }
+
+            System.IO.Directory.CreateDirectory(Directory);
+            var temp = $"{to}.{Guid.NewGuid():N}.tmp";
+            File.Copy(from, temp);
+            File.Move(temp, to, overwrite: true);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error($"Copying replay {fileName} to {Directory} failed", ex);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Saves a ready replay text under <paramref name="fileName"/> (an imported game: the name comes from its content).
+    /// False when it could not be saved; an existing file is left as it is.
+    /// </summary>
+    public bool SaveAs(string fileName, string text)
+    {
+        if (PathOf(fileName) is not { } path || text.Length > MaxTextChars)
+        {
+            return false;
+        }
+
+        try
+        {
+            System.IO.Directory.CreateDirectory(Directory);
+            if (!File.Exists(path))
+            {
+                var temp = $"{path}.{Guid.NewGuid():N}.tmp";
+                using (var file = File.Create(temp))
+                using (var gzip = new GZipStream(file, CompressionLevel.SmallestSize))
+                {
+                    gzip.Write(Encoding.UTF8.GetBytes(text));
+                }
+
+                File.Move(temp, path, overwrite: true);
+            }
+
+            if (AutoPrune)
+            {
+                Prune(keep: fileName);
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error($"Saving replay {fileName} to {Directory} failed", ex);
+            return false;
+        }
+    }
+
     /// <summary>Deletes one replay (a game whose row went away). False when there was nothing to delete.</summary>
     public bool Delete(string? fileName)
     {
@@ -176,11 +298,7 @@ public sealed class ReplayStore(string directory)
         }
 
         // Oldest by the game's start time in the name; a name without one ("game-") goes by when it was written.
-        var files = new DirectoryInfo(Directory).EnumerateFiles("*" + Extension)
-            .OrderByDescending(f => f.Name.Length > 14 && f.Name[..14].All(char.IsAsciiDigit)
-                ? f.Name[..14]
-                : f.LastWriteTimeUtc.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture), StringComparer.Ordinal)
-            .ToList();
+        var files = new DirectoryInfo(Directory).EnumerateFiles("*" + Extension).OrderByDescending(Age, StringComparer.Ordinal).ToList();
         long total = 0;
         var count = 0;
         foreach (var file in files)
@@ -230,6 +348,33 @@ public sealed class ReplayStore(string directory)
         }
 
         return deleted;
+    }
+
+    /// <summary>The game's start time in the name (yyyyMMddHHmmss); a name without one ("game-") goes by when it was written.</summary>
+    private static string Age(FileInfo file) => file.Name.Length > 14 && file.Name[..14].All(char.IsAsciiDigit)
+        ? file.Name[..14]
+        : file.LastWriteTimeUtc.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>One line of at most <paramref name="max"/> characters, or null when the line is longer or the text ends first.</summary>
+    private static string? ReadLine(StreamReader reader, int max)
+    {
+        var line = new StringBuilder();
+        while (reader.Read() is var c and >= 0)
+        {
+            if (c == '\n')
+            {
+                return line.ToString().TrimEnd('\r');
+            }
+
+            if (line.Length >= max)
+            {
+                return null;
+            }
+
+            line.Append((char)c);
+        }
+
+        return null;
     }
 
     /// <summary>True for a file of the first format (its first line is <see cref="ReplayFile.OldMagic"/>).</summary>
