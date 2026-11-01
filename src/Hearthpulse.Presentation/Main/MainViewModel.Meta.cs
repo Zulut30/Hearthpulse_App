@@ -374,6 +374,7 @@ public sealed partial class MainViewModel
     {
         apply();
         Raise(nameof(MetaRanks));
+        Raise(nameof(MatchupsRankNote));
         Raise(nameof(MetaPeriods));
         MetaLoading = true;
         MetaUnavailable = false;
@@ -576,6 +577,7 @@ public sealed partial class MainViewModel
         {
             ArchetypeSummary = string.Empty;
             ArchetypeDecks = [];
+            _mulliganLoad?.Cancel();
             Mulligan = [];
             MulliganSource = string.Empty;
             return;

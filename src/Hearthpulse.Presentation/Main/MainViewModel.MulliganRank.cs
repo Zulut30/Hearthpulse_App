@@ -28,13 +28,20 @@ public sealed partial class MainViewModel
     private CancellationTokenSource? _mulliganLoad;
 
     /// <summary>
-    /// Loads an HSGuru mulligan slice: archetype, format, HSGuru rank → the slice (all games), or null. Set by the host;
+    /// Loads an archetype's mulligan at a filter rank other than Legend: archetype, format, filter rank → the slice with its
+    /// base win rate (MulliganGuideSource.LoadRankSliceAsync, the same numbers as the overlay), or null. Set by the host;
     /// without it the list stays at Legend.
     /// </summary>
-    public Func<string, string, string, CancellationToken, Task<MulliganSlice?>>? LoadMulliganSlice { get; set; }
+    public Func<string, string, string, CancellationToken, Task<RankSlice?>>? LoadRankMulligan { get; set; }
 
     /// <summary>Raised after the player picks a mulligan rank (the host saves the settings and tells the overlay's guide).</summary>
     public event Action? MulliganRankChanged;
+
+    /// <summary>
+    /// Under the matchup heat map: the Diamond tier list's matchups are HSGuru's Diamond 4-1 (the API serves no Diamond
+    /// matchups; HearthpulseData.MatchupRank). Empty at the other ranks.
+    /// </summary>
+    public string MatchupsRankNote => Settings.MetaRank == "diamond" ? Loc.F("Main.Meta.MatchupsRankNote", Loc.T("Core.MulliganRankSource.diamond")) : string.Empty;
 
     public IReadOnlyList<MetaChoice> MulliganRanks =>
         MulliganGuide.Ranks.Select(r => new MetaChoice(r, Loc.T("Core.MulliganRank." + r), r == CurrentMulliganRank)).ToList();
@@ -65,7 +72,7 @@ public sealed partial class MainViewModel
     {
         _mulliganLoad?.Cancel();
         var rank = CurrentMulliganRank;
-        if (MulliganGuide.SourceRank(rank) == MulliganGuide.DefaultRank || LoadMulliganSlice is not { } load)
+        if (MulliganGuide.SourceRank(rank) == MulliganGuide.DefaultRank || LoadRankMulligan is not { } load)
         {
             MulliganSource = string.Empty;
             return false;
@@ -79,20 +86,13 @@ public sealed partial class MainViewModel
         return true;
     }
 
-    private async Task LoadRankMulliganAsync(Func<string, string, string, CancellationToken, Task<MulliganSlice?>> load, MetaArchetype archetype,
+    private async Task LoadRankMulliganAsync(Func<string, string, string, CancellationToken, Task<RankSlice?>> load, MetaArchetype archetype,
         string format, string rank, CancellationToken cancel)
     {
-        var wanted = MulliganGuide.SourceRank(rank);
-        MulliganSlice? slice = null;
-        var used = wanted;
+        RankSlice? found;
         try
         {
-            slice = await load(archetype.Key, format, wanted, cancel);
-            if (slice is not { Games: >= MulliganGuide.MinSliceGames } && wanted != "all")
-            {
-                used = "all";
-                slice = await load(archetype.Key, format, used, cancel);
-            }
+            found = await load(archetype.Key, format, rank, cancel);
         }
         catch (OperationCanceledException)
         {
@@ -104,19 +104,25 @@ public sealed partial class MainViewModel
             return;
         }
 
+        ShowRankSlice(found, rank);
+    }
+
+    /// <summary>Shows a loaded slice (or that there is none, offline included) with its source line.</summary>
+    internal void ShowRankSlice(RankSlice? found, string rank)
+    {
         var label = Loc.T("Core.MulliganRankSource." + rank);
-        if (slice is not { Games: >= MulliganGuide.MinSliceGames })
+        if (found is null)
         {
             Mulligan = [];
             MulliganSource = Loc.F("Main.Meta.MulliganRankNone", label);
             return;
         }
 
-        MulliganSource = used == wanted ? Loc.F("Main.Meta.MulliganRankFrom", label) : Loc.F("Main.Meta.MulliganRankFallback", label);
-        Mulligan = MulliganRowsOf(slice, archetype.WinRate);
+        MulliganSource = found.AllRanks ? Loc.F("Main.Meta.MulliganRankFallback", label) : Loc.F("Main.Meta.MulliganRankFrom", label);
+        Mulligan = MulliganRowsOf(found.Slice, found.Baseline);
     }
 
-    /// <summary>The slice's cards, best to keep first: win rate when kept = the archetype's + the kept impact.</summary>
+    /// <summary>The slice's cards, best to keep first: win rate when kept = the base win rate + the kept impact.</summary>
     internal IReadOnlyList<MulliganRow> MulliganRowsOf(MulliganSlice slice, double baseline) => slice.Cards
         .Where(c => c is { Kept: >= MulliganGuide.MinSliceCount, KeptImpact: not null })
         .OrderByDescending(c => c.KeptImpact)

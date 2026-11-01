@@ -253,8 +253,7 @@ public partial class App : Application
         _mainViewModel.PoolAvailable = PoolClient.Available(_settings);
         // Plan 2.4: the mulligan's rank filter on the meta page; the overlay's guide follows it.
         var mulliganData = new HearthpulseData(_api);
-        _mainViewModel.LoadMulliganSlice = (archetype, format, rank, cancel) =>
-            mulliganData.LoadHsguruMulliganAsync(archetype, format, rank, MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, cancel);
+        _mainViewModel.LoadRankMulligan = (archetype, format, rank, cancel) => MulliganGuideSource.LoadRankSliceAsync(mulliganData, archetype, format, rank, cancel);
         _mainViewModel.MulliganRankChanged += () =>
         {
             _mulliganGuide.Rank = _settings.MulliganRank;

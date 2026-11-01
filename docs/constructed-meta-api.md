@@ -21,7 +21,10 @@ filter change cancels the older load. An empty slice (no archetype with 100 game
 failure. HSGuru lists marked "Neutral" do not count as a class.
 
 Filters: the API's own keys. Ranks: `all`, `diamond`, `diamond_to_legend`, `legend`, `top_legend`, `top_5k`, `top_500`,
-`top_100` (the row wraps; `diamond` and `top_legend` since plan 2.4). The API also has `diamond_4to1` and `bronze_plat`. Periods: `past_day`, `past_3_days`,
+`top_100` (the row wraps; `diamond` and `top_legend` since plan 2.4). The API also has `diamond_4to1` and `bronze_plat`.
+A saved `diamond` (Firestone's key, which used to become Diamond+) now means Diamond. The API serves no Diamond
+matchups (422): the heat map reads `diamond_4to1` there and says so under it (`HearthpulseData.MatchupRank`); a 422 is
+cached like a 404, as "no data". Periods: `past_day`, `past_3_days`,
 `past_week`, `past_30_days`, plus `patch` and `expansion`. The API names the current patch and expansion in every
 answer (`patch_36.6.3`, `black_empire`), so a `past_day` slice is read first to resolve them. Keys saved by earlier
 versions map onto the new ones, for example `past-7` → `past_week` and `top-2000-legend` → `top_5k`

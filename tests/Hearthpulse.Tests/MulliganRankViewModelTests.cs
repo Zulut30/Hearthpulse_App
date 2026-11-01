@@ -55,4 +55,21 @@ public sealed class MulliganRankViewModelTests : IDisposable
         Assert.Equal(["B", "A"], rows.Select(r => r.CardId));
         Assert.Equal(0.05, rows[0].Edge, 6);
     }
+
+    [Fact]
+    public void The_page_shows_the_base_win_rate_of_the_slice_and_says_when_it_fell_back_or_has_none()
+    {
+        var vm = new MainViewModel(_history, new AppSettings());
+        var slice = new MulliganSlice("all", MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, 5000, [new SliceCard("B", 2, 900, 0.03, 700, 0.05, 300, 0.02)]);
+
+        // The base the overlay uses too (RankSlice.Baseline), not the meta page's own win rate.
+        vm.ShowRankSlice(new RankSlice(slice, 0.47, AllRanks: true), "top_legend");
+        Assert.Equal((0.52).ToString("P0", System.Globalization.CultureInfo.CurrentCulture), Assert.Single(vm.Mulligan).WinRate);
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.F("Main.Meta.MulliganRankFallback", Hearthpulse.Core.Localization.Loc.T("Core.MulliganRankSource.top_legend")), vm.MulliganSource);
+
+        // Offline or a 404 for both slices.
+        vm.ShowRankSlice(null, "diamond");
+        Assert.Empty(vm.Mulligan);
+        Assert.Equal(Hearthpulse.Core.Localization.Loc.F("Main.Meta.MulliganRankNone", Hearthpulse.Core.Localization.Loc.T("Core.MulliganRankSource.diamond")), vm.MulliganSource);
+    }
 }

@@ -358,7 +358,13 @@ public sealed partial class OverlayViewModel
         }).ToList();
     }
 
-    private static string SliceRankName(string rank) => rank == "legend" ? Loc.T("Mulligan.Slice.Legend") : Loc.T("Mulligan.Slice.AllRanks");
+    /// <summary>The rank of a slice as the player reads it: Legend, all ranks, or the mulligan filter's rank (plan 2.4).</summary>
+    internal static string SliceRankName(string rank) => MulliganGuide.FilterRankOf(rank) switch
+    {
+        "legend" => Loc.T("Mulligan.Slice.Legend"),
+        "diamond" or "top_legend" => Loc.T("Core.MulliganRankSource." + MulliganGuide.FilterRankOf(rank)),
+        _ => Loc.T("Mulligan.Slice.AllRanks"),
+    };
 
     /// <summary>"slice: Legend, on the coin": where a card's kept / replaced numbers come from.</summary>
     private static string SliceName(MulliganSlice? slice) => slice is null

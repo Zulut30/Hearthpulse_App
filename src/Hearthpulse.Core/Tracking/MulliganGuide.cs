@@ -188,6 +188,16 @@ public static class MulliganGuide
         _ => "legend",
     };
 
+    /// <summary>The filter rank an HSGuru slice rank stands for (the reverse of <see cref="SourceRank"/>), or null.</summary>
+    public static string? FilterRankOf(string? sourceRank) => sourceRank switch
+    {
+        "diamond_4to1" => "diamond",
+        "top_5k" => "top_legend",
+        "legend" => "legend",
+        "all" => "all",
+        _ => null,
+    };
+
     /// <summary>The HSGuru slice ranks for a filter rank, most wanted first, all ranks last as the fallback.</summary>
     public static IReadOnlyList<string> SliceRanksFor(string? rank) => SourceRank(rank) switch
     {

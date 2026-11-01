@@ -324,6 +324,8 @@
                     </StackPanel>
                 </Grid>
                 <TextBlock Text="{i:Loc Main.Meta.MatchupsCaption}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,12" />
+                <TextBlock Text="{Binding MatchupsRankNote}" Classes="caption" TextWrapping="Wrap" Margin="0,-8,0,12"
+                           IsVisible="{Binding MatchupsRankNote, Converter={StaticResource Truthy}}" />
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" IsVisible="{Binding HasMatchupMatrix}">
                     <StackPanel Name="MatchupGrid">
                         <!-- Column heads: the opponent's portrait and short name, the full name on hover -->

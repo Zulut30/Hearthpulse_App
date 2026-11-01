@@ -285,6 +285,7 @@
   "Main.Meta.Empty": "No archetypes match these filters. Lower the minimum games or pick another class.",
   "Main.Meta.MatchupTip": "{1} vs {2}: {3} · {0:N0} game|{1} vs {2}: {3} · {0:N0} games",
   "Main.Meta.MatchupNoGames": "{0} vs {1}: no games",
+  "Main.Meta.MatchupsRankNote": "Matchups at Diamond: {0} games.",
   "Main.Meta.MatchupsCaption": "Win rate of the archetype on the left against the one on top. Hover a cell for its games.",
   "Main.Meta.MatchupsEmpty": "The matchup matrix for this slice is not collected yet.",
   "Main.Meta.MatchupsOverall": "Overall",

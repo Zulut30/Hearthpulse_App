@@ -103,8 +103,7 @@ public sealed partial class AppHost : IDisposable
         Main.CountersChanged += OnSettingsChanged;
         // Plan 2.4: the mulligan's rank filter on the meta page; the overlay's guide follows it.
         var mulliganData = new HearthpulseData(Api);
-        Main.LoadMulliganSlice = (archetype, format, rank, cancel) =>
-            mulliganData.LoadHsguruMulliganAsync(archetype, format, rank, MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, cancel);
+        Main.LoadRankMulligan = (archetype, format, rank, cancel) => MulliganGuideSource.LoadRankSliceAsync(mulliganData, archetype, format, rank, cancel);
         Main.MulliganRankChanged += () =>
         {
             mulliganGuide.Rank = Settings.MulliganRank;
