@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
 using Microsoft.Win32;
 
@@ -48,7 +49,7 @@ public partial class ReplayLibraryView : UserControl
             // Another program holds the clipboard: the same as nothing there.
         }
 
-        model.Paste(path);
+        model.PasteAsync(path).Forget("Replay paste");
     }
 
     /// <summary>

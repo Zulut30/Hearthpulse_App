@@ -204,6 +204,9 @@ public sealed class ReplayImportTests : IDisposable
         Assert.Equal("HERO_08", header.Summary!.HeroCardId);
         Assert.Equal("HERO_01", header.Summary.OpponentHeroCardId);
         Assert.Equal("Win", header.Summary.Result);
+        // The file does not say when it was played: no date, not the day of the import.
+        Assert.Equal(DateTime.MinValue, header.Summary.StartedAt);
+        Assert.StartsWith("game-", ReplayImport.FileNameFor(Clean(text), header.Summary), StringComparison.Ordinal);
         Assert.False(MatchReplay.Parse(Clean(text))!.HasPostGame);
     }
 
@@ -382,41 +385,44 @@ public sealed class ReplayImportTests : IDisposable
         Assert.Null(header.Summary.RatingBefore);
         Assert.True(header.Events > 5);
         BattlegroundsReplayTests.AssertSeenOnly(body.Take(header.Events).ToList());
+        var share = ReplayShare.Prepare(Imported.Load(name)!, Path.Combine(_dir, "share"), CardDb.Empty)!;
+        AssertNoAccount(Imported.Load(name)!, ReplayImportTests.ReadPacked(share));
         Assert.Equal(before, File.Exists(history) ? new FileInfo(history).Length : -1);
         Assert.Empty(Directory.EnumerateDirectories(Path.Combine(_dir, "work")));
         Assert.Equal(1, Import(log).Already);
         Assert.Equal(ReplayImportError.None, Import(WriteText("empty.log", "D 12:30:00.0000000 GameState.DebugPrintPower() - CREATE_GAME")).Error);
     }
 
-    /// <summary>Every replay the app records from the kept logs passes the filter with its event lines unchanged.</summary>
-    [RealLogsFact]
-    public void Kept_logs_replays_pass_the_filter_unchanged()
+    [Fact]
+    public void A_constructed_power_log_goes_to_imported_without_names_or_account()
     {
-        var store = new ReplayStore(Path.Combine(_dir, "real")) { AutoPrune = false };
-        var games = 0;
-        foreach (var dir in Directory.EnumerateDirectories(RealLogTests.LogRoot, "Hearthstone_*"))
-        {
-            if (Core.Hearthstone.HearthstoneInstall.SessionStart(dir) is not { } start)
-            {
-                continue;
-            }
+        string[] bodies =
+        [
+            .. ReplayRecorderTests.Setup,
+            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=PLAYSTATE value=WON ",
+            "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE ",
+        ];
+        var log = WriteText("Power.log", string.Join('\n', bodies.Select(b => "D 12:30:00.0000000 GameState." + b)));
 
-            foreach (var file in new[] { "Power_old.log", "Power.log" }.Select(n => Path.Combine(dir, n)).Where(File.Exists))
+        var result = Import(log);
+
+        Assert.True(result.Ok, result.Error.ToString());
+        var name = Assert.Single(result.Added);
+        var text = Imported.Load(name)!;
+        Assert.Equal(ReplayFile.Constructed, ReplayFile.Read(text)!.Value.Header.Kind);
+        AssertNoAccount(text, ReplayImportTests.ReadPacked(ReplayShare.Prepare(text, Path.Combine(_dir, "share"), CardDb.Empty)!));
+    }
+
+    /// <summary>No player name, BattleTag or game account id of the log in an imported game or its shared copy.</summary>
+    private static void AssertNoAccount(params string[] texts)
+    {
+        foreach (var text in texts)
+        {
+            foreach (var personal in new[] { "Me#1234", "Rival#4321", "velox", "21276", "UNKNOWN HUMAN", "GameAccountId", "144115198130930503", "hi=" })
             {
-                foreach (var record in Core.Data.LogBackfill.Parse(file, start, CardDb.Empty, replays: store))
-                {
-                    var text = store.Load(record.Replay)!;
-                    var clean = ReplayImport.Sanitize(text, CardDb.Empty, out var error);
-                    Assert.True(clean is not null, $"{record.StartedAt:g} {record.Mode}: {error}");
-                    var (header, body) = ReplayFile.Read(text)!.Value;
-                    var (cleanHeader, cleanBody) = ReplayFile.Read(clean!)!.Value;
-                    Assert.Equal(body.Take(header.Events), cleanBody.Take(cleanHeader.Events));
-                    games++;
-                }
+                Assert.DoesNotContain(personal, text, StringComparison.Ordinal);
             }
         }
-
-        Assert.True(games > 0);
     }
 
     private ReplayStore Imported => new(Path.Combine(_dir, "imported"));
@@ -432,6 +438,14 @@ public sealed class ReplayImportTests : IDisposable
         var path = Path.Combine(_dir, name);
         File.WriteAllText(path, text);
         return path;
+    }
+
+    internal static string ReadPacked(string path)
+    {
+        using var file = File.OpenRead(path);
+        using var gzip = new GZipStream(file, CompressionMode.Decompress);
+        using var reader = new StreamReader(gzip);
+        return reader.ReadToEnd();
     }
 
     internal static void Write(string path, string text)

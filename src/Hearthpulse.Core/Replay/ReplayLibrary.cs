@@ -27,7 +27,8 @@ public sealed class ReplayLibrary(ReplayStore recent, string saved, string impor
     public const int MaxImportedFiles = 500;
     public const long MaxImportedBytes = 200L * 1024 * 1024;
 
-    private readonly ConcurrentDictionary<(ReplayShelf, string), ReplayHeader?> _headers = new();
+    /// <summary>Headers by file and the time it was written: a file trimmed away or written again is read afresh.</summary>
+    private readonly ConcurrentDictionary<(ReplayShelf, string, DateTime), ReplayHeader?> _headers = new();
 
     public static ReplayLibrary Default { get; } = new(ReplayStore.Default, AppPaths.SavedReplays, AppPaths.ImportedReplays);
 
@@ -35,7 +36,7 @@ public sealed class ReplayLibrary(ReplayStore recent, string saved, string impor
 
     public ReplayStore Saved { get; } = new(saved) { AutoPrune = false, MaxTotalBytes = long.MaxValue, MaxTotalFiles = int.MaxValue };
 
-    public ReplayStore Imported { get; } = new(imported) { MaxTotalBytes = MaxImportedBytes, MaxTotalFiles = MaxImportedFiles };
+    public ReplayStore Imported { get; } = new(imported) { MaxTotalBytes = MaxImportedBytes, MaxTotalFiles = MaxImportedFiles, PruneByWriteTime = true };
 
     public ReplayStore Store(ReplayShelf shelf) => shelf switch
     {
@@ -49,7 +50,9 @@ public sealed class ReplayLibrary(ReplayStore recent, string saved, string impor
 
     /// <summary>The header of a file (summary for the card), read once and kept; null when it cannot be read.</summary>
     public ReplayHeader? Header(ReplayShelf shelf, string? fileName) =>
-        fileName is null ? null : _headers.GetOrAdd((shelf, fileName), static (key, library) => library.Store(key.Item1).ReadHeader(key.Item2), this);
+        fileName is null || Store(shelf).WrittenAt(fileName) is not { } written
+            ? null
+            : _headers.GetOrAdd((shelf, fileName, written), static (key, library) => library.Store(key.Item1).ReadHeader(key.Item2), this);
 
     /// <summary>The text of a replay: from its folder, else from its starred copy (a trimmed History file).</summary>
     public string? Load(ReplayShelf shelf, string? fileName) =>
@@ -62,18 +65,10 @@ public sealed class ReplayLibrary(ReplayStore recent, string saved, string impor
     public bool IsLastCopy(string fileName) => !Recent.Contains(fileName) && !Imported.Contains(fileName);
 
     /// <summary>Removes the star: deletes the copy in Saved.</summary>
-    public bool Unstar(string fileName)
-    {
-        _headers.TryRemove((ReplayShelf.Saved, fileName), out _);
-        return Saved.Delete(fileName);
-    }
+    public bool Unstar(string fileName) => Saved.Delete(fileName);
 
     /// <summary>Deletes an imported game (its starred copy, if any, stays).</summary>
-    public bool DeleteImported(string fileName)
-    {
-        _headers.TryRemove((ReplayShelf.Imported, fileName), out _);
-        return Imported.Delete(fileName);
-    }
+    public bool DeleteImported(string fileName) => Imported.Delete(fileName);
 
     /// <summary>Imports a file (a replay or a Power.log) into Imported, see <see cref="ReplayImport"/>.</summary>
     public ReplayImportResult Import(string path, CardDb cards, CancellationToken cancellationToken = default) =>

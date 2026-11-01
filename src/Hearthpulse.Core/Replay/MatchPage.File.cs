@@ -14,7 +14,7 @@ public sealed partial class MatchPage
 
     /// <summary>
     /// The game a replay file is of, as a History row would hold it, from the file's summary (format 4) or, for an older
-    /// file, its kind and the start time in its name. No names: "You" and "Opponent" stand in for them.
+    /// file, its kind and the start time in its name. No names ("You" and "Opponent" stand in for them), no rating.
     /// </summary>
     public static GameRecord RecordOf(ReplayHeader? header, string fileName)
     {
@@ -39,8 +39,6 @@ public sealed partial class MatchPage
             OpponentClass = summary?.OpponentClass ?? string.Empty,
             Result = summary?.Result ?? "Unknown",
             Placement = summary?.Placement ?? 0,
-            RatingBefore = summary?.RatingBefore,
-            RatingAfter = summary?.RatingAfter,
             Turns = summary?.Turns ?? 0,
             DeckCode = summary?.DeckCode,
             TavernTier = summary?.TavernTier ?? 0,
@@ -53,7 +51,26 @@ public sealed partial class MatchPage
         };
     }
 
-    /// <summary>Loads the page of a replay file (its text; null when it is gone or unreadable).</summary>
-    public static MatchPage LoadFile(string? text, string fileName, CardDb cards, ConstructedMeta? meta) =>
-        Load(RecordOf(text is null ? null : ReplayFile.Read(text)?.Header, fileName), text, cards, meta);
+    /// <summary>
+    /// Loads the page of a replay file without a History row (its text; null when it is gone or unreadable). The file
+    /// may have been put in the folder by hand, so it goes through the import filter first: a file the filter refuses
+    /// shows as unreadable, and what is shown is the filtered copy (no ranks, ratings, hidden cards).
+    /// </summary>
+    public static MatchPage LoadFile(string? text, string fileName, CardDb cards, Func<GameRecord, ConstructedMeta?> meta)
+    {
+        if (text is null)
+        {
+            var gone = RecordOf(null, fileName);
+            return Load(gone, (string?)null, cards, meta(gone));
+        }
+
+        if (ReplayImport.Sanitize(text, cards, out _) is not { } clean)
+        {
+            var refused = RecordOf(null, fileName);
+            return new MatchPage(refused, cards, BuildHeader(refused, cards, null)) { Missing = Loc.T("Match.Missing.Unreadable") };
+        }
+
+        var game = RecordOf(ReplayFile.Read(clean)?.Header, fileName);
+        return Load(game, clean, cards, meta(game));
+    }
 }

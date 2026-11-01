@@ -12,7 +12,7 @@ Replays themselves (format, what they may show) are in [match-replay.md](match-r
 |---|---|---|
 | Recent | `<data>/replays` (History's files) | History's rows; files trimmed at 300 MB / 3 000 (`ReplayStore`) |
 | Saved | `Documents/Hearthpulse/Replays/Saved` | forever: neither the trim nor updates nor uninstalling touch it |
-| Imported | `Documents/Hearthpulse/Replays/Imported` | the last 500 files / 200 MB, oldest game first |
+| Imported | `Documents/Hearthpulse/Replays/Imported` | the last 500 files / 200 MB, the file imported first goes first (`PruneByWriteTime`: an old log's games are not trimmed at once) |
 
 With `HEARTHPULSE_DATA`, in a portable copy or without a Documents folder both live in `<data>/library/{saved,imported}`
 (`AppPaths.LibraryRoot`), so development never writes to the real Documents. Copies made for Share go to
@@ -28,6 +28,11 @@ With `HEARTHPULSE_DATA`, in a portable copy or without a Documents folder both l
   star and Share.
 - **Imported** never goes into `history.db` or the stats, a Power.log's games included (the owner, 2026-11-01): the
   log may be somebody else's, and the player's own logs already reach History through the log import.
+- **Opening a Saved or Imported file without a History row** goes through the import filter again
+  (`MatchPage.LoadFile`): a file put in the folder by hand shows no ranks, ratings or hidden cards, and a file the
+  filter refuses shows as unreadable. Every replay file is read with the 32 MB text limit (`ReplayStore.Load`).
+- The header cache keys on the file's write time: a file trimmed away or written again is read afresh. A star on a
+  game whose file was written again later (a reconnect completed it) replaces the older copy.
 - Cards never show names or BattleTags (also on Recent, whose rows hold them); imported cards have no ranks or rating.
   A file opened without a History row says "You" and "Opponent" (`MatchPage.RecordOf`).
 
@@ -50,7 +55,8 @@ Power.log (`ReplayImport.ImportFile`). A foreign file is untrusted:
 - **Rebuilt, not copied:** the header is written anew from its known fields only: kind, the summary (each field
   checked: card ids, plain words, bounded numbers, the deck code only when it decodes, the archetype only as a plain
   name), truncated, the event count. Never the ranks, the ratings, the legend number or any unknown field. Format 2 and
-  3 files get a summary from their events (heroes from `E ... HERO`, the result from `R`). The rounds and lobby of a
+  3 files get a summary from their events (heroes from `E ... HERO`, the result from `R`) and no date (their stored
+  name starts with `game-`). The rounds and lobby of a
   Battlegrounds `G` line are rebuilt the same way. What is stored is this format 4 copy.
 - **Power.log:** its finished games are recorded as the log import does (`LogBackfill.Parse`) into a work folder under
   `<data>/cache/import`, then each goes through the same filter into Imported; the work folder is deleted. The day comes

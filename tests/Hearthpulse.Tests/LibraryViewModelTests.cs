@@ -227,7 +227,7 @@ public sealed class LibraryViewModelTests : IDisposable
         Assert.True(vm.Library.IsRecent);
         Assert.Empty(_files.Imported.Names());
 
-        vm.Library.Paste(null);
+        await vm.Library.PasteAsync(null);
         Assert.Equal(Loc.F("Library.ImportError", Loc.T("Library.ImportError.Clipboard")), vm.Library.Status);
 
         // The next tab clears the status.

@@ -234,7 +234,7 @@ public static partial class ReplayImport
         || start.Contains("GameState.DebugPrintGame", StringComparison.Ordinal);
 
     /// <summary>The text of <paramref name="stream"/>, or null past <paramref name="max"/> characters (with <paramref name="cut"/>: its first <paramref name="max"/>).</summary>
-    private static string? ReadLimited(Stream stream, int max, bool cut = false)
+    internal static string? ReadLimited(Stream stream, int max, bool cut = false)
     {
         using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 81920, leaveOpen: true);
         var text = new StringBuilder();
@@ -347,7 +347,8 @@ public static partial class ReplayImport
             .Select(e => int.Parse(e.Split(' ')[1], CultureInfo.InvariantCulture)).DefaultIfEmpty(0).Max();
         return new ReplaySummary
         {
-            StartedAt = DateTime.UtcNow.Date,
+            // An old file does not say when it was played: no date (the stored name starts with "game-").
+            StartedAt = DateTime.MinValue,
             HeroCardId = hero,
             PlayerClass = cards.Get(hero)?.CardClass ?? string.Empty,
             OpponentHeroCardId = opponent,
@@ -439,7 +440,8 @@ public static partial class ReplayImport
         return new ReplaySummary
         {
             Mode = "Battlegrounds",
-            StartedAt = DateTime.UtcNow.Date,
+            // An old file does not say when it was played: no date (the stored name starts with "game-").
+            StartedAt = DateTime.MinValue,
             HeroCardId = local?.HeroCardId ?? string.Empty,
             Placement = local?.Place ?? 0,
             Turns = last?.Turn ?? 0,

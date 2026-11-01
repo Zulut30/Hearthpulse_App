@@ -258,10 +258,9 @@ public sealed partial class MainViewModel
                 return null;
             }
 
+            // Saved and Imported files are opened through the import filter (MatchPage.LoadFile).
             var name = rest[(slash + 1)..];
-            var text = LibraryFiles.Load(shelf, name);
-            var record = Core.Replay.MatchPage.RecordOf(text is null ? null : ReplayFile.Read(text)?.Header, name);
-            return Core.Replay.MatchPage.Load(record, text, cards, MetaOf(record));
+            return Core.Replay.MatchPage.LoadFile(LibraryFiles.Load(shelf, name), name, cards, MetaOf);
         }
 
         return _history.Game(key) is { } game

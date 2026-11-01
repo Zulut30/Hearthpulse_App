@@ -417,12 +417,16 @@ public sealed class ReplayLibraryViewModel : Observable
         _owner.ImportLibraryFile(path);
     }
 
-    /// <summary>Ctrl+V on History: the clipboard's file or path (null: neither was there).</summary>
-    public void Paste(string? path)
+    /// <summary>
+    /// Ctrl+V on History: the clipboard's file or path (null: neither was there). Whether the file is there is asked off
+    /// the UI thread: a network path can take seconds to answer.
+    /// </summary>
+    public async Task PasteAsync(string? path)
     {
-        if (path is { Length: > 0 } file && File.Exists(file))
+        var exists = path is { Length: > 0 } file && await Task.Run(() => File.Exists(file)).ConfigureAwait(true);
+        if (exists)
         {
-            ImportPath(file);
+            ImportPath(path!);
         }
         else
         {

@@ -46,7 +46,7 @@ public partial class ReplayLibraryView : UserControl
             // Another program holds the clipboard, or the platform has no such format: the same as nothing there.
         }
 
-        model.Paste(path);
+        await model.PasteAsync(path);
     }
 
     /// <summary>

@@ -39,6 +39,25 @@ public sealed class ReplayStore(string directory)
     /// </summary>
     public bool AutoPrune { get; init; } = true;
 
+    /// <summary>
+    /// Trim by when each file was written, not by its game's start: Imported, where an old log's games are the newest
+    /// files and must not go first.
+    /// </summary>
+    public bool PruneByWriteTime { get; init; }
+
+    /// <summary>When a file was last written, or null when it is not there (the library's header cache keys on it).</summary>
+    public DateTime? WrittenAt(string? fileName)
+    {
+        try
+        {
+            return PathOf(fileName) is { } path && File.Exists(path) ? File.GetLastWriteTimeUtc(path) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>The file name of a game's replay: its start time and a hash of its key.</summary>
     public static string FileNameFor(string gameKey)
     {
@@ -113,12 +132,18 @@ public sealed class ReplayStore(string directory)
                 return null;
             }
 
-            string text;
+            string? text;
             using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             using (var gzip = new GZipStream(file, CompressionMode.Decompress))
-            using (var reader = new StreamReader(gzip, Encoding.UTF8))
             {
-                text = reader.ReadToEnd();
+                // A file may come from outside (the library folders): unpacking stops at the size a replay may have.
+                text = ReplayImport.ReadLimited(gzip, MaxTextChars);
+            }
+
+            if (text is null)
+            {
+                Diag.Info($"Replay {fileName} not read: over {MaxTextChars:N0} characters");
+                return null;
             }
 
             if (text.StartsWith(ReplayFile.OldMagic, StringComparison.Ordinal))
@@ -186,7 +211,8 @@ public sealed class ReplayStore(string directory)
 
     /// <summary>
     /// Copies a replay of another folder here under the same name (the star of the library). True when the copy is
-    /// there afterwards (also when it already was).
+    /// there afterwards. A copy already there is replaced when the source was written later (the part of a game saved
+    /// when the client left, then the whole game after the reconnect).
     /// </summary>
     public bool CopyFrom(ReplayStore source, string fileName)
     {
@@ -197,7 +223,7 @@ public sealed class ReplayStore(string directory)
 
         try
         {
-            if (File.Exists(to))
+            if (File.Exists(to) && File.GetLastWriteTimeUtc(to) >= File.GetLastWriteTimeUtc(from))
             {
                 return true;
             }
@@ -298,7 +324,8 @@ public sealed class ReplayStore(string directory)
         }
 
         // Oldest by the game's start time in the name; a name without one ("game-") goes by when it was written.
-        var files = new DirectoryInfo(Directory).EnumerateFiles("*" + Extension).OrderByDescending(Age, StringComparer.Ordinal).ToList();
+        var all = new DirectoryInfo(Directory).EnumerateFiles("*" + Extension);
+        var files = (PruneByWriteTime ? all.OrderByDescending(f => f.LastWriteTimeUtc) : all.OrderByDescending(Age, StringComparer.Ordinal)).ToList();
         long total = 0;
         var count = 0;
         foreach (var file in files)
