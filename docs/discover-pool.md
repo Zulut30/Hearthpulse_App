@@ -261,6 +261,16 @@ Battlecry), a minion type, a spell school and an "N-Cost". A clause that ends in
 plays and summons) and the card data (mechanics, types, cost, localized names): only what the player saw. Rules are
 cached per card id; a card with a rule in hand also turns on the hover reads.
 
+One card has its rule by id, not by text: Ectoplasm (`CAP_805t`, `MatchLists.RuleOf`). It is uncollectible, so the
+pool catalog has no English text for it. Its list, "Your minions that died to Slime 'em!", comes from the tags, not
+from the death events. Slime 'em! (`CAP_805`) sets aside a copy of each minion on the board (`ZONE=SETASIDE`,
+`CREATOR` = the cast, `COPIED_FROM_ENTITY_ID` = the minion) before destroying it, and gives each player an Ectoplasm
+with the same `CREATOR`. Played, the Ectoplasm summons its player's copies in that order while the board has room.
+The list is the local player's copies (`CONTROLLER`, minions only, with a card id: the opponent's are logged without
+one) of the cast of the leftmost Ectoplasm in hand. The hover gives only the card id, and the panel stands beside the
+leftmost copy. Checked on the four Ectoplasms played in the owner's logs of October 2026: each brought back the start
+of its list, cut only by a full board.
+
 ## What players take (pick hint)
 
 While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the averages,
