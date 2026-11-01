@@ -55,7 +55,7 @@ public sealed class EctoplasmListTests
         var (aside, asideTracker) = Play([.. earlier, .. board, .. cast]);
         Assert.Equal(0, MatchLists.Build(MatchLists.Ectoplasm, rule, aside, asideTracker.Counters, Cards).Total);
 
-        var (game, tracker) = Play([.. earlier, .. board, .. cast, [ToHand(222, 1), ToHand(218, 2)]]);
+        var (game, tracker) = Play([.. earlier, .. board, .. cast, [.. ToHand(222, 1), .. ToHand(218, 2)]]);
         var list = MatchLists.Build(MatchLists.Ectoplasm, rule, game, tracker.Counters, Cards);
         Assert.Equal("Ectoplasm", list.SourceName);
         Assert.Equal(MatchLists.Title(rule), list.Title);
@@ -63,8 +63,32 @@ public sealed class EctoplasmListTests
         Assert.Equal([("DR_1", 2), ("PLAIN", 1)], list.Rows.Select(r => (r.CardId, r.Count)));
 
         // Played, the Ectoplasm leaves the hand: no list any more.
-        var (played, playedTracker) = Play([.. earlier, .. board, .. cast, [ToHand(222, 1), $"DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=222 zone=HAND zonePos=1 cardId=CAP_805t player=1] tag=ZONE value=PLAY "]]);
+        var (played, playedTracker) = Play([.. earlier, .. board, .. cast, [.. ToHand(222, 1), $"DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=222 zone=HAND zonePos=1 cardId=CAP_805t player=1] tag=ZONE value=PLAY "]]);
         Assert.Equal(0, MatchLists.Build(MatchLists.Ectoplasm, rule, played, playedTracker.Counters, Cards).Total);
+    }
+
+    [Fact]
+    public void Two_ectoplasms_from_two_casts_list_the_leftmost_ones_minions()
+    {
+        // Each Ectoplasm brings back its own cast's minions. The hover tells only the card id, so the list goes with
+        // the leftmost Ectoplasm in hand, the one the panel stands beside.
+        string[][] casts =
+        [
+            Minion(40, "DR_1", 1), Minion(41, "PLAIN", 1),
+            Card(222, "CAP_805t", "SETASIDE", 1, "SPELL", "tag=CREATOR value=35"),
+            Copy(220, "DR_1", 1, 35, from: 40),
+            Die(40, "DR_1", 1),
+            Card(232, "CAP_805t", "SETASIDE", 1, "SPELL", "tag=CREATOR value=36"),
+            Copy(230, "PLAIN", 1, 36, from: 41),
+            Die(41, "PLAIN", 1),
+        ];
+        var rule = MatchLists.RuleOf(MatchLists.Ectoplasm)!;
+
+        var (later, laterTracker) = Play([.. casts, [.. ToHand(232, 1, position: 1), .. ToHand(222, 1, position: 2)]]);
+        Assert.Equal(["PLAIN"], MatchLists.Build(MatchLists.Ectoplasm, rule, later, laterTracker.Counters, Cards).Rows.Select(r => r.CardId));
+
+        var (first, firstTracker) = Play([.. casts, [.. ToHand(222, 1, position: 1), .. ToHand(232, 1, position: 2)]]);
+        Assert.Equal(["DR_1"], MatchLists.Build(MatchLists.Ectoplasm, rule, first, firstTracker.Counters, Cards).Rows.Select(r => r.CardId));
     }
 
     [Fact]
@@ -131,6 +155,10 @@ public sealed class EctoplasmListTests
     private static string[] Die(int id, string cardId, int controller) =>
         [$"DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id={id} zone=PLAY zonePos=1 cardId={cardId} player={controller}] tag=ZONE value=GRAVEYARD "];
 
-    private static string ToHand(int id, int controller) =>
-        $"DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id={id} zone=SETASIDE zonePos=0 cardId=CAP_805t player={controller}] tag=ZONE value=HAND ";
+    /// <summary>The Ectoplasm comes into the hand at <paramref name="position"/> (1 = leftmost).</summary>
+    private static string[] ToHand(int id, int controller, int position = 1) =>
+    [
+        $"DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id={id} zone=SETASIDE zonePos=0 cardId=CAP_805t player={controller}] tag=ZONE value=HAND ",
+        $"DebugPrintPower() - TAG_CHANGE Entity={id} tag=ZONE_POSITION value={position} ",
+    ];
 }

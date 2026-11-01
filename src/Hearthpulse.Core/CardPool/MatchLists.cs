@@ -240,34 +240,35 @@ public static partial class MatchLists
     }
 
     /// <summary>
-    /// The minions Slime 'em! (CAP_805) destroyed for the player, in the order their Ectoplasm summons them back, for the
-    /// Ectoplasms in the player's hand. The cast sets a copy of each destroyed minion aside (SETASIDE, CREATOR = the
-    /// cast, COPIED_FROM_ENTITY_ID = the minion) and gives each player an Ectoplasm with the same CREATOR. Played, the
-    /// Ectoplasm summons its cast's copies of that player (four real games of October 2026). Only the player's own
-    /// copies: the opponent's are logged without a card id.
+    /// The minions Slime 'em! (CAP_805) destroyed for the player, in the order their Ectoplasm summons them back. The
+    /// cast sets a copy of each destroyed minion aside (SETASIDE, CREATOR = the cast, COPIED_FROM_ENTITY_ID = the
+    /// minion) and gives each player an Ectoplasm with the same CREATOR. Played, the Ectoplasm summons its own cast's
+    /// copies of that player (four real games of October 2026). Only the player's own copies: the opponent's are
+    /// logged without a card id. With two Ectoplasms from two casts in hand, the hover tells only the card id: the list
+    /// is the leftmost one's, the card the panel stands beside (<see cref="CardPoolTracker.HandAnchor"/>).
     /// </summary>
     private static List<string> SlimedDeaths(GameState game, int player)
     {
-        var casts = new HashSet<int>();
+        Entity? leftmost = null;
         foreach (var card in game.Controlled(player, "HAND"))
         {
-            var cast = card.GetInt(GameTag.Creator);
-            if (card.CardId == Ectoplasm && cast != 0)
+            if (card.CardId == Ectoplasm && card.GetInt(GameTag.Creator) != 0 && (leftmost is null || card.ZonePosition < leftmost.ZonePosition))
             {
-                casts.Add(cast);
+                leftmost = card;
             }
         }
 
         var ids = new List<string>();
-        if (casts.Count == 0)
+        if (leftmost is null)
         {
             return ids;
         }
 
+        var cast = leftmost.GetInt(GameTag.Creator);
         foreach (var copy in game.Entities.Values.OrderBy(e => e.Id))
         {
             if (copy.Zone == "SETASIDE" && copy.IsMinion && copy.Controller == player && copy.CardId.Length > 0
-                && copy.Has("COPIED_FROM_ENTITY_ID") && casts.Contains(copy.GetInt(GameTag.Creator)))
+                && copy.Has("COPIED_FROM_ENTITY_ID") && copy.GetInt(GameTag.Creator) == cast)
             {
                 ids.Add(copy.CardId);
             }
