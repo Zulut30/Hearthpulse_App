@@ -315,11 +315,14 @@ public sealed partial class MatchPage
         }
 
         var seen = new HashSet<string>(shown, StringComparer.Ordinal);
-        var list = meta.Decks.Where(d => d.ArchetypeId == archetype.Id).MaxBy(d => d.Games) is { } top && DeckString.TryDecode(top.DeckString) is { Cards.Count: > 0 } deck
-            ? (Cards: deck.Cards.Select(kv => (Id: cards.Get(kv.Key)?.Id ?? string.Empty, Copies: kv.Value)).Where(c => c.Id.Length > 0).ToList(),
-                Note: Loc.F("Match.Predicted.Note", archetype.Name, top.Games.ToString("N0", CultureInfo.CurrentCulture)))
-            : (Cards: archetype.CoreCards.Distinct(StringComparer.Ordinal).Select(id => (Id: id, Copies: 1)).ToList(),
-                Note: Loc.F("Match.Predicted.Core", archetype.Name));
+        if (LikelyDeck.ListOf(meta, archetype, cards) is not { } likely)
+        {
+            return ([], string.Empty);
+        }
+
+        var list = (likely.Cards, Note: likely.Games > 0
+            ? Loc.F("Match.Predicted.Note", archetype.Name, likely.Games.ToString("N0", CultureInfo.CurrentCulture))
+            : Loc.F("Match.Predicted.Core", archetype.Name));
         var rows = list.Cards
             .Select(c => new MatchDeckRow(c.Id, cards.NameOf(c.Id), cards.Get(c.Id)?.Cost ?? 0, c.Copies > 1 ? $"×{c.Copies}" : string.Empty,
                 seen.Contains(c.Id) ? Loc.T("Match.Predicted.Seen") : string.Empty, seen.Contains(c.Id)) { Rarity = cards.Get(c.Id)?.Rarity ?? string.Empty })

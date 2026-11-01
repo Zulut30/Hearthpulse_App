@@ -1,0 +1,95 @@
+<UserControl x:Class="Hearthpulse.App.Overlay.LikelyDeckPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls">
+    <!-- The "Likely deck" panel (MovablePanel "opponent-deck", docs/opponent-deck.md): the opponent's likely meta list,
+         the copies it played face up from its starting deck marked, the played cards off the list apart. Only the rows,
+         the chance (tooltip) and the scrolling list take the pointer. DataContext is the OverlayViewModel. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="OverlayLook.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <i:VisibleWhen x:Key="Vis" />
+            <i:KeyBrush x:Key="KeyBrush" />
+
+            <!-- A card of the list: cost gem, name over the art with its rarity strip, "1/2" or "★"; dimmed once all copies are played -->
+            <DataTemplate x:Key="LikelyRow" DataType="{x:Type o:LikelyDeckTile}">
+                <Grid x:Name="RowRoot" Height="22" Margin="0,0,0,2" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="25" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <c:ManaCost x:Name="Gem" Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
+                        <Grid>
+                            <Image x:Name="Art" i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                            <Rectangle x:Name="Fade" Fill="{StaticResource TileFade}" />
+                            <Border x:Name="Strip" Style="{StaticResource OverlayRarityStrip}" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                            <DockPanel Margin="8,0,3,0">
+                                <Border x:Name="Copies" DockPanel.Dock="Right" Style="{StaticResource OverlayCountBadge}" Height="16" Visibility="{Binding Mark, Converter={StaticResource Vis}}">
+                                    <TextBlock Text="{Binding Mark}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            </DockPanel>
+                            <Border Style="{StaticResource OverlayRowSheen}" />
+                        </Grid>
+                    </Border>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <Trigger SourceName="RowRoot" Property="o:MovablePanel.Compact" Value="True">
+                        <Setter TargetName="RowRoot" Property="Height" Value="18" />
+                        <Setter TargetName="Art" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="Fade" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="Gem" Property="Width" Value="18" />
+                        <Setter TargetName="Gem" Property="Height" Value="18" />
+                    </Trigger>
+                    <!-- All copies played: dimmed as the deck tracker's drawn-out cards -->
+                    <DataTrigger Binding="{Binding Done}" Value="True">
+                        <Setter TargetName="Art" Property="Opacity" Value="0.22" />
+                        <Setter TargetName="Gem" Property="Opacity" Value="0.45" />
+                        <Setter TargetName="Strip" Property="Opacity" Value="0.35" />
+                        <Setter TargetName="Copies" Property="Opacity" Value="0.55" />
+                        <Setter TargetName="CardName" Property="Foreground" Value="{StaticResource Faint}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <Style x:Key="SideNote" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="10.5" />
+                <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource OverlayCard}" Width="214" MaxHeight="{Binding LikelyDeckMaxHeight}">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Style="{StaticResource OverlayHeader}">
+                <StackPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding LikelyDeckChance}" Style="{StaticResource OverlayHeaderNote}" Foreground="{StaticResource Accent}" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" Margin="8,0,0,0" Background="Transparent" ToolTip="{Binding LikelyDeckNote}" o:OverlayHit.Interactive="True" />
+                        <TextBlock Text="{i:Loc OpponentDeck.Title}" Style="{StaticResource OverlayHeaderNote}" Margin="0" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <TextBlock Text="{Binding LikelyDeckName}" Style="{StaticResource OverlayHeaderTitle}" Margin="0,2,0,0" />
+                </StackPanel>
+            </Border>
+            <TextBlock DockPanel.Dock="Top" Text="{Binding LikelyDeckSource}" Style="{StaticResource SideNote}" TextTrimming="CharacterEllipsis" Margin="12,7,12,0" />
+            <TextBlock DockPanel.Dock="Top" Text="{Binding LikelyDeckCoreNote}" Style="{StaticResource SideNote}" TextWrapping="Wrap" Margin="12,2,12,0"
+                       Visibility="{Binding LikelyDeckCoreNote, Converter={StaticResource Vis}}" />
+            <!-- Cards the opponent played that the list does not hold: always in sight under the list -->
+            <StackPanel DockPanel.Dock="Bottom" Margin="12,0,12,10">
+                <c:Ornament Text="{Binding LikelyDeckOffTitle}" Size="10.5" Margin="0,10,0,6" Visibility="{Binding LikelyDeckOffTitle, Converter={StaticResource Vis}}" />
+                <ItemsControl ItemsSource="{Binding LikelyDeckOffList}" ItemTemplate="{StaticResource LikelyRow}" Focusable="False" />
+                <TextBlock Text="{Binding LikelyDeckOffMore}" Style="{StaticResource SideNote}" Margin="0,1,0,0" Visibility="{Binding LikelyDeckOffMore, Converter={StaticResource Vis}}" />
+            </StackPanel>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False" Padding="0,0,6,0" Margin="12,6,6,0"
+                          o:OverlayHit.Interactive="True">
+                <ItemsControl ItemsSource="{Binding LikelyDeckRows}" ItemTemplate="{StaticResource LikelyRow}" Focusable="False" />
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</UserControl>

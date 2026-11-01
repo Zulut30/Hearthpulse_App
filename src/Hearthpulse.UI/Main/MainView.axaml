@@ -903,6 +903,8 @@
                                               ToolTip.Tip="{i:Loc Settings.Overlay.SecretsTip}" />
                                     <CheckBox Classes="switch" Content="{i:Loc Related.Graveyard.Setting}" IsChecked="{Binding ShowGraveyard}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Related.Graveyard.SettingTip}" />
+                                    <CheckBox Classes="switch" Content="{i:Loc OpponentDeck.Setting}" IsChecked="{Binding ShowLikelyDeck}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc OpponentDeck.SettingTip}" />
                                     <TextBlock Text="{i:Loc Settings.Overlay.Battlegrounds}" Classes="label settingGroup" />
                                     <CheckBox Classes="switch" Content="{i:Loc Settings.Overlay.TopBar}" IsChecked="{Binding ShowBattlegroundsBar}" Margin="0,0,0,14"
                                               ToolTip.Tip="{i:Loc Settings.Overlay.TopBarTip}" />

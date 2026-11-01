@@ -78,6 +78,7 @@
   "Main.Live.Panel.Deck": "Your deck",
   "Main.Live.Panel.OpponentDeck": "Opponent tracker",
   "Main.Live.Panel.Archetype": "Opponent's archetype",
+  "Main.Live.Panel.LikelyDeck": "Likely deck",
   "Main.Live.Panel.TurnTimer": "Turn timer",
   "Main.Live.Panel.Counters": "Counters",
   "Main.Live.Panel.CardPool": "Card pool",

@@ -41,9 +41,10 @@ public sealed class LiveBarPanelToggleTests
         {
             var property = Assert.Single(bools, p => p.Name == toggle.Id);
             // Every panel starts shown but the lobby tribes panel, whose player lines repeat the lobby list's, and the
-            // Graveyard, a new panel over the game that waits to be turned on (docs/graveyard.md).
+            // Graveyard and the Likely deck, new panels over the game that wait to be turned on (docs/graveyard.md,
+            // docs/opponent-deck.md).
             var initial = toggle.IsOn;
-            Assert.Equal(toggle.Id is not (nameof(AppSettings.ShowBgLobbyPanel) or nameof(AppSettings.ShowGraveyard)), initial);
+            Assert.Equal(toggle.Id is not (nameof(AppSettings.ShowBgLobbyPanel) or nameof(AppSettings.ShowGraveyard) or nameof(AppSettings.ShowLikelyDeck)), initial);
             var before = bools.ToDictionary(p => p.Name, p => (bool)p.GetValue(wpf.Settings)!);
 
             toggle.Toggle.Execute(null);

@@ -78,6 +78,7 @@
   "Main.Live.Panel.Deck": "Ваша колода",
   "Main.Live.Panel.OpponentDeck": "Трекер соперника",
   "Main.Live.Panel.Archetype": "Архетип соперника",
+  "Main.Live.Panel.LikelyDeck": "Вероятная колода",
   "Main.Live.Panel.TurnTimer": "Таймер хода",
   "Main.Live.Panel.Counters": "Счётчики",
   "Main.Live.Panel.CardPool": "Пул карт",
