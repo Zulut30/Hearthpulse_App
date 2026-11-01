@@ -56,6 +56,82 @@ public static class DeckString
         }
     }
 
+    /// <summary>The default hero card of a class (<c>PRIEST</c> → <c>HERO_09</c>), the hero a deck code names.</summary>
+    public static string? ClassHero(string? playerClass) => playerClass?.ToUpperInvariant() switch
+    {
+        "WARRIOR" => "HERO_01",
+        "SHAMAN" => "HERO_02",
+        "ROGUE" => "HERO_03",
+        "PALADIN" => "HERO_04",
+        "HUNTER" => "HERO_05",
+        "DRUID" => "HERO_06",
+        "WARLOCK" => "HERO_07",
+        "MAGE" => "HERO_08",
+        "PRIEST" => "HERO_09",
+        "DEMONHUNTER" => "HERO_10",
+        "DEATHKNIGHT" => "HERO_11",
+        _ => null,
+    };
+
+    /// <summary>
+    /// The deck code of a list of cards (card id → copies) for a class, as the game writes it: version 1, the format,
+    /// the class's default hero, the cards by copies sorted by dbf id, no sideboards. Null when a card or the hero is
+    /// not in <paramref name="cards"/>, or the list is empty.
+    /// </summary>
+    public static string? Encode(IReadOnlyDictionary<string, int> deck, string playerClass, string format, CardDb cards)
+    {
+        if (deck.Count == 0 || cards.Get(ClassHero(playerClass)) is not { DbfId: > 0 } hero)
+        {
+            return null;
+        }
+
+        var dbf = new List<(int Dbf, int Copies)>(deck.Count);
+        foreach (var (id, copies) in deck)
+        {
+            if (copies <= 0 || cards.Get(id) is not { DbfId: > 0 } card)
+            {
+                return null;
+            }
+
+            dbf.Add((card.DbfId, copies));
+        }
+
+        var bytes = new List<byte>(64);
+        void Write(int value)
+        {
+            var v = (uint)value;
+            while (v >= 0x80)
+            {
+                bytes.Add((byte)(v | 0x80));
+                v >>= 7;
+            }
+
+            bytes.Add((byte)v);
+        }
+
+        Write(0);
+        Write(1);
+        Write(format switch { "Wild" => 1, "Standard" => 2, "Classic" => 3, "Twist" => 4, _ => 1 });
+        Write(1);
+        Write(hero.DbfId);
+        foreach (var group in new[] { 1, 2, 3 })
+        {
+            var cardsOf = dbf.Where(c => group == 3 ? c.Copies >= 3 : c.Copies == group).OrderBy(c => c.Dbf).ToList();
+            Write(cardsOf.Count);
+            foreach (var (id, copies) in cardsOf)
+            {
+                Write(id);
+                if (group == 3)
+                {
+                    Write(copies);
+                }
+            }
+        }
+
+        Write(0);
+        return Convert.ToBase64String(bytes.ToArray());
+    }
+
     private static int ReadVarint(byte[] data, ref int position)
     {
         var result = 0;
