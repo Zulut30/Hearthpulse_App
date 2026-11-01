@@ -324,8 +324,11 @@ public sealed class ReplayStore(string directory)
         }
 
         // Oldest by the game's start time in the name; a name without one ("game-") goes by when it was written.
+        // Files written in one burst can share a write time (coarse clocks on macOS), so the name settles ties.
         var all = new DirectoryInfo(Directory).EnumerateFiles("*" + Extension);
-        var files = (PruneByWriteTime ? all.OrderByDescending(f => f.LastWriteTimeUtc) : all.OrderByDescending(Age, StringComparer.Ordinal)).ToList();
+        var files = (PruneByWriteTime
+            ? all.OrderByDescending(f => f.LastWriteTimeUtc).ThenByDescending(Age, StringComparer.Ordinal)
+            : all.OrderByDescending(Age, StringComparer.Ordinal)).ToList();
         long total = 0;
         var count = 0;
         foreach (var file in files)
