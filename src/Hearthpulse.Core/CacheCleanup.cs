@@ -20,7 +20,8 @@ public static class CacheCleanup
 
     /// <summary>
     /// Removes the Battlegrounds meta cache of versions before the Hearthpulse API (<c>cache/meta</c>, up to 150 MB, no
-    /// longer read), temporary files of unfinished writes, and the oldest card images beyond
+    /// longer read), replay copies made for Share after a day and work folders of a broken log import
+    /// (<c>docs/replay-library.md</c>), temporary files of unfinished writes, and the oldest card images beyond
     /// <see cref="MaxImagesPerFolder"/> in each image folder.
     /// </summary>
     public static Result Run(string cache, DateTime utcNow)
@@ -60,6 +61,24 @@ public static class CacheCleanup
                 }
 
                 TryDeleteEmpty(legacy);
+            }
+
+            // Replay copies made for Share (kept a day) and work folders a Power.log import left (a crash mid-import).
+            foreach (var (folder, age) in new[] { ("share", Replay.ReplayShare.KeepFor), ("import", OrphanAge) })
+            {
+                var parent = new DirectoryInfo(Path.Combine(cache, folder));
+                foreach (var old in parent.Exists ? parent.EnumerateDirectories().Where(d => utcNow - d.CreationTimeUtc > age).ToList() : [])
+                {
+                    foreach (var file in old.EnumerateFiles("*", SearchOption.AllDirectories))
+                    {
+                        Delete(file);
+                    }
+
+                    foreach (var sub in old.EnumerateDirectories("*", SearchOption.AllDirectories).Reverse().Append(old))
+                    {
+                        TryDeleteEmpty(sub);
+                    }
+                }
             }
 
             foreach (var temp in root.EnumerateFiles("*.tmp", SearchOption.AllDirectories))

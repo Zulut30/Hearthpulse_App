@@ -279,9 +279,9 @@ public sealed class LibraryViewModelTests : IDisposable
         Assert.NotNull(shared);
         Assert.StartsWith("hearthpulse-replay-", Path.GetFileName(shared), StringComparison.Ordinal);
         Assert.EndsWith("-battlegrounds.hpr", shared, StringComparison.Ordinal);
-        vm.Library.ShareDone(copied: true, pathOnly: true, folder: Path.GetDirectoryName(shared));
-        Assert.Equal(Loc.T("Library.SharedPath"), vm.Library.Status);
-        Assert.True(vm.Library.HasStatusFolder);
+        vm.Library.ShareDone(copied: true);
+        Assert.Equal(Loc.T("Library.Shared"), vm.Library.Status);
+        Assert.False(vm.Library.HasStatusFolder);
         vm.Library.ShareDone(copied: false);
         Assert.Equal(Loc.T("Main.Meta.ClipboardBusy"), vm.Library.Status);
     }
@@ -297,5 +297,30 @@ public sealed class LibraryViewModelTests : IDisposable
         Assert.True(vm.Library.IsRecent);
         Assert.NotNull(card);
         Assert.Same(card, vm.Library.SelectedCard);
+    }
+
+    [Fact]
+    public async Task Cards_of_files_put_in_imported_by_hand_show_only_what_the_filter_keeps()
+    {
+        Directory.CreateDirectory(_files.Imported.Directory);
+        // The app's own Constructed file (ranks in the header, a rating change in the summary) and a broken one.
+        ReplayImportTests.Write(Path.Combine(_files.Imported.Directory, "20261028184107-handmade0001.hpr"), ReplayImportTests.Constructed());
+        ReplayImportTests.Write(Path.Combine(_files.Imported.Directory, "20261028190000-handmade0002.hpr"),
+            "HPR4\n{\"kind\":\"constructed\",\"localRank\":\"Legend 7\"}\nE 1 L PLAY 1 http://evil MINION\n");
+        var vm = await Open();
+
+        vm.Library.SetTab.Execute("Imported");
+        await vm.LibraryIdleAsync();
+
+        Assert.Equal(2, vm.Library.Cards.Count);
+        var game = vm.Library.Cards.Single(c => c.FileName == "20261028184107-handmade0001.hpr");
+        Assert.Equal(string.Empty, game.Rating);
+        Assert.DoesNotContain("Legend", game.Caption, StringComparison.Ordinal);
+        var broken = vm.Library.Cards.Single(c => c.FileName == "20261028190000-handmade0002.hpr");
+        Assert.Equal(Loc.T("Library.Damaged"), broken.Title);
+        Assert.False(broken.HasReplay);
+        Assert.True(broken.CanDelete);
+        Assert.True(await vm.OpenLibraryCard(broken));
+        Assert.Equal(Loc.T("Match.Missing.Unreadable"), vm.MatchPage.Missing);
     }
 }

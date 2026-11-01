@@ -106,11 +106,13 @@ public sealed partial class MainViewModel
     private async Task LoadShelfAsync(int load, ReplayShelf shelf, string? select)
     {
         var files = LibraryFiles;
+        var cardDb = _cards;
         var read = await Task.Run(() =>
         {
             var saved = files.SavedNames();
             var names = shelf == ReplayShelf.Saved ? saved.ToList() : files.Imported.Names().ToList();
-            var headers = names.Select(n => files.Header(shelf, n)).ToList();
+            // A file of these folders may have been put there by hand: its card shows only what the import filter keeps.
+            var headers = names.Select(n => files.CheckedHeader(shelf, n, cardDb)).ToList();
             return (Saved: saved, Names: names, Headers: headers, Imported: shelf == ReplayShelf.Imported ? names.Count : files.Imported.Names().Count);
         }).ConfigureAwait(true);
         if (load != _libraryLoad)
@@ -125,8 +127,24 @@ public sealed partial class MainViewModel
         for (var i = 0; i < read.Names.Count; i++)
         {
             var name = read.Names[i];
+            var (header, readable) = read.Headers[i];
+            if (!readable)
+            {
+                // Refused by the filter: shown so that it can be deleted (Imported) or unstarred (Saved), never as a game.
+                var damaged = new LibraryCard(shelf, name, null, battlegrounds: false)
+                {
+                    Title = Loc.T("Library.Damaged"),
+                    Caption = name,
+                    SortKey = name,
+                };
+                damaged.HasReplay = shelf == ReplayShelf.Saved;
+                damaged.Starred = read.Saved.Contains(name);
+                cards.Add(damaged);
+                continue;
+            }
+
             var row = shelf == ReplayShelf.Saved ? rows.GetValueOrDefault(name) : null;
-            var game = row ?? Core.Replay.MatchPage.RecordOf(read.Headers[i], name);
+            var game = row ?? Core.Replay.MatchPage.RecordOf(header, name);
             if (!FilterMatch(game, HistoryFilter))
             {
                 continue;
@@ -134,7 +152,7 @@ public sealed partial class MainViewModel
 
             var card = LibraryCardOf(game, shelf, name, row?.Key);
             card.Starred = read.Saved.Contains(name);
-            if (read.Headers[i]?.Summary is { } summary)
+            if (header?.Summary is { } summary)
             {
                 ApplySummary(card, summary);
             }

@@ -30,6 +30,8 @@ public sealed class ReplayLibrary(ReplayStore recent, string saved, string impor
     /// <summary>Headers by file and the time it was written: a file trimmed away or written again is read afresh.</summary>
     private readonly ConcurrentDictionary<(ReplayShelf, string, DateTime), ReplayHeader?> _headers = new();
 
+    private readonly ConcurrentDictionary<(ReplayShelf, string, DateTime), (ReplayHeader?, bool)> _checked = new();
+
     public static ReplayLibrary Default { get; } = new(ReplayStore.Default, AppPaths.SavedReplays, AppPaths.ImportedReplays);
 
     public ReplayStore Recent { get; } = recent;
@@ -53,6 +55,18 @@ public sealed class ReplayLibrary(ReplayStore recent, string saved, string impor
         fileName is null || Store(shelf).WrittenAt(fileName) is not { } written
             ? null
             : _headers.GetOrAdd((shelf, fileName, written), static (key, library) => library.Store(key.Item1).ReadHeader(key.Item2), this);
+
+    /// <summary>
+    /// The header of a Saved or Imported file as the import filter rebuilds it (its card shows only that), or
+    /// <c>Readable: false</c> when the filter refuses the file or it cannot be read. Checked once per file and write time.
+    /// </summary>
+    public (ReplayHeader? Header, bool Readable) CheckedHeader(ReplayShelf shelf, string fileName, CardDb cards) =>
+        Store(shelf).WrittenAt(fileName) is not { } written
+            ? (null, false)
+            : _checked.GetOrAdd((shelf, fileName, written), static (key, state) =>
+                state.Library.Store(key.Item1).Load(key.Item2) is { } text && ReplayImport.Sanitize(text, state.Cards, out _) is { } clean
+                    ? (ReplayFile.Read(clean)?.Header, true)
+                    : (null, false), (Library: this, Cards: cards));
 
     /// <summary>The text of a replay: from its folder, else from its starred copy (a trimmed History file).</summary>
     public string? Load(ReplayShelf shelf, string? fileName) =>

@@ -16,7 +16,8 @@ Replays themselves (format, what they may show) are in [match-replay.md](match-r
 
 With `HEARTHPULSE_DATA`, in a portable copy or without a Documents folder both live in `<data>/library/{saved,imported}`
 (`AppPaths.LibraryRoot`), so development never writes to the real Documents. Copies made for Share go to
-`<data>/cache/share/<folder>/` and are deleted after 24 h.
+`<data>/cache/share/<folder>/` and are deleted after 24 h (at every share and every start, `CacheCleanup`), as are
+work folders a broken Power.log import left in `<data>/cache/import` after an hour.
 
 - **Star** copies the file into Saved under the same name (the History row keeps its own file); the star is lit by
   name. A History game whose file the trim deleted opens from its Saved copy. Taking the star off deletes the copy;
@@ -30,7 +31,9 @@ With `HEARTHPULSE_DATA`, in a portable copy or without a Documents folder both l
   log may be somebody else's, and the player's own logs already reach History through the log import.
 - **Opening a Saved or Imported file without a History row** goes through the import filter again
   (`MatchPage.LoadFile`): a file put in the folder by hand shows no ranks, ratings or hidden cards, and a file the
-  filter refuses shows as unreadable. Every replay file is read with the 32 MB text limit (`ReplayStore.Load`).
+  filter refuses shows as unreadable. The cards of Saved and Imported are built from the filtered header too
+  (`ReplayLibrary.CheckedHeader`, once per file and write time); a refused file is a "damaged" card that can only be
+  deleted (Imported) or unstarred (Saved). Every replay file is read with the 32 MB text limit (`ReplayStore.Load`).
 - The header cache keys on the file's write time: a file trimmed away or written again is read afresh. A star on a
   game whose file was written again later (a reconnect completed it) replaces the older copy.
 - Cards never show names or BattleTags (also on Recent, whose rows hold them); imported cards have no ranks or rating.
@@ -70,7 +73,8 @@ Power.log (`ReplayImport.ImportFile`). A foreign file is untrusted:
 clock showed it), written to a folder of its own under the share folder as `hearthpulse-replay-<yyyyMMdd>-<mode>.hpr`
 (mode in lower case: `ranked`, `battlegrounds`, `duos`...). The replay folder's own name is not used: it hashes the game
 key, which holds the BattleTag. WPF puts the file on the clipboard as a file; Avalonia as a file where the platform
-takes one, else its path, with "Open the folder" in the status line.
+takes one, else the copy's folder opens with the file selected and the status line says to drag it into the chat
+(the path itself is never put on the clipboard: it holds the system user's name).
 
 A shared file is a valid import: it is format 4 with a summary, no names, BattleTags, account ids, device data,
 ranks, ratings or legend number, and no time of day. That is also the upload format the site will take (stage 2.2

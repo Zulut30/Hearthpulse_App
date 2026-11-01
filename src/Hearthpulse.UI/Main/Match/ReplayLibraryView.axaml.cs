@@ -9,7 +9,7 @@ namespace Hearthpulse.UI.Main.Match;
 
 /// <summary>
 /// The History page as the replay library. The platform parts live here: the file picker of Import, the copy to share
-/// on the clipboard (as a file where the platform takes one, else its path with the folder linked), Ctrl+V (the window
+/// on the clipboard (as a file where the platform takes one, else shown selected in its folder), Ctrl+V (the window
 /// calls <see cref="PasteFromClipboardAsync"/>), scrolling to a selected card.
 /// </summary>
 public partial class ReplayLibraryView : UserControl
@@ -94,36 +94,29 @@ public partial class ReplayLibraryView : UserControl
 
     private async Task ShareFileAsync(string path)
     {
-        if (_model is not { } model || TopLevel.GetTopLevel(this) is not { Clipboard: { } clipboard } top)
+        if (_model is not { } model)
         {
-            _model?.ShareDone(copied: false);
             return;
         }
 
+        // The file itself where the platform's clipboard takes files; otherwise its folder opens with it selected
+        // (never its path on the clipboard: that holds the system user's name).
         try
         {
-            // The file itself where the platform's clipboard takes files; otherwise its path, with the folder linked.
-            if (await top.StorageProvider.TryGetFileFromPathAsync(path) is { } file)
+            if (TopLevel.GetTopLevel(this) is { Clipboard: { } clipboard } top && await top.StorageProvider.TryGetFileFromPathAsync(path) is { } file)
             {
-                try
-                {
-                    await clipboard.SetFileAsync(file);
-                    model.ShareDone(copied: true);
-                    return;
-                }
-                catch (Exception ex) when (ex is NotSupportedException or NotImplementedException or InvalidOperationException)
-                {
-                    Diag.Debug($"The clipboard took no file ({ex.Message}): copying the path");
-                }
+                await clipboard.SetFileAsync(file);
+                model.ShareDone(copied: true);
+                return;
             }
-
-            await clipboard.SetTextAsync(path);
-            model.ShareDone(copied: true, pathOnly: true, folder: Path.GetDirectoryName(path));
         }
-        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.ExternalException)
+        catch (Exception ex) when (ex is NotSupportedException or NotImplementedException or InvalidOperationException
+                                       or System.Runtime.InteropServices.ExternalException)
         {
-            model.ShareDone(copied: false);
+            Diag.Debug($"The clipboard took no file ({ex.Message}): showing it in its folder");
         }
+
+        model.ShareInFolder(path);
     }
 
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)

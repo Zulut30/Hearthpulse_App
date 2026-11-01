@@ -180,7 +180,7 @@ public sealed class ReplayLibraryViewModel : Observable
     private string _status = string.Empty;
     private string _statusKey = string.Empty;
     private string _statusGlyph = string.Empty;
-    private string? _statusFolder;
+    private string? _statusFile;
     private bool _importing;
     private bool _loading;
 
@@ -257,9 +257,9 @@ public sealed class ReplayLibraryViewModel : Observable
         OpenFolder = new RelayCommand(() => OpenInShell(IsImported ? Files.Imported.Directory : Files.Saved.Directory));
         OpenStatusFolder = new RelayCommand(() =>
         {
-            if (_statusFolder is { } folder)
+            if (_statusFile is { } file)
             {
-                OpenInShell(folder);
+                RevealInShell(file);
             }
         });
     }
@@ -365,8 +365,8 @@ public sealed class ReplayLibraryViewModel : Observable
 
     public string StatusGlyph { get => _statusGlyph; private set => Set(ref _statusGlyph, value); }
 
-    /// <summary>Avalonia without a file clipboard: the status line links the copy's folder.</summary>
-    public bool HasStatusFolder => _statusFolder is not null;
+    /// <summary>Avalonia without a file clipboard: the status line links the shared copy in its folder.</summary>
+    public bool HasStatusFolder => _statusFile is not null;
 
     public bool Importing
     {
@@ -434,16 +434,28 @@ public sealed class ReplayLibraryViewModel : Observable
         }
     }
 
-    /// <summary>The view put the shared copy on the clipboard: as a file, only its path (<paramref name="folder"/> linked), or not at all.</summary>
-    public void ShareDone(bool copied, bool pathOnly = false, string? folder = null)
+    /// <summary>The view put the shared copy on the clipboard as a file, or could not (the clipboard was busy).</summary>
+    public void ShareDone(bool copied)
     {
-        if (!copied)
+        if (copied)
+        {
+            ShowStatus(Loc.T("Library.Shared"), "Win", "\U000F05E1");
+        }
+        else
         {
             Failed(Loc.T("Main.Meta.ClipboardBusy"));
-            return;
         }
+    }
 
-        ShowStatus(pathOnly ? Loc.T("Library.SharedPath") : Loc.T("Library.Shared"), "Win", "\U000F05E1", pathOnly ? folder : null);
+    /// <summary>
+    /// The platform's clipboard takes no files: the copy's folder opens with the file selected, for the player to drag
+    /// it into the chat, and the status line links it again. Its path is never put on the clipboard: it holds the
+    /// system user's name.
+    /// </summary>
+    public void ShareInFolder(string file)
+    {
+        ShowStatus(Loc.T("Library.SharedPath"), "Win", "\U000F05E1", file);
+        RevealInShell(file);
     }
 
     internal void RequestShare(string path) => ShareFileRequested?.Invoke(path);
@@ -498,15 +510,31 @@ public sealed class ReplayLibraryViewModel : Observable
         card.ConfirmText = question;
     }
 
-    private void ShowStatus(string text, string key, string glyph, string? folder = null)
+    private void ShowStatus(string text, string key, string glyph, string? file = null)
     {
         Status = text;
         StatusKey = key;
         StatusGlyph = glyph;
-        if (_statusFolder != folder)
+        if (_statusFile != file)
         {
-            _statusFolder = folder;
+            _statusFile = file;
             Raise(nameof(HasStatusFolder));
+        }
+    }
+
+    /// <summary>Opens the folder of <paramref name="file"/> with the file selected where the platform can (Windows, macOS).</summary>
+    private static void RevealInShell(string file)
+    {
+        try
+        {
+            var start = OperatingSystem.IsWindows() ? new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{file}\"")
+                : OperatingSystem.IsMacOS() ? new System.Diagnostics.ProcessStartInfo("open", ["-R", file])
+                : new System.Diagnostics.ProcessStartInfo(Path.GetDirectoryName(file) ?? file) { UseShellExecute = true };
+            System.Diagnostics.Process.Start(start)?.Dispose();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            Diag.Error("Showing the shared replay copy failed", ex);
         }
     }
 
