@@ -130,6 +130,9 @@ public sealed record SimSide(IReadOnlyList<SimMinion> Minions)
     /// <summary>The hero's health plus armor when the fight starts (public on the leaderboard); 0 when unknown.</summary>
     public int Health { get; init; }
 
+    /// <summary>The Battlegrounds turn of the fight (hero powers that unlock on a turn); 0 when unknown.</summary>
+    public int Turn { get; init; }
+
     internal static readonly IReadOnlyDictionary<string, int> EmptyTags = new Dictionary<string, int>();
 }
 

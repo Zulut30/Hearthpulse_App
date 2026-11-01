@@ -713,8 +713,8 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         // Health for lethal comes from the leaderboard heroes (the fighting heroes are copies), as it was when the fight
         // started; an opponent tier the combat copy lacks comes from there too.
         var opponentHero = LeaderboardHero(game, _combatOpponent);
-        var ours = BuildSide(game, game.LocalPlayerId, isOpponent: false, enchantments) with { Health = _localHealthAtCombat };
-        var theirs = BuildSide(game, game.OpponentPlayerId, isOpponent: true, enchantments) with { Health = _opponentHealthAtCombat };
+        var ours = BuildSide(game, game.LocalPlayerId, isOpponent: false, enchantments) with { Health = _localHealthAtCombat, Turn = game.BattlegroundsTurn };
+        var theirs = BuildSide(game, game.OpponentPlayerId, isOpponent: true, enchantments) with { Health = _opponentHealthAtCombat, Turn = game.BattlegroundsTurn };
         if (theirs.TavernTier == 0 && opponentHero?.GetInt(GameTag.PlayerTechLevel) is > 0 and var opponentTier)
         {
             theirs = theirs with { TavernTier = opponentTier };

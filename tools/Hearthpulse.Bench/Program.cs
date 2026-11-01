@@ -28,6 +28,8 @@ internal static class Program
                     (--rounds n: the logs n times over; HP_BENCH_ONSCREEN=1: the overlay on the primary screen at 2 %;
                     HP_BENCH_PACE=n: each game lasts its log time / n; HP_BENCH_MAIN=0: no main window;
                     HP_BENCH_DROPART=1: image caches emptied before each count; HP_BENCH_SOFTWARE=1: overlay SoftwareOnly)
+          simcover  combat simulator coverage: Battlegrounds fights of the logs (Power*.log at any depth) without "not
+                    simulated", what was not, result accuracy and Brier; popular minions without an effect
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
           idle      the overlay window with no Hearthstone window: CPU time over 20 s (run with Hearthstone closed)
@@ -113,6 +115,9 @@ internal static class Program
                 break;
             case "games":
                 GamesBench.Run(options);
+                break;
+            case "simcover":
+                SimCoverBench.Run(options);
                 break;
             case "pages":
                 WpfBench.Pages(options);
