@@ -1011,6 +1011,7 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                 constructed = _constructed.BuildView(game, _cards);
                 constructed = WithCardPool(constructed, game) with { Turns = _turnClock.View(game) };
                 constructed = WithSecrets(constructed, game);
+                constructed = WithGraveyard(constructed, game);
             }
         }
         catch (Exception ex)

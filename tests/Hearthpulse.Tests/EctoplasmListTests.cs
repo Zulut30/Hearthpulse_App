@@ -102,7 +102,7 @@ public sealed class EctoplasmListTests
         Assert.Equal("Ваши погибшие скользкой смертью", Loc.Table(Loc.Russian)["Pool.List.SlimedDeaths"]);
     }
 
-    private static (GameState Game, ConstructedTracker Tracker) Play(string[][] bodies)
+    internal static (GameState Game, ConstructedTracker Tracker) Play(string[][] bodies)
     {
         var parser = new PowerParser(new DateOnly(2026, 10, 30));
         var tracker = new ConstructedTracker();
@@ -138,7 +138,7 @@ public sealed class EctoplasmListTests
         return (parser.Game!, tracker);
     }
 
-    private static string[] Card(int id, string cardId, string zone, int controller, string type, params string[] tags) =>
+    internal static string[] Card(int id, string cardId, string zone, int controller, string type, params string[] tags) =>
     [
         $"DebugPrintPower() - FULL_ENTITY - Creating ID={id} CardID={cardId}",
         $"DebugPrintPower() -     tag=ZONE value={zone}",
@@ -147,7 +147,7 @@ public sealed class EctoplasmListTests
         .. tags.Select(t => "DebugPrintPower() -     " + t),
     ];
 
-    private static string[] Minion(int id, string cardId, int controller) => Card(id, cardId, "PLAY", controller, "MINION");
+    internal static string[] Minion(int id, string cardId, int controller) => Card(id, cardId, "PLAY", controller, "MINION");
 
     /// <summary>The copy the cast sets aside, then marks with the minion it copies, as the real log does.</summary>
     private static string[] Copy(int id, string cardId, int controller, int cast, int from, string type = "MINION") =>
@@ -156,7 +156,7 @@ public sealed class EctoplasmListTests
         $"DebugPrintPower() - TAG_CHANGE Entity={id} tag=COPIED_FROM_ENTITY_ID value={from} ",
     ];
 
-    private static string[] Die(int id, string cardId, int controller) =>
+    internal static string[] Die(int id, string cardId, int controller) =>
         [$"DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id={id} zone=PLAY zonePos=1 cardId={cardId} player={controller}] tag=ZONE value=GRAVEYARD "];
 
     /// <summary>The Ectoplasm comes into the hand at <paramref name="position"/> (1 = leftmost).</summary>

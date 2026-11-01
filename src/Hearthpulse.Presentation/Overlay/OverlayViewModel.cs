@@ -295,6 +295,7 @@ public sealed partial class OverlayViewModel : Observable
         UpdateTurnTimer(constructed, settings);
         UpdateLadder(snapshot, settings);
         UpdateSecrets(constructed, settings);
+        UpdateGraveyard(constructed, settings);
         UpdatePanelLock(settings);
 
         var bg = enabled ? snapshot.Battlegrounds : null;

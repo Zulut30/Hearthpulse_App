@@ -1,0 +1,10 @@
+{
+  "Related.Title": "Related cards",
+  "Related.Graveyard.Title": "Graveyard",
+  "Related.Graveyard.Enemy": "Opponent's · {0}",
+  "Related.Graveyard.Mine": "Yours · {0}",
+  "Related.Graveyard.More": "+{0} more",
+  "Related.Graveyard.Empty": "None died yet",
+  "Related.Graveyard.Setting": "Graveyard",
+  "Related.Graveyard.SettingTip": "Minions that died this game, yours and the opponent's, with copies counted. Hover a row to see the card. Not shown in Battlegrounds."
+}

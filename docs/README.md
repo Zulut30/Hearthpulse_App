@@ -12,6 +12,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [counters-constructed.md](counters-constructed.md) | In-game counters for Constructed and Arena |
 | [counters-battlegrounds.md](counters-battlegrounds.md) | Battlegrounds counter chips (`bg-counters` panel) |
 | [discover-pool.md](discover-pool.md) | Card pool panel for Discover and random-card effects |
+| [graveyard.md](graveyard.md) | Graveyard panel: the minions that died this game on each side |
 | [secrets-helper.md](secrets-helper.md) | Opponent Secrets panel |
 | [mulligan-v2.md](mulligan-v2.md) | Mulligan guide: research, what the app computes, proposed endpoints |
 | [match-replay.md](match-replay.md) | Match page: turn-by-turn replay and what it may reveal |

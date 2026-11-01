@@ -213,7 +213,7 @@ public sealed class UxRound2MarkupTests
 
         var wpf = Panels(WpfOverlay);
         var ava = Panels(AvaOverlay);
-        Assert.Equal(26, wpf.Count);
+        Assert.Equal(27, wpf.Count);
         Assert.Equal(wpf.Order(), ava.Order());
     }
 

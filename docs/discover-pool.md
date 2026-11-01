@@ -271,6 +271,23 @@ one) of the cast of the leftmost Ectoplasm in hand. The hover gives only the car
 leftmost copy. Checked on the four Ectoplasms played in the owner's logs of October 2026: each brought back the start
 of its list, cut only by a full board.
 
+## Related cards (hovered card in hand)
+
+A card in hand without a "this game" rule shows, when hovered, its related cards in the same popup and rows (header
+"Related cards: N", the card's name; above the pool's parts when it has a pool). `RelatedCards.Of`, from the card
+data only (no hand-made table):
+
+- **Tokens:** a card that is not collectible, of a drawable type (minion, spell, weapon, location, hero), in the same
+  set, whose id is the card's id with a suffix (`t`, `t2`, `ta`, `a`, `b`: `CS2_101` → `CS2_101t`); a `CORE_` reprint
+  takes the original's tokens.
+- **Named cards:** a collectible card whose English name (two words or six letters at least) stands as whole words in
+  the English text (the pool catalog's), outside bold keywords, and is no keyword itself (a mechanic or a referenced
+  tag of some card, or one of Rewind, Resurrect, Silence, Freeze, Discover, Recruit, Corrupt, Overload).
+- Names in the client's language (`CardDb`); more than 12 related cards is no list. A "this game" rule wins (one list a
+  card). Cached per card for the card data and interface language. On the 2026-11 catalog (6 501 cards) 1 069 cards
+  have a list: 1 020 with tokens, 65 with named cards.
+- Only the player's own hand; the hover thread now also runs when a card in hand has related cards.
+
 ## What players take (pick hint)
 
 While the player's own Discover, Adapt, Choose One or similar choice is open, the panel adds a block above the averages,

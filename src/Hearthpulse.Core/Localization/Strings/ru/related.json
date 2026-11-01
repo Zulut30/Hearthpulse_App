@@ -1,0 +1,10 @@
+{
+  "Related.Title": "Связанные карты",
+  "Related.Graveyard.Title": "Кладбище",
+  "Related.Graveyard.Enemy": "Соперника · {0}",
+  "Related.Graveyard.Mine": "Ваши · {0}",
+  "Related.Graveyard.More": "и ещё {0}",
+  "Related.Graveyard.Empty": "Пока никто не погиб",
+  "Related.Graveyard.Setting": "Кладбище",
+  "Related.Graveyard.SettingTip": "Существа, погибшие в этой игре, — ваши и соперника, с числом копий. Наведите на строку, чтобы увидеть карту. В Полях сражений не показывается."
+}

@@ -1,4 +1,6 @@
 using Hearthpulse.Core.CardPool;
+using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
 
@@ -14,6 +16,10 @@ public sealed partial class GameSession
 
     private readonly CardPoolTracker _cardPool = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, MatchRule?> _matchRules = new(StringComparer.Ordinal);
+
+    // The related cards of each card (RelatedCards), for the card data and interface language they were built with.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, MatchListView?> _related = new(StringComparer.Ordinal);
+    private (CardDb Cards, CardPoolCatalog Catalog, string Language)? _relatedFor;
     private readonly Lock _cardPoolGate = new();
     private CardPoolCatalog _cardPoolCatalog = CardPoolCatalog.Empty;
     private WikiPoolSource? _cardPoolWiki;
@@ -122,9 +128,10 @@ public sealed partial class GameSession
         try
         {
             var pool = _cardPool.BuildView(game, _cards);
-            // The hovered card's look back at this game, above its own pool; never over another card's pool (a Discover).
-            var list = _cardPool.HoveredInHand(game) is { } hovered && (pool is null || pool.SourceCardId == hovered) && MatchRuleOf(hovered) is { } rule
-                ? MatchLists.Build(hovered, rule, game, _constructed.Counters, _cards)
+            // The hovered card's look back at this game, else its related cards (tokens, cards it names), above its own
+            // pool; never over another card's pool (a Discover).
+            var list = _cardPool.HoveredInHand(game) is { } hovered && (pool is null || pool.SourceCardId == hovered)
+                ? MatchRuleOf(hovered) is { } rule ? MatchLists.Build(hovered, rule, game, _constructed.Counters, _cards) : RelatedOf(hovered)
                 : null;
             var anchor = _cardPool.AnchorOf(game, pool) ?? (list is null ? null : CardPoolTracker.HandAnchor(game, list.SourceCardId));
             return view with { CardPool = pool, CardPoolAnchor = anchor, MatchList = list, DiscoverPicks = PicksOf(game, pool) };
@@ -138,7 +145,26 @@ public sealed partial class GameSession
 
     /// <summary>Whether a card in your hand looks back at this game (then the card under the mouse is worth reading).</summary>
     private bool HandHasMatchList(GameState game) =>
-        game.Controlled(game.LocalPlayerId, "HAND").Any(card => card.CardId.Length > 0 && MatchRuleOf(card.CardId) is not null);
+        game.Controlled(game.LocalPlayerId, "HAND").Any(card => card.CardId.Length > 0 && (MatchRuleOf(card.CardId) is not null || RelatedOf(card.CardId) is not null));
+
+    /// <summary>The related cards of a card in hand (<see cref="RelatedCards"/>), cached; null when it has none.</summary>
+    private MatchListView? RelatedOf(string cardId)
+    {
+        CardPoolCatalog catalog;
+        lock (_cardPoolGate)
+        {
+            catalog = _cardPoolCatalog;
+        }
+
+        var key = (_cards, catalog, Loc.Instance.Language);
+        if (_relatedFor != key)
+        {
+            _related.Clear();
+            _relatedFor = key;
+        }
+
+        return _related.GetOrAdd(cardId, static (id, state) => RelatedCards.Of(id, state.Item1, state.Item2), (key.Item1, key.Item2));
+    }
 
     /// <summary>
     /// The rule of a card, from its English text: the pool catalog's, or the card data's in an English client. Cached;

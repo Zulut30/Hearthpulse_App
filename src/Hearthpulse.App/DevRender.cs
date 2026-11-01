@@ -160,6 +160,7 @@ public partial class App
             await RenderArenaAsync(folder);
             await RenderWidgetsAsync(folder);
             await RenderSecretsAsync(folder);
+            await RenderGraveyardAsync(folder);
 
             _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
             _overlayViewModel.LayoutEditing = true;
