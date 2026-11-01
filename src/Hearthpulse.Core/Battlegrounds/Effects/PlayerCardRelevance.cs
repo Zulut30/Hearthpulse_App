@@ -8,7 +8,8 @@ namespace Hearthpulse.Core.Battlegrounds.Effects;
 /// only acts in the Tavern are <see cref="Relevance.None"/>: they explain the granted marker on the minion, so it is not
 /// flagged. Start of Combat cards resolved before capture and Tavern-only cards are left out (unknown extras are not
 /// counted). Hero powers: those of heroes in the API's hero list; trinkets: every one with a combat trigger (the API
-/// has no trinket popularity). See docs/bg-combat-sim.md.
+/// has no trinket popularity). Not complete: a hero power or trinket missing here is not counted even if it acts in
+/// combat, so the coverage is an upper bound. See docs/bg-combat-sim.md.
 /// </summary>
 internal static class PlayerCardTable
 {
@@ -71,9 +72,11 @@ internal static class PlayerCardTable
         Relevant("BG32_MagicItem_934", "TR_AURA", "Dazzling Dagger"),
         Relevant("BG35_MagicItem_430", "TR_DEATH_GEM", "Scrapsmith Portrait"),
         Relevant("BG35_MagicItem_432", "TR_DEATHRATTLE_GEM", "Blood Amulet"),
+        Relevant("BG35_MagicItem_701", "TR_SUMMON_AURA", "Fang Anklet"),
         Relevant("BG35_MagicItem_731", "TR_REBORN_KEYWORD", "Deathtouch Apple"),
         Relevant("BG35_MagicItem_732", "TR_LAST_DEATH_SUMMON", "Soul Fermenter"),
         Relevant("BG35_MagicItem_849", "TR_AVENGE_BUFF", "Cloud Serpent Horn"),
+        Relevant("BG35_MagicItem_923", "TR_SPELL_BUFF", "Bewitched Ribbon"),
         Relevant("BG36_MagicItem_201", "TR_ATTACK_BUFF", "Lionfish Portrait"),
         Relevant("BG36_MagicItem_205", "TR_REBORN_BUFF", "Deathwhisper Sticker"),
         Relevant("BG36_MagicItem_216", "TR_DEATH_BUFF", "Eternal Portrait"),

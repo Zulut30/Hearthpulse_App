@@ -327,3 +327,19 @@ internal sealed class CloudSerpentHorn : AvengeEffect
         }
     }
 }
+
+/// <summary>
+/// Bewitched Ribbon (BG35_MagicItem_923): "Whenever you cast a spell, give your minions +1/+1 permanently. (+2/+2 while in
+/// combat!)" In combat: +2/+2 after each spell the side casts (<see cref="Fight.CastSpell"/>).
+/// </summary>
+[CardEffect("BG35_MagicItem_923")]
+internal sealed class BewitchedRibbon : CombatEffect
+{
+    public override void AfterFriendlySpellCast(Fight fight, Unit self, string spellCardId, Unit? target)
+    {
+        foreach (var minion in fight.Alive(self.Side))
+        {
+            fight.Buff(minion, 2, 2);
+        }
+    }
+}

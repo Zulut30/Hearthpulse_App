@@ -112,6 +112,24 @@ public sealed class Side
     /// <summary>Stats every minion of <paramref name="tribe"/> (<see cref="Tribe.All"/>: every minion) summoned later this fight gets.</summary>
     public void AddSummonBuff(Tribe tribe, int attack, int health) => AddSummonBuff(u => u.Is(tribe), attack, health);
 
+    /// <summary>
+    /// What the summon buffs registered so far add to a minion like <paramref name="unit"/>: auras a copy of it gets again
+    /// when summoned, so a copy taken from its current stats subtracts them first.
+    /// </summary>
+    internal (int Attack, int Health) SummonBuffsFor(Unit unit)
+    {
+        var (attack, health) = (0, 0);
+        foreach (var (applies, a, h) in _summonBuffs ?? [])
+        {
+            if (applies(unit))
+            {
+                (attack, health) = (attack + a, health + h);
+            }
+        }
+
+        return (attack, health);
+    }
+
     internal void ApplySummonBuffs(Unit unit)
     {
         if (_summonBuffs is null)

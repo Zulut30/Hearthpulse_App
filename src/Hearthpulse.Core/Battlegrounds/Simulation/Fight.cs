@@ -742,7 +742,13 @@ public sealed class Fight
 
     private void SummonReborn(Unit dead)
     {
-        var copy = SummonCore(dead.Side, dead.Spec.RebornCopy(), SlotOf(dead), dead.DiedLeftOfGap, rebornFrom: dead);
+        var spec = dead.Spec.RebornCopy();
+        foreach (var effect in dead.Effects)
+        {
+            spec = effect.RebornAs(this, dead, spec);
+        }
+
+        var copy = SummonCore(dead.Side, spec, SlotOf(dead), dead.DiedLeftOfGap, rebornFrom: dead);
         if (copy is not null)
         {
             Raise(dead.Side, Hook.Reborn, copy, exclude: copy);

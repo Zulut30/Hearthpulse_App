@@ -953,7 +953,12 @@ public sealed partial class BattlegroundsTracker : IPowerListener
     /// </summary>
     private SimSide BuildSide(GameState game, int controller, bool isOpponent, ILookup<int, string> enchantments)
     {
-        var minions = Minions(game, controller).Select(e => ToSim(e, isOpponent, enchantments)).ToList();
+        var minions = Minions(game, controller)
+            .Select(e => ToSim(e, isOpponent, enchantments) with
+            {
+                CreatorCardId = e.GetInt(GameTag.Creator) is > 0 and var creator ? game.Entities.GetValueOrDefault(creator)?.CardId ?? string.Empty : string.Empty,
+            })
+            .ToList();
         var player = game.Players.TryGetValue(controller, out var slot) ? game.Entities.GetValueOrDefault(slot.EntityId) : null;
         var hero = game.HeroOf(player);
         var played = game.Controlled(controller, "PLAY").Where(e => e.CardId.Length > 0).OrderBy(e => e.Id).ToList();
@@ -1020,7 +1025,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
             ? CombatRelevance.TagsSuggestCombatEffect(e.Has)
             : CombatRelevance.IsCombatRelevant(e.CardId, card, Cards.Locale);
         // A deathrattle, Avenge or Rally the card does not print came from an enchantment (Dark Gift, Tamsin...).
-        var granted = card is not null && CombatRelevance.HasGrantedEffect(e.Has, mechanics);
+        var granted = card is not null ? CombatRelevance.GrantedMechanics(e.Has, mechanics) : [];
         var unsimulated = CombatRelevance.IsUnsimulated(cardId, golden, relevant, granted, attached, isOpponent, Effects);
 
         var keywords = KeywordsOf(e);

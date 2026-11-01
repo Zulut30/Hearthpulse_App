@@ -45,7 +45,7 @@ internal static class SimCoverBench
             : [];
         var records = new List<GameRecord>();
         var reasons = new Dictionary<string, int>(StringComparer.Ordinal);
-        int fights = 0, clean = 0, scored = 0;
+        int fights = 0, clean = 0, scored = 0, noOdds = 0;
         double brier = 0;
         foreach (var log in logs)
         {
@@ -108,6 +108,7 @@ internal static class SimCoverBench
                 {
                     if (c.Odds is not { } o)
                     {
+                        noOdds++;
                         continue;
                     }
 
@@ -128,7 +129,7 @@ internal static class SimCoverBench
 
         var accuracy = BattlegroundsStats.SimAccuracy(records);
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"[sim] fights with odds {fights}, without \"not simulated\" {clean} = {(fights > 0 ? clean / (double)fights : 0):P0}; result hit {accuracy.ResultRate:P0} of {accuracy.Fights}; damage in range {accuracy.DamageRate:P0}; Brier {(scored > 0 ? brier / scored : 0):N3} over {scored}"));
+            $"[sim] fights without odds (not counted below) {noOdds}; fights with odds {fights}, without \"not simulated\" {clean} = {(fights > 0 ? clean / (double)fights : 0):P0}; result hit {accuracy.ResultRate:P0} of {accuracy.Fights}; damage in range {accuracy.DamageRate:P0}; Brier {(scored > 0 ? brier / scored : 0):N3} over {scored}"));
         foreach (var (reason, n) in reasons.OrderByDescending(r => r.Value).ThenBy(r => r.Key, StringComparer.Ordinal))
         {
             Console.WriteLine($"[sim]   {n,3} × {reason}");
@@ -158,7 +159,13 @@ internal static class SimCoverBench
 
     private static void Popularity(CardDb cards)
     {
-        var path = Path.Combine(Environment.GetEnvironmentVariable("HEARTHPULSE_DATA")!, "cache", "api", "bg-minions-all.json");
+        if (Environment.GetEnvironmentVariable("HEARTHPULSE_DATA") is not { Length: > 0 } data)
+        {
+            Console.WriteLine("[pop] HEARTHPULSE_DATA is not set: no community minion list to read");
+            return;
+        }
+
+        var path = Path.Combine(data, "cache", "api", "bg-minions-all.json");
         if (!File.Exists(path))
         {
             Console.WriteLine($"[pop] no {path}");

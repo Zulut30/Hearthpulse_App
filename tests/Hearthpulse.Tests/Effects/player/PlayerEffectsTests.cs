@@ -183,7 +183,55 @@ public sealed class PlayerEffectsTests
         var result = Fight(With(Side(Minion(1, 1, cardId: "A"), Minion(1, 1, cardId: "B"), Minion(1, 1, cardId: "C"), Minion(0, 10, cardId: "D")), "BG30_MagicItem_864"),
             Side(Minion(1, 50)), false, Effects(typeof(GilneanThornedRose)));
 
-        Assert.Contains(result.Log, l => l.Contains("our D 4/14 takes 1", StringComparison.Ordinal) || l.Contains("our D 4/15 takes 1", StringComparison.Ordinal));
+        // A, B and C die; the 0/10 gets +4/+5 (4/15), then takes 1: the trace prints the state after the damage.
+        Assert.Contains(result.Log, l => l.StartsWith("our D 4/14 takes 1", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Golden_alliance_keychain_passes_the_stats_to_two_minions()
+    {
+        var result = Fight(With(Side(Minion(4, 1, cardId: "A"), Minion(0, 10, cardId: "B"), Minion(0, 10, cardId: "C")), "BG30_MagicItem_433t"),
+            Side(Minion(1, 1)), false, Effects(typeof(AllianceKeychain)));
+
+        Assert.Equal(2, result.Ours.Count(m => (m.Attack, m.Health) == (4, 11)));
+    }
+
+    [Fact]
+    public void Golden_unholy_sanctum_gives_six_four()
+    {
+        var rattle = Minion(1, 1, cardId: "BG28_300", mechanics: CardMechanic.Deathrattle);
+        var result = Fight(With(Side(rattle, Minion(0, 10, cardId: "B")), "BG32_MagicItem_862t"), Side(Minion(1, 1)), false,
+            Effects(typeof(UnholySanctum), typeof(Hearthpulse.Core.Battlegrounds.Effects.Deaths.HarmlessBonehead)));
+
+        Assert.Contains(result.Ours, m => m.CardId == "B" && (m.Attack, m.Health) == (6, 14));
+    }
+
+    [Fact]
+    public void Golden_beetle_band_summons_two_beetles_on_the_seventh_death()
+    {
+        var side = Side(Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(0, 30));
+        var golden = Fight(With(side, "BG32_MagicItem_860t"), Side(Minion(1, 500)), false, Effects(typeof(BeetleBand)));
+
+        Assert.Equal(2, golden.Log.Count(l => l.StartsWith("summoned our BG28_603t", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void Bewitched_ribbon_buffs_the_board_after_each_spell_cast_in_combat()
+    {
+        // The caster casts a spell whenever it attacks: three attacks kill the 0/15, three spells give the 0/10 +6/+6.
+        var result = Fight(With(Side(Minion(1, 10, cardId: SpellCaster.Id), Minion(0, 10, cardId: "B")), "BG35_MagicItem_923"),
+            Side(Minion(0, 15)), true, Effects(typeof(BewitchedRibbon), typeof(SpellCaster)));
+
+        Assert.Contains(result.Ours, m => m.CardId == "B" && (m.Attack, m.Health) == (6, 16));
+    }
+
+    /// <summary>Test-only minion: casts a spell whenever it attacks.</summary>
+    [CardEffect(Id)]
+    private sealed class SpellCaster : CombatEffect
+    {
+        public const string Id = "TEST_SPELL_CASTER";
+
+        public override void OnAttack(Fight fight, Unit self, Unit target) => fight.CastSpell(self.Side, "TEST_SPELL", null);
     }
 
     [Fact]
@@ -243,5 +291,30 @@ public sealed class PlayerEffectsTests
         Assert.Single(unlocked.Log, l => l.StartsWith("summoned our H 2/9", StringComparison.Ordinal));
         Assert.DoesNotContain(locked.Log, l => l.StartsWith("summoned", StringComparison.Ordinal));
         Assert.Single(attack.Log, l => l.StartsWith("summoned our K 8/2", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Space_copy_already_on_the_captured_board_is_not_made_again()
+    {
+        // Six minions plus the copy the power summoned at the start of combat: the board is full, nothing is owed.
+        var copy = Minion(2, 9, cardId: "H") with { CreatorCardId = "BG22_HERO_003p" };
+        var side = With(Side(Minion(1, 1, cardId: "A"), Minion(2, 9, cardId: "H"), copy, Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1))
+            with { Turn = 8 }, "BG22_HERO_003p");
+
+        var result = Fight(side, Side(Minion(1, 1)), false, Effects(typeof(SpaceCopyHeroPower)));
+
+        Assert.DoesNotContain(result.Log, l => l.StartsWith("summoned", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Space_copy_gets_a_summon_aura_once()
+    {
+        // H 2/9 already shows Feral Talisman's +2/+1; its copy is 2/9 too, not 4/10.
+        var side = With(Side(Minion(1, 1, cardId: "A"), Minion(2, 9, cardId: "H"), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1), Minion(1, 1))
+            with { Turn = 8 }, "BG22_HERO_003p", "BG30_MagicItem_880");
+
+        var result = Fight(side, Side(Minion(1, 1)), false, Effects(typeof(SpaceCopyHeroPower), typeof(FeralTalisman)));
+
+        Assert.Equal(2, result.Ours.Count(m => m.CardId == "H" && (m.Attack, m.Health) == (2, 9)));
     }
 }

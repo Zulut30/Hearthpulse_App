@@ -40,9 +40,12 @@ internal sealed class GloryOfCombat : CombatEffect
 /// Stormpike Strength (BG22_HERO_003p, Vanndar): "When you have space in combat, summon a copy of your highest-Health minion.
 /// (Unlocks on Turn 7.)" Frostwolf Fervor (BG22_HERO_002p, Drek'Thar): the same with the highest-Attack minion.
 /// <para>
-/// With space when the fight starts, the copy is already on the captured board. What is left is a full board: the copy
-/// comes once a friendly minion has died and left room. One copy per combat (the text names one summon); the copy has the
-/// minion's current stats and keywords. Before turn 7 (when the turn is known) the power does nothing.
+/// With space when the fight starts, the copy is already on the captured board: a minion whose CREATOR is the hero power
+/// (<see cref="SimMinion.CreatorCardId"/>), then nothing is owed. What is left is a full board without such a copy: the
+/// copy comes once a friendly minion has died and left room. One copy per combat (the text names one summon); the copy has
+/// the minion's current stats and keywords, minus the summon auras it gets again (Feral Talisman...). Before turn 7 (when
+/// the turn is known) the power does nothing. Not checked against a real log of these heroes yet (the owner's logs have
+/// none in combat); the CREATOR tag is in every log.
 /// </para>
 /// </summary>
 [CardEffect("BG22_HERO_003p")]
@@ -54,8 +57,9 @@ internal sealed class SpaceCopyHeroPower : CombatEffect
     public override void OnFightStart(Fight fight, Unit self)
     {
         var turn = self.Side.Info.Turn;
+        var copied = self.Side.Minions.Any(m => m.Spec.CreatorCardId == self.CardId);
         // Counter: 1 = a copy is still owed.
-        self.Counter = self.Side.IsFull && (turn == 0 || turn >= UnlockTurn) ? 1 : 0;
+        self.Counter = self.Side.IsFull && !copied && (turn == 0 || turn >= UnlockTurn) ? 1 : 0;
     }
 
     public override void AfterFriendlyDeath(Fight fight, Unit self, Unit dead)
@@ -72,6 +76,15 @@ internal sealed class SpaceCopyHeroPower : CombatEffect
         }
 
         self.Counter = 0;
-        fight.Summon(self.Side, best.ToSimMinion() with { EntityId = 0 }, self.Side.IndexOf(best) + 1);
+        var (auraAttack, auraHealth) = self.Side.SummonBuffsFor(best);
+        var copy = best.ToSimMinion() with
+        {
+            EntityId = 0,
+            Attack = Math.Max(0, best.Attack - auraAttack),
+            Health = best.Health - auraHealth,
+            MaxHealth = Math.Max(0, best.MaxHealth - auraHealth),
+            CreatorCardId = self.CardId,
+        };
+        fight.Summon(self.Side, copy, self.Side.IndexOf(best) + 1);
     }
 }

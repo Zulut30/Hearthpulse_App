@@ -57,6 +57,7 @@ internal sealed class HarmlessBonehead : CombatEffect
 | `OnSummoned(f, self)` | self was just summoned (token, reborn copy) |
 | `WheneverFriendlySummoned` → `AfterFriendlySummoned(f, self, summoned)` | another friendly minion was summoned ("whenever" first) |
 | `AfterFriendlyReborn(f, self, reborn)` | a friendly minion came back with Reborn (`reborn.RebornFrom` is the old one) |
+| `RebornAs(f, dead, copy) → SimMinion` | what a dying minion with this effect comes back as with Reborn (before summon buffs and hooks); default: the fresh copy |
 | `AfterFriendlySpellCast(f, self, spellId, target)` | after `Fight.CastSpell` for this side |
 | `AuraFor(f, self, other) → StatDelta` | static aura onto a friendly minion; recomputed when minions enter or leave. Captured stats already include auras present at capture; the engine only applies changes (a lost Health aura lowers Health down to the new maximum only) |
 | `Refresh(f, self)` | re-check state-dependent keywords/thresholds ("Taunt while it has Divine Shield", "once this reaches 6 Attack") after stat changes and board changes |

@@ -47,22 +47,40 @@ public sealed class DarkGiftsTests
         Assert.Contains(result.Log, l => l.StartsWith("our H 3/2 Taunt attacks", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("BG36_MagicItem_205", "our H 5/4 Taunt attacks")] // Deathwhisper Sticker: +2/+2 after a Reborn
+    [InlineData("TB_BaconShop_HP_107", "our H 4/4 Taunt attacks")] // Sprout It Out!: +1/+2 and Taunt to summons
+    public void Persisting_horror_keeps_what_the_reborn_copy_gets_when_summoned(string extra, string line)
+    {
+        var horror = Minion(1, 1, Keyword.Reborn | Keyword.Taunt, "H") with
+        {
+            Attack = 3, Health = 2, MaxHealth = 2, BaseKeywords = Keyword.Reborn, Enchantments = [Horror],
+        };
+        var result = Fight(Side(horror) with { Extras = [extra] }, Side(Minion(5, 20)), oursFirst: false);
+
+        Assert.Contains(result.Log, l => l.StartsWith(line, StringComparison.Ordinal));
+    }
+
     [Fact]
-    public void Tavern_only_gifts_explain_a_granted_deathrattle_and_combat_gifts_without_an_effect_do_not()
+    public void Tavern_only_gifts_explain_only_their_own_granted_marker_and_combat_gifts_without_an_effect_do_not()
     {
         var registry = EffectRegistry.Default;
-        // Fresh Perspective: "Deathrattle: Gain 2 free Refreshes" only acts in the Tavern.
-        Assert.False(CombatRelevance.IsUnsimulated("X", false, combatRelevant: false, grantedEffect: true,
-            ["BG36_MidGameEffect_000t52e"], isOpponent: false, registry));
+        const string charisma = "BG36_MidGameEffect_000t3e2"; // "Rally: Get a random minion…" (Tavern)
+        const string freshPerspective = "BG36_MidGameEffect_000t52e"; // "Deathrattle: Gain 2 free Refreshes" (Tavern)
+        bool Unsimulated(string[] granted, params string[] enchantments) =>
+            CombatRelevance.IsUnsimulated("X", false, false, granted, enchantments, isOpponent: false, registry);
+
+        Assert.False(Unsimulated(["DEATHRATTLE"], freshPerspective));
+        Assert.False(Unsimulated(["BACON_RALLY"], charisma));
+        // Charisma explains a Rally, not a deathrattle granted by something else (e.g. Sky Golem Portrait's enchantment).
+        Assert.True(Unsimulated(["DEATHRATTLE"], charisma));
+        Assert.True(Unsimulated(["BACON_RALLY", "DEATHRATTLE"], charisma, "BG35_MagicItem_740e"));
         // An unknown enchantment explains nothing.
-        Assert.True(CombatRelevance.IsUnsimulated("X", false, combatRelevant: false, grantedEffect: true,
-            ["BG36_UNKNOWN_e"], isOpponent: false, registry));
+        Assert.True(Unsimulated(["DEATHRATTLE"], "BG36_UNKNOWN_e"));
         // Invulnerability ("Immune while attacking") changes the fight and has no effect yet: flagged even without a marker.
-        Assert.True(CombatRelevance.IsUnsimulated("X", false, combatRelevant: false, grantedEffect: false,
-            ["BG36_MidGameEffect_000t60e"], isOpponent: false, registry));
-        // The sacrifices are simulated now.
-        Assert.False(CombatRelevance.IsUnsimulated("X", false, combatRelevant: false, grantedEffect: true,
-            [Offensive, "BG36_MidGameEffect_000te3"], isOpponent: false, registry));
+        Assert.True(Unsimulated([], "BG36_MidGameEffect_000t60e"));
+        // The sacrifices are simulated: their deathrattle is explained.
+        Assert.False(Unsimulated(["DEATHRATTLE"], Offensive, "BG36_MidGameEffect_000te3"));
     }
 
     [Fact]

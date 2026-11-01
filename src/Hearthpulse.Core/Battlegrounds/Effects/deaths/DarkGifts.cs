@@ -1,5 +1,3 @@
-using Hearthpulse.Core.Battlegrounds.Effects.Ongoing;
-
 namespace Hearthpulse.Core.Battlegrounds.Effects.Deaths;
 
 // Dark Gifts (BG36_MidGameEffect_000*) that act in combat, by the enchantment the gift leaves on the minion. Which gifts
@@ -32,38 +30,21 @@ internal sealed class DefensiveSacrifice : CombatEffect
 }
 
 /// <summary>
-/// Persisting Horror (BG36_MidGameEffect_000t12e): "Reborn. Is Reborn with full stats and Bonus Keywords." The engine brings
-/// the minion back as a fresh 1-Health copy; a player-level helper then gives the copy the Attack and maximum Health the
-/// minion had when it died and the keywords it had when the fight started (minus Reborn).
+/// Persisting Horror (BG36_MidGameEffect_000t12e): "Reborn. Is Reborn with full stats and Bonus Keywords." Instead of a
+/// fresh 1-Health copy, the minion comes back with the Attack and maximum Health it had when it died and the keywords it
+/// had when the fight started (minus Reborn). Summon buffs and "after you summon" effects then apply on top, as to any
+/// summoned minion.
 /// </summary>
-[CardEffect(Id)]
+[CardEffect("BG36_MidGameEffect_000t12e")]
 internal sealed class PersistingHorror : CombatEffect
 {
-    public const string Id = "BG36_MidGameEffect_000t12e";
-
-    public override void OnFightStart(Fight fight, Unit self)
-    {
-        // One helper per side serves every minion with the gift.
-        if (!self.Side.Extras.Any(e => e.CardId == Id))
+    public override SimMinion RebornAs(Fight fight, Unit dead, SimMinion copy) =>
+        SimMinion.Create(copy.CardId, dead.Attack, Math.Max(dead.MaxHealth, 1), copy.Tribes,
+            (copy.BaseKeywords | dead.Spec.Keywords) & ~Keyword.Reborn, copy.Golden, copy.Mechanics) with
         {
-            PlayerEffects.Attach(self.Side, Id, FullReborn.Instance);
-        }
-    }
-
-    /// <summary>The helper: restores a reborn copy of a minion that carried the gift.</summary>
-    private sealed class FullReborn : CombatEffect
-    {
-        public static readonly FullReborn Instance = new();
-
-        public override void AfterFriendlyReborn(Fight fight, Unit self, Unit reborn)
-        {
-            if (reborn.RebornFrom is not { } from || !from.Spec.Enchantments.Contains(Id))
-            {
-                return;
-            }
-
-            fight.SetStats(reborn, from.Attack, Math.Max(from.MaxHealth, 1));
-            fight.GiveKeywords(reborn, from.Spec.Keywords & ~Keyword.Reborn);
-        }
-    }
+            RebornAttack = copy.RebornAttack,
+            BaseHealth = copy.BaseHealth,
+            BaseKeywords = copy.BaseKeywords,
+            TechLevel = copy.TechLevel,
+        };
 }
