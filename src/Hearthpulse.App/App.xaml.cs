@@ -42,6 +42,7 @@ public partial class App : Application
     private HistoryStore _history = null!;
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
+    private MulliganGuideSource _mulliganGuide = null!;
     private LogWatcher? _watcher;
     /// <summary>
     /// The main window: built when first shown (start minimized: from the tray), let go after a minute hidden in the tray
@@ -206,7 +207,8 @@ public partial class App : Application
         _history = new HistoryStore(AppPaths.Database) { Replays = Core.Replay.ReplayStore.Default };
         _memory = new HearthstoneMemory();
         _session = new GameSession(_history, _memory);
-        _session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(_api)));
+        _mulliganGuide = new MulliganGuideSource(new HearthpulseData(_api)) { Rank = _settings.MulliganRank };
+        _session.SetMulliganGuide(_mulliganGuide);
         _session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(_api)));
         _session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(_api)));
         _session.SetBgLeaderboards(new BgLeaderboardSource(_api));
@@ -249,6 +251,16 @@ public partial class App : Application
 
         _mainViewModel.ThemeChanged += OnThemeChanged;
         _mainViewModel.PoolAvailable = PoolClient.Available(_settings);
+        // Plan 2.4: the mulligan's rank filter on the meta page; the overlay's guide follows it.
+        var mulliganData = new HearthpulseData(_api);
+        _mainViewModel.LoadMulliganSlice = (archetype, format, rank, cancel) =>
+            mulliganData.LoadHsguruMulliganAsync(archetype, format, rank, MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, cancel);
+        _mainViewModel.MulliganRankChanged += () =>
+        {
+            _mulliganGuide.Rank = _settings.MulliganRank;
+            _settingsDebounce.Stop();
+            _settingsDebounce.Start();
+        };
         _mainViewModel.PoolConsentChanged += () =>
         {
             _settingsDebounce.Stop();

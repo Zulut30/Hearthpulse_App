@@ -15,6 +15,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
 
     private readonly Lock _gate = new();
     private DeckDefinition? _deck;
+    private string? _rank;
     private string? _key;
     private GuideArchetype? _result;
     private DateTime _retryAt;
@@ -28,6 +29,12 @@ public sealed class MulliganGuideSource(HearthpulseData data)
 
     /// <summary>Raised on a worker thread when a lookup finished with a result.</summary>
     public event Action? Changed;
+
+    /// <summary>
+    /// The mulligan rank filter (<see cref="MulliganGuide.Ranks"/>; the host keeps it in step with the settings). A change
+    /// makes the next <see cref="For"/> load the guide again.
+    /// </summary>
+    public string Rank { get; set; } = MulliganGuide.DefaultRank;
 
     /// <summary>
     /// The guide for this deck if it is ready; otherwise starts loading it and returns null. Cheap to call on every
@@ -44,10 +51,12 @@ public sealed class MulliganGuideSource(HearthpulseData data)
 
         lock (_gate)
         {
-            if (!ReferenceEquals(deck, _deck))
+            var rank = Rank;
+            if (!ReferenceEquals(deck, _deck) || rank != _rank)
             {
-                var key = format + "|" + playerClass + "|" + string.Join(',', deck.Cards.OrderBy(c => c.Key).Select(c => $"{c.Key}x{c.Value}"));
                 _deck = deck;
+                _rank = rank;
+                var key = rank + "|" + format + "|" + playerClass + "|" + string.Join(',', deck.Cards.OrderBy(c => c.Key).Select(c => $"{c.Key}x{c.Value}"));
                 if (key != _key)
                 {
                     _key = key;
@@ -113,7 +122,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
     {
         try
         {
-            var guide = await LoadGuideAsync(data, format, playerClass, deck.Cards, cards, opponentClass, goingFirst).ConfigureAwait(false);
+            var guide = await LoadGuideAsync(data, format, playerClass, deck.Cards, cards, opponentClass, goingFirst, key.Split('|')[0]).ConfigureAwait(false);
             if (guide is null)
             {
                 return;
@@ -143,9 +152,15 @@ public sealed class MulliganGuideSource(HearthpulseData data)
     /// </summary>
     /// <param name="opponentClass">The opponent's class when known: its HSGuru mulligan slice is loaded too.</param>
     /// <param name="goingFirst">True going first, false on the coin, null when unknown: that slice is loaded too.</param>
+    /// <param name="rank">The mulligan rank filter: below or above Legend the guide is HSGuru's slice of that rank (<see cref="LoadRankGuideAsync"/>).</param>
     public static async Task<GuideArchetype?> LoadGuideAsync(HearthpulseData data, string format, string playerClass, IReadOnlyDictionary<int, int> deck, CardDb cards,
-        string? opponentClass = null, bool? goingFirst = null, CancellationToken cancellationToken = default)
+        string? opponentClass = null, bool? goingFirst = null, string rank = MulliganGuide.DefaultRank, CancellationToken cancellationToken = default)
     {
+        if (MulliganGuide.SourceRank(rank) != MulliganGuide.DefaultRank)
+        {
+            return await LoadRankGuideAsync(data, format, playerClass, deck, cards, rank, opponentClass, goingFirst, cancellationToken).ConfigureAwait(false);
+        }
+
         var guide = format == "standard" ? await LoadHsreplayGuideAsync(data, playerClass, deck, cancellationToken).ConfigureAwait(false) : null;
         if (guide is null)
         {
@@ -178,7 +193,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
             return guide;
         }
 
-        foreach (var rank in MulliganGuide.SliceRanks)
+        foreach (var rank in MulliganGuide.SliceRanksFor(guide.Rank))
         {
             var matchups = await data.LoadHsguruClassMatchupsAsync(archetype, format, rank, cancellationToken).ConfigureAwait(false);
             if (matchups.Any(m => m.Games >= MulliganGuide.MinClassGames))
@@ -214,7 +229,7 @@ public sealed class MulliganGuideSource(HearthpulseData data)
             keys.Add((MulliganGuide.AnyCoin, opponentClass.ToUpperInvariant()));
         }
 
-        var wanted = keys.SelectMany(k => MulliganGuide.SliceRanks.Select(rank => (Rank: rank, k.Coin, k.Opponent)))
+        var wanted = keys.SelectMany(k => MulliganGuide.SliceRanksFor(guide.Rank).Select(rank => (Rank: rank, k.Coin, k.Opponent)))
             .Where(k => !guide.Slices.Any(s => s.Rank == k.Rank && s.Coin == k.Coin && string.Equals(s.OpponentClass, k.Opponent, StringComparison.OrdinalIgnoreCase)))
             .ToList();
         if (wanted.Count == 0)
@@ -256,6 +271,61 @@ public sealed class MulliganGuideSource(HearthpulseData data)
 
         // HSGuru may list both the original and the reprint: the deck's id keeps the row with more games.
         return slice with { Cards = rows.GroupBy(r => r.CardId, StringComparer.Ordinal).Select(g => g.MaxBy(r => r.Offered)!).ToList() };
+    }
+
+    /// <summary>
+    /// The guide at a rank other than Legend (HSReplay's numbers are Legend only, so they are left out): the deck's HSGuru
+    /// archetype and its mulligan slice of that rank (<see cref="MulliganGuide.SourceRank"/>), all games. A slice under
+    /// <see cref="MulliganGuide.MinSliceGames"/> games gives way to all ranks, and the source line says so. Win rate when
+    /// kept = the archetype's win rate at that rank (HSGuru's meta, 7 days; else its Legend analysis) + the kept impact.
+    /// </summary>
+    public static async Task<GuideArchetype?> LoadRankGuideAsync(HearthpulseData data, string format, string playerClass, IReadOnlyDictionary<int, int> deck, CardDb cards,
+        string rank, string? opponentClass = null, bool? goingFirst = null, CancellationToken cancellationToken = default)
+    {
+        if (await MatchHsguruAsync(data, format, playerClass, deck, cancellationToken).ConfigureAwait(false) is not { } match)
+        {
+            return null;
+        }
+
+        var name = match.Name;
+        var wanted = MulliganGuide.SourceRank(rank);
+        var used = wanted;
+        var slice = await data.LoadHsguruMulliganAsync(name, format, wanted, MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, cancellationToken).ConfigureAwait(false);
+        if (slice is not { Games: >= MulliganGuide.MinSliceGames } && wanted != "all")
+        {
+            used = "all";
+            slice = await data.LoadHsguruMulliganAsync(name, format, used, MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (slice is not { Games: >= MulliganGuide.MinSliceGames })
+        {
+            Diag.Info($"Mulligan guide: no HSGuru {name} slice at {wanted} or all ranks");
+            return null;
+        }
+
+        slice = Alias(slice, cards, deck.Keys.Concat(match.Lists.SelectMany(l => l.Cards.Keys)));
+        var baseline = (await data.LoadHsguruMetaAsync(format, used, "past_week", cancellationToken).ConfigureAwait(false))?.Items
+                           .FirstOrDefault(i => string.Equals(i.Archetype, name, StringComparison.OrdinalIgnoreCase))?.WinRate
+                       ?? (await data.LoadHsguruAnalysisAsync(name, format, cancellationToken).ConfigureAwait(false))?.WinRate
+                       ?? 0.5;
+        var rows = slice.Cards
+            .Select(c => new GuideCard(c.CardId, cards.Get(c.CardId)?.DbfId ?? c.DbfId, cards.Get(c.CardId)?.Cost ?? 0, c.Offered, c.KeepRate ?? 0, c.Kept,
+                c.KeptImpact is { } impact ? baseline + impact : null, null))
+            .ToList();
+        var label = Localization.Loc.T("Core.MulliganRankSource." + MulliganGuide.Ranks.FirstOrDefault(r => r == rank, "all"));
+        var source = used == wanted
+            ? Localization.Loc.F("Source.MulliganRank", HearthpulseData.Attribution, label)
+            : Localization.Loc.F("Source.MulliganRankFallback", HearthpulseData.Attribution, label);
+        Diag.Info($"Mulligan guide: HSGuru {name} at {used} (asked {wanted}), {slice.Games} games, {rows.Count} cards");
+        var guide = new GuideArchetype(match.Archetype.Id, name, playerClass, rows, [], source)
+        {
+            BaselineWinRate = baseline,
+            HsguruArchetype = name,
+            Rank = rank,
+            Slices = [slice],
+        };
+        guide = await WithClassMatchupsAsync(data, guide, format, cancellationToken).ConfigureAwait(false);
+        return await WithSlicesAsync(data, guide, format, deck, cards, opponentClass, goingFirst, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The HSGuru archetype (current expansion, all ranks) whose lists the deck matches, or null.</summary>

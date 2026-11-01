@@ -244,6 +244,19 @@
 
                     <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,16,0,8"
                                 ToolTip.Tip="{i:Loc Main.Meta.MulliganCaption}" />
+                    <!-- Plan 2.4: the mulligan's own rank (Legend by default); the overlay follows it -->
+                    <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,6" ToolTip.Tip="{i:Loc Main.Meta.MulliganRankTip}">
+                        <ItemsControl ItemsSource="{Binding MulliganRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:MetaChoice">
+                                    <RadioButton Classes="segment" Content="{Binding Label}" GroupName="MulliganRank" IsChecked="{Binding Selected, Mode=OneWay}"
+                                                 Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SetMulliganRank}" CommandParameter="{Binding Key}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                    <TextBlock Text="{Binding MulliganSource}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,6"
+                               IsVisible="{Binding MulliganSource, Converter={StaticResource Truthy}}" />
                     <ItemsControl ItemsSource="{Binding Mulligan}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:MulliganRow">
