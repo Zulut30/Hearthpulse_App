@@ -1,8 +1,9 @@
 # Web replays (hearthpulse.net/replay/{id})
 
 Plan 2.2. A player puts one finished game on the site by pressing **Upload to the site** on its card in the replay
-library (History), and confirming in the card. Nothing is uploaded otherwise. The site part lives in the HeartPulse
-repository (`server/modules/replayShares`, page `apps/public-web/app/replay/[id]`).
+library (History), and confirming in the card. Nothing is uploaded otherwise. Only the player's own games have the
+button (Recent, Saved): an imported replay is someone else's game. The site part lives in the HeartPulse repository
+(`server/modules/replayShares`, page `apps/public-web/app/replay/[id]`, spec `docs/specs/web-replays.md`).
 
 ## What is uploaded
 
@@ -11,21 +12,28 @@ day) **without the post-game part of a Constructed game** (`N`/`K`: opponent car
 never have seen on screen). A public page shows the game as the player saw it; the full post-game reveal stays on the
 player's own match page. Gzip, base64, `POST {site}/api/v1/tracker/replays` `{"v":1,"hpr":"..."}` with the account's
 sign-in (`tracker.write`, `AccountService.UploadReplayAsync`). The answer is `{id, url, deleteToken}`; the link goes to
-the clipboard and the status line, and `replays\uploads.json` remembers it by file name (`ReplayUploads`), so the card
-shows that the game is on the site and can delete it (`DELETE …/tracker/replays/{id}` with `X-Delete-Token`).
+the clipboard and the status line.
 
-## What the site checks again
+`replays\uploads.json` (`ReplayUploads`) remembers each upload by `ReplayUploads.KeyOf`: Recent and Saved share the key
+(`games/<file>`, Saved is the starred copy of the same game). It is read once per library tab, off the UI thread, and
+written through a temporary file, so a broken write never loses the delete tokens.
 
-- The header is rebuilt from a whitelist of `summary` fields; strings are ids, classes, modes, dates, a deck code — no
-  spaces, no free text. The opponent's archetype stays only when it is one of the site's archetype names.
-- Every event line must match the replay grammar of its kind (record letter, number and class of each token);
-  `N`/`K` lines are dropped; a Battlegrounds `G` line keeps only numbers, booleans and id-like strings, and no key that
-  looks like a name.
-- Limits: 512 KB gzip, 8 MB text, 100,000 lines, 512 characters a line; 20 uploads an hour per address; 200 replays per
-  account; kept 180 days.
-- The page shows a card only by its known (Russian) name, never a raw id, and is `noindex`.
+While an upload runs the card's button shows a cross and cancels it ("Uploading… click to cancel"); a second upload
+cannot start. A cancelled upload the site had already taken stays on the site: it is in the account page's list.
 
 ## Deleting
 
-In the app (the card's cloud button, by the upload's token), on the account page of the site (its "Реплеи на сайте"
-list), and with the account (cascade). The site's privacy policy has a section on replays (what, how long, deleting).
+The card's cloud button deletes by the upload's token (`DELETE …/tracker/replays/{id}`, `X-Delete-Token`,
+`AccountService.DeleteReplayAsync`): deleted; already gone on the site (404, deleted on the account page or expired:
+forgotten in the app too); or still there (offline, rate limited, server error: the link and token stay, the status says
+which). On the site: the account page's "Реплеи на сайте" list, and with the account (cascade). The account's data
+export includes the replays.
+
+## What the site checks again
+
+It does not trust the app and repeats its rules: the app's event grammar token for token, the opponent's hand and
+secrets as card backs without their tag changes, Battlegrounds cards out of view dropped, the header rebuilt field by
+field from fixed lists (mode, result, format, game type, classes), the date without the time, the opponent's archetype
+only when the site knows it, the `G` line from the app's keys only. Limits: 512 KB gzip, 8 MB text, 100,000 lines;
+20 uploads an hour per address; 200 replays per account; kept 180 days (pruned daily). The page shows a card only by its
+known (Russian) name, never a raw id, and is `noindex`. Details: the site's `docs/specs/web-replays.md`.

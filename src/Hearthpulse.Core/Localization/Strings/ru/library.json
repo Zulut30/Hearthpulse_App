@@ -52,5 +52,12 @@
   "Library.Site.Error.TOO_LARGE": "Этот реплей слишком большой для сайта.",
   "Library.Site.Error.RATE_LIMITED": "Слишком много загрузок подряд: попробуйте через час.",
   "Library.Site.Error.REFUSED": "Сайт не принял этот реплей.",
-  "Library.Site.Error.SERVER_ERROR": "Сайт не смог сохранить реплей. Попробуйте позже."
+  "Library.Site.Error.SERVER_ERROR": "Сайт не смог сохранить реплей. Попробуйте позже.",
+  "Library.Site.Uploading": "Загружаем на сайт… Нажмите, чтобы отменить",
+  "Library.Site.Removing": "Удаляем с сайта…",
+  "Library.Site.Cancelled": "Загрузка отменена. Если сайт успел принять реплей, он есть в списке на странице аккаунта.",
+  "Library.Site.Gone": "Этого реплея на сайте уже нет.",
+  "Library.Site.DeleteError.OFFLINE": "Сайт недоступен, реплей не удалён. Попробуйте позже.",
+  "Library.Site.DeleteError.RATE_LIMITED": "Слишком много запросов: попробуйте удалить через минуту.",
+  "Library.Site.DeleteError.SERVER_ERROR": "Сайт не смог удалить реплей. Попробуйте позже."
 }

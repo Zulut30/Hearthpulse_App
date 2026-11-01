@@ -20,6 +20,14 @@ public sealed record LibraryChip(string CardId, string Tooltip);
 /// <summary>A minion of a Battlegrounds card's final board: stats under its portrait, golden, taunt, divine shield.</summary>
 public sealed record LibraryMinion(string CardId, string Stats, bool Golden, bool Taunt, bool DivineShield, string Tooltip);
 
+/// <summary>What a library card is doing with the site (plan 2.2).</summary>
+public enum SiteWork
+{
+    None,
+    Uploading,
+    Removing,
+}
+
 /// <summary>
 /// One game of the replay library (<c>docs/replay-library.md</c>): the History row (Recent) or the file's summary
 /// (Saved, Imported). The final board, hand and chips come from the replay's header and may arrive after the card is
@@ -109,6 +117,7 @@ public sealed class LibraryCard : Observable
             if (Set(ref _hasReplay, value))
             {
                 Raise(nameof(NoReplay));
+                Raise(nameof(CanUpload));
             }
         }
     }
@@ -152,10 +161,45 @@ public sealed class LibraryCard : Observable
 
     public bool OnSite => _siteUrl.Length > 0;
 
-    /// <summary>mdi-cloud-upload, or mdi-cloud-off-outline once it is on the site.</summary>
-    public string SiteGlyph => OnSite ? "\U000F0164" : "\U000F0167";
+    /// <summary>
+    /// Only the player's own games go to the site (Recent, Saved): an imported replay is someone else's game, and the
+    /// upload says "as you saw it".
+    /// </summary>
+    public bool CanUpload => _hasReplay && Shelf != ReplayShelf.Imported;
 
-    public string SiteTip => OnSite ? Loc.F("Library.Site.RemoveTip", _siteUrl) : Loc.T("Library.Site.UploadTip");
+    private SiteWork _siteWork;
+
+    /// <summary>An upload or a delete under way: the button then cancels the upload, or waits for the delete.</summary>
+    public SiteWork SiteWork
+    {
+        get => _siteWork;
+        internal set
+        {
+            if (Set(ref _siteWork, value))
+            {
+                Raise(nameof(SiteGlyph));
+                Raise(nameof(SiteTip));
+            }
+        }
+    }
+
+    /// <summary>Cancels the upload under way (null when none).</summary>
+    internal CancellationTokenSource? SiteCancel { get; set; }
+
+    /// <summary>mdi-cloud-upload, mdi-cloud-off-outline once it is on the site, mdi-close while uploading, mdi-cloud-sync while deleting.</summary>
+    public string SiteGlyph => _siteWork switch
+    {
+        SiteWork.Uploading => "\U000F0156",
+        SiteWork.Removing => "\U000F063F",
+        _ => OnSite ? "\U000F0164" : "\U000F0167",
+    };
+
+    public string SiteTip => _siteWork switch
+    {
+        SiteWork.Uploading => Loc.T("Library.Site.Uploading"),
+        SiteWork.Removing => Loc.T("Library.Site.Removing"),
+        _ => OnSite ? Loc.F("Library.Site.RemoveTip", _siteUrl) : Loc.T("Library.Site.UploadTip"),
+    };
 
     /// <summary>The question asked inside the card before a delete (empty: none asked).</summary>
     public string ConfirmText
@@ -248,7 +292,11 @@ public sealed class ReplayLibraryViewModel : Observable
         // Plan 2.2: upload only on this explicit action, after the confirmation in the card says what goes to the site.
         SiteAction = new RelayCommand(p =>
         {
-            if (p is LibraryCard { FileName: { } name, HasReplay: true } card)
+            if (p is LibraryCard { SiteWork: SiteWork.Uploading, SiteCancel: { } cancel })
+            {
+                cancel.Cancel();
+            }
+            else if (p is LibraryCard { FileName: { } name, CanUpload: true, SiteWork: SiteWork.None } card)
             {
                 ClearStatus();
                 if (card.OnSite)

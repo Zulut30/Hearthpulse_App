@@ -35,8 +35,8 @@ public sealed record ReplayUploadResult(string Id, string Url, string DeleteToke
 /// Web replays (plan 2.2): what the app uploads when the player presses "Upload to the site" on a replay card. The
 /// copy is the Share copy (<see cref="ReplayImport.Sanitize"/>, date only, no names) without the post-game part of a
 /// Constructed game (<c>N</c>/<c>K</c>: opponent cards the log revealed, which the player may never have seen), gzip in
-/// base64. The site checks it again (docs/web-replays.md). Uploads are remembered by file name in
-/// <c>replays\uploads.json</c>, so the card can show the link and delete the replay from the site.
+/// base64. The site checks it again (docs/web-replays.md). Uploads are remembered in <c>replays\uploads.json</c>
+/// (<see cref="ReplayUploads"/>), so the card can show the link and delete the replay from the site.
 /// </summary>
 public static class ReplayUpload
 {
@@ -70,7 +70,10 @@ public static class ReplayUpload
     }
 }
 
-/// <summary>The replays this app uploaded, by file name (<c>replays\uploads.json</c>). Thread-safe; failures are logged.</summary>
+/// <summary>
+/// The replays this app uploaded (<c>replays\uploads.json</c>), by <see cref="KeyOf"/>. Thread-safe; written through a
+/// temporary file, so a broken write never loses the delete tokens; failures are logged. Call it off the UI thread.
+/// </summary>
 public sealed class ReplayUploads(string path)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -78,36 +81,62 @@ public sealed class ReplayUploads(string path)
 
     public static ReplayUploads Default { get; } = new(Path.Combine(AppPaths.Replays, "uploads.json"));
 
-    public ReplayUploadResult? Get(string fileName)
+    /// <summary>
+    /// The key of a game: Recent and Saved hold the same game under the same file name (Saved is its starred copy),
+    /// so they share it; Imported replays are never uploaded.
+    /// </summary>
+    public static string KeyOf(ReplayShelf shelf, string fileName) =>
+        (shelf == ReplayShelf.Imported ? "imported/" : "games/") + fileName;
+
+    /// <summary>Every upload, read once (for a whole library tab).</summary>
+    public IReadOnlyDictionary<string, ReplayUploadResult> All()
     {
         lock (_gate)
         {
-            return Load().GetValueOrDefault(fileName);
+            return Load();
         }
     }
 
-    public void Set(string fileName, ReplayUploadResult? upload)
+    public ReplayUploadResult? Get(string key)
+    {
+        lock (_gate)
+        {
+            return Load().GetValueOrDefault(key);
+        }
+    }
+
+    public void Set(string key, ReplayUploadResult? upload)
     {
         lock (_gate)
         {
             var all = Load();
             if (upload is null)
             {
-                all.Remove(fileName);
+                all.Remove(key);
             }
             else
             {
-                all[fileName] = upload;
+                all[key] = upload;
             }
 
+            var temp = $"{path}.{Guid.NewGuid():N}.tmp";
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                File.WriteAllText(path, JsonSerializer.Serialize(all, Json));
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+                File.WriteAllText(temp, JsonSerializer.Serialize(all, Json));
+                File.Move(temp, path, overwrite: true);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 Diag.Error("Saving the uploaded replays failed", ex);
+                try
+                {
+                    File.Delete(temp);
+                }
+                catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException)
+                {
+                    Diag.Info($"Leftover {temp}: {cleanup.Message}");
+                }
             }
         }
     }

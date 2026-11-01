@@ -269,16 +269,32 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         }
     }
 
-    /// <summary>Deletes an uploaded replay by its delete token; true when it is gone (or was already).</summary>
-    public async Task<bool> DeleteReplayAsync(string id, string deleteToken, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Deletes an uploaded replay by its delete token: null when deleted; <c>NOT_FOUND</c> when the site has no such
+    /// replay (deleted on the account page, expired); <c>OFFLINE</c>, <c>RATE_LIMITED</c> or <c>SERVER_ERROR</c> when
+    /// it is still there.
+    /// </summary>
+    public async Task<string?> DeleteReplayAsync(string id, string deleteToken, CancellationToken cancellationToken = default)
     {
         try
         {
-            return await client.DeleteReplayAsync(id, deleteToken, cancellationToken).ConfigureAwait(false) is 204 or 404;
+            var status = await client.DeleteReplayAsync(id, deleteToken, cancellationToken).ConfigureAwait(false);
+            if (status is not (204 or 404))
+            {
+                Diag.Info($"account: replay delete answered {status}");
+            }
+
+            return status switch
+            {
+                204 => null,
+                404 => "NOT_FOUND",
+                429 => "RATE_LIMITED",
+                _ => "SERVER_ERROR",
+            };
         }
-        catch (AccountException)
+        catch (AccountException ex)
         {
-            return false;
+            return ex.Code == "OFFLINE" ? "OFFLINE" : "SERVER_ERROR";
         }
     }
 
