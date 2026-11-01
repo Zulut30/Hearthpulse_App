@@ -233,6 +233,56 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     }
 
     /// <summary>
+    /// Uploads a replay the player chose to put on the site (plan 2.2, <see cref="Replay.ReplayUpload"/>): the link and
+    /// the delete token, or an error code (SIGNED_OUT, OFFLINE, QUOTA_EXCEEDED, TOO_LARGE, RATE_LIMITED, REFUSED,
+    /// SERVER_ERROR).
+    /// </summary>
+    public async Task<(Replay.ReplayUploadResult? Result, string? Error)> UploadReplayAsync(string gzipBase64, CancellationToken cancellationToken = default)
+    {
+        if (await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false) is not { } token)
+        {
+            return (null, "SIGNED_OUT");
+        }
+
+        try
+        {
+            var (status, body) = await client.PostReplayAsync(token, gzipBase64, cancellationToken).ConfigureAwait(false);
+            if (status == 201 && Replay.ReplayUploadResult.Parse(body) is { } result)
+            {
+                return (result, null);
+            }
+
+            Diag.Info($"account: replay upload answered {status}");
+            return (null, status switch
+            {
+                401 or 403 => "SIGNED_OUT",
+                409 => "QUOTA_EXCEEDED",
+                413 => "TOO_LARGE",
+                429 => "RATE_LIMITED",
+                400 => "REFUSED",
+                _ => "SERVER_ERROR",
+            });
+        }
+        catch (AccountException ex)
+        {
+            return (null, ex.Code);
+        }
+    }
+
+    /// <summary>Deletes an uploaded replay by its delete token; true when it is gone (or was already).</summary>
+    public async Task<bool> DeleteReplayAsync(string id, string deleteToken, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await client.DeleteReplayAsync(id, deleteToken, cancellationToken).ConfigureAwait(false) is 204 or 404;
+        }
+        catch (AccountException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Gets a token only for the sign-in that owns an operation. The account and token are checked together under
     /// the token gate after a possible refresh, so a sign-in that replaced it can never lend its token to old work.
     /// </summary>

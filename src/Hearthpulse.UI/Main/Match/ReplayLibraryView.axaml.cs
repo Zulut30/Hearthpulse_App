@@ -59,6 +59,7 @@ public partial class ReplayLibraryView : UserControl
         {
             _model.PickFileRequested -= OnPickFile;
             _model.ShareFileRequested -= OnShareFile;
+            _model.CopyLinkRequested -= OnCopyLink;
         }
 
         _model = model;
@@ -66,6 +67,7 @@ public partial class ReplayLibraryView : UserControl
         {
             model.PickFileRequested += OnPickFile;
             model.ShareFileRequested += OnShareFile;
+            model.CopyLinkRequested += OnCopyLink;
         }
     }
 
@@ -91,6 +93,9 @@ public partial class ReplayLibraryView : UserControl
     }
 
     private void OnShareFile(string path) => ShareFileAsync(path).Forget("Replay share clipboard");
+
+    /// <summary>An uploaded replay's link (plan 2.2); the status line shows it too.</summary>
+    private void OnCopyLink(string url) => (TopLevel.GetTopLevel(this)?.Clipboard?.SetTextAsync(url) ?? Task.CompletedTask).Forget("Replay link clipboard");
 
     private async Task ShareFileAsync(string path)
     {

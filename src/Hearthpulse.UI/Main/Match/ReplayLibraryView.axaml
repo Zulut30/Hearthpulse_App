@@ -55,6 +55,10 @@
                     <Button Classes="icon cardIcon" Content="&#xF0497;" ToolTip.Tip="{i:Loc Library.Share}" AutomationProperties.Name="{i:Loc Library.Share}"
                             IsVisible="{Binding HasReplay}"
                             Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Share}" CommandParameter="{Binding}" />
+                    <!-- Plan 2.2: upload to the site / delete from it, after the confirmation in the card -->
+                    <Button Classes="icon cardIcon" Content="{Binding SiteGlyph}" ToolTip.Tip="{Binding SiteTip}" AutomationProperties.Name="{Binding SiteTip}"
+                            IsVisible="{Binding HasReplay}"
+                            Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).SiteAction}" CommandParameter="{Binding}" />
                     <TextBlock Text="&#xF1036;" Classes="icon" FontSize="16" Foreground="{StaticResource Faint}" Margin="7,0" VerticalAlignment="Center"
                                ToolTip.Tip="{i:Loc Library.NoReplay}" IsVisible="{Binding NoReplay}" />
                     <Button Classes="icon cardIcon delete" Content="&#xF09E7;" ToolTip.Tip="{i:Loc Library.Delete}" AutomationProperties.Name="{i:Loc Library.Delete}"

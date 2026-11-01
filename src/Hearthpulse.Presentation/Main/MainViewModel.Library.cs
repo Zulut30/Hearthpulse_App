@@ -37,6 +37,9 @@ public sealed partial class MainViewModel
     /// <summary>The library's folders; tests give their own.</summary>
     internal ReplayLibrary LibraryFiles { get; init; } = ReplayLibrary.Default;
 
+    /// <summary>Replays uploaded to the site, by file name (plan 2.2).</summary>
+    internal ReplayUploads LibraryUploads { get; init; } = ReplayUploads.Default;
+
     /// <summary>History's games for the current filter (from <c>ApplyHistoryFilter</c>): the library shows its tab again.</summary>
     private void ShowLibrary(IReadOnlyList<GameRecord> games)
     {
@@ -193,6 +196,7 @@ public sealed partial class MainViewModel
                 RatingValue = g.RatingDelta ?? 0,
                 When = when,
                 SortKey = SortKeyOf(g, fileName),
+                SiteUrl = SiteUrlOf(fileName),
             };
         }
 
@@ -220,6 +224,7 @@ public sealed partial class MainViewModel
             RatingValue = g.RatingDelta ?? 0,
             When = when,
             SortKey = SortKeyOf(g, fileName),
+            SiteUrl = SiteUrlOf(fileName),
         };
     }
 
@@ -334,6 +339,76 @@ public sealed partial class MainViewModel
             Library.Remove(card);
             Library.ImportedCount = Math.Max(0, Library.ImportedCount - 1);
         }
+    }
+
+    private string SiteUrlOf(string? fileName) => fileName is null ? string.Empty : LibraryUploads.Get(fileName)?.Url ?? string.Empty;
+
+    /// <summary>
+    /// Uploads the card's replay to the site (plan 2.2), after the confirmation in the card: the Share copy without the
+    /// post-game part (<see cref="ReplayUpload"/>), with the account's sign-in. The link goes to the clipboard.
+    /// </summary>
+    internal void UploadLibraryCard(LibraryCard card, string name)
+    {
+        _libraryAction = UploadAsync(card, name);
+        _libraryAction.Forget("Replay upload");
+    }
+
+    private async Task UploadAsync(LibraryCard card, string name)
+    {
+        if (_account is not { SignedIn: true } account)
+        {
+            Library.Failed(Loc.T("Library.Site.SignIn"));
+            return;
+        }
+
+        var cards = _cards;
+        var files = LibraryFiles;
+        var shelf = card.Shelf;
+        var body = await Task.Run(() => files.Load(shelf, name) is { } text && ReplayUpload.Prepare(text, cards) is { } upload
+            ? ReplayUpload.Encode(upload)
+            : null).ConfigureAwait(true);
+        if (body is null)
+        {
+            Library.Failed(Loc.T("Library.ShareFailed"));
+            return;
+        }
+
+        var (result, error) = await account.UploadReplayAsync(body).ConfigureAwait(true);
+        if (result is null)
+        {
+            Library.Failed(Loc.Or("Library.Site.Error." + error, Loc.T("Library.Site.Error.SERVER_ERROR")));
+            return;
+        }
+
+        LibraryUploads.Set(name, result);
+        card.SiteUrl = result.Url;
+        Library.Uploaded(result.Url);
+    }
+
+    /// <summary>Deletes the card's replay from the site with the token its upload handed out.</summary>
+    internal void RemoveLibraryCardFromSite(LibraryCard card, string name)
+    {
+        _libraryAction = RemoveFromSiteAsync(card, name);
+        _libraryAction.Forget("Replay removal from the site");
+    }
+
+    private async Task RemoveFromSiteAsync(LibraryCard card, string name)
+    {
+        if (LibraryUploads.Get(name) is not { } upload || _account is not { } account)
+        {
+            card.SiteUrl = string.Empty;
+            return;
+        }
+
+        if (!await account.DeleteReplayAsync(upload.Id, upload.DeleteToken).ConfigureAwait(true))
+        {
+            Library.Failed(Loc.T("Library.Site.Error.OFFLINE"));
+            return;
+        }
+
+        LibraryUploads.Set(name, null);
+        card.SiteUrl = string.Empty;
+        Library.Succeeded(Loc.T("Library.Site.Removed"));
     }
 
     internal void ShareLibraryCard(LibraryCard card, string name)

@@ -133,6 +133,30 @@ public sealed class LibraryCard : Observable
 
     public string StarTip => _starred ? Loc.T("Library.Star.Remove") : Loc.T("Library.Star.Add");
 
+    private string _siteUrl = string.Empty;
+
+    /// <summary>The replay's public link once it was uploaded to the site (plan 2.2); empty when it was not.</summary>
+    public string SiteUrl
+    {
+        get => _siteUrl;
+        set
+        {
+            if (Set(ref _siteUrl, value))
+            {
+                Raise(nameof(OnSite));
+                Raise(nameof(SiteGlyph));
+                Raise(nameof(SiteTip));
+            }
+        }
+    }
+
+    public bool OnSite => _siteUrl.Length > 0;
+
+    /// <summary>mdi-cloud-upload, or mdi-cloud-off-outline once it is on the site.</summary>
+    public string SiteGlyph => OnSite ? "\U000F0164" : "\U000F0167";
+
+    public string SiteTip => OnSite ? Loc.F("Library.Site.RemoveTip", _siteUrl) : Loc.T("Library.Site.UploadTip");
+
     /// <summary>The question asked inside the card before a delete (empty: none asked).</summary>
     public string ConfirmText
     {
@@ -219,6 +243,22 @@ public sealed class ReplayLibraryViewModel : Observable
             {
                 ClearStatus();
                 _owner.ShareLibraryCard(card, name);
+            }
+        });
+        // Plan 2.2: upload only on this explicit action, after the confirmation in the card says what goes to the site.
+        SiteAction = new RelayCommand(p =>
+        {
+            if (p is LibraryCard { FileName: { } name, HasReplay: true } card)
+            {
+                ClearStatus();
+                if (card.OnSite)
+                {
+                    Ask(card, Loc.T("Library.Site.ConfirmRemove"), () => _owner.RemoveLibraryCardFromSite(card, name));
+                }
+                else
+                {
+                    Ask(card, Loc.F("Library.Site.ConfirmUpload", ReplayUpload.KeepDays), () => _owner.UploadLibraryCard(card, name));
+                }
             }
         });
         Delete = new RelayCommand(p =>
@@ -392,6 +432,8 @@ public sealed class ReplayLibraryViewModel : Observable
 
     public RelayCommand Delete { get; }
 
+    public RelayCommand SiteAction { get; }
+
     public RelayCommand Confirm { get; }
 
     public RelayCommand Cancel { get; }
@@ -459,6 +501,15 @@ public sealed class ReplayLibraryViewModel : Observable
     }
 
     internal void RequestShare(string path) => ShareFileRequested?.Invoke(path);
+
+    /// <summary>The view should put this link on the clipboard (an uploaded replay).</summary>
+    public event Action<string>? CopyLinkRequested;
+
+    internal void Uploaded(string url)
+    {
+        CopyLinkRequested?.Invoke(url);
+        ShowStatus(Loc.F("Library.Site.Uploaded", url), "Win", "\U000F05E1");
+    }
 
     internal void ImportFinished() => Importing = false;
 
