@@ -120,6 +120,98 @@ public sealed class OpponentDeckTests
     public void No_list_before_the_first_card_played_from_the_deck() =>
         Assert.Null(Live("GT_RANKED", [.. Card(64, "P_D", "HAND", 2, "MINION")]).OpponentDeck);
 
+    /// <summary>M1: a card transformed on the board after it was played (Hex, Polymorph) keeps its mark.</summary>
+    [Fact]
+    public void A_card_transformed_after_it_was_played_keeps_its_mark()
+    {
+        var view = Live("GT_RANKED",
+        [
+            .. OpponentPlays(60, "P_A"),
+            "DebugPrintPower() - CHANGE_ENTITY - Updating Entity=[entityName=X id=60 zone=PLAY zonePos=1 cardId=P_A player=2] CardID=N_T",
+            "DebugPrintPower() -     tag=CARDTYPE value=MINION",
+            "DebugPrintPower() -     tag=CREATOR value=99",
+        ]);
+
+        Assert.Equal(1, view.OpponentDeck!.Rows.Single(r => r.CardId == "P_A").Played);
+        Assert.Empty(view.OpponentDeck.OffList);
+        Assert.Equal([("P_A", 1)], view.OpponentPlayed.Select(p => (p.CardId, p.FromDeck)));
+    }
+
+    /// <summary>m3: a Secret played face down and a card set aside say nothing.</summary>
+    [Fact]
+    public void A_hidden_secret_and_a_set_aside_card_mark_nothing()
+    {
+        var view = Live("GT_RANKED",
+        [
+            .. OpponentPlays(60, "P_A"),
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=61 zone=DECK zonePos=0 cardId= player=2] tag=ZONE value=HAND ",
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=61 zone=HAND zonePos=1 cardId= player=2] tag=ZONE value=SECRET ",
+            .. Card(65, "P_B", "HAND", 2, "MINION"),
+            Zone(65, "P_B", "HAND", "SETASIDE"),
+        ]).OpponentDeck!;
+
+        Assert.Equal([("P_A", 1), ("P_B", 0), ("P_C", 0)], view.Rows.Select(r => (r.CardId, r.Played)));
+        Assert.Empty(view.OffList);
+    }
+
+    /// <summary>
+    /// m3: a card shown from the opponent's deck, shuffled back (HIDE_ENTITY) and later played face down as a Secret does
+    /// not say which Secret it is; played face up again (a new reveal), it counts.
+    /// </summary>
+    [Fact]
+    public void A_card_hidden_again_and_played_as_a_secret_is_not_revealed()
+    {
+        string[] shownThenHidden =
+        [
+            "DebugPrintPower() - SHOW_ENTITY - Updating Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=61 zone=DECK zonePos=0 cardId= player=2] CardID=N_T",
+            "DebugPrintPower() -     tag=CARDTYPE value=SPELL",
+            "DebugPrintPower() - HIDE_ENTITY - Entity=[entityName=Tech id=61 zone=DECK zonePos=0 cardId=N_T player=2] tag=ZONE value=DECK",
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=61 zone=DECK zonePos=0 cardId= player=2] tag=ZONE value=HAND ",
+        ];
+        var secret = Live("GT_RANKED",
+        [
+            .. OpponentPlays(60, "P_A"), .. shownThenHidden,
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=61 zone=HAND zonePos=1 cardId= player=2] tag=ZONE value=SECRET ",
+        ]);
+        Assert.Empty(secret.OpponentDeck!.OffList);
+        Assert.DoesNotContain(secret.OpponentPlayed, p => p.CardId == "N_T");
+
+        var played = Live("GT_RANKED",
+        [
+            .. OpponentPlays(60, "P_A"), .. shownThenHidden,
+            "DebugPrintPower() - SHOW_ENTITY - Updating Entity=[entityName=UNKNOWN ENTITY [cardType=INVALID] id=61 zone=HAND zonePos=1 cardId= player=2] CardID=N_T",
+            "DebugPrintPower() -     tag=CARDTYPE value=SPELL",
+            Zone(61, "N_T", "HAND", "PLAY"),
+        ]);
+        Assert.Equal([("N_T", 1, 1)], played.OpponentDeck!.OffList.Select(r => (r.CardId, r.Copies, r.Played)));
+    }
+
+    /// <summary>A card of the player's deck the opponent took and played is not a card of the opponent's deck.</summary>
+    [Fact]
+    public void A_card_taken_from_your_deck_is_not_the_opponents()
+    {
+        var view = Live("GT_RANKED",
+        [
+            .. OpponentPlays(60, "P_A"),
+            .. Card(70, "N_T", "DECK", 1, "MINION"),
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=70 zone=DECK zonePos=0 cardId=N_T player=1] tag=CONTROLLER value=2 ",
+            "DebugPrintPower() - TAG_CHANGE Entity=[entityName=X id=70 zone=DECK zonePos=0 cardId=N_T player=2] tag=ZONE value=HAND ",
+            Zone(70, "N_T", "HAND", "PLAY"),
+        ]).OpponentDeck!;
+
+        Assert.Empty(view.OffList);
+    }
+
+    /// <summary>m4: a reprint (CORE_, VAN_) marks the card the list holds under its original id.</summary>
+    [Fact]
+    public void A_reprint_marks_the_card_of_the_list()
+    {
+        var view = LikelyDeck.Build(Meta(), Odds("Quest Priest"), "PRIEST", new Dictionary<string, int> { ["CORE_P_A"] = 1, ["VAN_P_C"] = 1 }, Cards)!;
+
+        Assert.Equal([("P_A", 1), ("P_B", 0), ("P_C", 1)], view.Rows.Select(r => (r.CardId, r.Played)));
+        Assert.Empty(view.OffList);
+    }
+
     /// <summary>A game at turn 0 (starting decks), the opponent a Priest, then turn 5 and <paramref name="lines"/>.</summary>
     private static ConstructedView Live(string gameType, string[] lines)
     {

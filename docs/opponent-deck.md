@@ -14,16 +14,22 @@ turned on. Design: `reference/tasks/TASK-2026-11-01-opponent-deck/design.md`.
   `AppSettings.MetaRank` / `MetaPeriod`) apply; the source line names them ("Hearthpulse data · Legend · 7 days").
 - **Marks:** "2" untouched, "1/2" and "2/2" once played; one copy: no badge, "★" for a legendary. A row whose copies
   were all played is dimmed as a drawn-out card in the deck tracker. A card played more often than the list runs it
-  counts that many copies. Cards played from the starting deck that the list does not hold: "Not in the list · N"
+  counts that many copies. A reprint (`CORE_`, `VAN_`) marks the list's card (`SecretRules.BaseId`). The card id and
+  "from its own starting deck" are taken when the card is played, so a card transformed on the board later (Hex,
+  Polymorph) keeps its mark. Cards played from the starting deck that the list does not hold: "Not in the list · N"
   under the list, up to 4 rows and "+N more".
-- **Hidden information:** only public meta and cards the opponent played face up from its starting deck
-  (`Entity.IsOriginalDeckCard`, `PlayedCard.FromDeck`). A card created during the game (generated in its hand and then
-  played) marks nothing and is never "not in the list"; cards in its hand, Secrets before they are revealed, discarded
-  or burned cards and its real deck size are never used.
+- **Hidden information:** only public meta and cards that left the opponent's own starting deck face up
+  (`Entity.IsOriginalDeckCard` with its first controller, `PlayedCard.FromDeck`): played, and also discarded or burned
+  ones, which both players see. Never: a card created during the game (generated in its hand and then played), a card
+  taken from your deck, cards in its hand, a Secret played face down, a card set aside, a card shown and shuffled back
+  (HIDE_ENTITY) until it is shown again, its real deck size.
 - **Not shown:** Arena, Tavern Brawl, games against the AI, friendly games, Battlegrounds; without the meta of the
   game's format, archetypes of the class or a card played from the starting deck; between games.
 - **Look:** card 214 wide, at most 384 high: header (title, chance with the odds' tooltip, archetype name), source line,
-  the list scrolling (12 rows, 15 compact), "Not in the list" always in sight. Rows: tracker rows with cost gem, art,
+  the list scrolling, "Not in the list" always in sight. The list gets what is left: about 12 rows (15 compact)
+  without the off-list section, 9 with two off-list rows. At a larger overlay scale the card is shorter
+  (`OverlayViewModel.LikelyDeckMaxHeight`: it ends above End Turn, y 466 in 1080 screen units, down to 160) and the
+  list scrolls sooner. Rows: tracker rows with cost gem, art,
   rarity strip and mark; the full card on hover. Default spot: right, top, `0,76,276,0` in 1920 × 1080 units, beside
   "Your deck", above End Turn.
 - Render scene: `overlay-likely-deck.png` (`LikelyDeckView.Sample`).

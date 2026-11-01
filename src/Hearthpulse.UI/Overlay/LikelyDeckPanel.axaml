@@ -44,7 +44,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Border Classes="overlayCard" Width="214" MaxHeight="384">
+    <Border Classes="overlayCard" Width="214" MaxHeight="{Binding LikelyDeckMaxHeight}">
         <DockPanel>
             <Border DockPanel.Dock="Top" Classes="overlayHeader">
                 <StackPanel>

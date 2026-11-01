@@ -1,4 +1,5 @@
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Secrets;
 
 namespace Hearthpulse.Core.Constructed;
 
@@ -90,14 +91,17 @@ public static class LikelyDeck
             return new LikelyDeckRow(id, card?.Name ?? id, card?.Cost ?? 0, card?.Rarity ?? string.Empty, copies, played);
         }
 
-        var inList = new HashSet<string>(list.Cards.Select(c => c.Id), StringComparer.Ordinal);
+        // A reprint (CORE_, VAN_) is the card the list holds under another id.
+        var playedByBase = playedFromDeck.Where(p => p.Value > 0).GroupBy(p => SecretRules.BaseId(p.Key), StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Sum(p => p.Value), StringComparer.Ordinal);
+        var inList = new HashSet<string>(list.Cards.Select(c => SecretRules.BaseId(c.Id)), StringComparer.Ordinal);
         // A card played more often than the list runs it: the opponent runs more copies.
         var rows = Sorted(list.Cards.Select(c =>
         {
-            var played = playedFromDeck.GetValueOrDefault(c.Id);
+            var played = playedByBase.GetValueOrDefault(SecretRules.BaseId(c.Id));
             return Row(c.Id, Math.Max(c.Copies, played), played);
         }));
-        var offList = Sorted(playedFromDeck.Where(p => p.Value > 0 && !inList.Contains(p.Key)).Select(p => Row(p.Key, p.Value, p.Value)));
+        var offList = Sorted(playedFromDeck.Where(p => p.Value > 0 && !inList.Contains(SecretRules.BaseId(p.Key))).Select(p => Row(p.Key, p.Value, p.Value)));
         return new LikelyDeckView(odds.Best.Key, odds.Best.Chance, rows, offList, meta.Rank, meta.Period, list.Games);
     }
 

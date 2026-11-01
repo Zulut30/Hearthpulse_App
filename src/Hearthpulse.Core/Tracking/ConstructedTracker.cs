@@ -11,7 +11,14 @@ public sealed class ConstructedTracker : IPowerListener
     private static readonly HashSet<string> PlayedZones = ["PLAY", "GRAVEYARD", "SECRET"];
     private static readonly HashSet<string> IgnoredTypes = ["HERO", "HERO_POWER", "ENCHANTMENT", "PLAYER", "GAME", ""];
 
-    private readonly List<(int EntityId, int Turn)> _opponentPlayed = new();
+    /// <summary>
+    /// The opponent's plays as they were made: the card id then (a card transformed on the board later keeps it) and
+    /// whether it came from the opponent's own starting deck.
+    /// </summary>
+    private readonly List<(int EntityId, int Turn, string CardId, bool FromDeck)> _opponentPlayed = new();
+
+    /// <summary>Opponent entities the client hid again after showing them (HIDE_ENTITY), until shown again.</summary>
+    private readonly HashSet<int> _hiddenAgain = [];
     private readonly HashSet<int> _opponentPlayedIds = new();
 
     /// <summary>The zone each opponent card was in before it last entered the hand (DECK, PLAY, SETASIDE...).</summary>
@@ -74,6 +81,7 @@ public sealed class ConstructedTracker : IPowerListener
     {
         _opponentPlayed.Clear();
         _opponentPlayedIds.Clear();
+        _hiddenAgain.Clear();
         _cameToHandFrom.Clear();
         _hiddenDraws.Clear();
         _mulliganNote = null;
@@ -103,10 +111,20 @@ public sealed class ConstructedTracker : IPowerListener
             }
         }
 
+        // A card hidden again keeps its old id in the entity: played without a new reveal (a Secret), it is not known.
         if (previous is "HAND" or "DECK" && PlayedZones.Contains(value) && !IgnoredTypes.Contains(entity.CardType)
-            && entity.CardId.Length > 0 && _opponentPlayedIds.Add(entity.Id))
+            && entity.CardId.Length > 0 && !_hiddenAgain.Contains(entity.Id) && _opponentPlayedIds.Add(entity.Id))
         {
-            _opponentPlayed.Add((entity.Id, ToPlayerTurn(game.Turn)));
+            var fromDeck = entity.IsOriginalDeckCard && entity.InitialController == entity.Controller;
+            _opponentPlayed.Add((entity.Id, ToPlayerTurn(game.Turn), entity.CardId, fromDeck));
+        }
+    }
+
+    public void OnEntityHidden(GameState game, Entity entity)
+    {
+        if (game.LocalPlayerId != 0 && entity.Controller != game.LocalPlayerId)
+        {
+            _hiddenAgain.Add(entity.Id);
         }
     }
 
@@ -117,6 +135,8 @@ public sealed class ConstructedTracker : IPowerListener
         {
             _hiddenDraws.Remove(entity.Id);
         }
+
+        _hiddenAgain.Remove(entity.Id);
     }
 
     public ConstructedView BuildView(GameState game, CardDb cards)
@@ -130,19 +150,17 @@ public sealed class ConstructedTracker : IPowerListener
         var rows = BuildDeckRows(game, cards, local, deckCount);
 
         var played = _opponentPlayed
-            .Select(p => (Entity: game.Entities.GetValueOrDefault(p.EntityId), p.Turn))
-            .Where(p => p.Entity is { CardId.Length: > 0 })
-            .GroupBy(p => p.Entity!.CardId)
+            .GroupBy(p => p.CardId)
             .Select(g =>
             {
                 var card = cards.Get(g.Key);
                 return new PlayedCard(
                     g.Key,
-                    card?.Name ?? g.First().Entity!.Name,
+                    card?.Name ?? game.Entities.GetValueOrDefault(g.First().EntityId)?.Name ?? g.Key,
                     card?.Cost ?? 0,
                     g.Count(),
                     g.Min(x => x.Turn),
-                    g.All(x => !x.Entity!.IsOriginalDeckCard)) { FromDeck = g.Count(x => x.Entity!.IsOriginalDeckCard) };
+                    g.All(x => !x.FromDeck)) { FromDeck = g.Count(x => x.FromDeck) };
             })
             .OrderBy(p => p.Cost).ThenBy(p => p.Name, StringComparer.CurrentCulture)
             .ToList();

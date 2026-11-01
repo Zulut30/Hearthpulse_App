@@ -65,7 +65,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Border Style="{StaticResource OverlayCard}" Width="214" MaxHeight="384">
+    <Border Style="{StaticResource OverlayCard}" Width="214" MaxHeight="{Binding LikelyDeckMaxHeight}">
         <DockPanel>
             <Border DockPanel.Dock="Top" Style="{StaticResource OverlayHeader}">
                 <StackPanel>

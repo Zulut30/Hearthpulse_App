@@ -12,6 +12,12 @@ public interface IPowerListener
 
     void OnEntityRevealed(GameState game, Entity entity) { }
 
+    /// <summary>
+    /// HIDE_ENTITY: the client stopped showing the card (a shown card shuffled back, a card returned to a hand). The
+    /// entity keeps its last known card id, which the player may remember but which no longer says what it is later.
+    /// </summary>
+    void OnEntityHidden(GameState game, Entity entity) { }
+
     void OnTagChanged(GameState game, Entity entity, string tag, string previous, string value) { }
 
     void OnBlockStart(GameState game, string blockType, Entity? source) { }
@@ -295,6 +301,7 @@ public sealed partial class PowerParser
             if (m.Success && Game is not null && Resolve(m.Groups["entity"].Value) is { } entity)
             {
                 ApplyTag(entity, _strings.Get(m.Groups["tag"].ValueSpan), _strings.Get(m.Groups["value"].ValueSpan), silent: false);
+                foreach (var listener in _listeners) listener.OnEntityHidden(Game, entity);
             }
 
             return;

@@ -62,6 +62,16 @@ public sealed partial class LocBindingTests
         Assert.Empty(model.LikelyDeckOffTitle);
         Assert.Empty(model.LikelyDeckOffList);
 
+        // m6: at a larger overlay scale the panel is shorter, so it still ends above End Turn (466 in 1080 screen units).
+        Assert.Equal(OverlayViewModel.LikelyDeckHeight, model.LikelyDeckMaxHeight);
+        foreach (var scale in new[] { 1.25, 1.6 })
+        {
+            settings.OverlayScale = scale;
+            model.Update(LiveSnapshot.Empty with { Constructed = View(deck), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null, null);
+            Assert.True(model.LikelyDeckMaxHeight < OverlayViewModel.LikelyDeckHeight);
+            Assert.True((76 + model.LikelyDeckMaxHeight) * scale <= 466, $"scale {scale}: {model.LikelyDeckMaxHeight}");
+        }
+
         model.Update(LiveSnapshot.Empty with { Constructed = View(null), InGame = true, HearthstoneRunning = true }, CardDb.Empty, settings, null, null);
         Assert.False(model.ShowLikelyDeck);
     }

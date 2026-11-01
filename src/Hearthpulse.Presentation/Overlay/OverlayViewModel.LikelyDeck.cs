@@ -22,6 +22,16 @@ public sealed partial class OverlayViewModel
     /// <summary>The most rows "Not in the list" shows; the rest is "+N more".</summary>
     internal const int LikelyOffListRows = 4;
 
+    /// <summary>The panel's height at overlay scale 1 (its default spot starts at 76 and ends above End Turn).</summary>
+    internal const double LikelyDeckHeight = 384;
+
+    /// <summary>End Turn's top in 1080 screen units, and the default spot's top margin in overlay units.</summary>
+    private const double EndTurnTop = 466;
+
+    private const double LikelyDeckTop = 76;
+
+    private double _likelyDeckMaxHeight = LikelyDeckHeight;
+
     private bool _showLikelyDeck;
     private string _likelyDeckKey = string.Empty;
     private string _likelyDeckName = string.Empty;
@@ -35,6 +45,12 @@ public sealed partial class OverlayViewModel
     private string _likelyDeckOffMore = string.Empty;
 
     public bool ShowLikelyDeck { get => _showLikelyDeck; private set => Set(ref _showLikelyDeck, value); }
+
+    /// <summary>
+    /// The card's height: the overlay scale makes the default spot taller on screen, so at a larger scale the list
+    /// scrolls sooner and the panel still ends above End Turn (<c>docs/opponent-deck.md</c>).
+    /// </summary>
+    public double LikelyDeckMaxHeight { get => _likelyDeckMaxHeight; private set => Set(ref _likelyDeckMaxHeight, value); }
 
     /// <summary>The archetype's name in the interface language.</summary>
     public string LikelyDeckName { get => _likelyDeckName; private set => Set(ref _likelyDeckName, value); }
@@ -65,6 +81,7 @@ public sealed partial class OverlayViewModel
     {
         var deck = settings.ShowLikelyDeck ? view?.OpponentDeck : null;
         ShowLikelyDeck = deck is not null;
+        LikelyDeckMaxHeight = MaxHeightAt(settings.OverlayScale);
         var key = deck is null ? string.Empty
             : $"{Loc.Instance.Language}|{deck.ArchetypeKey}|{deck.Chance:0.000}|{deck.Rank}|{deck.Period}|{deck.Games}|{view!.OpponentArchetype?.SeenCards}|"
               + string.Join(',', deck.Rows.Concat(deck.OffList).Select(r => $"{r.CardId}:{r.Copies}:{r.Played}"));
@@ -86,6 +103,9 @@ public sealed partial class OverlayViewModel
             .Select(r => new LikelyDeckTile(r.CardId, r.Name, r.Cost, r.Rarity, r.Played > 1 ? "×" + r.Played.ToString(CultureInfo.CurrentCulture) : string.Empty, false))
             .ToList() ?? [];
         LikelyDeckOffMore = deck is { OffList.Count: > LikelyOffListRows } ? Loc.F("OpponentDeck.More", deck.OffList.Count - LikelyOffListRows) : string.Empty;
+
+        static double MaxHeightAt(double overlayScale) =>
+            Math.Clamp(Math.Floor((EndTurnTop / Math.Clamp(overlayScale, 0.6, 1.6)) - LikelyDeckTop - 6), 160, LikelyDeckHeight);
 
         // "2" untouched, "1/2" and "2/2" once played; one copy: nothing, or "★" for a legendary, as the deck tracker.
         static string Mark(LikelyDeckRow row) =>
