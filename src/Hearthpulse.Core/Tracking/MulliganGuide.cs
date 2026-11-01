@@ -88,6 +88,9 @@ public sealed record GuideArchetype(int Id, string Name, string Class, IReadOnly
 
     /// <summary>HSGuru mulligan slices loaded so far (all games, and the coin and the opponent's class once known).</summary>
     public IReadOnlyList<MulliganSlice> Slices { get; init; } = [];
+
+    /// <summary>The mulligan rank filter the guide was built for (<see cref="MulliganGuide.Ranks"/>); its slices follow it.</summary>
+    public string Rank { get; init; } = MulliganGuide.DefaultRank;
 }
 
 /// <summary>A card offered in the mulligan, left to right.</summary>
@@ -166,6 +169,46 @@ public static class MulliganGuide
 
     /// <summary>HSGuru ranks the guide reads, most wanted first: Legend like the HSReplay numbers, else all ranks.</summary>
     public static readonly IReadOnlyList<string> SliceRanks = ["legend", "all"];
+
+    /// <summary>The mulligan's rank filter (plan 2.4); the label keys are Core.MulliganRank.&lt;key&gt;.</summary>
+    public static readonly IReadOnlyList<string> Ranks = ["all", "diamond", "legend", "top_legend"];
+
+    /// <summary>The default rank: Legend, the only rank HSReplay's numbers are collected for.</summary>
+    public const string DefaultRank = "legend";
+
+    /// <summary>
+    /// The HSGuru mulligan rank a filter rank reads: Diamond is HSGuru's Diamond 4-1 and Top Legend its top 5000 (the API
+    /// does not collect HSGuru's top Legend mulligan).
+    /// </summary>
+    public static string SourceRank(string? rank) => rank switch
+    {
+        "diamond" => "diamond_4to1",
+        "top_legend" => "top_5k",
+        "all" => "all",
+        _ => "legend",
+    };
+
+    /// <summary>The filter rank an HSGuru slice rank stands for (the reverse of <see cref="SourceRank"/>), or null.</summary>
+    public static string? FilterRankOf(string? sourceRank) => sourceRank switch
+    {
+        "diamond_4to1" => "diamond",
+        "top_5k" => "top_legend",
+        "legend" => "legend",
+        "all" => "all",
+        _ => null,
+    };
+
+    /// <summary>The HSGuru slice ranks for a filter rank, most wanted first, all ranks last as the fallback.</summary>
+    public static IReadOnlyList<string> SliceRanksFor(string? rank) => SourceRank(rank) switch
+    {
+        "legend" => SliceRanks,
+        "all" => ["all"],
+        var source => [source, "all"],
+    };
+
+    /// <summary>The ranks of these slices, all ranks last: the order the guide reads them in.</summary>
+    private static IEnumerable<string> RanksIn(IReadOnlyList<MulliganSlice> slices) =>
+        slices.Select(s => s.Rank).Distinct(StringComparer.Ordinal).OrderBy(r => r == "all" ? 1 : 0);
 
     /// <summary>
     /// The archetype a deck belongs to. Two signals, because HSReplay lists no decks for some archetypes: the share of
@@ -451,7 +494,7 @@ public static class MulliganGuide
         keys.Add((AnyCoin, AnyOpponent));
         foreach (var (c, o) in keys)
         {
-            foreach (var rank in SliceRanks)
+            foreach (var rank in RanksIn(slices))
             {
                 if (Find(slices, rank, c, o) is { } slice)
                 {
@@ -467,7 +510,7 @@ public static class MulliganGuide
     /// </summary>
     private static double? Shift(IReadOnlyList<MulliganSlice> slices, string cardId, string coin, string opponent)
     {
-        foreach (var rank in SliceRanks)
+        foreach (var rank in RanksIn(slices))
         {
             if (Find(slices, rank, coin, opponent)?.Card(cardId) is { Offered: >= MinSliceCount, OfferedImpact: { } there }
                 && Find(slices, rank, AnyCoin, AnyOpponent)?.Card(cardId) is { Offered: >= MinSliceCount, OfferedImpact: { } all })

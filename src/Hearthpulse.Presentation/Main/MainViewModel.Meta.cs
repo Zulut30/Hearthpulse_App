@@ -374,6 +374,7 @@ public sealed partial class MainViewModel
     {
         apply();
         Raise(nameof(MetaRanks));
+        Raise(nameof(MatchupsRankNote));
         Raise(nameof(MetaPeriods));
         MetaLoading = true;
         MetaUnavailable = false;
@@ -576,7 +577,9 @@ public sealed partial class MainViewModel
         {
             ArchetypeSummary = string.Empty;
             ArchetypeDecks = [];
+            _mulliganLoad?.Cancel();
             Mulligan = [];
+            MulliganSource = string.Empty;
             return;
         }
 
@@ -591,6 +594,12 @@ public sealed partial class MainViewModel
             .Take(5)
             .Select(DeckRowOf)
             .ToList();
+
+        // At a rank other than Legend the list is HSGuru's slice of that rank (MainViewModel.MulliganRank.cs).
+        if (ShowRankMulligan(archetype))
+        {
+            return;
+        }
 
         // Best cards to keep first, by the win rate of games where the card stayed in the opening hand.
         Mulligan = archetype.Mulligan

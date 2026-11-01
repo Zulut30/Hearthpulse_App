@@ -89,7 +89,7 @@
         <StackPanel Name="MetaFilters" Margin="0,0,0,14">
             <WrapPanel Margin="0,0,0,10">
                 <Border Classes="segmentBar" Margin="0,0,12,8" ToolTip.Tip="{i:Loc Main.Ct.RankTip}">
-                    <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceRow}">
+                    <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:MetaChoice">
                                 <RadioButton Classes="segment" Content="{Binding Label}" GroupName="MetaRank" IsChecked="{Binding Selected, Mode=OneWay}"
@@ -244,6 +244,19 @@
 
                     <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,16,0,8"
                                 ToolTip.Tip="{i:Loc Main.Meta.MulliganCaption}" />
+                    <!-- Plan 2.4: the mulligan's own rank (Legend by default); the overlay follows it -->
+                    <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,6" ToolTip.Tip="{i:Loc Main.Meta.MulliganRankTip}">
+                        <ItemsControl ItemsSource="{Binding MulliganRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:MetaChoice">
+                                    <RadioButton Classes="segment" Content="{Binding Label}" GroupName="MulliganRank" IsChecked="{Binding Selected, Mode=OneWay}"
+                                                 Command="{Binding $parent[mm:ConstructedMetaView].((m:MainViewModel)DataContext).SetMulliganRank}" CommandParameter="{Binding Key}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                    <TextBlock Text="{Binding MulliganSource}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,6"
+                               IsVisible="{Binding MulliganSource, Converter={StaticResource Truthy}}" />
                     <ItemsControl ItemsSource="{Binding Mulligan}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:MulliganRow">
@@ -311,6 +324,8 @@
                     </StackPanel>
                 </Grid>
                 <TextBlock Text="{i:Loc Main.Meta.MatchupsCaption}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,12" />
+                <TextBlock Text="{Binding MatchupsRankNote}" Classes="caption" TextWrapping="Wrap" Margin="0,-8,0,12"
+                           IsVisible="{Binding MatchupsRankNote, Converter={StaticResource Truthy}}" />
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" IsVisible="{Binding HasMatchupMatrix}">
                     <StackPanel Name="MatchupGrid">
                         <!-- Column heads: the opponent's portrait and short name, the full name on hover -->

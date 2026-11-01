@@ -61,14 +61,16 @@ public sealed class ConstructedMeta
     public static IReadOnlyList<MetaOption> Formats { get; } = [new("standard", "Standard"), new("wild", "Wild")];
 
     /// <summary>
-    /// HSGuru's rank brackets (the keys are the API's). The API also has diamond, diamond_4to1 and top_legend; six
-    /// fit the page's filter row.
+    /// HSGuru's rank brackets (the keys are the API's; plan 2.4 added Diamond and Top Legend, the filter row wraps). The
+    /// API also has diamond_4to1 and bronze_plat.
     /// </summary>
     public static IReadOnlyList<MetaOption> Ranks { get; } =
     [
         new("all", "All ranks"),
+        new("diamond", "Diamond"),
         new("diamond_to_legend", "Diamond+"),
         new("legend", "Legend"),
+        new("top_legend", "Top Legend"),
         new("top_5k", "Top 5K"),
         new("top_500", "Top 500"),
         new("top_100", "Top 100"),
@@ -93,7 +95,6 @@ public sealed class ConstructedMeta
     {
         ["bronze-gold"] = "all",
         ["platinum"] = "all",
-        ["diamond"] = "diamond_to_legend",
         ["top-2000-legend"] = "top_5k",
         ["past-3"] = "past_3_days",
         ["past-7"] = "past_week",

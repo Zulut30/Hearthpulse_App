@@ -1,4 +1,6 @@
 {
   "Source.MulliganLegendWeek": "{0}, Легенда, 7 дней",
-  "Source.MulliganLegendEu": "{0}, Легенда, Европа"
+  "Source.MulliganLegendEu": "{0}, Легенда, Европа",
+  "Source.MulliganRank": "{0}, {1}, текущее дополнение",
+  "Source.MulliganRankFallback": "{0}, все ранги: для «{1}» мало игр"
 }

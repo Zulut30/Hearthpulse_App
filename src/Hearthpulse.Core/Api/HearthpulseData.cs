@@ -190,10 +190,14 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
         return doc is null ? [] : Read(() => ParseHsguruClassMatchups(Data(doc)), "HSGuru class matchups", new List<GuideMatchup>());
     }
 
-    /// <summary>The ranks <c>v1/hsguru/matchups</c> takes; the meta's narrower ones (top 500, top 100) read its top-Legend slice.</summary>
+    /// <summary>
+    /// The ranks <c>v1/hsguru/matchups</c> takes; the meta's narrower ones (top 500, top 100) read its top-Legend slice, and
+    /// Diamond (the API answers 422 for it) its Diamond 4-1 slice, which the meta page names under the heat map.
+    /// </summary>
     internal static string MatchupRank(string rank) => rank switch
     {
         "all" or "top_legend" or "top_5k" or "legend" or "diamond_to_legend" or "diamond_4to1" or "bronze_plat" => rank,
+        "diamond" => "diamond_4to1",
         "top_500" or "top_100" => "top_legend",
         _ => "all",
     };
@@ -625,9 +629,9 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
             }
 
             Diag.Info($"Hearthpulse API {path}: {result.Error!.Code} {result.Error.Message}");
-            if (result.Error.Code == "NOT_AVAILABLE")
+            if (result.Error.Code is "NOT_AVAILABLE" or "HTTP_422")
             {
-                // The server has nothing for this (404): remember that for as long as an answer, instead of asking every
+                // The server has nothing for this (404), or does not serve this filter combination (422): remember that for as long as an answer, instead of asking every
                 // load. A real answer from the last two days is used instead of being replaced by "nothing" (it keeps its
                 // own time, so it is asked again on later loads and gives way after two days).
                 if (!info.Exists || DateTime.UtcNow - info.LastWriteTimeUtc > MaxStaleForMissing || !HoldsData(file))

@@ -3,6 +3,7 @@ using System.Text;
 using Hearthpulse.Core.Api;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Tests;
@@ -177,6 +178,77 @@ public sealed class ApiLoadTests : IDisposable
         Assert.False(view.GoingFirst);
         Assert.Equal("WARLOCK", view.OpponentClass);
         Assert.Equal("legend", view.SliceRank);
+    }
+
+    [Theory]
+    [InlineData("diamond", "rank=diamond_4to1", false)] // HSGuru's Diamond 4-1 has the slice
+    [InlineData("top_legend", "rank=all", true)] // its top 5000 does not here: all ranks, and the source says so
+    public async Task A_mulligan_rank_other_than_legend_reads_hsguru_at_that_rank_or_all_ranks(string rank, string served, bool fallback)
+    {
+        var server = FixtureServer.Standard();
+        server.Route($"v1/hsguru/mulligan?archetype=Zoolock&format=standard&{served}&coin=any_player&opponent_class=any",
+            FixtureServer.Text("hsguru-mulligan-zoolock-legend-any_player-any.json"));
+        var list = Assert.Single(HearthpulseData.ParseHsguruArchetypes(FixtureServer.Json("hsguru-archetypes-standard.json")), a => a.Name == "Zoolock").Decks[0];
+        var deck = DeckString.TryDecode(list.Code)!;
+
+        var guide = await MulliganGuideSource.LoadGuideAsync(Data(server), "standard", "WARLOCK", deck.Cards, CardDb.Empty, rank: rank);
+
+        Assert.NotNull(guide);
+        Assert.Equal((rank, "Zoolock"), (guide.Rank, guide.HsguruArchetype));
+        Assert.NotEmpty(guide.Cards);
+        var label = Loc.T("Core.MulliganRankSource." + rank);
+        Assert.Equal(Loc.F(fallback ? "Source.MulliganRankFallback" : "Source.MulliganRank", HearthpulseData.Attribution, label), guide.Source);
+        // HSReplay's numbers are Legend only: not asked for at another rank.
+        Assert.DoesNotContain(server.Requests, r => r.StartsWith("api/db/", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_new_mulligan_rank_rebuilds_the_overlay_guide_at_once()
+    {
+        var server = FixtureServer.Standard();
+        server.Route("v1/hsguru/mulligan?archetype=Zoolock&format=standard&rank=legend&coin=any_player&opponent_class=any",
+            FixtureServer.Text("hsguru-mulligan-zoolock-legend-any_player-any.json"));
+        server.Route("v1/hsguru/mulligan?archetype=Zoolock&format=standard&rank=diamond_4to1&coin=any_player&opponent_class=any",
+            FixtureServer.Text("hsguru-mulligan-zoolock-legend-any_player-any.json"));
+        var list = Assert.Single(HearthpulseData.ParseHsguruArchetypes(FixtureServer.Json("hsguru-archetypes-standard.json")), a => a.Name == "Zoolock").Decks[0];
+        var deck = DeckString.TryDecode(list.Code)!;
+        var source = new MulliganGuideSource(Data(server));
+        var changed = new SemaphoreSlim(0);
+        source.Changed += () => changed.Release();
+
+        Assert.Null(source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal("legend", source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty)!.Rank);
+
+        // The new rank tells the session at once (Changed), and the next ask starts the guide again at that rank.
+        source.Rank = "diamond";
+        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(1)));
+        Assert.Null(source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal("diamond", source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty)!.Rank);
+    }
+
+    [Fact]
+    public async Task No_slice_at_the_rank_or_all_ranks_gives_no_rank_mulligan()
+    {
+        Assert.Null(await MulliganGuideSource.LoadRankSliceAsync(Data(FixtureServer.Standard()), "Zoolock", "standard", "top_legend"));
+    }
+
+    [Theory]
+    [InlineData("diamond", "diamond_4to1")] // the API answers 422 for Diamond matchups
+    [InlineData("top_500", "top_legend")]
+    [InlineData("legend", "legend")]
+    public void Matchups_are_asked_at_a_rank_the_api_serves(string rank, string asked) =>
+        Assert.Equal(asked, HearthpulseData.MatchupRank(rank));
+
+    [Fact]
+    public void Mulligan_ranks_map_to_the_hsguru_slices_the_api_collects()
+    {
+        Assert.Equal(["legend", "all"], MulliganGuide.SliceRanksFor("legend"));
+        Assert.Equal(["diamond_4to1", "all"], MulliganGuide.SliceRanksFor("diamond"));
+        Assert.Equal(["top_5k", "all"], MulliganGuide.SliceRanksFor("top_legend"));
+        Assert.Equal(["all"], MulliganGuide.SliceRanksFor("all"));
+        Assert.Equal("legend", MulliganGuide.SourceRank(null));
     }
 
     [Fact]

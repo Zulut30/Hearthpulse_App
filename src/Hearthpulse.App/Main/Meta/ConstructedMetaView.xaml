@@ -98,9 +98,10 @@
     <StackPanel>
         <!-- Filters: rank and period, then class and minimum games (hearthpulse.net's "Рейтинг", "Период", "Минимум игр") -->
         <StackPanel x:Name="MetaFilters" Margin="0,0,0,14">
-            <Grid Margin="0,0,0,10">
-                <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.RankTip}">
-                    <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceRow}">
+            <!-- Plan 2.4: eight rank chips; the periods move below them when the row is too narrow, as in Avalonia -->
+            <WrapPanel Margin="0,0,0,2">
+                <Border Margin="0,0,12,8" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.RankTip}">
+                    <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MetaChoice}">
                                 <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaRank" IsChecked="{Binding Selected, Mode=OneWay}"
@@ -109,7 +110,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Border>
-                <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.PeriodTip}">
+                <Border Margin="0,0,0,8" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.PeriodTip}">
                     <ItemsControl ItemsSource="{Binding MetaPeriods}" ItemsPanel="{StaticResource ChoiceRow}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MetaChoice}">
@@ -119,7 +120,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Border>
-            </Grid>
+            </WrapPanel>
             <DockPanel>
                 <Border x:Name="MinGamesPicker" DockPanel.Dock="Right" VerticalAlignment="Top" Margin="12,0,0,0" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Meta.MinGamesTip}">
                     <ItemsControl ItemsSource="{Binding MetaMinGames}" ItemsPanel="{StaticResource ChoiceRow}">
@@ -274,6 +275,19 @@
 
                     <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,16,0,8"
                                 ToolTip="{i:Loc Main.Meta.MulliganCaption}" />
+                    <!-- Plan 2.4: the mulligan's own rank (Legend by default); the overlay follows it -->
+                    <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" Margin="0,0,0,6" ToolTip="{i:Loc Main.Meta.MulliganRankTip}">
+                        <ItemsControl ItemsSource="{Binding MulliganRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type m:MetaChoice}">
+                                    <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MulliganRank" IsChecked="{Binding Selected, Mode=OneWay}"
+                                                 Command="{Binding DataContext.SetMulliganRank, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                    <TextBlock Text="{Binding MulliganSource}" Style="{StaticResource Caption}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,6"
+                               Visibility="{Binding MulliganSource, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding Mulligan}" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MulliganRow}">
@@ -362,6 +376,8 @@
                     </StackPanel>
                 </Grid>
                 <TextBlock Text="{i:Loc Main.Meta.MatchupsCaption}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                <TextBlock Text="{Binding MatchupsRankNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,-8,0,12"
+                           Visibility="{Binding MatchupsRankNote, Converter={StaticResource Vis}}" />
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                               Visibility="{Binding HasMatchupMatrix, Converter={StaticResource Vis}}">
                     <StackPanel x:Name="MatchupGrid">

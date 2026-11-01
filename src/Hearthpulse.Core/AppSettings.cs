@@ -156,6 +156,9 @@ public sealed class AppSettings
 
     public string MetaRank { get; set; } = "all";
 
+    /// <summary>The mulligan's rank filter (meta page and overlay; Tracking.MulliganGuide.Ranks): Legend by default.</summary>
+    public string MulliganRank { get; set; } = "legend";
+
     public string MetaPeriod { get; set; } = "past_week";
 
     /// <summary>
@@ -448,6 +451,7 @@ public sealed class AppSettings
         SettingsTab = DefaultIfBlank(SettingsTab, "General");
         MetaFormat = DefaultIfBlank(MetaFormat, "standard");
         MetaRank = DefaultIfBlank(MetaRank, "all");
+        MulliganRank = DefaultIfBlank(MulliganRank, "legend");
         MetaPeriod = DefaultIfBlank(MetaPeriod, "past_week");
         Theme = DefaultIfBlank(Theme, "Tavern");
         CounterModes ??= new(StringComparer.Ordinal);

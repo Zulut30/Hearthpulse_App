@@ -70,7 +70,8 @@ public sealed partial class AppHost : IDisposable
         History = new HistoryStore(AppPaths.Database) { Replays = Core.Replay.ReplayStore.Default };
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
-        Session.SetMulliganGuide(new MulliganGuideSource(new HearthpulseData(Api)));
+        var mulliganGuide = new MulliganGuideSource(new HearthpulseData(Api)) { Rank = Settings.MulliganRank };
+        Session.SetMulliganGuide(mulliganGuide);
         Session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(Api)));
         Session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(Api)));
         Session.SetBgLeaderboards(new BgLeaderboardSource(Api));
@@ -100,6 +101,14 @@ public sealed partial class AppHost : IDisposable
             OnSettingsChanged();
         };
         Main.CountersChanged += OnSettingsChanged;
+        // Plan 2.4: the mulligan's rank filter on the meta page; the overlay's guide follows it.
+        var mulliganData = new HearthpulseData(Api);
+        Main.LoadRankMulligan = (archetype, format, rank, cancel) => MulliganGuideSource.LoadRankSliceAsync(mulliganData, archetype, format, rank, cancel);
+        Main.MulliganRankChanged += () =>
+        {
+            mulliganGuide.Rank = Settings.MulliganRank;
+            OnSettingsChanged();
+        };
         Main.UpdateRequested += OnInstallUpdateRequested;
 
         _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => Main.RefreshAsync().Forget("History refresh"));
