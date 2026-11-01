@@ -24,6 +24,10 @@ internal static class Program
           startup   WPF start-up steps up to the first rendered main window and until the log watcher can start
                     (HP_BENCH_SERIAL=1: game and cards looked up after the first frame, the order before stage 6)
           ram       working set step by step (cards, meta, window, every page and tab), image cache bytes, page times
+          games     memory after every game of the kept logs replayed into the main window and the shown 4K overlay
+                    (--rounds n: the logs n times over; HP_BENCH_ONSCREEN=1: the overlay on the primary screen at 2 %;
+                    HP_BENCH_PACE=n: each game lasts its log time / n; HP_BENCH_MAIN=0: no main window;
+                    HP_BENCH_DROPART=1: image caches emptied before each count; HP_BENCH_SOFTWARE=1: overlay SoftwareOnly)
           pages     first and second opening of every page, Settings tab and stats tab, a deck page and a match page
           art       decode the cached portraits and deck tiles at once (--games caps the count): time, allocations, GCs
           idle      the overlay window with no Hearthstone window: CPU time over 20 s (run with Hearthstone closed)
@@ -106,6 +110,9 @@ internal static class Program
                 break;
             case "ram":
                 WpfBench.Ram(options);
+                break;
+            case "games":
+                GamesBench.Run(options);
                 break;
             case "pages":
                 WpfBench.Pages(options);

@@ -831,7 +831,7 @@ internal static class WpfBench
     }
 
     /// <summary>Pixel bytes held by the in-memory image caches, per kind (a cropped image counts its source).</summary>
-    private static void ImageCaches()
+    internal static void ImageCaches()
     {
         foreach (var type in new[] { typeof(CardArt), typeof(CardRender) })
         {

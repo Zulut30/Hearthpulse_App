@@ -295,7 +295,7 @@ internal static class WindowBench
     }
 
     /// <summary>Waits (at most 2 min) for a second in which the process used under 20 ms of CPU.</summary>
-    private static void Quiet()
+    internal static void Quiet()
     {
         using var process = Process.GetCurrentProcess();
         var waited = Stopwatch.StartNew();
@@ -315,7 +315,7 @@ internal static class WindowBench
     }
 
     /// <summary>Runs the dispatcher (timers, rendering) for <paramref name="time"/>.</summary>
-    private static void Run(TimeSpan time)
+    internal static void Run(TimeSpan time)
     {
         var frame = new DispatcherFrame();
         var stop = new DispatcherTimer(time, DispatcherPriority.Normal, (_, _) => frame.Continue = false, Dispatcher.CurrentDispatcher);
