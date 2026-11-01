@@ -8,6 +8,7 @@
         xmlns:mm="clr-namespace:Hearthpulse.App.Main.Meta"
         xmlns:dk="clr-namespace:Hearthpulse.App.Main.Decks"
         xmlns:mt="clr-namespace:Hearthpulse.App.Main.Match"
+        xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
         xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
         Title="Hearthpulse" Width="1260" Height="840" MinWidth="1040" MinHeight="660"
         Background="{StaticResource WindowFill}" Foreground="{StaticResource Text}"
@@ -354,6 +355,10 @@
                                     <TextBlock x:Name="SetupWarningText" Grid.Column="1" Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
                                 </Grid>
                             </Border>
+
+                            <!-- First start: games and decks of HDT / Firestone found on this PC (Main/Migration) -->
+                            <mg:MigrationCard DataContext="{Binding Migration}" Margin="0,0,0,16"
+                                              Visibility="{Binding ShowOnHome, Converter={StaticResource Vis}}" />
 
                             <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
                                  worth doing before a match. The buttons are the existing import and layout actions. -->
@@ -1261,6 +1266,8 @@
 
                             <!-- ===== Data: history, the data folder, sharing, where the numbers come from ===== -->
                             <StackPanel x:Name="SettingsData" Visibility="Collapsed">
+                                <!-- Moving over from HDT / Firestone (Main/Migration) -->
+                                <mg:MigrationCard DataContext="{Binding Migration}" Full="True" Margin="0,0,0,16" />
                                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                                     <StackPanel>
                                         <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />

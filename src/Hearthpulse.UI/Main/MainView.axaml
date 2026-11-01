@@ -8,6 +8,7 @@
              xmlns:mm="using:Hearthpulse.UI.Main.Meta"
              xmlns:dk="using:Hearthpulse.UI.Main.Decks"
              xmlns:mt="using:Hearthpulse.UI.Main.Match"
+             xmlns:mg="using:Hearthpulse.UI.Main.Migration"
              xmlns:cs="using:Hearthpulse.Core.Stats"
              x:Class="Hearthpulse.UI.Main.MainView"
              x:DataType="m:MainViewModel"
@@ -381,6 +382,11 @@
                                 <TextBlock Name="SetupWarningText" Grid.Column="1" Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
                             </Grid>
                         </Border>
+
+                        <!-- First start: games and decks of HDT / Firestone found on this PC (Main/Migration) -->
+                        <Panel IsVisible="{Binding Migration.ShowOnHome}">
+                            <mg:MigrationCard DataContext="{Binding Migration}" Margin="0,0,0,16" />
+                        </Panel>
 
                         <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
                              worth doing before a match. The buttons are the existing import and layout actions. -->
@@ -1148,6 +1154,8 @@
 
                         <!-- ===== Data: history, the data folder, where the numbers come from ===== -->
                         <StackPanel Name="SettingsData" IsVisible="False">
+                            <!-- Moving over from HDT / Firestone (Main/Migration) -->
+                            <mg:MigrationCard DataContext="{Binding Migration}" Full="True" Margin="0,0,0,16" />
                             <Border Classes="card" Margin="0,0,0,16">
                                 <StackPanel>
                                     <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />

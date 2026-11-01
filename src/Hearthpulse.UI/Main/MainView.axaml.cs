@@ -305,6 +305,12 @@ public partial class MainView : UserControl
         SettingsAccount.IsVisible = SettingsTabAccount.IsChecked == true;
         SettingsData.IsVisible = SettingsTabData.IsChecked == true;
         SettingsAbout.IsVisible = SettingsTabAbout.IsChecked == true;
+        if (SettingsData.IsVisible)
+        {
+            // The search for HDT / Firestone data, when the start did not run it (the home card was answered).
+            _viewModel?.Migration.EnsureScanned();
+        }
+
         if (_viewModel is not null && SettingsTabs.FirstOrDefault(r => r.IsChecked == true)?.Tag is string tab && _viewModel.Settings.SettingsTab != tab)
         {
             _viewModel.Settings.SettingsTab = tab;

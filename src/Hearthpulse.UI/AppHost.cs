@@ -748,6 +748,7 @@ public sealed partial class AppHost : IDisposable
 
     public void Dispose()
     {
+        Main.StopMigration();
         Loc.Instance.LanguageChanged -= OnLanguageChanged;
         _watcher?.Dispose();
         Uploader.Dispose();

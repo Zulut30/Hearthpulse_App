@@ -127,6 +127,9 @@ public sealed record GameRecord
     public TimeSpan Duration => EndedAt - StartedAt;
 
     public bool IsBattlegrounds => Mode is "Battlegrounds" or "Duos";
+
+    /// <summary>Brought over from HDT or Firestone (<c>docs/migration.md</c>): never sent to the profile or the stats pool.</summary>
+    public bool FromOtherTracker => Source is Migration.HdtImport.Source or Migration.FirestoneImport.Source;
 }
 
 public sealed record HeroAggregate(string HeroCardId, int Games, double AveragePlace, double Top4Rate, double WinRate, int? NetRating);
@@ -218,6 +221,7 @@ public sealed partial class HistoryStore
             """);
         AddMissingColumns(connection);
         CreateFamilyTables(connection);
+        CreateSavedDeckTables(connection);
     }
 
     /// <summary>Columns added after the first schema, with their SQL type. Older databases get them on open.</summary>
@@ -267,7 +271,8 @@ public sealed partial class HistoryStore
     /// profile upload needs: a cursor over the whole history that never holds it all in memory.
     /// </summary>
     public IReadOnlyList<GameRecord> PageForUpload(long afterId, int limit) =>
-        Query($"{UploadSelect} WHERE id > $after ORDER BY id LIMIT $limit;", p =>
+        // Games brought over from another tracker stay on this PC (docs/migration.md).
+        Query($"{UploadSelect} WHERE id > $after AND source NOT IN ('{Migration.HdtImport.Source}', '{Migration.FirestoneImport.Source}') ORDER BY id LIMIT $limit;", p =>
         {
             p.AddWithValue("$after", afterId);
             p.AddWithValue("$limit", limit);
@@ -337,6 +342,12 @@ public sealed partial class HistoryStore
             {
                 Replays?.Delete(game.Replay);
                 return false;
+            }
+
+            // The app's own record of a game replaces the one brought over from another tracker (docs/migration.md).
+            if (!game.FromOtherTracker && !game.IsAbandoned)
+            {
+                orphans.AddRange(DeleteOtherTrackersSameGame(connection, game));
             }
 
             using var command = connection.CreateCommand();

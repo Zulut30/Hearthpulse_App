@@ -49,7 +49,7 @@ public sealed partial class LocBindingTests
         [
             "Settings.Note.Language", "Settings.Note.Theme", "Settings.Note.App", "Settings.Note.Overlay", "Settings.Note.Layout", "Overlay.Move.SettingsWindows",
             "Settings.Leaderboard.CaptionCrossPlatform", "Settings.Note.Tracker", "Settings.Note.Counters", "Settings.Note.Account",
-            "Settings.Note.Data", "Settings.Note.Sources",
+            "Migration.Settings.Note", "Settings.Note.Data", "Settings.Note.Sources",
         ];
         var notes = view.FindControl<ScrollViewer>("PageSettings")!.GetLogicalDescendants().OfType<TextBlock>()
             .Where(t => t.Classes.Contains("cardNote")).ToList();

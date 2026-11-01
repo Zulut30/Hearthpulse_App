@@ -1,0 +1,145 @@
+<UserControl x:Class="Hearthpulse.App.Main.Migration.MigrationCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
+             x:Name="Root">
+    <!-- Moving over from HDT / Firestone (docs/migration.md). DataContext is MainViewModel.Migration, one model for the
+         home page (Full=False: first start) and Settings → Data (Full=True). Colours are theme tokens only. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Hearthpulse;component/Main/Stats/StatsResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <DataTemplate x:Key="SourceRow" DataType="{x:Type mg:MigrationSourceRow}">
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xF05E0;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top"
+                               Visibility="{Binding IsFound, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top"
+                               Visibility="{Binding IsMissing, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="&#xF02FD;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top"
+                               Visibility="{Binding IsServerOnly, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="&#xF05D6;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Negative}" VerticalAlignment="Top"
+                               Visibility="{Binding IsBroken, Converter={StaticResource Vis}}" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding CountsText}" FontSize="13" TextWrapping="Wrap" Visibility="{Binding CountsText, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="{Binding StatusText}" Style="{StaticResource Caption}" TextWrapping="Wrap" Visibility="{Binding StatusText, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="{Binding Folder}" Style="{StaticResource Caption}" FontSize="11" TextWrapping="Wrap" Visibility="{Binding Folder, Converter={StaticResource Vis}}" />
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource Card}">
+        <StackPanel>
+            <!-- Home: what was found, the offer -->
+            <StackPanel Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}, ConverterParameter=!}">
+                <c:Ornament Text="{Binding HomeTitle}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
+                <ItemsControl ItemsSource="{Binding HomeFoundLines}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" FontSize="13" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{i:Loc Migration.What}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,14" />
+            </StackPanel>
+
+            <!-- Settings: every source, found or not -->
+            <StackPanel Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}}">
+                <c:Ornament Text="{i:Loc Migration.Settings.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
+                <!-- The window's own CardNote, found once the card is in it: the settings page's notes are one style -->
+                <TextBlock Text="{i:Loc Migration.Settings.Note}" Style="{DynamicResource CardNote}" />
+                <TextBlock Text="{i:Loc Migration.NotAffiliated}" Style="{StaticResource Caption}" FontSize="11" TextWrapping="Wrap" Margin="0,-6,0,14" />
+                <Grid Margin="0,0,0,12" Visibility="{Binding IsScanning, Converter={StaticResource Vis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xF051F;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Text="{i:Loc Migration.Scanning}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Sources}" ItemTemplate="{StaticResource SourceRow}" Focusable="False"
+                              Visibility="{Binding IsScanning, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                <TextBlock Text="{i:Loc Migration.NothingFound}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,12"
+                           Visibility="{Binding NothingFound, Converter={StaticResource Vis}}" />
+            </StackPanel>
+
+            <!-- Progress -->
+            <Grid Margin="0,0,0,8" Visibility="{Binding IsBusy, Converter={StaticResource Vis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="&#xF051F;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="{Binding ProgressText}" FontSize="13" TextWrapping="Wrap" />
+                    <TextBlock Text="{i:Loc Migration.Progress.Note}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Found, but the cards or the game's logs are still loading: Transfer waits -->
+            <TextBlock Text="{i:Loc Migration.Waiting}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10"
+                       Visibility="{Binding Waiting, Converter={StaticResource Vis}}" />
+
+            <!-- Buttons: the home offer (Transfer / Not now, then Hide), or Transfer and the folder choice in Settings; they
+                 wrap on a narrow window -->
+            <WrapPanel Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}, ConverterParameter=!}">
+                <Button Style="{StaticResource PrimaryButton}" Content="{Binding MigrateLabel}" Command="{Binding Migrate}" CommandParameter="home" Margin="0,0,8,8"
+                        IsEnabled="{Binding CanMigrate}" Visibility="{Binding HomeShowMigrate, Converter={StaticResource Vis}}" />
+                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Migration.Action.NotNow}" Command="{Binding NotNow}" Margin="0,0,8,8"
+                        ToolTip="{i:Loc Migration.Action.NotNowTip}" Visibility="{Binding HomeShowNotNow, Converter={StaticResource Vis}}" />
+                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Migration.Action.Hide}" Command="{Binding Hide}"
+                        Margin="0,0,8,8" Visibility="{Binding HomeShowHide, Converter={StaticResource Vis}}" />
+            </WrapPanel>
+            <WrapPanel Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}}">
+                <Button Style="{StaticResource PrimaryButton}" Content="{Binding MigrateLabel}" Command="{Binding Migrate}" Margin="0,0,8,8"
+                        IsEnabled="{Binding CanMigrate}" ToolTip="{i:Loc Migration.Action.AgainTip}" Visibility="{Binding ShowMigrate, Converter={StaticResource Vis}}" />
+                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Migration.Action.PickHdt}" Command="{Binding PickHdt}" IsEnabled="{Binding CanPick}"
+                        Margin="0,0,8,8" ToolTip="{i:Loc Migration.Action.PickHdtTip}" />
+            </WrapPanel>
+
+            <!-- The last transfer: done, or why it stopped -->
+            <StackPanel Margin="0,10,0,0" Visibility="{Binding HasResult, Converter={StaticResource Vis}}">
+                <TextBlock Text="{Binding ResultWhen}" Style="{StaticResource Caption}" Margin="0,0,0,6"
+                           Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}}" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xF05E0;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Positive}" VerticalAlignment="Top" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding ResultHeadline}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{Binding ResultDetails}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+            <Grid Margin="0,10,0,0" Visibility="{Binding HasError, Converter={StaticResource Vis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="&#xF05D6;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Negative}" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="{Binding ErrorTitle}" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding ErrorText}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

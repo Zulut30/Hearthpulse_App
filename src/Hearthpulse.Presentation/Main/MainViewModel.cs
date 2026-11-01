@@ -332,6 +332,7 @@ public sealed partial class MainViewModel : Observable
     public void SetCards(CardDb cards)
     {
         _cards = cards;
+        _migration?.InputsChanged();
         Raise(nameof(LanguageRestartHint));
         RefreshAsync().Forget("History refresh");
         RebuildMeta();
@@ -452,6 +453,7 @@ public sealed partial class MainViewModel : Observable
         }
 
         _recentGames = data.Recent;
+        _migration?.InputsChanged();
         HistoryCount = data.Total;
         ShowGettingStarted = data.Total == 0;
         Recent = data.Recent.Take(8).Select(Row).ToList();
