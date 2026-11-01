@@ -16,8 +16,11 @@ namespace Hearthpulse.UI.Overlay;
 /// </summary>
 public sealed partial class OverlayViewModel
 {
-    /// <summary>The most rows a side shows; the rest is "+N".</summary>
-    internal const int GraveyardRows = 10;
+    /// <summary>
+    /// The most rows a side shows; the rest is "+N". Seven: with both sides full the panel at its default spot stays
+    /// above End Turn (<c>docs/graveyard.md</c>).
+    /// </summary>
+    internal const int GraveyardRows = 7;
 
     private bool _showGraveyard;
     private string _graveyardKey = string.Empty;

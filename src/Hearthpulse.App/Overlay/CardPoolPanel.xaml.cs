@@ -1,8 +1,10 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using Hearthpulse.App.Controls;
 using Hearthpulse.Core.CardPool;
 
 namespace Hearthpulse.App.Overlay;
@@ -22,6 +24,7 @@ public partial class CardPoolPanel : UserControl
     private readonly DispatcherTimer _poll = new(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(40) };
     private OverlayViewModel? _subscribed;
     private string _revealKey = string.Empty;
+    private FrameworkElement? _previewRow;
 
     public CardPoolPanel()
     {
@@ -135,5 +138,49 @@ public partial class CardPoolPanel : UserControl
         var point = Card.PointFromScreen(new Point(cursor.X, cursor.Y));
         var over = point.X >= 0 && point.Y >= 0 && point.X <= Card.ActualWidth && point.Y <= Card.ActualHeight;
         vm.UpdateCardPoolPointer(over, PoolInput.IsDown(PoolInput.LeftButton), PoolInput.WasPressed(PoolInput.RightButton));
+        PreviewRowAt(over ? new Point(cursor.X, cursor.Y) : null);
+    }
+
+    /// <summary>
+    /// The full card of the row under the pointer (rows of this game, related cards, Excavate): the panel takes no mouse,
+    /// so the poll does what a hover would. The preview leaves with the pointer.
+    /// </summary>
+    private void PreviewRowAt(Point? screen)
+    {
+        var row = screen is { } at ? RowAt(Card, at) : null;
+        if (row == _previewRow)
+        {
+            return;
+        }
+
+        if (_previewRow is not null)
+        {
+            CardPreviewHost.For(_previewRow)?.HideSoon(_previewRow);
+        }
+
+        _previewRow = row;
+        if (row is not null)
+        {
+            CardPreviewHost.For(row)?.Show(row);
+        }
+    }
+
+    private static FrameworkElement? RowAt(DependencyObject node, Point screen)
+    {
+        if (node is FrameworkElement { IsVisible: true } element && CardPreview.HasPreview(element) && element.ActualWidth > 0)
+        {
+            var local = element.PointFromScreen(screen);
+            return local.X >= 0 && local.Y >= 0 && local.X <= element.ActualWidth && local.Y <= element.ActualHeight ? element : null;
+        }
+
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(node); i++)
+        {
+            if (RowAt(VisualTreeHelper.GetChild(node, i), screen) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 }

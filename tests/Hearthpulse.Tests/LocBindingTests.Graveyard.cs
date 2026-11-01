@@ -9,7 +9,7 @@ namespace Hearthpulse.Tests;
 public sealed partial class LocBindingTests
 {
     /// <summary>
-    /// The "graveyard" panel's model: the opponent's dead minions above yours, "×2" for repeats, "+N more" past ten rows,
+    /// The "graveyard" panel's model: the opponent's dead minions above yours, "×2" for repeats, "+N more" past the row limit,
     /// "None died yet" for an empty side; hidden with the setting off or before the first death. The Avalonia panel
     /// loads over it (its bindings are compiled).
     /// </summary>
@@ -36,7 +36,7 @@ public sealed partial class LocBindingTests
         Assert.Equal(Loc.F("Related.Graveyard.Mine", "0"), model.GraveyardLocalTitle);
         Assert.Equal(OverlayViewModel.GraveyardRows, model.GraveyardOpponent.Count);
         Assert.Equal("×2", model.GraveyardOpponent.Single(r => r.CardId == "M1").CountText);
-        Assert.Equal(Loc.F("Related.Graveyard.More", 2), model.GraveyardOpponentMore);
+        Assert.Equal(Loc.F("Related.Graveyard.More", 12 - OverlayViewModel.GraveyardRows), model.GraveyardOpponentMore);
         Assert.Equal(Loc.T("Related.Graveyard.Empty"), model.GraveyardLocalMore);
         var app = Avalonia.Application.Current!;
         var theme = Theme();

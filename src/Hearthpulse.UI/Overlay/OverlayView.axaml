@@ -1035,7 +1035,7 @@
 
                 <!-- ============ Constructed: graveyard, left of the deck list (docs/graveyard.md) ============ -->
                 <o:MovablePanel Id="graveyard" Title="{i:Loc Related.Graveyard.Title}" CanCompact="True" Shown="{Binding ShowGraveyard}"
-                                HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,276,72">
+                                HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,276,24">
                     <o:GraveyardPanel />
                 </o:MovablePanel>
 

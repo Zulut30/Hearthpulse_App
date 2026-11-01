@@ -113,6 +113,7 @@ public sealed partial class MainViewModel
             Make(nameof(AppSettings.ShowDrawChance), "\U000F1278", "DrawChance", false, s => s.ShowDrawChance, (s, v) => s.ShowDrawChance = v),
             Make(nameof(AppSettings.ShowOpponentCounters), "\U000F0199", "OpponentCounters", false, s => s.ShowOpponentCounters, (s, v) => s.ShowOpponentCounters = v),
             Make(nameof(AppSettings.ShowSecrets), "\U000F08EF", "Secrets", false, s => s.ShowSecrets, (s, v) => s.ShowSecrets = v),
+            Make(nameof(AppSettings.ShowGraveyard), "\U000F068C", "Graveyard", false, s => s.ShowGraveyard, (s, v) => s.ShowGraveyard = v),
             Make(nameof(AppSettings.ShowMulligan), "\U000F182C", "Mulligan", false, s => s.ShowMulligan, (s, v) => s.ShowMulligan = v),
             Make(nameof(AppSettings.ShowLadderSession), "\U000F0538", "LadderSession", false, s => s.ShowLadderSession, (s, v) => s.ShowLadderSession = v),
             Make(nameof(AppSettings.ShowBattlegroundsBar), "\U000F0A1D", "BgBar", false, s => s.ShowBattlegroundsBar, (s, v) => s.ShowBattlegroundsBar = v),

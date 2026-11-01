@@ -40,9 +40,10 @@ public sealed class LiveBarPanelToggleTests
         foreach (var toggle in wpf.PanelToggles)
         {
             var property = Assert.Single(bools, p => p.Name == toggle.Id);
-            // Every panel starts shown but the lobby tribes panel, whose player lines repeat the lobby list's.
+            // Every panel starts shown but the lobby tribes panel, whose player lines repeat the lobby list's, and the
+            // Graveyard, a new panel over the game that waits to be turned on (docs/graveyard.md).
             var initial = toggle.IsOn;
-            Assert.Equal(toggle.Id != nameof(AppSettings.ShowBgLobbyPanel), initial);
+            Assert.Equal(toggle.Id is not (nameof(AppSettings.ShowBgLobbyPanel) or nameof(AppSettings.ShowGraveyard)), initial);
             var before = bools.ToDictionary(p => p.Name, p => (bool)p.GetValue(wpf.Settings)!);
 
             toggle.Toggle.Execute(null);

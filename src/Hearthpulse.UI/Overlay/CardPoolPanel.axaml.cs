@@ -3,6 +3,8 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Hearthpulse.UI.Controls;
 using Hearthpulse.Core.CardPool;
 
 namespace Hearthpulse.UI.Overlay;
@@ -23,6 +25,7 @@ public partial class CardPoolPanel : UserControl
     private OverlayViewModel? _subscribed;
     private bool _shown;
     private string _revealKey = string.Empty;
+    private Control? _previewRow;
 
     public CardPoolPanel()
     {
@@ -159,5 +162,49 @@ public partial class CardPoolPanel : UserControl
         var local = pointer is { } p && Card.IsEffectivelyVisible ? view.TranslatePoint(p, Card) : null;
         var over = local is { } q && q.X >= 0 && q.Y >= 0 && q.X <= Card.Bounds.Width && q.Y <= Card.Bounds.Height;
         vm.UpdateCardPoolPointer(over, buttons.Left, buttons.Right);
+        PreviewRowAt(over ? local : null);
+    }
+
+    /// <summary>
+    /// The full card of the row under the pointer (rows of this game, related cards, Excavate): the panel takes no mouse,
+    /// so the pointer update does what a hover would. The preview leaves with the pointer.
+    /// </summary>
+    private void PreviewRowAt(Point? inCard)
+    {
+        var row = inCard is { } at ? RowAt(Card, at) : null;
+        if (row == _previewRow)
+        {
+            return;
+        }
+
+        if (_previewRow is not null)
+        {
+            CardPreviewHost.For(_previewRow)?.HideSoon(_previewRow);
+        }
+
+        _previewRow = row;
+        if (row is not null)
+        {
+            CardPreviewHost.For(row)?.Show(row);
+        }
+    }
+
+    private Control? RowAt(Visual node, Point inCard)
+    {
+        if (node is Control { IsEffectivelyVisible: true } control && CardPreview.HasPreview(control) && control.Bounds.Width > 0)
+        {
+            return Card.TranslatePoint(inCard, control) is { } local && local.X >= 0 && local.Y >= 0 && local.X <= control.Bounds.Width
+                && local.Y <= control.Bounds.Height ? control : null;
+        }
+
+        foreach (var child in node.GetVisualChildren())
+        {
+            if (RowAt(child, inCard) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 }

@@ -3,6 +3,7 @@ using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Power;
+using Hearthpulse.Core.Tracking.Counters;
 
 namespace Hearthpulse.Core.Tracking;
 
@@ -131,7 +132,7 @@ public sealed partial class GameSession
             // The hovered card's look back at this game, else its related cards (tokens, cards it names), above its own
             // pool; never over another card's pool (a Discover).
             var list = _cardPool.HoveredInHand(game) is { } hovered && (pool is null || pool.SourceCardId == hovered)
-                ? MatchRuleOf(hovered) is { } rule ? MatchLists.Build(hovered, rule, game, _constructed.Counters, _cards) : RelatedOf(hovered)
+                ? HoverList(hovered, MatchRuleOf(hovered), game, _constructed.Counters, _cards, RelatedOf)
                 : null;
             var anchor = _cardPool.AnchorOf(game, pool) ?? (list is null ? null : CardPoolTracker.HandAnchor(game, list.SourceCardId));
             return view with { CardPool = pool, CardPoolAnchor = anchor, MatchList = list, DiscoverPicks = PicksOf(game, pool) };
@@ -142,6 +143,11 @@ public sealed partial class GameSession
             return view;
         }
     }
+
+    /// <summary>The list beside a hovered card in hand: its look back at this game when it has a rule, else its related cards.</summary>
+    internal static MatchListView? HoverList(string hovered, MatchRule? rule, GameState game, CounterTracker counters, CardDb cards,
+        Func<string, MatchListView?> related) =>
+        rule is not null ? MatchLists.Build(hovered, rule, game, counters, cards) : related(hovered);
 
     /// <summary>Whether a card in your hand looks back at this game (then the card under the mouse is worth reading).</summary>
     private bool HandHasMatchList(GameState game) =>

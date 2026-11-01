@@ -1,5 +1,6 @@
 {
   "Related.Title": "Related cards",
+  "Related.Unknown": "Unknown card",
   "Related.Graveyard.Title": "Graveyard",
   "Related.Graveyard.Enemy": "Opponent's · {0}",
   "Related.Graveyard.Mine": "Yours · {0}",
