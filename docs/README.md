@@ -16,6 +16,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [mulligan-v2.md](mulligan-v2.md) | Mulligan guide: research, what the app computes, proposed endpoints |
 | [match-replay.md](match-replay.md) | Match page: turn-by-turn replay and what it may reveal |
 | [replay-library.md](replay-library.md) | History as the replay library: Saved, Imported, the import filter, Share |
+| [migration.md](migration.md) | Moving over from HDT / Firestone: games, decks, what is read and never read |
 | [localization.md](localization.md) | English and Russian interface strings |
 
 ## Data sources and accounts

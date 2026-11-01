@@ -162,6 +162,15 @@ public sealed class AppSettings
     /// </summary>
     public bool UploadGamesToProfile { get; set; } = true;
 
+    /// <summary>The home page offered moving over from HDT / Firestone and the player answered (<c>docs/migration.md</c>).</summary>
+    public bool MigrationOffered { get; set; }
+
+    /// <summary>The HDT data folder the player chose (a portable HDT); null for the default one.</summary>
+    public string? HdtFolder { get; set; }
+
+    /// <summary>What the last move from HDT / Firestone did, for Settings → Data.</summary>
+    public MigrationRecord? LastMigration { get; set; }
+
     /// <summary>Whether the player shares Battlegrounds results with the stats pool; null until they answer.</summary>
     public bool? PoolConsent { get; set; }
 
@@ -577,6 +586,22 @@ public sealed class PanelLook
     /// <summary>Nothing differs from a panel without an entry.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsDefault => !Compact && (Opacity >= 0.999 || !double.IsFinite(Opacity));
+}
+
+/// <summary>The counts of a finished move from another tracker (<see cref="AppSettings.LastMigration"/>).</summary>
+public sealed class MigrationRecord
+{
+    public DateTime At { get; set; }
+
+    public int Added { get; set; }
+
+    public int Already { get; set; }
+
+    public int Skipped { get; set; }
+
+    public int Decks { get; set; }
+
+    public int Replays { get; set; }
 }
 
 /// <summary>Top-left corner as fractions of the overlay surface, plus a per-panel size multiplier.</summary>

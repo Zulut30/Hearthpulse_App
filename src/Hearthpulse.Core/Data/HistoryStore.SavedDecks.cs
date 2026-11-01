@@ -41,7 +41,7 @@ public sealed partial class HistoryStore
         );
         """);
 
-    /// <summary>Adds the decks, or updates the ones of the same source and id. Returns how many were written.</summary>
+    /// <summary>Adds the decks, or updates the ones of the same source and id. Returns how many were new.</summary>
     public int SaveDecks(IReadOnlyCollection<SavedDeck> decks)
     {
         if (decks.Count == 0)
@@ -53,7 +53,19 @@ public sealed partial class HistoryStore
         {
             using var connection = Open();
             using var tx = connection.BeginTransaction();
-            var written = 0;
+            var known = new HashSet<(string, string)>();
+            using (var existing = connection.CreateCommand())
+            {
+                existing.Transaction = tx;
+                existing.CommandText = "SELECT source, external_id FROM saved_decks;";
+                using var reader = existing.ExecuteReader();
+                while (reader.Read())
+                {
+                    known.Add((reader.GetString(0), reader.GetString(1)));
+                }
+            }
+
+            var added = 0;
             foreach (var deck in decks)
             {
                 using var command = connection.CreateCommand();
@@ -76,11 +88,12 @@ public sealed partial class HistoryStore
                 command.Parameters.AddWithValue("$note", deck.Note is { Length: > 0 } note ? note : DBNull.Value);
                 command.Parameters.AddWithValue("$archived", deck.Archived ? 1 : 0);
                 command.Parameters.AddWithValue("$edited", deck.EditedAt.ToString("O", CultureInfo.InvariantCulture));
-                written += command.ExecuteNonQuery();
+                command.ExecuteNonQuery();
+                added += known.Add((deck.Source, deck.ExternalId)) ? 1 : 0;
             }
 
             tx.Commit();
-            return written;
+            return added;
         }
     }
 

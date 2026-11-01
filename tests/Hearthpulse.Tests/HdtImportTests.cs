@@ -41,19 +41,26 @@ public sealed class HdtImportTests : IDisposable
     {
         _output = output;
         _hdt = Path.Combine(_dir, "HearthstoneDeckTracker");
-        Directory.CreateDirectory(Path.Combine(_hdt, "Replays"));
+        Directory.CreateDirectory(_dir);
         _history = new HistoryStore(Path.Combine(_dir, "history.db"));
         _replays = new ReplayStore(Path.Combine(_dir, "replays"));
-        File.WriteAllText(Path.Combine(_hdt, "PlayerDecks.xml"), PlayerDecks);
-        File.WriteAllText(Path.Combine(_hdt, "DeckStats.xml"), DeckStats(
+        WriteFixture(_hdt);
+    }
+
+    /// <summary>The synthetic HDT folder: 3 finished games (2 Constructed, 1 Battlegrounds), a clone, an unfinished and a Mercenaries game, 1 library deck.</summary>
+    internal static void WriteFixture(string hdt)
+    {
+        Directory.CreateDirectory(Path.Combine(hdt, "Replays"));
+        File.WriteAllText(Path.Combine(hdt, "PlayerDecks.xml"), PlayerDecks);
+        File.WriteAllText(Path.Combine(hdt, "DeckStats.xml"), DeckStats(
             Game("aaaaaaaa-0000-0000-0000-000000000001", "2026-10-20T18:00:00.1234567+03:00", "Win", version: "1", coin: false),
             Game("aaaaaaaa-0000-0000-0000-000000000002", "2026-10-21T18:00:00+03:00", "Loss", version: "2", coin: true),
             // A clone of the first game, an unfinished game, a Mercenaries game: never imported.
             Game("aaaaaaaa-0000-0000-0000-000000000003", "2026-10-20T18:00:00.1234567+03:00", "Win", extra: "<IsClone>true</IsClone>"),
             Game("aaaaaaaa-0000-0000-0000-000000000004", "2026-10-22T18:00:00+03:00", "None"),
             Game("aaaaaaaa-0000-0000-0000-000000000005", "2026-10-22T19:00:00+03:00", "Win", mode: "Mercenaries", type: "GT_MERCENARIES_PVP")));
-        File.WriteAllText(Path.Combine(_hdt, "DefaultDeckStats.xml"), DefaultDeckStats);
-        File.WriteAllText(Path.Combine(_hdt, "BgsLastGames.xml"), BgsLastGames);
+        File.WriteAllText(Path.Combine(hdt, "DefaultDeckStats.xml"), DefaultDeckStats);
+        File.WriteAllText(Path.Combine(hdt, "BgsLastGames.xml"), BgsLastGames);
     }
 
     public void Dispose()
