@@ -38,13 +38,14 @@ public static class HdtImport
 
         try
         {
-            var games = ImportableGames(folder).Count;
+            var games = ImportableGames(folder).Games.Count;
             var decks = HdtData.Decks(HdtData.Load(System.IO.Path.Combine(folder, "PlayerDecks.xml"))).Count(d => !d.Special);
             return new MigrationFound(MigrationSource.Hdt, folder, games, decks);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            Diag.Info($"HDT data in {folder} could not be read: {ex.Message}");
+            // Not the folder: its path holds the Windows user's name.
+            Diag.Info($"HDT data could not be read: {ex.GetType().Name}");
             return new MigrationFound(MigrationSource.Hdt, folder, 0, 0);
         }
     }
@@ -57,13 +58,12 @@ public static class HdtImport
         IProgress<MigrationProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         IReadOnlyList<HdtGame> games;
+        int excluded;
         IReadOnlyList<HdtDeck> decks;
-        IReadOnlyList<HdtBgGame> bgGames;
         try
         {
-            games = ImportableGames(folder);
+            (games, excluded) = ImportableGames(folder);
             decks = HdtData.Decks(HdtData.Load(System.IO.Path.Combine(folder, "PlayerDecks.xml"))).ToList();
-            bgGames = HdtData.BattlegroundsGames(HdtData.Load(System.IO.Path.Combine(folder, "BgsLastGames.xml"))).ToList();
         }
         catch (InvalidDataException ex)
         {
@@ -76,10 +76,22 @@ public static class HdtImport
             return MigrationResult.Failed(MigrationErrors.Access);
         }
 
+        // Only adds to Battlegrounds games: broken, it leaves them without the final board, it stops nothing.
+        IReadOnlyList<HdtBgGame> bgGames;
+        try
+        {
+            bgGames = HdtData.BattlegroundsGames(HdtData.Load(System.IO.Path.Combine(folder, "BgsLastGames.xml"))).ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            Diag.Info($"HDT's BgsLastGames.xml not used: {ex.GetType().Name}");
+            bgGames = [];
+        }
+
         var byId = decks.Where(d => d.DeckId != Guid.Empty).GroupBy(d => d.DeckId).ToDictionary(g => g.Key, g => g.First());
         var store = new ReplayStore(replays.Directory) { AutoPrune = false, MaxTotalBytes = replays.MaxTotalBytes, MaxTotalFiles = replays.MaxTotalFiles };
         var work = System.IO.Path.Combine(workDir, Guid.NewGuid().ToString("N"));
-        int added = 0, already = 0, skipped = 0, rebuilt = 0;
+        int added = 0, already = 0, skipped = excluded, rebuilt = 0;
         var versionKeys = new Dictionary<Guid, HashSet<string>>();
         try
         {
@@ -98,14 +110,8 @@ public static class HdtImport
                     continue;
                 }
 
-                if (history.HasSameGame(record))
-                {
-                    // The replay file just written stays: it is the same game's, and History's row may point at it.
-                    already++;
-                    continue;
-                }
-
-                if (!history.Add(record))
+                // A game History has already: the replay file just written stays (it is the same game's).
+                if (!MigrationRows.Add(history, record))
                 {
                     already++;
                     continue;
@@ -148,16 +154,24 @@ public static class HdtImport
         }
     }
 
-    /// <summary>The games worth importing: finished, not a clone, not Mercenaries or a spectated game, each once, oldest first.</summary>
-    private static List<HdtGame> ImportableGames(string folder) =>
-        HdtData.Games(HdtData.Load(System.IO.Path.Combine(folder, "DeckStats.xml")))
+    /// <summary>
+    /// The games worth importing (finished, not a clone, not Mercenaries or a spectated game, each once, oldest first) and
+    /// how many were left out.
+    /// </summary>
+    private static (List<HdtGame> Games, int Excluded) ImportableGames(string folder)
+    {
+        var all = HdtData.Games(HdtData.Load(System.IO.Path.Combine(folder, "DeckStats.xml")))
             .Concat(HdtData.Games(HdtData.Load(System.IO.Path.Combine(folder, "DefaultDeckStats.xml"))))
-            .Where(g => !g.IsClone && g.Result is "Win" or "Loss" or "Draw" && g.Start != default
-                && g.GameMode is not ("Mercenaries" or "Spectator" or "None") && !g.GameType.StartsWith("GT_MERCENARIES", StringComparison.Ordinal))
             .GroupBy(g => g.GameId == Guid.Empty ? Guid.NewGuid() : g.GameId)
             .Select(g => g.First())
+            .ToList();
+        var games = all
+            .Where(g => !g.IsClone && g.Result is "Win" or "Loss" or "Draw" && g.Start != default
+                && g.GameMode is not ("Mercenaries" or "Spectator" or "None") && !g.GameType.StartsWith("GT_MERCENARIES", StringComparison.Ordinal))
             .OrderBy(g => g.Start)
             .ToList();
+        return (games, all.Count - games.Count);
+    }
 
     /// <summary>The game rebuilt from HDT's replay of it (its Power.log), or null when there is none or it does not parse.</summary>
     private static GameRecord? FromReplay(string folder, HdtGame game, HdtDeck? deck, CardDb cards, ReplayStore replays, string work,
@@ -203,7 +217,8 @@ public static class HdtImport
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            Diag.Info($"HDT replay {name} not used: {ex.Message}");
+            // The game's id, never the replay's file name: it holds the players' names.
+            Diag.Info($"HDT replay of game {game.GameId} not used: {ex.GetType().Name}");
             return null;
         }
     }
@@ -211,7 +226,8 @@ public static class HdtImport
     /// <summary>A History row from what DeckStats.xml says about a game (no replay); null for a game that cannot be one.</summary>
     internal static GameRecord? RecordOf(HdtGame game, HdtDeck? deck, IReadOnlyList<HdtBgGame> bgGames, CardDb cards)
     {
-        var gameType = game.GameType.Length > 0 ? game.GameType : game.GameMode switch
+        // An unknown game type is read from the mode; neither known, the game is left out (not filed under "Other").
+        var gameType = game.GameType is { Length: > 0 } and not "GT_UNKNOWN" ? game.GameType : game.GameMode switch
         {
             "Ranked" => "GT_RANKED",
             "Casual" => "GT_CASUAL",
@@ -257,7 +273,8 @@ public static class HdtImport
                 Placement = place,
                 RatingBefore = game.BattlegroundsRating ?? bg?.Rating,
                 RatingAfter = game.BattlegroundsRatingAfter ?? bg?.RatingAfter,
-                Turns = (game.Turns + 1) / 2,
+                // HDT counts the player's own turns, as History does.
+                Turns = game.Turns,
                 FinalBoard = board is { Count: > 0 } ? JsonSerializer.Serialize(board) : null,
                 AnomalyCardId = game.AnomalyDbfId is > 0 and var anomaly ? cards.Get(anomaly)?.Id : null,
                 Source = Source,
@@ -284,8 +301,11 @@ public static class HdtImport
             PlayerClass = ClassOf(game.PlayerHero, playerHero, cards),
             OpponentClass = ClassOf(game.OpponentHero, opponentHero, cards),
             Result = game.Result == "Draw" ? "Tie" : game.Result,
-            Turns = (game.Turns + 1) / 2,
+            Turns = game.Turns,
             WentFirst = !game.Coin,
+            // The cards the game revealed, when HDT does not say on which turn: turn 0.
+            OpponentCards = GameCards.TurnsJson(game.OpponentCards
+                .SelectMany(c => Enumerable.Repeat(new CardTurn(c.CardId, 0), Math.Clamp(c.Count, 1, 30))).ToList()),
             DeckName = deckName,
             DeckCode = deckCode,
             Rank = rank?.Text,

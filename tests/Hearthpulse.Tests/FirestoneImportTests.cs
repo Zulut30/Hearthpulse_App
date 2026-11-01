@@ -32,6 +32,9 @@ public sealed class FirestoneImportTests : IDisposable
         """{"reviewId":"r2","creationTimestamp":1761671400000,"gameMode":"battlegrounds","playerName":"Player#1000","playerCardId":"TB_BaconShop_HERO_50","playerRank":"6100","newPlayerRank":"6132","additionalResult":"3","gameDurationSeconds":1200,"gameDurationTurns":12}""",
         """{"reviewId":"r3","creationTimestamp":1761675000000,"gameMode":"mercenaries-pve","result":"won"}""",
         """{"reviewId":"r4","creationTimestamp":1761678600000,"gameMode":"casual","result":"unknown","playerClass":"mage"}""",
+        """{"reviewId":"r5","creationTimestamp":"x","gameMode":"ranked","result":"won"}""",
+        """{"reviewId":"r6","creationTimestamp":null,"gameMode":"ranked","result":"won"}""",
+        """{"reviewId":"r7","creationTimestamp":99999999999999999999,"gameMode":"ranked","result":"won"}""",
     ];
 
     private string Json()
@@ -67,7 +70,7 @@ public sealed class FirestoneImportTests : IDisposable
     {
         var result = FirestoneImport.Import(Json(), _history, CardDb.Empty, Path.Combine(_dir, "work"));
 
-        Assert.Equal((2, 0, 2), (result.Added, result.Already, result.Skipped));
+        Assert.Equal((2, 0, 5), (result.Added, result.Already, result.Skipped));
         var ranked = Assert.Single(_history.Recent(10), g => g.Mode == "Ranked");
         Assert.Equal("firestone", ranked.Source);
         Assert.Equal(("MAGE", "WARRIOR", "Win", 8, false), (ranked.PlayerClass, ranked.OpponentClass, ranked.Result, ranked.Turns, ranked.WentFirst));
@@ -101,6 +104,12 @@ public sealed class FirestoneImportTests : IDisposable
     {
         var found = FirestoneImport.Scan(database: Path.Combine(_dir, "none.sqlite"), json: Json(), extension: Path.Combine(_dir, "none"))!;
         Assert.Equal((MigrationSource.Firestone, 2, false), (found.Source, found.Games, found.ServerOnly));
+
+        // The database is found, not copied or counted: the import counts it.
+        var database = FirestoneImport.Scan(database: Database(), json: Path.Combine(_dir, "none.json"), extension: Path.Combine(_dir, "none"))!;
+        Assert.False(database.Counted);
+        Assert.True(database.HasWork);
+        Assert.False(Directory.Exists(Path.Combine(_dir, "work")));
 
         var extension = Directory.CreateDirectory(Path.Combine(_dir, "Extensions", "firestone")).FullName;
         var serverOnly = FirestoneImport.Scan(Path.Combine(_dir, "none.sqlite"), Path.Combine(_dir, "none.json"), extension)!;

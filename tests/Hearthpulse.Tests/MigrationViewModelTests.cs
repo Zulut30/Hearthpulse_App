@@ -12,7 +12,8 @@ public sealed class MigrationViewModelTests : IDisposable
     private readonly string _dir = Path.Combine(Path.GetTempPath(), $"hp-migration-vm-{Guid.NewGuid():N}");
     private readonly string _hdt;
     private readonly HistoryStore _history;
-    private readonly AppSettings _settings = new();
+    private readonly AppSettings _settings = new() { HistoryImported = true };
+    private int _searches;
     private int _refreshed;
 
     public MigrationViewModelTests()
@@ -34,7 +35,11 @@ public sealed class MigrationViewModelTests : IDisposable
         {
             _refreshed++;
             return Task.CompletedTask;
-        }, _ => found);
+        }, _ =>
+        {
+            _searches++;
+            return found;
+        });
         await vm.WorkTask;
         return vm;
     }
@@ -125,6 +130,51 @@ public sealed class MigrationViewModelTests : IDisposable
         Assert.Equal(Loc.T("Migration.Error.Title"), vm.ErrorTitle);
         Assert.Equal(Loc.F("Migration.Error.Damaged", "HDT"), vm.ErrorText);
         Assert.Equal(Loc.T("Migration.Action.Again"), vm.MigrateLabel);
+    }
+
+    [Fact]
+    public async Task Once_answered_the_search_waits_for_settings_data()
+    {
+        _settings.MigrationOffered = true;
+        var vm = await Open(Hdt);
+
+        Assert.Equal(0, _searches);
+        Assert.False(vm.ShowOnHome);
+
+        vm.EnsureScanned();
+        await vm.WorkTask;
+        vm.EnsureScanned();
+        await vm.WorkTask;
+
+        Assert.Equal(1, _searches);
+        Assert.True(vm.Sources[0].IsFound);
+    }
+
+    [Fact]
+    public async Task Transfer_waits_for_the_first_import_of_the_logs()
+    {
+        _settings.HistoryImported = false;
+        var vm = await Open(Hdt);
+
+        Assert.True(vm.Waiting);
+        Assert.False(vm.CanMigrate);
+        vm.Migrate.Execute(null);
+        Assert.False(vm.IsBusy);
+
+        _settings.HistoryImported = true;
+        vm.InputsChanged();
+        Assert.False(vm.Waiting);
+        Assert.True(vm.CanMigrate);
+    }
+
+    [Fact]
+    public async Task A_search_that_throws_ends_with_nothing_found()
+    {
+        var vm = new MigrationViewModel(() => HdtImportTests.Cards, _history, _settings, () => Task.CompletedTask, _ => throw new InvalidOperationException("broken"));
+        await vm.WorkTask;
+
+        Assert.False(vm.IsScanning);
+        Assert.True(vm.NothingFound);
     }
 
     [Fact]

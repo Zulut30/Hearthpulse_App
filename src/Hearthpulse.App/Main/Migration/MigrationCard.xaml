@@ -58,6 +58,7 @@
                 <c:Ornament Text="{i:Loc Migration.Settings.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
                 <!-- The window's own CardNote, found once the card is in it: the settings page's notes are one style -->
                 <TextBlock Text="{i:Loc Migration.Settings.Note}" Style="{DynamicResource CardNote}" />
+                <TextBlock Text="{i:Loc Migration.NotAffiliated}" Style="{StaticResource Caption}" FontSize="11" TextWrapping="Wrap" Margin="0,-6,0,14" />
                 <Grid Margin="0,0,0,12" Visibility="{Binding IsScanning, Converter={StaticResource Vis}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="28" />
@@ -85,24 +86,29 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Buttons: the home offer (Transfer / Not now, then Hide), or Transfer and the folder choice in Settings -->
-            <StackPanel Orientation="Horizontal" Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}, ConverterParameter=!}">
-                <Button Style="{StaticResource PrimaryButton}" Content="{Binding MigrateLabel}" Command="{Binding Migrate}" CommandParameter="home" Margin="0,0,8,0"
+            <!-- Found, but the cards or the game's logs are still loading: Transfer waits -->
+            <TextBlock Text="{i:Loc Migration.Waiting}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,10"
+                       Visibility="{Binding Waiting, Converter={StaticResource Vis}}" />
+
+            <!-- Buttons: the home offer (Transfer / Not now, then Hide), or Transfer and the folder choice in Settings; they
+                 wrap on a narrow window -->
+            <WrapPanel Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}, ConverterParameter=!}">
+                <Button Style="{StaticResource PrimaryButton}" Content="{Binding MigrateLabel}" Command="{Binding Migrate}" CommandParameter="home" Margin="0,0,8,8"
                         IsEnabled="{Binding CanMigrate}" Visibility="{Binding HomeShowMigrate, Converter={StaticResource Vis}}" />
-                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Migration.Action.NotNow}" Command="{Binding NotNow}" Margin="0,0,8,0"
+                <Button Style="{StaticResource GhostButton}" Content="{i:Loc Migration.Action.NotNow}" Command="{Binding NotNow}" Margin="0,0,8,8"
                         ToolTip="{i:Loc Migration.Action.NotNowTip}" Visibility="{Binding HomeShowNotNow, Converter={StaticResource Vis}}" />
                 <Button Style="{StaticResource GhostButton}" Content="{i:Loc Migration.Action.Hide}" Command="{Binding Hide}"
-                        Visibility="{Binding HomeShowHide, Converter={StaticResource Vis}}" />
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}}">
-                <Button Style="{StaticResource PrimaryButton}" Content="{Binding MigrateLabel}" Command="{Binding Migrate}" Margin="0,0,8,0"
+                        Margin="0,0,8,8" Visibility="{Binding HomeShowHide, Converter={StaticResource Vis}}" />
+            </WrapPanel>
+            <WrapPanel Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}}">
+                <Button Style="{StaticResource PrimaryButton}" Content="{Binding MigrateLabel}" Command="{Binding Migrate}" Margin="0,0,8,8"
                         IsEnabled="{Binding CanMigrate}" ToolTip="{i:Loc Migration.Action.AgainTip}" Visibility="{Binding ShowMigrate, Converter={StaticResource Vis}}" />
                 <Button Style="{StaticResource GhostButton}" Content="{i:Loc Migration.Action.PickHdt}" Command="{Binding PickHdt}" IsEnabled="{Binding CanPick}"
-                        ToolTip="{i:Loc Migration.Action.PickHdtTip}" />
-            </StackPanel>
+                        Margin="0,0,8,8" ToolTip="{i:Loc Migration.Action.PickHdtTip}" />
+            </WrapPanel>
 
             <!-- The last transfer: done, or why it stopped -->
-            <StackPanel Margin="0,18,0,0" Visibility="{Binding HasResult, Converter={StaticResource Vis}}">
+            <StackPanel Margin="0,10,0,0" Visibility="{Binding HasResult, Converter={StaticResource Vis}}">
                 <TextBlock Text="{Binding ResultWhen}" Style="{StaticResource Caption}" Margin="0,0,0,6"
                            Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}}" />
                 <Grid>
@@ -123,7 +129,7 @@
                     </StackPanel>
                 </Grid>
             </StackPanel>
-            <Grid Margin="0,18,0,0" Visibility="{Binding HasError, Converter={StaticResource Vis}}">
+            <Grid Margin="0,10,0,0" Visibility="{Binding HasError, Converter={StaticResource Vis}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="28" />
                     <ColumnDefinition Width="*" />

@@ -328,6 +328,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _mainViewModel?.StopMigration();
         _watchdog?.Stop();
         _uiProbe?.Dispose();
         _watcher?.Dispose();

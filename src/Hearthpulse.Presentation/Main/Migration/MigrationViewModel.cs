@@ -33,7 +33,10 @@ public sealed class MigrationViewModel : Observable
     private readonly Func<string?, IReadOnlyList<MigrationFound>> _find;
     private IReadOnlyList<MigrationFound> _found = [];
     private IReadOnlyList<MigrationSourceRow> _sources = [];
-    private bool _scanning = true;
+    private bool _scanning;
+    private bool _scanned;
+    private int _scan;
+    private CancellationTokenSource? _transfer;
     private bool _busy;
     private bool _homeActed;
     private bool _homeHidden;
@@ -82,8 +85,12 @@ public sealed class MigrationViewModel : Observable
                 PickFolderRequested?.Invoke(_settings.HdtFolder is { Length: > 0 } folder ? folder : HdtImport.DefaultFolder);
             }
         });
-        _work = ScanAsync();
-        _work.Forget("Migration search");
+        // The search reads every HDT file: on start only while the home card may still offer the transfer; else when
+        // Settings → Data opens (EnsureScanned).
+        if (!settings.MigrationOffered)
+        {
+            EnsureScanned();
+        }
     }
 
     /// <summary>The view should let the player choose HDT's data folder (starting at this one) and pass it to <see cref="SetHdtFolder"/>.</summary>
@@ -111,7 +118,9 @@ public sealed class MigrationViewModel : Observable
         : Importable.FirstOrDefault()?.Source == MigrationSource.Firestone ? "Firestone" : "HDT");
 
     public IReadOnlyList<string> HomeFoundLines => Importable
-        .Select(f => Loc.F("Migration.Found", f.Source == MigrationSource.Hdt ? "HDT" : "Firestone", Counts(f.Games, f.Decks)))
+        .Select(f => f.Counted
+            ? Loc.F("Migration.Found", f.Source == MigrationSource.Hdt ? "HDT" : "Firestone", Counts(f.Games, f.Decks))
+            : Loc.F("Migration.FoundUncounted", f.Source == MigrationSource.Hdt ? "HDT" : "Firestone"))
         .ToList();
 
     public bool NothingFound => !_scanning && !HasWork;
@@ -119,7 +128,17 @@ public sealed class MigrationViewModel : Observable
     /// <summary>"Transfer" shows when there is something to bring over.</summary>
     public bool ShowMigrate => HasWork;
 
-    public bool CanMigrate => HasWork && !_busy && !_scanning;
+    public bool CanMigrate => HasWork && !_busy && !_scanning && Ready;
+
+    /// <summary>
+    /// The cards are loaded and the first import of the game's logs is done: a game brought over earlier would get no
+    /// deck code or class, and the logs' own record of it would come in after it (the app's record replaces it, but
+    /// the transfer waits rather than do the work twice).
+    /// </summary>
+    private bool Ready => _cards().Count > 0 && _settings.HistoryImported;
+
+    /// <summary>Something to bring over, but the app is still loading the cards or reading the game's logs.</summary>
+    public bool Waiting => HasWork && !_busy && !_scanning && !Ready;
 
     /// <summary>Home: "Transfer" until a transfer ended well (then only "Hide").</summary>
     public bool HomeShowMigrate => HasWork && !HasResult;
@@ -167,7 +186,7 @@ public sealed class MigrationViewModel : Observable
     /// <summary>The source whose import failed, for the error text.</summary>
     private string ErrorSource { get; set; } = string.Empty;
 
-    private IEnumerable<MigrationFound> Importable => _found.Where(f => !f.ServerOnly && f.Games + f.Decks > 0);
+    private IEnumerable<MigrationFound> Importable => _found.Where(f => f.HasWork);
 
     private bool HasWork => Importable.Any();
 
@@ -194,13 +213,53 @@ public sealed class MigrationViewModel : Observable
         }
     }
 
+    /// <summary>Searches for the other trackers' data unless it was searched already (Settings → Data opened).</summary>
+    public void EnsureScanned()
+    {
+        if (!_scanned && !_scanning && !_busy)
+        {
+            _work = ScanAsync();
+            _work.Forget("Migration search");
+        }
+    }
+
+    /// <summary>The app is closing: a transfer under way stops after the game it is at (each game is saved whole).</summary>
+    internal void Stop() => _transfer?.Cancel();
+
+    /// <summary>The cards or History's import of the logs changed: whether Transfer can be pressed is read again.</summary>
+    internal void InputsChanged()
+    {
+        Raise(nameof(CanMigrate));
+        Raise(nameof(Waiting));
+    }
+
     private async Task ScanAsync()
     {
+        // A later search (another folder chosen) wins over one still running.
+        var scan = ++_scan;
         IsScanning = true;
         RaiseState();
         var folder = _settings.HdtFolder;
         var find = _find;
-        _found = await Task.Run(() => find(folder)).ConfigureAwait(true);
+        IReadOnlyList<MigrationFound> found;
+        try
+        {
+            found = await Task.Run(() => find(folder)).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            // Data of another program, anything in it: the card says nothing was found instead of searching for ever.
+            Diag.Error("Searching for HDT / Firestone data failed", ex);
+            found = [];
+        }
+
+        if (scan != _scan)
+        {
+            return;
+        }
+
+        _found = found;
+        _scanned = true;
         IsScanning = false;
         Sources = RowsOf(_found);
         RaiseState();
@@ -213,6 +272,8 @@ public sealed class MigrationViewModel : Observable
         RaiseState();
         var cards = _cards();
         var history = _history;
+        using var transfer = _transfer = new CancellationTokenSource();
+        var token = transfer.Token;
         var total = new MigrationResult(0, 0, 0, 0, 0);
         foreach (var source in Importable.ToList())
         {
@@ -222,7 +283,12 @@ public sealed class MigrationViewModel : Observable
             MigrationResult result;
             try
             {
-                result = await Task.Run(() => MigrationScan.Import(source, history, cards, progress)).ConfigureAwait(true);
+                result = await Task.Run(() => MigrationScan.Import(source, history, cards, progress, token), token).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                // The app is closing: what was saved stays, transferring again picks up without duplicates.
+                return;
             }
             catch (Exception ex)
             {
@@ -256,9 +322,13 @@ public sealed class MigrationViewModel : Observable
         }
 
         ProgressText = string.Empty;
+        _transfer = null;
         IsBusy = false;
         RaiseState();
         await _imported().ConfigureAwait(true);
+        // The numbers in Settings → Data after the transfer (a Firestone database is counted now).
+        _scanned = false;
+        await ScanAsync().ConfigureAwait(true);
     }
 
     private void Offered()
@@ -281,7 +351,7 @@ public sealed class MigrationViewModel : Observable
 
     private void RaiseState()
     {
-        foreach (var name in new[] { nameof(ShowOnHome), nameof(HomeTitle), nameof(HomeFoundLines), nameof(NothingFound), nameof(ShowMigrate),
+        foreach (var name in new[] { nameof(ShowOnHome), nameof(HomeTitle), nameof(HomeFoundLines), nameof(NothingFound), nameof(ShowMigrate), nameof(Waiting),
                      nameof(HomeShowMigrate), nameof(HomeShowNotNow), nameof(HomeShowHide),
                      nameof(CanMigrate), nameof(CanPick), nameof(MigrateLabel), nameof(HasResult), nameof(ResultWhen), nameof(ResultHeadline),
                      nameof(ResultDetails), nameof(HasError), nameof(ErrorTitle), nameof(ErrorText) })
@@ -311,6 +381,7 @@ public sealed class MigrationViewModel : Observable
 
     private static MigrationSourceRow Row(string name, MigrationFound found) =>
         found.ServerOnly ? new MigrationSourceRow(name, string.Empty, Loc.T("Migration.Status.ServerOnly"), string.Empty, false, false, true, false)
+        : !found.Counted ? new MigrationSourceRow(name, Loc.T("Migration.Count.Unknown"), string.Empty, found.Path, true, false, false, false)
         : found.Games + found.Decks == 0 ? new MigrationSourceRow(name, string.Empty, Loc.T("Migration.Status.Empty"), found.Path, false, true, false, false)
         : new MigrationSourceRow(name, Counts(found.Games, found.Decks), string.Empty, found.Path, true, false, false, false);
 }

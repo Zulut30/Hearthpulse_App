@@ -172,6 +172,7 @@ public sealed class HdtImportTests : IDisposable
                   <PlayerName>Player#1000</PlayerName>
                   <OpponentName>Some Hero</OpponentName>
                   <PlayerHero>BaconPHhero</PlayerHero>
+                  <PlayerHeroCardId>TB_BaconShop_HERO_50</PlayerHeroCardId>
                   <BattlegroundsRating>6100</BattlegroundsRating>
                   <BattlegroundsDetails><FinalPlacement>3</FinalPlacement><AnomalyDbfId>90001</AnomalyDbfId></BattlegroundsDetails>
                 </Game>
@@ -212,6 +213,8 @@ public sealed class HdtImportTests : IDisposable
 
         Assert.Null(result.Error);
         Assert.Equal(3, result.Added);
+        // The clone, the unfinished and the Mercenaries game.
+        Assert.Equal(3, result.Skipped);
         var games = _history.Recent(10).Where(g => !g.IsBattlegrounds).OrderBy(g => g.StartedAt).ToList();
         Assert.Equal(2, games.Count);
         var first = games[0];
@@ -223,7 +226,9 @@ public sealed class HdtImportTests : IDisposable
         Assert.Equal("FT_STANDARD", first.Format);
         Assert.Equal(("HERO_08", "MAGE", "HERO_01", "WARRIOR"), (first.HeroCardId, first.PlayerClass, first.OpponentHeroCardId, first.OpponentClass));
         Assert.Equal("Win", first.Result);
-        Assert.Equal(9, first.Turns);
+        // HDT counts the player's own turns already.
+        Assert.Equal(17, first.Turns);
+        Assert.Equal("[{\"id\":\"CS2_106\",\"turn\":0},{\"id\":\"CS2_106\",\"turn\":0}]", _history.WithCards([first])[0].OpponentCards);
         Assert.True(first.WentFirst);
         Assert.False(games[1].WentFirst);
         Assert.Equal("Diamond 7", first.Rank);
@@ -244,7 +249,7 @@ public sealed class HdtImportTests : IDisposable
         Assert.Equal(3, bg.Placement);
         Assert.Equal("Win", bg.Result);
         Assert.Equal((6100, 6132), (bg.RatingBefore, bg.RatingAfter));
-        Assert.Equal(12, bg.Turns);
+        Assert.Equal(23, bg.Turns);
         Assert.Equal("BG_ANOMALY_1", bg.AnomalyCardId);
         Assert.Contains("\"id\":\"BG21_001\",\"atk\":5,\"hp\":7,\"gold\":true", bg.FinalBoard, StringComparison.Ordinal);
     }
@@ -356,6 +361,71 @@ public sealed class HdtImportTests : IDisposable
         Assert.Equal(MigrationErrors.Damaged, Import().Error);
     }
 
+    [Fact]
+    public void A_game_the_logs_record_later_replaces_the_transferred_one()
+    {
+        Import();
+        var started = new DateTimeOffset(2026, 10, 20, 18, 0, 40, TimeSpan.FromHours(3)).LocalDateTime;
+
+        // The same game, imported from Hearthstone's own logs 40 seconds after HDT's start.
+        Assert.True(_history.Add(new GameRecord
+        {
+            Key = $"{started:yyyyMMddHHmmss}|Player#1000|GT_RANKED",
+            StartedAt = started,
+            EndedAt = started.AddMinutes(9),
+            GameType = "GT_RANKED",
+            Mode = "Ranked",
+            OpponentClass = "WARRIOR",
+            Result = "Win",
+            Source = "backfill",
+        }));
+
+        var ranked = _history.Recent(10).Where(g => g.GameType == "GT_RANKED").OrderBy(g => g.StartedAt).ToList();
+        Assert.Equal(2, ranked.Count);
+        Assert.Equal("backfill", ranked[0].Source);
+        Assert.Equal("hdt", ranked[1].Source);
+    }
+
+    [Fact]
+    public void The_same_game_twice_in_hdt_keeps_its_longer_record()
+    {
+        // A reconnect HDT saved as two games: 55 seconds lost, then the whole game won.
+        File.WriteAllText(Path.Combine(_hdt, "DeckStats.xml"), DeckStats(
+            Game("aaaaaaaa-0000-0000-0000-000000000011", "2026-10-20T18:00:00+03:00", "Loss").Replace("T18:09:30", "T18:00:55", StringComparison.Ordinal),
+            Game("aaaaaaaa-0000-0000-0000-000000000012", "2026-10-20T18:01:30+03:00", "Win").Replace("T18:01:30+03:00</EndTime>", "T18:10:30+03:00</EndTime>", StringComparison.Ordinal)));
+        File.Delete(Path.Combine(_hdt, "DefaultDeckStats.xml"));
+
+        var result = Import();
+
+        Assert.Equal((1, 1), (result.Added, result.Already));
+        var game = Assert.Single(_history.Recent(10));
+        Assert.Equal("Win", game.Result);
+    }
+
+    [Fact]
+    public void Transferred_games_are_never_sent_to_the_profile_or_the_stats_pool()
+    {
+        Import();
+        _history.Add(new GameRecord { Key = "20261024120000|Player#1000|GT_RANKED", StartedAt = new DateTime(2026, 10, 24, 12, 0, 0), GameType = "GT_RANKED", Mode = "Ranked", Result = "Win" });
+
+        var upload = _history.PageForUpload(0, 100);
+
+        Assert.Equal(["live"], upload.Select(g => g.Source));
+        var bg = _history.Recent(10).Single(g => g.IsBattlegrounds);
+        Assert.Null(Core.Pool.PoolGame.FromHistory(bg, "secret", id => id));
+    }
+
+    [Fact]
+    public void A_broken_bgs_file_leaves_battlegrounds_games_without_their_board_only()
+    {
+        File.WriteAllText(Path.Combine(_hdt, "BgsLastGames.xml"), "<broken");
+
+        var result = Import();
+
+        Assert.Equal((3, null), (result.Added, result.Error));
+        Assert.Null(_history.Recent(10).Single(g => g.IsBattlegrounds).FinalBoard);
+    }
+
     /// <summary>The owner's own HDT folder, read only: every game reads, and how long it takes.</summary>
     [HdtDataFact]
     public void The_kept_hdt_data_imports_whole()
@@ -368,7 +438,7 @@ public sealed class HdtImportTests : IDisposable
 
         _output.WriteLine($"{found.Games} games, {found.Decks} decks: added {result.Added}, already {result.Already}, skipped {result.Skipped}, replays {result.Replays}, decks {result.Decks} in {clock.Elapsed.TotalSeconds:N1} s");
         Assert.Null(result.Error);
-        Assert.Equal(found.Games, result.Added + result.Already + result.Skipped);
+        Assert.True(result.Added + result.Already <= found.Games);
         Assert.True(result.Added > 0);
     }
 }

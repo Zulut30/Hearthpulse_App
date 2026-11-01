@@ -439,6 +439,11 @@ public partial class MainWindow : Window
         SettingsAccount.Visibility = SettingsTabAccount.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsData.Visibility = SettingsTabData.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsAbout.Visibility = SettingsTabAbout.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (SettingsTabData.IsChecked == true)
+        {
+            // The search for HDT / Firestone data, when the start did not run it (the home card was answered).
+            _viewModel.Migration.EnsureScanned();
+        }
     }
 
     private void OnSettingChanged(object sender, RoutedEventArgs e)

@@ -257,13 +257,18 @@ internal static class HdtData
 
     private static (string, int, int, bool) Minion(XElement m)
     {
-        // Tags are the game's numeric tags: ATK 47, HEALTH 45, DAMAGE 44, PREMIUM 12.
-        var tags = m.Elements("Tags").ToDictionary(t => Int((string?)t.Attribute("Tag")) ?? -1, t => Int((string?)t.Attribute("Value")) ?? 0);
+        // Tags are the game's numeric tags: ATK 47, HEALTH 45, DAMAGE 44, PREMIUM 12; a tag written twice keeps the last.
+        var tags = new Dictionary<int, int>();
+        foreach (var tag in m.Elements("Tags"))
+        {
+            tags[Int((string?)tag.Attribute("Tag")) ?? -1] = Int((string?)tag.Attribute("Value")) ?? 0;
+        }
+
         return (m.Element("CardId")?.Value ?? string.Empty, tags.GetValueOrDefault(47), tags.GetValueOrDefault(45) - tags.GetValueOrDefault(44), tags.GetValueOrDefault(12) > 0);
     }
 
     private static Version? VersionOf(XElement? v) =>
-        v is null ? null : new Version(Int(v.Element("Major")?.Value) ?? 1, Int(v.Element("Minor")?.Value) ?? 0);
+        v is null ? null : new Version(Math.Max(0, Int(v.Element("Major")?.Value) ?? 1), Math.Max(0, Int(v.Element("Minor")?.Value) ?? 0));
 
     private static Guid Guid(XElement? element) =>
         System.Guid.TryParse(element?.Value, out var id) ? id : System.Guid.Empty;

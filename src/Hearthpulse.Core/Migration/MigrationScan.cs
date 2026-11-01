@@ -4,6 +4,31 @@ using Hearthpulse.Core.Replay;
 
 namespace Hearthpulse.Core.Migration;
 
+/// <summary>How a game brought over from another tracker went into History.</summary>
+internal static class MigrationRows
+{
+    /// <summary>
+    /// Adds a game unless History has it (<see cref="HistoryStore.FindSameGame"/>). The same game twice in the other
+    /// tracker's own data (a reconnect recorded as two games) keeps its longer or finished record. True when the game is
+    /// new to History.
+    /// </summary>
+    public static bool Add(HistoryStore history, GameRecord record)
+    {
+        if (history.FindSameGame(record) is not { } same)
+        {
+            return history.Add(record);
+        }
+
+        if (same.FromOtherTracker && same.Key != record.Key && !record.IsAbandoned
+            && (same.IsAbandoned || record.Duration > same.Duration))
+        {
+            history.ReplaceGame(same.Key, record);
+        }
+
+        return false;
+    }
+}
+
 /// <summary>Finds the other trackers' data on this PC and imports one (<c>docs/migration.md</c>). Off the UI thread.</summary>
 public static class MigrationScan
 {

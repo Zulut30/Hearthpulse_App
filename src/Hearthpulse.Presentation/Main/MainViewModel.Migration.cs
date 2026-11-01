@@ -18,6 +18,9 @@ public sealed partial class MainViewModel
     /// <summary>Created on first use: the search for the other trackers' data starts then, off the UI thread.</summary>
     public MigrationViewModel Migration => _migration ??= new MigrationViewModel(() => _cards, _history, Settings, AfterMigrationAsync);
 
+    /// <summary>The app is closing: a transfer under way stops (what it saved stays).</summary>
+    public void StopMigration() => _migration?.Stop();
+
     /// <summary>New games are in History: its lists, My Stats and the decks are read again.</summary>
     private async Task AfterMigrationAsync()
     {

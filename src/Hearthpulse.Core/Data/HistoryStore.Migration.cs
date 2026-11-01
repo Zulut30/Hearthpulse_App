@@ -127,35 +127,97 @@ public sealed partial class HistoryStore
     }
 
     /// <summary>
-    /// True when History already has <paramref name="game"/>: the same key, or a game of the same type starting within
-    /// <see cref="SameGameWindow"/> against the same opponent class (Battlegrounds: of the same hero).
+    /// The game History already has that <paramref name="game"/> is again: the same key, or a game of the same type
+    /// starting within <see cref="SameGameWindow"/> against the same opponent class (Battlegrounds: with the same hero);
+    /// null when there is none.
     /// </summary>
-    public bool HasSameGame(GameRecord game)
+    public GameRecord? FindSameGame(GameRecord game)
     {
+        string? key;
         lock (_gate)
         {
             using var connection = Open();
             using var command = connection.CreateCommand();
-            // Start times are stored as round-trip text; the second-precision prefix orders like the time itself.
-            command.CommandText = """
-                SELECT game_key, opponent_class, hero FROM games
-                WHERE game_key = $key OR (game_type = $type AND substr(started_at, 1, 19) BETWEEN $from AND $to);
-                """;
-            command.Parameters.AddWithValue("$key", game.Key);
-            command.Parameters.AddWithValue("$type", game.GameType);
-            command.Parameters.AddWithValue("$from", (game.StartedAt - SameGameWindow).ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture));
-            command.Parameters.AddWithValue("$to", (game.StartedAt + SameGameWindow).ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture));
+            command.CommandText = $"SELECT game_key, opponent_class, hero FROM games WHERE game_key = $key OR ({InWindow});";
+            BindWindow(command, game);
             using var reader = command.ExecuteReader();
+            var found = new List<(string Key, string OpponentClass, string Hero)>();
             while (reader.Read())
             {
-                if (reader.GetString(0) == game.Key
-                    || (game.IsBattlegrounds ? reader.GetString(2) == game.HeroCardId : reader.GetString(1) == game.OpponentClass))
-                {
-                    return true;
-                }
+                found.Add((reader.GetString(0), reader.GetString(1), reader.GetString(2)));
             }
 
-            return false;
+            key = found.FirstOrDefault(f => f.Key == game.Key).Key
+                ?? found.FirstOrDefault(f => game.IsBattlegrounds ? f.Hero == game.HeroCardId : f.OpponentClass == game.OpponentClass).Key;
         }
+
+        return key is null ? null : Game(key);
+    }
+
+    /// <summary>
+    /// Puts <paramref name="game"/> in place of the row <paramref name="oldKey"/> (the same game, a fuller record of it).
+    /// The old row's replay file goes unless the new row keeps it. True when the new row is in.
+    /// </summary>
+    public bool ReplaceGame(string oldKey, GameRecord game)
+    {
+        string? file;
+        lock (_gate)
+        {
+            using var connection = Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT replay FROM games WHERE game_key = $key; DELETE FROM games WHERE game_key = $key;";
+            command.Parameters.AddWithValue("$key", oldKey);
+            file = command.ExecuteScalar() as string;
+        }
+
+        if (file is not null && file != game.Replay)
+        {
+            Replays?.Delete(file);
+        }
+
+        return Add(game);
+    }
+
+    /// <summary>
+    /// A game the app recorded itself (live, from the logs) is the fuller record: a row brought over from another tracker
+    /// of the same game goes. Returns the replay files of the rows deleted.
+    /// </summary>
+    private static List<string> DeleteOtherTrackersSameGame(SqliteConnection connection, GameRecord own)
+    {
+        var match = own.IsBattlegrounds ? "hero = $hero" : "opponent_class = $oclass";
+        var where = $"source IN ('{Migration.HdtImport.Source}', '{Migration.FirestoneImport.Source}') AND game_key <> $key AND {InWindow} AND {match}";
+        var files = new List<string>();
+        using (var select = connection.CreateCommand())
+        {
+            select.CommandText = $"SELECT replay FROM games WHERE {where} AND replay IS NOT NULL;";
+            BindWindow(select, own);
+            using var reader = select.ExecuteReader();
+            while (reader.Read())
+            {
+                files.Add(reader.GetString(0));
+            }
+        }
+
+        using (var delete = connection.CreateCommand())
+        {
+            delete.CommandText = $"DELETE FROM games WHERE {where};";
+            BindWindow(delete, own);
+            delete.ExecuteNonQuery();
+        }
+
+        return files;
+    }
+
+    // Start times are stored as round-trip text; the second-precision prefix orders like the time itself.
+    private const string InWindow = "game_type = $type AND substr(started_at, 1, 19) BETWEEN $from AND $to";
+
+    private static void BindWindow(SqliteCommand command, GameRecord game)
+    {
+        command.Parameters.AddWithValue("$key", game.Key);
+        command.Parameters.AddWithValue("$type", game.GameType);
+        command.Parameters.AddWithValue("$hero", game.HeroCardId);
+        command.Parameters.AddWithValue("$oclass", game.OpponentClass);
+        command.Parameters.AddWithValue("$from", (game.StartedAt - SameGameWindow).ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("$to", (game.StartedAt + SameGameWindow).ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture));
     }
 }

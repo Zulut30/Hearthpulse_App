@@ -187,6 +187,12 @@ public sealed record PoolGame(string GameId, string Mode, int Bracket, IReadOnly
     /// <summary>A game from the local history, sent once when the player agrees to share.</summary>
     public static PoolGame? FromHistory(GameRecord record, string secret, Func<string, string> baseHero, Func<string, IReadOnlyList<string>>? races = null)
     {
+        // Games brought over from another tracker stay on this PC (docs/migration.md).
+        if (record.FromOtherTracker)
+        {
+            return null;
+        }
+
         var game = Basic(record.Mode, record.Placement, record.HeroCardId, record.RatingBefore, null, record.Key, baseHero, secret);
         return game is null ? null : game with
         {

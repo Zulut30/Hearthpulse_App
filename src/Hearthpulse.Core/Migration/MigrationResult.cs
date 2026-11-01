@@ -10,8 +10,13 @@ public enum MigrationSource
 /// <summary>
 /// What was found before importing: a source, its folder or file, how many finished games and library decks it holds.
 /// <see cref="ServerOnly"/>: Firestone is installed but keeps its history on its server only (nothing to read here).
+/// <see cref="Counted"/> false: a history found but not counted (a database the search does not open), counted by the import.
 /// </summary>
-public sealed record MigrationFound(MigrationSource Source, string Path, int Games, int Decks, bool ServerOnly = false);
+public sealed record MigrationFound(MigrationSource Source, string Path, int Games, int Decks, bool ServerOnly = false, bool Counted = true)
+{
+    /// <summary>There is something to bring over (or, uncounted, may be).</summary>
+    public bool HasWork => !ServerOnly && (!Counted || Games + Decks > 0);
+}
 
 /// <summary>
 /// What an import did: games added to History, games History already had, games left out (unfinished, Mercenaries,

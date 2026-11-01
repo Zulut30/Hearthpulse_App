@@ -38,19 +38,22 @@ public static class FirestoneImport
     /// <summary>What this PC has of Firestone: a readable history (database first), an install without one, or nothing.</summary>
     public static MigrationFound? Scan(string? database = null, string? json = null, string? extension = null)
     {
-        foreach (var path in new[] { database ?? DatabasePath, json ?? JsonPath })
+        // The database is not copied or opened only to count it (up to 500 MB): the import counts it.
+        if ((database ?? DatabasePath) is var db && File.Exists(db))
         {
-            if (File.Exists(path))
+            return new MigrationFound(MigrationSource.Firestone, db, 0, 0, Counted: false);
+        }
+
+        if ((json ?? JsonPath) is var file && File.Exists(file))
+        {
+            try
             {
-                try
-                {
-                    return new MigrationFound(MigrationSource.Firestone, path, Records(path, MigrationScan.WorkDir).Count(r => RecordOf(r, CardDb.Empty) is not null), 0);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or JsonException or SqliteException)
-                {
-                    Diag.Info($"Firestone history {Path.GetFileName(path)} could not be read: {ex.Message}");
-                    return new MigrationFound(MigrationSource.Firestone, path, 0, 0);
-                }
+                return new MigrationFound(MigrationSource.Firestone, file, Records(file, MigrationScan.WorkDir).Count(r => RecordOf(r, CardDb.Empty) is not null), 0);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
+            {
+                Diag.Info($"Firestone history {Path.GetFileName(file)} could not be read: {ex.GetType().Name}");
+                return new MigrationFound(MigrationSource.Firestone, file, 0, 0);
             }
         }
 
@@ -69,12 +72,12 @@ public static class FirestoneImport
         }
         catch (InvalidDataException ex)
         {
-            Diag.Info($"Firestone import stopped: {ex.Message}");
+            Diag.Info($"Firestone import stopped: {ex.GetType().Name}");
             return MigrationResult.Failed(ex.Message.Contains("too large", StringComparison.Ordinal) ? MigrationErrors.TooLarge : MigrationErrors.Damaged);
         }
         catch (Exception ex) when (ex is JsonException or SqliteException)
         {
-            Diag.Info($"Firestone import stopped: {ex.Message}");
+            Diag.Info($"Firestone import stopped: {ex.GetType().Name}");
             return MigrationResult.Failed(MigrationErrors.Damaged);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -93,7 +96,7 @@ public static class FirestoneImport
             {
                 skipped++;
             }
-            else if (history.HasSameGame(game) || !history.Add(game))
+            else if (!MigrationRows.Add(history, game))
             {
                 already++;
             }
@@ -174,7 +177,7 @@ public static class FirestoneImport
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    Diag.Debug($"Firestone copy {Path.GetFileName(copy)}{suffix} not deleted: {ex.Message}");
+                    Diag.Debug($"Firestone copy {Path.GetFileName(copy)}{suffix} not deleted: {ex.GetType().Name}");
                 }
             }
         }
@@ -183,8 +186,10 @@ public static class FirestoneImport
     /// <summary>A History row from one Firestone record, or null for a game that cannot be one (Mercenaries, no result).</summary>
     internal static GameRecord? RecordOf(JsonElement r, CardDb cards)
     {
+        // A record of anybody's file: the time must be a number of milliseconds between 2014 and 2100.
         if (r.ValueKind != JsonValueKind.Object || GameTypeOf(Text(r, "gameMode")) is not { } gameType
-            || r.TryGetProperty("creationTimestamp", out var created) is false || !created.TryGetInt64(out var ms) || ms <= 0)
+            || !r.TryGetProperty("creationTimestamp", out var created) || created.ValueKind != JsonValueKind.Number
+            || !created.TryGetInt64(out var ms) || ms is < 1_388_534_400_000 or > 4_102_444_800_000)
         {
             return null;
         }
@@ -288,7 +293,7 @@ public static class FirestoneImport
         : string.Empty;
 
     private static int? Int(JsonElement r, string name) =>
-        r.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var n) ? n : null;
+        r.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var n) && n is >= 0 and < 1_000_000 ? n : null;
 
     private static int? Number(string text) =>
         int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) && n > 0 ? n : null;

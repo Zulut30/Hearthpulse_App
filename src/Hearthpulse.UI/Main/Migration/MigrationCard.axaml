@@ -50,6 +50,7 @@
             <StackPanel IsVisible="{Binding #Root.Full}">
                 <c:Ornament Text="{i:Loc Migration.Settings.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
                 <TextBlock Text="{i:Loc Migration.Settings.Note}" Classes="caption cardNote" />
+                <TextBlock Text="{i:Loc Migration.NotAffiliated}" Classes="caption" FontSize="11" TextWrapping="Wrap" Margin="0,-6,0,14" />
                 <Grid ColumnDefinitions="28,*" Margin="0,0,0,12" IsVisible="{Binding IsScanning}">
                     <TextBlock Text="&#xF051F;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" />
                     <TextBlock Grid.Column="1" Text="{i:Loc Migration.Scanning}" Classes="caption" TextWrapping="Wrap" />
@@ -66,6 +67,9 @@
                     <TextBlock Text="{i:Loc Migration.Progress.Note}" Classes="caption" TextWrapping="Wrap" />
                 </StackPanel>
             </Grid>
+
+            <!-- Found, but the cards or the game's logs are still loading: Transfer waits -->
+            <TextBlock Text="{i:Loc Migration.Waiting}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,10" IsVisible="{Binding Waiting}" />
 
             <!-- Buttons: the home offer (Transfer / Not now, then Hide), or Transfer and the folder choice in Settings -->
             <WrapPanel IsVisible="{Binding !#Root.Full}">
