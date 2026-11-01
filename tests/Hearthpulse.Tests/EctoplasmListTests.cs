@@ -61,6 +61,7 @@ public sealed class EctoplasmListTests
         var (game, tracker) = Play([.. earlier, .. board, .. cast, [.. ToHand(222, 1), .. ToHand(218, 2)]]);
         var list = MatchLists.Build(MatchLists.Ectoplasm, rule, game, tracker.Counters, Cards);
         Assert.Equal("Ectoplasm", list.SourceName);
+        Assert.Equal(Loc.T("Pool.List.SlimedDeaths"), MatchLists.Title(rule));
         Assert.Equal(MatchLists.Title(rule), list.Title);
         Assert.Equal(3, list.Total);
         Assert.Equal([("DR_1", 2), ("PLAIN", 1)], list.Rows.Select(r => (r.CardId, r.Count)));
