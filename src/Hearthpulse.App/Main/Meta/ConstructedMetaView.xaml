@@ -98,9 +98,14 @@
     <StackPanel>
         <!-- Filters: rank and period, then class and minimum games (hearthpulse.net's "Рейтинг", "Период", "Минимум игр") -->
         <StackPanel x:Name="MetaFilters" Margin="0,0,0,14">
+            <!-- The rank chips wrap (plan 2.4: eight of them); the periods keep their width on the right -->
             <Grid Margin="0,0,0,10">
-                <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.RankTip}">
-                    <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceRow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border HorizontalAlignment="Left" VerticalAlignment="Top" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.RankTip}">
+                    <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MetaChoice}">
                                 <RadioButton Style="{StaticResource Segment}" Content="{Binding Label}" GroupName="MetaRank" IsChecked="{Binding Selected, Mode=OneWay}"
@@ -109,7 +114,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Border>
-                <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.PeriodTip}">
+                <Border Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12,0,0,0" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.PeriodTip}">
                     <ItemsControl ItemsSource="{Binding MetaPeriods}" ItemsPanel="{StaticResource ChoiceRow}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MetaChoice}">

@@ -120,7 +120,7 @@ public sealed class ConstructedApiMetaTests
     [Theory]
     [InlineData("top-2000-legend", "top_5k")]
     [InlineData("platinum", "all")]
-    [InlineData("diamond", "diamond_to_legend")]
+    [InlineData("diamond", "diamond")] // a rank of its own since plan 2.4 (HSGuru Diamond)
     [InlineData("legend", "legend")]
     [InlineData("top_100", "top_100")]
     public void Old_firestone_rank_keys_map_to_hsguru_ranks(string saved, string expected) =>

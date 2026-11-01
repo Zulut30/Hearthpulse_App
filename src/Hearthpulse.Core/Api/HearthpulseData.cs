@@ -193,7 +193,7 @@ public sealed partial class HearthpulseData(HearthpulseApi api, string? cacheDir
     /// <summary>The ranks <c>v1/hsguru/matchups</c> takes; the meta's narrower ones (top 500, top 100) read its top-Legend slice.</summary>
     internal static string MatchupRank(string rank) => rank switch
     {
-        "all" or "top_legend" or "top_5k" or "legend" or "diamond_to_legend" or "diamond_4to1" or "bronze_plat" => rank,
+        "all" or "top_legend" or "top_5k" or "legend" or "diamond" or "diamond_to_legend" or "diamond_4to1" or "bronze_plat" => rank,
         "top_500" or "top_100" => "top_legend",
         _ => "all",
     };

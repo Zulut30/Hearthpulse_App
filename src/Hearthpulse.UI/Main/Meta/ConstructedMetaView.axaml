@@ -89,7 +89,7 @@
         <StackPanel Name="MetaFilters" Margin="0,0,0,14">
             <WrapPanel Margin="0,0,0,10">
                 <Border Classes="segmentBar" Margin="0,0,12,8" ToolTip.Tip="{i:Loc Main.Ct.RankTip}">
-                    <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceRow}">
+                    <ItemsControl ItemsSource="{Binding MetaRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:MetaChoice">
                                 <RadioButton Classes="segment" Content="{Binding Label}" GroupName="MetaRank" IsChecked="{Binding Selected, Mode=OneWay}"
