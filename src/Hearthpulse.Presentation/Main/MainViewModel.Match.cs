@@ -6,7 +6,6 @@ using Hearthpulse.UI.Infrastructure;
 using Hearthpulse.UI.Main.Match;
 #endif
 using Hearthpulse.Core;
-using Hearthpulse.Core.Replay;
 
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main;
@@ -61,16 +60,13 @@ public sealed partial class MainViewModel
 
         MatchOpen = true;
         var cards = _cards;
-        var history = _history;
         // A copy for the pool thread: the loaded metas are added on this thread while the page builds.
         var metas = new Dictionary<string, Core.Constructed.ConstructedMeta>(_constructedMetas, StringComparer.Ordinal);
         Core.Replay.MatchPage? page;
         try
         {
-            page = await Task.Run(() => history.Game(key) is { } game
-                ? Core.Replay.MatchPage.Load(game, ReplayStore.Default, cards,
-                    Core.Constructed.ConstructedMeta.FormatKeyOf(game.Format) is { } format && metas.TryGetValue(format, out var meta) ? meta : null)
-                : null).ConfigureAwait(true);
+            // A History game's file, else its starred copy; or a library file without a History row (MainViewModel.Library.cs).
+            page = await Task.Run(() => LoadMatch(key, cards, metas)).ConfigureAwait(true);
         }
         catch (Exception ex)
         {

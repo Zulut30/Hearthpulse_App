@@ -160,7 +160,7 @@ public partial class MainView : UserControl
         base.OnDetachedFromVisualTree(e);
     }
 
-    /// <summary>Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page (not while typing).</summary>
+    /// <summary>Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page; Ctrl+V on History imports a replay (not while typing).</summary>
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Handled || _viewModel is null)
@@ -178,6 +178,12 @@ public partial class MainView : UserControl
                  && e.Source is not TextBox)
         {
             e.Handled = _viewModel.GoBack(CurrentPage);
+        }
+        else if (e.Key == Key.V && e.KeyModifiers == KeyModifiers.Control && CurrentPage == "History" && !_viewModel.MatchOpen && e.Source is not TextBox)
+        {
+            // Ctrl+V on History imports the file (or the path) on the clipboard into the library.
+            LibraryView.PasteFromClipboardAsync().Forget("Replay paste");
+            e.Handled = true;
         }
     }
 
@@ -532,14 +538,8 @@ public partial class MainView : UserControl
 
     private void SelectHistoryRow(MainViewModel viewModel, string key)
     {
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (viewModel.HistoryRowFor(key) is { } row)
-            {
-                HistoryList.SelectedItem = row;
-                HistoryList.ScrollIntoView(row);
-            }
-        }, DispatcherPriority.Loaded);
+        // The library view scrolls to the card it marks selected.
+        Dispatcher.UIThread.Post(() => viewModel.SelectLibraryCard(key), DispatcherPriority.Loaded);
     }
 
     private void OnOverlaySwitch(object? sender, RoutedEventArgs e)

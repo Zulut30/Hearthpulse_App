@@ -1,0 +1,298 @@
+<UserControl x:Class="Hearthpulse.App.Main.Match.ReplayLibraryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:mt="clr-namespace:Hearthpulse.App.Main.Match">
+    <!-- The History page as the replay library (docs/replay-library.md): tabs Recent / Saved / Imported, the status
+         line, the game cards. DataContext is MainViewModel.Library. Colours are theme tokens only. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Hearthpulse;component/Main/Stats/StatsResources.xaml" />
+                <!-- Empty states (the window's copy is not visible while this view is parsed) -->
+                <ResourceDictionary Source="/Hearthpulse;component/Main/MainLook.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- A card that opens the match page: no button look of its own -->
+            <Style x:Key="CardButton" TargetType="Button">
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Foreground" Value="{StaticResource Text}" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A small card button of a card (star, Share, delete): does not take the focus from the list -->
+            <Style x:Key="CardIcon" TargetType="Button" BasedOn="{StaticResource IconButton}">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="30" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Foreground" Value="{StaticResource Faint}" />
+            </Style>
+
+            <!-- A hero power or trinket: a round portrait, the full card on hover -->
+            <DataTemplate x:Key="Chip" DataType="{x:Type mt:LibraryChip}">
+                <Border Width="22" Height="22" Margin="0,0,3,0" CornerRadius="11" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}"
+                        BorderThickness="1" i:CardArt.Portrait="{Binding CardId}" c:CardPreview.CardId="{Binding CardId}" ToolTip="{Binding Tooltip}" />
+            </DataTemplate>
+
+            <!-- A minion of the final board: a small oval (golden: accent rim, taunt: thick rim, divine shield: outer
+                 ring) and its stats under it -->
+            <DataTemplate x:Key="Minion" DataType="{x:Type mt:LibraryMinion}">
+                <StackPanel Width="28" ToolTip="{Binding Tooltip}" c:CardPreview.CardId="{Binding CardId}">
+                    <Grid Width="28" Height="34" HorizontalAlignment="Center">
+                        <Border x:Name="Shield" CornerRadius="14" BorderBrush="{StaticResource Info}" BorderThickness="1.5" Visibility="Collapsed" />
+                        <Border x:Name="Oval" Width="26" Height="32" CornerRadius="13" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}"
+                                BorderThickness="1" i:CardArt.Portrait="{Binding CardId}" />
+                    </Grid>
+                    <TextBlock Text="{Binding Stats}" FontFamily="{StaticResource DisplayFont}" FontSize="10" HorizontalAlignment="Center"
+                               Foreground="{StaticResource Muted}" />
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Taunt}" Value="True">
+                        <Setter TargetName="Oval" Property="BorderBrush" Value="{StaticResource Muted}" />
+                        <Setter TargetName="Oval" Property="BorderThickness" Value="2.5" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Golden}" Value="True">
+                        <Setter TargetName="Oval" Property="BorderBrush" Value="{StaticResource Accent}" />
+                        <Setter TargetName="Oval" Property="BorderThickness" Value="1.5" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding DivineShield}" Value="True">
+                        <Setter TargetName="Shield" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- A card in hand at the end: a small card portrait -->
+            <DataTemplate x:Key="HandCard" DataType="{x:Type mt:LibraryChip}">
+                <Border Width="18" Height="24" Margin="0,0,3,0" CornerRadius="3" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}"
+                        BorderThickness="1" i:CardArt.Portrait="{Binding CardId}" c:CardPreview.CardId="{Binding CardId}" ToolTip="{Binding Tooltip}" />
+            </DataTemplate>
+
+            <ItemsPanelTemplate x:Key="RowPanel">
+                <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+
+            <!-- The right end of a card: star and Share (or the "no replay" mark), delete on Imported -->
+            <DataTemplate x:Key="CardActions" DataType="{x:Type mt:LibraryCard}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <Button x:Name="Star" Style="{StaticResource CardIcon}" Content="&#xF04D2;" ToolTip="{Binding StarTip}"
+                            Command="{Binding DataContext.ToggleStar, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            AutomationProperties.Name="{Binding StarTip}" Visibility="{Binding HasReplay, Converter={StaticResource Vis}}" />
+                    <Button Style="{StaticResource CardIcon}" Content="&#xF0497;" ToolTip="{i:Loc Library.Share}" AutomationProperties.Name="{i:Loc Library.Share}"
+                            Command="{Binding DataContext.Share, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            Visibility="{Binding HasReplay, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="&#xF1036;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Faint}" Margin="7,0" VerticalAlignment="Center"
+                               ToolTip="{i:Loc Library.NoReplay}" Visibility="{Binding NoReplay, Converter={StaticResource Vis}}" />
+                    <Button x:Name="Delete" Style="{StaticResource CardIcon}" Content="&#xF09E7;" ToolTip="{i:Loc Library.Delete}" AutomationProperties.Name="{i:Loc Library.Delete}"
+                            Command="{Binding DataContext.Delete, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            Visibility="{Binding CanDelete, Converter={StaticResource Vis}}" />
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Starred}" Value="True">
+                        <Setter TargetName="Star" Property="Content" Value="&#xF04CE;" />
+                        <Setter TargetName="Star" Property="Foreground" Value="{StaticResource Accent}" />
+                    </DataTrigger>
+                    <Trigger SourceName="Delete" Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Delete" Property="Foreground" Value="{StaticResource Negative}" />
+                    </Trigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- The result plate (BG: the place) and the rating change, then when and how long -->
+            <DataTemplate x:Key="CardResult" DataType="{x:Type mt:LibraryCard}">
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Border CornerRadius="6" Padding="10,3" Background="{StaticResource Surface3}">
+                            <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                        </Border>
+                        <TextBlock Text="{Binding Rating}" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"
+                                   Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Game.RatingChange}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding When}" Style="{StaticResource Caption}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </DataTemplate>
+
+            <DataTemplate x:Key="LibraryCard" DataType="{x:Type mt:LibraryCard}">
+                <Button Style="{StaticResource CardButton}" Command="{Binding DataContext.Open, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        CommandParameter="{Binding}" ToolTip="{i:Loc Match.View.OpenTip}">
+                    <Border x:Name="Plate" CornerRadius="8" Padding="12,10" Margin="0,0,0,6" Background="{StaticResource Row}">
+                        <StackPanel>
+                            <!-- Battlegrounds: hero · name and caption · chips, board, hand · result · actions -->
+                            <Grid Visibility="{Binding IsBattlegrounds, Converter={StaticResource Vis}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="200" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="44" Height="44" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}"
+                                        c:CardPreview.CardId="{Binding HeroCardId}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Caption}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Caption}" />
+                                </StackPanel>
+                                <WrapPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <StackPanel Width="76" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ItemsControl ItemsSource="{Binding Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
+                                        <TextBlock Text="{Binding ChipsMore}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <Border Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
+                                    <ItemsControl Width="196" ItemsSource="{Binding Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource RowPanel}"
+                                                  Focusable="False" VerticalAlignment="Center" />
+                                    <Border Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
+                                    <StackPanel Width="96" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
+                                        <Border Style="{StaticResource Pill}" ToolTip="{Binding HandMoreTip}" VerticalAlignment="Center"
+                                                Visibility="{Binding HandMore, Converter={StaticResource Vis}}">
+                                            <TextBlock Text="{Binding HandMore}" FontSize="11" />
+                                        </Border>
+                                    </StackPanel>
+                                </WrapPanel>
+                                <ContentPresenter Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
+                                <ContentPresenter Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" />
+                            </Grid>
+
+                            <!-- Constructed, Arena and the rest: heroes · deck and caption · opponent · result · actions -->
+                            <Grid Visibility="{Binding IsConstructed, Converter={StaticResource Vis}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="48" Height="44" HorizontalAlignment="Left">
+                                    <Border Width="40" Height="40" Style="{StaticResource StatsPortrait}" VerticalAlignment="Top" i:CardArt.Portrait="{Binding HeroCardId}" />
+                                    <Border Width="24" Height="24" Style="{StaticResource StatsPortrait}" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                            BorderBrush="{StaticResource Accent2Line}" BorderThickness="1.5" i:CardArt.Portrait="{Binding OpponentHeroCardId}"
+                                            ToolTip="{Binding Opponent}" Visibility="{Binding OpponentHeroCardId, Converter={StaticResource Vis}}" />
+                                </Grid>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Caption}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Caption}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="{Binding Opponent}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding OpponentArchetype}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <ContentPresenter Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
+                                <ContentPresenter Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" />
+                            </Grid>
+
+                            <!-- The question before a delete, inside the card -->
+                            <Border Margin="0,8,0,0" CornerRadius="8" Padding="12,8" Background="{StaticResource NegativeSoft}" BorderBrush="{StaticResource Negative}"
+                                    BorderThickness="1" Visibility="{Binding Confirming, Converter={StaticResource Vis}}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Padding="12,5" Margin="8,0,0,0" Content="{i:Loc Library.ConfirmNo}"
+                                            Command="{Binding DataContext.Cancel, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Padding="12,5" Foreground="{StaticResource Negative}"
+                                            Content="{i:Loc Library.ConfirmYes}"
+                                            Command="{Binding DataContext.Confirm, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                    <TextBlock Text="&#xF05D6;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding ConfirmText}" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Button>
+                <DataTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Plate" Property="Background" Value="{StaticResource Hover}" />
+                    </Trigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <DockPanel Margin="0,0,0,10">
+            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Padding="12,7" IsEnabled="{Binding CanImport}" ToolTip="{i:Loc Library.ImportTip}"
+                    Command="{Binding Import}" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xF02FA;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource OnSecondaryContainer}" VerticalAlignment="Center" />
+                    <TextBlock Text="{i:Loc Library.Import}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0DCF;" Margin="0,0,8,0" ToolTip="{i:Loc Library.OpenFolder}"
+                    AutomationProperties.Name="{i:Loc Library.OpenFolder}" Command="{Binding OpenFolder}" Visibility="{Binding ShowFolder, Converter={StaticResource Vis}}" />
+            <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource Tab}" GroupName="Library" IsChecked="{Binding IsRecent, Mode=OneWay}" Command="{Binding SetTab}" CommandParameter="Recent">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{i:Loc Library.Tab.Recent}" />
+                            <TextBlock Text="{Binding RecentCount}" FontSize="11.5" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource Tab}" GroupName="Library" IsChecked="{Binding IsSaved, Mode=OneWay}" Command="{Binding SetTab}" CommandParameter="Saved">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{i:Loc Library.Tab.Saved}" />
+                            <TextBlock Text="{Binding SavedCount}" FontSize="11.5" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource Tab}" GroupName="Library" IsChecked="{Binding IsImported, Mode=OneWay}" Command="{Binding SetTab}" CommandParameter="Imported">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{i:Loc Library.Tab.Imported}" />
+                            <TextBlock Text="{Binding ImportedCount}" FontSize="11.5" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
+                        </StackPanel>
+                    </RadioButton>
+                </StackPanel>
+            </Border>
+        </DockPanel>
+
+        <!-- Status of the last action; it goes at the next tab, filter, opened match or action -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="2,0,0,10" Visibility="{Binding Status, Converter={StaticResource Vis}}">
+            <TextBlock Text="{Binding StatusGlyph}" Style="{StaticResource Icon}" FontSize="14" VerticalAlignment="Center"
+                       Foreground="{Binding StatusKey, Converter={StaticResource KeyBrush}}" />
+            <TextBlock Text="{Binding Status}" Style="{StaticResource Caption}" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="16,12">
+            <Grid>
+                <ContentControl Style="{StaticResource EmptyState}" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}"
+                                Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}" />
+                <ListBox x:Name="List" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}" SelectedItem="{Binding SelectedCard, Mode=OneWay}"
+                         SelectionChanged="OnSelectionChanged" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.ScrollUnit="Pixel" HorizontalContentAlignment="Stretch">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Foreground" Value="{StaticResource Text}" />
+                            <Setter Property="Focusable" Value="False" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <!-- Selected only when a game was just imported or a deck page sends one here -->
+                                        <Border x:Name="Bd" CornerRadius="8" BorderThickness="1" BorderBrush="Transparent">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource SelectedFill}" />
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

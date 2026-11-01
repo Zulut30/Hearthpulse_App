@@ -685,7 +685,7 @@
                                     <c:Scallop Fill="{StaticResource AccentContainer}" Lobes="9" Depth="0.12" />
                                     <TextBlock Text="&#xF02DA;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
                                 </Panel>
-                                <TextBlock Classes="caption" FontSize="14" Margin="10,0,0,0" VerticalAlignment="Center"><Run Text="{Binding HistorySubtitle, Mode=OneWay}" /></TextBlock>
+                                <TextBlock Classes="caption" FontSize="14" Margin="10,0,0,0" VerticalAlignment="Center"><Run Text="{Binding Library.Subtitle, Mode=OneWay}" /></TextBlock>
                             </StackPanel>
                         </StackPanel>
                         <Border Classes="segmentBar headFilter" ToolTip.Tip="{i:Loc Main.History.FilterTip}">
@@ -698,10 +698,8 @@
                             </WrapPanel>
                         </Border>
                     </Grid>
-                    <Border Grid.Row="1" Classes="card" Padding="22,10">
-                        <ListBox Name="HistoryList" Classes="plain history" ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource OpenGameRow}"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" Padding="10,0" />
-                    </Border>
+                    <!-- Tabs Recent / Saved / Imported, status, game cards (Main/Match/ReplayLibraryView) -->
+                    <mt:ReplayLibraryView Name="LibraryView" Grid.Row="1" DataContext="{Binding Library}" />
                 </Grid>
 
                 <!-- ===== Match page (Main/Match): replaces the History list while a game is open ===== -->

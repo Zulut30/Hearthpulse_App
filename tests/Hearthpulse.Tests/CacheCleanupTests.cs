@@ -56,4 +56,24 @@ public sealed class CacheCleanupTests : IDisposable
         Assert.Equal(new CacheCleanup.Result(0, 0), CacheCleanup.Run(Path.Combine(_cache, "missing"), Now));
         Directory.CreateDirectory(_cache);
     }
+
+    [Fact]
+    public void Removes_share_copies_after_a_day_and_the_work_folders_of_a_broken_log_import()
+    {
+        var oldShare = Write(Path.Combine("share", "aaaa", "hearthpulse-replay-20261020-ranked.hpr"), 100, Now.AddDays(-2));
+        var newShare = Write(Path.Combine("share", "bbbb", "hearthpulse-replay-20261023-ranked.hpr"), 100, Now.AddHours(-2));
+        var oldImport = Write(Path.Combine("import", "cccc", "20261020120000-0123456789ab.hpr"), 100, Now.AddHours(-3));
+        var newImport = Write(Path.Combine("import", "dddd", "20261023195500-0123456789ab.hpr"), 100, Now.AddMinutes(-5));
+        foreach (var (file, created) in new[] { (oldShare, Now.AddDays(-2)), (newShare, Now.AddHours(-2)), (oldImport, Now.AddHours(-3)), (newImport, Now.AddMinutes(-5)) })
+        {
+            Directory.SetCreationTimeUtc(Path.GetDirectoryName(file)!, created);
+        }
+
+        CacheCleanup.Run(_cache, Now);
+
+        Assert.False(Directory.Exists(Path.GetDirectoryName(oldShare)));
+        Assert.False(Directory.Exists(Path.GetDirectoryName(oldImport)));
+        Assert.True(File.Exists(newShare));
+        Assert.True(File.Exists(newImport));
+    }
 }

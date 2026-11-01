@@ -31,6 +31,26 @@ public static class AppPaths
     /// <summary>One match replay file per game (<c>Replay/ReplayStore</c>); created on the first save.</summary>
     public static string Replays => Path.Combine(Root, "replays");
 
+    /// <summary>
+    /// Saved and imported replays (<c>Replay/ReplayLibrary</c>, <c>docs/replay-library.md</c>): Documents\Hearthpulse\Replays,
+    /// outside the data folder so that its clean-up, updates and uninstalling never touch them. With HEARTHPULSE_DATA,
+    /// in a portable copy or without a Documents folder: <c>&lt;data&gt;\library</c>. Created on the first save.
+    /// </summary>
+    public static string LibraryRoot { get; } = LibraryInData ? Path.Combine(Root, "library") : Path.Combine(Documents, "Hearthpulse", "Replays");
+
+    /// <summary>Replays the player starred: copies kept forever.</summary>
+    public static string SavedReplays => Path.Combine(LibraryRoot, LibraryInData ? "saved" : "Saved");
+
+    /// <summary>Replays imported from a file or a Power.log, after the import filter.</summary>
+    public static string ImportedReplays => Path.Combine(LibraryRoot, LibraryInData ? "imported" : "Imported");
+
+    private static string Documents => Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
+    private static bool LibraryInData => Environment.GetEnvironmentVariable("HEARTHPULSE_DATA") is { Length: > 0 } || IsPortable || Documents.Length == 0;
+
+    /// <summary>Copies made for "Share", deleted after a day.</summary>
+    public static string ShareTemp => Path.Combine(Cache, "share");
+
     // Next to the app. A macOS app bundle is never written to (that would break its signature), so there the
     // folder sits beside Hearthpulse.app instead.
     private static string PortableRoot()
