@@ -422,7 +422,9 @@ public sealed partial class MainViewModel : Observable
         }
 
         var filter = HistoryFilter;
-        HistoryRows = (filter == "All" ? recent : recent.Where(g => FilterMatch(g, filter))).Take(300).Select(Row).ToList();
+        var games = (filter == "All" ? recent : recent.Where(g => FilterMatch(g, filter))).Take(300).ToList();
+        HistoryRows = games.Select(Row).ToList();
+        ShowLibrary(games);
     }
 
     public async Task RefreshAsync()

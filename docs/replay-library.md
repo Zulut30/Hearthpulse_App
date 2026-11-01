@@ -1,0 +1,90 @@
+# Replay library ("библиотека реплеев")
+
+The History page is the library of match replays: tabs **Recent / Saved / Imported**, a star, "Share", "Import".
+Replays themselves (format, what they may show) are in [match-replay.md](match-replay.md). Code: `Core/Replay`
+(`ReplayLibrary`, `ReplayImport`, `ReplayShare`, `MatchPage.File`), shared view models
+`Presentation/Main/MainViewModel.Library.cs` and `Presentation/Main/Match/ReplayLibraryViewModel.cs`, views
+`Main/Match/ReplayLibraryView` in both UIs.
+
+## Folders
+
+| Tab | Folder | Kept |
+|---|---|---|
+| Recent | `<data>/replays` (History's files) | History's rows; files trimmed at 300 MB / 3 000 (`ReplayStore`) |
+| Saved | `Documents/Hearthpulse/Replays/Saved` | forever: neither the trim nor updates nor uninstalling touch it |
+| Imported | `Documents/Hearthpulse/Replays/Imported` | the last 500 files / 200 MB, oldest game first |
+
+With `HEARTHPULSE_DATA`, in a portable copy or without a Documents folder both live in `<data>/library/{saved,imported}`
+(`AppPaths.LibraryRoot`), so development never writes to the real Documents. Copies made for Share go to
+`<data>/cache/share/<folder>/` and are deleted after 24 h.
+
+- **Star** copies the file into Saved under the same name (the History row keeps its own file); the star is lit by
+  name. A History game whose file the trim deleted opens from its Saved copy. Taking the star off deletes the copy;
+  when it is the last copy of the replay the card asks first. Imported games can be starred too (the copy outlives the
+  500 limit).
+- **Recent** cards are History's rows (the History filter applies); the final board, hand, hero powers and trinkets
+  come from the file's header (`ReplayStore.ReadHeader`: the first two lines only, off the UI thread, kept per file). A
+  file of format 3 or older shows what the row has. A game without a file shows the "no replay" mark instead of the
+  star and Share.
+- **Imported** never goes into `history.db` or the stats, a Power.log's games included (the owner, 2026-11-01): the
+  log may be somebody else's, and the player's own logs already reach History through the log import.
+- Cards never show names or BattleTags (also on Recent, whose rows hold them); imported cards have no ranks or rating.
+  A file opened without a History row says "You" and "Opponent" (`MatchPage.RecordOf`).
+
+## Import
+
+Import (button, or Ctrl+V on History with a file or a path on the clipboard) takes a `.hpr` (packed or not) or a
+Power.log (`ReplayImport.ImportFile`). A foreign file is untrusted:
+
+- **Size:** at most 16 MB packed and 32 MB of text; unpacking stops at the limit (gzip bomb). Event lines at most as
+  many as the recorder writes (60 000 Constructed, 100 000 Battlegrounds), post-game lines at most 20 000.
+- **Format line** `HPR2`-`HPR4` (`HPR1` and newer ones: "format not supported"; anything else: "not a replay").
+- **Grammar:** every line must match its format (Constructed: `ConstructedLine` in `ReplayImport`, the format 3 table
+  of match-replay.md; Battlegrounds: `BattlegroundsReplayGrammar`; post-game `N`/`K`), else the whole file is refused
+  ("damaged or altered"). Card ids are `[A-Za-z0-9_]{1,64}`, tags come from the recorder's lists, numbers are bounded,
+  nothing else may be on a line. A refused file leaves nothing behind.
+- **Hidden information is cleaned, not refused:** a card id in the opponent's hand or secret (a quest stays face up
+  only when the card data says it is one) becomes a card back and its tag lines go; Battlegrounds: Bob's offer during
+  a combat and the combat opponent outside one are dropped, and cards still shown when they must leave view get an `X`
+  line (Bob's at `F`, the opponent's before the next `T`); lines about a card not shown go.
+- **Rebuilt, not copied:** the header is written anew from its known fields only: kind, the summary (each field
+  checked: card ids, plain words, bounded numbers, the deck code only when it decodes, the archetype only as a plain
+  name), truncated, the event count. Never the ranks, the ratings, the legend number or any unknown field. Format 2 and
+  3 files get a summary from their events (heroes from `E ... HERO`, the result from `R`). The rounds and lobby of a
+  Battlegrounds `G` line are rebuilt the same way. What is stored is this format 4 copy.
+- **Power.log:** its finished games are recorded as the log import does (`LogBackfill.Parse`) into a work folder under
+  `<data>/cache/import`, then each goes through the same filter into Imported; the work folder is deleted. The day comes
+  from a `Hearthstone_yyyy_MM_dd_HH_mm_ss` folder name, else from the file's own dates.
+- The stored name is `<game start yyyyMMddHHmmss>-<12 hex of SHA-256 of the rebuilt text>.hpr`: the same file imported
+  twice is "already in Imported".
+
+## Share
+
+`ReplayShare.Prepare`: the replay through the same filter, with the start reduced to the date of play (as the player's
+clock showed it), written to a folder of its own under the share folder as `hearthpulse-replay-<yyyyMMdd>-<mode>.hpr`
+(mode in lower case: `ranked`, `battlegrounds`, `duos`...). The replay folder's own name is not used: it hashes the game
+key, which holds the BattleTag. WPF puts the file on the clipboard as a file; Avalonia as a file where the platform
+takes one, else its path, with "Open the folder" in the status line.
+
+A shared file is a valid import: it is format 4 with a summary, no names, BattleTags, account ids, device data,
+ranks, ratings or legend number, and no time of day. That is also the upload format the site will take (stage 2.2
+of the 2026-11-01 roadmap): the server can run the same checks.
+
+## Screens
+
+Tabs, the folder button (Saved, Imported) and Import on the first row; a status line under it (success, error,
+"Importing…"), gone at the next tab, filter, opened match or action; then the cards. Battlegrounds card: hero, name and
+mode · turns · tier, hero powers and trinkets (up to 3, "+N"), the final board as small ovals with stats (golden,
+taunt, divine shield), the hand (up to 3, "+N"), place and rating change, when · how long, star, Share, delete
+(Imported). Constructed card: our hero with the opponent's portrait over its corner, deck (else class) and class ·
+mode · format · rank · turns, "vs class" and the archetype, result, rating change, when · how long. Delete and the
+last copy's unstar ask inside the card. Avalonia compact hides the opponent column. Hover on a portrait shows the
+full card.
+
+## Known limits
+
+- The Saved tab shows the History row of a starred game only while it is among the last 400 games read; older ones
+  show from the file's summary.
+- A Power.log outside a session folder takes its day from the file's dates: games after midnight may get the
+  previous day.
+- Not checked on a live game or by render (the task had no render step).

@@ -104,7 +104,7 @@ public partial class MainWindow : Window
         Native.UseDarkChrome(new WindowInteropHelper(this).Handle);
     }
 
-    /// <summary>Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page (not while typing).</summary>
+    /// <summary>Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page; Ctrl+V on History imports a replay (not while typing).</summary>
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
@@ -124,6 +124,12 @@ public partial class MainWindow : Window
                  && e.OriginalSource is not TextBox)
         {
             e.Handled = _viewModel.GoBack(CurrentPage);
+        }
+        else if (key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && CurrentPage == "History" && !_viewModel.MatchOpen && e.OriginalSource is not TextBox)
+        {
+            // Ctrl+V on History imports the file (or the path) on the clipboard into the library.
+            LibraryView.PasteFromClipboard();
+            e.Handled = true;
         }
     }
 
@@ -399,14 +405,8 @@ public partial class MainWindow : Window
 
     private void SelectHistoryRow(string key)
     {
-        _ = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
-        {
-            if (_viewModel.HistoryRowFor(key) is { } row)
-            {
-                HistoryList.SelectedItem = row;
-                HistoryList.ScrollIntoView(row);
-            }
-        });
+        // The library view scrolls to the card it marks selected.
+        _ = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () => _viewModel.SelectLibraryCard(key));
     }
 
     private void OnOverlaySwitch(object sender, RoutedEventArgs e)
