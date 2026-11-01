@@ -14,12 +14,20 @@ What a shared game contains: a game id (an HMAC of the game made with a key that
 the heroes offered and picked, the placement, and (if the player agreed to it) the game details listed in the app.
 A shared Constructed game (consent version 4) holds only its id, day, format (standard or wild), whether it was won,
 and its picks: the source card, the cards it offered and the one taken. No deck, class, rank or opponent.
-No player name, BattleTag, account or IP address is stored, and nothing about other players.
+No player name, BattleTag, account or IP address is stored, and nothing about other players. Shared games are kept
+for 60 days, then the cron job deletes them (the totals use the last 30). The totals are public: anyone can read
+them, and the app's consent text says so. No published cell (a hero or trinket in a rating bracket, a hero with a
+lobby tribe) holds fewer than 10 games. Workers logs are off (`wrangler.toml`), so no IP address or request body
+lands in Cloudflare's logs either.
 
 ## Free plan budget
 
 The free plan allows 100,000 requests a day, 100,000 rows written and 5 million rows read per day.
 
+- Writes are capped: at most 15,000 shared games a day in all (then `POST` answers 503 until the next day; table
+  `quota`), and 6 requests a minute from one address (Cloudflare's rate limiter; the app waits 12 s between batches
+  of earlier games). A game writes its row and an index entry, the nightly clean-up deletes as many: about 4 rows per
+  game, so the cap keeps writes near 60,000 rows a day.
 - A game is one row (plus one index entry). The app sends a game when it ends, and earlier games in batches of 20,
   so a batch of 20 games is one request and one `INSERT` statement.
 - The totals are not worked out on each read. A cron job (every 6 hours) rebuilds them only when new games came in,
@@ -52,7 +60,7 @@ Checklist (the owner deploys; nothing here is deployed from a development sessio
 
 1. `node --test server/pool/test/validation.test.mjs` passes.
 2. `wrangler d1 create`, `database_id` in `wrangler.toml`, `schema.sql` on the new database (an existing pool: the
-   files in `migrations/` it lacks, in order). Plan 2.1 adds no column.
+   files in `migrations/` it lacks, in order; plan 2.1 adds `0006_quota.sql`, the daily write counter).
 3. `npx wrangler deploy`; then `GET <address>/v1/stats?mode=solo` answers `{"games":0,…}` (empty until the first cron
    run after games come in) and `POST /v1/games` with a bad body answers 400.
 4. Before a release, try the app against it without rebuilding: `"PoolEndpoint": "https://…"` in `settings.json` of a
@@ -85,13 +93,17 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
   (`"v":1` or `"v":2`) and are accepted.
 - `GET /v1/stats?mode=solo` returns everything: `games`, `detailedGames`, `heroes`, `cards`, `trinkets`, `comps`,
   `tierUps`, `combatOdds`, `choices` and `plays`, over the last 30 days. Since app 0.17 (plan 2.1) also:
-  - `percentiles`: `[{"top":50,"bracket":7000}, …]` for the top 50/20/5/1 %: the lowest rating bracket that reaches the
-    share, walking down from the highest, over the pool's own rated games (empty under 50 of them). These are players
-    who share, likely above the ladder's average: not Blizzard's percentiles.
+  - `ratedGames` and `percentiles`: `[{"top":50,"bracket":7000,"games":1200}, …]` for the top 50/20/5/1 %: the lowest
+    rating bracket that reaches the share, walking down from the highest, over the pool's own rated games, with the games
+    at or above it. None under 1,000 rated games; a floor with under 50 games at or above it is left out, and so is a
+    narrower one on the same bracket as a wider one. These are players who share, likely above the ladder's average:
+    not Blizzard's percentiles. The app uses them under the same conditions only.
   - `heroesByBracket`: `{"50":[{hero, games, avgPlacement, top, first}], …}` and `trinketsByBracket`:
-    `{"50":[{card, picked, avgPlacement}], …}`: the same totals over the games at or above each floor.
-  - `heroTribes`: `[{hero, tribe, games, avgPlacement}]` (3 games or more): how a hero places with each tribe in the
-    lobby. The app turns it into the hero's tribe impact (placement with the tribe minus overall).
+    `{"50":[{card, picked, avgPlacement}], …}`: the same totals over the games at or above each published floor, 10 games
+    or more a row.
+  - `heroTribes`: `[{hero, tribe, games, avgPlacement}]` (10 games or more): how a hero places with each tribe in the
+    lobby. The app uses a row from 100 games and shrinks it toward zero (`delta · n / (n + 150)`): the hero pick adds up
+    five lobby tribes, and noise must not reorder the heroes.
   - Quests: `choices` rows of kind `quest` (the quests offered and taken) and `reward` (quest rewards).
 - `GET /v1/heroes?mode=solo` returns only the hero totals (used by Hearthpulse 0.8).
 - `POST /v1/constructed` with `{"v":1,"games":[...]}`, 1 to 20 games. Each game:
