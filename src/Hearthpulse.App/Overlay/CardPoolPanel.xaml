@@ -34,7 +34,8 @@
 
         <!-- A tracker row: cost gem, the whole name over a strip of art, rarity strip, "×2" when it counts twice. -->
         <DataTemplate x:Key="ListRowTemplate" DataType="{x:Type o:PoolListRow}">
-            <Grid Height="22" Margin="0,0,0,2">
+            <!-- The full card on hover: the panel lets clicks through, so the poll finds the row under the pointer -->
+            <Grid Height="22" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="25" />
                     <ColumnDefinition Width="*" />

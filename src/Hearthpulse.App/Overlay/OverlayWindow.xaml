@@ -1068,6 +1068,12 @@
                 <o:SecretsPanel />
             </o:MovablePanel>
 
+            <!-- ============ Constructed: graveyard, left of the deck list (docs/graveyard.md) ============ -->
+            <o:MovablePanel Id="graveyard" Title="{i:Loc Related.Graveyard.Title}" CanCompact="True" Shown="{Binding ShowGraveyard}"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,276,24">
+                <o:GraveyardPanel />
+            </o:MovablePanel>
+
             <!-- ============ Constructed: counters (bottom-left) ============ -->
             <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,110">
                 <Border x:Name="CountersCard" Style="{StaticResource OverlayCard}" Width="214" o:OverlayHit.Interactive="True">

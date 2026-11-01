@@ -78,6 +78,7 @@ public sealed class UxRound2MarkupTests
     [
         ["Main.Live.Panel.OpponentDeck", "Settings.Tracker.Opponent"],
         ["Main.Live.Panel.Secrets", "Settings.Overlay.Secrets", "Overlay.Panel.Secrets"],
+        ["Main.Live.Panel.Graveyard", "Related.Graveyard.Setting", "Related.Graveyard.Title"],
         ["Main.Live.Panel.BgBar", "Overlay.Panel.BgBar"],
         ["Main.Live.Panel.BgSession", "Settings.Overlay.Session"],
         ["Settings.Tracker.Summary", "Overlay.Panel.Toast"],
@@ -213,7 +214,7 @@ public sealed class UxRound2MarkupTests
 
         var wpf = Panels(WpfOverlay);
         var ava = Panels(AvaOverlay);
-        Assert.Equal(26, wpf.Count);
+        Assert.Equal(27, wpf.Count);
         Assert.Equal(wpf.Order(), ava.Order());
     }
 

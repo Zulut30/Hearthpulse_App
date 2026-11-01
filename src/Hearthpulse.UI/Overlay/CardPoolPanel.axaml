@@ -15,7 +15,8 @@
 
         <!-- A tracker row: cost gem, the whole name over a strip of art, rarity strip, "×2" when it counts twice. -->
         <DataTemplate x:Key="ListRowTemplate" x:DataType="o:PoolListRow">
-            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*">
+            <!-- The full card on hover: the panel lets clicks through, so the pointer update finds the row under it -->
+            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                 <c:ManaCost Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" VerticalAlignment="Center" />
                 <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
                     <Panel>

@@ -79,6 +79,9 @@ public sealed record ConstructedView(
     /// </summary>
     public CardPool.MatchListView? MatchList { get; init; }
 
+    /// <summary>The minions that died this game on each side (the Graveyard panel); null before the first death.</summary>
+    public GraveyardView? Graveyard { get; init; }
+
     /// <summary>While the player's own Discover-style choice is open: what pool players pick from its options; null otherwise.</summary>
     public CardPool.DiscoverPicksView? DiscoverPicks { get; init; }
 

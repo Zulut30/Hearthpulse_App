@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             x:Class="Hearthpulse.UI.Overlay.GraveyardPanel"
+             x:DataType="o:OverlayViewModel">
+    <!-- The Graveyard panel (MovablePanel "graveyard", docs/graveyard.md): the minions that died this game, the opponent's
+         above yours as on the board, as tracker rows; the full card on hover. Row sizes and compact come from the
+         overlay's cardRow / cost / tileArt styles. DataContext: OverlayViewModel. Tokens only (hearthpulse-design). -->
+    <UserControl.Resources>
+        <i:Truthy x:Key="Truthy" />
+        <i:KeyBrush x:Key="KeyBrush" />
+
+        <!-- A dead minion: cost gem, name over the art with its rarity strip, "×2" for repeats -->
+        <DataTemplate x:Key="DeadRow" x:DataType="o:PoolListRow">
+            <Grid Classes="cardRow short" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
+                <c:ManaCost Classes="cost short" Text="{Binding Cost}" HorizontalAlignment="Left" />
+                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+                    <Panel>
+                        <Image Classes="tileArt" i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                        <Rectangle Classes="tileFade" Fill="{StaticResource TileFade}" />
+                        <Border Classes="rarityStrip" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                        <DockPanel Margin="8,0,3,0">
+                            <Border Classes="countBadge" DockPanel.Dock="Right" Height="16" IsVisible="{Binding CountText, Converter={StaticResource Truthy}}">
+                                <TextBlock Text="{Binding CountText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="{Binding Name}" FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <Border Classes="rowSheen" />
+                    </Panel>
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.sideNote">
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+            <Setter Property="Margin" Value="0,1,0,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="overlayCard" Width="214">
+        <StackPanel>
+            <Border Classes="overlayHeader">
+                <DockPanel>
+                    <TextBlock Text="&#xF068C;" Classes="icon headerIcon" />
+                    <TextBlock Text="{i:Loc Related.Graveyard.Title}" Classes="headerTitle" />
+                </DockPanel>
+            </Border>
+            <StackPanel Margin="12,0,12,10">
+                <c:Ornament Text="{Binding GraveyardOpponentTitle}" Size="10.5" Margin="0,10,0,6" />
+                <ItemsControl ItemsSource="{Binding GraveyardOpponent}" ItemTemplate="{StaticResource DeadRow}" />
+                <TextBlock Text="{Binding GraveyardOpponentMore}" Classes="sideNote" IsVisible="{Binding GraveyardOpponentMore, Converter={StaticResource Truthy}}" />
+
+                <c:Ornament Text="{Binding GraveyardLocalTitle}" Size="10.5" Margin="0,12,0,6" />
+                <ItemsControl ItemsSource="{Binding GraveyardLocal}" ItemTemplate="{StaticResource DeadRow}" />
+                <TextBlock Text="{Binding GraveyardLocalMore}" Classes="sideNote" IsVisible="{Binding GraveyardLocalMore, Converter={StaticResource Truthy}}" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>
