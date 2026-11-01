@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
-import worker, { rebuildChoices, validateConstructed, validateDetails, validateGame, validateLegacy } from "../src/index.js";
+import worker, { percentileFloors, rebuild, rebuildChoices, validateConstructed, validateDetails, validateGame, validateLegacy } from "../src/index.js";
 
 const TODAY = Math.floor(Date.now() / 86_400_000);
 const HERO = "BG_HERO_1";
@@ -220,4 +220,52 @@ test("POST /v1/constructed rejects malformed bodies before writing", async () =>
   }
 
   assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM c").get().n, 0);
+});
+
+// ---- Totals per rating bracket and lobby tribe (roadmap 2.1) ---------------------------------------------------
+
+test("percentile floors walk down from the highest rating and need enough rated games", () => {
+  assert.deepEqual(percentileFloors([{ b: 6000, n: 10 }]), []);
+  const rows = [{ b: 6000, n: 50 }, { b: 7000, n: 30 }, { b: 8000, n: 15 }, { b: 9000, n: 5 }];
+  assert.deepEqual(percentileFloors(rows), [
+    { top: 50, bracket: 7000 }, { top: 20, bracket: 8000 }, { top: 5, bracket: 9000 }, { top: 1, bracket: 9000 },
+  ]);
+});
+
+test("the totals split heroes and trinkets by rating bracket and heroes by lobby tribe", async () => {
+  const env = sqlite();
+  const games = Array.from({ length: 60 }, (_, i) => game({
+    id: i.toString(16).padStart(32, "0"),
+    bracket: i < 30 ? 6000 : i < 48 ? 7000 : i < 57 ? 8000 : 9500,
+    picked: i % 2 ? HERO : "BG_HERO_2",
+    placement: i % 2 ? 2 : 6,
+    ...details({ tribes: i % 3 ? ["MURLOC", "BEAST"] : ["DEMON", "BEAST"], trinkets: { o: ["T_A", "T_B"], p: [i % 2 ? "T_A" : "T_B"] } }),
+  }));
+  for (let i = 0; i < games.length; i += 20) {
+    const request = new Request("https://pool.test/v1/games", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ v: 3, games: games.slice(i, i + 20) }),
+    });
+    assert.equal((await worker.fetch(request, env, {})).status, 200);
+  }
+
+  const totals = JSON.parse(await rebuild(env, "solo", true));
+  assert.equal(totals.games, 60);
+  assert.deepEqual(totals.percentiles.map((p) => p.top), [50, 20, 5, 1]);
+  assert.equal(totals.percentiles[0].bracket, 7000);
+  assert.equal(totals.percentiles[3].bracket, 9500);
+  // The top 1 % bracket holds the three 9500 games only.
+  assert.equal(totals.heroesByBracket["1"].reduce((n, h) => n + h.games, 0), 3);
+  assert.equal(totals.heroesByBracket["50"].reduce((n, h) => n + h.games, 0), 30);
+  const winner = totals.heroesByBracket["50"].find((h) => h.hero === HERO);
+  assert.deepEqual([winner.games, winner.avgPlacement, winner.top, winner.first], [15, 2, 1, 0]);
+  assert.equal(totals.trinketsByBracket["50"].find((t) => t.card === "T_A").picked, 15);
+  // Heroes by lobby tribe: Beast was in every lobby; Murloc in two thirds.
+  const beast = totals.heroTribes.find((t) => t.hero === HERO && t.tribe === "BEAST");
+  assert.deepEqual([beast.games, beast.avgPlacement], [30, 2]);
+  assert.equal(totals.heroTribes.find((t) => t.hero === HERO && t.tribe === "MURLOC").games, 20);
+});
+
+test("quest and reward picks are accepted choice kinds", () => {
+  const row = validateDetails(details({ choices: [[5, "quest", null, ["Q_A", "Q_B", "Q_C"], ["Q_B"]], [9, "reward", "Q_B", ["R_A"], ["R_A"]]] }));
+  assert.equal(row.choices.length, 2);
 });

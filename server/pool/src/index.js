@@ -12,7 +12,10 @@
 const CARD = /^[A-Za-z0-9_]{3,64}$/;
 const TRIBE = /^[A-Z0-9_]{2,24}$/;
 const GAME_ID = /^[0-9a-f]{32}$/;
-const KINDS = new Set(["discover", "trinket", "choice"]);
+const KINDS = new Set(["discover", "trinket", "choice", "quest", "reward"]);
+// Rating brackets the app knows (top 50/20/5/1 %), worked out from the shared games' own ratings.
+const BRACKET_TOPS = [50, 20, 5, 1];
+const MIN_BRACKET_GAMES = 50;
 const FORMATS = new Set(["standard", "wild"]);
 const DAY = 86_400_000;
 const WINDOW_DAYS = 30;
@@ -352,6 +355,25 @@ async function meta(request, env, ctx) {
   return response;
 }
 
+/**
+ * The lowest rating bracket of the top 50/20/5/1 % of the shared games (ratings are rounded down to 500), highest
+ * first walked down until the share is reached. Empty under {@link MIN_BRACKET_GAMES} rated games. These are the pool's
+ * own players, not the whole ladder: players who share are likely above average.
+ */
+export function percentileFloors(rows) {
+  const total = rows.reduce((sum, r) => sum + r.n, 0);
+  if (total < MIN_BRACKET_GAMES) return [];
+  const sorted = [...rows].sort((a, b) => b.b - a.b);
+  return BRACKET_TOPS.map((top) => {
+    let seen = 0;
+    for (const r of sorted) {
+      seen += r.n;
+      if (seen * 100 >= total * top) return { top, bracket: r.b };
+    }
+    return { top, bracket: sorted.at(-1).b };
+  });
+}
+
 /** Works the totals out again and stores them. Skipped when no game came in and the totals are under a day old. */
 export async function rebuild(env, mode, force) {
   const last = (await env.DB.prepare("SELECT MAX(rowid) AS r FROM g").first())?.r ?? 0;
@@ -365,7 +387,7 @@ export async function rebuild(env, mode, force) {
   const w = "g.mode = ?1 AND g.day >= ?2";
   const q = (sql) => env.DB.prepare(sql).bind(mode, since);
   const q3 = (sql) => env.DB.prepare(sql).bind(mode, since, top);
-  const [totals, heroes, offers, boards, trinketOffers, trinketPicks, comps, tierups, odds, choiceOffers, choicePicks, plays] = (await env.DB.batch([
+  const [totals, heroes, offers, boards, trinketOffers, trinketPicks, comps, tierups, odds, choiceOffers, choicePicks, plays, ratings, heroTribes] = (await env.DB.batch([
     q(`SELECT COUNT(*) AS games, SUM(g.turns IS NOT NULL) AS detailed FROM g WHERE ${w}`),
     q3(`SELECT g.hero AS hero, COUNT(*) AS n, AVG(g.placement) AS avg, SUM(g.placement <= ?3) AS top, SUM(g.placement = 1) AS first
         FROM g WHERE ${w} GROUP BY g.hero`),
@@ -389,7 +411,29 @@ export async function rebuild(env, mode, force) {
          (SELECT g.rowid AS r, json_extract(j.value, '$[1]') AS card, MIN(json_extract(j.value, '$[0]')) AS t, g.placement AS pl
           FROM g, json_each(g.plays) j WHERE ${w} GROUP BY g.rowid, card)
        GROUP BY card HAVING n >= 3`),
+    q(`SELECT g.bracket AS b, COUNT(*) AS n FROM g WHERE ${w} AND g.bracket > 0 GROUP BY g.bracket`),
+    // Lobby tribes are validated tribe names (A-Z, 0-9, _), so they can be turned into a JSON array here.
+    q(`SELECT g.hero AS hero, t.value AS tribe, COUNT(*) AS n, AVG(g.placement) AS avg
+       FROM g, json_each('["' || replace(g.tribes, ',', '","') || '"]') t
+       WHERE ${w} AND g.tribes IS NOT NULL AND g.tribes <> '' GROUP BY g.hero, t.value HAVING n >= 3`),
   ])).map((r) => r.results);
+
+  // Heroes and trinket picks per rating bracket: one pass each, a column set per bracket.
+  const floors = percentileFloors(ratings);
+  let heroBrackets = [];
+  let trinketBrackets = [];
+  if (floors.length > 0) {
+    const cols = (value) => floors.map((_, i) => value(`?${i + 3}`, i)).join(", ");
+    const lowest = "?3"; // the top 50 % floor, the lowest of them
+    const args = [mode, since, ...floors.map((f) => f.bracket)];
+    [heroBrackets, trinketBrackets] = (await env.DB.batch([
+      env.DB.prepare(`SELECT g.hero AS hero, ${cols((f, i) => `SUM(g.bracket >= ${f}) AS n${i}, AVG(CASE WHEN g.bracket >= ${f} THEN g.placement END) AS a${i},
+          SUM(g.bracket >= ${f} AND g.placement <= ?${floors.length + 3}) AS t${i}, SUM(g.bracket >= ${f} AND g.placement = 1) AS f${i}`)}
+        FROM g WHERE ${w} AND g.bracket >= ${lowest} GROUP BY g.hero`).bind(...args, top),
+      env.DB.prepare(`SELECT j.value AS card, ${cols((f, i) => `SUM(g.bracket >= ${f}) AS n${i}, AVG(CASE WHEN g.bracket >= ${f} THEN g.placement END) AS a${i}`)}
+        FROM g, json_each(g.trinkets, '$.p') j WHERE ${w} AND g.bracket >= ${lowest} GROUP BY j.value`).bind(...args),
+    ])).map((r) => r.results);
+  }
 
   const offerBy = new Map(offers.map((r) => [r.hero, r]));
   const pickBy = new Map(trinketPicks.map((r) => [r.card, r]));
@@ -416,6 +460,15 @@ export async function rebuild(env, mode, force) {
       return { kind: r.kind, card: r.card, offered: r.n, picked: pick?.n ?? 0, avgPlacement: round(pick?.avg) };
     }),
     plays: plays.map((r) => ({ card: r.card, games: r.n, avgPlacement: round(r.avg), avgTurn: round(r.turn) })),
+    // Added in pool 0.17 (app 2.1 plan); older apps ignore them.
+    percentiles: floors,
+    heroesByBracket: Object.fromEntries(floors.map((f, i) => [f.top, heroBrackets.filter((r) => r[`n${i}`] > 0).map((r) => ({
+      hero: r.hero, games: r[`n${i}`], avgPlacement: round(r[`a${i}`]), top: round(r[`t${i}`] / r[`n${i}`]), first: round(r[`f${i}`] / r[`n${i}`]),
+    }))])),
+    trinketsByBracket: Object.fromEntries(floors.map((f, i) => [f.top, trinketBrackets.filter((r) => r[`n${i}`] > 0).map((r) => ({
+      card: r.card, picked: r[`n${i}`], avgPlacement: round(r[`a${i}`]),
+    }))])),
+    heroTribes: heroTribes.map((r) => ({ hero: r.hero, tribe: r.tribe, games: r.n, avgPlacement: round(r.avg) })),
   });
 
   await env.DB.prepare(

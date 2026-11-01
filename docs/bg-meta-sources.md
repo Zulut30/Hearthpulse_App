@@ -15,14 +15,14 @@ API: `.claude/skills/hearthstone-context/reference/kolodahearthstone-api.md`.
 | Hero pick rate | API `pick_rate_value` (percent) | — |
 | Hero place distribution, top 4, 1st | API `placement_distribution` (8 strings "22.00%") | — |
 | Hero sample size (`dataPoints`) | — | **Not published.** Shown as "—"; the app treats 0 as "unknown, already filtered by the source". |
-| Hero tribe impact (`tribeStats.impactAveragePosition`) | — | **Missing** in the API and in the pool. The hero pick ignores the lobby's tribes. |
+| Hero tribe impact (`tribeStats.impactAveragePosition`) | pool (`/v1/stats` `heroTribes`, since 0.17): placement with the tribe in the lobby minus overall, tribes with 20+ games of the hero | **Missing** in the API. Until the pool runs (and has the games), the hero pick ignores the lobby's tribes. |
 | Hero combat win rate per turn (`combatWinrate`) | not loaded | API has it only per hero (`/api/bg/heroes/{dbf}` → `combat_winrate[]`, top 50% only): 116 requests of ~150 KB each per refresh. My Stats shows no "global" combat line until there is a bulk endpoint. |
-| MMR floor of each percentile (`mmrPercentiles`) | pool (`/v1/meta` `percentiles`) when it has them | **Missing** in the API. Without floors the advisor cannot pick a bracket from the rating and uses the widest one (top 50%). The page lets the player pick a bracket by hand. |
+| MMR floor of each percentile (`mmrPercentiles`) | pool: `/v1/meta` `percentiles`, else `/v1/stats` `percentiles` (since 0.17: floors over the pool's own rated games, likely above the ladder's average) | **Missing** in the API. Without floors the advisor cannot pick a bracket from the rating and uses the widest one (top 50%). The page lets the player pick a bracket by hand. |
 | Card stats per bracket: average place of players who played the card | **API** `GET /v1/battlegrounds/minions/stats?mmr=ALL\|TOP_50_PERCENT\|TOP_20_PERCENT&period=CURRENT_BATTLEGROUNDS_PATCH&limit=500` → `normal.avg_placement_with`, `normal.games_with_minion`. Brackets: all ranks, top 50%, top 20% | Minions only (no tavern spells). Golden numbers are not used. |
 | Card stats per turn played (`turnStats`) | pool (cards with turn results) | **Missing** in the API in bulk. `/v1/battlegrounds/minions/{id}/stats` has `rounds[]`/`purchases[]` per minion, mostly null per round, 270+ requests. Tavern and Discover picks get no community placement until the pool has it. |
 | Comp stats (`comp-stats`): placement, per MMR, per hero | pool (`/v1/meta` comps) | **Missing**. The API has only each hero's compositions (`best_composition`, `/api/bg/heroes/{dbf}` → `compositions[]`, top 50%): no overall comp placement, no guides. Not used, per the owner's decision. |
 | Comp guides (`comps-strategies`): cards core/addon, tips, when to commit, tribes, power level, difficulty | pool (`/v1/meta` guides) | **Missing** in the API. |
-| Trinket stats: placement, pick rate, per MMR | pool (`/v1/stats`, `/v1/meta` trinkets) | The API has `/api/bg/trinkets?mmr=ALL\|TOP_50…TOP_1_PERCENT` (HSReplay placement, pick rate), but its `games` is "the minimum sample compatible with the rounded distribution", not a real count. **Not used**, per the owner's decision (section 3 lists it as the easy next step). |
+| Trinket stats: placement, pick rate, per MMR | pool (`/v1/stats` trinkets and, since 0.17, `trinketsByBracket`; `/v1/meta` trinkets) | The API has `/api/bg/trinkets?mmr=ALL\|TOP_50…TOP_1_PERCENT` (HSReplay placement, pick rate), but its `games` is "the minimum sample compatible with the rounded distribution", not a real count. **Not used**, per the owner's decision (section 3 lists it as the easy next step). |
 | Tribe results of final boards | pool (`/v1/stats` tribes) | Shown instead of comps when the pool is on and there are no comps. |
 
 Duos: the API has `/api/bg/heroes/duos` (top 50%), but the app's meta has no Duos dimension (Firestone's was solo too).
@@ -33,6 +33,9 @@ Duos: the API has `/api/bg/heroes/duos` (top 50%), but the app's meta has no Duo
   `HearthpulseData` (cache `cache/api/bg-heroes-<mmr>.json`, `bg-minions-<mmr>.json`, 6 h, stale cache when offline,
   404 cached as "no data"). `Source` = "Hearthpulse data" (`HearthpulseData.Attribution`). Nothing else is filled:
   comps, trinkets, percentiles and tribe impact stay empty.
+- The pool's address: `PoolEndpoint` in `settings.json` when set, else `PoolClient.DefaultEndpoint` (empty until the
+  owner deploys the server, `server/pool/README.md`); only `https://` addresses count. There is no field for it in the
+  interface.
 - When the stats pool is set up (`PoolClient.Available`), `PoolClient.OverlayAsync` loads the pool's own meta
   (`/v1/meta` + `/v1/stats`) and lays it over the API meta: hero and card numbers blend by sample size **only when the
   API row has one** (API heroes have none, so their numbers stay HSReplay's; heroes the API lacks come from the pool

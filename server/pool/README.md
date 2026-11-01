@@ -24,8 +24,9 @@ The free plan allows 100,000 requests a day, 100,000 rows written and 5 million 
   so a batch of 20 games is one request and one `INSERT` statement.
 - The totals are not worked out on each read. A cron job (every 6 hours) rebuilds them only when new games came in,
   and stores them as one JSON row in `snap`. A read returns that row and is cached at the edge for 30 minutes.
-- Each rebuild reads the last 30 days of games about 12 times. At 10,000 games in 30 days that is about 1 million
-  rows read a day for both modes, well under the limit.
+- Each rebuild reads the last 30 days of games about 16 times (the per-bracket totals take one pass each, a column
+  set per bracket). At 10,000 games in 30 days that is about 1.3 million rows read a day for both modes, well under
+  the limit.
 
 ## Deploy
 
@@ -47,6 +48,18 @@ npx wrangler deploy
 `deploy` prints the address, for example `https://hearthpulse-pool.<you>.workers.dev`. Put it in
 `PoolClient.DefaultEndpoint` (src/Hearthpulse.Core/Pool/PoolClient.cs) and release the app.
 
+Checklist (the owner deploys; nothing here is deployed from a development session):
+
+1. `node --test server/pool/test/validation.test.mjs` passes.
+2. `wrangler d1 create`, `database_id` in `wrangler.toml`, `schema.sql` on the new database (an existing pool: the
+   files in `migrations/` it lacks, in order). Plan 2.1 adds no column.
+3. `npx wrangler deploy`; then `GET <address>/v1/stats?mode=solo` answers `{"games":0,…}` (empty until the first cron
+   run after games come in) and `POST /v1/games` with a bad body answers 400.
+4. Before a release, try the app against it without rebuilding: `"PoolEndpoint": "https://…"` in `settings.json` of a
+   copy of the data folder (`HEARTHPULSE_DATA`). The app uses `PoolEndpoint` when set, else `DefaultEndpoint`; only
+   `https://` addresses are used.
+5. Set `DefaultEndpoint`, release. Sharing stays off until the player agrees in the app (consent version 4).
+
 To move an existing pool to a new version, run the new file in `migrations/` with
 `npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/<file>.sql`, then `npx wrangler deploy`.
 
@@ -67,11 +80,19 @@ npx wrangler d1 execute hearthpulse-pool --remote --file=migrations/0004_meta.sq
   `{"id":"<32 hex>","day":20749,"mode":"solo","bracket":6500,"offered":["BG_HERO_1",...],"picked":"BG_HERO_1",
   "placement":3,"src":"live"}`, plus the optional details `turns`, `tier`, `triples`, `anomaly`, `tribes`, `comp`,
   `board` (`[{"c","g","a","h"}]`), `trinkets` (`{"o":[...],"p":[...]}`), `tierups` (`[[turn,tier]]`),
-  `combats` (`[[turn,"W|T|L",taken,dealt,winChance|null]]`), `choices` (`[[turn,kind,source,[offered],[picked]]]`)
+  `combats` (`[[turn,"W|T|L",taken,dealt,winChance|null]]`), `choices` (`[[turn,kind,source,[offered],[picked]]]`, kind `discover`, `trinket`, `choice`, `quest` or `reward`)
   and `plays` (`[[turn,card]]`). A game sent twice is stored once. Hearthpulse 0.8 and 0.9 still send one game
   (`"v":1` or `"v":2`) and are accepted.
 - `GET /v1/stats?mode=solo` returns everything: `games`, `detailedGames`, `heroes`, `cards`, `trinkets`, `comps`,
-  `tierUps`, `combatOdds`, `choices` and `plays`, over the last 30 days.
+  `tierUps`, `combatOdds`, `choices` and `plays`, over the last 30 days. Since app 0.17 (plan 2.1) also:
+  - `percentiles`: `[{"top":50,"bracket":7000}, …]` for the top 50/20/5/1 %: the lowest rating bracket that reaches the
+    share, walking down from the highest, over the pool's own rated games (empty under 50 of them). These are players
+    who share, likely above the ladder's average: not Blizzard's percentiles.
+  - `heroesByBracket`: `{"50":[{hero, games, avgPlacement, top, first}], …}` and `trinketsByBracket`:
+    `{"50":[{card, picked, avgPlacement}], …}`: the same totals over the games at or above each floor.
+  - `heroTribes`: `[{hero, tribe, games, avgPlacement}]` (3 games or more): how a hero places with each tribe in the
+    lobby. The app turns it into the hero's tribe impact (placement with the tribe minus overall).
+  - Quests: `choices` rows of kind `quest` (the quests offered and taken) and `reward` (quest rewards).
 - `GET /v1/heroes?mode=solo` returns only the hero totals (used by Hearthpulse 0.8).
 - `POST /v1/constructed` with `{"v":1,"games":[...]}`, 1 to 20 games. Each game:
   `{"id":"<32 hex>","day":20752,"format":"standard","won":true,"src":"live","picks":[[turn,"SOURCE",["A","B","C"],["B"]],...]}`

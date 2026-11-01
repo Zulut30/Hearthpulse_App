@@ -212,7 +212,10 @@ public sealed partial class BattlegroundsTracker : IPowerListener
             return;
         }
 
+        // Quests and their rewards (seasons with quests): by card type and the QUEST tag; not seen in a real log yet.
         var kind = options.All(IsTrinket) ? "trinket"
+            : options.All(e => e.CardType == "BATTLEGROUND_QUEST_REWARD") ? "reward"
+            : options.All(e => e.Has("QUEST")) ? "quest"
             : options.All(e => e.Zone == "SETASIDE") ? "discover"
             : "choice";
         _choices.Add(new BgChoice(game.BattlegroundsTurn, kind, string.IsNullOrEmpty(source?.CardId) ? null : source.CardId, offered, Array.Empty<string>()));

@@ -66,6 +66,33 @@ public sealed class PoolTests
     }
 
     [Fact]
+    public void ReadsBracketsPercentilesTrinketsAndLobbyTribesOfPool21()
+    {
+        using var doc = JsonDocument.Parse("""
+            { "games": 300, "heroes": [ { "hero": "BG_HERO_1", "games": 120, "avgPlacement": 4.0, "offered": 200, "picked": 100 } ],
+              "trinkets": [ { "card": "T_A", "offered": 200, "picked": 120, "avgPlacement": 4.2 } ],
+              "percentiles": [ { "top": 50, "bracket": 7000 }, { "top": 20, "bracket": 8000 }, { "top": 5, "bracket": 9000 }, { "top": 1, "bracket": 9500 } ],
+              "heroesByBracket": { "50": [ { "hero": "BG_HERO_1", "games": 60, "avgPlacement": 3.5, "top": 0.6, "first": 0.2 } ],
+                                   "1": [ { "hero": "BG_HERO_1", "games": 3, "avgPlacement": 1.0, "top": 1, "first": 1 } ] },
+              "trinketsByBracket": { "50": [ { "card": "T_A", "picked": 70, "avgPlacement": 3.8 } ] },
+              "heroTribes": [ { "hero": "BG_HERO_1", "tribe": "MURLOC", "games": 40, "avgPlacement": 3.2 },
+                              { "hero": "BG_HERO_1", "tribe": "BEAST", "games": 10, "avgPlacement": 6.0 },
+                              { "hero": "BG_HERO_1", "tribe": "NOT_A_TRIBE", "games": 40, "avgPlacement": 1.0 } ] }
+            """);
+        var meta = PoolClient.Parse(doc.RootElement)!;
+
+        Assert.Equal([(50, 7000), (20, 8000), (5, 9000), (1, 9500)], meta.Percentiles);
+        var top50 = meta.HeroesByBracket[50]["BG_HERO_1"];
+        Assert.Equal((60, 3.5, 0.5), (top50.DataPoints, top50.AveragePosition, top50.PickRate));
+        // Three games are too few to show.
+        Assert.False(meta.HeroesByBracket.ContainsKey(1));
+        // Murloc in the lobby: 3.2 against 4.0 overall; Beast has too few games, the unknown tribe is dropped.
+        Assert.Equal(new Dictionary<int, double> { [14] = -0.8 }, meta.HeroesByBracket[100]["BG_HERO_1"].TribeImpact);
+        Assert.Equal(-0.8, top50.TribeImpact[14]);
+        Assert.Equal((3.8, 70), meta.Trinkets["T_A"].PlacementAtMmr[50]);
+    }
+
+    [Fact]
     public void IgnoresMalformedResponses()
     {
         using var doc = JsonDocument.Parse("""{ "heroes": "nope" }""");
