@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Tracking;
 
@@ -63,6 +64,97 @@ public sealed class PoolTests
         Assert.Equal(0.15, hero.FirstRate);
         Assert.Same(hero, meta.Hero("BG_HERO_1", 25));
         Assert.Empty(meta.Comps);
+    }
+
+    [Fact]
+    public void ReadsBracketsPercentilesTrinketsAndLobbyTribesOfPool21()
+    {
+        using var doc = JsonDocument.Parse("""
+            { "games": 1500, "ratedGames": 1500, "heroes": [ { "hero": "BG_HERO_1", "games": 600, "avgPlacement": 4.0, "offered": 900, "picked": 450 } ],
+              "trinkets": [ { "card": "T_A", "offered": 200, "picked": 120, "avgPlacement": 4.2 } ],
+              "percentiles": [ { "top": 50, "bracket": 7000, "games": 800 }, { "top": 20, "bracket": 8000, "games": 300 },
+                               { "top": 5, "bracket": 9000, "games": 80 }, { "top": 1, "bracket": 9500, "games": 20 } ],
+              "heroesByBracket": { "50": [ { "hero": "BG_HERO_1", "games": 60, "avgPlacement": 3.5, "top": 0.6, "first": 0.2 } ],
+                                   "1": [ { "hero": "BG_HERO_1", "games": 3, "avgPlacement": 1.0, "top": 1, "first": 1 } ] },
+              "trinketsByBracket": { "50": [ { "card": "T_A", "picked": 70, "avgPlacement": 3.8 } ] },
+              "heroTribes": [ { "hero": "BG_HERO_1", "tribe": "MURLOC", "games": 300, "avgPlacement": 3.2 },
+                              { "hero": "BG_HERO_1", "tribe": "BEAST", "games": 60, "avgPlacement": 6.0 },
+                              { "hero": "BG_HERO_1", "tribe": "NOT_A_TRIBE", "games": 300, "avgPlacement": 1.0 } ] }
+            """);
+        var meta = PoolClient.Parse(doc.RootElement)!;
+
+        // The top 1 % floor has 20 games at or above it: under 50, it does not count.
+        Assert.Equal([(50, 7000), (20, 8000), (5, 9000)], meta.Percentiles);
+        var top50 = meta.HeroesByBracket[50]["BG_HERO_1"];
+        Assert.Equal((60, 3.5, 0.5), (top50.DataPoints, top50.AveragePosition, top50.PickRate));
+        Assert.False(meta.HeroesByBracket.ContainsKey(1));
+        // Murloc in the lobby: 3.2 against 4.0 overall, shrunk by 300 / (300 + 150); Beast has under 100 games, the unknown
+        // tribe is dropped.
+        Assert.Equal(new Dictionary<int, double> { [14] = -0.533 }, meta.HeroesByBracket[100]["BG_HERO_1"].TribeImpact);
+        Assert.Equal(-0.533, top50.TribeImpact[14]);
+        Assert.Equal((3.8, 70), meta.Trinkets["T_A"].PlacementAtMmr[50]);
+    }
+
+    [Fact]
+    public void Pool_floors_from_a_small_sample_do_not_pick_the_bracket_of_the_api_stats()
+    {
+        var api = ApiMeta();
+        using var small = JsonDocument.Parse("""
+            { "games": 200, "ratedGames": 200, "heroes": [ { "hero": "BG_HERO_1", "games": 120, "avgPlacement": 4.0 } ],
+              "percentiles": [ { "top": 50, "bracket": 5500, "games": 100 }, { "top": 1, "bracket": 6500, "games": 60 } ] }
+            """);
+
+        var merged = PoolClient.Merge(api, PoolClient.Parse(small.RootElement)!);
+
+        Assert.Empty(merged.Percentiles);
+        Assert.Equal(50, merged.BracketFor(6500));
+    }
+
+    [Fact]
+    public void Pool_hero_brackets_are_merged_into_the_matching_api_brackets()
+    {
+        var api = ApiMeta();
+        using var pool = JsonDocument.Parse("""
+            { "games": 2000, "ratedGames": 2000, "heroes": [ { "hero": "BG_HERO_9", "games": 900, "avgPlacement": 4.4 } ],
+              "percentiles": [ { "top": 50, "bracket": 7000, "games": 1000 }, { "top": 20, "bracket": 8000, "games": 400 } ],
+              "heroesByBracket": { "20": [ { "hero": "BG_HERO_9", "games": 300, "avgPlacement": 3.1, "top": 0.7, "first": 0.3 } ] } }
+            """);
+
+        var merged = PoolClient.Merge(api, PoolClient.Parse(pool.RootElement)!);
+
+        // A hero the API lacks comes from the pool's own top 20 % rows, not from its all-ranks rows.
+        Assert.Equal(3.1, merged.HeroesByBracket[20]["BG_HERO_9"].AveragePosition);
+        Assert.Equal(20, merged.BracketFor(8500));
+    }
+
+    [Fact]
+    public void Lobby_tribes_of_a_small_pool_do_not_reorder_the_hero_pick()
+    {
+        // B is a little worse overall; on a small pool it placed far better with Murlocs. Under 100 games of B with
+        // Murlocs that counts for nothing, so A stays the pick.
+        using var pool = JsonDocument.Parse("""
+            { "games": 300, "heroes": [ { "hero": "HERO_A", "games": 150, "avgPlacement": 4.0 }, { "hero": "HERO_B", "games": 150, "avgPlacement": 4.2 } ],
+              "heroTribes": [ { "hero": "HERO_B", "tribe": "MURLOC", "games": 60, "avgPlacement": 2.0 } ] }
+            """);
+        var advisor = new BattlegroundsAdvisor { Meta = PoolClient.Parse(pool.RootElement)!, CompMode = Hearthpulse.Core.CompMode.Auto };
+        var view = new BattlegroundsView(1, 1, 6, null, 30, 0, 0, false, false, true,
+            [new BgHeroOption("HERO_A", "A", 0, null), new BgHeroOption("HERO_B", "B", 0, null)],
+            ["MURLOC", "BEAST", "DEMON", "UNDEAD", "NAGA"], true, [], [], [], [], null, 0, [], []);
+
+        var advice = advisor.Enrich(view, 7000, CardDb.Empty);
+
+        Assert.Equal("HERO_A", Assert.Single(advice.HeroOptions, h => h.Recommended).CardId);
+        Assert.Equal(4.2, advice.HeroOptions.Single(h => h.CardId == "HERO_B").Meta!.AdjustedPosition);
+    }
+
+    /// <summary>The API's meta: heroes in the top 50/20/5/1 % brackets, no MMR floors.</summary>
+    private static BattlegroundsMeta ApiMeta()
+    {
+        var hero = new MetaHero("BG_HERO_1", 0, 4.0, 0.3, new Dictionary<int, double>());
+        IReadOnlyDictionary<string, MetaHero> row = new Dictionary<string, MetaHero> { ["BG_HERO_1"] = hero };
+        return new BattlegroundsMeta(
+            new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [50] = row, [20] = row, [5] = row, [1] = row },
+            [], [], new Dictionary<string, MetaTrinket>(), new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(), DateTime.UtcNow);
     }
 
     [Fact]

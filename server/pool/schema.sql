@@ -53,3 +53,8 @@ CREATE TABLE IF NOT EXISTS meta (
   seq INTEGER PRIMARY KEY,    -- chunk order
   body TEXT NOT NULL          -- part of the /v1/meta JSON
 );
+-- Daily count of games stored, against the write budget (migrations/0006_quota.sql).
+CREATE TABLE IF NOT EXISTS quota (
+  day INTEGER PRIMARY KEY, -- days since 1970-01-01
+  n INTEGER NOT NULL       -- games stored that day, both kinds
+);

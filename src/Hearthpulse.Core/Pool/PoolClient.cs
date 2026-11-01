@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Hearthpulse.Core.Battlegrounds;
+using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Tracking;
 
@@ -266,8 +267,26 @@ public static class PoolClient
     /// <summary>Heroes and tribes need this many shared games before their numbers are shown.</summary>
     public const int MinGames = 20;
 
+    /// <summary>Rated games the pool needs before its MMR floors count (they pick the bracket of the API's stats).</summary>
+    public const int MinRatedGames = 1000;
+
+    /// <summary>Games at or above an MMR floor of the pool before that floor (and its bracket) counts.</summary>
+    public const int MinBracketGames = 50;
+
+    /// <summary>Games of a hero with a tribe in the lobby before that tribe's impact counts.</summary>
+    public const int TribeMinGames = 100;
+
+    /// <summary>
+    /// Shrinks a tribe impact toward zero by sample size, <c>delta · n / (n + k)</c>: the advisor adds up the impacts of
+    /// five lobby tribes, so noise on a small sample would reorder the heroes.
+    /// </summary>
+    public const int TribeShrink = 150;
+
     /// <summary>Games sent in one request (the server takes up to 20).</summary>
     public const int MaxBatch = 20;
+
+    /// <summary>Pause between two batches of earlier games: the server takes 6 requests a minute from one address.</summary>
+    public static readonly TimeSpan HistoryBatchDelay = TimeSpan.FromSeconds(12);
 
     /// <summary>How far back earlier games are shared once, matching the pool's 30 day window.</summary>
     public const int HistoryDays = 30;
@@ -469,13 +488,19 @@ public static class PoolClient
     /// so its hero and card numbers are merged into every MMR bracket of the base. A base row without a sample size
     /// (the API's heroes) cannot be weighed and keeps its own numbers; a hero the base lacks is added only once the
     /// pool has <see cref="MinGames"/> games of it. What the base has none of (comps, trinkets, tribes, percentiles,
-    /// turn results) comes from the pool.
+    /// turn results) comes from the pool. When the pool has its own rating brackets (2.1, trusted MMR floors) that the
+    /// base has too, those are merged bracket by bracket instead of its all-ranks rows.
     /// </summary>
     internal static BattlegroundsMeta Merge(BattlegroundsMeta baseMeta, BattlegroundsMeta pool)
     {
-        var poolHeroes = pool.SharedHeroRows.Count > 0
-            ? new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = pool.SharedHeroRows }
-            : pool.HeroesByBracket;
+        var ownBrackets = pool.HeroesByBracket
+            .Where(kv => kv.Key != 100 && baseMeta.HeroesByBracket.ContainsKey(kv.Key))
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+        var poolHeroes = ownBrackets.Count > 0
+            ? ownBrackets
+            : pool.SharedHeroRows.Count > 0
+                ? new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = pool.SharedHeroRows }
+                : pool.HeroesByBracket;
         var heroes = MergeBrackets(baseMeta.HeroesByBracket, poolHeroes, (a, b) => Blend(a, b), h => h.DataPoints >= MinGames);
         var cards = MergeBrackets(baseMeta.CardsByBracket, pool.CardsByBracket, (a, b) => Blend(a, b), _ => true);
 
@@ -876,6 +901,7 @@ public static class PoolClient
 
         var heroes = new Dictionary<string, MetaHero>(StringComparer.Ordinal);
         var allHeroes = new Dictionary<string, MetaHero>(StringComparer.Ordinal);
+        var impacts = TribeImpacts(root, list);
         foreach (var hero in list.EnumerateArray())
         {
             var id = Text(hero, "hero");
@@ -891,7 +917,7 @@ public static class PoolClient
                 games,
                 Number(hero, "avgPlacement"),
                 offered > 0 ? (double)Int(hero, "picked") / offered : 0,
-                new Dictionary<int, double>(),
+                impacts.GetValueOrDefault(id) ?? new Dictionary<int, double>(),
                 Number(hero, "top"),
                 Number(hero, "first"));
             allHeroes[id] = stats;
@@ -901,12 +927,75 @@ public static class PoolClient
             }
         }
 
+        // Pool 2.1: MMR floors of the top 50/20/5/1 % of the pool's own rated games. They decide which bracket of the API's
+        // (HSReplay) stats a player sees, so they count only with a large sample: MinRatedGames rated games in all and
+        // MinBracketGames at or above each floor. Brackets of a floor that does not count are not read either.
+        var percentiles = new List<(int, int)>();
+        if (Int(root, "ratedGames") >= MinRatedGames)
+        {
+            foreach (var p in Array(root, "percentiles"))
+            {
+                if (Int(p, "top") is > 0 and var top && Int(p, "bracket") is > 0 and var floor && Int(p, "games") >= MinBracketGames)
+                {
+                    percentiles.Add((top, floor));
+                }
+            }
+        }
+
+        var trusted = percentiles.Select(p => p.Item1).ToHashSet();
+        var heroesByBracket = new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = heroes };
+        if (root.TryGetProperty("heroesByBracket", out var heroBrackets) && heroBrackets.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var bracket in heroBrackets.EnumerateObject())
+            {
+                if (Bracket(bracket.Name) is not { } top || !trusted.Contains(top) || bracket.Value.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                var rows = new Dictionary<string, MetaHero>(StringComparer.Ordinal);
+                foreach (var hero in bracket.Value.EnumerateArray())
+                {
+                    if (Text(hero, "hero") is { Length: > 0 } id && Int(hero, "games") >= MinGames)
+                    {
+                        rows[id] = new MetaHero(id, Int(hero, "games"), Number(hero, "avgPlacement"), allHeroes.GetValueOrDefault(id)?.PickRate ?? 0,
+                            impacts.GetValueOrDefault(id) ?? new Dictionary<int, double>(), Number(hero, "top"), Number(hero, "first"));
+                    }
+                }
+
+                if (rows.Count > 0)
+                {
+                    heroesByBracket[top] = rows;
+                }
+            }
+        }
+
         var cards = new Dictionary<string, MetaCard>(StringComparer.Ordinal);
         foreach (var card in Array(root, "cards"))
         {
             if (Text(card, "card") is { Length: > 0 } id)
             {
                 cards[id] = new MetaCard(id, Int(card, "games"), Number(card, "avgPlacement"), new Dictionary<int, (int, double)>());
+            }
+        }
+
+        var trinketsAt = new Dictionary<string, Dictionary<int, (double, int)>>(StringComparer.Ordinal);
+        if (root.TryGetProperty("trinketsByBracket", out var trinketBrackets) && trinketBrackets.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var bracket in trinketBrackets.EnumerateObject())
+            {
+                if (Bracket(bracket.Name) is not { } top || !trusted.Contains(top) || bracket.Value.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (var trinket in bracket.Value.EnumerateArray())
+                {
+                    if (Text(trinket, "card") is { Length: > 0 } id)
+                    {
+                        (trinketsAt.TryGetValue(id, out var at) ? at : trinketsAt[id] = new())[top] = (Number(trinket, "avgPlacement"), Int(trinket, "picked"));
+                    }
+                }
             }
         }
 
@@ -921,7 +1010,7 @@ public static class PoolClient
                     Int(trinket, "picked"),
                     Number(trinket, "avgPlacement"),
                     offered > 0 ? (double)Int(trinket, "picked") / offered : 0,
-                    new Dictionary<int, (double, int)>());
+                    trinketsAt.GetValueOrDefault(id) ?? new Dictionary<int, (double, int)>());
             }
         }
 
@@ -935,8 +1024,8 @@ public static class PoolClient
                 ? parsed
                 : DateTime.UtcNow;
         return new BattlegroundsMeta(
-            new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = heroes },
-            [],
+            heroesByBracket,
+            percentiles,
             [],
             trinkets,
             new Dictionary<int, IReadOnlyDictionary<string, MetaCard>> { [100] = cards },
@@ -947,6 +1036,36 @@ public static class PoolClient
             SharedHeroRows = allHeroes,
             Source = BattlegroundsMeta.PoolAttribution,
         };
+    }
+
+    /// <summary>
+    /// Per hero, how its average placement changes with a tribe in the lobby (pool 2.1 <c>heroTribes</c>): the placement
+    /// with the tribe minus the hero's overall placement, negative = better, by tribe id (<see cref="Races.ById"/>), for
+    /// tribes with at least <see cref="TribeMinGames"/> games of the hero, shrunk by <see cref="TribeShrink"/>. What the advisor adds up for the lobby.
+    /// </summary>
+    private static Dictionary<string, Dictionary<int, double>> TribeImpacts(JsonElement root, JsonElement heroes)
+    {
+        var overall = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (var hero in heroes.EnumerateArray())
+        {
+            if (Text(hero, "hero") is { Length: > 0 } id)
+            {
+                overall[id] = Number(hero, "avgPlacement");
+            }
+        }
+
+        var tribeIds = Races.ById.ToDictionary(r => r.Value, r => r.Key, StringComparer.Ordinal);
+        var result = new Dictionary<string, Dictionary<int, double>>(StringComparer.Ordinal);
+        foreach (var row in Array(root, "heroTribes"))
+        {
+            if (Text(row, "hero") is { Length: > 0 } hero && overall.TryGetValue(hero, out var average)
+                && Text(row, "tribe") is { } tribe && tribeIds.TryGetValue(tribe, out var tribeId) && Int(row, "games") is >= TribeMinGames and var n)
+            {
+                (result.TryGetValue(hero, out var impact) ? impact : result[hero] = new())[tribeId] = Math.Round((Number(row, "avgPlacement") - average) * n / (n + TribeShrink), 3);
+            }
+        }
+
+        return result;
     }
 
     private static IEnumerable<JsonElement> Array(JsonElement e, string name) =>

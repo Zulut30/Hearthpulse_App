@@ -811,7 +811,7 @@ public partial class App : Application
                     return;
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(3));
+                await Task.Delay(PoolClient.HistoryBatchDelay);
             }
 
             _settings.PoolHistoryShared = true;

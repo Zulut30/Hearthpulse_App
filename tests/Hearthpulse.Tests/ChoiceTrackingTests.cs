@@ -50,6 +50,45 @@ public sealed class ChoiceTrackingTests
         Assert.Equal("BG_PLAYED", Assert.Single(view.Plays).CardId);
     }
 
+    [Theory]
+    [InlineData("SPELL", "QUEST", "quest")]
+    [InlineData("BATTLEGROUND_QUEST_REWARD", null, "reward")]
+    [InlineData("BATTLEGROUND_TRINKET", null, "trinket")]
+    [InlineData("MINION", null, "discover")]
+    public void Quest_reward_and_trinket_choices_are_told_apart(string cardType, string? tag, string kind)
+    {
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        var tracker = new BattlegroundsTracker { Cards = CardDb.Empty };
+        parser.AddListener(tracker);
+        string[] Option(int id) =>
+        [
+            $"DebugPrintPower() - FULL_ENTITY - Creating ID={id} CardID=BG_OPTION_{id}",
+            "DebugPrintPower() -     tag=ZONE value=SETASIDE",
+            $"DebugPrintPower() -     tag=CONTROLLER value={Me}",
+            $"DebugPrintPower() -     tag=CARDTYPE value={cardType}",
+            .. tag is null ? Array.Empty<string>() : [$"DebugPrintPower() -     tag={tag} value=1"],
+        ];
+        Feed(parser,
+        [
+            "DebugPrintPower() - CREATE_GAME",
+            "DebugPrintPower() -     GameEntity EntityID=4",
+            "DebugPrintPower() -         tag=CARDTYPE value=GAME",
+            "DebugPrintPower() -         tag=TURN value=5",
+            $"DebugPrintPower() -     Player EntityID=14 PlayerID={Me} GameAccountId=[hi=144115198130930503 lo=11]",
+            $"DebugPrintPower() -         tag=CONTROLLER value={Me}",
+            "DebugPrintPower() -         tag=CARDTYPE value=PLAYER",
+            "DebugPrintGame() - GameType=GT_BATTLEGROUNDS",
+            $"DebugPrintGame() - PlayerID={Me}, PlayerName=Me#1234",
+            .. Option(40),
+            .. Option(41),
+            "DebugPrintEntityChoices() - id=7 Player=Me#1234 TaskList=12 ChoiceType=GENERAL CountMin=1 CountMax=1",
+            $"DebugPrintEntityChoices() -   Entities[0]={Ref(40, "BG_OPTION_40", "SETASIDE")}",
+            $"DebugPrintEntityChoices() -   Entities[1]={Ref(41, "BG_OPTION_41", "SETASIDE")}",
+        ]);
+
+        Assert.Equal(kind, Assert.Single(tracker.BuildView(parser.Game!).Choices).Kind);
+    }
+
     private static void Feed(PowerParser parser, params string[] bodies)
     {
         foreach (var body in bodies)

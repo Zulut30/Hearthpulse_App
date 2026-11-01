@@ -8,11 +8,17 @@ binding = "DB"
 database_name = "hearthpulse-pool"
 database_id = "REPLACE_WITH_THE_ID_FROM_wrangler_d1_create"
 
-# At most 30 submissions per minute from one address. Cloudflare keeps the counter; nothing is stored here.
+# At most 6 submissions per minute from one address (a player sends one game per match; earlier games go in batches
+# of 20 a few seconds apart, so 120 games a minute). Cloudflare keeps the counter; nothing is stored here. The pool
+# also stops storing for the day past DAILY_WRITES games in all (src/index.js).
 [[ratelimits]]
 name = "LIMITER"
 namespace_id = "1001"
-simple = { limit = 30, period = 60 }
+simple = { limit = 6, period = 60 }
+
+# No Workers logs: they would hold IP addresses and request bodies, and the pool stores neither.
+[observability]
+enabled = false
 
 # Totals are rebuilt every 6 hours, and only when new games came in.
 [triggers]

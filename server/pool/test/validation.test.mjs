@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
-import worker, { rebuildChoices, validateConstructed, validateDetails, validateGame, validateLegacy } from "../src/index.js";
+import worker, { percentileFloors, prune, rebuild, rebuildChoices, validateConstructed, validateDetails, validateGame, validateLegacy } from "../src/index.js";
 
 const TODAY = Math.floor(Date.now() / 86_400_000);
 const HERO = "BG_HERO_1";
@@ -19,6 +19,9 @@ function database() {
     writes,
     DB: {
       prepare(sql) {
+        // The daily write budget: nothing counted yet.
+        if (sql.startsWith("SELECT n FROM quota")) return { bind: () => ({ first: async () => null }) };
+        if (sql.startsWith("INSERT INTO quota")) return { bind: () => ({ run: async () => {} }) };
         assert.match(sql, /^INSERT OR IGNORE INTO g /);
         return {
           bind(json) {
@@ -220,4 +223,74 @@ test("POST /v1/constructed rejects malformed bodies before writing", async () =>
   }
 
   assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM c").get().n, 0);
+});
+
+// ---- Totals per rating bracket and lobby tribe (roadmap 2.1) ---------------------------------------------------
+
+test("percentile floors need 1000 rated games and 50 at or above each floor, and a repeated floor is left out", () => {
+  const rows = [{ b: 6000, n: 500 }, { b: 7000, n: 300 }, { b: 8000, n: 150 }, { b: 9000, n: 50 }];
+  assert.deepEqual(percentileFloors(rows), [
+    { top: 50, bracket: 7000, games: 500 }, { top: 20, bracket: 8000, games: 200 }, { top: 5, bracket: 9000, games: 50 },
+  ]);
+  assert.deepEqual(percentileFloors([{ b: 6000, n: 999 }]), []);
+  // Enough games in all, but only 40 at or above the top 20 % floor: that floor (and narrower ones) is not published.
+  assert.deepEqual(percentileFloors([{ b: 6000, n: 960 }, { b: 9000, n: 40 }]).map((f) => f.top), [50]);
+});
+
+test("the totals split heroes and trinkets by rating bracket and heroes by lobby tribe, from 10 games a cell", async () => {
+  const env = { ...sqlite(), MIN_RATED_GAMES: 50 };
+  const games = Array.from({ length: 200 }, (_, i) => game({
+    id: i.toString(16).padStart(32, "0"),
+    bracket: i < 100 ? 6000 : i < 160 ? 7000 : i < 190 ? 8000 : 9500,
+    picked: i % 2 ? HERO : "BG_HERO_2",
+    placement: i % 2 ? 2 : 6,
+    ...details({ tribes: i % 3 ? ["MURLOC", "BEAST"] : ["DEMON", "BEAST"], trinkets: { o: ["T_A", "T_B"], p: [i % 2 ? "T_A" : "T_B"] } }),
+  }));
+  for (let i = 0; i < games.length; i += 20) {
+    const request = new Request("https://pool.test/v1/games", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ v: 3, games: games.slice(i, i + 20) }),
+    });
+    assert.equal((await worker.fetch(request, env, {})).status, 200);
+  }
+
+  const totals = JSON.parse(await rebuild(env, "solo", true));
+  assert.equal(totals.games, 200);
+  assert.equal(totals.ratedGames, 200);
+  // Top 50 %: the 100 games at 7000 and above. Top 20 % (8000+) has 40 games: under 50, not published, nor narrower.
+  assert.deepEqual(totals.percentiles, [{ top: 50, bracket: 7000, games: 100 }]);
+  assert.deepEqual(Object.keys(totals.heroesByBracket), ["50"]);
+  const winner = totals.heroesByBracket["50"].find((h) => h.hero === HERO);
+  assert.deepEqual([winner.games, winner.avgPlacement, winner.top, winner.first], [50, 2, 1, 0]);
+  assert.equal(totals.trinketsByBracket["50"].find((t) => t.card === "T_A").picked, 50);
+  // Heroes by lobby tribe: Beast was in every lobby; Murloc in two thirds.
+  const beast = totals.heroTribes.find((t) => t.hero === HERO && t.tribe === "BEAST");
+  assert.deepEqual([beast.games, beast.avgPlacement], [100, 2]);
+  assert.equal(totals.heroTribes.find((t) => t.hero === HERO && t.tribe === "MURLOC").games, 67);
+  assert.ok(totals.heroTribes.every((t) => t.games >= 10));
+});
+
+test("past the daily write budget a batch is refused with 503 and not stored", async () => {
+  const env = { ...sqlite(), DAILY_WRITES: 30 };
+  const batch = (from) => JSON.stringify({ v: 3, games: Array.from({ length: 20 }, (_, i) => game({ id: (from + i).toString(16).padStart(32, "0") })) });
+  const post = (body) => worker.fetch(new Request("https://pool.test/v1/games", { method: "POST", headers: { "content-type": "application/json" }, body }), env, {});
+
+  assert.equal((await post(batch(0))).status, 200);
+  const refused = await post(batch(100));
+  assert.equal(refused.status, 503);
+  assert.equal(env.db.prepare("SELECT COUNT(*) AS n FROM g").get().n, 20);
+});
+
+test("the cron job deletes games older than 60 days", async () => {
+  const env = sqlite();
+  for (const [id, day] of [["old", TODAY - 61], ["kept", TODAY - 59]]) {
+    env.db.prepare("INSERT INTO g (id, day, mode, bracket, hero, placement, src) VALUES (?, ?, 'solo', 0, 'H', 1, 'live')").run(id, day);
+  }
+
+  await prune(env, TODAY);
+  assert.deepEqual(env.db.prepare("SELECT id FROM g").all().map((r) => r.id), ["kept"]);
+});
+
+test("quest and reward picks are accepted choice kinds", () => {
+  const row = validateDetails(details({ choices: [[5, "quest", null, ["Q_A", "Q_B", "Q_C"], ["Q_B"]], [9, "reward", "Q_B", ["R_A"], ["R_A"]]] }));
+  assert.equal(row.choices.length, 2);
 });

@@ -12,7 +12,21 @@
 const CARD = /^[A-Za-z0-9_]{3,64}$/;
 const TRIBE = /^[A-Z0-9_]{2,24}$/;
 const GAME_ID = /^[0-9a-f]{32}$/;
-const KINDS = new Set(["discover", "trinket", "choice"]);
+const KINDS = new Set(["discover", "trinket", "choice", "quest", "reward"]);
+// Rating brackets the app knows (top 50/20/5/1 %), worked out from the shared games' own ratings.
+const BRACKET_TOPS = [50, 20, 5, 1];
+// A floor counts only with this many rated games in all and MIN_BRACKET_GAMES at or above it: the app picks the bracket
+// of HSReplay's stats by them, and narrow brackets of a few players must not be published (they could be matched with
+// Blizzard's public leaderboard).
+const MIN_RATED_GAMES = 1000;
+const MIN_BRACKET_GAMES = 50;
+// No published cell (hero or trinket per bracket, hero per lobby tribe) holds fewer games than this.
+const MIN_CELL = 10;
+// Games stored per day, both kinds together. A game writes its row and an index entry; the nightly clean-up deletes as
+// many; the daily counter adds one write per request: about 4 rows per game, inside D1's 100,000 rows written a day.
+const DAILY_WRITES = 15_000;
+// Shared games are kept this long, then deleted by the cron job (the totals use the last WINDOW_DAYS).
+const KEEP_DAYS = 60;
 const FORMATS = new Set(["standard", "wild"]);
 const DAY = 86_400_000;
 const WINDOW_DAYS = 30;
@@ -34,6 +48,7 @@ export default {
 
   async scheduled(event, env, ctx) {
     ctx.waitUntil(Promise.all([
+      prune(env),
       ...["solo", "duos"].map((mode) => rebuild(env, mode, false)),
       ...[...FORMATS].map((format) => rebuildChoices(env, format, false)),
     ]));
@@ -64,6 +79,26 @@ const INSERT = `INSERT OR IGNORE INTO g (id, day, mode, bracket, hero, placement
   FROM json_each(?1)`;
 
 /** The parsed JSON body, or the error response to send instead (rate limit, size, not JSON). */
+/** Deletes shared games older than KEEP_DAYS and old daily counters. */
+export async function prune(env, today = Math.floor(Date.now() / DAY)) {
+  const before = today - KEEP_DAYS;
+  await env.DB.batch(["g", "c", "quota"].map((table) => env.DB.prepare(`DELETE FROM ${table} WHERE day < ?1`).bind(before)));
+}
+
+/**
+ * Counts <paramref name="rows"/> games against the day's write budget; false (and nothing counted) once it would pass
+ * DAILY_WRITES, so one script cannot use up the database's daily quota for everyone. Games sent twice count twice.
+ */
+async function withinQuota(env, today, rows) {
+  const limit = Number(env.DAILY_WRITES ?? DAILY_WRITES);
+  const used = (await env.DB.prepare("SELECT n FROM quota WHERE day = ?1").bind(today).first())?.n ?? 0;
+  if (used + rows > limit) return false;
+  await env.DB.prepare("INSERT INTO quota (day, n) VALUES (?1, ?2) ON CONFLICT(day) DO UPDATE SET n = n + ?2").bind(today, rows).run();
+  return true;
+}
+
+const QUOTA_FULL = () => reply({ error: "the pool is full for today, try tomorrow" }, 503, { "retry-after": "3600" });
+
 async function readBody(request, env) {
   if (env.LIMITER) {
     const { success } = await env.LIMITER.limit({ key: request.headers.get("cf-connecting-ip") ?? "unknown" });
@@ -90,6 +125,7 @@ async function submit(request, env) {
   if (batch.length === 0 || batch.length > MAX_BATCH) return reply({ error: "send 1 to 20 games" }, 400);
   const rows = batch.map((game) => (body?.v === 3 ? validateGame(game, today) : validateLegacy(game, today))).filter(Boolean);
   if (rows.length === 0) return reply({ error: "invalid game" }, 400);
+  if (!(await withinQuota(env, today, rows.length))) return QUOTA_FULL();
 
   await env.DB.prepare(INSERT).bind(JSON.stringify(rows)).run();
   return reply({ ok: true, stored: rows.length });
@@ -228,6 +264,7 @@ async function submitConstructed(request, env) {
   const rows = batch.map((game) => validateConstructed(game, today)).filter(Boolean);
   if (rows.length === 0) return reply({ error: "invalid game" }, 400);
 
+  if (!(await withinQuota(env, Math.floor(Date.now() / DAY), rows.length))) return QUOTA_FULL();
   await env.DB.prepare(INSERT_CONSTRUCTED).bind(JSON.stringify(rows)).run();
   return reply({ ok: true, stored: rows.length });
 }
@@ -352,6 +389,32 @@ async function meta(request, env, ctx) {
   return response;
 }
 
+/**
+ * The lowest rating bracket of the top 50/20/5/1 % of the shared games (ratings are rounded down to 500), highest
+ * first walked down until the share is reached, with the games at or above it. Empty under minRated rated games; a
+ * floor with fewer than MIN_BRACKET_GAMES games at or above it is left out, and so is a narrower one that lands on the
+ * same bracket as a wider one (it would only repeat it). These are the pool's own players, not the whole ladder:
+ * players who share are likely above average.
+ */
+export function percentileFloors(rows, minRated = MIN_RATED_GAMES) {
+  const total = rows.reduce((sum, r) => sum + r.n, 0);
+  if (total < minRated) return [];
+  const sorted = [...rows].sort((a, b) => b.b - a.b);
+  const floors = [];
+  for (const top of BRACKET_TOPS) {
+    let seen = 0;
+    for (const r of sorted) {
+      seen += r.n;
+      if (seen * 100 >= total * top) {
+        if (seen >= MIN_BRACKET_GAMES && !floors.some((f) => f.bracket === r.b)) floors.push({ top, bracket: r.b, games: seen });
+        break;
+      }
+    }
+  }
+
+  return floors;
+}
+
 /** Works the totals out again and stores them. Skipped when no game came in and the totals are under a day old. */
 export async function rebuild(env, mode, force) {
   const last = (await env.DB.prepare("SELECT MAX(rowid) AS r FROM g").first())?.r ?? 0;
@@ -365,7 +428,7 @@ export async function rebuild(env, mode, force) {
   const w = "g.mode = ?1 AND g.day >= ?2";
   const q = (sql) => env.DB.prepare(sql).bind(mode, since);
   const q3 = (sql) => env.DB.prepare(sql).bind(mode, since, top);
-  const [totals, heroes, offers, boards, trinketOffers, trinketPicks, comps, tierups, odds, choiceOffers, choicePicks, plays] = (await env.DB.batch([
+  const [totals, heroes, offers, boards, trinketOffers, trinketPicks, comps, tierups, odds, choiceOffers, choicePicks, plays, ratings, heroTribes] = (await env.DB.batch([
     q(`SELECT COUNT(*) AS games, SUM(g.turns IS NOT NULL) AS detailed FROM g WHERE ${w}`),
     q3(`SELECT g.hero AS hero, COUNT(*) AS n, AVG(g.placement) AS avg, SUM(g.placement <= ?3) AS top, SUM(g.placement = 1) AS first
         FROM g WHERE ${w} GROUP BY g.hero`),
@@ -389,7 +452,30 @@ export async function rebuild(env, mode, force) {
          (SELECT g.rowid AS r, json_extract(j.value, '$[1]') AS card, MIN(json_extract(j.value, '$[0]')) AS t, g.placement AS pl
           FROM g, json_each(g.plays) j WHERE ${w} GROUP BY g.rowid, card)
        GROUP BY card HAVING n >= 3`),
+    q(`SELECT g.bracket AS b, COUNT(*) AS n FROM g WHERE ${w} AND g.bracket > 0 GROUP BY g.bracket`),
+    // Lobby tribes are validated tribe names (A-Z, 0-9, _), so they can be turned into a JSON array here.
+    q(`SELECT g.hero AS hero, t.value AS tribe, COUNT(*) AS n, AVG(g.placement) AS avg
+       FROM g, json_each('["' || replace(g.tribes, ',', '","') || '"]') t
+       WHERE ${w} AND g.tribes IS NOT NULL AND g.tribes <> '' AND json_valid('["' || replace(g.tribes, ',', '","') || '"]')
+       GROUP BY g.hero, t.value HAVING n >= ${MIN_CELL}`),
   ])).map((r) => r.results);
+
+  // Heroes and trinket picks per rating bracket: one pass each, a column set per bracket.
+  const floors = percentileFloors(ratings, Number(env.MIN_RATED_GAMES ?? MIN_RATED_GAMES));
+  let heroBrackets = [];
+  let trinketBrackets = [];
+  if (floors.length > 0) {
+    const cols = (value) => floors.map((_, i) => value(`?${i + 3}`, i)).join(", ");
+    const lowest = "?3"; // the top 50 % floor, the lowest of them
+    const args = [mode, since, ...floors.map((f) => f.bracket)];
+    [heroBrackets, trinketBrackets] = (await env.DB.batch([
+      env.DB.prepare(`SELECT g.hero AS hero, ${cols((f, i) => `SUM(g.bracket >= ${f}) AS n${i}, AVG(CASE WHEN g.bracket >= ${f} THEN g.placement END) AS a${i},
+          SUM(g.bracket >= ${f} AND g.placement <= ?${floors.length + 3}) AS t${i}, SUM(g.bracket >= ${f} AND g.placement = 1) AS f${i}`)}
+        FROM g WHERE ${w} AND g.bracket >= ${lowest} GROUP BY g.hero`).bind(...args, top),
+      env.DB.prepare(`SELECT j.value AS card, ${cols((f, i) => `SUM(g.bracket >= ${f}) AS n${i}, AVG(CASE WHEN g.bracket >= ${f} THEN g.placement END) AS a${i}`)}
+        FROM g, json_each(g.trinkets, '$.p') j WHERE ${w} AND g.bracket >= ${lowest} GROUP BY j.value`).bind(...args),
+    ])).map((r) => r.results);
+  }
 
   const offerBy = new Map(offers.map((r) => [r.hero, r]));
   const pickBy = new Map(trinketPicks.map((r) => [r.card, r]));
@@ -416,6 +502,16 @@ export async function rebuild(env, mode, force) {
       return { kind: r.kind, card: r.card, offered: r.n, picked: pick?.n ?? 0, avgPlacement: round(pick?.avg) };
     }),
     plays: plays.map((r) => ({ card: r.card, games: r.n, avgPlacement: round(r.avg), avgTurn: round(r.turn) })),
+    // Added in pool 0.17 (app 2.1 plan); older apps ignore them.
+    ratedGames: ratings.reduce((sum, r) => sum + r.n, 0),
+    percentiles: floors,
+    heroesByBracket: Object.fromEntries(floors.map((f, i) => [f.top, heroBrackets.filter((r) => r[`n${i}`] >= MIN_CELL).map((r) => ({
+      hero: r.hero, games: r[`n${i}`], avgPlacement: round(r[`a${i}`]), top: round(r[`t${i}`] / r[`n${i}`]), first: round(r[`f${i}`] / r[`n${i}`]),
+    }))])),
+    trinketsByBracket: Object.fromEntries(floors.map((f, i) => [f.top, trinketBrackets.filter((r) => r[`n${i}`] >= MIN_CELL).map((r) => ({
+      card: r.card, picked: r[`n${i}`], avgPlacement: round(r[`a${i}`]),
+    }))])),
+    heroTribes: heroTribes.map((r) => ({ hero: r.hero, tribe: r.tribe, games: r.n, avgPlacement: round(r.avg) })),
   });
 
   await env.DB.prepare(
