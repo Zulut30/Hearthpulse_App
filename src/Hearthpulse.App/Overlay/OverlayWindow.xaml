@@ -1074,6 +1074,12 @@
                 <o:GraveyardPanel />
             </o:MovablePanel>
 
+            <!-- ============ Constructed: the opponent's likely deck, top right beside your deck list (docs/opponent-deck.md) ============ -->
+            <o:MovablePanel Id="opponent-deck" Title="{i:Loc OpponentDeck.Title}" CanCompact="True" Shown="{Binding ShowLikelyDeck}"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,276,0">
+                <o:LikelyDeckPanel />
+            </o:MovablePanel>
+
             <!-- ============ Constructed: counters (bottom-left) ============ -->
             <o:MovablePanel Id="counters" Title="{i:Loc Overlay.Panel.Counters}" Shown="{Binding ShowCounters}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12,0,0,110">
                 <Border x:Name="CountersCard" Style="{StaticResource OverlayCard}" Width="214" o:OverlayHit.Interactive="True">

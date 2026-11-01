@@ -1,0 +1,9 @@
+{
+  "OpponentDeck.Title": "Вероятная колода",
+  "OpponentDeck.Setting": "Вероятная колода",
+  "OpponentDeck.SettingTip": "Самый играемый в мете Hearthpulse data список вероятного архетипа соперника, где отмечены уже сыгранные им карты. Только рейтинговые и обычные игры Constructed; учитываются лишь карты, которые соперник разыграл открыто из своей колоды.",
+  "OpponentDeck.Source": "Hearthpulse data · {0} · {1}",
+  "OpponentDeck.CoreOnly": "Списков нет: основные карты архетипа, по одной копии",
+  "OpponentDeck.OffList": "Не из списка · {0}",
+  "OpponentDeck.More": "и ещё {0}"
+}

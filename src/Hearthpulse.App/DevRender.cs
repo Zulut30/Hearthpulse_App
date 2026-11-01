@@ -161,6 +161,7 @@ public partial class App
             await RenderWidgetsAsync(folder);
             await RenderSecretsAsync(folder);
             await RenderGraveyardAsync(folder);
+            await RenderLikelyDeckAsync(folder);
 
             _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
             _overlayViewModel.LayoutEditing = true;

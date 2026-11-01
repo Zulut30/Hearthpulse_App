@@ -187,6 +187,7 @@ internal static partial class OffscreenRenderer
         await RenderArenaOverlayAsync(host, settings, overlayView, overlay, folder);
         await RenderSecretsAsync(host, settings, overlayView, overlay, folder);
         await RenderGraveyardAsync(host, settings, overlayView, overlay, folder);
+        await RenderLikelyDeckAsync(host, settings, overlayView, overlay, folder);
         await CardPoolRender.RenderAsync(host, settings, folder, path =>
         {
             overlayView.Fit(1920, 1080);

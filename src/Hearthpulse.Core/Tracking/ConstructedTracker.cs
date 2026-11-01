@@ -142,7 +142,7 @@ public sealed class ConstructedTracker : IPowerListener
                     card?.Cost ?? 0,
                     g.Count(),
                     g.Min(x => x.Turn),
-                    g.All(x => !x.Entity!.IsOriginalDeckCard));
+                    g.All(x => !x.Entity!.IsOriginalDeckCard)) { FromDeck = g.Count(x => x.Entity!.IsOriginalDeckCard) };
             })
             .OrderBy(p => p.Cost).ThenBy(p => p.Name, StringComparer.CurrentCulture)
             .ToList();
@@ -161,7 +161,7 @@ public sealed class ConstructedTracker : IPowerListener
         var guide = Deck is not null && game.IsConstructedLike && !MulliganArena.IsArena(game)
             ? Guide?.For(playerClass, Deck, game.FormatType, cards, mulligan ? cards.Get(game.OpponentHero?.CardId)?.CardClass : null, mulligan ? Mulligan.GoingFirst(game, cards) : null)
             : null;
-        return new ConstructedView(
+        var view = new ConstructedView(
             ToPlayerTurn(game.Turn),
             Deck?.Name,
             Deck is not null,
@@ -188,6 +188,27 @@ public sealed class ConstructedTracker : IPowerListener
             DeckMeta = DeckMetaFor(cards, playerClass, game.FormatType),
             OpponentArchetype = OpponentArchetypeFor(cards, opponentClass, game.GameType, game.FormatType, played),
         };
+        return view with { OpponentDeck = OpponentDeckFor(cards, opponentClass, view.OpponentArchetype, played) };
+    }
+
+    private (OpponentArchetypeView? Odds, string Key, LikelyDeckView? View) _opponentDeck;
+
+    /// <summary>
+    /// The likely list of the archetype the odds lead with, worked out again only when the odds or the played
+    /// starting-deck cards change. Only cards played face up from the starting deck count (never created ones).
+    /// </summary>
+    private LikelyDeckView? OpponentDeckFor(CardDb cards, string? opponentClass, OpponentArchetypeView? odds, IReadOnlyList<PlayedCard> played)
+    {
+        var fromDeck = played.Where(p => p.FromDeck > 0).ToDictionary(p => p.CardId, p => p.FromDeck, StringComparer.Ordinal);
+        var key = string.Join(',', fromDeck.Select(p => $"{p.Key}:{p.Value}"));
+        if (ReferenceEquals(_opponentDeck.Odds, odds) && _opponentDeck.Key == key)
+        {
+            return _opponentDeck.View;
+        }
+
+        var view = LikelyDeck.Build(Meta, odds, opponentClass, fromDeck, cards);
+        _opponentDeck = (odds, key, view);
+        return view;
     }
 
     private (ConstructedMeta? Meta, string Key, OpponentArchetypeView? View) _opponentArchetype;

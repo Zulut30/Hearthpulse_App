@@ -106,6 +106,9 @@ public sealed class AppSettings
     /// <summary>The Graveyard panel: the minions that died this game on each side (Constructed, Arena); off until turned on.</summary>
     public bool ShowGraveyard { get; set; }
 
+    /// <summary>The "Likely deck" panel: the opponent's likely meta list, its played cards marked (ranked and casual); off until turned on.</summary>
+    public bool ShowLikelyDeck { get; set; }
+
     /// <summary>
     /// The Arena draft helper (beta): an ArenaSmith score over each offered card (class win rate over each hero) and the
     /// draft panel with the deck so far, its mana curve, average score and class results. Off by default until the

@@ -15,7 +15,11 @@ public sealed record DeckCardRow(
     double DrawChance,
     bool IsAdded);
 
-public sealed record PlayedCard(string CardId, string Name, int Cost, int Count, int FirstTurn, bool IsCreated);
+public sealed record PlayedCard(string CardId, string Name, int Cost, int Count, int FirstTurn, bool IsCreated)
+{
+    /// <summary>Copies that came from the starting deck (the rest were created during the game).</summary>
+    public int FromDeck { get; init; }
+}
 
 public sealed record HandSlot(int Position, int Turn, string? CardId, string? CardName, bool FromMulligan, bool IsCoin, string? CreatedBy)
 {
@@ -87,6 +91,9 @@ public sealed record ConstructedView(
 
     /// <summary>The opponent's likely archetype from the cards it played face up; null without a fitting meta or a shown card.</summary>
     public Constructed.OpponentArchetypeView? OpponentArchetype { get; init; }
+
+    /// <summary>The opponent's likely list from the meta, its played copies marked (<c>docs/opponent-deck.md</c>).</summary>
+    public Constructed.LikelyDeckView? OpponentDeck { get; init; }
 
     /// <summary>The running turn's clock and the average turn of each player so far; null before the first turn.</summary>
     public TurnClockView? Turns { get; init; }

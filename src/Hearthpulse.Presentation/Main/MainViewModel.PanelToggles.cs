@@ -107,6 +107,7 @@ public sealed partial class MainViewModel
             Make(nameof(AppSettings.ShowDeckTracker), "\U000F0639", "Deck", true, s => s.ShowDeckTracker, (s, v) => s.ShowDeckTracker = v),
             Make(nameof(AppSettings.ShowOpponentTracker), "\U000F127B", "OpponentDeck", true, s => s.ShowOpponentTracker, (s, v) => s.ShowOpponentTracker = v),
             Make(nameof(AppSettings.ShowOpponentArchetype), "\U000F0B2F", "Archetype", true, s => s.ShowOpponentArchetype, (s, v) => s.ShowOpponentArchetype = v),
+            Make(nameof(AppSettings.ShowLikelyDeck), "\U000F0638", "LikelyDeck", false, s => s.ShowLikelyDeck, (s, v) => s.ShowLikelyDeck = v),
             Make(nameof(AppSettings.ShowTurnTimer), "\U000F051B", "TurnTimer", true, s => s.ShowTurnTimer, (s, v) => s.ShowTurnTimer = v),
             Make(nameof(AppSettings.ShowCounters), "\U000F0199", "Counters", true, s => s.ShowCounters, (s, v) => s.ShowCounters = v),
             Make(nameof(AppSettings.ShowCardPool), "\U000F1075", "CardPool", true, s => s.ShowCardPool, (s, v) => s.ShowCardPool = v),
