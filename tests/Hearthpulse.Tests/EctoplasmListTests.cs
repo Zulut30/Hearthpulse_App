@@ -45,6 +45,9 @@ public sealed class EctoplasmListTests
             Card(224, string.Empty, "SETASIDE", 2, "MINION", "tag=CREATOR value=35"),
             // Something else the cast made aside (no COPIED_FROM_ENTITY_ID): not a minion that died.
             Card(225, "DR_2", "SETASIDE", 1, "MINION", "tag=CREATOR value=35"),
+            // The opponent's copy were it logged with its card id, and a copied enchantment of ours: neither counts.
+            Copy(226, "DR_2", 2, 35, from: 50),
+            Copy(227, "DR_1", 1, 35, from: 40, type: "ENCHANTMENT"),
             Die(40, "DR_1", 1), Die(41, "PLAIN", 1), Die(42, "DR_1", 1), Die(50, "DR_2", 2),
         };
         var rule = MatchLists.RuleOf(MatchLists.Ectoplasm)!;
@@ -146,9 +149,9 @@ public sealed class EctoplasmListTests
     private static string[] Minion(int id, string cardId, int controller) => Card(id, cardId, "PLAY", controller, "MINION");
 
     /// <summary>The copy the cast sets aside, then marks with the minion it copies, as the real log does.</summary>
-    private static string[] Copy(int id, string cardId, int controller, int cast, int from) =>
+    private static string[] Copy(int id, string cardId, int controller, int cast, int from, string type = "MINION") =>
     [
-        .. Card(id, cardId, "SETASIDE", controller, "MINION", $"tag=CREATOR value={cast}"),
+        .. Card(id, cardId, "SETASIDE", controller, type, $"tag=CREATOR value={cast}"),
         $"DebugPrintPower() - TAG_CHANGE Entity={id} tag=COPIED_FROM_ENTITY_ID value={from} ",
     ];
 
