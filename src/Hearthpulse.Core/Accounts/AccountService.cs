@@ -235,7 +235,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// <summary>
     /// Uploads a replay the player chose to put on the site (plan 2.2, <see cref="Replay.ReplayUpload"/>): the link and
     /// the delete token, or an error code (SIGNED_OUT, OFFLINE, QUOTA_EXCEEDED, TOO_LARGE, RATE_LIMITED, REFUSED,
-    /// SERVER_ERROR). <paramref name="gameId"/> is the game's profile event id (<see cref="ProfileEvents.GameEventIdOfKey"/>).
+    /// SERVER_ERROR). <paramref name="gameId"/> is the game's profile event id (<see cref="ProfileEvents.ProfileGameId"/>).
     /// </summary>
     public async Task<(Replay.ReplayUploadResult? Result, string? Error)> UploadReplayAsync(string gzipBase64, string? gameId = null, CancellationToken cancellationToken = default)
     {

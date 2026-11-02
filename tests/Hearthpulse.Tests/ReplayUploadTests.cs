@@ -183,14 +183,26 @@ public sealed class ReplayUploadTests : IDisposable
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task The_game_s_profile_id_goes_with_the_upload_only_while_games_go_to_the_profile(bool toProfile)
+    [InlineData("Ranked", "GT_RANKED", null, true, true)]
+    [InlineData("Ranked", "GT_RANKED", null, false, false)]
+    [InlineData("Brawl", "GT_TAVERNBRAWL", null, true, false)]
+    [InlineData("Ranked", "GT_RANKED", Hearthpulse.Core.Migration.HdtImport.Source, true, false)]
+    public async Task The_game_s_profile_id_goes_only_for_a_game_the_profile_upload_sends(string mode, string gameType, string? source, bool toProfile, bool sent)
     {
         var site = new FakeReplaySite();
-        var (vm, _, name) = await LibraryAsync(site);
+        var key = $"20261101120000|Zulut#2187|{gameType}";
+        Directory.CreateDirectory(_dir);
+        var history = new HistoryStore(Path.Combine(_dir, "h.db"));
+        var start = new DateTime(2026, 11, 1, 12, 0, 0, DateTimeKind.Local);
+        history.Add(new GameRecord
+        {
+            Key = key, StartedAt = start, EndedAt = start.AddMinutes(9), Mode = mode, GameType = gameType, Format = "FT_STANDARD",
+            Result = "Win", PlayerName = "Zulut#2187", PlayerClass = "MAGE", OpponentClass = "ROGUE", HeroCardId = "HERO_08",
+            Source = source ?? "live",
+        });
+        var (vm, _, name) = await LibraryAsync(site, history);
         vm.Settings.UploadGamesToProfile = toProfile;
-        const string key = "20261101120000|Zulut#2187|GT_RANKED";
+        await vm.RefreshAsync();
         var card = new LibraryCard(ReplayShelf.Recent, name, key, battlegrounds: false) { HasReplay = true };
 
         vm.UploadLibraryCard(card, name);
@@ -198,9 +210,12 @@ public sealed class ReplayUploadTests : IDisposable
 
         var body = Assert.Single(site.Posts).Body;
         Assert.DoesNotContain("Zulut", body, StringComparison.Ordinal);
-        var gameId = ProfileEvents.GameEventIdOfKey(key)!;
-        Assert.Equal(ProfileEvents.EventId("game|20261101120000|GT_RANKED"), gameId);
-        Assert.Equal(toProfile, body.Contains($"\"gameId\":\"{gameId}\"", StringComparison.Ordinal));
+        Assert.Equal(sent, body.Contains("\"gameId\"", StringComparison.Ordinal));
+        if (sent)
+        {
+            Assert.Contains($"\"gameId\":\"{ProfileEvents.EventId("game|20261101120000|GT_RANKED")}\"", body, StringComparison.Ordinal);
+        }
+
         Assert.True(card.OnSite);
     }
 
@@ -252,13 +267,13 @@ public sealed class ReplayUploadTests : IDisposable
         return account;
     }
 
-    private async Task<(MainViewModel Vm, ReplayUploads Uploads, string Name)> LibraryAsync(FakeReplaySite site)
+    private async Task<(MainViewModel Vm, ReplayUploads Uploads, string Name)> LibraryAsync(FakeReplaySite site, HistoryStore? history = null)
     {
         var account = await SignedInAsync(site);
         var files = new ReplayLibrary(new ReplayStore(Path.Combine(_dir, "replays")), Path.Combine(_dir, "saved"), Path.Combine(_dir, "imported"));
         var name = files.Recent.Save("20261101120000|me#1|GT_RANKED", ReplayImportTests.Constructed())!;
         var uploads = new ReplayUploads(Path.Combine(_dir, "uploads.json"));
-        var vm = new MainViewModel(new HistoryStore(Path.Combine(_dir, "h.db")), new AppSettings()) { LibraryFiles = files, LibraryUploads = uploads };
+        var vm = new MainViewModel(history ?? new HistoryStore(Path.Combine(_dir, "h.db")), new AppSettings()) { LibraryFiles = files, LibraryUploads = uploads };
         vm.AttachAccount(account);
         return (vm, uploads, name);
     }

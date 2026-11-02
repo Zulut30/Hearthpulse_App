@@ -144,6 +144,16 @@ public static partial class ProfileEvents
         return parts.Length >= 3 ? EventId($"game|{parts[0]}|{parts[^1]}") : null;
     }
 
+    /// <summary>
+    /// The id of the game's event when the game is one the profile upload sends (the app's own record of a finished
+    /// Ranked, Casual, Battlegrounds, Duos or Arena game), else null. A web replay carries it only then: the site already
+    /// has that game, and its start time with it (plan 2.3).
+    /// </summary>
+    public static string? ProfileGameId(GameRecord game) =>
+        game.FromOtherTracker ? null
+        : game.Mode == "Arena" ? (game.IsAbandoned || game.StartedAt.ToUniversalTime() < EarliestGame ? null : GameEventId(game))
+        : ForGame(game)?.EventId;
+
     private static ProfileEvent? BattlegroundsEvent(GameRecord game, Func<string, string> baseHero)
     {
         var duos = game.Mode == "Duos";
