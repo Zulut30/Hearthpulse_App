@@ -101,6 +101,17 @@ class CoverageRatchetTests(unittest.TestCase):
         self.assertIn("Core: floor 85.0 < 85.3", out.getvalue())
         self.assertNotIn("UI: floor", out.getvalue())
 
+    def test_an_allowance_set_in_only_one_file_is_compared_with_the_default(self):
+        base = self.root / "base.json"
+        base.write_text(json.dumps({"floors": {"Core": 85.3}}), encoding="utf-8")
+        wider = self.root / "wider.json"
+        wider.write_text(json.dumps({"allowed_drop": 1.0, "floors": {"Core": 85.3}}), encoding="utf-8")
+        out = StringIO()
+        with redirect_stdout(out):
+            self.assertEqual(1, ratchet.main(["--baseline", str(wider), "--floors-not-below", str(base)]))
+            self.assertEqual(0, ratchet.main(["--baseline", str(base), "--floors-not-below", str(wider)]))
+        self.assertIn("allowed_drop 1.0 > 0.5", out.getvalue())
+
     def test_report_only_never_fails(self):
         self.write("a", report("D:\\repo\\", [("src\\Hearthpulse.Core\\A.cs", [(1, 0)])]))
         out = StringIO()

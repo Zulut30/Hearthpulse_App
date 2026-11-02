@@ -71,18 +71,29 @@ public sealed class MainViewModelHostTests : IDisposable
         Assert.False(settings.HistoryImported);
     }
 
-    [Fact]
-    public async Task An_import_marks_the_history_imported_filled_and_read_again()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task An_import_marks_the_history_imported_and_says_so_when_asked_or_games_were_added(bool force)
     {
+        // An empty game folder: no log sessions, so no progress report can arrive after the result.
         var install = TestDataFolder.Scratch("hp-host-install");
         Directory.CreateDirectory(install);
-        var settings = new AppSettings();
-        var vm = new MainViewModel(_history, settings);
+        try
+        {
+            var settings = new AppSettings();
+            var vm = new MainViewModel(_history, settings);
 
-        await vm.ImportLogsAsync(install, force: false);
+            await vm.ImportLogsAsync(install, force);
 
-        Assert.Equal((true, true, true), (settings.HistoryImported, settings.HistoryStatsFilled, settings.HistoryCardsFilled));
-        TestDataFolder.TryDelete(install);
+            Assert.Equal((true, true, true), (settings.HistoryImported, settings.HistoryStatsFilled, settings.HistoryCardsFilled));
+            // "Import again" always reports; the import at start says nothing when no games were added.
+            Assert.Equal(force ? Loc.F("Host.Busy.Imported", 0, 0) : string.Empty, vm.Busy);
+        }
+        finally
+        {
+            TestDataFolder.TryDelete(install);
+        }
     }
 
     /// <summary>

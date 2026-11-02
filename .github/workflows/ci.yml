@@ -86,17 +86,26 @@ jobs:
         if: ${{ !cancelled() }}
         run: python -B -I tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation --report-only --summary "$env:GITHUB_STEP_SUMMARY"
       # The ratchet, only on green tests (a failed suite covers less): a module more than 0.5 pp under its floor in
-      # tools/coverage/baseline.json fails the job, and no floor may be lower than on main.
+      # tools/coverage/baseline.json fails the job, and no floor may be lower than before this change: on a push the
+      # pushed range's previous commit, on a pull request its base branch (nothing to compare with: skipped).
       - name: Coverage ratchet
+        env:
+          BEFORE: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           # pwsh goes on after a failed program: each exit code is checked.
           python -B -I tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          git fetch --no-tags --depth=1 origin main
+          if ($env:GITHUB_EVENT_NAME -eq 'pull_request') { $base = $env:BASE_REF }
+          elseif ($env:BEFORE -and $env:BEFORE -notmatch '^0+$') { $base = $env:BEFORE }
+          else { 'Coverage floors: no earlier commit to compare with, skipped.'; exit 0 }
+          git fetch --no-tags --depth=1 origin $base
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          git show FETCH_HEAD:tools/coverage/baseline.json | Set-Content -Encoding utf8 "$env:RUNNER_TEMP/baseline-main.json"
+          git cat-file -e FETCH_HEAD:tools/coverage/baseline.json 2>$null
+          if ($LASTEXITCODE) { 'Coverage floors: no baseline.json before this change, skipped.'; exit 0 }
+          git show FETCH_HEAD:tools/coverage/baseline.json | Set-Content -Encoding utf8 "$env:RUNNER_TEMP/baseline-before.json"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          python -B -I tools/coverage/coverage_ratchet.py --floors-not-below "$env:RUNNER_TEMP/baseline-main.json"
+          python -B -I tools/coverage/coverage_ratchet.py --floors-not-below "$env:RUNNER_TEMP/baseline-before.json"
       - name: Test results
         if: always()
         uses: actions/upload-artifact@v4
