@@ -235,9 +235,9 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     /// <summary>
     /// Uploads a replay the player chose to put on the site (plan 2.2, <see cref="Replay.ReplayUpload"/>): the link and
     /// the delete token, or an error code (SIGNED_OUT, OFFLINE, QUOTA_EXCEEDED, TOO_LARGE, RATE_LIMITED, REFUSED,
-    /// SERVER_ERROR).
+    /// SERVER_ERROR). <paramref name="gameId"/> is the game's profile event id (<see cref="ProfileEvents.ProfileGameId"/>).
     /// </summary>
-    public async Task<(Replay.ReplayUploadResult? Result, string? Error)> UploadReplayAsync(string gzipBase64, CancellationToken cancellationToken = default)
+    public async Task<(Replay.ReplayUploadResult? Result, string? Error)> UploadReplayAsync(string gzipBase64, string? gameId = null, CancellationToken cancellationToken = default)
     {
         if (await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false) is not { } token)
         {
@@ -246,7 +246,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
         try
         {
-            var (status, body) = await client.PostReplayAsync(token, gzipBase64, cancellationToken).ConfigureAwait(false);
+            var (status, body) = await client.PostReplayAsync(token, gzipBase64, gameId, cancellationToken).ConfigureAwait(false);
             if (status == 201 && Replay.ReplayUploadResult.Parse(body) is { } result)
             {
                 return (result, null);

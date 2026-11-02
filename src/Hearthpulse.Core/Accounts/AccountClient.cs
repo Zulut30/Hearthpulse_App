@@ -187,14 +187,16 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
     }
 
     /// <summary>
-    /// <c>POST tracker/replays</c> (plan 2.2): a replay the player chose to upload, gzip in base64. Returns the status and the
+    /// <c>POST tracker/replays</c> (plan 2.2): a replay the player chose to upload, gzip in base64, with the game's profile
+    /// event id when given (plan 2.3: the site links the replay in the profile's game list). Returns the status and the
     /// body; only a failed transport throws (<c>OFFLINE</c>).
     /// </summary>
-    public async Task<(int Status, string Body)> PostReplayAsync(string accessToken, string gzipBase64, CancellationToken cancellationToken = default)
+    public async Task<(int Status, string Body)> PostReplayAsync(string accessToken, string gzipBase64, string? gameId = null, CancellationToken cancellationToken = default)
     {
+        object body = gameId is null ? new { v = 1, hpr = gzipBase64 } : new { v = 1, hpr = gzipBase64, gameId };
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(BaseUri, "tracker/replays"))
         {
-            Content = new StringContent(JsonSerializer.Serialize(new { v = 1, hpr = gzipBase64 }), System.Text.Encoding.UTF8, "application/json"),
+            Content = new StringContent(JsonSerializer.Serialize(body), System.Text.Encoding.UTF8, "application/json"),
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         return await SendRawAsync(request, cancellationToken).ConfigureAwait(false);
