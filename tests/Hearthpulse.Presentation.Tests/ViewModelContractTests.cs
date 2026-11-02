@@ -189,6 +189,23 @@ public sealed class ViewModelContractTests
         false, true, false, [], ["BEAST", "DRAGON"], true, [], [], [], [], null, 0, [], [])
     { CombatOdds = new CombatOdds(0.6, 0.1, 0.3, 0) { Runs = 1000 } };
 
+    [Theory]
+    [InlineData("Hearthpulse pool stats — free games today: 2 of 3 left.")]
+    [InlineData(null)]
+    public void Overlay_usage_note_is_the_same_line_in_both_hosts(string? note)
+    {
+        // Plan 3.1: what is left of today's free games with the stats pool, or why its numbers are missing.
+        var snapshot = LiveSnapshot.Empty with { Battlegrounds = Fight() with { UsageNote = note }, InGame = true, HearthstoneRunning = true };
+        var wpf = new WpfOverlay();
+        var ava = new AvaOverlay();
+        var settings = new AppSettings { ShowTurnTimer = false };
+        wpf.Update(snapshot, CardDb.Empty, settings, null, null);
+        ava.Update(snapshot, CardDb.Empty, settings, null, null);
+
+        Assert.Equal(note ?? string.Empty, wpf.UsageNote);
+        Assert.Equal(wpf.UsageNote, ava.UsageNote);
+    }
+
     [Fact]
     public void Overlay_odds_keep_identical_values_and_the_hosts_original_binding_types()
     {

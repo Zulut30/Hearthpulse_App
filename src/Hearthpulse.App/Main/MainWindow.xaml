@@ -1205,6 +1205,11 @@
                                             <Hyperlink Command="{Binding OpenAccountProfile}" Foreground="{StaticResource Accent}"><Run Text="{i:Loc Settings.Account.OpenProfile}" /></Hyperlink>
                                             <Run Text="&#xF03CC;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource Accent}" />
                                         </TextBlock>
+                                        <!-- Plan 3.1: the subscription that lifts the daily free limit of the pool's stats in a game -->
+                                        <TextBlock Margin="0,4,0,0">
+                                            <Hyperlink Command="{Binding OpenAccountSubscription}" Foreground="{StaticResource Accent}"><Run Text="{i:Loc Settings.Account.Subscription}" /></Hyperlink>
+                                            <Run Text="&#xF03CC;" FontFamily="{StaticResource IconFont}" Foreground="{StaticResource Accent}" />
+                                        </TextBlock>
                                         <!-- Games to the profile on the site ("My statistics") -->
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Upload.Switch}" IsChecked="{Binding UploadGames}" Margin="0,14,0,4">
                                             <CheckBox.ToolTip>

@@ -1090,6 +1090,13 @@
                                             <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
                                         </StackPanel>
                                     </Button>
+                                    <!-- Plan 3.1: the subscription that lifts the daily free limit of the pool's stats in a game -->
+                                    <Button Classes="bare" Command="{Binding OpenAccountSubscription}" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{i:Loc Settings.Account.Subscription}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                                            <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
                                     <!-- Games to the profile on the site ("My statistics") -->
                                     <CheckBox Classes="switch" Content="{i:Loc Upload.Switch}" IsChecked="{Binding UploadGames}" Margin="0,14,0,4">
                                         <ToolTip.Tip>

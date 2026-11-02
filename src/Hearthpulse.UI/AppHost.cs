@@ -69,6 +69,11 @@ public sealed partial class AppHost : IDisposable
         Session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(Api)));
         Session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(Api)));
         Session.SetBgLeaderboards(new BgLeaderboardSource(Api));
+        // Daily free use of the stats pool's numbers (plan 3.1); a decision makes the session publish again.
+        Usage = new UsageGate(accountClient, Account, UsageGate.DefaultPath);
+        Session.Advisor.Usage = Usage;
+        Usage.Changed += () => Dispatcher.UIThread.Post(() => Session.SetMeta(Session.Advisor.Meta));
+        Session.GameFinished += _ => Usage.GameFinished();
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
         Uploader = ProfileUploader.For(accountClient, Account, () => Settings.UploadGamesToProfile, History);
@@ -162,6 +167,9 @@ public sealed partial class AppHost : IDisposable
 
     /// <summary>Sends finished games to the hearthpulse.net profile while signed in (Settings, account card).</summary>
     public ProfileUploader Uploader { get; }
+
+    /// <summary>Daily free use of the stats pool's numbers in the overlay (plan 3.1).</summary>
+    public UsageGate Usage { get; }
 
     public HistoryStore History { get; }
 
@@ -394,6 +402,8 @@ public sealed partial class AppHost : IDisposable
     /// </summary>
     public async Task LoadMetaAsync()
     {
+        // The limits on their own: a slow answer never holds the meta back.
+        Usage.RefreshLimitsAsync().Forget("Usage limits");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings);
         if (meta is not null)
         {

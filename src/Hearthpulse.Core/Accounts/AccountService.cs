@@ -124,6 +124,11 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
     public bool OpenTrackerData() => (openBrowser ?? SystemBrowser.Open)(TrackerDataUrl);
 
+    /// <summary>The account page's plan section: the subscription that lifts the app's daily free limits (plan 3.1).</summary>
+    public Uri SubscriptionUrl => new UriBuilder(ProfileUrl) { Fragment = "account-access" }.Uri;
+
+    public bool OpenSubscription() => (openBrowser ?? SystemBrowser.Open)(SubscriptionUrl);
+
     /// <summary>Opens the page where the player confirms <paramref name="device"/>, with the code filled in when the site allows.</summary>
     public bool OpenSignInPage(DeviceCode device) => (openBrowser ?? SystemBrowser.Open)(device.VerificationUriComplete ?? device.VerificationUri);
 
@@ -266,6 +271,34 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         catch (AccountException ex)
         {
             return (null, ex.Code);
+        }
+    }
+
+    /// <summary>
+    /// Claims one game of a limited feature on the site (plan 3.1, <see cref="UsageGate"/>): the site's decision, or null
+    /// when signed out, offline or the answer is not one (the gate then counts the game on this machine).
+    /// </summary>
+    public async Task<UsageClaim?> ClaimUsageAsync(string feature, string gameId, CancellationToken cancellationToken = default)
+    {
+        if (await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false) is not { } token)
+        {
+            return null;
+        }
+
+        try
+        {
+            var (status, body) = await client.PostUsageClaimAsync(token, feature, gameId, cancellationToken).ConfigureAwait(false);
+            if (status == 200 && UsageClaim.Parse(body) is { } claim)
+            {
+                return claim;
+            }
+
+            Diag.Info($"account: usage claim answered {status}");
+            return null;
+        }
+        catch (AccountException)
+        {
+            return null;
         }
     }
 

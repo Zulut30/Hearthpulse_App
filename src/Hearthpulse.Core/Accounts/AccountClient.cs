@@ -202,6 +202,24 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
         return await SendRawAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary><c>GET usage/limits</c> (plan 3.1): whether daily free limits are on and their numbers; public, no sign-in.</summary>
+    public async Task<(int Status, string Body)> GetUsageLimitsAsync(CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(BaseUri, "usage/limits"));
+        return await SendRawAsync(request, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary><c>POST usage/claim</c> (plan 3.1): one game of a limited feature; the site counts it and decides.</summary>
+    public async Task<(int Status, string Body)> PostUsageClaimAsync(string accessToken, string feature, string gameId, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(BaseUri, "usage/claim"))
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new { feature, gameId }), System.Text.Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return await SendRawAsync(request, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary><c>DELETE tracker/replays/{id}</c> with the token the upload handed out (no sign-in needed).</summary>
     public async Task<int> DeleteReplayAsync(string id, string deleteToken, CancellationToken cancellationToken = default)
     {
