@@ -130,8 +130,10 @@ public sealed partial class BattlegroundsTracker
         };
     }
 
+    /// <summary>A trinket: by its type, or by its id when the type is missing; not the enchantments and spells a trinket makes.</summary>
     private static bool IsTrinket(Entity e) =>
-        e.CardType == "BATTLEGROUND_TRINKET" || e.CardId.Contains("_MagicItem_", StringComparison.Ordinal);
+        e.CardType == "BATTLEGROUND_TRINKET"
+        || (e.CardId.Contains("_MagicItem_", StringComparison.Ordinal) && e.CardType is not ("ENCHANTMENT" or "SPELL" or "MINION"));
 
     private IReadOnlyList<BgTrinketOption> PendingTrinkets()
     {

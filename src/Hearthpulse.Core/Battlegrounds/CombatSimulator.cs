@@ -346,12 +346,13 @@ public static class CombatSimulator
     }
 
     /// <summary>
-    /// Minions with unknown effects, plus player-level extras that the combat-relevance table marks as changing a fight.
-    /// Unknown extras (hero powers, trinkets, cards newer than the table) cannot be classified and are not counted.
+    /// Minions with unknown effects, plus player-level extras that change a fight without a registered effect: those the
+    /// tables mark as acting in combat, and those no table knows (every hero power, trinket, quest reward and anomaly of
+    /// the card data has a row, so an unknown one is newer than the data and its effect cannot be known).
     /// </summary>
     private static int Unsimulated(SimSide side, bool isOpponent, EffectRegistry effects) =>
         side.Minions.Count(m => m.HasUnsimulatedEffect)
-        + side.Extras.Count(id => CombatRelevance.Find(id) is { Relevance: Relevance.Relevant }
+        + side.Extras.Count(id => CombatRelevance.Find(id) is null or { Relevance: Relevance.Relevant }
                                   && !effects.Implements(id, golden: false, isOpponent));
 
     /// <summary>Runs one fight with the given random source and returns the survivors (and a log when <paramref name="trace"/>).</summary>
