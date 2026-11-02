@@ -52,7 +52,7 @@ public sealed class MatchXamlLoadTests
         var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Tavern", 0, 0, 1)));
         var history = new HistoryStore(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
-        var model = new MatchViewModel(new WpfMain(history, new AppSettings()));
+        var model = new MatchViewModel(new WpfMain(history, new AppSettings(), TestApp.Data));
         var view = new MatchView { DataContext = model };
 
         model.BeginLoading();

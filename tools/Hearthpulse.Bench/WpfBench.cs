@@ -188,7 +188,7 @@ internal static class WpfBench
         var prefetch = serial ? null : StartupPrefetch.Start(settings, http);
         var history = new HistoryStore(AppPaths.Database);
         Step("HistoryStore open");
-        var main = OffScreen(new MainWindow(new MainViewModel(history, settings)));
+        var main = OffScreen(new MainWindow(new MainViewModel(history, settings, Hearthpulse.Core.Hosting.AppData.FromAppPaths())));
         Step("new MainWindow");
         var overlay = new OverlayWindow(new OverlayViewModel(), settings);
         Step("new OverlayWindow");
@@ -265,7 +265,7 @@ internal static class WpfBench
         }
 
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
-        var vm = new MainViewModel(history, settings);
+        var vm = new MainViewModel(history, settings, Hearthpulse.Core.Hosting.AppData.FromAppPaths());
         var main = OffScreen(new MainWindow(vm));
         Memory($"+ history {history.GameCount()} games, new MainWindow");
         main.Show();
@@ -458,7 +458,7 @@ internal static class WpfBench
         // Settings open on the tab saved last; start from General so every tab is measured on its own.
         var savedTab = settings.SettingsTab;
         settings.SettingsTab = "General";
-        var vm = new MainViewModel(history, settings);
+        var vm = new MainViewModel(history, settings, Hearthpulse.Core.Hosting.AppData.FromAppPaths());
         var main = OffScreen(new MainWindow(vm));
         main.Show();
         Pump();

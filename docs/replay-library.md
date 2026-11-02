@@ -49,8 +49,10 @@ Power.log (`ReplayImport.ImportFile`). A foreign file is untrusted:
 - **Format line** `HPR2`-`HPR4` (`HPR1` and newer ones: "format not supported"; anything else: "not a replay").
 - **Grammar:** every line must match its format (Constructed: `ConstructedLine` in `ReplayImport`, the format 3 table
   of match-replay.md; Battlegrounds: `BattlegroundsReplayGrammar`; post-game `N`/`K`), else the whole file is refused
-  ("damaged or altered"). Card ids are `[A-Za-z0-9_]{1,64}`, tags come from the recorder's lists, numbers are bounded,
-  nothing else may be on a line. A refused file leaves nothing behind.
+  ("damaged or altered"). Card ids look like the game's (letters and digits with an underscore, or one of the 11 real
+  ids without one, `ReplayImport.Card`): a player's name in a card's place is refused (property tests, Etalon T4).
+  Tags come from the recorder's lists, numbers are bounded, nothing else may be on a line. A refused file leaves nothing
+  behind.
 - **Hidden information is cleaned, not refused:** a card id in the opponent's hand or secret (a quest stays face up
   only when the card data says it is one) becomes a card back and its tag lines go; Battlegrounds: Bob's offer during
   a combat and the combat opponent outside one are dropped, and cards still shown when they must leave view get an `X`

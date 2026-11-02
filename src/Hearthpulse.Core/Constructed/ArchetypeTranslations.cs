@@ -50,9 +50,6 @@ public sealed class ArchetypeTranslations
     /// <summary>No names: every archetype keeps its built-in label.</summary>
     public static ArchetypeTranslations Empty { get; } = new(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
 
-    /// <summary>The list the app loaded (<see cref="Empty"/> until then); set by the hosts.</summary>
-    public static ArchetypeTranslations Current { get; set; } = Empty;
-
     /// <summary>How many names the list has.</summary>
     public int Count => _russian.Count;
 

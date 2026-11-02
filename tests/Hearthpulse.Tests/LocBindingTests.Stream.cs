@@ -31,7 +31,7 @@ public sealed partial class LocBindingTests
         var theme = Theme();
         var window = new Window { Width = 1260, Height = 840 };
         var settings = new AppSettings();
-        var model = new MainViewModel(new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-stream-{Guid.NewGuid():N}.db")), settings);
+        var model = new MainViewModel(new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-stream-{Guid.NewGuid():N}.db")), settings, TestDataFolder.App);
         try
         {
             var view = new MainView { DataContext = model };

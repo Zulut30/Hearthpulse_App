@@ -83,6 +83,13 @@ python-hearthstone (game tag names)
   Licence: MIT
   https://github.com/HearthSim/python-hearthstone
 
+Used only by the test projects (not shipped in the apps):
+
+CsCheck (property-based tests)
+  Copyright (c) Anthony Lloyd
+  Licence: Apache-2.0
+  https://github.com/AnthonyLloyd/CsCheck
+
 Card data and card images are loaded at run time from HearthstoneJSON (https://hearthstonejson.com).
 Card names, texts and art are (c) Blizzard Entertainment, Inc.
 The mana gem picture (Assets/mana-gem.png) is cut from a HearthstoneJSON card render and is (c) Blizzard
@@ -560,7 +567,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ==============================================================================
-Apache License 2.0 - Material Design Icons, SQLitePCLRaw
+Apache License 2.0 - Material Design Icons, SQLitePCLRaw, CsCheck (tests only)
 ==============================================================================
 Apache License
                            Version 2.0, January 2004

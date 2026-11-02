@@ -23,7 +23,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Setup_banner_wraps_a_long_warning_inside_its_card() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         // The narrowest window and every log missing: the warning is far longer than one line.
         var (window, root) = Open(model, "Home", width: 1040);
         model.Apply(LiveSnapshot.Empty with
@@ -48,7 +48,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Overlay_size_and_opacity_sit_right_under_the_master_switch() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, _) = Open(model, "Settings", "Overlay");
         var master = Named<CheckBox>(window, "OverlaySetting");
         var switches = Named<StackPanel>(window, "OverlayPanelSwitches");
@@ -73,7 +73,7 @@ public sealed partial class UxPolishContractTests
     public void Constructed_meta_says_unavailable_instead_of_blaming_the_filters(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.English);
-        dynamic model = wpf ? new WpfMain(History(), new AppSettings()) : new AvaMain(History(), new AppSettings());
+        dynamic model = wpf ? new WpfMain(History(), new AppSettings(), TestApp.Data) : new AvaMain(History(), new AppSettings(), TestApp.Data);
         model.ShowConstructedFormat("FT_STANDARD");
         AssertStates(model, loading: true, unavailable: false, empty: false, status: false);
 
@@ -104,7 +104,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Constructed_meta_tabs_show_one_state_at_a_time() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, root) = Open(model, "Standard");
         var view = Logical<Hearthpulse.App.Main.Meta.ConstructedMetaView>(window).Single();
         // The view merges its own copy of the main look: its empty-state style, not the window's.
@@ -142,7 +142,7 @@ public sealed partial class UxPolishContractTests
         Loc.Instance.SetLanguage(Loc.English);
         try
         {
-            dynamic model = wpf ? new WpfMain(History(), new AppSettings()) : new AvaMain(History(), new AppSettings());
+            dynamic model = wpf ? new WpfMain(History(), new AppSettings(), TestApp.Data) : new AvaMain(History(), new AppSettings(), TestApp.Data);
 
             // Arena: loading until the host answers, then "unavailable" when its load failed.
             Assert.True((bool)model.ArenaCommunityLoading);
@@ -185,7 +185,7 @@ public sealed partial class UxPolishContractTests
         app.Resources.MergedDictionaries.Clear();
         app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1)));
         app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/Hearthpulse;component/Main/MainLook.xaml") });
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var view = new Hearthpulse.App.Main.Stats.ArenaStatsView { DataContext = model };
         var host = new Border { Child = view };
         host.Measure(new Size(1180, 4000));

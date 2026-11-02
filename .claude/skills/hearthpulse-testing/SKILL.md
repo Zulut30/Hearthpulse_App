@@ -152,6 +152,17 @@ that wait only bounds a hang (10 s or more), it never decides the result.
 - Prefer OS-neutral tests: e.g. simulate a failed write by putting a directory where the temp file goes (what
   `596a54b` did) instead of relying on Windows file locks.
 - Paths: `Path.Combine`, no `\` literals; dates: avoid midnight/UTC edges (use local noon).
+- Formatted times and numbers: compare with what the culture itself writes (`value.ToString("t", culture)`), never a
+  fixed pattern: ICU on Linux and macOS writes ru-RU short time as `00:00`, Windows as `0:00`.
+
+### Property tests (CsCheck)
+
+`tests/Hearthpulse.Tests/Properties/` (Etalon T4; CsCheck, Apache-2.0, tests only): invariants on generated input, for
+rules that must hold for *any* data — the simulator (odds sum to 1, no negative damage, the same fight from the other
+side, fixed seed → fixed fight) and the sanitizers (no name, BattleTag, `GameAccountId`, user path or hidden-zone card
+leaves in an imported, shared or uploaded replay or a crash report). A failure prints a seed: rerun with
+`CsCheck_Seed=<seed>` to get the same shrunk case. `Gen.Char["..."]` takes the characters of the string as they are, not
+ranges: spell the alphabet out. Keep iterations so the whole folder runs in about a second.
 
 ## Checklist for a new feature
 

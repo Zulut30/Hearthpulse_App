@@ -40,7 +40,6 @@
 
   <ItemGroup>
     <Resource Include="Assets\hearthpulse.ico" />
-    <Resource Include="Assets\hearthpulse.png" />
     <!-- Hearthstone's mana gem (c) Blizzard Entertainment, cut by tools/mana/extract_mana_gem.py -->
     <Resource Include="Assets\mana-gem.png" />
     <!-- Montserrat: SIL Open Font License 1.1. Material Design Icons: Pictogrammers (Apache 2.0). -->

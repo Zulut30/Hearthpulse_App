@@ -44,7 +44,7 @@ internal static class GamesBench
         // The history the games are recorded into: a scratch copy, so the data copy's own history stays as it was.
         var db = Path.Combine(Path.GetTempPath(), $"hp-bench-games-{Guid.NewGuid():N}.db");
         var history = new HistoryStore(db);
-        var vm = new MainViewModel(history, settings);
+        var vm = new MainViewModel(history, settings, Hearthpulse.Core.Hosting.AppData.FromAppPaths());
         MainWindow? main = null;
         if (Environment.GetEnvironmentVariable("HP_BENCH_MAIN") != "0")
         {

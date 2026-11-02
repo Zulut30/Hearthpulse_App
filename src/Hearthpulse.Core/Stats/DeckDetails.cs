@@ -79,10 +79,11 @@ public static class DeckDetails
     /// there (every game named by the same meta, so matchups do not mix sources or patches); without one, the archetype
     /// saved with the game. Null when it cannot be told.
     /// </summary>
-    public static string? OpponentArchetype(GameRecord game, ConstructedMeta? meta) =>
+    /// <param name="names">The Russian archetype names fetched this run, for an archetype saved with the game.</param>
+    public static string? OpponentArchetype(GameRecord game, ConstructedMeta? meta, ArchetypeTranslations? names = null) =>
         ArchetypeGuess.FitsFormat(meta, game.Format) && game.OpponentCards is not null
             ? ArchetypeGuess.FromSeenCards(meta, game.OpponentClass, GameCards.Turns(game.OpponentCards).Select(c => c.CardId))?.Name
-            : game.OpponentArchetype is { Length: > 0 } saved ? ArchetypeTranslations.Current.Display(saved) : null;
+            : game.OpponentArchetype is { Length: > 0 } saved ? (names ?? ArchetypeTranslations.Empty).Display(saved) : null;
 
     /// <summary>Results per opponent class, most played first.</summary>
     public static IReadOnlyList<DeckMatchup> ByOpponentClass(IReadOnlyList<GameRecord> games) =>
@@ -93,8 +94,8 @@ public static class DeckDetails
             .ToList();
 
     /// <summary>Results per opponent archetype where it was told (<see cref="OpponentArchetype"/>), most played first.</summary>
-    public static IReadOnlyList<DeckMatchup> ByOpponentArchetype(IReadOnlyList<GameRecord> games, ConstructedMeta? meta) =>
-        games.Select(g => (Game: g, Archetype: OpponentArchetype(g, meta)))
+    public static IReadOnlyList<DeckMatchup> ByOpponentArchetype(IReadOnlyList<GameRecord> games, ConstructedMeta? meta, ArchetypeTranslations? names = null) =>
+        games.Select(g => (Game: g, Archetype: OpponentArchetype(g, meta, names)))
             .Where(x => x.Archetype is not null && x.Game.OpponentClass.Length > 0)
             .GroupBy(x => (x.Game.OpponentClass, x.Archetype!))
             .Select(g => new DeckMatchup($"{g.Key.OpponentClass}|{g.Key.Item2}", g.Key.OpponentClass, g.Key.Item2, WinLoss.Of(g.Select(x => x.Game))))
@@ -102,7 +103,7 @@ public static class DeckDetails
             .ToList();
 
     /// <summary>The games of one matchup (<see cref="DeckMatchup.Key"/>), or all of them for null.</summary>
-    public static IReadOnlyList<GameRecord> Filter(IReadOnlyList<GameRecord> games, string? matchupKey, ConstructedMeta? meta)
+    public static IReadOnlyList<GameRecord> Filter(IReadOnlyList<GameRecord> games, string? matchupKey, ConstructedMeta? meta, ArchetypeTranslations? names = null)
     {
         if (string.IsNullOrEmpty(matchupKey))
         {
@@ -116,7 +117,7 @@ public static class DeckDetails
         }
 
         var (opponentClass, archetype) = (matchupKey[..split], matchupKey[(split + 1)..]);
-        return games.Where(g => g.OpponentClass == opponentClass && OpponentArchetype(g, meta) == archetype).ToList();
+        return games.Where(g => g.OpponentClass == opponentClass && OpponentArchetype(g, meta, names) == archetype).ToList();
     }
 
     /// <summary>

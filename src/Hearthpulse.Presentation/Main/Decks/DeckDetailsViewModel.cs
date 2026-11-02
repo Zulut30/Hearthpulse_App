@@ -415,7 +415,7 @@ public sealed class DeckDetailsViewModel : Observable
     {
         // The family's games again with their card columns (lists read the history without them).
         var all = _owner.History.WithCards(family.Games);
-        var games = DeckDetails.Filter(all, matchup, meta);
+        var games = DeckDetails.Filter(all, matchup, meta, _owner.ArchetypeNames);
         var summary = DeckDetails.Summary(games);
         var deckRate = summary.Record.WinRate;
         var format = FormatName(family.Format);
@@ -455,7 +455,7 @@ public sealed class DeckDetailsViewModel : Observable
                 p.WinRate * 100,
                 Percent(p.WinRate),
                 p.Game.Result,
-                Opponent(p.Game, meta),
+                Opponent(p.Game, meta, _owner.ArchetypeNames),
                 GameDetail(p.Game),
                 MainViewModel.When(p.Game.StartedAt),
                 Loc.P("Deck.Chart.SoFar", p.SoFar.Games, p.SoFar.Wins, p.SoFar.Losses),
@@ -465,7 +465,7 @@ public sealed class DeckDetailsViewModel : Observable
 
         // Matchups count every game of the deck: they are the filter, not filtered.
         var classes = DeckDetails.ByOpponentClass(all);
-        var archetypes = DeckDetails.ByOpponentArchetype(all, meta);
+        var archetypes = DeckDetails.ByOpponentArchetype(all, meta, _owner.ArchetypeNames);
         // By the clicked column; ties keep the most played (then the best) first.
         List<(DeckMatchup Matchup, DeckMatchupRow Row)> Sorted(IEnumerable<DeckMatchup> list) => TableSort.Apply(
                 list.OrderByDescending(m => m.Record.Games).ThenByDescending(m => m.Record.WinRate ?? -1).Select(m => (m, MatchupRow(m, matchup))),
@@ -609,7 +609,7 @@ public sealed class DeckDetailsViewModel : Observable
                 g.Key,
                 MainViewModel.When(g.StartedAt),
                 g.Result,
-                Opponent(g, meta),
+                Opponent(g, meta, _owner.ArchetypeNames),
                 g.OpponentHeroCardId,
                 GameDetail(g)))
             .ToList();
@@ -688,10 +688,10 @@ public sealed class DeckDetailsViewModel : Observable
         m.Record.Games < DeckDetails.SmallSample,
         m.Record.Games);
 
-    private static string Opponent(GameRecord g, ConstructedMeta? meta)
+    private static string Opponent(GameRecord g, ConstructedMeta? meta, ArchetypeTranslations names)
     {
         var name = string.IsNullOrEmpty(g.OpponentClass) ? Loc.T("Deck.Game.UnknownOpponent") : OverlayViewModel.ClassName(g.OpponentClass);
-        return Loc.F("Deck.Game.Vs", DeckDetails.OpponentArchetype(g, meta) is { } archetype ? archetype : name);
+        return Loc.F("Deck.Game.Vs", DeckDetails.OpponentArchetype(g, meta, names) is { } archetype ? archetype : name);
     }
 
     private static string GameDetail(GameRecord g) => string.Join(" · ", new[]

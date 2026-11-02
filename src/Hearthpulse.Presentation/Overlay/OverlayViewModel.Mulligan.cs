@@ -222,7 +222,7 @@ public sealed partial class OverlayViewModel
             var vsClass = view.OpponentClass is { } opponent ? Loc.F("Mulligan.VsClass", ClassName(opponent)) : string.Empty;
             MulliganSummary = Loc.F("Mulligan.Impact", OverlayFormat.SignedPercent(vsAverage));
             // Archetype names come from the API in English.
-            var context = string.IsNullOrEmpty(view.Context) ? view.Context : ArchetypeTranslations.Current.Display(view.Context);
+            var context = string.IsNullOrEmpty(view.Context) ? view.Context : ArchetypeNames.Display(view.Context);
             // A source that already names the rank ("Hearthpulse data, Legend, 7 days") is not followed by "slice: Legend".
             var slices = view.SliceRank is { } rank && view.Source?.Contains(SliceRankName(rank), StringComparison.CurrentCultureIgnoreCase) != true
                 ? Loc.F("Mulligan.SliceSource", SliceRankName(rank))

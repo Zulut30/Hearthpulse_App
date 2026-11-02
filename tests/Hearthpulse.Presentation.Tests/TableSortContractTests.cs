@@ -92,7 +92,7 @@ public sealed class TableSortContractTests
         Add("ROGUE", 0, 5);
         Add("DRUID", 0, 1);
         var history = History();
-        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         dynamic model = wpf ? (object)new Hearthpulse.App.Main.Decks.DeckDetailsViewModel(owner)
             : new Hearthpulse.UI.Main.Decks.DeckDetailsViewModel(owner);
         var families = DeckFamilies.Build(DeckFamilies.Versions(games), []);
@@ -126,7 +126,7 @@ public sealed class TableSortContractTests
             Assert.True(history.Add(game));
         }
 
-        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         await Changed((INotifyPropertyChanged)model, "CtOpponents", () => model.RefreshAsync());
         List<dynamic> Rows() => ((IEnumerable<object>)model.CtOpponents).Cast<dynamic>().ToList();
         Assert.Equal(2, (int)Rows()[0].GameCount);

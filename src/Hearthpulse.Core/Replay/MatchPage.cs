@@ -285,13 +285,16 @@ public sealed partial class MatchPage
     public bool Truncated => Replay?.Header.Truncated ?? BgReplay?.Header.Truncated ?? false;
 
     /// <summary>Loads the page for a history game: its replay file, the card names and the meta for the archetype calls.</summary>
-    public static MatchPage Load(GameRecord game, ReplayStore store, CardDb cards, ConstructedMeta? meta) => Load(game, store.Load(game.Replay), cards, meta);
+    public static MatchPage Load(GameRecord game, ReplayStore store, CardDb cards, ConstructedMeta? meta, ArchetypeTranslations? names = null) =>
+        Load(game, store.Load(game.Replay), cards, meta, names);
 
     /// <summary>Loads the page for a history game from its replay text (null: no file), e.g. a starred copy (<c>MatchPage.File.cs</c>).</summary>
-    public static MatchPage Load(GameRecord game, string? text, CardDb cards, ConstructedMeta? meta)
+    /// <param name="names">The Russian archetype names fetched this run, for the archetype saved with the game.</param>
+    public static MatchPage Load(GameRecord game, string? text, CardDb cards, ConstructedMeta? meta, ArchetypeTranslations? names = null)
     {
+        names ??= ArchetypeTranslations.Empty;
         var file = text is null ? null : ReplayFile.Read(text);
-        var header = BuildHeader(game, cards, file?.Header);
+        var header = BuildHeader(game, cards, file?.Header, names);
         if (file is null)
         {
             return new MatchPage(game, cards, header)
@@ -330,7 +333,7 @@ public sealed partial class MatchPage
         var fits = ArchetypeGuess.FitsFormat(meta, game.Format);
         var guessed = fits ? ArchetypeGuess.FromSeenCards(meta, game.OpponentClass, shown) : null;
         // A game keeps the name its meta had when it was saved, maybe the English one: it is shown in the interface language.
-        var archetype = (game.OpponentArchetype is { Length: > 0 } saved ? ArchetypeTranslations.Current.Display(saved) : null) ?? guessed?.Name;
+        var archetype = (game.OpponentArchetype is { Length: > 0 } saved ? names.Display(saved) : null) ?? guessed?.Name;
         var metaArchetype = fits && archetype is not null
             ? meta!.ForClass(game.OpponentClass).FirstOrDefault(a => string.Equals(a.Name, archetype, StringComparison.OrdinalIgnoreCase)) ?? guessed
             : null;
@@ -924,7 +927,7 @@ public sealed partial class MatchPage
         Tooltip = m.Golden ? Loc.F("Match.Round.Golden", cards.NameOf(m.CardId)) : cards.NameOf(m.CardId),
     };
 
-    private static MatchHeader BuildHeader(GameRecord game, CardDb cards, ReplayHeader? replay)
+    private static MatchHeader BuildHeader(GameRecord game, CardDb cards, ReplayHeader? replay, ArchetypeTranslations names)
     {
         var bg = game.IsBattlegrounds;
         var local = new MatchPlayerView(
@@ -974,7 +977,7 @@ public sealed partial class MatchPage
 
             if (game.OpponentArchetype is { Length: > 0 } archetype)
             {
-                facts.Add(new MatchFact(Loc.T("Match.Fact.OpponentDeck"), ArchetypeTranslations.Current.Display(archetype)));
+                facts.Add(new MatchFact(Loc.T("Match.Fact.OpponentDeck"), names.Display(archetype)));
             }
         }
         else

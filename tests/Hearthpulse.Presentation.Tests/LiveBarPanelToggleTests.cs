@@ -25,8 +25,8 @@ public sealed class LiveBarPanelToggleTests
     [Fact]
     public void Each_button_switches_only_its_own_setting_and_both_uis_list_the_same_panels()
     {
-        var wpf = new WpfMain(History(), new AppSettings());
-        var ava = new AvaMain(History(), new AppSettings());
+        var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var ava = new AvaMain(History(), new AppSettings(), TestApp.Data);
         Assert.Equal(wpf.PanelToggles.Select(t => (t.Id, t.Icon, t.Quick)), ava.PanelToggles.Select(t => (t.Id, t.Icon, t.Quick)));
         Assert.Equal(
             [nameof(AppSettings.ShowDeckTracker), nameof(AppSettings.ShowOpponentTracker), nameof(AppSettings.ShowOpponentArchetype),
@@ -66,7 +66,7 @@ public sealed class LiveBarPanelToggleTests
     public void Every_panel_has_a_name_and_a_state_tip()
     {
         Loc.Instance.SetLanguage(Loc.English);
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         Assert.All(model.PanelToggles, t => Assert.DoesNotContain("Main.Live.", t.Name, StringComparison.Ordinal));
         Assert.Equal(model.PanelToggles.Count, model.PanelToggles.Select(t => t.Name).Distinct().Count());
         Assert.All(new[] { "Main.Live.Panels", "Main.Live.PanelsTip" }, k => Assert.NotEqual(k, Loc.T(k)));
@@ -111,7 +111,7 @@ public sealed class LiveBarPanelToggleTests
         var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Resources.MergedDictionaries.Clear();
         app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1)));
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = new WpfWindow(model);
         var saves = 0;
         window.SettingsChanged += () => saves++;

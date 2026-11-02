@@ -47,7 +47,7 @@ public sealed partial class AppHost : IDisposable
 
         // A decision of the daily free use (plan 3.1) makes the session publish again.
         Usage.Changed += () => Dispatcher.UIThread.Post(() => Session.SetMeta(Session.Advisor.Meta));
-        Main = new MainViewModel(History, Settings);
+        Main = new MainViewModel(History, Settings, _services.Data);
         Main.AttachAccount(Account);
         Main.AttachUploader(Uploader);
         if (!_rendering)
@@ -61,13 +61,15 @@ public sealed partial class AppHost : IDisposable
             Main.Apply,
             RefreshOverlay);
         _constructedLoader = new ConstructedMetaLoader(
-            (format, tierList, cancel) => Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale, tierList, cancel),
+            (format, names, tierList, cancel) => Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod,
+                Loc.CardLocale, tierList, cancel, names),
             () => ArchetypeTranslations.LoadAsync(Http),
             () => Core.Constructed.ConstructedMeta.Key(Core.Constructed.ConstructedMeta.Formats, Settings.MetaFormat),
             () => Core.Constructed.ConstructedMeta.FormatKeyOf(Main.ConstructedFormat),
             Main.SetConstructedMeta,
             Session.SetConstructedMeta,
-            () => Session.RequestMemoryTrimWhenWindowAway());
+            () => Session.RequestMemoryTrimWhenWindowAway(),
+            names => (Main.ArchetypeNames, Overlay.ArchetypeNames) = (names, names));
         Session.ApplySettings(Settings);
         Overlay.SecretToggleRequested += Session.ToggleSecret;
         Overlay.CardPoolBrowserResized += OnSettingsChanged;

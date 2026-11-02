@@ -63,8 +63,8 @@ public sealed class StreamWindowContractTests
     public void Both_main_models_switch_the_stream_settings_alike()
     {
         Loc.Instance.SetLanguage(Loc.English);
-        var wpf = new WpfMain(History(), new AppSettings());
-        var ava = new AvaMain(History(), new AppSettings());
+        var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var ava = new AvaMain(History(), new AppSettings(), TestApp.Data);
         var told = (Wpf: 0, Ava: 0);
         wpf.StreamSettingsChanged += () => told.Wpf++;
         ava.StreamSettingsChanged += () => told.Ava++;
@@ -141,7 +141,7 @@ public sealed class StreamWindowContractTests
         deck.CloseForReal();
 
         // Settings → Stream and the live bar's streamer button: one setting, both follow, the host told.
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var main = new WpfWindow(model);
         var told = 0;
         model.StreamSettingsChanged += () => told++;

@@ -72,8 +72,34 @@ public sealed class CrashReportTests : IDisposable
     [InlineData("Bad file %USERPROFILE%\\OneDrive - Компания\\replays\\game.hpr", "Bad file <path>")]
     [InlineData("Missing /home/ivan petrov/.config/x", "Missing <path>")]
     [InlineData("Entity=Ivan tag=ZONE value=PLAY", "Entity=<value> tag=<value> value=<value>")]
+    [InlineData("The given key 'O'Brien Smith' was not present", "The given key '<value>' was not present")]
+    [InlineData("Could not find file 'C:\\Users\\bob\\OneDrive - Bob's Company\\Documents\\x.hpr'", "Could not find file '<value>'")]
+    [InlineData("D:\\Mike's Games\\Hearthstone\\Logs\\Power.log is locked", "<path>")]
+    [InlineData("Invalid URI: file:///D:/Иван Петров/replays/a.hpr", "Invalid URI: <path>")]
+    [InlineData("«Иван Петров» not found", "«<value>» not found")]
+    [InlineData("“Ivan” missing", "“<value>” missing")]
+    [InlineData("/opt/Ivan Petrov/x is gone", "<path>")]
     public void Names_values_and_whole_paths_are_cut_out(string message, string expected) =>
         Assert.Equal(expected, CrashReport.Scrub(message, 300));
+
+    [Fact]
+    public void A_long_quoted_value_is_cut_out_whole() =>
+        Assert.Equal("Key '<value>' missing", CrashReport.Scrub($"Key '{string.Concat(Enumerable.Repeat("Иван Петров ", 20))}' missing", 1000));
+
+    [Fact]
+    public void The_os_user_name_goes_only_as_a_whole_word_and_keeps_the_frame()
+    {
+        var user = Environment.UserName;
+        if (user.Length < 3)
+        {
+            return; // too short to be replaced at all
+        }
+
+        // Part of a type name: the frame stays whole.
+        Assert.Equal($"at Hearthpulse.Core.{user}ils.Parse(String text)", CrashReport.Scrub($"at Hearthpulse.Core.{user}ils.Parse(String text)", 300));
+        // The name itself: <user>, and the rest of the line stays.
+        Assert.Equal("Signed in as <user> on this machine", CrashReport.Scrub($"Signed in as {user} on this machine", 300));
+    }
 
     [Fact]
     public void A_report_is_cut_to_thirty_kilobytes_innermost_frames_first()

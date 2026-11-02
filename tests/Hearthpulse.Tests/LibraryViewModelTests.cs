@@ -75,7 +75,7 @@ public sealed class LibraryViewModelTests : IDisposable
 
     private async Task<MainViewModel> Open()
     {
-        var vm = new MainViewModel(_history, new AppSettings()) { LibraryFiles = _files };
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App) { LibraryFiles = _files };
         await vm.RefreshAsync();
         await vm.LibraryIdleAsync();
         return vm;

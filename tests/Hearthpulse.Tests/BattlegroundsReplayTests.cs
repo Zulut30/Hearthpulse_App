@@ -690,6 +690,80 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         return (parser.Game!, recorder, tracker);
     }
 
+    /// <summary>
+    /// Characterization (Etalon Q4, review m10): a whole game with a buy, a sale, a golden minion and three combats, pinned by
+    /// fingerprints of what the recorder writes, the tracker's view and rounds, and the boards it hands the simulator.
+    /// </summary>
+    [Fact]
+    public void A_game_with_combats_and_a_sale_is_recorded_and_tracked_as_before()
+    {
+        string[] game =
+        [
+            .. Setup,
+            .. Buy(51), Start("PLAY", 51), Tag(51, "ZONE", "PLAY"), Tag(51, "ZONE_POSITION", 1), End,
+            // The lobby names the opponent of each combat: without it the tracker records no fight.
+            Tag(3, "BACON_CURRENT_COMBAT_PLAYER_ID", 4),
+            .. Combat(),
+            Player("RESOURCES", 4), Player("RESOURCES_USED", 0),
+            Start("PLAY", 41), Tag(41, "CARD_TARGET", 51), Tag(51, "ZONE", "SETASIDE"), End,
+            .. Entity(54, "BG21_001", Bob, "PLAY", "MINION", "ATK=3", "HEALTH=3", "ZONE_POSITION=1", "TECH_LEVEL=2"),
+            Start("PLAY", 44), Player("RESOURCES_USED", 4), Player("PLAYER_TECH_LEVEL", 2), End,
+            Game("TURN", 4),
+            Game("BOARD_VISUAL_STATE", 2),
+            Tag(54, "ZONE", "REMOVEDFROMGAME"),
+            Game("STEP", "MAIN_READY"),
+            .. Entity(120, "BG20_HERO_102", Bob, "PLAY", "HERO", "HEALTH=30", "DAMAGE=5", "PLAYER_ID=4"),
+            .. Entity(121, "BGS_119", Bob, "PLAY", "MINION", "ATK=6", "HEALTH=6", "ZONE_POSITION=1", "PREMIUM=1"),
+            Game("STEP", "MAIN_START"),
+            Start("ATTACK", 121), Game("PROPOSED_DEFENDER", 101), Tag(101, "DAMAGE", 9), End,
+            Start("DEATHS", 1), Tag(101, "ZONE", "GRAVEYARD"), End,
+            // A loss whose hero attack the log missed: its damage comes from the lobby's health, and a heal keeps it.
+            Tag(121, "ZONE", "REMOVEDFROMGAME"),
+            Game("BOARD_VISUAL_STATE", 1),
+            Game("TURN", 5),
+            Game("STEP", "MAIN_READY"),
+            Tag(10, "DAMAGE", 6), Tag(10, "DAMAGE", 4),
+            Game("TURN", 6),
+            Game("BOARD_VISUAL_STATE", 2),
+            Game("STEP", "MAIN_READY"),
+            .. Entity(122, "BGS_119", Bob, "PLAY", "MINION", "ATK=6", "HEALTH=6", "ZONE_POSITION=1"),
+            Game("STEP", "MAIN_START"),
+            Start("ATTACK", 120), Game("PROPOSED_DEFENDER", 10), Tag(10, "DAMAGE", 30), End,
+            Player("PLAYSTATE", "LOST"),
+            Tag(10, "PLAYER_LEADERBOARD_PLACE", 5),
+            Game("STATE", "COMPLETE"),
+        ];
+        var parser = new PowerParser(new DateOnly(2026, 10, 23));
+        var tracker = new BattlegroundsTracker();
+        var recorder = new ReplayRecorder();
+        parser.AddListener(tracker);
+        parser.AddListener(recorder);
+        var captures = new System.Text.StringBuilder();
+        BattlegroundsTracker.CombatCapture? last = null;
+        foreach (var body in game)
+        {
+            parser.Feed("D 12:30:00.0000000 GameState." + body);
+            if (tracker.LastCapture is { } capture && !ReferenceEquals(capture, last))
+            {
+                last = capture;
+                captures.Append(System.Text.Json.JsonSerializer.Serialize(capture)).Append('\n');
+            }
+        }
+
+        parser.Flush();
+        var events = string.Join('\n', recorder.Events);
+        Assert.Contains(recorder.Events, e => e.StartsWith("M SELL ", StringComparison.Ordinal));
+        Assert.Contains(recorder.Events, e => e.StartsWith("M ATTACK ", StringComparison.Ordinal));
+        Assert.Contains(tracker.Combats, c => c is { Result: "Loss", DamageTaken: 6 });
+        var text = recorder.Battlegrounds.Text(new ReplayHeader(), tracker.ReplayData(parser.Game!));
+        var view = tracker.BuildView(parser.Game!);
+        view = view with { CombatOdds = null, Combats = [.. view.Combats.Select(c => c with { Odds = null })] };
+        static string Print(string s) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(s)))[..16];
+        var actual = $"events {Print(events)} text {Print(text)} view {Print(System.Text.Json.JsonSerializer.Serialize(view))} captures {Print(captures.ToString())}";
+        output.WriteLine(actual);
+        Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures A999F5C9B68FBBC3", actual);
+    }
+
     /// <summary>A whole short game: turn 1, a won combat, a lost one on turn 2, out in 5th place.</summary>
     internal static string[] Game5th() =>
     [

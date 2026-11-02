@@ -29,7 +29,7 @@ public sealed partial class LocBindingTests
         app.Styles.Add(theme);
         var window = new Window { Width = 1260, Height = 840 };
         var settings = new AppSettings();
-        var model = new MainViewModel(new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-panel-toggles-{Guid.NewGuid():N}.db")), settings);
+        var model = new MainViewModel(new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-panel-toggles-{Guid.NewGuid():N}.db")), settings, TestDataFolder.App);
         try
         {
             var view = new MainView { DataContext = model };

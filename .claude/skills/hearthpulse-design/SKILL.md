@@ -90,6 +90,9 @@ with the motif), `Motif<Name>` geometries.
   numbers; `number` 15 (Avalonia); base text 13.
 - Section headings use the `Ornament` control (gold icon in a scallop cookie + title + rule), e.g.
   `<c:Ornament Text="Rating" Icon="&#xF012A;" Size="13" />`. Mixed-case text is kept; ALL CAPS is sentence-cased.
+- The logo (flame with a pulse) is the brand mark: `{StaticResource HearthpulseLogo}`, a `DrawingImage` from
+  `Main/Logo.xaml` / `Main/Logo.axaml`, fixed colours that no theme recolours (keep it out of `Theme.*`). Icons,
+  installer pictures and the SVG come from `tools/logo/` (README there); never edit the generated files by hand.
 
 ## Styles and classes
 

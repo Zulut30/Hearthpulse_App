@@ -66,17 +66,18 @@ public static class ApiConstructedMeta
     public static string HsguruMulliganSource => Localization.Loc.F("Source.MulliganLegendWeek", HearthpulseData.Attribution);
 
     /// <param name="locale">
-    /// The card language; "ruRU" shows the Russian archetype labels (<see cref="ArchetypeTranslations.Current"/>, else the
-    /// built-in ones).
+    /// The card language; "ruRU" shows the Russian archetype labels (<paramref name="names"/>, else the built-in ones).
     /// </param>
+    /// <param name="names">The Russian archetype names fetched this run (none: the built-in labels).</param>
     /// <param name="tierList">
     /// Gets the meta as soon as the tier list, lists and core cards are in, before the mulligan numbers (many more
     /// requests) are; the returned meta has them too.
     /// </param>
     /// <returns>The meta, empty when the slice has no archetypes; null when it could not be loaded.</returns>
     public static async Task<ConstructedMeta?> LoadAsync(HearthpulseData data, CardDb cards, string format, string rank, string period, string? locale,
-        IProgress<ConstructedMeta>? tierList = null, CancellationToken cancellationToken = default)
+        ArchetypeTranslations? names = null, IProgress<ConstructedMeta>? tierList = null, CancellationToken cancellationToken = default)
     {
+        names ??= ArchetypeTranslations.Empty;
         var (slice, apiPeriod) = await LoadSliceAsync(data, format, rank, period, cancellationToken).ConfigureAwait(false);
         if (slice is null)
         {
@@ -89,7 +90,7 @@ public static class ApiConstructedMeta
 
         var russian = string.Equals(locale, "ruRU", StringComparison.OrdinalIgnoreCase);
         var labels = russian
-            ? ArchetypeNames.Distinct(slice.Items.Select(i => i.Archetype).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(n => n, ArchetypeTranslations.Current.RussianLabel, StringComparer.OrdinalIgnoreCase))
+            ? ArchetypeNames.Distinct(slice.Items.Select(i => i.Archetype).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(n => n, names.RussianLabel, StringComparer.OrdinalIgnoreCase))
             : null;
 
         var built = new List<(MetaArchetype Archetype, IReadOnlyList<(HsguruDeck Deck, DeckDefinition Cards)> Lists)>();
@@ -135,7 +136,7 @@ public static class ApiConstructedMeta
         tierList?.Report(Meta(built.Select(b => b.Archetype)));
 
         // The matchup matrix (one request) loads beside the mulligan numbers.
-        var matrix = LoadMatchupsAsync(data, format, rank, apiPeriod, labels, cancellationToken);
+        var matrix = LoadMatchupsAsync(data, format, rank, apiPeriod, labels, names, cancellationToken);
 
         // Mulligan numbers: HSReplay where an archetype matches (Standard only), HSGuru's own for the most played rest.
         var hsreplay = format == "standard" ? await LoadHsreplayAsync(data, cancellationToken).ConfigureAwait(false) : [];
@@ -229,7 +230,7 @@ public static class ApiConstructedMeta
     /// the English names); empty when the API has none (never throws: the tier list does not depend on it).
     /// </summary>
     internal static async Task<MetaMatchups> LoadMatchupsAsync(HearthpulseData data, string format, string rank, string period,
-        IReadOnlyDictionary<string, string>? labels, CancellationToken cancellationToken)
+        IReadOnlyDictionary<string, string>? labels, ArchetypeTranslations names, CancellationToken cancellationToken)
     {
         try
         {
@@ -239,7 +240,7 @@ public static class ApiConstructedMeta
             }
 
             var archetypes = matrix.Archetypes
-                .Select(a => a with { Name = labels is null ? a.Key : labels.GetValueOrDefault(a.Key) ?? ArchetypeTranslations.Current.RussianLabel(a.Key), Class = a.Class.Length > 0 ? a.Class : ArchetypeNames.ClassOf(a.Key) ?? string.Empty })
+                .Select(a => a with { Name = labels is null ? a.Key : labels.GetValueOrDefault(a.Key) ?? names.RussianLabel(a.Key), Class = a.Class.Length > 0 ? a.Class : ArchetypeNames.ClassOf(a.Key) ?? string.Empty })
                 .ToList();
             return new MetaMatchups(archetypes, matrix.Cells, matrix.Games);
         }

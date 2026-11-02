@@ -15,30 +15,36 @@ namespace Hearthpulse.UI.Main;
 /// language changed, the 6-hour refresh, Russian archetype names arrived) loads every format again and overtakes a
 /// download still running: its many requests stop and its answer is dropped. The tier list goes to the page as soon as
 /// it is in; the full stats then go to the page and to the game. Russian archetype names are fetched beside the first
-/// load while the interface is Russian. Everything runs on the UI thread.
+/// load while the interface is Russian; when they arrive they go to the view models (<c>namesArrived</c>) and to every
+/// later download. Everything runs on the UI thread.
 /// </summary>
 /// <param name="download">Loads one format's stats (<see cref="ConstructedMeta.LoadAsync"/> with the host's data and
-/// cards and the meta filters), reporting the tier list first.</param>
+/// cards and the meta filters) with the archetype names known so far, reporting the tier list first.</param>
 /// <param name="fetchNames">Fetches the Russian archetype names (<see cref="ArchetypeTranslations.LoadAsync(HttpClient, string?, CancellationToken)"/>).</param>
 /// <param name="defaultFormat">The format key of <see cref="AppSettings.MetaFormat"/>.</param>
 /// <param name="pageFormat">The format key the Standard or Wild page shows, if any.</param>
 /// <param name="showOnPage">Shows stats (or none) on the meta page.</param>
 /// <param name="useInGame">Gives a format's stats to the live session.</param>
 /// <param name="loadEnded">A load ended, its parsing garbage can go (the session's memory trim).</param>
+/// <param name="namesArrived">The Russian archetype names arrived: the view models label archetypes with them.</param>
 public sealed class ConstructedMetaLoader(
-    Func<string, IProgress<ConstructedMeta>, CancellationToken, Task<ConstructedMeta?>> download,
+    Func<string, ArchetypeTranslations, IProgress<ConstructedMeta>, CancellationToken, Task<ConstructedMeta?>> download,
     Func<Task<ArchetypeTranslations>> fetchNames,
     Func<string> defaultFormat,
     Func<string?> pageFormat,
     Action<ConstructedMeta?> showOnPage,
     Action<ConstructedMeta> useInGame,
-    Action loadEnded)
+    Action loadEnded,
+    Action<ArchetypeTranslations> namesArrived)
 {
     private readonly Dictionary<string, ConstructedMeta> _metas = new(StringComparer.Ordinal);
     private readonly HashSet<string> _formats = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (int Request, CancellationTokenSource Cancel)> _loads = new(StringComparer.Ordinal);
     private int _request;
     private Task? _names;
+
+    /// <summary>The Russian archetype names fetched this run; <see cref="ArchetypeTranslations.Empty"/> until they arrive.</summary>
+    public ArchetypeTranslations Names { get; private set; } = ArchetypeTranslations.Empty;
 
     /// <summary>The stats of the default format (<see cref="AppSettings.MetaFormat"/>), once loaded: card pool and render scenes.</summary>
     public ConstructedMeta? Default { get; private set; }
@@ -90,7 +96,7 @@ public sealed class ConstructedMetaLoader(
         try
         {
             StartNames();
-            var meta = await download(format, tierList, cancel.Token).ConfigureAwait(true);
+            var meta = await download(format, Names, tierList, cancel.Token).ConfigureAwait(true);
             done = true;
             if (!Latest())
             {
@@ -156,7 +162,8 @@ public sealed class ConstructedMetaLoader(
             return;
         }
 
-        ArchetypeTranslations.Current = names;
+        Names = names;
+        namesArrived(names);
         if (Loc.IsRussian)
         {
             await ReloadAllAsync().ConfigureAwait(true);

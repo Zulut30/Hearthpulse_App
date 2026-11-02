@@ -37,10 +37,10 @@ public sealed class MetaXamlLoadTests
         Assert.NotNull(meta);
         Assert.Equal(3, meta.Matchups.Archetypes.Count);
 
-        var ava = new AvaMain(History(), new AppSettings());
+        var ava = new AvaMain(History(), new AppSettings(), TestApp.Data);
         ava.ShowConstructedFormat("FT_STANDARD");
         ava.SetConstructedMeta(meta);
-        var wpf = new WpfMain(History(), new AppSettings());
+        var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data);
         wpf.ShowConstructedFormat("FT_STANDARD");
         wpf.SetConstructedMeta(meta);
         Assert.Equal(ava.MetaTierGroups.Select(g => (g.Tier, g.Caption, g.Rows.Count)), wpf.MetaTierGroups.Select(g => (g.Tier, g.Caption, g.Rows.Count)));
@@ -76,7 +76,7 @@ public sealed class MetaXamlLoadTests
         var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Resources.MergedDictionaries.Clear();
         app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Fel", 0, 0, 1)));
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = new WpfWindow(model);
         window.ShowPage("Standard");
         model.SetConstructedMeta(meta);

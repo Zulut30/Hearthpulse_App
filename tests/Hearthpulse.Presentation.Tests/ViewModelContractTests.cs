@@ -38,8 +38,8 @@ public sealed class ViewModelContractTests
         var history = History();
         // The desktop shows the whole database count; the preview deliberately counts its 400 recent rows.
         for (var i = 0; i < 401; i++) Assert.True(history.Add(Game(i)));
-        var wpf = new WpfMain(history, new AppSettings());
-        var ava = new AvaMain(history, new AppSettings());
+        var wpf = new WpfMain(history, new AppSettings(), TestApp.Data);
+        var ava = new AvaMain(history, new AppSettings(), TestApp.Data);
         await wpf.RefreshAsync();
         await ava.RefreshAsync();
 
@@ -60,8 +60,8 @@ public sealed class ViewModelContractTests
     {
         var history = History();
         Assert.True(history.Add(Game(0) with { Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 2, RatingAfter = 6500 }));
-        var wpf = new WpfMain(history, new AppSettings());
-        var ava = new AvaMain(history, new AppSettings());
+        var wpf = new WpfMain(history, new AppSettings(), TestApp.Data);
+        var ava = new AvaMain(history, new AppSettings(), TestApp.Data);
         await wpf.RefreshAsync();
         await ava.RefreshAsync();
 
@@ -77,7 +77,7 @@ public sealed class ViewModelContractTests
     {
         var history = History();
         Assert.True(history.Add(Game(0)));
-        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         await (Task)model.RefreshAsync();
         Assert.False((bool)model.HasBgGames);
 
@@ -92,7 +92,7 @@ public sealed class ViewModelContractTests
     public async Task Deck_matchup_filter_survives_a_refresh_but_resets_for_another_family(bool wpf)
     {
         var history = History();
-        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         dynamic model = wpf ? (object)new Hearthpulse.App.Main.Decks.DeckDetailsViewModel(owner)
             : new Hearthpulse.UI.Main.Decks.DeckDetailsViewModel(owner);
         var games = new[] { Game(0), Game(1, opponent: "MAGE"), Game(2, "Second deck"), Game(3, "Second deck", "MAGE") };
@@ -120,7 +120,7 @@ public sealed class ViewModelContractTests
     public void Replay_navigation_clamps_frames_and_preserves_position_only_when_requested(bool wpf)
     {
         var history = History();
-        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         dynamic model = wpf ? (object)new Hearthpulse.App.Main.Match.MatchViewModel(owner)
             : new Hearthpulse.UI.Main.Match.MatchViewModel(owner);
         var store = new ReplayStore(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N")));
@@ -157,7 +157,7 @@ public sealed class ViewModelContractTests
     public void Replay_player_bar_moves_by_event_and_turn_and_changes_speed_alike(bool wpf)
     {
         var history = History();
-        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         dynamic model = wpf ? (object)new Hearthpulse.App.Main.Match.MatchViewModel(owner)
             : new Hearthpulse.UI.Main.Match.MatchViewModel(owner);
         var store = new ReplayStore(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N")));
@@ -656,7 +656,7 @@ public sealed class ViewModelContractTests
 
         var history = History();
         Assert.True(history.Add(Game(0)));
-        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         await model.RefreshAsync();
         Assert.False((bool)model.GoBack("History"));
 

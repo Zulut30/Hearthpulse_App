@@ -196,7 +196,7 @@ public partial class App : Application
         _services = services;
         CardArt.Http = _http;
 
-        _mainViewModel = new MainViewModel(_history, _settings);
+        _mainViewModel = new MainViewModel(_history, _settings, _services.Data);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
         _mainViewModel.AttachAccount(_account);
         _mainViewModel.CrashReportsChanged += () =>
@@ -228,13 +228,15 @@ public partial class App : Application
             _mainViewModel.Apply,
             RefreshOverlay);
         _constructedLoader = new ConstructedMetaLoader(
-            (format, tierList, cancel) => ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, format, _settings.MetaRank, _settings.MetaPeriod, Loc.CardLocale, tierList, cancel),
+            (format, names, tierList, cancel) => ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, format, _settings.MetaRank, _settings.MetaPeriod, Loc.CardLocale,
+                tierList, cancel, names),
             () => ArchetypeTranslations.LoadAsync(_http),
             () => ConstructedMeta.Key(ConstructedMeta.Formats, _settings.MetaFormat),
             () => ConstructedMeta.FormatKeyOf(_mainViewModel.ConstructedFormat),
             _mainViewModel.SetConstructedMeta,
             _session.SetConstructedMeta,
-            () => _session.RequestMemoryTrimWhenWindowAway());
+            () => _session.RequestMemoryTrimWhenWindowAway(),
+            names => (_mainViewModel.ArchetypeNames, _overlayViewModel.ArchetypeNames) = (names, names));
         _session.ApplySettings(_settings);
         _overlayViewModel.SecretToggleRequested += _session.ToggleSecret;
         _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;

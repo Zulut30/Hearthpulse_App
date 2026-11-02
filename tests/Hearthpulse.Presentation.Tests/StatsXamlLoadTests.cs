@@ -70,7 +70,7 @@ public sealed class StatsXamlLoadTests
             });
         }
 
-        var main = new MainViewModel(history, new AppSettings());
+        var main = new MainViewModel(history, new AppSettings(), TestApp.Data);
         var refresh = main.RefreshAsync();
         PumpUntil(() => refresh.IsCompleted);
         var deck = new DeckDetailsViewModel(main);
@@ -80,7 +80,7 @@ public sealed class StatsXamlLoadTests
         Assert.NotEmpty(deck.DeckList);
 
         // With rows, then with an empty main view model (every empty state shown).
-        foreach (var model in new object[] { main, new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db")), new AppSettings()) })
+        foreach (var model in new object[] { main, new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db")), new AppSettings(), TestApp.Data) })
         {
             foreach (var view in new FrameworkElement[] { new ConstructedStatsView(), new BattlegroundsStatsView(), new ArenaStatsView() })
             {

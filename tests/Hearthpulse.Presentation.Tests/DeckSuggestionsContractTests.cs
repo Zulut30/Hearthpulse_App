@@ -63,7 +63,7 @@ public sealed class DeckSuggestionsContractTests
         Assert.True(history.Add(Game("g2", "Рыцарь смерти2", v2, 11, 10, "Loss")));
         Assert.True(history.Add(Game("g3", "Рыцарь смерти3", v3, 12, 20)));
         Assert.True(history.Add(Game("g4", "Рыцарь смерти3", v3, 12, 30)));
-        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         await model.RefreshAsync();
         await Until((INotifyPropertyChanged)model, () => ((IEnumerable<object>)model.DeckSuggestions).Any());
         return model;
