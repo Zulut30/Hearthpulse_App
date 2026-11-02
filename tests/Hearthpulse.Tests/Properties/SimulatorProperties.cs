@@ -57,6 +57,38 @@ public sealed class SimulatorProperties
         }, iter: 300);
 
     [Fact]
+    public void A_fight_of_minions_with_effects_has_the_same_result_from_the_other_side() =>
+        Gen.Select(Board(Minion, 1), Board(Minion, 1), Gen.Int).Sample((a, b, seed) =>
+        {
+            var asOurs = CombatSimulator.RunSingle(a, b, true, new Random(seed), EffectRegistry.Default, trace: false);
+            var asTheirs = CombatSimulator.RunSingle(b, a, false, new Random(seed), EffectRegistry.Default, trace: false);
+            Assert.Equal(asOurs.Outcome, -asTheirs.Outcome);
+        }, iter: 300);
+
+    /// <summary>Stats a log or a broken capture can hand over: negative attack, health of zero or below.</summary>
+    private static readonly Gen<SimMinion> Broken =
+        Gen.Select(Gen.Int[-1, CardIds.Length - 1], Gen.Int[-10, 30], Gen.Int[-10, 30], Gen.Int[0, Keywords.Length - 1])
+            .Select((card, attack, health, keyword) => SimMinion.Create(card < 0 ? string.Empty : CardIds[card], attack, health, Tribe.None, Keywords[keyword]));
+
+    [Fact]
+    public void Broken_stats_still_give_odds_damage_and_lethal_in_range() =>
+        Gen.Select(Board(Broken, 0), Board(Broken, 0), Gen.Int[1, 40], Gen.Int[1, 40], Gen.Bool).Sample((ours, theirs, ourHealth, theirHealth, oursFirst) =>
+        {
+            var odds = CombatSimulator.Run(ours with { Health = ourHealth }, theirs with { Health = theirHealth }, oursFirst, new SimOptions { Runs = 100 });
+            Assert.Equal(1.0, odds.Win + odds.Tie + odds.Loss, 9);
+            foreach (var spread in new[] { odds.DamageTaken, odds.DamageDealt })
+            {
+                Assert.True(spread is null || (spread.Low >= 0 && spread.Low <= spread.High && spread.High <= spread.Max && spread.Mean >= 0 && spread.Mean <= spread.Max),
+                    $"spread {spread}");
+            }
+
+            foreach (var lethal in new[] { odds.LethalTaken, odds.LethalDealt })
+            {
+                Assert.True(lethal is null || lethal is >= 0 and <= 1, $"lethal {lethal}");
+            }
+        }, iter: 80);
+
+    [Fact]
     public void A_fixed_seed_gives_the_same_fight() =>
         Gen.Select(Board(Minion, 0), Board(Minion, 0), Gen.Bool, Gen.Int).Sample((ours, theirs, oursFirst, seed) =>
         {

@@ -581,8 +581,9 @@ public static partial class ReplayImport
     private const string Value = "(?:-?" + Number + "|-)";
     private const string Small = "(?:[0-9]|[1-9][0-9])";
     // A card id as the game writes it: letters and digits with an underscore (CS2_029, BG24_Reward_313), or one of the
-    // few real ids without one. A word like a player's name is not a card id (Etalon T4: found by a property test).
-    internal const string Card = "(?:[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]{1,60}|Mekka[1-4][et]?|skele[12]1|hexfrog|TagTeamIceBlock)";
+    // few real ids without one, at most 64 characters. A word like a player's name is not a card id (Etalon T4: found by
+    // a property test).
+    internal const string Card = "(?=[A-Za-z0-9_]{1,64}(?![A-Za-z0-9_]))(?:[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+|Mekka[1-4][et]?|skele[12]1|hexfrog|TagTeamIceBlock)";
     private const string Token = "[A-Z][A-Z0-9_]{0,31}";
     private const string CardTag = "(?:ATK|HEALTH|DAMAGE|ARMOR|COST|DURABILITY|TAUNT|DIVINE_SHIELD|STEALTH|FROZEN|SILENCED|POISONOUS|WINDFURY|REBORN|LIFESTEAL|DORMANT|IMMUNE|PREMIUM|DEATHRATTLE)";
     private const string CardType = "(?:MINION|SPELL|WEAPON|HERO|HERO_POWER|LOCATION)";

@@ -294,6 +294,18 @@ public sealed class ReplayImportTests : IDisposable
         Assert.Equal(ReplayImportError.Damaged, Refusal(text));
     }
 
+    [Theory]
+    [InlineData(64, true)]
+    [InlineData(65, false)]
+    public void A_card_id_is_at_most_64_characters(int length, bool kept)
+    {
+        var card = "BG_" + new string('A', length - 3);
+        var data = new BattlegroundsReplayData { Rounds = [new BattlegroundsRound { Turn = 1, OpponentHero = card }] };
+        var text = ReplayFile.WriteBattlegrounds(new ReplayHeader { Summary = new ReplaySummary { Mode = "Battlegrounds" } }, data, ["T 1 30", $"c {card}"]);
+
+        Assert.Equal(kept, ReplayImport.Sanitize(text, CardDb.Empty, out _) is not null);
+    }
+
     [Fact]
     public void Too_many_event_lines_are_refused()
     {

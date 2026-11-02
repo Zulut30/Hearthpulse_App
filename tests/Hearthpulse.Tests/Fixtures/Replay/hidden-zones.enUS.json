@@ -1,0 +1,826 @@
+[
+ {
+  "id": "AT_001",
+  "dbfId": 2539,
+  "name": "Flame Lance",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "TGT",
+  "cost": 5
+ },
+ {
+  "id": "AT_002",
+  "dbfId": 2541,
+  "name": "Effigy",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "TGT",
+  "cost": 3,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "AT_003",
+  "dbfId": 2545,
+  "name": "Fallen Hero",
+  "type": "MINION",
+  "cardClass": "MAGE",
+  "set": "TGT",
+  "cost": 2,
+  "mechanics": [
+   "HEROPOWER_DAMAGE"
+  ]
+ },
+ {
+  "id": "AT_004",
+  "dbfId": 2572,
+  "name": "Arcane Blast",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "TGT",
+  "cost": 1,
+  "mechanics": [
+   "RECEIVES_DOUBLE_SPELLDAMAGE_BONUS"
+  ]
+ },
+ {
+  "id": "AT_005",
+  "dbfId": 2542,
+  "name": "Polymorph: Boar",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "TGT",
+  "cost": 3
+ },
+ {
+  "id": "AT_006",
+  "dbfId": 2549,
+  "name": "Dalaran Aspirant",
+  "type": "MINION",
+  "cardClass": "MAGE",
+  "set": "TGT",
+  "cost": 4,
+  "mechanics": [
+   "INSPIRE"
+  ]
+ },
+ {
+  "id": "AT_007",
+  "dbfId": 2571,
+  "name": "Spellslinger",
+  "type": "MINION",
+  "cardClass": "MAGE",
+  "set": "TGT",
+  "cost": 3,
+  "mechanics": [
+   "BATTLECRY"
+  ]
+ },
+ {
+  "id": "AT_008",
+  "dbfId": 2544,
+  "name": "Coldarra Drake",
+  "type": "MINION",
+  "cardClass": "MAGE",
+  "set": "TGT",
+  "cost": 6
+ },
+ {
+  "id": "AT_009",
+  "dbfId": 2546,
+  "name": "Rhonin",
+  "type": "MINION",
+  "cardClass": "MAGE",
+  "set": "TGT",
+  "cost": 8,
+  "mechanics": [
+   "DEATHRATTLE"
+  ]
+ },
+ {
+  "id": "AT_010",
+  "dbfId": 2552,
+  "name": "Ram Wrangler",
+  "type": "MINION",
+  "cardClass": "HUNTER",
+  "set": "TGT",
+  "cost": 5,
+  "mechanics": [
+   "BATTLECRY"
+  ]
+ },
+ {
+  "id": "AT_011",
+  "dbfId": 2555,
+  "name": "Holy Champion",
+  "type": "MINION",
+  "cardClass": "PRIEST",
+  "set": "TGT",
+  "cost": 2,
+  "mechanics": [
+   "OVERHEAL"
+  ]
+ },
+ {
+  "id": "AT_012",
+  "dbfId": 2551,
+  "name": "Spawn of Shadows",
+  "type": "MINION",
+  "cardClass": "PRIEST",
+  "set": "TGT",
+  "cost": 5,
+  "mechanics": [
+   "BATTLECRY",
+   "INSPIRE"
+  ]
+ },
+ {
+  "id": "AT_013",
+  "dbfId": 2568,
+  "name": "Power Word: Glory",
+  "type": "SPELL",
+  "cardClass": "PRIEST",
+  "set": "TGT",
+  "cost": 1
+ },
+ {
+  "id": "AT_014",
+  "dbfId": 2566,
+  "name": "Shadowfiend",
+  "type": "MINION",
+  "cardClass": "PRIEST",
+  "set": "TGT",
+  "cost": 2,
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ]
+ },
+ {
+  "id": "AT_015",
+  "dbfId": 2563,
+  "name": "Convert",
+  "type": "SPELL",
+  "cardClass": "PRIEST",
+  "set": "TGT",
+  "cost": 3
+ },
+ {
+  "id": "AT_016",
+  "dbfId": 2564,
+  "name": "Confuse",
+  "type": "SPELL",
+  "cardClass": "PRIEST",
+  "set": "TGT",
+  "cost": 2
+ },
+ {
+  "id": "AT_017",
+  "dbfId": 2569,
+  "name": "Twilight Guardian",
+  "type": "MINION",
+  "cardClass": "NEUTRAL",
+  "set": "TGT",
+  "cost": 4,
+  "mechanics": [
+   "BATTLECRY"
+  ]
+ },
+ {
+  "id": "AT_018",
+  "dbfId": 2556,
+  "name": "Confessor Paletress",
+  "type": "MINION",
+  "cardClass": "PRIEST",
+  "set": "TGT",
+  "cost": 7,
+  "mechanics": [
+   "BATTLECRY",
+   "INSPIRE"
+  ]
+ },
+ {
+  "id": "AT_019",
+  "dbfId": 2822,
+  "name": "Dreadsteed",
+  "type": "MINION",
+  "cardClass": "WARLOCK",
+  "set": "TGT",
+  "cost": 4,
+  "mechanics": [
+   "DEATHRATTLE"
+  ]
+ },
+ {
+  "id": "AT_020",
+  "dbfId": 2624,
+  "name": "Fearsome Doomguard",
+  "type": "MINION",
+  "cardClass": "WARLOCK",
+  "set": "TGT",
+  "cost": 7
+ },
+ {
+  "id": "AT_021",
+  "dbfId": 2777,
+  "name": "Tiny Knight of Evil",
+  "type": "MINION",
+  "cardClass": "WARLOCK",
+  "set": "TGT",
+  "cost": 2,
+  "mechanics": [
+   "TRIGGER_VISUAL"
+  ]
+ },
+ {
+  "id": "AT_060",
+  "dbfId": 2641,
+  "name": "Bear Trap",
+  "type": "SPELL",
+  "cardClass": "HUNTER",
+  "set": "TGT",
+  "cost": 2,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "AT_073",
+  "dbfId": 2648,
+  "name": "Competitive Spirit",
+  "type": "SPELL",
+  "cardClass": "PALADIN",
+  "set": "TGT",
+  "cost": 1,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "AV_226",
+  "dbfId": 67243,
+  "name": "Ice Trap",
+  "type": "SPELL",
+  "cardClass": "HUNTER",
+  "set": "ALTERAC_VALLEY",
+  "cost": 2,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "BAR_550",
+  "dbfId": 63323,
+  "name": "Galloping Savior",
+  "type": "SPELL",
+  "cardClass": "PALADIN",
+  "set": "THE_BARRENS",
+  "cost": 1,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "BAR_812",
+  "dbfId": 63553,
+  "name": "Oasis Ally",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "THE_BARRENS",
+  "cost": 3,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "BOT_908",
+  "dbfId": 48984,
+  "name": "Autodefense Matrix",
+  "type": "SPELL",
+  "cardClass": "PALADIN",
+  "set": "BOOMSDAY",
+  "cost": 1,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "BT_003",
+  "dbfId": 56386,
+  "name": "Netherwind Portal",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "BLACK_TEMPLE",
+  "cost": 3,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "BT_042",
+  "dbfId": 57145,
+  "name": "Bamboozle",
+  "type": "SPELL",
+  "cardClass": "ROGUE",
+  "set": "BLACK_TEMPLE",
+  "cost": 2,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "BT_203",
+  "dbfId": 56484,
+  "name": "Pack Tactics",
+  "type": "SPELL",
+  "cardClass": "HUNTER",
+  "set": "BLACK_TEMPLE",
+  "cost": 2,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "BT_707",
+  "dbfId": 56524,
+  "name": "Ambush",
+  "type": "SPELL",
+  "cardClass": "ROGUE",
+  "set": "BLACK_TEMPLE",
+  "cost": 2,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "BT_709",
+  "dbfId": 56526,
+  "name": "Dirty Tricks",
+  "type": "SPELL",
+  "cardClass": "ROGUE",
+  "set": "BLACK_TEMPLE",
+  "cost": 2,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "CFM_026",
+  "dbfId": 40339,
+  "name": "Hidden Cache",
+  "type": "SPELL",
+  "cardClass": "HUNTER",
+  "set": "GANGS",
+  "cost": 2,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "CFM_620",
+  "dbfId": 40409,
+  "name": "Potion of Polymorph",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "GANGS",
+  "cost": 3,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "CFM_800",
+  "dbfId": 40587,
+  "name": "Getaway Kodo",
+  "type": "SPELL",
+  "cardClass": "PALADIN",
+  "set": "GANGS",
+  "cost": 1,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "CORE_AV_226",
+  "dbfId": 111362,
+  "name": "Ice Trap",
+  "type": "SPELL",
+  "cardClass": "HUNTER",
+  "set": "CORE_HIDDEN",
+  "cost": 2,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "CORE_BAR_812",
+  "dbfId": 120392,
+  "name": "Oasis Ally",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "CORE",
+  "cost": 3,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "CORE_BT_707",
+  "dbfId": 102202,
+  "name": "Ambush",
+  "type": "SPELL",
+  "cardClass": "ROGUE",
+  "set": "CORE_HIDDEN",
+  "cost": 2,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "CORE_CS3_016",
+  "dbfId": 64464,
+  "name": "Reckoning",
+  "type": "SPELL",
+  "cardClass": "PALADIN",
+  "set": "CORE_HIDDEN",
+  "cost": 1,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "CORE_EX1_130",
+  "dbfId": 69610,
+  "name": "Noble Sacrifice",
+  "type": "SPELL",
+  "cardClass": "PALADIN",
+  "set": "CORE_HIDDEN",
+  "cost": 1,
+  "mechanics": [
+   "SECRET"
+  ]
+ },
+ {
+  "id": "END_017",
+  "dbfId": 121159,
+  "name": "Battle at the End Time",
+  "type": "SPELL",
+  "set": "TIME_TRAVEL",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "TLC_229",
+  "dbfId": 117538,
+  "name": "Spirit of the Mountain",
+  "type": "SPELL",
+  "cardClass": "SHAMAN",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "TLC_239",
+  "dbfId": 117661,
+  "name": "Restore the Wild",
+  "type": "SPELL",
+  "cardClass": "DRUID",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "TLC_426",
+  "dbfId": 117341,
+  "name": "Dive the Golakka Depths",
+  "type": "SPELL",
+  "cardClass": "PALADIN",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST",
+   "TRIGGER_VISUAL"
+  ]
+ },
+ {
+  "id": "TLC_433",
+  "dbfId": 117427,
+  "name": "Reanimate the Terror",
+  "type": "SPELL",
+  "cardClass": "DEATHKNIGHT",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "TLC_446",
+  "dbfId": 117827,
+  "name": "Escape the Underfel",
+  "type": "SPELL",
+  "cardClass": "WARLOCK",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "TLC_460",
+  "dbfId": 118183,
+  "name": "The Forbidden Sequence",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "TLC_513",
+  "dbfId": 117222,
+  "name": "Lie in Wait",
+  "type": "SPELL",
+  "cardClass": "ROGUE",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "TLC_602",
+  "dbfId": 117716,
+  "name": "Enter the Lost City",
+  "type": "SPELL",
+  "cardClass": "WARRIOR",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST",
+   "TRIGGER_VISUAL"
+  ]
+ },
+ {
+  "id": "TLC_631",
+  "dbfId": 117871,
+  "name": "Unleash the Colossus",
+  "type": "SPELL",
+  "cardClass": "DEMONHUNTER",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST",
+   "TRIGGER_VISUAL"
+  ]
+ },
+ {
+  "id": "TLC_817",
+  "dbfId": 117544,
+  "name": "Reach Equilibrium",
+  "type": "SPELL",
+  "cardClass": "PRIEST",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "TLC_830",
+  "dbfId": 117672,
+  "name": "The Food Chain",
+  "type": "SPELL",
+  "cardClass": "HUNTER",
+  "set": "THE_LOST_CITY",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "ULD_131",
+  "dbfId": 53496,
+  "name": "Untapped Potential",
+  "type": "SPELL",
+  "cardClass": "DRUID",
+  "set": "ULDUM",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "ULD_140",
+  "dbfId": 53739,
+  "name": "Supreme Archaeology",
+  "type": "SPELL",
+  "cardClass": "WARLOCK",
+  "set": "ULDUM",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "ULD_155",
+  "dbfId": 53924,
+  "name": "Unseal the Vault",
+  "type": "SPELL",
+  "cardClass": "HUNTER",
+  "set": "ULDUM",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "ULD_291",
+  "dbfId": 54369,
+  "name": "Corrupt the Waters",
+  "type": "SPELL",
+  "cardClass": "SHAMAN",
+  "set": "ULDUM",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "ULD_326",
+  "dbfId": 54311,
+  "name": "Bazaar Burglary",
+  "type": "SPELL",
+  "cardClass": "ROGUE",
+  "set": "ULDUM",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "ULD_431",
+  "dbfId": 53907,
+  "name": "Making Mummies",
+  "type": "SPELL",
+  "cardClass": "PALADIN",
+  "set": "ULDUM",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "ULD_433",
+  "dbfId": 53945,
+  "name": "Raid the Sky Temple",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "ULDUM",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "ULD_711",
+  "dbfId": 54391,
+  "name": "Hack the System",
+  "type": "SPELL",
+  "cardClass": "WARRIOR",
+  "set": "ULDUM",
+  "cost": 1,
+  "mechanics": [
+   "QUEST",
+   "TRIGGER_VISUAL"
+  ]
+ },
+ {
+  "id": "ULD_724",
+  "dbfId": 54749,
+  "name": "Activate the Obelisk",
+  "type": "SPELL",
+  "cardClass": "PRIEST",
+  "set": "ULDUM",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "UNG_028",
+  "dbfId": 41168,
+  "name": "Open the Waygate",
+  "type": "SPELL",
+  "cardClass": "MAGE",
+  "set": "UNGORO",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "UNG_067",
+  "dbfId": 41222,
+  "name": "The Caverns Below",
+  "type": "SPELL",
+  "cardClass": "ROGUE",
+  "set": "UNGORO",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "UNG_116",
+  "dbfId": 41099,
+  "name": "Jungle Giants",
+  "type": "SPELL",
+  "cardClass": "DRUID",
+  "set": "UNGORO",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "UNG_829",
+  "dbfId": 41856,
+  "name": "Lakkari Sacrifice",
+  "type": "SPELL",
+  "cardClass": "WARLOCK",
+  "set": "UNGORO",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "UNG_920",
+  "dbfId": 41368,
+  "name": "The Marsh Queen",
+  "type": "SPELL",
+  "cardClass": "HUNTER",
+  "set": "UNGORO",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "UNG_934",
+  "dbfId": 41427,
+  "name": "Fire Plume's Heart",
+  "type": "SPELL",
+  "cardClass": "WARRIOR",
+  "set": "UNGORO",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "UNG_940",
+  "dbfId": 41494,
+  "name": "Awaken the Makers",
+  "type": "SPELL",
+  "cardClass": "PRIEST",
+  "set": "UNGORO",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "UNG_942",
+  "dbfId": 41499,
+  "name": "Unite the Murlocs",
+  "type": "SPELL",
+  "cardClass": "SHAMAN",
+  "set": "UNGORO",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ },
+ {
+  "id": "UNG_954",
+  "dbfId": 41868,
+  "name": "The Last Kaleidosaur",
+  "type": "SPELL",
+  "cardClass": "PALADIN",
+  "set": "UNGORO",
+  "cost": 1,
+  "mechanics": [
+   "QUEST"
+  ]
+ }
+]
