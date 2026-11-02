@@ -142,5 +142,7 @@
   "Settings.About.TextCrossPlatform": "Hearthpulse читает собственные лог-файлы Hearthstone и, в Windows, несколько значений из памяти игры, только для чтения (ваш рейтинг, ранг и расы лобби). Он никогда не показывает скрытую информацию, например руку или колоду соперника.",
   "Settings.About.Fonts": "Шрифты: Montserrat (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0).",
   "Settings.About.FontsCrossPlatform": "Шрифты: Montserrat (SIL Open Font License) · Inter (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0).",
-  "Settings.About.NotAffiliated": "Не связано с Blizzard Entertainment."
+  "Settings.About.NotAffiliated": "Не связано с Blizzard Entertainment.",
+  "Settings.Data.CrashReports": "Отправлять отчёты о сбоях автоматически",
+  "Settings.Data.CrashReportsNote": "Только версия приложения и системы, язык, тип ошибки и место в коде — без имён, BattleTag, аккаунта, путей с именем пользователя, истории и логов игры. Выключено: отчёт уходит, только если нажать «Отправить отчёт» в окне ошибки."
 }

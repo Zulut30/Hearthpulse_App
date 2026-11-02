@@ -16,7 +16,11 @@ internal static class CrashDialog
 {
     private static bool _open;
 
-    public static void Show(Exception ex, bool fatal)
+    /// <summary>
+    /// Shows the window. With <paramref name="reporter"/> it offers "Send report" (plan 0.5): sent now, or queued for the
+    /// next start when the app has to stop; when <paramref name="autoSent"/> the report already went and the window says so.
+    /// </summary>
+    public static void Show(Exception ex, bool fatal, Hearthpulse.Core.Diagnostics.CrashReporter? reporter = null, string where = "UI error", bool autoSent = false)
     {
         // One at a time: an error raised while the window is up (a timer, a layout pass) is only logged.
         if (_open)
@@ -75,6 +79,29 @@ internal static class CrashDialog
             });
 
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var reportNote = new TextBlock
+            {
+                Text = autoSent ? Loc.T("Host.Crash.AutoSent") : string.Empty,
+                TextWrapping = TextWrapping.Wrap,
+                FontSize = 11,
+                Foreground = Brush("Muted", Brushes.Gray),
+                Margin = new Thickness(0, 0, 0, 12),
+                Visibility = autoSent ? Visibility.Visible : Visibility.Collapsed,
+            };
+            text.Children.Add(reportNote);
+            if (reporter is not null && !autoSent)
+            {
+                // Plan 0.5: the player's explicit consent for this one report.
+                var send = new Button { Content = Loc.T("Host.Crash.Send"), ToolTip = Loc.T("Host.Crash.SendTip"), Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(14, 6, 14, 6) };
+                Style(send, "GhostButton");
+                send.Click += (_, _) =>
+                {
+                    send.IsEnabled = false;
+                    SendAsync(reporter, where, ex, fatal, reportNote).Forget("Crash report");
+                };
+                buttons.Children.Add(send);
+            }
+
             var openLog = new Button { Content = Loc.T("Host.Crash.OpenLog"), Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(14, 6, 14, 6) };
             var close = new Button { Content = fatal ? Loc.T("Host.Crash.Close") : Loc.T("Host.Crash.Continue"), IsDefault = true, IsCancel = true, Padding = new Thickness(14, 6, 14, 6) };
             Style(openLog, "GhostButton");
@@ -96,6 +123,23 @@ internal static class CrashDialog
         {
             _open = false;
         }
+    }
+
+    /// <summary>Sends the report now, or queues it for the next start when the app has to stop, and says which.</summary>
+    private static async Task SendAsync(Hearthpulse.Core.Diagnostics.CrashReporter reporter, string where, Exception ex, bool fatal, TextBlock note)
+    {
+        var sent = false;
+        if (fatal)
+        {
+            reporter.Queue(where, ex, 1);
+        }
+        else
+        {
+            sent = await reporter.SendAsync(where, ex);
+        }
+
+        note.Text = Loc.T(sent ? "Host.Crash.Sent" : "Host.Crash.Queued");
+        note.Visibility = Visibility.Visible;
     }
 
     private static void OpenLog()

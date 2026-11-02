@@ -30,6 +30,16 @@ HOW IT WORKS
   information such as your opponent's hand or deck.
 - Your history and settings stay on this computer, in %APPDATA%\Hearthpulse.
 
+CRASH REPORTS
+- Off by default. A report of an unexpected error goes to hearthpulse.net only
+  when you press "Send report" in the error window, or when you turn on
+  "Send crash reports automatically" in Settings > Data.
+- A report holds the app, system and .NET versions, the interface language,
+  the error type and where in the code it happened. Names, BattleTags, e-mail
+  addresses, paths with your user name and long numbers are cut out before it
+  is sent. It is not tied to your account, and your IP address is not kept.
+  Reports are kept for 90 days.
+
 SHORTCUTS
 - Ctrl+Shift+H  hide or show the overlay
 - Ctrl+Shift+L  arrange overlay panels

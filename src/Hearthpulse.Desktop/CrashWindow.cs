@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Diagnostics;
 using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Desktop;
@@ -16,7 +17,7 @@ internal sealed class CrashWindow : Window
 {
     private static bool _open;
 
-    private CrashWindow(Exception ex, bool fatal)
+    private CrashWindow(Exception ex, bool fatal, CrashReporter? reporter, string where, bool autoSent)
     {
         Title = "Hearthpulse";
         Width = 460;
@@ -37,6 +38,32 @@ internal sealed class CrashWindow : Window
         close.Classes.Add("primary");
         openLog.Click += (_, _) => OpenLog();
         close.Click += (_, _) => Close();
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var reportNote = new TextBlock
+        {
+            Text = autoSent ? Loc.T("Host.Crash.AutoSent") : string.Empty,
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 11,
+            Foreground = muted,
+            Margin = new Thickness(0, 0, 0, 12),
+            IsVisible = autoSent,
+        };
+        if (reporter is not null && !autoSent)
+        {
+            // Plan 0.5: the player's explicit consent for this one report.
+            var send = new Button { Content = Loc.T("Host.Crash.Send"), Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(14, 6) };
+            ToolTip.SetTip(send, Loc.T("Host.Crash.SendTip"));
+            send.Classes.Add("ghost");
+            send.Click += (_, _) =>
+            {
+                send.IsEnabled = false;
+                SendAsync(reporter, where, ex, fatal, reportNote).Forget("Crash report");
+            };
+            buttons.Children.Add(send);
+        }
+
+        buttons.Children.Add(openLog);
+        buttons.Children.Add(close);
 
         Content = new StackPanel
         {
@@ -52,13 +79,17 @@ internal sealed class CrashWindow : Window
                     TextWrapping = TextWrapping.Wrap,
                 },
                 new TextBlock { Text = CrashLog.Describe(ex), TextWrapping = TextWrapping.Wrap, FontSize = 11, Foreground = muted, Margin = new Thickness(0, 8, 0, 16) },
-                new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Children = { openLog, close } },
+                reportNote,
+                buttons,
             },
         };
     }
 
-    /// <summary>Shows the window on the UI thread; one at a time, an error raised meanwhile is only logged.</summary>
-    public static Task ShowAsync(Exception ex, bool fatal)
+    /// <summary>
+    /// Shows the window on the UI thread; one at a time, an error raised meanwhile is only logged. With
+    /// <paramref name="reporter"/> it offers "Send report" (plan 0.5); when <paramref name="autoSent"/> the report already went.
+    /// </summary>
+    public static Task ShowAsync(Exception ex, bool fatal, CrashReporter? reporter = null, string where = "UI error", bool autoSent = false)
     {
         if (_open)
         {
@@ -68,7 +99,7 @@ internal sealed class CrashWindow : Window
         _open = true;
         try
         {
-            var window = new CrashWindow(ex, fatal);
+            var window = new CrashWindow(ex, fatal, reporter, where, autoSent);
             var closed = new TaskCompletionSource();
             window.Closed += (_, _) =>
             {
@@ -84,6 +115,23 @@ internal sealed class CrashWindow : Window
             Diag.Error("Error window could not be shown", dialogError);
             return Task.CompletedTask;
         }
+    }
+
+    /// <summary>Sends the report now, or queues it for the next start when the app has to stop, and says which.</summary>
+    private static async Task SendAsync(CrashReporter reporter, string where, Exception ex, bool fatal, TextBlock note)
+    {
+        var sent = false;
+        if (fatal)
+        {
+            reporter.Queue(where, ex, 1);
+        }
+        else
+        {
+            sent = await reporter.SendAsync(where, ex);
+        }
+
+        note.Text = Loc.T(sent ? "Host.Crash.Sent" : "Host.Crash.Queued");
+        note.IsVisible = true;
     }
 
     private static void OpenLog()

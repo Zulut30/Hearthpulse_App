@@ -39,5 +39,10 @@
   "Host.Crash.Text": "В Hearthpulse произошла непредвиденная ошибка, но он продолжает работать. Она записана в лог.",
   "Host.Crash.OpenLog": "Открыть лог",
   "Host.Crash.Close": "Закрыть",
-  "Host.Crash.Continue": "Продолжить"
+  "Host.Crash.Continue": "Продолжить",
+  "Host.Crash.Send": "Отправить отчёт",
+  "Host.Crash.Sent": "Отчёт отправлен. Спасибо!",
+  "Host.Crash.Queued": "Отчёт уйдёт при следующем запуске.",
+  "Host.Crash.AutoSent": "Отчёт о сбое отправлен автоматически (Настройки → Данные).",
+  "Host.Crash.SendTip": "Версия приложения и системы, тип ошибки и место в коде — без имён, BattleTag, путей и истории."
 }
