@@ -459,9 +459,11 @@ public sealed class BgOpponentMmrTests : IDisposable
     {
         var server = new Server(total: 30) { Hold = new TaskCompletionSource() };
         var source = Source(server);
+        _session.SetBgLeaderboards(source);
+
+        // After the session's own handler: handlers run in order, so the session has marked itself dirty by then.
         var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         source.Changed += () => loaded.TrySetResult();
-        _session.SetBgLeaderboards(source);
         _session.SetBgOpponentMmrEnabled(true);
         StartGame();
         var id = Opponents()[0].PlayerId;
