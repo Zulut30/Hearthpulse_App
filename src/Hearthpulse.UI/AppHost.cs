@@ -78,6 +78,11 @@ public sealed partial class AppHost : IDisposable
             Account.RestoreAsync().Forget("Account restore");
         }
         Overlay = new OverlayViewModel();
+        _feed = new LiveFeed(
+            action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background),
+            view => LiveDeckRecord.Read(History, InstallDirectory, view),
+            Main.Apply,
+            RefreshOverlay);
         Session.ApplySettings(Settings);
         Overlay.SecretToggleRequested += Session.ToggleSecret;
         Overlay.CardPoolBrowserResized += OnSettingsChanged;
@@ -106,11 +111,6 @@ public sealed partial class AppHost : IDisposable
         _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Battlegrounds meta load");
 
-        _feed = new LiveFeed(
-            action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background),
-            view => LiveDeckRecord.Read(History, InstallDirectory, view),
-            Main.Apply,
-            RefreshOverlay);
         Session.SnapshotChanged += _feed.Publish;
         Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => EnsureConstructedMeta(format));
         Main.ConstructedMetaRequested += format =>

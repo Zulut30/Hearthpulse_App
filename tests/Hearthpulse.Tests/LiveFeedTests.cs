@@ -174,6 +174,23 @@ public sealed class LiveFeedTests
     }
 
     [Fact]
+    public async Task A_deck_record_that_fails_is_logged_and_nothing_reaches_the_screen()
+    {
+        var feed = Feed();
+        feed.Publish(Snap("one", Deck("Big Mage")));
+        RunUi();
+
+        var marker = Guid.NewGuid().ToString("N");
+        _deckAnswer.SetException(new InvalidOperationException(marker));
+        await feed.DeckRead.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(0, RunUi());
+        Assert.Null(feed.Deck);
+        Assert.Equal(["main one", "overlay"], _shown);
+        Assert.Contains($"Deck stats lookup failed: System.InvalidOperationException: {marker}", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_deck_record_that_arrives_after_the_deck_changed_is_dropped()
     {
         var feed = Feed();
