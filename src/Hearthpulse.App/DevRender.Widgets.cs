@@ -15,7 +15,7 @@ public partial class App
     {
         try
         {
-            var view = _installDir is { } install ? await Task.Run(() => ConstructedReplay.Latest(install, _cards, _constructedMeta)) : null;
+            var view = _installDir is { } install ? await Task.Run(() => ConstructedReplay.Latest(install, _cards, _constructedLoader.Default)) : null;
             if (view is null)
             {
                 Console.WriteLine("overlay-widgets: no kept Constructed log, skipped");
@@ -24,7 +24,7 @@ public partial class App
             {
                 foreach (var (name, rope) in new[] { ("overlay-widgets", true), ("overlay-widgets-opponent", false) })
                 {
-                    var scene = WidgetScene.InGame(view, _constructedMeta, _cards, DateTime.Now, rope);
+                    var scene = WidgetScene.InGame(view, _constructedLoader.Default, _cards, DateTime.Now, rope);
                     _overlayViewModel.Update(LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = scene },
                         _cards, _settings, null, null);
                     await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, 0);

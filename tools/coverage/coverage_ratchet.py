@@ -118,8 +118,9 @@ def lowered_floors(baseline, previous):
     now, before = baseline.get("floors", {}), previous.get("floors", {})
     lowered = [f"{m}: floor {now.get(m, 0):.1f} < {floor:.1f} on the base branch"
                for m, floor in before.items() if now.get(m, 0) < floor]
-    if baseline.get("allowed_drop", 0.5) > previous.get("allowed_drop", 0.5):
-        lowered.append(f"allowed_drop {baseline['allowed_drop']} > {previous['allowed_drop']} on the base branch")
+    drop, drop_before = baseline.get("allowed_drop", 0.5), previous.get("allowed_drop", 0.5)
+    if drop > drop_before:
+        lowered.append(f"allowed_drop {drop} > {drop_before} on the base branch (0.5 where a file does not set it)")
     return lowered
 
 
