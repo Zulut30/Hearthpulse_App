@@ -1,0 +1,180 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:m="clr-namespace:Hearthpulse.App.Main"
+                    xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+                    xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
+    <!-- What the main window's pages share: converters, row and tile templates, the tile and row panels. The window and
+         each page control (Main/Pages) merge it, so a page finds these keys when it is built on its own. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Hearthpulse;component/Main/MainLook.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+    <i:VisibleWhen x:Key="Vis" />
+    <i:KeyBrush x:Key="KeyBrush" />
+    <i:SignBrush x:Key="SignBrush" />
+    <i:FractionWidth x:Key="Fraction" />
+
+    <Style x:Key="TableHead" TargetType="TextBlock" BasedOn="{StaticResource Label}">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- List rows: no rules, a soft highlight on hover -->
+    <Style x:Key="RowBorder" TargetType="Border">
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="Margin" Value="-10,0,-10,2" />
+        <Setter Property="Background" Value="Transparent" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource Hover}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="TierBadge" TargetType="Border">
+        <Setter Property="Width" Value="30" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style x:Key="NavGroup" TargetType="Grid">
+        <Setter Property="Margin" Value="28,16,20,4" />
+    </Style>
+    <Style x:Key="PageSubtitle" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="Margin" Value="2,6,0,24" />
+    </Style>
+
+    <DataTemplate x:Key="StatTileTemplate" DataType="{x:Type m:StatTile}">
+        <Border Style="{StaticResource TileCard}" Margin="0,0,14,0" Padding="20,16" ToolTip="{Binding Detail}">
+            <StackPanel>
+                <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" />
+                <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" Margin="0,8,0,2" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Sign}" Value="1">
+                <Setter TargetName="Value" Property="Foreground" Value="{StaticResource Positive}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Sign}" Value="-1">
+                <Setter TargetName="Value" Property="Foreground" Value="{StaticResource Negative}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <DataTemplate x:Key="GameRowTemplate" DataType="{x:Type m:GameRow}">
+        <Border Style="{StaticResource RowBorder}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="50" />
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="92" />
+                    <ColumnDefinition Width="64" />
+                </Grid.ColumnDefinitions>
+                <Border Width="38" Height="38" CornerRadius="19" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                        i:CardArt.Portrait="{Binding HeroCardId}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,12,0">
+                    <TextBlock Text="{Binding Hero}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Mode}" Style="{StaticResource Caption}" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding Detail}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           Margin="0,0,16,0" ToolTip="{Binding Detail}" />
+                <TextBlock Grid.Column="3" Text="{Binding When}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                <Border Grid.Column="4" CornerRadius="6" Padding="10,3" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{StaticResource Surface3}">
+                    <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                </Border>
+                <TextBlock Grid.Column="5" Text="{Binding Rating}" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold"
+                           Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Game.RatingChange}" />
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <!-- A game row that opens the match page (History, recent games) -->
+    <Style x:Key="BareRow" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <!-- The row's own text has no colour of its own: without this it takes the system button colour (black) -->
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <DataTemplate x:Key="OpenGameRow" DataType="{x:Type m:GameRow}">
+        <Button Style="{StaticResource BareRow}" Command="{Binding DataContext.OpenMatch, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                Content="{Binding}" ContentTemplate="{StaticResource GameRowTemplate}" ToolTip="{i:Loc Match.View.OpenTip}" />
+    </DataTemplate>
+
+    <!-- Theme picker: each theme is a small window in its own colours - its backdrop and motif, a sidebar whose first
+         item is lit, a page plate with a title line, a button in its accent and a gem of its second accent.
+         The Avalonia twin is the ThemeTile template in MainView.axaml. -->
+    <DataTemplate x:Key="ThemeTile" DataType="{x:Type m:ThemeChoice}">
+        <Border x:Name="Tile" Width="132" CornerRadius="12" Background="{Binding Background}" BorderBrush="{StaticResource Border}"
+                BorderThickness="1.5" Padding="8" SnapsToDevicePixels="True">
+            <StackPanel>
+                <Grid Height="66" ClipToBounds="True">
+                    <Path Data="{Binding Motif}" Stretch="Uniform" Width="70" Height="70" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                          Margin="0,0,-18,-20" Stroke="{Binding Accent}" StrokeThickness="1" Opacity="0.3" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="26" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,2,6,0">
+                            <Border Height="9" CornerRadius="3" Background="{Binding Surface}">
+                                <Border Width="2" CornerRadius="1" Margin="0,2" HorizontalAlignment="Left" Background="{Binding Accent}" />
+                            </Border>
+                            <Border Height="9" CornerRadius="3" Background="{Binding Surface}" Opacity="0.45" Margin="0,5,0,0" />
+                            <Border Height="9" CornerRadius="3" Background="{Binding Surface}" Opacity="0.45" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <Border Grid.Column="1" CornerRadius="6" Background="{Binding Card}" BorderBrush="{Binding Surface}" BorderThickness="1" Padding="7"
+                                VerticalAlignment="Top">
+                            <StackPanel>
+                                <Border Width="44" Height="5" CornerRadius="2.5" HorizontalAlignment="Left" Background="{Binding Text}" />
+                                <Border Width="60" Height="4" CornerRadius="2" HorizontalAlignment="Left" Background="{Binding Muted}" Opacity="0.7" Margin="0,5,0,0" />
+                                <DockPanel Margin="0,9,0,0" LastChildFill="False">
+                                    <Border DockPanel.Dock="Left" Width="30" Height="11" CornerRadius="3" Background="{Binding Accent}" />
+                                    <Ellipse DockPanel.Dock="Right" Width="9" Height="9" Fill="{Binding Secondary}" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+                <DockPanel Margin="2,8,0,0">
+                    <TextBlock x:Name="Check" DockPanel.Dock="Right" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="15" Foreground="{Binding Accent}"
+                               Visibility="Collapsed" />
+                    <TextBlock Text="{Binding Name}" Foreground="{Binding Text}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding Selected}" Value="True">
+                <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource Accent}" />
+                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+    <!-- The colour wheel laid flat, under the hue sliders -->
+    <LinearGradientBrush x:Key="HueStrip" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#FF4D4D" Offset="0" />
+        <GradientStop Color="#FFD24D" Offset="0.167" />
+        <GradientStop Color="#7DFF4D" Offset="0.333" />
+        <GradientStop Color="#4DFFE0" Offset="0.5" />
+        <GradientStop Color="#4D7DFF" Offset="0.667" />
+        <GradientStop Color="#D24DFF" Offset="0.833" />
+        <GradientStop Color="#FF4D4D" Offset="1" />
+    </LinearGradientBrush>
+
+    <ItemsPanelTemplate x:Key="TilesPanel">
+        <UniformGrid Rows="1" />
+    </ItemsPanelTemplate>
+    <!-- Long lists of equal-height rows inside a page: only the rows near the page's viewport are built -->
+    <ItemsPanelTemplate x:Key="PageRows">
+        <c:PageRowsPanel />
+    </ItemsPanelTemplate>
+</ResourceDictionary>

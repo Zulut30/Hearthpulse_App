@@ -1,0 +1,175 @@
+<UserControl x:Class="Hearthpulse.App.Main.Pages.OverviewPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="clr-namespace:Hearthpulse.App.Main"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
+             xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core">
+    <!-- Home: setup warning, migration card, getting started, tiles, ladder session, BG rating and placements, recent
+         games. Same tree as the Avalonia OverviewPage.axaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="40,0,40,120">
+            <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource PageTitle}" />
+            <c:Wave Style="{StaticResource PageRule}" />
+
+            <Border x:Name="SetupBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
+                    Visibility="{Binding SetupWarning, Converter={StaticResource Vis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xF002A;" Style="{StaticResource Icon}" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,12,0" />
+                    <TextBlock x:Name="SetupWarningText" Grid.Column="1" Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                </Grid>
+            </Border>
+
+            <!-- First start: games and decks of HDT / Firestone found on this PC (Main/Migration) -->
+            <mg:MigrationCard DataContext="{Binding Migration}" Margin="0,0,0,16"
+                              Visibility="{Binding ShowOnHome, Converter={StaticResource Vis}}" />
+
+            <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
+                 worth doing before a match. The buttons are the existing import and layout actions. -->
+            <Border x:Name="GettingStartedCard" Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding ShowGettingStarted, Converter={StaticResource Vis}}">
+                <StackPanel>
+                    <c:Ornament Text="{i:Loc Main.Home.Start.Title}" Icon="&#xF040A;" Size="13" Margin="0,0,0,14" />
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="28" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xF05E0;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top"
+                                   Visibility="{Binding HearthstoneRunning, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" Visibility="{Binding HearthstoneRunning, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step1}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </Grid>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="28" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xF05E0;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top"
+                                   Visibility="{Binding LogsReady, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" Visibility="{Binding LogsReady, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step2}" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip="{i:Loc Main.Home.Start.Step2Tip}" />
+                    </Grid>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="28" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xF0766;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step3}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="GettingStartedImport" Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Data.Import}" Click="OnImport" Margin="0,0,8,0"
+                                ToolTip="{i:Loc Settings.Data.ImportTip}" />
+                        <Button x:Name="GettingStartedArrange" Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" Click="OnArrange" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding OverviewTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}"
+                          Margin="0,0,-14,16" />
+
+            <!-- Ranked ladder session: Standard and Wild apart (the overlay shows it in the game's menus) -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding ShowLadder, Converter={StaticResource Vis}}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <c:Ornament Text="{i:Loc Widgets.Ladder.Title}" Icon="&#xF0538;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding LadderSince}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding LadderLines}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type cs:LadderSessionLine}">
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="{Binding Format}" Style="{StaticResource Label}" />
+                                    <DockPanel Margin="0,4,0,0">
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding Change}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,0,0"
+                                                   Foreground="{Binding ChangeValue, Converter={StaticResource SignBrush}}" />
+                                        <TextBlock Text="{Binding Ranks}" FontFamily="{StaticResource DisplayFont}" FontSize="18" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                   ToolTip="{i:Loc Widgets.Ladder.RankNote}" />
+                                    </DockPanel>
+                                    <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis">
+                                        <Run Text="{Binding Games, Mode=OneWay}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Record, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding WinRate, Mode=OneWay}" Foreground="{StaticResource Text}" />
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Streak}" FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
+                                               Foreground="{Binding StreakValue, Converter={StaticResource SignBrush}}" Visibility="{Binding Streak, Converter={StaticResource Vis}}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="0,0,0,16" Visibility="{Binding HasBgGames, Converter={StaticResource Vis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource Card}">
+                    <DockPanel>
+                        <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
+                        <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
+                    </DockPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource Card}">
+                    <DockPanel>
+                        <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.Placements}" Icon="&#xF0D25;" Size="13" Margin="0,0,0,12" />
+                        <ItemsControl ItemsSource="{Binding Placements}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type m:PlacementBar}">
+                                    <Grid Height="25">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="22" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="70" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Place}" Style="{StaticResource Caption}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Border Grid.Column="1" Height="12" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                            <Border x:Name="Bar" HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Negative}" Opacity="0.85"
+                                                    Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=220}" />
+                                        </Border>
+                                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12">
+                                            <Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" />
+                                        </TextBlock>
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Top}" Value="True">
+                                            <Setter TargetName="Bar" Property="Background" Value="{StaticResource Positive}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Place}" Value="1">
+                                            <Setter TargetName="Bar" Property="Background" Value="{StaticResource TierS}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <c:Ornament Text="{i:Loc Main.Home.RecentGames}" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
+                        <Button Content="{i:Loc Main.Home.ViewAll}" Style="{StaticResource GhostButton}" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
+                    <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF02DA;" Content="{i:Loc Main.Home.NoGames}"
+                                    Visibility="{Binding Recent, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

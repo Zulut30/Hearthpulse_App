@@ -41,7 +41,7 @@ public sealed partial class LocBindingTests
         try
         {
             var view = new MainView();
-            var template = Assert.IsAssignableFrom<IDataTemplate>(view.Resources["OpenGameRow"]);
+            var template = Assert.IsAssignableFrom<IDataTemplate>(view.FindResource("OpenGameRow"));
             var game = new GameRow("Today", "Ranked", "", "Mage", "Win", "win", "Against Warrior", "+25", 25);
             var button = Assert.IsType<Button>(template.Build(game));
             button.DataContext = game;
@@ -212,6 +212,11 @@ public sealed partial class LocBindingTests
     /// One headless Avalonia platform per test run on its own thread: Avalonia objects belong to the thread that set the
     /// platform up, and xUnit may run each test of the collection on a different pool thread.
     /// </summary>
+    /// <summary>A named control of the view or of a page control in it (a page keeps its names in its own scope).</summary>
+    private static T Named<T>(Control view, string name) where T : Control =>
+        view.FindControl<T>(name) ?? view.GetLogicalDescendants().OfType<T>().FirstOrDefault(c => c.Name == name)
+        ?? throw new InvalidOperationException(name + " is not in the view");
+
     internal static class Headless
     {
         private static readonly BlockingCollection<Action> Work = new();

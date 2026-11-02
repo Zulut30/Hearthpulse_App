@@ -22,6 +22,9 @@ public partial class MainWindow : Window
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
+        PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
+        PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
         _viewModel = viewModel;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelChanged;
@@ -392,8 +395,6 @@ public partial class MainWindow : Window
         }).IsChecked = true;
         TabHeroes.BringIntoView(new Rect(0, 0, TabHeroes.ActualWidth, 700));
     }
-
-    private void OnViewHistory(object sender, RoutedEventArgs e) => NavHistory.IsChecked = true;
 
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
     private void ShowHistoryGame(string key) => ShowHistoryGameAsync(key).Forget("Show a game in History");

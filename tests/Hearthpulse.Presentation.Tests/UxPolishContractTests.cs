@@ -486,8 +486,10 @@ public sealed partial class UxPolishContractTests
         root.UpdateLayout();
     }
 
+    /// <summary>A named element of the window or of a page control in it (a page keeps its names in its own scope).</summary>
     private static T Named<T>(FrameworkElement window, string name) where T : class =>
-        Assert.IsType<T>(window.FindName(name) ?? throw new InvalidOperationException(name + " is not in the window"));
+        Assert.IsType<T>(window.FindName(name) ?? LogicalTreeHelper.FindLogicalNode(window, name)
+            ?? throw new InvalidOperationException(name + " is not in the window"));
 
     /// <summary>The width a text block would take with no limit.</summary>
     private static double MeasureFree(TextBlock block)

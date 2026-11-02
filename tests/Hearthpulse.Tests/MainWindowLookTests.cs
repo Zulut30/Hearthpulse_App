@@ -51,14 +51,15 @@ public sealed class MainWindowLookTests
     [Fact]
     public void Every_page_title_has_the_gold_rule_under_it_in_both_UIs()
     {
+        // The window and its page controls (Main/Pages), which hold the pages' trees.
         var wpf = Load("src/Hearthpulse.App/Main/MainWindow.xaml");
-        var titles = wpf.Descendants().Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Style") == "{StaticResource PageTitle}").ToList();
+        var titles = WithPages(wpf, "src/Hearthpulse.App/Main/Pages", "*.xaml").Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Style") == "{StaticResource PageTitle}").ToList();
         Assert.Equal(6, titles.Count);
         Assert.All(titles, t => Assert.Equal("{StaticResource PageRule}", (string?)Next(t)?.Attribute("Style")));
         Assert.DoesNotContain(wpf.Descendants(), e => (string?)e.Attribute("Style") == "{StaticResource Display}");
 
         var ava = Load("src/Hearthpulse.UI/Main/MainView.axaml");
-        var avaTitles = ava.Descendants().Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Classes") == "display pageTitle").ToList();
+        var avaTitles = WithPages(ava, "src/Hearthpulse.UI/Main/Pages", "*.axaml").Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Classes") == "display pageTitle").ToList();
         Assert.Equal(6, avaTitles.Count);
         Assert.All(avaTitles, t => Assert.Equal("pageRule", (string?)Next(t)?.Attribute("Classes")));
     }
@@ -144,6 +145,11 @@ public sealed class MainWindowLookTests
         (string?)grid.Attribute("ColumnDefinitions") is { } list
             ? list.Split(',').Select(w => (string?)w.Trim())
             : grid.Elements().Single(e => e.Name.LocalName == "Grid.ColumnDefinitions").Elements().Select(c => (string?)c.Attribute("Width"));
+
+    /// <summary>The elements of a main window and of every page control in <paramref name="folder"/>.</summary>
+    private static IEnumerable<XElement> WithPages(XElement window, string folder, string pattern) =>
+        window.Descendants().Concat(Directory.EnumerateFiles(Path.Combine(RepoRoot(), folder), pattern)
+            .SelectMany(f => XDocument.Load(f).Root!.Descendants()));
 
     private static XElement Load(string relative) => XDocument.Load(Path.Combine(RepoRoot(), relative)).Root!;
 

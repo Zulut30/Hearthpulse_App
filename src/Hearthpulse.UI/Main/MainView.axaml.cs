@@ -30,6 +30,9 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
+        PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
+        PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
+        PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
         _page = CurrentPage;
         var pages = PageButtons;
         for (var i = 0; i < pages.Length; i++)
@@ -374,7 +377,7 @@ public partial class MainView : UserControl
         UpdateTilePanels();
         Frame.ColumnDefinitions[0].Width = new GridLength(compact ? 76 : 250);
         // Side-by-side cards stack on narrow screens.
-        foreach (var (grid, right) in new[] { (HomeCharts, (Control)PlacementCard), (DeckColumns, MatchupCard) })
+        foreach (var (grid, right) in new[] { (PageOverview.HomeCharts, (Control)PageOverview.PlacementCard), (DeckColumns, MatchupCard) })
         {
             grid.ColumnDefinitions = compact ? new ColumnDefinitions("*") : new ColumnDefinitions("3*,16,2*");
             grid.RowDefinitions = compact ? new RowDefinitions("Auto,16,Auto") : new RowDefinitions("Auto");
@@ -535,8 +538,6 @@ public partial class MainView : UserControl
 
         SettingsChanged?.Invoke();
     }
-
-    private void OnViewHistory(object? sender, RoutedEventArgs e) => NavHistory.IsChecked = true;
 
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
     private void ShowHistoryGame(string key) => ShowHistoryGameAsync(key).Forget("Show a game in History");

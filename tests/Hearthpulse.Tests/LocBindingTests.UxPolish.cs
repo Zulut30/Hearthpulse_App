@@ -231,7 +231,7 @@ public sealed partial class LocBindingTests
         Assert.True(model.ShowGettingStarted);
         Headless.Run(() => WithMainView((view, _) =>
         {
-            var card = view.FindControl<Border>("GettingStartedCard")!;
+            var card = Named<Border>(view, "GettingStartedCard");
             Assert.True(card.IsVisible);
             var steps = card.GetLogicalDescendants().OfType<Grid>().ToList();
             Assert.Equal(3, steps.Count);
@@ -256,8 +256,8 @@ public sealed partial class LocBindingTests
             var arranges = 0;
             view.ReimportRequested += () => imports++;
             view.ArrangeOverlayRequested += () => arranges++;
-            view.FindControl<Button>("GettingStartedImport")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            view.FindControl<Button>("GettingStartedArrange")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Named<Button>(view, "GettingStartedImport").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Named<Button>(view, "GettingStartedArrange").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Assert.Equal((1, 1), (imports, arranges));
         }, model: model));
 

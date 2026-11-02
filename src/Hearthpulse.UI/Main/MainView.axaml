@@ -10,6 +10,7 @@
              xmlns:mt="using:Hearthpulse.UI.Main.Match"
              xmlns:mg="using:Hearthpulse.UI.Main.Migration"
              xmlns:cs="using:Hearthpulse.Core.Stats"
+             xmlns:pg="using:Hearthpulse.UI.Main.Pages"
              x:Class="Hearthpulse.UI.Main.MainView"
              x:DataType="m:MainViewModel"
              Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
@@ -18,104 +19,8 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Hearthpulse.UI/Main/Logo.axaml" />
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
             </ResourceDictionary.MergedDictionaries>
-            <i:Truthy x:Key="Truthy" />
-            <i:KeyBrush x:Key="KeyBrush" />
-            <i:SignBrush x:Key="SignBrush" />
-            <i:FractionWidth x:Key="Fraction" />
-
-            <DataTemplate x:Key="StatTileTemplate" x:DataType="m:StatTile">
-                <Border Classes="card tile" Margin="0,0,14,0" Padding="20,16" ToolTip.Tip="{Binding Detail}">
-                    <StackPanel>
-                        <TextBlock Text="{Binding Label}" Classes="label" />
-                        <TextBlock Text="{Binding Value}" Classes="stat" Margin="0,8,0,2" TextTrimming="CharacterEllipsis"
-                                   Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
-                        <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                </Border>
-            </DataTemplate>
-
-            <DataTemplate x:Key="GameRowTemplate" x:DataType="m:GameRow">
-                <Border Classes="row">
-                    <Grid ColumnDefinitions="50,2*,3*,110,92,64">
-                        <Border Width="38" Height="38" CornerRadius="19" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
-                                ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,12,0">
-                            <TextBlock Text="{Binding Hero}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding Mode}" Classes="caption" />
-                        </StackPanel>
-                        <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                                   Margin="0,0,16,0" ToolTip.Tip="{Binding Detail}" />
-                        <TextBlock Grid.Column="3" Text="{Binding When}" Classes="caption" VerticalAlignment="Center" />
-                        <Border Grid.Column="4" CornerRadius="6" Padding="10,3" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{StaticResource Surface3}">
-                            <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
-                        </Border>
-                        <TextBlock Grid.Column="5" Text="{Binding Rating}" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold"
-                                   Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip.Tip="{i:Loc Main.Game.RatingChange}" />
-                    </Grid>
-                </Border>
-            </DataTemplate>
-
-            <!-- A game row that opens the match page (History, recent games) -->
-            <DataTemplate x:Key="OpenGameRow" x:DataType="m:GameRow">
-                <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="{i:Loc Match.View.OpenTip}"
-                        Command="{Binding $parent[m:MainView].((m:MainViewModel)DataContext).OpenMatch}" CommandParameter="{Binding}"
-                        Content="{Binding}" ContentTemplate="{StaticResource GameRowTemplate}" />
-            </DataTemplate>
-
-            <ItemsPanelTemplate x:Key="TilesPanel">
-                <UniformGrid Rows="1" />
-            </ItemsPanelTemplate>
-
-            <!-- Theme picker: each theme is a small window in its own colours - its backdrop and motif, a sidebar whose first
-                 item is lit, a page plate with a title line, a button in its accent and a gem of its second accent.
-                 Same as the WPF ThemeTile. -->
-            <DataTemplate x:Key="ThemeTile" x:DataType="m:ThemeChoice">
-                <Border Classes="themeTile" Classes.selected="{Binding Selected}" Width="132" CornerRadius="12" Background="{Binding Background}"
-                        BorderThickness="1.5" Padding="8">
-                    <StackPanel>
-                        <Panel Height="66" ClipToBounds="True">
-                            <Path Data="{Binding Motif}" Stretch="Uniform" Width="70" Height="70" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                  Margin="0,0,-18,-20" Stroke="{Binding Accent}" StrokeThickness="1" Opacity="0.3" />
-                            <Grid ColumnDefinitions="26,*">
-                                <StackPanel Margin="0,2,6,0">
-                                    <Border Height="9" CornerRadius="3" Background="{Binding Surface}">
-                                        <Border Width="2" CornerRadius="1" Margin="0,2" HorizontalAlignment="Left" Background="{Binding Accent}" />
-                                    </Border>
-                                    <Border Height="9" CornerRadius="3" Background="{Binding Surface}" Opacity="0.45" Margin="0,5,0,0" />
-                                    <Border Height="9" CornerRadius="3" Background="{Binding Surface}" Opacity="0.45" Margin="0,5,0,0" />
-                                </StackPanel>
-                                <Border Grid.Column="1" CornerRadius="6" Background="{Binding Card}" BorderBrush="{Binding Surface}" BorderThickness="1" Padding="7"
-                                        VerticalAlignment="Top">
-                                    <StackPanel>
-                                        <Border Width="44" Height="5" CornerRadius="2.5" HorizontalAlignment="Left" Background="{Binding Text}" />
-                                        <Border Width="60" Height="4" CornerRadius="2" HorizontalAlignment="Left" Background="{Binding Muted}" Opacity="0.7" Margin="0,5,0,0" />
-                                        <DockPanel Margin="0,9,0,0" LastChildFill="False">
-                                            <Border DockPanel.Dock="Left" Width="30" Height="11" CornerRadius="3" Background="{Binding Accent}" />
-                                            <Ellipse DockPanel.Dock="Right" Width="9" Height="9" Fill="{Binding Secondary}" VerticalAlignment="Center" />
-                                        </DockPanel>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                        </Panel>
-                        <DockPanel Margin="2,8,0,0">
-                            <TextBlock DockPanel.Dock="Right" Text="&#xF012C;" Classes="icon" FontSize="15" Foreground="{Binding Accent}" IsVisible="{Binding Selected}" />
-                            <TextBlock Text="{Binding Name}" Foreground="{Binding Text}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
-                                       VerticalAlignment="Center" />
-                        </DockPanel>
-                    </StackPanel>
-                </Border>
-            </DataTemplate>
-            <!-- The colour wheel laid flat, under the hue sliders (a deliberate rainbow, not theme colours) -->
-            <LinearGradientBrush x:Key="HueStrip" StartPoint="0%,0%" EndPoint="100%,0%">
-                <GradientStop Color="#FF4D4D" Offset="0" />
-                <GradientStop Color="#FFD24D" Offset="0.167" />
-                <GradientStop Color="#7DFF4D" Offset="0.333" />
-                <GradientStop Color="#4DFFE0" Offset="0.5" />
-                <GradientStop Color="#4D7DFF" Offset="0.667" />
-                <GradientStop Color="#D24DFF" Offset="0.833" />
-                <GradientStop Color="#FF4D4D" Offset="1" />
-            </LinearGradientBrush>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -379,131 +284,7 @@
                 </StackPanel>
 
                 <!-- ===== Home ===== -->
-                <ScrollViewer Name="PageOverview" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <TextBlock Text="{i:Loc Main.Nav.Home}" Classes="display pageTitle" />
-                        <c:Wave Classes="pageRule" />
-
-                        <Border Name="SetupBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
-                                IsVisible="{Binding SetupWarning, Converter={StaticResource Truthy}}">
-                            <Grid ColumnDefinitions="Auto,*">
-                                <TextBlock Text="&#xF002A;" Classes="icon" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,12,0" />
-                                <TextBlock Name="SetupWarningText" Grid.Column="1" Text="{Binding SetupWarning}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
-                            </Grid>
-                        </Border>
-
-                        <!-- First start: games and decks of HDT / Firestone found on this PC (Main/Migration) -->
-                        <Panel IsVisible="{Binding Migration.ShowOnHome}">
-                            <mg:MigrationCard DataContext="{Binding Migration}" Margin="0,0,0,16" />
-                        </Panel>
-
-                        <!-- Until the first game is recorded: three steps (the first two follow the app's state) and the two things
-                             worth doing before a match. The buttons are the existing import and layout actions. -->
-                        <Border Name="GettingStartedCard" Classes="card" Margin="0,0,0,16" IsVisible="{Binding ShowGettingStarted}">
-                            <StackPanel>
-                                <c:Ornament Text="{i:Loc Main.Home.Start.Title}" Icon="&#xF040A;" Size="13" Margin="0,0,0,14" />
-                                <Grid ColumnDefinitions="28,*" Margin="0,0,0,8">
-                                    <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top" IsVisible="{Binding HearthstoneRunning}" />
-                                    <TextBlock Text="&#xF0766;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" IsVisible="{Binding !HearthstoneRunning}" />
-                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step1}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                                </Grid>
-                                <Grid ColumnDefinitions="28,*" Margin="0,0,0,8">
-                                    <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="16" Foreground="{StaticResource Accent}" VerticalAlignment="Top" IsVisible="{Binding LogsReady}" />
-                                    <TextBlock Text="&#xF0766;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" IsVisible="{Binding !LogsReady}" />
-                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step2}" TextWrapping="Wrap" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Main.Home.Start.Step2Tip}" />
-                                </Grid>
-                                <Grid ColumnDefinitions="28,*" Margin="0,0,0,14">
-                                    <TextBlock Text="&#xF0766;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" VerticalAlignment="Top" />
-                                    <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step3}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                                </Grid>
-                                <WrapPanel>
-                                    <Button Name="GettingStartedImport" Classes="ghost" Content="{i:Loc Settings.Data.Import}" Click="OnReimport" Margin="0,0,8,8"
-                                            ToolTip.Tip="{i:Loc Settings.Data.ImportTip}" />
-                                    <Button Name="GettingStartedArrange" Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" Click="OnArrangeOverlay" Margin="0,0,0,8" />
-                                </WrapPanel>
-                            </StackPanel>
-                        </Border>
-
-                        <ItemsControl ItemsSource="{Binding OverviewTiles}" ItemTemplate="{StaticResource StatTileTemplate}" ItemsPanel="{StaticResource TilesPanel}"
-                                      Margin="0,0,-14,16" />
-
-                        <!-- Ranked ladder session: Standard and Wild apart (the overlay shows it in the game's menus) -->
-                        <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding ShowLadder}">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,10">
-                                    <c:Ornament Text="{i:Loc Widgets.Ladder.Title}" Icon="&#xF0538;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding LadderSince}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                </Grid>
-                                <ItemsControl ItemsSource="{Binding LadderLines}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="2" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="cs:LadderSessionLine">
-                                            <StackPanel Margin="0,0,24,0">
-                                                <TextBlock Text="{Binding Format}" Classes="label" />
-                                                <DockPanel Margin="0,4,0,0">
-                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Change}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,0,0"
-                                                               Foreground="{Binding ChangeValue, Converter={StaticResource SignBrush}}" />
-                                                    <TextBlock Text="{Binding Ranks}" FontFamily="{StaticResource DisplayFont}" FontSize="18" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
-                                                               ToolTip.Tip="{i:Loc Widgets.Ladder.RankNote}" />
-                                                </DockPanel>
-                                                <TextBlock Classes="caption" Margin="0,4,0,0" TextTrimming="CharacterEllipsis">
-                                                    <Run Text="{Binding Games, Mode=OneWay}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Record, Mode=OneWay}" Foreground="{StaticResource Text}" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding WinRate, Mode=OneWay}" Foreground="{StaticResource Text}" />
-                                                </TextBlock>
-                                                <TextBlock Text="{Binding Streak}" FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"
-                                                           Foreground="{Binding StreakValue, Converter={StaticResource SignBrush}}" IsVisible="{Binding Streak, Converter={StaticResource Truthy}}" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </Border>
-
-                        <Grid Name="HomeCharts" ColumnDefinitions="3*,16,2*" Margin="0,0,0,16" IsVisible="{Binding HasBgGames}">
-                            <Border Classes="card">
-                                <DockPanel>
-                                    <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.BgRating}" Icon="&#xF012A;" Size="13" Margin="0,0,0,12" />
-                                    <c:RatingChart Points="{Binding RatingPoints}" Height="200" />
-                                </DockPanel>
-                            </Border>
-                            <Border Name="PlacementCard" Grid.Column="2" Classes="card">
-                                <DockPanel>
-                                    <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Main.Home.Placements}" Icon="&#xF0D25;" Size="13" Margin="0,0,0,12" />
-                                    <ItemsControl ItemsSource="{Binding Placements}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="m:PlacementBar">
-                                                <Grid Height="25" ColumnDefinitions="22,*,70">
-                                                    <TextBlock Text="{Binding Place}" Classes="caption" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                                    <Border Grid.Column="1" Height="12" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                                        <Border Classes="placeBar" Classes.top="{Binding Top}" Classes.first="{Binding First}"
-                                                                HorizontalAlignment="Left" CornerRadius="3" Opacity="0.85"
-                                                                Width="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                                                    </Border>
-                                                    <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12"><Run Text="{Binding Count, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" · " Foreground="{StaticResource Faint}" /><Run Text="{Binding Share, Mode=OneWay}" Foreground="{StaticResource Muted}" /></TextBlock>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </DockPanel>
-                            </Border>
-                        </Grid>
-
-                        <Border Classes="card">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,10">
-                                    <c:Ornament Text="{i:Loc Main.Home.RecentGames}" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
-                                    <Button Content="{i:Loc Main.Home.ViewAll}" Classes="ghost" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
-                                </Grid>
-                                <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
-                                <ContentControl Classes="emptyState" Tag="&#xF02DA;" Content="{i:Loc Main.Home.NoGames}"
-                                                IsVisible="{Binding Recent, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
+                <pg:OverviewPage Name="PageOverview" Grid.Row="1" />
 
                 <!-- ===== Battlegrounds ===== -->
                 <ScrollViewer Name="PageBattlegrounds" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
