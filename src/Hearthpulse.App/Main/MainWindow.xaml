@@ -1218,6 +1218,28 @@
                                     </StackPanel>
                                 </Border>
 
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <c:Ornament Text="{i:Loc Discord.Title}" Icon="&#xF066F;" Size="13" Margin="0,0,0,14" />
+                                        <TextBlock Text="{i:Loc Discord.Note}" Style="{StaticResource CardNote}" />
+                                        <CheckBox x:Name="DiscordSetting" Style="{StaticResource Switch}" Content="{i:Loc Discord.Switch}" IsChecked="{Binding DiscordStatus}" IsEnabled="{Binding DiscordAvailable}" Margin="0,0,0,12"
+                                                  ToolTip="{i:Loc Discord.SwitchTip}" ToolTipService.ShowOnDisabled="True" />
+                                        <!-- The link to the Discord app: green once connected, faint while waiting or not registered -->
+                                        <Grid Margin="0,0,0,6" Visibility="{Binding DiscordStatusShown, Converter={StaticResource Vis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid Margin="0,5,8,0" VerticalAlignment="Top">
+                                                <Ellipse Width="8" Height="8" Fill="{StaticResource Faint}" />
+                                                <Ellipse Width="8" Height="8" Fill="{StaticResource Positive}" Visibility="{Binding DiscordConnected, Converter={StaticResource Vis}}" />
+                                            </Grid>
+                                            <TextBlock Grid.Column="1" Text="{Binding DiscordStatusText}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                                        </Grid>
+                                        <TextBlock Text="{i:Loc Discord.Keeps}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
                                         <c:Ornament Text="{i:Loc Stream.Windows.Title}" Icon="&#xF0379;" Size="13" Margin="0,0,0,14" />

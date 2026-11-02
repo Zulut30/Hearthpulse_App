@@ -206,7 +206,11 @@ public sealed class ConstructedTracker : IPowerListener
             DeckMeta = DeckMetaFor(cards, playerClass, game.FormatType),
             OpponentArchetype = OpponentArchetypeFor(cards, opponentClass, game.GameType, game.FormatType, played),
         };
-        return view with { OpponentDeck = OpponentDeckFor(cards, opponentClass, view.OpponentArchetype, played) };
+        return view with
+        {
+            OpponentDeck = OpponentDeckFor(cards, opponentClass, view.OpponentArchetype, played),
+            FormatType = string.IsNullOrEmpty(game.FormatType) ? null : game.FormatType,
+        };
     }
 
     private (OpponentArchetypeView? Odds, string Key, LikelyDeckView? View) _opponentDeck;

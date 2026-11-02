@@ -1,0 +1,17 @@
+{
+  "Discord.Title": "Discord status",
+  "Discord.Note": "Your Discord friends see what you're playing: the mode, classes, turn or place, and time since the game began.",
+  "Discord.Switch": "Discord status",
+  "Discord.SwitchTip": "Hearthpulse passes the mode, classes, turn or place to the Discord app on this computer, and Discord shows them to your friends. Nothing goes anywhere else. Turn it off and the status clears at once.",
+  "Discord.Keeps": "The status has no names, BattleTags or ratings, yours or your opponents'.",
+  "Discord.Status.Connected": "Connected to Discord",
+  "Discord.Status.Waiting": "Discord isn't running. Hearthpulse connects once you open it.",
+  "Discord.Status.NotConfigured": "Not available yet: Hearthpulse isn't registered with Discord.",
+  "Discord.Presence.Menu": "In the menu",
+  "Discord.Presence.Versus": "{0} vs {1}",
+  "Discord.Presence.Turn": "turn {0}",
+  "Discord.Presence.Place": "place {0}",
+  "Discord.Presence.Drafting": "Drafting",
+  "Discord.Presence.InGame": "In a game",
+  "Discord.Presence.LogoText": "Hearthpulse, a Hearthstone tracker"
+}

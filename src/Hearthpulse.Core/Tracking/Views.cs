@@ -95,6 +95,9 @@ public sealed record ConstructedView(
     /// <summary>The opponent's likely list from the meta, its played copies marked (<c>docs/opponent-deck.md</c>).</summary>
     public Constructed.LikelyDeckView? OpponentDeck { get; init; }
 
+    /// <summary>The game's format ("FT_STANDARD"), when the log named it.</summary>
+    public string? FormatType { get; init; }
+
     /// <summary>The running turn's clock and the average turn of each player so far; null before the first turn.</summary>
     public TurnClockView? Turns { get; init; }
 
