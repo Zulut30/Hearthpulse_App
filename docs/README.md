@@ -35,6 +35,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [accounts-api.md](accounts-api.md) | Sign-in with a hearthpulse.net account (OAuth device flow) |
 | [profile-upload.md](profile-upload.md) | Finished games sent to the hearthpulse.net profile |
 | [usage-limits.md](usage-limits.md) | Daily free limits of our own analytics (stats pool in the BG overlay), soft mode |
+| [crash-reports.md](crash-reports.md) | Crash reports on the player's consent: what is sent, what is cut out, the queue |
 | [local-data.md](local-data.md) | Broken or busy settings, history and API cache files; known limits |
 
 ## Project records

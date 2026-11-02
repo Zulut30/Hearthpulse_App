@@ -39,7 +39,7 @@ public partial class App
     {
         Directory.CreateDirectory(folder);
         await LoadMetaAsync();
-        await LoadConstructedMetaAsync();
+        await _constructedLoader.ReloadAllAsync();
         await _mainViewModel.RefreshAsync();
         _session.Cards = _cards;
         _mainViewModel.Busy = string.Empty;
@@ -134,7 +134,7 @@ public partial class App
             // the first one again without numbers (no API, no meta).
             foreach (var (offered, name, withData) in new[] { (3, "overlay-mulligan", true), (4, "overlay-mulligan-4", true), (3, "overlay-mulligan-nodata", false) })
             {
-                if (_installDir is not null && await MulliganReplay.LatestAsync(_installDir, _cards, withData ? new HearthpulseData(_api) : null, withData ? _constructedMeta : null, offered) is { } mulligan)
+                if (_installDir is not null && await MulliganReplay.LatestAsync(_installDir, _cards, withData ? new HearthpulseData(_api) : null, withData ? _constructedLoader.Default : null, offered) is { } mulligan)
                 {
                     var snapshot = LiveSnapshot.Empty with { Scene = "GAMEPLAY", HearthstoneRunning = true, InGame = true, GameType = "GT_RANKED", Constructed = mulligan };
                     _overlayViewModel.Update(snapshot, _cards, _settings, null, null);

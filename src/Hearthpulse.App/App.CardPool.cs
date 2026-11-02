@@ -6,35 +6,9 @@ using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.App;
 
-/// <summary>Loads the card catalog the overlay's card pool panel cuts pools from.</summary>
+/// <summary>The card pool panel's render scenes (the catalog itself loads in <see cref="Core.Hosting.AppServices.LoadCardPoolAsync"/>).</summary>
 public partial class App
 {
-    private bool _cardPoolRequested;
-
-    /// <summary>Loads the catalog once, and only while "Show card pool" is on (called at start-up and on settings changes).</summary>
-    private async Task LoadCardPoolAsync()
-    {
-        if (!_settings.ShowCardPool || _cardPoolRequested)
-        {
-            return;
-        }
-
-        _cardPoolRequested = true;
-        try
-        {
-            var catalog = await CardPoolCatalog.LoadAsync(_api, _http);
-            _session.SetCardPoolCatalog(catalog);
-            Diag.Info($"Card pool: {catalog.Count} cards from {catalog.Source}");
-            // Nothing could be loaded (offline, no cache): try again on the next settings change or start.
-            _cardPoolRequested = catalog.Count > 0;
-        }
-        catch (Exception ex)
-        {
-            _cardPoolRequested = false;
-            Diag.Error("Card pool catalog unavailable", ex);
-        }
-    }
-
     /// <summary>
     /// --render-ui: the card pool panel for a real generator (Blazing Invocation as a Shaman) beside the Discover
     /// options and hovered in hand with a chart column under the pointer, a large pool (Swashburglar) at the left of the hand,
@@ -46,7 +20,7 @@ public partial class App
         var catalog = await CardPoolCatalog.LoadAsync(_api, _http);
         var wiki = new WikiPoolSource(new Core.Api.HearthpulseData(_api));
         await wiki.LoadAsync("BE_298");
-        var engine = new CardPoolEngine(catalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructedMeta, _cards), wiki);
+        var engine = new CardPoolEngine(catalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructedLoader.Default, _cards), wiki);
         if (engine.Build("CORE_GIL_836", new PoolContext("FT_STANDARD", "SHAMAN", "WARRIOR"), PoolTrigger.Choice) is not { } pool
             || engine.Build("JAIL_706", new PoolContext("FT_STANDARD", "ROGUE", "WARRIOR"), PoolTrigger.Request) is not { } browse)
         {

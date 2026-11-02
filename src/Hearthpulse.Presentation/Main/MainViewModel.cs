@@ -146,7 +146,7 @@ public sealed partial class MainViewModel : Observable
 
     private bool _updateReady;
     private string? _updateVersion;
-    private string? _updateStatus;
+    private Func<string>? _updateStatus;
 
     /// <summary>A newer version has been downloaded: it installs by itself when Hearthpulse closes.</summary>
     public bool UpdateReady
@@ -171,10 +171,13 @@ public sealed partial class MainViewModel : Observable
     }
 
     /// <summary>The last update check in a sentence for Settings → About (up to date, failed and why, unverified file).</summary>
-    public string UpdateStatus => _updateStatus ?? (_updateVersion is null ? Loc.T("Main.Update.NotChecked") : UpdateText);
+    public string UpdateStatus => _updateStatus?.Invoke() ?? (_updateVersion is null ? Loc.T("Main.Update.NotChecked") : UpdateText);
 
     /// <summary>Shows what the last update check found.</summary>
-    public void SetUpdateStatus(string status)
+    public void SetUpdateStatus(string status) => SetUpdateStatus(() => status);
+
+    /// <summary>The update status as a text maker: a language switch shows it again in the new language.</summary>
+    public void SetUpdateStatus(Func<string> status)
     {
         _updateStatus = status;
         Raise(nameof(UpdateStatus));

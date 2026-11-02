@@ -180,6 +180,12 @@ public sealed class AppSettings
     /// <summary>What the last move from HDT / Firestone did, for Settings → Data.</summary>
     public MigrationRecord? LastMigration { get; set; }
 
+    /// <summary>
+    /// Send a report of every new kind of crash without asking (plan 0.5, docs/crash-reports.md). Off by default: then a
+    /// report goes only when the player presses "Send report" in the error window.
+    /// </summary>
+    public bool SendCrashReports { get; set; }
+
     /// <summary>Whether the player shares Battlegrounds results with the stats pool; null until they answer.</summary>
     public bool? PoolConsent { get; set; }
 

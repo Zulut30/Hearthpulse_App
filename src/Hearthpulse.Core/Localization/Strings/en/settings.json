@@ -142,5 +142,7 @@
   "Settings.About.TextCrossPlatform": "Hearthpulse reads Hearthstone's own log files and, on Windows, a few read-only values from game memory (your rating, rank and the lobby's tribes). It never shows hidden information such as your opponent's hand or deck.",
   "Settings.About.Fonts": "Fonts: Montserrat (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0).",
   "Settings.About.FontsCrossPlatform": "Fonts: Montserrat (SIL Open Font License) · Inter (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0).",
-  "Settings.About.NotAffiliated": "Not affiliated with Blizzard Entertainment."
+  "Settings.About.NotAffiliated": "Not affiliated with Blizzard Entertainment.",
+  "Settings.Data.CrashReports": "Send crash reports automatically",
+  "Settings.Data.CrashReportsNote": "Sent: the app and system versions, the language, the error type and text and where in the code it happened. Names, BattleTags, e-mails, paths, quoted values and long numbers are cut out of the text; your account, history and game logs are never sent. Off: a report goes only when you press “Send report” in the error window; turning it off deletes reports waiting to go."
 }

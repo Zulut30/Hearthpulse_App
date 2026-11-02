@@ -90,7 +90,7 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
 ### Combat rules (what the simulator implements)
 
 - Boards fight automatically. The side with more minions attacks first; equal counts -> coin flip
-  (`Simulation/Fight.cs`). Sides alternate; each side's attacker is the next minion from the left.
+  (`Simulation/Fight.cs`, attacks and targets in `Fight.Attacks.cs`). Sides alternate; each side's attacker is the next minion from the left.
 - Target: random enemy, Taunt minions first; Stealth minions only when nothing else can be attacked
   (`CombatSimulator`).
 - Attacker and defender deal their Attack as damage to each other simultaneously; minions at 0 health die in a death
@@ -132,7 +132,7 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
 |---|---|
 | Log grammar, entities, tags | `src/Hearthpulse.Core/Power/` (`PowerParser`, `GameState`, `Entity`, `GameTag`) |
 | Live pipeline, history rows | `src/Hearthpulse.Core/Tracking/` (`GameSession`, `GameRecords`, `Views.cs`) |
-| Battlegrounds state | `src/Hearthpulse.Core/Tracking/BattlegroundsTracker.cs` |
+| Battlegrounds state | `src/Hearthpulse.Core/Tracking/BattlegroundsTracker*.cs` (view, combat, entities, rounds) |
 | Constructed state | `src/Hearthpulse.Core/Tracking/ConstructedTracker.cs` |
 | Advice, meta, simulator | `src/Hearthpulse.Core/Battlegrounds/` |
 | Cards, deck codes, tribes | `src/Hearthpulse.Core/Cards/` |

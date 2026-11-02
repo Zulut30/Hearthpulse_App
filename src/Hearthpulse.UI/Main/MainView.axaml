@@ -1264,6 +1264,9 @@
                                 <StackPanel>
                                     <c:Ornament Text="{i:Loc Settings.Data.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,14" />
                                     <TextBlock Text="{i:Loc Settings.Note.Data}" Classes="caption cardNote" />
+                                    <!-- Plan 0.5: crash reports without asking; off by default -->
+                                    <CheckBox Classes="switch" Content="{i:Loc Settings.Data.CrashReports}" IsChecked="{Binding CrashReports}" Margin="0,0,0,4" />
+                                    <TextBlock Text="{i:Loc Settings.Data.CrashReportsNote}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,18" />
                                     <WrapPanel>
                                         <Button Classes="ghost" Content="{i:Loc Settings.Data.Import}" Click="OnReimport" Margin="0,0,8,8"
                                                 ToolTip.Tip="{i:Loc Settings.Data.ImportTip}" />

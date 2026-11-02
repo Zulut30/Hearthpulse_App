@@ -18,6 +18,7 @@ using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Hearthstone;
+using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
@@ -35,11 +36,13 @@ public partial class App : Application
     private Mutex? _mutex;
     private AppSettings _settings = new();
     private HttpClient _http = null!;
-    private Task? _archetypeNames;
     private HearthpulseApi _api = null!;
     private AccountService _account = null!;
     private ProfileUploader _uploader = null!;
     private UsageGate _usage = null!;
+
+    // Crash reports the player agreed to (plan 0.5); null until the services are built, then errors are only logged.
+    private Hearthpulse.Core.Diagnostics.CrashReporter? _crashReporter;
     private HistoryStore _history = null!;
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
@@ -64,24 +67,14 @@ public partial class App : Application
     private HotkeyWindow? _hotkeys;
     private string? _installDir;
     private StartupPrefetch _prefetch = null!;
+    private AppServices _services = null!;
     private CardDb _cards = CardDb.Empty;
     private LiveFeed _feed = null!;
     private DispatcherTimer _historyDebounce = null!;
     private DispatcherTimer _settingsDebounce = null!;
     private DispatcherTimer _metaRefresh = null!;
     private string? _renderDir;
-    /// <summary>The stats of <see cref="AppSettings.MetaFormat"/> (the format loaded at start), for the render scenes.</summary>
-    private ConstructedMeta? _constructedMeta;
-
-    /// <summary>Constructed stats by format key ("standard", "wild"): the page and a game each use their own format's.</summary>
-    private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
-
-    /// <summary>Formats kept fresh: the one loaded at start, the pages opened and the formats played.</summary>
-    private readonly HashSet<string> _constructedFormats = new(StringComparer.Ordinal);
-
-    /// <summary>Downloads running per format: the latest request and its cancel source (a newer request stops an older one).</summary>
-    private readonly Dictionary<string, (int Request, CancellationTokenSource Cancel)> _constructedMetaLoads = new(StringComparer.Ordinal);
-    private int _constructedMetaRequest;
+    private ConstructedMetaLoader _constructedLoader = null!;
     private BattlegroundsMeta? _meta;
     private UpdateInfo? _stagedUpdate;
     private DispatcherTimer? _watchdog;
@@ -99,10 +92,7 @@ public partial class App : Application
     private int _watchTicks;
     private bool _capNotified;
     private bool _sharingHistory;
-    private Func<string>? _busy;
-    private Func<string>? _updateStatus;
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The SocketsHttpHandler is owned by the HttpClient (disposeHandler: true), which lives as long as the app.")]
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -142,20 +132,26 @@ public partial class App : Application
                 // This handler runs inside the dispatcher's exception filter, where a modal window is never drawn:
                 // show it once the failed operation has unwound.
                 var error = args.Exception;
-                _ = Dispatcher.BeginInvoke(() => CrashDialog.Show(error, fatal: false));
+                var reporter = _crashReporter;
+                var autoSent = reporter?.OnError("UI error", error, fatal: false) ?? false;
+                _ = Dispatcher.BeginInvoke(() => CrashDialog.Show(error, fatal: false, reporter, "UI error", autoSent));
             }
         };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             var ex = args.ExceptionObject as Exception ?? new InvalidOperationException(args.ExceptionObject?.ToString());
-            CrashLog.Record(args.IsTerminating ? "Fatal error" : "Unhandled error", ex);
+            var where = args.IsTerminating ? "Fatal error" : "Unhandled error";
+            var first = CrashLog.Record(where, ex);
+            var reporter = _renderDir is null ? _crashReporter : null;
+            // A crash that ends the process is only queued: it goes at the next start.
+            var autoSent = (first || args.IsTerminating) && (reporter?.OnError(where, ex, fatal: args.IsTerminating) ?? false);
             if (args.IsTerminating && _renderDir is null)
             {
                 try
                 {
                     // A background thread is dying and takes the process with it: say so before it goes.
                     // Bounded: the UI thread may itself be waiting on the dying thread, and the process must still end.
-                    Dispatcher.Invoke(() => CrashDialog.Show(ex, fatal: true), DispatcherPriority.Send, CancellationToken.None, TimeSpan.FromSeconds(30));
+                    Dispatcher.Invoke(() => CrashDialog.Show(ex, fatal: true, reporter, where, autoSent), DispatcherPriority.Send, CancellationToken.None, TimeSpan.FromSeconds(30));
                 }
                 catch (Exception dialogError)
                 {
@@ -165,11 +161,23 @@ public partial class App : Application
         };
         TaskScheduler.UnobservedTaskException += (_, args) =>
         {
-            CrashLog.Record("Background error", args.Exception);
+            if (CrashLog.Record("Background error", args.Exception) && _renderDir is null)
+            {
+                _crashReporter?.OnError("Background error", args.Exception, fatal: false);
+            }
+
             args.SetObserved();
         };
 
         _settings = AppSettings.Load();
+        if (_renderDir is null)
+        {
+            // Crash reports (plan 0.5) from here on: a crash while the history, the session or the windows start is
+            // reported too. Never while rendering pages off-screen.
+            _crashReporter = Hearthpulse.Core.Diagnostics.CrashReporter.ForApp(_settings, "wpf", UpdateService.CurrentVersion);
+            _crashReporter.SendPendingAsync().Forget("Crash reports");
+        }
+
         Loc.Instance.SetLanguage(_settings.InterfaceLanguage());
         ApplyTheme();
         Diag.Info($"Hearthpulse {UpdateService.CurrentVersion} (app {typeof(App).Assembly.GetName().Version?.ToString(3)}) starting on "
@@ -181,47 +189,33 @@ public partial class App : Application
             // so the overlay is invisible; software rendering is the known workaround.
             RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
         }
-        _http = new HttpClient(new SocketsHttpHandler
-        {
-            AutomaticDecompression = DecompressionMethods.All,
-            PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-        })
-        {
-            Timeout = TimeSpan.FromSeconds(40),
-        };
-        _http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + (typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1"));
+        var services = new AppServices(_settings, typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1", () => _cards);
+        (_http, _api, _prefetch, _history, _memory, _session, _mulliganGuide, _account, _uploader, _usage) =
+            (services.Http, services.Api, services.Prefetch, services.History, services.Memory, services.Session, services.MulliganGuide, services.Account,
+                services.Uploader, services.Usage);
+        _services = services;
         CardArt.Http = _http;
-        _api = new HearthpulseApi(_http);
-        // The game and the cards are looked up while the windows below are built, not after their first frame.
-        _prefetch = StartupPrefetch.Start(_settings, _http);
-
-        _history = new HistoryStore(AppPaths.Database) { Replays = Core.Replay.ReplayStore.Default };
-        _memory = new HearthstoneMemory();
-        _session = new GameSession(_history, _memory);
-        _mulliganGuide = new MulliganGuideSource(new HearthpulseData(_api)) { Rank = _settings.MulliganRank };
-        _session.SetMulliganGuide(_mulliganGuide);
-        _session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(_api)));
-        _session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(_api)));
-        _session.SetBgLeaderboards(new BgLeaderboardSource(_api));
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
-        var accountClient = new AccountClient(_http);
-        _account = new AccountService(accountClient);
         _mainViewModel.AttachAccount(_account);
-        // Daily free use of the stats pool's numbers (plan 3.1); a decision makes the session publish again.
-        _usage = new UsageGate(accountClient, _account, UsageGate.DefaultPath);
-        _session.Advisor.Usage = _usage;
+        _mainViewModel.CrashReportsChanged += () =>
+        {
+            // Switched off: consent withdrawn, what waits is not sent.
+            if (!_settings.SendCrashReports)
+            {
+                _crashReporter?.ClearPending();
+            }
+
+            _settingsDebounce.Kick();
+        };
+
+        // A decision of the daily free use (plan 3.1) makes the session publish again.
         _usage.Changed += () => _ = Dispatcher.BeginInvoke(() => _session.SetMeta(_session.Advisor.Meta));
-        _session.GameFinished += _ => _usage.GameFinished();
-        _uploader = ProfileUploader.For(accountClient, _account, () => _settings.UploadGamesToProfile, _history);
-        _uploader.BaseHero = id => _cards.BaseHeroId(id);
-        _account.Changed += _uploader.Kick;
         _mainViewModel.AttachUploader(_uploader);
         _mainViewModel.UploadSettingChanged += () =>
         {
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         };
         if (_renderDir is null)
         {
@@ -233,13 +227,15 @@ public partial class App : Application
             view => LiveDeckRecord.Read(_history, _installDir, view),
             _mainViewModel.Apply,
             RefreshOverlay);
-        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
-        // version stays in the settings, unused).
-        _session.SetCompMode(CompMode.Manual, null);
-        _session.SetCardPoolEnabled(_settings.ShowCardPool);
-        _session.SetArenaDraftEnabled(_settings.ShowArenaDraft);
-        _session.SetBgOpponentMmrEnabled(_settings.ShowBgOpponentMmr);
-        _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
+        _constructedLoader = new ConstructedMetaLoader(
+            (format, tierList, cancel) => ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, format, _settings.MetaRank, _settings.MetaPeriod, Loc.CardLocale, tierList, cancel),
+            () => ArchetypeTranslations.LoadAsync(_http),
+            () => ConstructedMeta.Key(ConstructedMeta.Formats, _settings.MetaFormat),
+            () => ConstructedMeta.FormatKeyOf(_mainViewModel.ConstructedFormat),
+            _mainViewModel.SetConstructedMeta,
+            _session.SetConstructedMeta,
+            () => _session.RequestMemoryTrimWhenWindowAway());
+        _session.ApplySettings(_settings);
         _overlayViewModel.SecretToggleRequested += _session.ToggleSecret;
         _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
         _overlayViewModel.CounterModeRequested += (id, mode) =>
@@ -258,26 +254,23 @@ public partial class App : Application
         _mainViewModel.MulliganRankChanged += () =>
         {
             _mulliganGuide.Rank = _settings.MulliganRank;
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         };
         _mainViewModel.PoolConsentChanged += () =>
         {
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
             _ = ShareHistoryAsync();
         };
         _mainViewModel.ConstructedMetaRequested += format =>
         {
             if (format is not null)
             {
-                EnsureConstructedMeta(format);
+                _constructedLoader.Ensure(format);
                 return;
             }
 
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
-            LoadConstructedMetaAsync().Forget("Constructed meta load");
+            _settingsDebounce.Kick();
+            _constructedLoader.ReloadAllAsync().Forget("Constructed meta load");
         };
         _releaseMain.Tick += (_, _) => ReleaseMain();
         // Started minimized, the window is built the first time it is opened from the tray.
@@ -310,18 +303,17 @@ public partial class App : Application
             _main.Show();
         }
 
-        _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _mainViewModel.RefreshAsync().Forget("History refresh"));
-        _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), _settings.Save);
+        _historyDebounce = Debounce.Timer(TimeSpan.FromMilliseconds(600), () => _mainViewModel.RefreshAsync().Forget("History refresh"));
+        _settingsDebounce = Debounce.Timer(TimeSpan.FromMilliseconds(400), _settings.Save);
         _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Meta refresh");
 
         _session.SnapshotChanged += _feed.Publish;
-        _session.ConstructedMetaNeeded += format => _ = Dispatcher.BeginInvoke(() => EnsureConstructedMeta(format));
+        _session.ConstructedMetaNeeded += format => _ = Dispatcher.BeginInvoke(() => _constructedLoader.Ensure(format));
         _session.GameFinished += outcome => _ = Dispatcher.BeginInvoke(() => OnGameFinished(outcome));
         _history.Changed += () => _ = Dispatcher.BeginInvoke(() =>
         {
-            _historyDebounce.Stop();
-            _historyDebounce.Start();
+            _historyDebounce.Kick();
             _feed.ForgetDeck();
         });
 
@@ -369,7 +361,7 @@ public partial class App : Application
     {
         try
         {
-            SetBusy(() => Loc.T("Host.Busy.LookingForGame"));
+            _mainViewModel.ShowBusy(() => Loc.T("Host.Busy.LookingForGame"));
             Task.Run(CacheCleanup.Run).Forget("Cache clean-up");
             (_installDir, var clientLocale) = await _prefetch.Game;
             if (_installDir is not null && _settings.HearthstonePath != _installDir)
@@ -400,7 +392,7 @@ public partial class App : Application
                 }
             });
 
-            SetBusy(() => Loc.T("Host.Busy.LoadingCards"));
+            _mainViewModel.ShowBusy(() => Loc.T("Host.Busy.LoadingCards"));
             _cards = await _prefetch.CardsAsync(locale);
             CardArt.FallbackUrl = id => _cards.BgCards.ImageUrl(id);
             if (_cards.Count == 0 && locale != "enUS")
@@ -410,7 +402,7 @@ public partial class App : Application
 
             _session.Cards = _cards;
             _mainViewModel.SetCards(_cards);
-            LoadCardPoolAsync().Forget("Card pool load");
+            _services.LoadCardPoolAsync().Forget("Card pool load");
 
             if (!_settings.HistoryImported || !_settings.HistoryStatsFilled || !_settings.HistoryCardsFilled)
             {
@@ -435,7 +427,7 @@ public partial class App : Application
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();
             _uiProbe = new System.Threading.Timer(ProbeUiThread, null, 2000, 1000);
-            SetBusy(_installDir is null
+            _mainViewModel.ShowBusy(_installDir is null
                 ? () => Loc.T("Host.Busy.GameNotFound")
                 : null);
 
@@ -445,7 +437,7 @@ public partial class App : Application
             }
 
             await LoadMetaAsync();
-            await LoadConstructedMetaAsync();
+            await _constructedLoader.ReloadAllAsync();
             _metaRefresh.Start();
             // Cards, the catch-up and the meta leave their parsing garbage behind; it is collected once things are quiet.
             _session.RequestMemoryTrim();
@@ -460,7 +452,7 @@ public partial class App : Application
                 return;
             }
 
-            SetBusy(() => Loc.T("Host.Busy.StartupProblem"));
+            _mainViewModel.ShowBusy(() => Loc.T("Host.Busy.StartupProblem"));
         }
     }
 
@@ -472,7 +464,7 @@ public partial class App : Application
     {
         if (!_settings.AutoUpdate)
         {
-            SetUpdateStatus(() => Loc.T("Host.Update.Off"));
+            _mainViewModel.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
             return;
         }
 
@@ -484,13 +476,12 @@ public partial class App : Application
                 _stagedUpdate = info;
                 _ = Dispatcher.BeginInvoke(() =>
                 {
-                    _updateStatus = null;
                     _mainViewModel.SetUpdateReady(info.Version);
                 });
                 Notify(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
             },
             // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
-            failed: status => _ = Dispatcher.BeginInvoke(() => SetUpdateStatus(status))));
+            failed: status => _ = Dispatcher.BeginInvoke(() => _mainViewModel.SetUpdateStatus(status))));
     }
 
     /// <summary>The "Update ready" chip: install the downloaded update now and start the new version.</summary>
@@ -532,157 +523,11 @@ public partial class App : Application
     /// <summary>The 6-hour refresh of both metas; their parsing garbage is collected once things are quiet.</summary>
     private async Task RefreshMetaAsync()
     {
-        await Task.WhenAll(LoadMetaAsync(), LoadConstructedMetaAsync());
+        await Task.WhenAll(LoadMetaAsync(), _constructedLoader.ReloadAllAsync());
         _session.RequestMemoryTrim();
     }
 
-    /// <summary>Russian archetype names, once per run and only while the interface is Russian (the only language that uses them).</summary>
-    private void LoadArchetypeNames()
-    {
-        if (Loc.IsRussian && _archetypeNames is null)
-        {
-            _archetypeNames = LoadArchetypeNamesAsync();
-            _archetypeNames.Forget("Archetype names load");
-        }
-    }
-
-    /// <summary>
-    /// Fetched beside the meta, never before it: when the names arrive the meta is loaded again (from its cache) so its
-    /// labels use them. An empty answer lets the next meta load ask again (the loader itself backs off after failures).
-    /// </summary>
-    private async Task LoadArchetypeNamesAsync()
-    {
-        var names = await ArchetypeTranslations.LoadAsync(_http);
-        if (names.Count == 0)
-        {
-            _archetypeNames = null;
-            return;
-        }
-
-        ArchetypeTranslations.Current = names;
-        if (Loc.IsRussian)
-        {
-            await LoadConstructedMetaAsync();
-        }
-    }
-
-    /// <summary>Loads the stats of every format in use again (start, filters, language, the 6-hour refresh).</summary>
-    private Task LoadConstructedMetaAsync()
-    {
-        _constructedFormats.Add(ConstructedMeta.Key(ConstructedMeta.Formats, _settings.MetaFormat));
-        return Task.WhenAll(_constructedFormats.ToList().Select(LoadConstructedMetaAsync));
-    }
-
-    /// <summary>
-    /// The stats of one format, asked by the page (Standard or Wild) or by a game of that format: passed on at once when
-    /// they are in, else downloaded unless a download already runs.
-    /// </summary>
-    private void EnsureConstructedMeta(string format)
-    {
-        _constructedFormats.Add(format);
-        if (_constructedMetas.TryGetValue(format, out var meta))
-        {
-            _mainViewModel.SetConstructedMeta(meta);
-            _session.SetConstructedMeta(meta);
-        }
-        else if (!_constructedMetaLoads.ContainsKey(format))
-        {
-            LoadConstructedMetaAsync(format).Forget("Constructed meta load");
-        }
-    }
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD103:Call async methods when in an async method", Justification = "Cancel runs before the new request registers, with no await point in between on the UI thread; LoadArchetypeNames only starts the shared load and does not block.")]
-    private async Task LoadConstructedMetaAsync(string format)
-    {
-        // Filters can change while a download runs; only the latest request of a format may pass its stats on, and an
-        // older one stops.
-        var request = ++_constructedMetaRequest;
-        if (_constructedMetaLoads.TryGetValue(format, out var running))
-        {
-            running.Cancel.Cancel();
-        }
-
-        // Disposed when this load ends: by then a newer request has replaced it in the table, or it removed itself.
-        using var cancel = new CancellationTokenSource();
-        _constructedMetaLoads[format] = (request, cancel);
-        bool Latest() => _constructedMetaLoads.TryGetValue(format, out var load) && load.Request == request;
-        var done = false;
-
-        // The tier list shows as soon as it is in; the mulligan numbers (many more requests) follow with the full answer.
-        var tierList = new Progress<ConstructedMeta>(m =>
-        {
-            if (!done && Latest())
-            {
-                _mainViewModel.SetConstructedMeta(m);
-            }
-        });
-        try
-        {
-            LoadArchetypeNames();
-            var meta = await ConstructedMeta.LoadAsync(new HearthpulseData(_api), _cards, format, _settings.MetaRank, _settings.MetaPeriod, Loc.CardLocale, tierList, cancel.Token);
-            done = true;
-            if (!Latest())
-            {
-                return;
-            }
-
-            _constructedMetaLoads.Remove(format);
-            if (meta is not null)
-            {
-                _constructedMetas[format] = meta;
-                if (format == ConstructedMeta.Key(ConstructedMeta.Formats, _settings.MetaFormat))
-                {
-                    _constructedMeta = meta;
-                }
-
-                _mainViewModel.SetConstructedMeta(meta);
-                _session.SetConstructedMeta(meta);
-            }
-            else if (ConstructedMeta.FormatKeyOf(_mainViewModel.ConstructedFormat) == format)
-            {
-                _mainViewModel.SetConstructedMeta(null);
-            }
-        }
-        catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-        {
-        }
-        catch (Exception ex)
-        {
-            if (Latest())
-            {
-                _constructedMetaLoads.Remove(format);
-            }
-
-            Diag.Error("Constructed stats unavailable", ex);
-        }
-        finally
-        {
-            // A load (another format, filters, language) leaves about 30 MB of parsing garbage that an idle app would
-            // never collect: it is given back once the window is minimized or let go and things are quiet.
-            _session.RequestMemoryTrimWhenWindowAway();
-        }
-    }
-
-    private async Task ImportLogsAsync(bool force)
-    {
-        if (_installDir is null)
-        {
-            SetBusy(() => Loc.T("Host.Busy.NothingToImport"));
-            return;
-        }
-
-        SetBusy(() => Loc.T("Host.Busy.Importing"));
-        var progress = new Progress<string>(text => SetBusy(() => text));
-        var result = await Task.Run(() => LogBackfill.Run(_installDir, _history, _cards, progress));
-        _settings.HistoryImported = true;
-        _settings.HistoryStatsFilled = true;
-        _settings.HistoryCardsFilled = true;
-        _settings.Save();
-        SetBusy(force || result.GamesAdded > 0
-            ? () => Loc.F("Host.Busy.Imported", result.GamesAdded, result.Sessions)
-            : null);
-        await _mainViewModel.RefreshAsync();
-    }
+    private Task ImportLogsAsync(bool force) => _mainViewModel.ImportLogsAsync(_installDir, force);
 
     // ---- live snapshots ---------------------------------------------------------------------
 
@@ -764,8 +609,7 @@ public partial class App : Application
         finally
         {
             _sharingHistory = false;
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         }
     }
 
@@ -779,16 +623,14 @@ public partial class App : Application
             && PoolGame.From(outcome, _cards.BaseHeroId, CardRaces, PoolClient.SharingDetails(_settings), PoolClient.Secret(_settings)) is { } game)
         {
             _ = PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), [PoolClient.Limit(game, _settings)]);
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         }
 
         // A Constructed game shares only its Discover-style picks, once the player agreed to that list (version 4).
         if (PoolClient.SharingPicks(_settings) && ConstructedPoolGame.From(outcome, PoolClient.Secret(_settings)) is { } picks)
         {
             _ = PoolClient.SubmitConstructedAsync(_http, PoolClient.Endpoint(_settings), [picks]);
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         }
 
         if (_settings.ShowGameToasts && _settings.OverlayEnabled)
@@ -966,21 +808,14 @@ public partial class App : Application
 
     private void OnSettingsChanged()
     {
-        _settingsDebounce.Stop();
-        _settingsDebounce.Start();
+        _settingsDebounce.Kick();
         if (_trayOverlayItem is not null)
         {
             _trayOverlayItem.Checked = _settings.OverlayEnabled;
         }
 
-        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
-        // version stays in the settings, unused).
-        _session.SetCompMode(CompMode.Manual, null);
-        _session.SetCardPoolEnabled(_settings.ShowCardPool);
-        _session.SetArenaDraftEnabled(_settings.ShowArenaDraft);
-        _session.SetBgOpponentMmrEnabled(_settings.ShowBgOpponentMmr);
-        _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
-        LoadCardPoolAsync().Forget("Card pool load");
+        _session.ApplySettings(_settings);
+        _services.LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();
         if (_renderDir is null)
         {
@@ -1050,23 +885,10 @@ public partial class App : Application
         }
     }
 
-    /// <summary>Shows a busy text in the main window, kept so a language switch can show it again in the new language.</summary>
-    private void SetBusy(Func<string>? text)
-    {
-        _busy = text;
-        _mainViewModel.Busy = text?.Invoke() ?? string.Empty;
-    }
-
-    /// <summary>Shows an update status in Settings → About, kept so a language switch can show it again.</summary>
-    private void SetUpdateStatus(Func<string> text)
-    {
-        _updateStatus = text;
-        _mainViewModel.SetUpdateStatus(text());
-    }
-
     /// <summary>
     /// The interface language changed (on the UI thread): the overlay rebuilds its texts from the last snapshot, and the
-    /// texts this host owns (tray menu, busy line, update status) are shown again in the new language.
+    /// texts this host owns (the tray menu) are shown again in the new language; the busy line and update status follow
+    /// by themselves (MainViewModel).
     /// </summary>
     private void OnLanguageChanged()
     {
@@ -1075,19 +897,10 @@ public partial class App : Application
         if (_cards.Count > 0 && _renderDir is null)
         {
             LoadMetaAsync().Forget("Battlegrounds meta load");
-            LoadConstructedMetaAsync().Forget("Constructed meta load");
+            _constructedLoader.ReloadAllAsync().Forget("Constructed meta load");
         }
 
         SetTrayTexts();
-        if (_busy is not null)
-        {
-            _mainViewModel.Busy = _busy();
-        }
-
-        if (_updateStatus is not null)
-        {
-            _mainViewModel.SetUpdateStatus(_updateStatus());
-        }
     }
 
     private void ShowMain()
@@ -1285,17 +1098,6 @@ public partial class App : Application
         {
             Diag.Info("Ctrl+Shift+R is taken by another app; hard refresh hotkey disabled.");
         }
-    }
-
-    private DispatcherTimer Debouncer(TimeSpan delay, Action action)
-    {
-        var timer = new DispatcherTimer { Interval = delay };
-        timer.Tick += (_, _) =>
-        {
-            timer.Stop();
-            action();
-        };
-        return timer;
     }
 
     /// <summary>Tray menu in the app's brown and gold palette (Surface, Surface3, Border and Accent).</summary>

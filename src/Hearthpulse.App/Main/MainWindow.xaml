@@ -1401,6 +1401,9 @@
                                         <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Data.PoolSharing}" IsChecked="{Binding PoolSharing}"
                                                   Visibility="{Binding PoolAvailable, Converter={StaticResource Vis}}" Margin="0,0,0,18"
                                                   ToolTip="{i:Loc Settings.Data.PoolSharingTip}" />
+                                        <!-- Plan 0.5: crash reports without asking; off by default -->
+                                        <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Data.CrashReports}" IsChecked="{Binding CrashReports}" Margin="0,0,0,4" />
+                                        <TextBlock Text="{i:Loc Settings.Data.CrashReportsNote}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,18" />
                                         <StackPanel Orientation="Horizontal">
                                             <Button Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Data.Import}" Click="OnReimport" Margin="0,0,8,0"
                                                     ToolTip="{i:Loc Settings.Data.ImportTip}" />

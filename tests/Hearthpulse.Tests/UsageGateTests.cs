@@ -195,10 +195,12 @@ public sealed class UsageGateTests : IDisposable
         var culture = CultureInfo.CurrentCulture;
         try
         {
-            // ru-RU writes the short time as "3:00": the local hour of the UTC midnight, without a date.
-            CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
+            // ru-RU writes the short time as "3:00" (Windows) or "03:00" (ICU on Linux and macOS): the local hour of the UTC
+            // midnight, without a date.
+            var ru = new CultureInfo("ru-RU");
+            CultureInfo.CurrentCulture = ru;
             Assert.Matches(@"^\d{1,2}:\d{2}$", UsageGate.ResetText(Midnight));
-            Assert.Equal(Midnight.ToLocalTime().ToString("H:mm", CultureInfo.InvariantCulture), UsageGate.ResetText(Midnight));
+            Assert.Equal(Midnight.ToLocalTime().ToString("t", ru), UsageGate.ResetText(Midnight));
             Assert.Equal("00:00", UsageGate.ResetText(DateTime.MinValue));
         }
         finally

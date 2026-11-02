@@ -90,10 +90,67 @@ class CoverageRatchetTests(unittest.TestCase):
         self.assertEqual(1, code)
         self.assertIn("Presentation: no coverage data", out)
 
+    def test_a_lowered_floor_or_a_wider_allowance_than_the_base_branch_fails(self):
+        base = self.root / "base.json"
+        base.write_text(json.dumps({"allowed_drop": 0.5, "floors": {"Core": 85.3, "UI": 67.3}}), encoding="utf-8")
+        out = StringIO()
+        with redirect_stdout(out):
+            same = ratchet.main(["--baseline", str(base), "--floors-not-below", str(base)])
+            lowered = ratchet.main(["--baseline", self.baseline({"Core": 85.0, "UI": 68}), "--floors-not-below", str(base)])
+        self.assertEqual((0, 1), (same, lowered))
+        self.assertIn("Core: floor 85.0 < 85.3", out.getvalue())
+        self.assertNotIn("UI: floor", out.getvalue())
+
+    def test_an_allowance_set_in_only_one_file_is_compared_with_the_default(self):
+        base = self.root / "base.json"
+        base.write_text(json.dumps({"floors": {"Core": 85.3}}), encoding="utf-8")
+        wider = self.root / "wider.json"
+        wider.write_text(json.dumps({"allowed_drop": 1.0, "floors": {"Core": 85.3}}), encoding="utf-8")
+        out = StringIO()
+        with redirect_stdout(out):
+            self.assertEqual(1, ratchet.main(["--baseline", str(wider), "--floors-not-below", str(base)]))
+            self.assertEqual(0, ratchet.main(["--baseline", str(base), "--floors-not-below", str(wider)]))
+        self.assertIn("allowed_drop 1.0 > 0.5", out.getvalue())
+
+    def test_report_only_never_fails(self):
+        self.write("a", report("D:\\repo\\", [("src\\Hearthpulse.Core\\A.cs", [(1, 0)])]))
+        out = StringIO()
+        with redirect_stdout(out):
+            code = ratchet.main([str(self.root / "a"), "--report-only", "--baseline", self.baseline({"Core": 90})])
+        self.assertEqual(0, code)
+        self.assertNotIn("::error", out.getvalue())
+
     def test_the_checked_in_baseline_has_a_floor_for_core_and_presentation(self):
         baseline = json.loads((ROOT / "tools/coverage/baseline.json").read_text(encoding="utf-8"))
         self.assertLessEqual({"Core", "Presentation"}, set(baseline["floors"]))
         self.assertEqual({"Core": 80, "Presentation": 70}, {m: baseline["targets"][m] for m in ("Core", "Presentation")})
+
+
+class NothingHidesCodeFromCoverageTests(unittest.TestCase):
+    """Coverage cannot be raised by leaving code out: no exclusion attributes in src/, and only the known tables are generated."""
+
+    GENERATED = {
+        "src/Hearthpulse.Core/Battlegrounds/Effects/CombatRelevance.g.cs",
+        "src/Hearthpulse.Core/Battlegrounds/Effects/deaths/GhastcoilerPool.g.cs",
+        "src/Hearthpulse.Core/Battlegrounds/Effects/ongoing/UndeadPool.g.cs",
+        "src/Hearthpulse.Core/CardPool/CardPoolTables.g.cs",
+        "src/Hearthpulse.Core/Tracking/Counters/CounterCards.g.cs",
+    }
+
+    @staticmethod
+    def sources(pattern):
+        return [p for p in (ROOT / "src").rglob(pattern) if "obj" not in p.relative_to(ROOT).parts and "bin" not in p.relative_to(ROOT).parts]
+
+    def test_no_coverage_exclusion_attributes_in_src(self):
+        found = [f"{p.relative_to(ROOT).as_posix()}: {attr}"
+                 for p in self.sources("*.cs")
+                 for attr in ("ExcludeFromCodeCoverage", "GeneratedCode")
+                 if attr in p.read_text(encoding="utf-8-sig")]
+        self.assertEqual([], found)
+
+    def test_the_generated_files_left_out_are_the_known_tables(self):
+        # A new generated table is fine: add it here in the commit that adds its generator under tools/.
+        self.assertEqual(self.GENERATED, {p.relative_to(ROOT).as_posix() for p in self.sources("*.g.cs")})
 
 
 if __name__ == "__main__":

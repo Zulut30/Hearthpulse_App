@@ -24,7 +24,7 @@ public partial class App
         DeckAggregate? deck;
         try
         {
-            view = await Task.Run(() => ConstructedReplay.Latest(install, _cards, _constructedMeta));
+            view = await Task.Run(() => ConstructedReplay.Latest(install, _cards, _constructedLoader.Default));
             deck = view is null
                 ? null
                 : await Task.Run(() => DeckRecords.Find(_history.Recent(int.MaxValue, "Constructed"), view.DeckName, view.DeckCode, view.PlayerClass,
