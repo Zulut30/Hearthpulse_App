@@ -53,13 +53,13 @@ public sealed class MainWindowLookTests
     {
         var wpf = Load("src/Hearthpulse.App/Main/MainWindow.xaml");
         var titles = wpf.Descendants().Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Style") == "{StaticResource PageTitle}").ToList();
-        Assert.Equal(6, titles.Count);
+        Assert.Equal(7, titles.Count);
         Assert.All(titles, t => Assert.Equal("{StaticResource PageRule}", (string?)Next(t)?.Attribute("Style")));
         Assert.DoesNotContain(wpf.Descendants(), e => (string?)e.Attribute("Style") == "{StaticResource Display}");
 
         var ava = Load("src/Hearthpulse.UI/Main/MainView.axaml");
         var avaTitles = ava.Descendants().Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Classes") == "display pageTitle").ToList();
-        Assert.Equal(6, avaTitles.Count);
+        Assert.Equal(7, avaTitles.Count);
         Assert.All(avaTitles, t => Assert.Equal("pageRule", (string?)Next(t)?.Attribute("Classes")));
     }
 

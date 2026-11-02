@@ -1,0 +1,12 @@
+{
+  "Brawl.NavTip": "Class win rates in this week's Tavern Brawl and your games in it (Ctrl+6)",
+  "Brawl.Classes": "Classes",
+  "Brawl.Classes.Note": "Class win rates in this week's Tavern Brawl, from everyone's games.",
+  "Brawl.Classes.Sub": "{0} · {1} of all games",
+  "Brawl.Classes.None": "No numbers for this week's Tavern Brawl yet. Hearthpulse checks again later.",
+  "Brawl.Classes.Unclassed": "Not in the table: {0} with decks whose class can't be told.",
+  "Brawl.Mine": "Your games in this Tavern Brawl",
+  "Brawl.Mine.Note": "The Tavern Brawl you played last: games since {0:MMMM d}.",
+  "Brawl.Mine.Empty": "No Tavern Brawl games yet. Play one and your classes, record and win rate show up here.",
+  "Brawl.Mine.EmptyOld": "Tavern Brawl games recorded before this Hearthpulse version aren't counted: they don't say which brawl they were."
+}

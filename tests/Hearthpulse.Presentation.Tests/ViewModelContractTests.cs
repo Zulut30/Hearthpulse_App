@@ -649,10 +649,11 @@ public sealed class ViewModelContractTests
     {
         Assert.Equal(WpfMain.NavPages, AvaMain.NavPages);
         Assert.Equal("Overview", WpfMain.NavPageForDigit(1));
-        Assert.Equal("History", AvaMain.NavPageForDigit(6));
-        Assert.Equal("Settings", WpfMain.NavPageForDigit(7));
+        Assert.Equal("Brawl", AvaMain.NavPageForDigit(6));
+        Assert.Equal("History", AvaMain.NavPageForDigit(7));
+        Assert.Equal("Settings", WpfMain.NavPageForDigit(8));
         Assert.Null(AvaMain.NavPageForDigit(0));
-        Assert.Null(WpfMain.NavPageForDigit(8));
+        Assert.Null(WpfMain.NavPageForDigit(9));
 
         var history = History();
         Assert.True(history.Add(Game(0)));

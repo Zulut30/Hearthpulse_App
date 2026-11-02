@@ -133,7 +133,7 @@ public partial class MainView : UserControl
     public string CurrentPage => MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)) ?? MainViewModel.NavPages[0];
 
     /// <summary>The sidebar buttons in <see cref="MainViewModel.NavPages"/> order.</summary>
-    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavHistory, NavSettings];
+    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings];
 
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
     private ToggleButton[] BattlegroundsTabButtons => [TabHeroes, TabComps, TabTrinkets, TabCards, TabMine];
@@ -161,7 +161,7 @@ public partial class MainView : UserControl
     }
 
     /// <summary>
-    /// Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page; Ctrl+V on History imports a replay
+    /// Ctrl+1…8 open the sidebar pages; Esc and Alt+Left leave a deck or match page; Ctrl+V on History imports a replay
     /// (not while typing), Ctrl+F goes to its search.
     /// </summary>
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
@@ -452,6 +452,7 @@ public partial class MainView : UserControl
         PageConstructed.IsVisible = ConstructedShown && !deckOpen;
         PageDeck.IsVisible = ConstructedShown && deckOpen;
         PageArena.IsVisible = NavArena.IsChecked == true;
+        PageBrawl.IsVisible = NavBrawl.IsChecked == true;
         // The match page stands in for the History list while a game is open.
         var matchOpen = _viewModel?.MatchOpen == true;
         PageHistory.IsVisible = NavHistory.IsChecked == true && !matchOpen;

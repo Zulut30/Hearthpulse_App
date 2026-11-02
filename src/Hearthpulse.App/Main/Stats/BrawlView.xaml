@@ -1,0 +1,53 @@
+<UserControl x:Class="Hearthpulse.App.Main.Stats.BrawlView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure">
+    <!-- Tavern Brawl page (docs/brawl.md): this week's class win rates by everyone's games on the left, the player's
+         classes in the Brawl played last on the right -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Hearthpulse;component/Main/MainLook.xaml" />
+                <ResourceDictionary Source="StatsResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid Margin="0,0,0,24">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border Style="{StaticResource Card}" VerticalAlignment="Top">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Brawl.Classes}" Icon="&#xF0127;" Size="13" Margin="0,0,0,10" />
+                <TextBlock Text="{i:Loc Brawl.Classes.Note}" Style="{StaticResource CardNote}" />
+                <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding BrawlClassesSort}" Visibility="{Binding BrawlClasses, Converter={StaticResource Vis}}" />
+                <ItemsControl ItemsSource="{Binding BrawlClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Arena.Page.CommunityLoading}"
+                                Visibility="{Binding BrawlClassesLoading, Converter={StaticResource Vis}}" />
+                <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}"
+                                Visibility="{Binding BrawlClassesUnavailable, Converter={StaticResource Vis}}" />
+                <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0127;" Content="{i:Loc Brawl.Classes.None}"
+                                Visibility="{Binding BrawlClassesNone, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding BrawlUnclassed}" Style="{StaticResource Caption}" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
+                           Visibility="{Binding BrawlUnclassed, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding BrawlSource}" Style="{StaticResource Caption}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"
+                           Visibility="{Binding BrawlSource, Converter={StaticResource Vis}}" />
+            </StackPanel>
+        </Border>
+        <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Brawl.Mine}" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
+                <TextBlock Text="{Binding BrawlMineNote}" Style="{StaticResource CardNote}" Visibility="{Binding BrawlMineNote, Converter={StaticResource Vis}}" />
+                <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding BrawlMineSort}" Visibility="{Binding BrawlMine, Converter={StaticResource Vis}}" />
+                <ItemsControl ItemsSource="{Binding BrawlMine}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
+                <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF1116;" Content="{i:Loc Brawl.Mine.Empty}"
+                                Visibility="{Binding BrawlMineEmpty, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{i:Loc Brawl.Mine.EmptyOld}" Style="{StaticResource Caption}" TextWrapping="Wrap"
+                           Visibility="{Binding BrawlMineOld, Converter={StaticResource Vis}}" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

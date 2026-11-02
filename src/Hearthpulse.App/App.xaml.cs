@@ -519,6 +519,7 @@ public partial class App : Application
         }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
+        LoadBrawlMetaAsync().Forget("Brawl stats load");
         _session.RequestMemoryTrimWhenWindowAway();
     }
 
