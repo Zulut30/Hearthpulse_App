@@ -22,6 +22,15 @@ public sealed partial class BattlegroundsAdvisor
     public BattlegroundsMeta? Meta { get; set; }
 
     /// <summary>
+    /// Daily free use of the stats pool's numbers (plan 3.1): when set, comps and trinket stats are used only in a game
+    /// the gate allows. Null: no limit.
+    /// </summary>
+    public Accounts.UsageGate? Usage { get; set; }
+
+    /// <summary>Marks the current game for <see cref="Usage"/> (any value that changes with the game; set by the session).</summary>
+    public object? Game { get; set; }
+
+    /// <summary>
     /// Who sets the target comp. <see cref="CompMode.Manual"/>: only <see cref="PinnedCompId"/>, never the advisor, so
     /// without a choice there is no target and the tavern and Discover scores get no comp bonus.
     /// <see cref="CompMode.Auto"/>: the advisor picks one, and <see cref="PinnedCompId"/> overrides it.
@@ -72,8 +81,10 @@ public sealed partial class BattlegroundsAdvisor
         var bracket = meta.BracketFor(rating);
         var lobbyKnown = view.Races.Count >= 4;
         var lobbyIds = view.Races.Select(r => RaceIds.GetValueOrDefault(r)).Where(id => id > 0).ToHashSet();
+        // Comps and trinket stats come only from the stats pool: our own analytics, under the daily free limit.
+        var poolOpen = PoolOpen(meta);
         var hasCompCards = meta.Comps.Any(c => c.Cards.Count > 0);
-        var viable = meta.Comps
+        var viable = (poolOpen ? meta.Comps : [])
             .Where(c => !hasCompCards || c.Cards.Count > 0)
             .Where(c => !lobbyKnown || c.Tribes.All(view.Races.Contains))
             .Where(c => Playable(c, cards, view.IsDuos))
@@ -114,7 +125,7 @@ public sealed partial class BattlegroundsAdvisor
             Comps = comps,
             ShopAdvice = shop,
             BestSpell = shop.Where(p => p.IsSpell && p.Score >= StrongSpellScore).OrderByDescending(p => p.Score).FirstOrDefault(),
-            TrinketOptions = RankTrinkets(view.TrinketOptions, meta, bracket),
+            TrinketOptions = poolOpen ? RankTrinkets(view.TrinketOptions, meta, bracket) : view.TrinketOptions,
             DarkGiftAdvice = DarkGiftTip(view, shop),
             DiscoverAdvice = discover,
             FreezeAdvice = FreezeTip(view, shop, target),
@@ -122,8 +133,17 @@ public sealed partial class BattlegroundsAdvisor
             ShopPlan = plan,
             MetaSource = $"{meta.Source} · {percentile} · {meta.Updated.ToString("dd MMM HH:mm", Loc.DateCulture)}"
                 + (meta.SharedGames > 0 ? " · " + Loc.P("Core.Bg.SharedGames", meta.SharedGames) : string.Empty),
+            UsageNote = poolOpen ? null : Usage?.Note(Accounts.UsageGate.BgPoolStats) is { Length: > 0 } note ? note : null,
         };
     }
+
+    /// <summary>
+    /// Whether the stats pool's numbers may be used in this game. A pool with nothing to show spends no free game; the
+    /// first game that has some claims one (<see cref="Accounts.UsageGate.Allow"/>).
+    /// </summary>
+    private bool PoolOpen(BattlegroundsMeta meta) =>
+        Usage is null || Game is null || !meta.FromPool || (meta.Comps.Count == 0 && meta.Trinkets.Count == 0)
+        || Usage.Allow(Accounts.UsageGate.BgPoolStats, Game);
 
     private static List<BgHeroOption> RankHeroes(
         BattlegroundsView view, CardDb cards, BattlegroundsMeta meta, int bracket,

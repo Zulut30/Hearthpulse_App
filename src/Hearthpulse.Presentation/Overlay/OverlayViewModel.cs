@@ -135,6 +135,7 @@ public sealed partial class OverlayViewModel : Observable
     private string _oddsKill = string.Empty;
     private bool _lethalDanger;
     private string _metaSource = string.Empty;
+    private string _usageNote = string.Empty;
     private int _selectedTier;
     private IReadOnlyList<BrowserGroup> _browser = Array.Empty<BrowserGroup>();
     private string _anomaly = string.Empty;
@@ -174,6 +175,9 @@ public sealed partial class OverlayViewModel : Observable
     /// <summary>The fight can kill the player: the odds panel turns red.</summary>
     public bool LethalDanger { get => _lethalDanger; private set => Set(ref _lethalDanger, value); }
     public string MetaSource { get => _metaSource; private set => Set(ref _metaSource, value); }
+
+    /// <summary>Why the stats pool's numbers are missing: today's free games are used up (plan 3.1); empty otherwise.</summary>
+    public string UsageNote { get => _usageNote; private set => Set(ref _usageNote, value); }
 
     private string _discoverTitle = string.Empty;
 
@@ -520,6 +524,7 @@ public sealed partial class OverlayViewModel : Observable
                     : Loc.F("Overlay.Discover.CloseCall", source);
 
         MetaSource = view.MetaSource ?? string.Empty;
+        UsageNote = view.UsageNote ?? string.Empty;
 
         var shopSize = view.Shop.Count;
         Replace(nameof(ShopBadges), view.ShopAdvice, s => $"{mode}{shopSize}{s.Slot}{s.Score}{s.Best}{s.Reason}{s.Placement:0.000}", () => ShopBadges = view.ShopAdvice

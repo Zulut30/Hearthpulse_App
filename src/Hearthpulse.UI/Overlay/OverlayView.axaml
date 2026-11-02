@@ -1198,12 +1198,32 @@
                 <!-- ============ Battlegrounds: hero pick badges, one above each hero (HDT: pitch 340, +7 x) ============ -->
                 <o:MovablePanel Id="hero-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.HeroPick}" MinWidth="1360" Shown="{Binding ShowHeroPick}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,212,0,0">
                     <!-- Where the numbers come from and what the tier letters mean: the tier badge's tooltip -->
-                    <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
+                        <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
+                        <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                                IsVisible="{Binding UsageNote, Converter={StaticResource Truthy}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xF0341;" Classes="icon" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
+                                <TextBlock Text="{Binding UsageNote}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="720" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: trinket pick badges (HDT: pitch 277, +10 x) ============ -->
                 <o:MovablePanel Id="trinket-row" PlaceholderAlignment="Right" Title="{i:Loc Overlay.Panel.TrinketPick}" MinWidth="1108" Shown="{Binding ShowTrinkets}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,226,0,0">
-                    <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
+                        <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
+                        <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                                IsVisible="{Binding UsageNote, Converter={StaticResource Truthy}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xF0341;" Classes="icon" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
+                                <TextBlock Text="{Binding UsageNote}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="720" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: buy hints over the tavern row (HDT: row top 0.297H, pitch 138) ============ -->

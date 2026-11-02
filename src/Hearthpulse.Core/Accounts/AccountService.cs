@@ -270,6 +270,34 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     }
 
     /// <summary>
+    /// Claims one game of a limited feature on the site (plan 3.1, <see cref="UsageGate"/>): the site's decision, or null
+    /// when signed out, offline or the answer is not one (the gate then counts the game on this machine).
+    /// </summary>
+    public async Task<UsageClaim?> ClaimUsageAsync(string feature, string gameId, CancellationToken cancellationToken = default)
+    {
+        if (await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false) is not { } token)
+        {
+            return null;
+        }
+
+        try
+        {
+            var (status, body) = await client.PostUsageClaimAsync(token, feature, gameId, cancellationToken).ConfigureAwait(false);
+            if (status == 200 && UsageClaim.Parse(body) is { } claim)
+            {
+                return claim;
+            }
+
+            Diag.Info($"account: usage claim answered {status}");
+            return null;
+        }
+        catch (AccountException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Deletes an uploaded replay by its delete token: null when deleted; <c>NOT_FOUND</c> when the site has no such
     /// replay (deleted on the account page, expired); <c>OFFLINE</c>, <c>RATE_LIMITED</c> or <c>SERVER_ERROR</c> when
     /// it is still there.

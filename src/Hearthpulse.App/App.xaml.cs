@@ -39,6 +39,7 @@ public partial class App : Application
     private HearthpulseApi _api = null!;
     private AccountService _account = null!;
     private ProfileUploader _uploader = null!;
+    private UsageGate _usage = null!;
     private HistoryStore _history = null!;
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
@@ -218,6 +219,10 @@ public partial class App : Application
         var accountClient = new AccountClient(_http);
         _account = new AccountService(accountClient);
         _mainViewModel.AttachAccount(_account);
+        // Daily free use of the stats pool's numbers (plan 3.1); a decision makes the session publish again.
+        _usage = new UsageGate(accountClient, _account, UsageGate.DefaultPath);
+        _session.Advisor.Usage = _usage;
+        _usage.Changed += () => _ = Dispatcher.BeginInvoke(() => _session.SetMeta(_session.Advisor.Meta));
         _uploader = ProfileUploader.For(accountClient, _account, () => _settings.UploadGamesToProfile, _history);
         _uploader.BaseHero = id => _cards.BaseHeroId(id);
         _account.Changed += _uploader.Kick;
@@ -510,6 +515,7 @@ public partial class App : Application
     private async Task LoadMetaAsync()
     {
         var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings);
+        await _usage.RefreshLimitsAsync();
         if (meta is not null)
         {
             _meta = meta;

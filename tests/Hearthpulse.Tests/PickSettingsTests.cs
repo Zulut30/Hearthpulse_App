@@ -257,6 +257,48 @@ public sealed class PickSettingsTests
         Assert.True(plain.IndexOf("murlocs") < plain.IndexOf("demons"), string.Join(", ", plain));
     }
 
+    [Theory]
+    [InlineData(3, true)]
+    [InlineData(0, false)]
+    public void The_pool_s_comps_wait_for_today_s_free_games(int freePerDay, bool shown)
+    {
+        var (_, cards) = Advisor(CompMode.Auto);
+        var dir = Path.Combine(Path.GetTempPath(), $"hp-usage-advisor-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            // The site's last limits, as the gate keeps them (signed out: the game is counted here).
+            var path = Path.Combine(dir, "usage.json");
+            File.WriteAllText(path, """{"limits":{"enabled":true,"resetsAt":"2026-11-03T00:00:00Z","features":{"bg.poolStats":{"section":"battlegrounds","freePerDay":FREE}}},"day":"","games":{}}"""
+                .Replace("FREE", freePerDay.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal));
+            var gate = new Hearthpulse.Core.Accounts.UsageGate(new Hearthpulse.Core.Accounts.AccountClient(new HttpClient()), null, path);
+            var meta = new BattlegroundsMeta(
+                new Dictionary<int, IReadOnlyDictionary<string, MetaHero>> { [100] = new Dictionary<string, MetaHero>() },
+                [],
+                [Comp("beasts", "Beasts", "BEAST", 4.0, "BEAST_CORE", "BEAST_CORE_2")],
+                new Dictionary<string, MetaTrinket>(),
+                new Dictionary<int, IReadOnlyDictionary<string, MetaCard>>(),
+                new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc))
+            {
+                Source = $"{BattlegroundsMeta.Attribution} + {BattlegroundsMeta.PoolName}",
+            };
+            var advisor = new BattlegroundsAdvisor { Meta = meta, CompMode = CompMode.Auto, Usage = gate, Game = 1 };
+
+            // Signed out the game is counted here at once: the pool's numbers show, or the note says why not, and stay so
+            // for the rest of the game.
+            for (var snapshot = 0; snapshot < 2; snapshot++)
+            {
+                var view = advisor.Enrich(View(["BEAST", "MURLOC", "DEMON", "PIRATE"], 6), null, cards);
+                Assert.Equal(shown, view.Comps.Count > 0);
+                Assert.Equal(!shown, view.UsageNote is { Length: > 0 });
+            }
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     [Fact]
     public void Shows_more_than_two_comps_when_the_guides_have_no_tribes()
     {
