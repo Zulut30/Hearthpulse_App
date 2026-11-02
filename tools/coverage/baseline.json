@@ -1,0 +1,14 @@
+{
+  "comment": "Line-coverage floors per module (tools/coverage/coverage_ratchet.py). CI fails when a module is more than allowed_drop percentage points under its floor. Floors only go up: raise one in the commit that raises the module. Measured on CI's Windows job, run 41366283592 (main 2026-11-02): Core 85.3, Presentation 81.9, App 42.9, UI 67.3 (66.9 locally).",
+  "allowed_drop": 0.5,
+  "floors": {
+    "Core": 85.3,
+    "Presentation": 81.9,
+    "App": 42.9,
+    "UI": 66.9
+  },
+  "targets": {
+    "Core": 80,
+    "Presentation": 70
+  }
+}
