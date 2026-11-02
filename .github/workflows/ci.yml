@@ -18,6 +18,8 @@ concurrency:
 env:
   DOTNET_NOLOGO: "true"
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  # Any build warning fails the job (Directory.Build.props, ADR 0003); release.yml does not set it.
+  HEARTHPULSE_STRICT: "true"
 
 jobs:
   scripts:

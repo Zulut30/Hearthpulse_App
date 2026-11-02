@@ -383,8 +383,10 @@ public sealed class DeckDetailsViewModel : Observable
         ? ConstructedMeta.Label(ConstructedMeta.Formats, key)
         : format.Replace("FT_", string.Empty, StringComparison.Ordinal);
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD100:Avoid async void methods", Justification = "Fire-and-forget rebuild on the UI thread, also a TableSort callback (Action); the build is awaited inside try/catch and logged. Moving to Task + Forget: TASK-2026-10-29-quality-analyzers, question Q1.")]
-    private async void Rebuild()
+    /// <summary>Rebuilds the page off the UI thread; also a TableSort callback (Action), so the task is let go here.</summary>
+    private void Rebuild() => BuildPageAsync().Forget("Deck page build");
+
+    private async Task BuildPageAsync()
     {
         if (_family is not { } family)
         {

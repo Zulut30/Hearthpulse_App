@@ -30,7 +30,7 @@ public sealed partial class LocBindingTests
             Assert.Equal("History", view.CurrentPage);
             // The page loads on a worker and lands on this thread: run its loop until then (at most 10 s).
             var landed = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            open.ContinueWith(_ => landed.Cancel(), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            _ = open.ContinueWith(_ => landed.Cancel(), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             Dispatcher.UIThread.MainLoop(landed.Token);
 
             Assert.True(open.IsCompletedSuccessfully && open.Result);
