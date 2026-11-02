@@ -33,7 +33,6 @@ public sealed partial class AppHost : IDisposable
     private LogWatcher? _watcher;
     private readonly LiveFeed _feed;
     private UpdateInfo? _stagedUpdate;
-    private Task? _archetypeNames;
     private readonly StartupPrefetch _prefetch;
 
     /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
@@ -83,6 +82,14 @@ public sealed partial class AppHost : IDisposable
             view => LiveDeckRecord.Read(History, InstallDirectory, view),
             Main.Apply,
             RefreshOverlay);
+        _constructedLoader = new ConstructedMetaLoader(
+            (format, tierList, cancel) => Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale, tierList, cancel),
+            () => ArchetypeTranslations.LoadAsync(Http),
+            () => Core.Constructed.ConstructedMeta.Key(Core.Constructed.ConstructedMeta.Formats, Settings.MetaFormat),
+            () => Core.Constructed.ConstructedMeta.FormatKeyOf(Main.ConstructedFormat),
+            Main.SetConstructedMeta,
+            Session.SetConstructedMeta,
+            () => Session.RequestMemoryTrimWhenWindowAway());
         Session.ApplySettings(Settings);
         Overlay.SecretToggleRequested += Session.ToggleSecret;
         Overlay.CardPoolBrowserResized += OnSettingsChanged;
@@ -112,22 +119,18 @@ public sealed partial class AppHost : IDisposable
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Battlegrounds meta load");
 
         Session.SnapshotChanged += _feed.Publish;
-        Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => EnsureConstructedMeta(format));
+        Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => _constructedLoader.Ensure(format));
         Main.ConstructedMetaRequested += format =>
         {
             if (format is not null)
             {
-                EnsureConstructedMeta(format);
+                _constructedLoader.Ensure(format);
                 return;
             }
 
             // A meta filter changed: it is saved, and every format in use loads again for it.
             _settingsDebounce.Kick();
-            _constructedFormats.Add(ConstructedMeta.Key(ConstructedMeta.Formats, Settings.MetaFormat));
-            foreach (var key in _constructedFormats.ToList())
-            {
-                LoadConstructedMetaAsync(key, restart: true).Forget("Constructed meta load");
-            }
+            _constructedLoader.ReloadAllAsync().Forget("Constructed meta load");
         };
         Session.GameFinished += outcome => Dispatcher.UIThread.Post(() => OnGameFinished(outcome));
         History.Changed += () => Dispatcher.UIThread.Post(() =>
@@ -165,21 +168,10 @@ public sealed partial class AppHost : IDisposable
     public string? InstallDirectory { get; private set; }
 
     /// <summary>Stats of <see cref="AppSettings.MetaFormat"/> (the format loaded at start); null until they are in.</summary>
-    public ConstructedMeta? ConstructedMeta { get; private set; }
+    public ConstructedMeta? ConstructedMeta => _constructedLoader.Default;
 
-    /// <summary>Constructed stats by format key ("standard", "wild"): the page and a game each use their own format's.</summary>
-    private readonly Dictionary<string, ConstructedMeta> _constructedMetas = new(StringComparer.Ordinal);
+    private readonly ConstructedMetaLoader _constructedLoader;
 
-    /// <summary>Formats kept fresh: the one loaded at start, the pages opened and the formats played.</summary>
-    private readonly HashSet<string> _constructedFormats = new(StringComparer.Ordinal);
-
-    /// <summary>
-    /// Formats whose download runs now, with the number of the latest request (only that one passes its stats on) and
-    /// what stops it when a newer one overtakes it.
-    /// </summary>
-    private readonly Dictionary<string, (int Request, CancellationTokenSource Cancel)> _constructedLoading = new(StringComparer.Ordinal);
-
-    private int _constructedRequest;
 
     public CardDb Cards { get; private set; } = CardDb.Empty;
 
@@ -345,30 +337,6 @@ public sealed partial class AppHost : IDisposable
         }
     }
 
-    /// <summary>
-    /// Russian archetype names, once per run and only while the interface is Russian (the only language that uses them),
-    /// fetched beside the meta, never before it: when they arrive the meta is loaded again (from its cache) so its labels
-    /// use them. An empty answer lets the next meta load ask again (the loader itself backs off after failures).
-    /// </summary>
-    private async Task LoadArchetypeNamesAsync()
-    {
-        var names = await ArchetypeTranslations.LoadAsync(Http);
-        if (names.Count == 0)
-        {
-            _archetypeNames = null;
-            return;
-        }
-
-        ArchetypeTranslations.Current = names;
-        if (Loc.IsRussian)
-        {
-            // Only the Constructed labels use the names: those formats load again (not the Battlegrounds and Arena stats),
-            // overtaking a download still running so the names reach it.
-            _constructedFormats.Add(ConstructedMeta.Key(ConstructedMeta.Formats, Settings.MetaFormat));
-            await Task.WhenAll(_constructedFormats.ToList().Select(format => LoadConstructedMetaAsync(format, restart: true)));
-        }
-    }
-
     /// <summary>The 6-hour refresh of the Battlegrounds meta; its parsing garbage is collected once things are quiet.</summary>
     private async Task RefreshMetaAsync()
     {
@@ -397,121 +365,8 @@ public sealed partial class AppHost : IDisposable
         LoadArenaMetaAsync().Forget("Arena stats load");
         Session.RequestMemoryTrimWhenWindowAway();
 
-        try
-        {
-            // The Standard and Wild pages show these stats; they also feed the in-game mulligan panel.
-            if (Loc.IsRussian && _archetypeNames is null)
-            {
-                _archetypeNames = LoadArchetypeNamesAsync();
-                _archetypeNames.Forget("Archetype names load");
-            }
-
-            _constructedFormats.Add(ConstructedMeta.Key(ConstructedMeta.Formats, Settings.MetaFormat));
-            await Task.WhenAll(_constructedFormats.ToList().Select(LoadConstructedMetaAsync));
-        }
-        catch (Exception ex)
-        {
-            Diag.Error("Constructed stats unavailable", ex);
-        }
-    }
-
-    /// <summary>
-    /// The stats of one format, asked by the Standard or Wild page or by a game of that format: passed on at once when
-    /// they are in, else downloaded unless a download already runs.
-    /// </summary>
-    private void EnsureConstructedMeta(string format)
-    {
-        _constructedFormats.Add(format);
-        if (_constructedMetas.TryGetValue(format, out var meta))
-        {
-            Session.SetConstructedMeta(meta);
-            Main.SetConstructedMeta(meta);
-        }
-        else
-        {
-            LoadConstructedMetaAsync(format).Forget("Constructed meta load");
-        }
-    }
-
-    private async Task LoadConstructedMetaAsync(string format) => await LoadConstructedMetaAsync(format, restart: false);
-
-    /// <param name="format">The format key ("standard", "wild").</param>
-    /// <param name="restart">The filters changed: a download already running is overtaken instead of waited for.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD103:Call async methods when in an async method", Justification = "Cancel runs before the new request registers, with no await point in between on the UI thread.")]
-    private async Task LoadConstructedMetaAsync(string format, bool restart)
-    {
-        if (_constructedLoading.TryGetValue(format, out var running))
-        {
-            if (!restart)
-            {
-                return;
-            }
-
-            // Overtaken: its many requests (mulligan numbers, matchups) stop instead of running on for nothing.
-            running.Cancel.Cancel();
-        }
-
-        var request = ++_constructedRequest;
-        using var cancel = new CancellationTokenSource();
-        _constructedLoading[format] = (request, cancel);
-        bool Latest() => _constructedLoading.TryGetValue(format, out var latest) && latest.Request == request;
-        var done = false;
-
-        // The tier list shows as soon as it is in; the mulligan numbers and matchups follow with the full answer.
-        var tierList = new Progress<ConstructedMeta>(m =>
-        {
-            if (!done && Latest())
-            {
-                Main.SetConstructedMeta(m);
-            }
-        });
-        try
-        {
-            var constructed = await Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale, tierList,
-                cancel.Token);
-            done = true;
-            if (!Latest())
-            {
-                return;
-            }
-
-            if (constructed is null)
-            {
-                if (ConstructedMeta.FormatKeyOf(Main.ConstructedFormat) == format)
-                {
-                    Main.SetConstructedMeta(null);
-                }
-            }
-            else
-            {
-                _constructedMetas[format] = constructed;
-                if (format == Core.Constructed.ConstructedMeta.Key(Core.Constructed.ConstructedMeta.Formats, Settings.MetaFormat))
-                {
-                    ConstructedMeta = constructed;
-                }
-
-                Session.SetConstructedMeta(constructed);
-                Main.SetConstructedMeta(constructed);
-            }
-        }
-        catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-        {
-        }
-        catch (Exception ex)
-        {
-            Diag.Error("Constructed stats unavailable", ex);
-        }
-        finally
-        {
-            if (Latest())
-            {
-                _constructedLoading.Remove(format);
-            }
-
-            // A load (another format, filters, language) leaves about 30 MB of parsing garbage that an idle app would
-            // never collect: it is given back once the window is minimized or let go and things are quiet.
-            Session.RequestMemoryTrimWhenWindowAway();
-        }
+        // The Standard and Wild pages show these stats; they also feed the in-game mulligan panel.
+        await _constructedLoader.ReloadAllAsync();
     }
 
     public Task ImportLogsAsync(bool force) => Main.ImportLogsAsync(InstallDirectory, force);

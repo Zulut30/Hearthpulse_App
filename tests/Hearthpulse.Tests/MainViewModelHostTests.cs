@@ -18,12 +18,12 @@ public sealed class MainViewModelHostTests : IDisposable
     public MainViewModelHostTests()
     {
         _history = new HistoryStore(_db);
-        Loc.Instance.SetLanguage(Loc.English);
+        Language(Loc.English);
     }
 
     public void Dispose()
     {
-        Loc.Instance.SetLanguage(Loc.English);
+        Language(Loc.English);
         TestDataFolder.TryDelete(_db);
     }
 
@@ -36,7 +36,7 @@ public sealed class MainViewModelHostTests : IDisposable
         Assert.Equal("Hearthstone install not found — nothing to import.", vm.Busy);
         Assert.Equal("Automatic updates are off.", vm.UpdateStatus);
 
-        Loc.Instance.SetLanguage(Loc.Russian);
+        Language(Loc.Russian);
 
         Assert.Equal(Loc.T("Host.Busy.NothingToImport"), vm.Busy);
         Assert.StartsWith("Hearthstone не найден", vm.Busy, StringComparison.Ordinal);
@@ -52,7 +52,7 @@ public sealed class MainViewModelHostTests : IDisposable
         vm.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
         vm.SetUpdateReady("9.9.9");
 
-        Loc.Instance.SetLanguage(Loc.Russian);
+        Language(Loc.Russian);
 
         Assert.Equal(string.Empty, vm.Busy);
         Assert.DoesNotContain("Автообновление", vm.UpdateStatus, StringComparison.Ordinal);
@@ -84,4 +84,10 @@ public sealed class MainViewModelHostTests : IDisposable
         Assert.Equal((true, true, true), (settings.HistoryImported, settings.HistoryStatsFilled, settings.HistoryCardsFilled));
         TestDataFolder.TryDelete(install);
     }
+
+    /// <summary>
+    /// Switches the language on the headless UI thread: views the Avalonia binding tests leave alive follow every
+    /// switch, and they may only be touched from that thread.
+    /// </summary>
+    private static void Language(string language) => LocBindingTests.Headless.Run(() => Loc.Instance.SetLanguage(language));
 }

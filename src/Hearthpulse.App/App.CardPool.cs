@@ -46,7 +46,7 @@ public partial class App
         var catalog = await CardPoolCatalog.LoadAsync(_api, _http);
         var wiki = new WikiPoolSource(new Core.Api.HearthpulseData(_api));
         await wiki.LoadAsync("BE_298");
-        var engine = new CardPoolEngine(catalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructedMeta, _cards), wiki);
+        var engine = new CardPoolEngine(catalog.WithRaces(_cards), _cards, CardPoolEngine.MetaGames(_constructedLoader.Default, _cards), wiki);
         if (engine.Build("CORE_GIL_836", new PoolContext("FT_STANDARD", "SHAMAN", "WARRIOR"), PoolTrigger.Choice) is not { } pool
             || engine.Build("JAIL_706", new PoolContext("FT_STANDARD", "ROGUE", "WARRIOR"), PoolTrigger.Request) is not { } browse)
         {
