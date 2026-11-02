@@ -425,8 +425,9 @@ public sealed partial class MatchPage
         var f = replay.Frames[Math.Clamp(frame, 0, replay.Frames.Count - 1)];
         var before = f.Index > 0 ? replay.Frames[f.Index - 1] : null;
         var marks = new StepMarks(ActorOf(f), f.Action.TargetRef ?? 0, HealthBefore(before));
-        var local = Side(f.Local, true, f.PlayerTurn, marks, before?.Local);
-        var opponent = Side(f.Opponent, false, f.PlayerTurn, marks, before?.Opponent);
+        var died = f.Action.Deaths.Select(d => d.Ref).ToHashSet();
+        var local = Side(f.Local, true, f.PlayerTurn, marks, before?.Local, died);
+        var opponent = Side(f.Opponent, false, f.PlayerTurn, marks, before?.Opponent, died);
         var turn = f.Mulligan ? Loc.T("Match.Step.Mulligan") : f.Turn == 0 ? Loc.T("Match.Step.Start") : Loc.F("Match.Step.Turn", f.PlayerTurn, Whose(f.Active));
         return new MatchStepView(f.Index, replay.Frames.Count, turn, Describe(f.Action), Details(f.Action), f.Action.Player == ReplayPlayer.Local,
             bottom == ReplayPlayer.Local ? opponent : local,
@@ -631,7 +632,7 @@ public sealed partial class MatchPage
         return chips;
     }
 
-    private MatchSideView Side(ReplayBoard board, bool local, int turn, StepMarks marks, ReplayBoard? before)
+    private MatchSideView Side(ReplayBoard board, bool local, int turn, StepMarks marks, ReplayBoard? before, IReadOnlySet<int> died)
     {
         var hero = board.Hero?.CardId ?? (local ? Game.HeroCardId : Game.OpponentHeroCardId);
         var heroRef = board.Hero?.Id ?? 0;
@@ -644,7 +645,7 @@ public sealed partial class MatchPage
             board.Armor,
             board.Weapon is { } weapon ? Marked(Card(weapon, turn), weapon, marks, weapon.Health) with { Change = 0 } : null,
             board.HeroPower is { } power ? Marked(Card(power, turn), power, marks, 0) with { Change = 0 } : null,
-            WithDying(board.Minions.Select(m => Marked(Card(m, turn), m, marks, m.Health)).ToList(), board, before, marks, turn),
+            WithDying(board.Minions.Select(m => Marked(Card(m, turn), m, marks, m.Health)).ToList(), board, before, marks, turn, died),
             board.Hand.Select(c => Card(c, turn)).ToList(),
             board.Secrets.Select(c => Marked(Card(c, turn), c, marks, 0) with { Change = 0 }).ToList(),
             board.Mana > 0 ? $"{Math.Max(0, board.Mana - board.ManaUsed)}/{board.Mana}" : "0/0",
@@ -661,10 +662,11 @@ public sealed partial class MatchPage
     }
 
     /// <summary>
-    /// The minions that died on this step stay where they stood, as dying (an exchange keeps its arrow): from the step
-    /// before, the ones no longer on the table. Their badge is the health they had.
+    /// The minions that died on this step stay where they stood, as dying (an exchange keeps its arrow): the step's
+    /// deaths that stood on this side the step before. A minion that left otherwise (back to the hand, shuffled into the
+    /// deck, transformed, taken by the other side) is no ghost. Their badge is the health they had.
     /// </summary>
-    private List<MatchCardView> WithDying(List<MatchCardView> minions, ReplayBoard board, ReplayBoard? before, StepMarks marks, int turn)
+    private List<MatchCardView> WithDying(List<MatchCardView> minions, ReplayBoard board, ReplayBoard? before, StepMarks marks, int turn, IReadOnlySet<int> died)
     {
         if (before is null)
         {
@@ -674,7 +676,7 @@ public sealed partial class MatchPage
         for (var i = 0; i < before.Minions.Count; i++)
         {
             var gone = before.Minions[i];
-            if (board.Minions.Any(m => m.Id == gone.Id))
+            if (!died.Contains(gone.Id) || board.Minions.Any(m => m.Id == gone.Id))
             {
                 continue;
             }

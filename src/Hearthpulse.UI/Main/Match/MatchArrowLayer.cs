@@ -34,6 +34,13 @@ public sealed class MatchArrowLayer : Control
 
     private MatchArrow? _drawn;
 
+    // The ends found by the last walk of the table: walked again only when the step's ends change, the layer's size
+    // changes, or a kept end no longer carries its id or is hidden (review m4: not on every layout pass).
+    private Control? _from;
+    private Control? _to;
+    private Control? _middle;
+    private (int From, int To, Size Size) _found;
+
     static MatchArrowLayer() => AffectsRender<MatchArrowLayer>(FromProperty, ToProperty, IsAttackProperty, LocalProperty);
 
     public MatchArrowLayer()
@@ -77,8 +84,14 @@ public sealed class MatchArrowLayer : Control
             return null;
         }
 
-        Control? from = null, to = null, middle = null;
-        Find(parent, ref from, ref to, ref middle);
+        if (_found != (From, To, Bounds.Size) || !Holds(_from, From) || !Holds(_to, To))
+        {
+            Control? found = null, target = null, bar = null;
+            Find(parent, ref found, ref target, ref bar);
+            (_from, _to, _middle, _found) = (found, target, bar, (From, To, Bounds.Size));
+        }
+
+        var (from, to, middle) = (_from, _to, _middle);
         if (from is null || to is null || Place(from) is not { } fromAt || Place(to) is not { } toAt)
         {
             return null;
@@ -90,6 +103,9 @@ public sealed class MatchArrowLayer : Control
             MatchArrowLayout.Anchor(GetAnchor(to), toAt.X, toAt.Y, to.Bounds.Width, to.Bounds.Height), GetAnchor(to),
             middleY, IsAttack, Local);
     }
+
+    /// <summary>A kept end still shows the element of that id.</summary>
+    private static bool Holds(Control? element, int id) => element is { IsVisible: true } && GetRef(element) == id && element.GetVisualParent() is not null;
 
     private void Find(Visual node, ref Control? from, ref Control? to, ref Control? middle)
     {

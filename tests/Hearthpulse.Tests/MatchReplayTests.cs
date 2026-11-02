@@ -82,7 +82,7 @@ public sealed class MatchReplayTests
         var attack = Assert.Single(replay.Frames, f => f.Action.Kind == ReplayActionKind.Attack);
         Assert.Equal(("BE_012", "CS2_120"), (attack.Action.CardId, attack.Action.TargetId));
         Assert.Equal(2, attack.Action.Deaths.Count);
-        Assert.Contains(new ReplayDeath(ReplayPlayer.Opponent, "CS2_120", "MINION"), attack.Action.Deaths);
+        Assert.Contains(attack.Action.Deaths, d => (d.Player, d.CardId, d.Type) == (ReplayPlayer.Opponent, "CS2_120", "MINION") && d.Ref > 0);
         Assert.Empty(attack.Local.Minions);
         Assert.Empty(attack.Opponent.Minions);
         Assert.Contains(replay.Frames, f => f.Action.Kind == ReplayActionKind.TurnStart && f.Turn == 6);

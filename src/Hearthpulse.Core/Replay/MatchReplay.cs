@@ -109,7 +109,11 @@ public enum ReplayActionKind
 }
 
 /// <summary>A card that left the board during an action (died, destroyed, weapon broke).</summary>
-public sealed record ReplayDeath(ReplayPlayer Player, string CardId, string Type);
+public sealed record ReplayDeath(ReplayPlayer Player, string CardId, string Type)
+{
+    /// <summary>The replay id of the card that died (the table marks it where it stood).</summary>
+    public int Ref { get; init; }
+}
 
 /// <summary>What happened in one step.</summary>
 public sealed record ReplayAction(ReplayActionKind Kind, ReplayPlayer? Player)
@@ -490,7 +494,7 @@ public sealed class MatchReplay
             if (state is not null && state.Zone == "PLAY" && zone == "GRAVEYARD" && state.CardId is { } dead
                 && state.Type is "MINION" or "WEAPON" or "LOCATION" or "HERO")
             {
-                _deaths.Add(new ReplayDeath(state.Player, dead, state.Type));
+                _deaths.Add(new ReplayDeath(state.Player, dead, state.Type) { Ref = id });
             }
 
             var enteredHand = zone == "HAND" && state?.Zone != "HAND";

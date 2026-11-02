@@ -93,7 +93,7 @@ public sealed class MatchTableTests : IDisposable
             "S BEGIN_MULLIGAN", "S MAIN_READY",
             "B", "E 3 L PLAY 1 CS2_120 MINION ATK=2 HEALTH=3", "P 3 -",
             "B", "E 5 L PLAY 2 CS2_121 MINION ATK=2 HEALTH=2", "P 5 -",
-            "T 2 O 30", "B", "E 4 O PLAY 1 CS2_182 MINION ATK=4 HEALTH=5", "P 4 -", "A 4 3", "V 4 DAMAGE 2", "X 3",
+            "T 2 O 30", "B", "E 4 O PLAY 1 CS2_182 MINION ATK=4 HEALTH=5", "P 4 -", "A 4 3", "V 4 DAMAGE 2", "E 3 L GRAVEYARD 0 CS2_120 MINION",
             "R LOST",
         ];
         var page = Page(events);
@@ -109,6 +109,34 @@ public sealed class MatchTableTests : IDisposable
         // The next step has it no more.
         var next = page.Step(FrameOf(page, ReplayActionKind.Attack) + 1, ReplayPlayer.Local);
         Assert.DoesNotContain(next?.Bottom.Board ?? [], c => c.Dying);
+    }
+
+    /// <summary>
+    /// M2 (review): only a minion that died is a ghost. One that left the table otherwise on the step (back to the hand,
+    /// shuffled into the deck, transformed into another, taken by the other side) is not, and the arrow never ends on one.
+    /// </summary>
+    [Theory]
+    [InlineData("E 3 L HAND 3 CS2_120 MINION")]
+    [InlineData("E 3 L DECK 0 CS2_120 MINION")]
+    [InlineData("X 3")]
+    [InlineData("E 3 O PLAY 2 CS2_120 MINION ATK=2 HEALTH=3")]
+    public void A_minion_that_left_the_table_without_dying_is_no_ghost(string leaves)
+    {
+        string[] events =
+        [
+            "T 1 L 0", "E 1 L PLAY 0 HERO_08 HERO HEALTH=30", "E 2 O PLAY 0 HERO_01 HERO HEALTH=30",
+            "S BEGIN_MULLIGAN", "S MAIN_READY",
+            "B", "E 3 L PLAY 1 CS2_120 MINION ATK=2 HEALTH=3", "P 3 -",
+            "T 2 O 30", "E 9 O HAND 1 CS2_029 SPELL", "B", "P 9 3", leaves,
+            "R LOST",
+        ];
+        var page = Page(events);
+        var play = page.Replay!.Frames.Last(f => f.Action.Kind == ReplayActionKind.Play).Index;
+        var step = page.Step(play, ReplayPlayer.Local)!;
+
+        Assert.DoesNotContain(step.Bottom.Board, c => c.Dying);
+        Assert.DoesNotContain(step.Top.Board, c => c.Dying);
+        Assert.Empty(page.Replay.Frames[play].Action.Deaths);
     }
 
     /// <summary>A spell aimed at a minion is no longer on the table: its arrow starts at its side's hero.</summary>

@@ -35,6 +35,7 @@ public sealed partial class MainViewModel
 
             Settings.StreamerMode = value;
             _matchPage?.RefreshStreamerMode();
+            Raise(nameof(AccountName));
             ChangedStream();
         }
     }
@@ -107,6 +108,7 @@ public sealed partial class MainViewModel
     {
         Raise(nameof(StreamerMode));
         Raise(nameof(StreamerModeTip));
+        Raise(nameof(AccountName));
         Raise(nameof(StreamDeckWindow));
         Raise(nameof(StreamLobbyWindow));
         Raise(nameof(StreamOddsWindow));

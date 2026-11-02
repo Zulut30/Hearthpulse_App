@@ -48,7 +48,10 @@ public sealed partial class MainViewModel
 
     public bool AccountSessionEndingSoon => _account?.SessionEndingSoon == true;
 
-    public string AccountName => _account?.User?.DisplayName ?? string.Empty;
+    /// <summary>The site account's name; in streamer mode only "Signed in" (the name stays off the stream).</summary>
+    public string AccountName => _account?.User?.DisplayName is { Length: > 0 } name
+        ? StreamerMode ? Loc.T("Stream.Mode.AccountHidden") : name
+        : string.Empty;
 
     /// <summary>Paid access in one line ("Boosty subscription: Arena, Battlegrounds").</summary>
     public string AccountSubscription => _account?.Entitlements.Summary ?? string.Empty;

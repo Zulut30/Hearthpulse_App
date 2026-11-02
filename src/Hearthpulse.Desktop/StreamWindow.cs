@@ -145,17 +145,25 @@ internal sealed class StreamWindow : Window
         Placed?.Invoke(Spec);
     }
 
+    // The edge cursors, made once: a new Cursor on every pointer move was never disposed.
+    private static readonly Cursor WestEast = new(StandardCursorType.SizeWestEast);
+    private static readonly Cursor NorthSouth = new(StandardCursorType.SizeNorthSouth);
+    private static readonly Cursor TopLeft = new(StandardCursorType.TopLeftCorner);
+    private static readonly Cursor TopRight = new(StandardCursorType.TopRightCorner);
+    private static readonly Cursor BottomLeft = new(StandardCursorType.BottomLeftCorner);
+    private static readonly Cursor BottomRight = new(StandardCursorType.BottomRightCorner);
+
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
         Cursor = EdgeAt(e.GetPosition(this)) switch
         {
-            WindowEdge.West or WindowEdge.East => new Cursor(StandardCursorType.SizeWestEast),
-            WindowEdge.North or WindowEdge.South => new Cursor(StandardCursorType.SizeNorthSouth),
-            WindowEdge.NorthWest => new Cursor(StandardCursorType.TopLeftCorner),
-            WindowEdge.NorthEast => new Cursor(StandardCursorType.TopRightCorner),
-            WindowEdge.SouthWest => new Cursor(StandardCursorType.BottomLeftCorner),
-            WindowEdge.SouthEast => new Cursor(StandardCursorType.BottomRightCorner),
+            WindowEdge.West or WindowEdge.East => WestEast,
+            WindowEdge.North or WindowEdge.South => NorthSouth,
+            WindowEdge.NorthWest => TopLeft,
+            WindowEdge.NorthEast => TopRight,
+            WindowEdge.SouthWest => BottomLeft,
+            WindowEdge.SouthEast => BottomRight,
             _ => Cursor.Default,
         };
     }

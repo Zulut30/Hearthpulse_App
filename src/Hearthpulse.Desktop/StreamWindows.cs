@@ -74,7 +74,9 @@ internal sealed class StreamWindows
         var main = primary is null ? new StreamRect(0, 0, 1280, 720)
             : new StreamRect(primary.WorkingArea.X / scaling, primary.WorkingArea.Y / scaling, primary.WorkingArea.Width / scaling, primary.WorkingArea.Height / scaling);
         var place = StreamWindowLayout.Place(spec, Settings.StreamWindows.GetValueOrDefault(spec.Id), areas, main);
-        window.MoveTo(place, scaling);
+        // The place was saved in the scale of the screen it lies on (StreamWindow.Place): it goes back with that scale.
+        var on = areas.FindIndex(a => place.X >= a.X && place.X < a.X + a.Width && place.Y >= a.Y && place.Y < a.Y + a.Height);
+        window.MoveTo(place, on >= 0 ? all[on].Scaling : scaling);
         window.Placed += _ =>
         {
             Keep(window);

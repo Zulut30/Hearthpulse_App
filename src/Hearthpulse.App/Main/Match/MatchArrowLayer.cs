@@ -35,6 +35,13 @@ public sealed class MatchArrowLayer : FrameworkElement
 
     private MatchArrow? _drawn;
 
+    // The ends found by the last walk of the table: walked again only when the step's ends change, the layer's size
+    // changes, or a kept end no longer carries its id or is hidden (review m4: not on every layout pass).
+    private FrameworkElement? _from;
+    private FrameworkElement? _to;
+    private FrameworkElement? _middle;
+    private (int From, int To, Size Size) _found;
+
     public MatchArrowLayer()
     {
         IsHitTestVisible = false;
@@ -76,8 +83,14 @@ public sealed class MatchArrowLayer : FrameworkElement
             return null;
         }
 
-        FrameworkElement? from = null, to = null, middle = null;
-        Find(parent, ref from, ref to, ref middle);
+        if (_found != (From, To, RenderSize) || !Holds(_from, From) || !Holds(_to, To) || (_middle is not null && VisualTreeHelper.GetParent(_middle) is null))
+        {
+            FrameworkElement? found = null, target = null, bar = null;
+            Find(parent, ref found, ref target, ref bar);
+            (_from, _to, _middle, _found) = (found, target, bar, (From, To, RenderSize));
+        }
+
+        var (from, to, middle) = (_from, _to, _middle);
         if (from is null || to is null)
         {
             return null;
@@ -86,6 +99,10 @@ public sealed class MatchArrowLayer : FrameworkElement
         var middleY = middle is null ? ActualHeight / 2 : Place(middle).Y + middle.ActualHeight / 2;
         return MatchArrowLayout.Build(AnchorOf(from), GetAnchor(from), AnchorOf(to), GetAnchor(to), middleY, IsAttack, Local);
     }
+
+    /// <summary>A kept end still shows the element of that id.</summary>
+    private static bool Holds(FrameworkElement? element, int id) =>
+        element is { Visibility: Visibility.Visible } && GetRef(element) == id && VisualTreeHelper.GetParent(element) is not null;
 
     private void Find(DependencyObject node, ref FrameworkElement? from, ref FrameworkElement? to, ref FrameworkElement? middle)
     {

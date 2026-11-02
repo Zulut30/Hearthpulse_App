@@ -79,7 +79,7 @@ is never on the overlay or in the OBS windows: viewers see those.
 | Combat odds, deck, `session`, `ladder-session`, end-of-game toast | own data | unchanged: no opponent names or ratings there; the player's own rank and rating stay |
 | Match page header (main window) | your name (BattleTag without `#`), opponent's name, both ranks | "You", the opponent's class (Battlegrounds: "Lobby", as always), no opponent rank; your rank or rating stays |
 | History, Home, live bar, My Stats, Arena | no names (opponent's class) | unchanged |
-| Settings → Account | the site account's name | unchanged |
+| Settings → Account | the site account's name | "Signed in" (review M1, coordinator's decision): the name stays off the stream |
 
 - **Where.** In the overlay model (`OverlayViewModel.OpponentHeader`, `Streamer.cs`), so the OBS windows follow it with
   no code of their own, and in `MatchViewModel.Mask` for the match header. A switch applies on the next overlay update

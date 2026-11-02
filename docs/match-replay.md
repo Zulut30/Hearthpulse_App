@@ -276,8 +276,9 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
      shade (`OverlayBadgeShade`) under both. No arrow when an end is not on the table or actor and target are one.
    - **Badges.** The health a minion or hero gained or lost on the step ("−3" / "+2"; a hero's with its armor, one
      number) sits over its art or by its portrait, in `Positive` / `Negative`; its tooltip names it. A minion that died
-     on the step stays where it stood for that step, faded under a skull, with its badge and marks (an exchange keeps
-     its arrow); it is gone from the next step.
+     on the step (the step's deaths, `ReplayDeath.Ref`: from play to the graveyard) stays where it stood for that step,
+     faded under a skull, with its badge and marks (an exchange keeps its arrow); it is gone from the next step. One
+     that left otherwise (back to the hand, shuffled into the deck, transformed, taken by the other side) is no ghost.
    - **Counters.** Under each side's name and mana (the mana wraps under the name when narrow): cards in deck, in hand
      and Secrets in play (the Secrets at zero too), each with a "9 cards in hand" tooltip; the opponent's hand is card
      backs and its Secrets "?" as before. Avalonia compact: the name and counters go under the portrait.
