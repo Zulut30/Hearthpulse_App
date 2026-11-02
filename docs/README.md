@@ -39,6 +39,8 @@ data comes from. Code comments and skills link to them by path, so keep the name
 
 | Doc | What it covers |
 |---|---|
+| [adr/](adr/) | Architecture decisions later tasks do not re-open: shared presentation, two UIs, analyzers, the HPR replay format, hidden information, read-only client, `Loc.Instance`, file size |
+| [GLOSSARY.md](GLOSSARY.md) | The project's terms: snapshot, panel, card pool vs stats pool, replay, match page, data folder… (Hearthstone terms: skill `hearthstone-context`) |
 | [upstream-sync.md](upstream-sync.md) | What was ported from HeartLens upstream and how to repeat the sync |
 | [perf-architecture-audit.md](perf-architecture-audit.md) | Performance and architecture audit, stage by stage (in Russian); measured with `tools/Hearthpulse.Bench` |
 | [wpfui-assessment.md](wpfui-assessment.md) | Why the WPF app does not use the WPF UI (Fluent) library, and the ideas kept for `hearthpulse-design` (in Russian) |
