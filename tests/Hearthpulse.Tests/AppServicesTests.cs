@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Reflection;
 using Hearthpulse.Core;
@@ -36,13 +37,23 @@ public sealed class AppServicesTests
     }
 
     [Fact]
-    public Task The_usage_gate_judges_the_advisor_and_hears_when_a_game_ends() =>
-        With(new AppSettings(), (services, _) =>
+    public Task The_usage_gate_judges_the_advisor_and_a_finished_game_makes_the_next_one_new() =>
+        With(new AppSettings(), async (services, handler) =>
         {
             Assert.Same(services.Usage, services.Session.Advisor.Usage);
-            var handlers = Handlers(services.Session, nameof(GameSession.GameFinished));
-            Assert.Contains(handlers, h => h.Target == services && h.Method.Name == "OnGameFinished");
-            return Task.CompletedTask;
+
+            // One free game a day, signed out (counted here). A game right after the first is that game reconnected and
+            // keeps its decision; once the session says a game finished, the next one is a new game, over the limit.
+            handler.UsageLimits = true;
+            var gate = services.Usage;
+            await gate.RefreshLimitsAsync();
+            var start = DateTime.UtcNow;
+            Assert.True(gate.Allow(UsageGate.BgPoolStats, start));
+            Assert.True(gate.Allow(UsageGate.BgPoolStats, start.AddMinutes(20)), "a reconnect keeps the decision");
+
+            Finish(services.Session);
+
+            Assert.False(gate.Allow(UsageGate.BgPoolStats, start.AddMinutes(40)), "after a finished game the next one is new");
         });
 
     [Fact]
@@ -85,8 +96,9 @@ public sealed class AppServicesTests
     {
         handler ??= new Offline();
         var db = TestDataFolder.Scratch("hp-services") + ".db";
+        var usage = TestDataFolder.Scratch("hp-services-usage") + ".json";
         using var http = new HttpClient(handler);
-        var services = new AppServices(settings, http, cards ?? (() => CardDb.Empty), db);
+        var services = new AppServices(settings, http, cards ?? (() => CardDb.Empty), db, usage);
         try
         {
             await test(services, handler);
@@ -95,6 +107,7 @@ public sealed class AppServicesTests
         {
             services.Memory.Dispose();
             TestDataFolder.TryDelete(db);
+            TestDataFolder.TryDelete(usage);
         }
     }
 
@@ -102,15 +115,28 @@ public sealed class AppServicesTests
     private static Delegate[] Handlers(object source, string eventName) =>
         (source.GetType().GetField(eventName, BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(source) as Delegate)?.GetInvocationList() ?? [];
 
+    /// <summary>Raises the session's GameFinished as a finished game does (its handlers, as the app wired them).</summary>
+    private static void Finish(GameSession session)
+    {
+        var outcome = new GameOutcome("Battlegrounds", "Win", 1, null, null, "TB_BaconShop_HERO_01");
+        foreach (var handler in Handlers(session, nameof(GameSession.GameFinished)))
+        {
+            ((Action<GameOutcome>)handler)(outcome);
+        }
+    }
+
     /// <summary>
-    /// No network: every request fails, except the HearthstoneJSON card list when <see cref="CardList"/> is set. Requests
-    /// for the card pool's first source (the API's constructed cards) are counted.
+    /// No network: every request fails, except the HearthstoneJSON card list when <see cref="CardList"/> is set and the
+    /// site's usage limits (one free Battlegrounds stats game a day) when <see cref="UsageLimits"/> is. Requests for the
+    /// card pool's first source (the API's constructed cards) are counted.
     /// </summary>
     internal sealed class Offline : HttpMessageHandler
     {
         private int _catalog;
 
         public string? CardList { get; set; }
+
+        public bool UsageLimits { get; set; }
 
         public int CatalogRequests => Volatile.Read(ref _catalog);
 
@@ -120,6 +146,15 @@ public sealed class AppServicesTests
             if (path.Contains("constructed-cards", StringComparison.Ordinal))
             {
                 Interlocked.Increment(ref _catalog);
+            }
+
+            if (UsageLimits && path.EndsWith("usage/limits", StringComparison.Ordinal))
+            {
+                var today = DateTime.UtcNow.Date;
+                var limits = """{"enabled":true,"day":"DAY","resetsAt":"NEXTT00:00:00.000Z","features":{"bg.poolStats":{"section":"battlegrounds","freePerDay":1}}}"""
+                    .Replace("DAY", today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), StringComparison.Ordinal)
+                    .Replace("NEXT", today.AddDays(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), StringComparison.Ordinal);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(limits) });
             }
 
             return Task.FromResult(CardList is { } list && path.EndsWith("cards.collectible.json", StringComparison.Ordinal)

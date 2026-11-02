@@ -1,11 +1,14 @@
 using Hearthpulse.Core;
+using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Stats;
+using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI.Main;
+using Hearthpulse.UI.Overlay;
 
 namespace Hearthpulse.Tests;
 
@@ -129,6 +132,54 @@ public sealed class MainViewModelHostTests : IDisposable
         Assert.Same(data.Library, vm.LibraryFiles);
         Assert.Same(data.Uploads, vm.LibraryUploads);
     }
+
+    [Fact]
+    public void In_russian_the_overlay_names_the_opponent_s_archetype_from_the_names_it_was_given()
+    {
+        var overlay = new OverlayViewModel { ArchetypeNames = QuietMage() };
+        var odds = new OpponentArchetypeView([new ArchetypeChance("Quiet Test Mage", "Quiet Test Mage", 0.8, 0.5, 100)], [], 3, "test");
+        var view = new ConstructedView(5, null, false, "HERO_09", "PRIEST", "HERO_08", "MAGE", null, [], 20, 4, [], [], 18, 5, 0, null, null)
+        {
+            OpponentArchetype = odds,
+        };
+        Language(Loc.Russian);
+
+        overlay.Update(LiveSnapshot.Empty with { Constructed = view, InGame = true, HearthstoneRunning = true }, CardDb.Empty,
+            new AppSettings { ShowOpponentArchetype = true }, null, null);
+
+        Assert.Equal("Тихий тестовый маг", overlay.ArchetypeName);
+    }
+
+    [Fact]
+    public async Task In_russian_a_library_card_names_the_archetype_its_replay_saved_from_the_names_the_main_view_model_was_given()
+    {
+        // History lists read games without the card columns: a card shows the archetype the replay file's header saved
+        // (an Imported or Saved file), labelled with the names the main view model holds.
+        var root = TestDataFolder.Scratch("hp-host-library");
+        var files = new ReplayLibrary(new ReplayStore(Path.Combine(root, "replays")), Path.Combine(root, "saved"), Path.Combine(root, "imported"));
+        Directory.CreateDirectory(files.Imported.Directory);
+        ReplayImportTests.Write(Path.Combine(files.Imported.Directory, "20261028184107-quietmage001.hpr"),
+            ReplayImportTests.Constructed(summary: ReplayImportTests.ConstructedSummary with { OpponentArchetype = "Quiet Test Mage" }));
+        try
+        {
+            Language(Loc.Russian);
+            var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App) { LibraryFiles = files, ArchetypeNames = QuietMage() };
+            await vm.RefreshAsync();
+            await vm.LibraryIdleAsync();
+
+            vm.Library.SetTab.Execute("Imported");
+            await vm.LibraryIdleAsync();
+
+            Assert.Equal("Тихий тестовый маг", Assert.Single(vm.Library.Cards).OpponentArchetype);
+        }
+        finally
+        {
+            TestDataFolder.TryDelete(root);
+        }
+    }
+
+    private static ArchetypeTranslations QuietMage() =>
+        ArchetypeTranslations.Parse("""{"items": [{"name_en": "Quiet Test Mage", "name_ru": "Тихий тестовый маг"}]}""");
 
     /// <summary>
     /// Switches the language on the headless UI thread: views the Avalonia binding tests leave alive follow every

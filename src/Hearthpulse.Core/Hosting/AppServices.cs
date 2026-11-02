@@ -26,12 +26,14 @@ public sealed class AppServices
     /// <param name="cards">The card data the host has loaded so far (empty until the cards are in).</param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client is kept in Http and lives as long as the app.")]
     public AppServices(AppSettings settings, string version, Func<CardDb> cards)
-        : this(settings, CreateHttp(version), cards, AppPaths.Database)
+        : this(settings, CreateHttp(version), cards, AppPaths.Database, UsageGate.DefaultPath)
     {
     }
 
-    /// <summary>With a client and a history file of the test's own (no network, not the shared data folder's history).</summary>
-    internal AppServices(AppSettings settings, HttpClient http, Func<CardDb> cards, string historyPath)
+    /// <summary>
+    /// With a client, a history file and a usage record of the test's own (no network, not the shared data folder's).
+    /// </summary>
+    internal AppServices(AppSettings settings, HttpClient http, Func<CardDb> cards, string historyPath, string usagePath)
     {
         Settings = settings;
         Http = http;
@@ -55,9 +57,9 @@ public sealed class AppServices
         Uploader.BaseHero = id => cards().BaseHeroId(id);
         Account.Changed += Uploader.Kick;
         // Daily free use of the stats pool's numbers (plan 3.1); the host makes the session publish again on a decision.
-        Usage = new UsageGate(accountClient, Account, UsageGate.DefaultPath);
+        Usage = new UsageGate(accountClient, Account, usagePath);
         Session.Advisor.Usage = Usage;
-        Session.GameFinished += OnGameFinished;
+        Session.GameFinished += _ => Usage.GameFinished();
     }
 
     public AppSettings Settings { get; }
@@ -86,9 +88,6 @@ public sealed class AppServices
 
     /// <summary>Daily free use of the stats pool's numbers in the overlay (plan 3.1).</summary>
     public UsageGate Usage { get; }
-
-    /// <summary>A game ended: the usage gate's next game is a new game, not a reconnect.</summary>
-    private void OnGameFinished(GameOutcome outcome) => Usage.GameFinished();
 
     /// <summary>
     /// The app's one HTTP client: compressed answers, connections renewed every 10 minutes (DNS changes), a 40-second
