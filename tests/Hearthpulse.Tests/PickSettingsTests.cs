@@ -290,7 +290,10 @@ public sealed class PickSettingsTests
             {
                 var view = advisor.Enrich(View(["BEAST", "MURLOC", "DEMON", "PIRATE"], 6), null, cards);
                 Assert.Equal(shown, view.Comps.Count > 0);
-                Assert.Equal(!shown, view.UsageNote is { Length: > 0 });
+                // What is left today while free games remain, why the numbers are missing once they are used up.
+                Assert.Equal(shown ? Hearthpulse.Core.Localization.Loc.F("Usage.Limit.Left", 2, 3) : null,
+                    shown ? view.UsageNote : null);
+                Assert.True(view.UsageNote is { Length: > 0 });
             }
         }
         finally

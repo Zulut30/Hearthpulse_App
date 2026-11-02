@@ -1282,18 +1282,28 @@
 
             <!-- ============ Battlegrounds: buy hints over the tavern row (HDT: row top 0.297H, pitch 138) ============ -->
             <o:MovablePanel Id="tavern-row" PlaceholderAlignment="Left" Title="{i:Loc Overlay.Panel.TavernRow}" MinWidth="966" Shown="{Binding ShowShop}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,274,0,0">
-                <ItemsControl ItemsSource="{Binding ShopBadges}" ItemTemplate="{StaticResource ShopBadgeTemplate}" Width="966" Height="40">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Canvas />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemContainerStyle>
-                        <Style TargetType="ContentPresenter">
-                            <Setter Property="Canvas.Left" Value="{Binding Left}" />
-                        </Style>
-                    </ItemsControl.ItemContainerStyle>
-                </ItemsControl>
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding ShopBadges}" ItemTemplate="{StaticResource ShopBadgeTemplate}" Width="966" Height="40">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                    </ItemsControl>
+                    <!-- Plan 3.1: what is left today of the free games with the stats pool's numbers, or why they are missing -->
+                    <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                            Visibility="{Binding UsageNote, Converter={StaticResource Vis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xF0341;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding UsageNote}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="720" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: simulated combat odds (top centre, during combat) ============ -->

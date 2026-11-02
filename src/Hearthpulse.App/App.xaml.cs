@@ -223,6 +223,7 @@ public partial class App : Application
         _usage = new UsageGate(accountClient, _account, UsageGate.DefaultPath);
         _session.Advisor.Usage = _usage;
         _usage.Changed += () => _ = Dispatcher.BeginInvoke(() => _session.SetMeta(_session.Advisor.Meta));
+        _session.GameFinished += _ => _usage.GameFinished();
         _uploader = ProfileUploader.For(accountClient, _account, () => _settings.UploadGamesToProfile, _history);
         _uploader.BaseHero = id => _cards.BaseHeroId(id);
         _account.Changed += _uploader.Kick;
@@ -514,8 +515,9 @@ public partial class App : Application
     /// </summary>
     private async Task LoadMetaAsync()
     {
+        // The limits on their own: a slow answer never holds the meta back.
+        _usage.RefreshLimitsAsync().Forget("Usage limits");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings);
-        await _usage.RefreshLimitsAsync();
         if (meta is not null)
         {
             _meta = meta;

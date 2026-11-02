@@ -133,7 +133,8 @@ public sealed partial class BattlegroundsAdvisor
             ShopPlan = plan,
             MetaSource = $"{meta.Source} · {percentile} · {meta.Updated.ToString("dd MMM HH:mm", Loc.DateCulture)}"
                 + (meta.SharedGames > 0 ? " · " + Loc.P("Core.Bg.SharedGames", meta.SharedGames) : string.Empty),
-            UsageNote = poolOpen ? null : Usage?.Note(Accounts.UsageGate.BgPoolStats) is { Length: > 0 } note ? note : null,
+            // What is left today, or why the pool's numbers are missing (empty for a subscriber or without limits).
+            UsageNote = Limited(meta) && Usage!.Note(Accounts.UsageGate.BgPoolStats) is { Length: > 0 } note ? note : null,
         };
     }
 
@@ -141,9 +142,11 @@ public sealed partial class BattlegroundsAdvisor
     /// Whether the stats pool's numbers may be used in this game. A pool with nothing to show spends no free game; the
     /// first game that has some claims one (<see cref="Accounts.UsageGate.Allow"/>).
     /// </summary>
-    private bool PoolOpen(BattlegroundsMeta meta) =>
-        Usage is null || Game is null || !meta.FromPool || (meta.Comps.Count == 0 && meta.Trinkets.Count == 0)
-        || Usage.Allow(Accounts.UsageGate.BgPoolStats, Game);
+    private bool PoolOpen(BattlegroundsMeta meta) => !Limited(meta) || Usage!.Allow(Accounts.UsageGate.BgPoolStats, Game!);
+
+    /// <summary>The gate applies: it is set, the game is known and the pool has numbers to show.</summary>
+    private bool Limited(BattlegroundsMeta meta) =>
+        Usage is not null && Game is not null && meta.FromPool && (meta.Comps.Count > 0 || meta.Trinkets.Count > 0);
 
     private static List<BgHeroOption> RankHeroes(
         BattlegroundsView view, CardDb cards, BattlegroundsMeta meta, int bracket,

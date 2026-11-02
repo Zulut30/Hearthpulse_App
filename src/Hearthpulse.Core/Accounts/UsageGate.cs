@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Hearthpulse.Core.Localization;
 
@@ -70,9 +72,11 @@ public sealed record UsageClaim(bool Allowed, bool Unlimited, int Used, int Limi
 
 /// <summary>
 /// Daily free use of the app's own paid analytics (plan 3.1, docs/usage-limits.md). A game of a limited feature counts
-/// once: a subscriber of its section is never limited; a signed-in player is counted by the site; offline or signed out
-/// the game is counted on this machine against the last limit the site gave ("soft mode"). Until the site has said that
-/// limits are on, nothing is limited. Thread-safe; <see cref="Changed"/> fires when a decision arrives.
+/// once: a subscriber of its section is never limited; a signed-in player is counted by the site; offline, signed out
+/// or on any failure the game is counted on this machine against the last limit the site gave ("soft mode"). Until the
+/// site has said that limits are on, nothing is limited. A game's id is stable (an HMAC of its start with a salt kept
+/// here), so a restart mid-game asks about the same game; a reconnect (a new start while the last allowed game has not
+/// finished) keeps that game's decision. Thread-safe; <see cref="Changed"/> fires when a decision arrives.
 /// </summary>
 public sealed class UsageGate(AccountClient client, AccountService? account, string path)
 {
@@ -81,9 +85,12 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan LimitsRefresh = TimeSpan.FromHours(6);
-    private static readonly TimeSpan ClaimTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>A new game this soon after an allowed one that never finished is that game reconnected.</summary>
+    private static readonly TimeSpan ReconnectWindow = TimeSpan.FromHours(2);
+
     private readonly Lock _gate = new();
-    private readonly Dictionary<string, Game> _games = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _current = new(StringComparer.Ordinal);
     private Saved? _saved;
     private DateTime _limitsLoaded = DateTime.MinValue;
 
@@ -92,6 +99,9 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
     public event Action? Changed;
 
     internal Func<DateTime> UtcNow { get; init; } = () => DateTime.UtcNow;
+
+    /// <summary>How long the site may take to decide before the game is counted here.</summary>
+    internal TimeSpan ClaimTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
     /// <summary>The site's limits as last known (null: never answered, nothing is limited).</summary>
     public UsageLimits? Limits
@@ -138,9 +148,9 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
     }
 
     /// <summary>
-    /// Whether the feature's numbers may be shown in the game marked by <paramref name="game"/> (any value that changes
-    /// with the game). The first call of a game starts its claim and answers false until the decision arrives
-    /// (<see cref="Changed"/>); a game the site does not limit answers true at once.
+    /// Whether the feature's numbers may be shown in the game marked by <paramref name="game"/> (its start time). The
+    /// first call of a game starts its claim and answers false until the decision arrives (<see cref="Changed"/>); a game
+    /// the site does not limit, or one already decided today, answers at once.
     /// </summary>
     public bool Allow(string feature, object game)
     {
@@ -152,22 +162,36 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
                 return true;
             }
 
-            if (_games.TryGetValue(feature, out var known) && Equals(known.Marker, game))
+            var saved = Today();
+            var id = GameId(saved, game);
+            var key = Key(feature, id);
+            var known = saved.Decisions.GetValueOrDefault(key);
+            if (_current.GetValueOrDefault(feature) == id || known is not null)
             {
-                return known.Decision?.Allowed ?? false;
+                _current[feature] = id;
+                return known?.Allowed ?? false;
             }
 
-            current = new Game(game, Guid.NewGuid().ToString("D"));
-            _games[feature] = current;
+            _current[feature] = id;
+
+            // A reconnect starts a new game in the log: it keeps the decision of the game it continues.
+            if (saved.Open.GetValueOrDefault(feature) is { } open && UtcNow() - open.At < ReconnectWindow
+                && saved.Decisions.GetValueOrDefault(Key(feature, open.Id)) is { Allowed: true } kept)
+            {
+                Save(saved with { Decisions = new(saved.Decisions, StringComparer.Ordinal) { [key] = kept } });
+                return true;
+            }
+
+            current = new Game(feature, id);
         }
 
         // Counted here (signed out) the decision is ready at once; the site's arrives later.
-        var claim = ClaimAsync(feature, current);
+        var claim = ClaimAsync(current);
         if (claim.IsCompleted)
         {
             lock (_gate)
             {
-                return current.Decision?.Allowed ?? false;
+                return Today().Decisions.GetValueOrDefault(Key(feature, current.Id))?.Allowed ?? false;
             }
         }
 
@@ -175,19 +199,43 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
         return false;
     }
 
-    /// <summary>The decision for the feature's current game (null: none yet or not limited).</summary>
+    /// <summary>The game ended: the next new game is a new game, not a reconnect.</summary>
+    public void GameFinished()
+    {
+        lock (_gate)
+        {
+            var saved = Today();
+            if (saved.Open.Count > 0)
+            {
+                Save(saved with { Open = new Dictionary<string, OpenGame>(StringComparer.Ordinal) });
+            }
+        }
+    }
+
+    /// <summary>The decision for the feature's current game (null: none yet, or the feature is not limited).</summary>
     public UsageClaim? Decision(string feature)
     {
         lock (_gate)
         {
-            return _games.GetValueOrDefault(feature)?.Decision;
+            return Unlimited(feature) || _current.GetValueOrDefault(feature) is not { } id ? null : Today().Decisions.GetValueOrDefault(Key(feature, id));
         }
     }
 
-    /// <summary>The line shown instead of the feature's numbers when today's free games are used up; empty otherwise.</summary>
-    public string Note(string feature) => Decision(feature) is { Allowed: false } d
-        ? Loc.F("Usage.Limit.Reached", d.Limit, d.ResetsAt == DateTime.MinValue ? "00:00" : d.ResetsAt.ToLocalTime().ToString("t", CultureInfo.CurrentCulture))
-        : string.Empty;
+    /// <summary>
+    /// The line under the feature's numbers: what is left today while free games remain, or why the numbers are missing
+    /// and where the subscription is once they are used up; empty for a subscriber, with no limits or before a decision.
+    /// </summary>
+    public string Note(string feature) => Decision(feature) switch
+    {
+        null or { Unlimited: true } => string.Empty,
+        { Allowed: true } d => Loc.F("Usage.Limit.Left", Math.Max(0, d.Limit - d.Used), d.Limit),
+        var d => Loc.F("Usage.Limit.Reached", d.Limit, ResetText(d.ResetsAt)),
+    };
+
+    /// <summary>When the UTC day ends, in the player's time ("03:00" in Moscow).</summary>
+    internal static string ResetText(DateTime resetsAt) => resetsAt == DateTime.MinValue
+        ? "00:00"
+        : DateTime.SpecifyKind(resetsAt, DateTimeKind.Utc).ToLocalTime().ToString("t", CultureInfo.CurrentCulture);
 
     private bool Unlimited(string feature)
     {
@@ -196,7 +244,7 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
             || (account?.Entitlements.Has(f.Section) ?? false);
     }
 
-    private async Task ClaimAsync(string feature, Game game)
+    private async Task ClaimAsync(Game game)
     {
         UsageClaim? claim = null;
         if (account is { SignedIn: true })
@@ -205,41 +253,33 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
             using var timeout = new CancellationTokenSource(ClaimTimeout);
             try
             {
-                claim = await account.ClaimUsageAsync(feature, game.Id, timeout.Token).ConfigureAwait(false);
+                claim = await account.ClaimUsageAsync(game.Feature, game.Id, timeout.Token).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (Exception ex)
             {
-                Diag.Info("usage: the site did not answer in time, the game is counted here");
+                // Any failure of the claim must not take the feature away: the game is counted here.
+                Diag.Info($"usage: the claim failed ({ex.GetType().Name}), the game is counted here");
             }
         }
 
         lock (_gate)
         {
-            claim = claim is null ? CountHere(feature, game.Id) : Remember(feature, game.Id, claim);
-            if (_games.GetValueOrDefault(feature) == game)
+            claim ??= CountHere(game.Feature, game.Id);
+            var saved = Today();
+            var open = new Dictionary<string, OpenGame>(saved.Open, StringComparer.Ordinal);
+            if (claim.Allowed)
             {
-                game.Decision = claim;
+                open[game.Feature] = new OpenGame(game.Id, UtcNow());
             }
+
+            Save(saved with
+            {
+                Decisions = new Dictionary<string, UsageClaim>(saved.Decisions, StringComparer.Ordinal) { [Key(game.Feature, game.Id)] = claim },
+                Open = open,
+            });
         }
 
         Changed?.Invoke();
-    }
-
-    /// <summary>The site's decision; an allowed game is also counted here, so a later offline game sees today's count.</summary>
-    private UsageClaim Remember(string feature, string id, UsageClaim claim)
-    {
-        if (claim is { Allowed: true, Unlimited: false })
-        {
-            var saved = Today();
-            var games = saved.Games.GetValueOrDefault(feature) ?? [];
-            if (!games.Contains(id, StringComparer.Ordinal))
-            {
-                // Keep as many as the site counted, so the local count never runs ahead of it.
-                Save(saved with { Games = new Dictionary<string, List<string>>(saved.Games, StringComparer.Ordinal) { [feature] = [.. games.TakeLast(Math.Max(0, claim.Used - 1)), id] } });
-            }
-        }
-
-        return claim;
     }
 
     /// <summary>Soft mode: the game is counted on this machine against the last known limit.</summary>
@@ -248,7 +288,7 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
         var saved = Today();
         var limit = saved.Limits?.Features.GetValueOrDefault(feature)?.FreePerDay ?? int.MaxValue;
         var games = saved.Games.GetValueOrDefault(feature) ?? [];
-        var resets = UtcNow().Date.AddDays(1);
+        var resets = DateTime.SpecifyKind(UtcNow().Date.AddDays(1), DateTimeKind.Utc);
         if (games.Contains(id, StringComparer.Ordinal))
         {
             return new UsageClaim(true, false, games.Count, limit, resets);
@@ -263,12 +303,34 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
         return new UsageClaim(true, false, games.Count + 1, limit, resets);
     }
 
-    /// <summary>The saved state, its game lists started over on a new UTC day.</summary>
+    /// <summary>
+    /// The game's id: a UUID from an HMAC of its marker with this install's salt (kept here, never sent). The same game
+    /// after a restart has the same id; the site cannot read the start time from it.
+    /// </summary>
+    private static string GameId(Saved saved, object game)
+    {
+        var text = game is DateTime start ? start.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture) : game.ToString() ?? string.Empty;
+        var hash = HMACSHA256.HashData(Convert.FromBase64String(saved.Salt), Encoding.UTF8.GetBytes(text));
+        var bytes = hash[..16];
+        bytes[6] = (byte)((bytes[6] & 0x0F) | 0x80); // version 8: a custom UUID
+        bytes[8] = (byte)((bytes[8] & 0x3F) | 0x80);
+        return new Guid(bytes, bigEndian: true).ToString("D");
+    }
+
+    private static string Key(string feature, string id) => feature + "|" + id;
+
+    /// <summary>The saved state, its games and decisions started over on a new UTC day (the salt stays).</summary>
     private Saved Today()
     {
         var saved = Load();
         var day = UtcNow().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        return saved.Day == day ? saved : saved with { Day = day, Games = new Dictionary<string, List<string>>(StringComparer.Ordinal) };
+        return saved.Day == day ? saved : Save(saved with
+        {
+            Day = day,
+            Games = new Dictionary<string, List<string>>(StringComparer.Ordinal),
+            Decisions = new Dictionary<string, UsageClaim>(StringComparer.Ordinal),
+            Open = new Dictionary<string, OpenGame>(StringComparer.Ordinal),
+        });
     }
 
     private Saved Load()
@@ -278,19 +340,27 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
             return _saved;
         }
 
+        Saved? read = null;
         try
         {
-            _saved = File.Exists(path) ? JsonSerializer.Deserialize<Saved>(File.ReadAllText(path), Json) : null;
+            read = File.Exists(path) ? JsonSerializer.Deserialize<Saved>(File.ReadAllText(path), Json) : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
             Diag.Error("Reading the usage counts failed", ex);
         }
 
-        return _saved ??= new Saved(null, string.Empty, new Dictionary<string, List<string>>(StringComparer.Ordinal));
+        // A file from before a field existed reads it as null: fill it, and make the salt once.
+        return _saved = new Saved(
+            read?.Limits,
+            read?.Salt is { Length: > 0 } salt ? salt : Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
+            read?.Day ?? string.Empty,
+            read?.Games ?? new(StringComparer.Ordinal),
+            read?.Decisions ?? new(StringComparer.Ordinal),
+            read?.Open ?? new(StringComparer.Ordinal));
     }
 
-    private void Save(Saved saved)
+    private Saved Save(Saved saved)
     {
         _saved = saved;
         var temp = $"{path}.{Guid.NewGuid():N}.tmp";
@@ -312,17 +382,23 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
                 Diag.Info($"Leftover {temp}: {cleanup.Message}");
             }
         }
+
+        return saved;
     }
 
-    /// <summary>The last limits, today's UTC day and the games counted here per feature (random ids, never times).</summary>
-    private sealed record Saved(UsageLimits? Limits, string Day, Dictionary<string, List<string>> Games);
+    /// <summary>
+    /// The last limits, this install's salt, today's UTC day, the games counted here, today's decisions by game and the
+    /// last allowed game that has not finished, per feature. Ids are HMACs, never times or names.
+    /// </summary>
+    private sealed record Saved(
+        UsageLimits? Limits,
+        string Salt,
+        string Day,
+        Dictionary<string, List<string>> Games,
+        Dictionary<string, UsageClaim> Decisions,
+        Dictionary<string, OpenGame> Open);
 
-    private sealed class Game(object marker, string id)
-    {
-        public object Marker { get; } = marker;
+    private sealed record OpenGame(string Id, DateTime At);
 
-        public string Id { get; } = id;
-
-        public UsageClaim? Decision { get; set; }
-    }
+    private sealed record Game(string Feature, string Id);
 }

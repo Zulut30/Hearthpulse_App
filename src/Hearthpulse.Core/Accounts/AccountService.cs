@@ -124,6 +124,11 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
     public bool OpenTrackerData() => (openBrowser ?? SystemBrowser.Open)(TrackerDataUrl);
 
+    /// <summary>The account page's plan section: the subscription that lifts the app's daily free limits (plan 3.1).</summary>
+    public Uri SubscriptionUrl => new UriBuilder(ProfileUrl) { Fragment = "account-access" }.Uri;
+
+    public bool OpenSubscription() => (openBrowser ?? SystemBrowser.Open)(SubscriptionUrl);
+
     /// <summary>Opens the page where the player confirms <paramref name="device"/>, with the code filled in when the site allows.</summary>
     public bool OpenSignInPage(DeviceCode device) => (openBrowser ?? SystemBrowser.Open)(device.VerificationUriComplete ?? device.VerificationUri);
 

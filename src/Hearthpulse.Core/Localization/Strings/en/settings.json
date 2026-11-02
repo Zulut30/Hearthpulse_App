@@ -115,6 +115,7 @@
   "Settings.Account.Title": "Hearthpulse account",
   "Settings.Account.SignedInAs": "Signed in with HeartPulse as",
   "Settings.Account.OpenProfile": "Open profile on the site",
+  "Settings.Account.Subscription": "Subscription and limits",
   "Settings.Account.SignInAgain": "Sign in again",
   "Settings.Account.SignOut": "Sign out",
   "Settings.Account.SignedOutCaption": "Opens hearthpulse.net in your browser. The tracker works the same without an account.",

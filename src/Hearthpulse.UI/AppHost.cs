@@ -79,6 +79,7 @@ public sealed partial class AppHost : IDisposable
         Usage = new UsageGate(accountClient, Account, UsageGate.DefaultPath);
         Session.Advisor.Usage = Usage;
         Usage.Changed += () => Dispatcher.UIThread.Post(() => Session.SetMeta(Session.Advisor.Meta));
+        Session.GameFinished += _ => Usage.GameFinished();
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
         Uploader = ProfileUploader.For(accountClient, Account, () => Settings.UploadGamesToProfile, History);
@@ -402,8 +403,9 @@ public sealed partial class AppHost : IDisposable
     /// </summary>
     public async Task LoadMetaAsync()
     {
+        // The limits on their own: a slow answer never holds the meta back.
+        Usage.RefreshLimitsAsync().Forget("Usage limits");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings);
-        await Usage.RefreshLimitsAsync();
         if (meta is not null)
         {
             Meta = meta;
