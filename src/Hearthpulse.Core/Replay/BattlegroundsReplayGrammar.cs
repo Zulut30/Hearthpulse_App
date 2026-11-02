@@ -14,7 +14,7 @@ internal static partial class BattlegroundsReplayGrammar
     private const string IdOrNone = "(?:[1-9][0-9]{0,6}|-)";
     private const string Number = "(?:0|[1-9][0-9]{0,8})";
     private const string Small = "(?:[0-9]|[1-9][0-9])";
-    private const string Card = "[A-Za-z0-9_]{1,64}";
+    private const string Card = ReplayImport.Card;
     private const string CardTag = "(?:ATK|HEALTH|DAMAGE|ARMOR|PREMIUM|TAUNT|DIVINE_SHIELD|REBORN|POISONOUS|VENOMOUS|WINDFURY|MEGA_WINDFURY|STEALTH|FROZEN|TECH_LEVEL)";
     private const string Table = "(?:HERO|HERO_POWER|MINION|BATTLEGROUND_TRINKET|BATTLEGROUND_QUEST_REWARD)";
     private const string Offer = "(?:MINION|BATTLEGROUND_SPELL|SPELL)";
