@@ -35,6 +35,22 @@ public sealed class ArenaRewardsTests : IDisposable
         Assert.Empty(history.ArenaRewards());
     }
 
+    /// <summary>
+    /// The in-memory history tests use for a GameSession (no temp file, no "disk I/O error"): its data stays while pools
+    /// are cleared by other tests, and two of them are separate.
+    /// </summary>
+    [Fact]
+    public void A_test_history_in_memory_keeps_its_data_and_is_its_own()
+    {
+        var first = HistoryStore.InMemory();
+        var second = HistoryStore.InMemory();
+        first.SetArenaRewards("deck:1", new ArenaRewards(150, 0, 0, 0, 0));
+        SqliteConnection.ClearAllPools();
+
+        Assert.Equal(150, first.ArenaRewards()["deck:1"].Gold);
+        Assert.Empty(second.ArenaRewards());
+    }
+
     [Fact]
     public void Out_of_range_rewards_are_refused()
     {
