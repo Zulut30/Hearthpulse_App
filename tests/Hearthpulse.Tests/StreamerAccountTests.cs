@@ -46,7 +46,7 @@ public sealed class StreamerAccountTests : IDisposable
         Assert.True(store.Save("ref-1", new AccountUser("u-1", "StreamerName", Entitlements.None), DateTime.UtcNow.AddDays(30), client.Site));
         var account = new AccountService(client, store);
         await account.RestoreAsync();
-        var vm = new MainViewModel(HistoryStore.InMemory(), new AppSettings());
+        var vm = new MainViewModel(HistoryStore.InMemory(), new AppSettings(), TestDataFolder.App);
         vm.AttachAccount(account);
         Assert.Equal("StreamerName", vm.AccountName);
 

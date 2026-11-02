@@ -24,7 +24,7 @@ public sealed class MatchFeedTests : IDisposable
     private MatchViewModel Model()
     {
         Directory.CreateDirectory(_folder);
-        return new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(_folder, $"{Guid.NewGuid():N}.db")), new AppSettings()),
+        return new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(_folder, $"{Guid.NewGuid():N}.db")), new AppSettings(), TestDataFolder.App),
             (_, token) => Task.Delay(Timeout.Infinite, token));
     }
 
