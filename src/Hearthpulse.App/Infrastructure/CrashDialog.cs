@@ -81,7 +81,8 @@ internal static class CrashDialog
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             var reportNote = new TextBlock
             {
-                Text = autoSent ? Loc.T("Host.Crash.AutoSent") : string.Empty,
+                // A crash that ends the app is only queued: it goes at the next start.
+                Text = autoSent ? Loc.T(fatal ? "Host.Crash.Queued" : "Host.Crash.AutoSent") : string.Empty,
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 11,
                 Foreground = Brush("Muted", Brushes.Gray),
@@ -131,7 +132,7 @@ internal static class CrashDialog
         var sent = false;
         if (fatal)
         {
-            reporter.Queue(where, ex, 1);
+            reporter.Queue(where, ex);
         }
         else
         {

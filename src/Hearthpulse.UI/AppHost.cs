@@ -70,10 +70,6 @@ public sealed partial class AppHost : IDisposable
         Session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(Api)));
         Session.SetBgLeaderboards(new BgLeaderboardSource(Api));
         // Daily free use of the stats pool's numbers (plan 3.1); a decision makes the session publish again.
-        CrashReporter = new Core.Diagnostics.CrashReporter(Http, new Uri(accountClient.BaseUri, "crash-reports"),
-            Core.Diagnostics.CrashReporter.DefaultFolder, () => Settings.SendCrashReports, "avalonia", Version);
-        // Reports agreed to before a crash that ended the app go now.
-        CrashReporter.SendPendingAsync().Forget("Crash reports");
         Usage = new UsageGate(accountClient, Account, UsageGate.DefaultPath);
         Session.Advisor.Usage = Usage;
         Usage.Changed += () => Dispatcher.UIThread.Post(() => Session.SetMeta(Session.Advisor.Meta));
@@ -123,6 +119,12 @@ public sealed partial class AppHost : IDisposable
         };
         Main.CrashReportsChanged += () =>
         {
+            // Switched off: consent withdrawn, what waits is not sent.
+            if (!Settings.SendCrashReports)
+            {
+                CrashReporter?.ClearPending();
+            }
+
             _settingsDebounce.Stop();
             _settingsDebounce.Start();
         };
@@ -180,8 +182,11 @@ public sealed partial class AppHost : IDisposable
     /// <summary>Daily free use of the stats pool's numbers in the overlay (plan 3.1).</summary>
     public UsageGate Usage { get; }
 
-    /// <summary>Crash reports the player agreed to (plan 0.5): the error window's "Send report", or the Settings switch.</summary>
-    public Core.Diagnostics.CrashReporter CrashReporter { get; }
+    /// <summary>
+    /// Crash reports the player agreed to (plan 0.5), built by the desktop app before this host so a crash in its
+    /// constructor is reported too; null while rendering off-screen.
+    /// </summary>
+    public Core.Diagnostics.CrashReporter? CrashReporter { get; init; }
 
     public HistoryStore History { get; }
 

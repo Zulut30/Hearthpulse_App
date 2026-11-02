@@ -146,7 +146,7 @@ public partial class App : Application
                 // show it once the failed operation has unwound.
                 var error = args.Exception;
                 var reporter = _crashReporter;
-                var autoSent = reporter?.OnError("UI error", error, 1, fatal: false) ?? false;
+                var autoSent = reporter?.OnError("UI error", error, fatal: false) ?? false;
                 _ = Dispatcher.BeginInvoke(() => CrashDialog.Show(error, fatal: false, reporter, "UI error", autoSent));
             }
         };
@@ -157,7 +157,7 @@ public partial class App : Application
             var first = CrashLog.Record(where, ex);
             var reporter = _renderDir is null ? _crashReporter : null;
             // A crash that ends the process is only queued: it goes at the next start.
-            var autoSent = (first || args.IsTerminating) && (reporter?.OnError(where, ex, 1, fatal: args.IsTerminating) ?? false);
+            var autoSent = (first || args.IsTerminating) && (reporter?.OnError(where, ex, fatal: args.IsTerminating) ?? false);
             if (args.IsTerminating && _renderDir is null)
             {
                 try
@@ -176,13 +176,21 @@ public partial class App : Application
         {
             if (CrashLog.Record("Background error", args.Exception) && _renderDir is null)
             {
-                _crashReporter?.OnError("Background error", args.Exception, 1, fatal: false);
+                _crashReporter?.OnError("Background error", args.Exception, fatal: false);
             }
 
             args.SetObserved();
         };
 
         _settings = AppSettings.Load();
+        if (_renderDir is null)
+        {
+            // Crash reports (plan 0.5) from here on: a crash while the history, the session or the windows start is
+            // reported too. Never while rendering pages off-screen.
+            _crashReporter = Hearthpulse.Core.Diagnostics.CrashReporter.ForApp(_settings, "wpf", UpdateService.CurrentVersion);
+            _crashReporter.SendPendingAsync().Forget("Crash reports");
+        }
+
         Loc.Instance.SetLanguage(_settings.InterfaceLanguage());
         ApplyTheme();
         Diag.Info($"Hearthpulse {UpdateService.CurrentVersion} (app {typeof(App).Assembly.GetName().Version?.ToString(3)}) starting on "
@@ -222,20 +230,19 @@ public partial class App : Application
         var accountClient = new AccountClient(_http);
         _account = new AccountService(accountClient);
         _mainViewModel.AttachAccount(_account);
-        // Daily free use of the stats pool's numbers (plan 3.1); a decision makes the session publish again.
-        _crashReporter = new Hearthpulse.Core.Diagnostics.CrashReporter(_http, new Uri(accountClient.BaseUri, "crash-reports"),
-            Hearthpulse.Core.Diagnostics.CrashReporter.DefaultFolder, () => _settings.SendCrashReports, "wpf", UpdateService.CurrentVersion);
         _mainViewModel.CrashReportsChanged += () =>
         {
+            // Switched off: consent withdrawn, what waits is not sent.
+            if (!_settings.SendCrashReports)
+            {
+                _crashReporter?.ClearPending();
+            }
+
             _settingsDebounce.Stop();
             _settingsDebounce.Start();
         };
-        if (_renderDir is null)
-        {
-            // Reports agreed to before a crash that ended the app go now.
-            _crashReporter.SendPendingAsync().Forget("Crash reports");
-        }
 
+        // Daily free use of the stats pool's numbers (plan 3.1); a decision makes the session publish again.
         _usage = new UsageGate(accountClient, _account, UsageGate.DefaultPath);
         _session.Advisor.Usage = _usage;
         _usage.Changed += () => _ = Dispatcher.BeginInvoke(() => _session.SetMeta(_session.Advisor.Meta));

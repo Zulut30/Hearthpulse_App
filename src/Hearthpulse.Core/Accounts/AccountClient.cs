@@ -329,6 +329,9 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
         }, detail ?? $"HTTP {status.ToString(CultureInfo.InvariantCulture)}");
     }
 
+    /// <summary>The site's API address as a new client would use it (<c>HEARTHPULSE_SITE_API</c> or hearthpulse.net).</summary>
+    public static Uri ResolveBaseUri() => BaseFrom(Environment.GetEnvironmentVariable("HEARTHPULSE_SITE_API"));
+
     private static Uri BaseFrom(string? value)
     {
         if (value is not { Length: > 0 })

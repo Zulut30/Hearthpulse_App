@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -24,7 +25,6 @@ public sealed partial record CrashReport(
     string Runtime,
     string Language,
     string Where,
-    int Count,
     int UptimeSeconds,
     string At,
     IReadOnlyList<CrashError> Errors)
@@ -37,13 +37,17 @@ public sealed partial record CrashReport(
     private const int MaxErrors = 5;
     private const int MaxFrames = 40;
     private const int MaxMessage = 300;
+
+    /// <summary>A report stays under the site's 32 KB: past this its inner exceptions lose stack frames, then whole.</summary>
+    internal const int MaxJsonBytes = 30 * 1024;
     private static readonly DateTime Started = Process.GetCurrentProcess().StartTime.ToUniversalTime();
 
     /// <summary>
     /// The report of <paramref name="ex"/> caught by the handler <paramref name="where"/>: the app, OS and runtime, and up
-    /// to five exceptions of its chain (inner ones, or an aggregate's), each message and stack scrubbed.
+    /// to five exceptions of its chain (inner ones, or an aggregate's), each message and stack scrubbed, cut to
+    /// <see cref="MaxJsonBytes"/> (frames of the innermost exceptions go first).
     /// </summary>
-    public static CrashReport Build(string where, Exception ex, string ui, string version, int count, DateTime utcNow)
+    public static CrashReport Build(string where, Exception ex, string ui, string version, DateTime utcNow)
     {
         var errors = new List<CrashError>();
         var pending = new Queue<Exception>([ex]);
@@ -57,7 +61,7 @@ public sealed partial record CrashReport(
             }
         }
 
-        return new CrashReport(
+        var report = new CrashReport(
             1,
             Guid.NewGuid().ToString("D"),
             "hearthpulse",
@@ -67,17 +71,43 @@ public sealed partial record CrashReport(
             Clip(RuntimeInformation.FrameworkDescription, 60),
             Clip(CultureInfo.CurrentUICulture.Name, 16),
             Clip(where, 60),
-            Math.Clamp(count, 1, 1_000_000),
             (int)Math.Clamp((utcNow - Started).TotalSeconds, 0, int.MaxValue),
             utcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),
             errors);
+        return Fit(report);
+    }
+
+    /// <summary>Drops stack frames from the innermost exception outwards, then inner exceptions, until the JSON fits.</summary>
+    private static CrashReport Fit(CrashReport report)
+    {
+        var errors = report.Errors.ToList();
+        while (Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(report with { Errors = errors }, Json)) > MaxJsonBytes)
+        {
+            var last = errors.Count - 1;
+            if (errors[last].Stack.Count > 0)
+            {
+                errors[last] = errors[last] with { Stack = [.. errors[last].Stack.Take(errors[last].Stack.Count / 2)] };
+            }
+            else if (last > 0)
+            {
+                errors.RemoveAt(last);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return report with { Errors = errors };
     }
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
 
     /// <summary>
-    /// Personal data out of a message or a stack line: the user profile and home paths, any other absolute path, what
-    /// looks like a BattleTag, an e-mail, an IP address or a long number (account, card or phone), then cut to length.
+    /// Personal data out of a message or a stack line, then cut to length: e-mails, BattleTags, any quoted value (the
+    /// runtime puts the failing key or input there: <c>The given key 'Name' was not present</c>), <c>key=value</c>
+    /// pairs, the user profile and user name, every absolute path whole (spaces included, to the next quote or the end),
+    /// IP addresses and numbers of 7 digits and more.
     /// </summary>
     public static string Scrub(string? text, int max)
     {
@@ -86,9 +116,12 @@ public sealed partial record CrashReport(
             return string.Empty;
         }
 
-        // Names first (a user name may also be part of a BattleTag or an e-mail), then the home folder, then other paths.
+        // Names first (a user name may also be part of a BattleTag or an e-mail), then values, then the home folder and
+        // every path from its root to the end.
         var scrubbed = Email().Replace(text.ReplaceLineEndings(" "), "<email>");
         scrubbed = BattleTag().Replace(scrubbed, "<name>");
+        scrubbed = Quoted().Replace(scrubbed, "$1<value>$1");
+        scrubbed = KeyValue().Replace(scrubbed, "$1=<value>");
         foreach (var home in Homes())
         {
             scrubbed = scrubbed.Replace(home, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
@@ -116,9 +149,18 @@ public sealed partial record CrashReport(
 
     private static string Clip(string text, int max) => text.Length <= max ? text : text[..max] + "…";
 
-    // An absolute path: a drive or UNC path on Windows, or a /home, /Users, /tmp... path elsewhere.
-    [GeneratedRegex(@"([A-Za-z]:\\|\\\\)[^\s""'<>|]*|/(?:home|Users|tmp|var|private|mnt|media|root)/[^\s""'<>|]*", RegexOptions.CultureInvariant)]
+    // An absolute path, whole (folder names may hold spaces): a drive, UNC or %USERPROFILE% path on Windows, or a /home,
+    // /Users, /tmp... path elsewhere, up to a quote or the end.
+    [GeneratedRegex(@"(?:[A-Za-z]:\\|\\\\|%USERPROFILE%|/(?:home|Users|tmp|var|private|mnt|media|root|Volumes)/)[^""'<>|]*", RegexOptions.CultureInvariant)]
     private static partial Regex AbsolutePath();
+
+    // A quoted value: 'Name' or "Name".
+    [GeneratedRegex(@"(['""])[^'""]{1,200}\1", RegexOptions.CultureInvariant)]
+    private static partial Regex Quoted();
+
+    // key=value, as in log-like messages (Entity=Name, tag=...).
+    [GeneratedRegex(@"\b([A-Za-z_][A-Za-z0-9_]{0,40})=[^\s,;)\]]+", RegexOptions.CultureInvariant)]
+    private static partial Regex KeyValue();
 
     [GeneratedRegex(@"[\p{L}\p{N}_]{2,24}#\d{3,6}", RegexOptions.CultureInvariant)]
     private static partial Regex BattleTag();

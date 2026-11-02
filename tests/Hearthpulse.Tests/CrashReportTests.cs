@@ -42,7 +42,7 @@ public sealed class CrashReportTests : IDisposable
         var ex = Thrown(new InvalidOperationException(
             "Player Zulut#2187 (zulut@example.com) from 192.168.1.20, account 123456789012 at D:\\Games\\Hearthstone\\Logs", inner));
 
-        var report = CrashReport.Build("UI error", ex, "wpf", "0.15.0", 1, DateTime.UtcNow);
+        var report = CrashReport.Build("UI error", ex, "wpf", "0.15.0", DateTime.UtcNow);
         var json = report.ToJson();
 
         Assert.DoesNotContain("Zulut#2187", json, StringComparison.Ordinal);
@@ -59,10 +59,47 @@ public sealed class CrashReportTests : IDisposable
         // What stays: the types, the scrubbed messages and the methods of the stack, without file paths.
         Assert.Equal(["System.InvalidOperationException", "System.IO.IOException"], report.Errors.Select(e => e.Type));
         Assert.Contains("<name>", report.Errors[0].Message, StringComparison.Ordinal);
-        Assert.Contains("%USERPROFILE%", report.Errors[1].Message, StringComparison.Ordinal);
+        Assert.Equal("Could not find file '<value>'", report.Errors[1].Message);
         Assert.Contains(report.Errors[0].Stack, line => line.Contains(nameof(Thrown), StringComparison.Ordinal));
         Assert.DoesNotContain(report.Errors[0].Stack, line => line.Contains(":line", StringComparison.Ordinal));
         Assert.Equal(("hearthpulse", "wpf", "0.15.0", "UI error"), (report.App, report.Ui, report.Version, report.Where));
+    }
+
+    [Theory]
+    [InlineData("The given key 'Иван Петров' was not present in the dictionary.", "The given key '<value>' was not present in the dictionary.")]
+    [InlineData("The input string \"Ivan\" was not in a correct format.", "The input string \"<value>\" was not in a correct format.")]
+    [InlineData("Could not open D:\\Иван Петров\\Hearthstone\\Logs\\Power.log", "Could not open <path>")]
+    [InlineData("Bad file %USERPROFILE%\\OneDrive - Компания\\replays\\game.hpr", "Bad file <path>")]
+    [InlineData("Missing /home/ivan petrov/.config/x", "Missing <path>")]
+    [InlineData("Entity=Ivan tag=ZONE value=PLAY", "Entity=<value> tag=<value> value=<value>")]
+    public void Names_values_and_whole_paths_are_cut_out(string message, string expected) =>
+        Assert.Equal(expected, CrashReport.Scrub(message, 300));
+
+    [Fact]
+    public void A_report_is_cut_to_thirty_kilobytes_innermost_frames_first()
+    {
+        Exception chain = new DeepStack("innermost", null);
+        for (var i = 0; i < 4; i++)
+        {
+            chain = new DeepStack($"level {i}", chain);
+        }
+
+        var report = CrashReport.Build("UI error", chain, "wpf", "0.15.0", DateTime.UtcNow);
+
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(report.ToJson()) <= 30 * 1024);
+        Assert.Equal(40, report.Errors[0].Stack.Count);
+        Assert.True(report.Errors[^1].Stack.Count < 40);
+    }
+
+    [Fact]
+    public void The_app_s_reporter_needs_only_the_settings()
+    {
+        var settings = new Hearthpulse.Core.AppSettings { SendCrashReports = true };
+        var reporter = CrashReporter.ForApp(settings, "wpf", "0.15.0");
+
+        Assert.True(reporter.Automatic);
+        settings.SendCrashReports = false;
+        Assert.False(reporter.Automatic);
     }
 
     [Fact]
@@ -70,7 +107,7 @@ public sealed class CrashReportTests : IDisposable
     {
         var reporter = Reporter();
 
-        Assert.False(reporter.OnError("UI error", Thrown(new InvalidOperationException("x")), 1, fatal: false));
+        Assert.False(reporter.OnError("UI error", Thrown(new InvalidOperationException("x")), fatal: false));
         await reporter.SendPendingAsync();
 
         Assert.False(Directory.Exists(_dir) && Directory.EnumerateFiles(_dir).Any());
@@ -97,7 +134,7 @@ public sealed class CrashReportTests : IDisposable
         _automatic = true;
         var reporter = Reporter();
 
-        Assert.True(reporter.OnError("Fatal error", Thrown(new InvalidOperationException("dying")), 1, fatal: true));
+        Assert.True(reporter.OnError("Fatal error", Thrown(new InvalidOperationException("dying")), fatal: true));
         Assert.Single(Directory.EnumerateFiles(_dir, "*.json"));
         Assert.Empty(_site.Bodies);
 
@@ -118,7 +155,7 @@ public sealed class CrashReportTests : IDisposable
     public async Task A_refused_report_is_dropped_and_a_throttled_one_waits(HttpStatusCode status, bool waits)
     {
         var reporter = Reporter();
-        reporter.Queue("UI error", Thrown(new InvalidOperationException("x")), 1);
+        reporter.Queue("UI error", Thrown(new InvalidOperationException("x")));
         _site.Status = status;
 
         await reporter.SendPendingAsync();
@@ -127,15 +164,50 @@ public sealed class CrashReportTests : IDisposable
     }
 
     [Fact]
+    public async Task A_report_older_than_thirty_days_is_dropped_unsent()
+    {
+        var reporter = Reporter();
+        reporter.Queue("UI error", Thrown(new InvalidOperationException("x")));
+        foreach (var file in Directory.EnumerateFiles(_dir, "*.json"))
+        {
+            File.SetLastWriteTimeUtc(file, DateTime.UtcNow.AddDays(-31));
+        }
+
+        Assert.True(await reporter.SendPendingAsync());
+
+        Assert.Empty(_site.Bodies);
+        Assert.Empty(Directory.EnumerateFiles(_dir, "*.json"));
+    }
+
+    [Fact]
+    public void Switching_automatic_reports_off_deletes_what_waits()
+    {
+        _automatic = true;
+        var reporter = Reporter();
+        reporter.OnError("Fatal error", Thrown(new InvalidOperationException("x")), fatal: true);
+        Assert.NotEmpty(Directory.EnumerateFiles(_dir, "*.json"));
+
+        reporter.ClearPending();
+
+        Assert.Empty(Directory.EnumerateFiles(_dir, "*.json"));
+    }
+
+    [Fact]
     public void At_most_five_reports_wait()
     {
         var reporter = Reporter();
         for (var i = 0; i < 8; i++)
         {
-            reporter.Queue("UI error", Thrown(new InvalidOperationException($"error {i}")), 1);
+            reporter.Queue("UI error", Thrown(new InvalidOperationException($"error {i}")));
         }
 
         Assert.Equal(CrashReporter.MaxPending, Directory.EnumerateFiles(_dir, "*.json").Count());
+    }
+
+    /// <summary>An exception with a long stack of its own (40 frames of 300 characters).</summary>
+    private sealed class DeepStack(string message, Exception? inner) : Exception(message, inner)
+    {
+        public override string StackTrace => string.Join('\n', Enumerable.Range(0, 40).Select(i => $"   at Frame{i}.Method({new string('x', 280)})"));
     }
 
     private sealed class FakeSite : HttpMessageHandler
@@ -153,6 +225,8 @@ public sealed class CrashReportTests : IDisposable
                 throw new HttpRequestException("offline");
             }
 
+            // A report is never tied to an account: no sign-in goes with it.
+            Assert.Null(request.Headers.Authorization);
             if (Status == HttpStatusCode.Created)
             {
                 Bodies.Add(await request.Content!.ReadAsStringAsync(cancellationToken));

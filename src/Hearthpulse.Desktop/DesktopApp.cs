@@ -24,6 +24,7 @@ internal sealed class DesktopApp : HearthpulseApp
 
     private SingleInstance? _instance;
     private AppHost? _host;
+    private Core.Diagnostics.CrashReporter? _crashReporter;
 
     /// <summary>
     /// The dashboard: built when first shown (start minimized: from the tray), let go after a minute hidden in the tray
@@ -72,8 +73,8 @@ internal sealed class DesktopApp : HearthpulseApp
             e.Handled = true;
             if (CrashLog.Record("UI error", e.Exception))
             {
-                var reporter = _host?.CrashReporter;
-                var autoSent = reporter?.OnError("UI error", e.Exception, 1, fatal: false) ?? false;
+                var reporter = _crashReporter;
+                var autoSent = reporter?.OnError("UI error", e.Exception, fatal: false) ?? false;
                 CrashWindow.ShowAsync(e.Exception, fatal: false, reporter, "UI error", autoSent).Forget("Error window");
             }
         };
@@ -82,9 +83,9 @@ internal sealed class DesktopApp : HearthpulseApp
             var ex = e.ExceptionObject as Exception ?? new InvalidOperationException(e.ExceptionObject?.ToString());
             var where = e.IsTerminating ? "Fatal error" : "Unhandled error";
             var first = CrashLog.Record(where, ex);
-            var reporter = _host?.CrashReporter;
+            var reporter = _crashReporter;
             // A crash that ends the process is only queued: it goes at the next start.
-            var autoSent = (first || e.IsTerminating) && (reporter?.OnError(where, ex, 1, fatal: e.IsTerminating) ?? false);
+            var autoSent = (first || e.IsTerminating) && (reporter?.OnError(where, ex, fatal: e.IsTerminating) ?? false);
             if (e.IsTerminating && !Dispatcher.UIThread.CheckAccess())
             {
                 try
@@ -102,14 +103,17 @@ internal sealed class DesktopApp : HearthpulseApp
         {
             if (CrashLog.Record("Background error", e.Exception))
             {
-                _host?.CrashReporter.OnError("Background error", e.Exception, 1, fatal: false);
+                _crashReporter?.OnError("Background error", e.Exception, fatal: false);
             }
 
             e.SetObserved();
         };
 
         var settings = AppSettings.Load();
-        _host = new AppHost(settings) { ApplyAutostart = Autostart.Apply };
+        // Crash reports (plan 0.5) from here on: a crash in the host's constructor is reported too.
+        _crashReporter = Core.Diagnostics.CrashReporter.ForApp(settings, "avalonia", AppHost.Version);
+        _crashReporter.SendPendingAsync().Forget("Crash reports");
+        _host = new AppHost(settings) { ApplyAutostart = Autostart.Apply, CrashReporter = _crashReporter };
         // Before any window: started minimized there is no dashboard to apply it, and the overlay comes first.
         ThemeEngine.ApplySaved(this, settings);
         _releaseMain = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };

@@ -144,5 +144,5 @@
   "Settings.About.FontsCrossPlatform": "Fonts: Montserrat (SIL Open Font License) · Inter (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0).",
   "Settings.About.NotAffiliated": "Not affiliated with Blizzard Entertainment.",
   "Settings.Data.CrashReports": "Send crash reports automatically",
-  "Settings.Data.CrashReportsNote": "Only the app and system versions, the language, the error type and where in the code it happened: no names, BattleTag, account, paths with your user name, history or game logs. Off: a report goes only when you press “Send report” in the error window."
+  "Settings.Data.CrashReportsNote": "Sent: the app and system versions, the language, the error type and text and where in the code it happened. Names, BattleTags, e-mails, paths, quoted values and long numbers are cut out of the text; your account, history and game logs are never sent. Off: a report goes only when you press “Send report” in the error window; turning it off deletes reports waiting to go."
 }

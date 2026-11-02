@@ -29,3 +29,14 @@ memory on Windows only; on Linux those values stay empty.
 Community stats: Hearthpulse data (api.kolodahearthstone.com). Russian archetype names: the Hearthpulse archetype
 dictionary (api.blizzcore.ru). Card data and art: HearthstoneJSON.
 Not affiliated with Blizzard Entertainment.
+
+CRASH REPORTS
+- Off by default. A report of an unexpected error goes to hearthpulse.net only
+  when you press "Send report" in the error window, or when you turn on
+  "Send crash reports automatically" in Settings > Data (turning it off deletes
+  reports waiting to go).
+- A report holds the app, system and .NET versions, the interface language,
+  the error type and its text, and where in the code it happened. Names,
+  BattleTags, e-mail addresses, paths, quoted values and long numbers are cut
+  out of the text before it is sent. It is not tied to your account, and your
+  IP address is not kept. Reports are kept for 90 days.
