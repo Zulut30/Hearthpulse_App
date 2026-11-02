@@ -102,8 +102,6 @@ public partial class App : Application
     private int _watchTicks;
     private bool _capNotified;
     private bool _sharingHistory;
-    private Func<string>? _busy;
-    private Func<string>? _updateStatus;
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The SocketsHttpHandler is owned by the HttpClient (disposeHandler: true), which lives as long as the app.")]
     protected override void OnStartup(StartupEventArgs e)
@@ -253,8 +251,7 @@ public partial class App : Application
         _mainViewModel.AttachUploader(_uploader);
         _mainViewModel.UploadSettingChanged += () =>
         {
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         };
         if (_renderDir is null)
         {
@@ -266,13 +263,7 @@ public partial class App : Application
             view => LiveDeckRecord.Read(_history, _installDir, view),
             _mainViewModel.Apply,
             RefreshOverlay);
-        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
-        // version stays in the settings, unused).
-        _session.SetCompMode(CompMode.Manual, null);
-        _session.SetCardPoolEnabled(_settings.ShowCardPool);
-        _session.SetArenaDraftEnabled(_settings.ShowArenaDraft);
-        _session.SetBgOpponentMmrEnabled(_settings.ShowBgOpponentMmr);
-        _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
+        _session.ApplySettings(_settings);
         _overlayViewModel.SecretToggleRequested += _session.ToggleSecret;
         _overlayViewModel.CardPoolBrowserResized += OnSettingsChanged;
         _overlayViewModel.CounterModeRequested += (id, mode) =>
@@ -291,13 +282,11 @@ public partial class App : Application
         _mainViewModel.MulliganRankChanged += () =>
         {
             _mulliganGuide.Rank = _settings.MulliganRank;
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         };
         _mainViewModel.PoolConsentChanged += () =>
         {
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
             _ = ShareHistoryAsync();
         };
         _mainViewModel.ConstructedMetaRequested += format =>
@@ -308,8 +297,7 @@ public partial class App : Application
                 return;
             }
 
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
             LoadConstructedMetaAsync().Forget("Constructed meta load");
         };
         _releaseMain.Tick += (_, _) => ReleaseMain();
@@ -342,8 +330,8 @@ public partial class App : Application
             _main.Show();
         }
 
-        _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => _mainViewModel.RefreshAsync().Forget("History refresh"));
-        _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), _settings.Save);
+        _historyDebounce = Debounce.Timer(TimeSpan.FromMilliseconds(600), () => _mainViewModel.RefreshAsync().Forget("History refresh"));
+        _settingsDebounce = Debounce.Timer(TimeSpan.FromMilliseconds(400), _settings.Save);
         _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Meta refresh");
 
@@ -352,8 +340,7 @@ public partial class App : Application
         _session.GameFinished += outcome => _ = Dispatcher.BeginInvoke(() => OnGameFinished(outcome));
         _history.Changed += () => _ = Dispatcher.BeginInvoke(() =>
         {
-            _historyDebounce.Stop();
-            _historyDebounce.Start();
+            _historyDebounce.Kick();
             _feed.ForgetDeck();
         });
 
@@ -401,7 +388,7 @@ public partial class App : Application
     {
         try
         {
-            SetBusy(() => Loc.T("Host.Busy.LookingForGame"));
+            _mainViewModel.ShowBusy(() => Loc.T("Host.Busy.LookingForGame"));
             Task.Run(CacheCleanup.Run).Forget("Cache clean-up");
             (_installDir, var clientLocale) = await _prefetch.Game;
             if (_installDir is not null && _settings.HearthstonePath != _installDir)
@@ -432,7 +419,7 @@ public partial class App : Application
                 }
             });
 
-            SetBusy(() => Loc.T("Host.Busy.LoadingCards"));
+            _mainViewModel.ShowBusy(() => Loc.T("Host.Busy.LoadingCards"));
             _cards = await _prefetch.CardsAsync(locale);
             CardArt.FallbackUrl = id => _cards.BgCards.ImageUrl(id);
             if (_cards.Count == 0 && locale != "enUS")
@@ -467,7 +454,7 @@ public partial class App : Application
             _watchdog.Tick += (_, _) => WatchPipeline();
             _watchdog.Start();
             _uiProbe = new System.Threading.Timer(ProbeUiThread, null, 2000, 1000);
-            SetBusy(_installDir is null
+            _mainViewModel.ShowBusy(_installDir is null
                 ? () => Loc.T("Host.Busy.GameNotFound")
                 : null);
 
@@ -492,7 +479,7 @@ public partial class App : Application
                 return;
             }
 
-            SetBusy(() => Loc.T("Host.Busy.StartupProblem"));
+            _mainViewModel.ShowBusy(() => Loc.T("Host.Busy.StartupProblem"));
         }
     }
 
@@ -504,7 +491,7 @@ public partial class App : Application
     {
         if (!_settings.AutoUpdate)
         {
-            SetUpdateStatus(() => Loc.T("Host.Update.Off"));
+            _mainViewModel.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
             return;
         }
 
@@ -516,13 +503,12 @@ public partial class App : Application
                 _stagedUpdate = info;
                 _ = Dispatcher.BeginInvoke(() =>
                 {
-                    _updateStatus = null;
                     _mainViewModel.SetUpdateReady(info.Version);
                 });
                 Notify(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
             },
             // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
-            failed: status => _ = Dispatcher.BeginInvoke(() => SetUpdateStatus(status))));
+            failed: status => _ = Dispatcher.BeginInvoke(() => _mainViewModel.SetUpdateStatus(status))));
     }
 
     /// <summary>The "Update ready" chip: install the downloaded update now and start the new version.</summary>
@@ -695,26 +681,7 @@ public partial class App : Application
         }
     }
 
-    private async Task ImportLogsAsync(bool force)
-    {
-        if (_installDir is null)
-        {
-            SetBusy(() => Loc.T("Host.Busy.NothingToImport"));
-            return;
-        }
-
-        SetBusy(() => Loc.T("Host.Busy.Importing"));
-        var progress = new Progress<string>(text => SetBusy(() => text));
-        var result = await Task.Run(() => LogBackfill.Run(_installDir, _history, _cards, progress));
-        _settings.HistoryImported = true;
-        _settings.HistoryStatsFilled = true;
-        _settings.HistoryCardsFilled = true;
-        _settings.Save();
-        SetBusy(force || result.GamesAdded > 0
-            ? () => Loc.F("Host.Busy.Imported", result.GamesAdded, result.Sessions)
-            : null);
-        await _mainViewModel.RefreshAsync();
-    }
+    private Task ImportLogsAsync(bool force) => _mainViewModel.ImportLogsAsync(_installDir, force);
 
     // ---- live snapshots ---------------------------------------------------------------------
 
@@ -796,8 +763,7 @@ public partial class App : Application
         finally
         {
             _sharingHistory = false;
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         }
     }
 
@@ -811,16 +777,14 @@ public partial class App : Application
             && PoolGame.From(outcome, _cards.BaseHeroId, CardRaces, PoolClient.SharingDetails(_settings), PoolClient.Secret(_settings)) is { } game)
         {
             _ = PoolClient.SubmitAsync(_http, PoolClient.Endpoint(_settings), [PoolClient.Limit(game, _settings)]);
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         }
 
         // A Constructed game shares only its Discover-style picks, once the player agreed to that list (version 4).
         if (PoolClient.SharingPicks(_settings) && ConstructedPoolGame.From(outcome, PoolClient.Secret(_settings)) is { } picks)
         {
             _ = PoolClient.SubmitConstructedAsync(_http, PoolClient.Endpoint(_settings), [picks]);
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         }
 
         if (_settings.ShowGameToasts && _settings.OverlayEnabled)
@@ -997,20 +961,13 @@ public partial class App : Application
 
     private void OnSettingsChanged()
     {
-        _settingsDebounce.Stop();
-        _settingsDebounce.Start();
+        _settingsDebounce.Kick();
         if (_trayOverlayItem is not null)
         {
             _trayOverlayItem.Checked = _settings.OverlayEnabled;
         }
 
-        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
-        // version stays in the settings, unused).
-        _session.SetCompMode(CompMode.Manual, null);
-        _session.SetCardPoolEnabled(_settings.ShowCardPool);
-        _session.SetArenaDraftEnabled(_settings.ShowArenaDraft);
-        _session.SetBgOpponentMmrEnabled(_settings.ShowBgOpponentMmr);
-        _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
+        _session.ApplySettings(_settings);
         LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();
         if (_renderDir is null)
@@ -1081,22 +1038,10 @@ public partial class App : Application
     }
 
     /// <summary>Shows a busy text in the main window, kept so a language switch can show it again in the new language.</summary>
-    private void SetBusy(Func<string>? text)
-    {
-        _busy = text;
-        _mainViewModel.Busy = text?.Invoke() ?? string.Empty;
-    }
-
-    /// <summary>Shows an update status in Settings → About, kept so a language switch can show it again.</summary>
-    private void SetUpdateStatus(Func<string> text)
-    {
-        _updateStatus = text;
-        _mainViewModel.SetUpdateStatus(text());
-    }
-
     /// <summary>
     /// The interface language changed (on the UI thread): the overlay rebuilds its texts from the last snapshot, and the
-    /// texts this host owns (tray menu, busy line, update status) are shown again in the new language.
+    /// texts this host owns (the tray menu) are shown again in the new language; the busy line and update status follow
+    /// by themselves (MainViewModel).
     /// </summary>
     private void OnLanguageChanged()
     {
@@ -1109,15 +1054,6 @@ public partial class App : Application
         }
 
         SetTrayTexts();
-        if (_busy is not null)
-        {
-            _mainViewModel.Busy = _busy();
-        }
-
-        if (_updateStatus is not null)
-        {
-            _mainViewModel.SetUpdateStatus(_updateStatus());
-        }
     }
 
     private void ShowMain()
@@ -1317,16 +1253,6 @@ public partial class App : Application
         }
     }
 
-    private DispatcherTimer Debouncer(TimeSpan delay, Action action)
-    {
-        var timer = new DispatcherTimer { Interval = delay };
-        timer.Tick += (_, _) =>
-        {
-            timer.Stop();
-            action();
-        };
-        return timer;
-    }
 
     /// <summary>Tray menu in the app's brown and gold palette (Surface, Surface3, Border and Accent).</summary>
     private sealed class DarkMenuRenderer : Forms.ToolStripProfessionalRenderer

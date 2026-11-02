@@ -81,11 +81,22 @@ jobs:
       - name: WPF and Avalonia presentation contracts
         run: dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-build -c Release --collect:"XPlat Code Coverage" --logger "trx;LogFileName=presentation.trx" --results-directory TestResults/presentation
       # Line and branch coverage per module (src/ folder; both suites merged, shared Presentation counted once) into the
-      # job summary, and the ratchet: a module more than 0.5 pp under its floor in tools/coverage/baseline.json fails the
-      # job. Timing tests are not instrumented and do not count. No external service.
-      - name: Coverage by module and ratchet
+      # job summary, also when a test failed. Timing tests are not instrumented and do not count. No external service.
+      - name: Coverage by module
         if: ${{ !cancelled() }}
-        run: python -B -I tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation --summary "$env:GITHUB_STEP_SUMMARY"
+        run: python -B -I tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation --report-only --summary "$env:GITHUB_STEP_SUMMARY"
+      # The ratchet, only on green tests (a failed suite covers less): a module more than 0.5 pp under its floor in
+      # tools/coverage/baseline.json fails the job, and no floor may be lower than on main.
+      - name: Coverage ratchet
+        run: |
+          # pwsh goes on after a failed program: each exit code is checked.
+          python -B -I tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          git fetch --no-tags --depth=1 origin main
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          git show FETCH_HEAD:tools/coverage/baseline.json | Set-Content -Encoding utf8 "$env:RUNNER_TEMP/baseline-main.json"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B -I tools/coverage/coverage_ratchet.py --floors-not-below "$env:RUNNER_TEMP/baseline-main.json"
       - name: Test results
         if: always()
         uses: actions/upload-artifact@v4

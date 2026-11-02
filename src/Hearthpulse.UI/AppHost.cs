@@ -33,9 +33,7 @@ public sealed partial class AppHost : IDisposable
     private LogWatcher? _watcher;
     private readonly LiveFeed _feed;
     private UpdateInfo? _stagedUpdate;
-    private Func<string>? _busy;
     private Task? _archetypeNames;
-    private Func<string>? _updateStatus;
     private readonly StartupPrefetch _prefetch;
 
     /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
@@ -85,13 +83,12 @@ public sealed partial class AppHost : IDisposable
             Account.RestoreAsync().Forget("Account restore");
         }
         Overlay = new OverlayViewModel();
-        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
-        // version stays in the settings, unused).
-        Session.SetCompMode(CompMode.Manual, null);
-        Session.SetCardPoolEnabled(Settings.ShowCardPool);
-        Session.SetArenaDraftEnabled(Settings.ShowArenaDraft);
-        Session.SetBgOpponentMmrEnabled(Settings.ShowBgOpponentMmr);
-        Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
+        _feed = new LiveFeed(
+            action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background),
+            view => LiveDeckRecord.Read(History, InstallDirectory, view),
+            Main.Apply,
+            RefreshOverlay);
+        Session.ApplySettings(Settings);
         Overlay.SecretToggleRequested += Session.ToggleSecret;
         Overlay.CardPoolBrowserResized += OnSettingsChanged;
         Overlay.CounterModeRequested += (id, mode) =>
@@ -110,12 +107,11 @@ public sealed partial class AppHost : IDisposable
         };
         Main.UpdateRequested += OnInstallUpdateRequested;
 
-        _historyDebounce = Debouncer(TimeSpan.FromMilliseconds(600), () => Main.RefreshAsync().Forget("History refresh"));
-        _settingsDebounce = Debouncer(TimeSpan.FromMilliseconds(400), Settings.Save);
+        _historyDebounce = Debounce.Timer(TimeSpan.FromMilliseconds(600), () => Main.RefreshAsync().Forget("History refresh"));
+        _settingsDebounce = Debounce.Timer(TimeSpan.FromMilliseconds(400), Settings.Save);
         Main.UploadSettingChanged += () =>
         {
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
         };
         Main.CrashReportsChanged += () =>
         {
@@ -131,11 +127,6 @@ public sealed partial class AppHost : IDisposable
         _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Battlegrounds meta load");
 
-        _feed = new LiveFeed(
-            action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background),
-            view => LiveDeckRecord.Read(History, InstallDirectory, view),
-            Main.Apply,
-            RefreshOverlay);
         Session.SnapshotChanged += _feed.Publish;
         Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => EnsureConstructedMeta(format));
         Main.ConstructedMetaRequested += format =>
@@ -147,8 +138,7 @@ public sealed partial class AppHost : IDisposable
             }
 
             // A meta filter changed: it is saved, and every format in use loads again for it.
-            _settingsDebounce.Stop();
-            _settingsDebounce.Start();
+            _settingsDebounce.Kick();
             _constructedFormats.Add(ConstructedMeta.Key(ConstructedMeta.Formats, Settings.MetaFormat));
             foreach (var key in _constructedFormats.ToList())
             {
@@ -158,8 +148,7 @@ public sealed partial class AppHost : IDisposable
         Session.GameFinished += outcome => Dispatcher.UIThread.Post(() => OnGameFinished(outcome));
         History.Changed += () => Dispatcher.UIThread.Post(() =>
         {
-            _historyDebounce.Stop();
-            _historyDebounce.Start();
+            _historyDebounce.Kick();
             _feed.ForgetDeck();
         });
         Loc.Instance.LanguageChanged += OnLanguageChanged;
@@ -236,7 +225,7 @@ public sealed partial class AppHost : IDisposable
         var live = watchLogs && !_rendering;
         try
         {
-            SetBusy(() => Loc.T("Host.Busy.LookingForGame"));
+            Main.ShowBusy(() => Loc.T("Host.Busy.LookingForGame"));
             Task.Run(CacheCleanup.Run).Forget("Cache clean-up");
             (InstallDirectory, var clientLocale) = await _prefetch.Game;
             if (InstallDirectory is not null && Settings.HearthstonePath != InstallDirectory)
@@ -266,7 +255,7 @@ public sealed partial class AppHost : IDisposable
                 }
             });
 
-            SetBusy(() => Loc.T("Host.Busy.LoadingCards"));
+            Main.ShowBusy(() => Loc.T("Host.Busy.LoadingCards"));
             Cards = await _prefetch.CardsAsync(locale);
             CardArt.FallbackUrl = id => Cards.BgCards.ImageUrl(id);
             if (Cards.Count == 0 && locale != "enUS")
@@ -296,7 +285,7 @@ public sealed partial class AppHost : IDisposable
             _watcher = new LogWatcher(Session, () => InstallDirectory);
             _watcher.Start();
             Uploader.Start();
-            SetBusy(InstallDirectory is null
+            Main.ShowBusy(InstallDirectory is null
                 ? () => Loc.T("Host.Busy.GameNotFound")
                 : null);
 
@@ -319,7 +308,7 @@ public sealed partial class AppHost : IDisposable
                 throw;
             }
 
-            SetBusy(() => Loc.T("Host.Busy.StartupProblem"));
+            Main.ShowBusy(() => Loc.T("Host.Busy.StartupProblem"));
         }
     }
 
@@ -331,7 +320,7 @@ public sealed partial class AppHost : IDisposable
     {
         if (!Settings.AutoUpdate || OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
-            SetUpdateStatus(() => Loc.T("Host.Update.Off"));
+            Main.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
             return;
         }
 
@@ -347,13 +336,12 @@ public sealed partial class AppHost : IDisposable
                 _stagedUpdate = info;
                 Dispatcher.UIThread.Post(() =>
                 {
-                    _updateStatus = null;
                     Main.SetUpdateReady(info.Version);
                 });
                 Notification?.Invoke(Loc.T("Host.Update.ReadyTitle"), Loc.F("Host.Update.Ready", info.Version));
             },
             // Failed check, unverifiable file or failed download: say so in Settings → About, retry later.
-            failed: status => Dispatcher.UIThread.Post(() => SetUpdateStatus(status))));
+            failed: status => Dispatcher.UIThread.Post(() => Main.SetUpdateStatus(status))));
     }
 
     /// <summary>The "Update ready" chip: install the downloaded update now. Windows restarts into the new version,
@@ -553,39 +541,13 @@ public sealed partial class AppHost : IDisposable
         }
     }
 
-    public async Task ImportLogsAsync(bool force)
-    {
-        if (InstallDirectory is not { } install)
-        {
-            SetBusy(() => Loc.T("Host.Busy.NothingToImport"));
-            return;
-        }
-
-        SetBusy(() => Loc.T("Host.Busy.Importing"));
-        var progress = new Progress<string>(text => SetBusy(() => text));
-        var result = await Task.Run(() => LogBackfill.Run(install, History, Cards, progress));
-        Settings.HistoryImported = true;
-        Settings.HistoryStatsFilled = true;
-        Settings.HistoryCardsFilled = true;
-        Settings.Save();
-        SetBusy(force || result.GamesAdded > 0
-            ? () => Loc.F("Host.Busy.Imported", result.GamesAdded, result.Sessions)
-            : null);
-        await Main.RefreshAsync();
-    }
+    public Task ImportLogsAsync(bool force) => Main.ImportLogsAsync(InstallDirectory, force);
 
     /// <summary>Call after any setting changed: saves (debounced), refreshes the overlay and applies autostart.</summary>
     public void OnSettingsChanged()
     {
-        _settingsDebounce.Stop();
-        _settingsDebounce.Start();
-        // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
-        // version stays in the settings, unused).
-        Session.SetCompMode(CompMode.Manual, null);
-        Session.SetCardPoolEnabled(Settings.ShowCardPool);
-        Session.SetArenaDraftEnabled(Settings.ShowArenaDraft);
-        Session.SetBgOpponentMmrEnabled(Settings.ShowBgOpponentMmr);
-        Session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(Settings.LadderSessionBreakHours, 1, 12)));
+        _settingsDebounce.Kick();
+        Session.ApplySettings(Settings);
         LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();
         if (!_rendering)
@@ -597,22 +559,9 @@ public sealed partial class AppHost : IDisposable
     public void RefreshOverlay() => Overlay.Update(_feed.Last, Cards, Settings, _feed.Deck, _feed.Matchup);
 
     /// <summary>Shows a busy text in the main window, kept so a language switch can show it again in the new language.</summary>
-    private void SetBusy(Func<string>? text)
-    {
-        _busy = text;
-        Main.Busy = text?.Invoke() ?? string.Empty;
-    }
-
-    /// <summary>Shows an update status in Settings → About, kept so a language switch can show it again.</summary>
-    private void SetUpdateStatus(Func<string> text)
-    {
-        _updateStatus = text;
-        Main.SetUpdateStatus(text());
-    }
-
     /// <summary>
     /// The interface language changed (on the UI thread): the overlay rebuilds its texts from the last snapshot, and the
-    /// texts this host owns (busy line, update status) are shown again in the new language. The shell retitles its tray.
+    /// busy line and update status follow by themselves (MainViewModel). The shell retitles its tray.
     /// </summary>
     private void OnLanguageChanged()
     {
@@ -621,16 +570,6 @@ public sealed partial class AppHost : IDisposable
         if (Cards.Count > 0)
         {
             LoadMetaAsync().Forget("Community stats load");
-        }
-
-        if (_busy is not null)
-        {
-            Main.Busy = _busy();
-        }
-
-        if (_updateStatus is not null)
-        {
-            Main.SetUpdateStatus(_updateStatus());
         }
     }
 
@@ -699,16 +638,6 @@ public sealed partial class AppHost : IDisposable
         }
     }
 
-    private static DispatcherTimer Debouncer(TimeSpan delay, Action action)
-    {
-        var timer = new DispatcherTimer { Interval = delay };
-        timer.Tick += (_, _) =>
-        {
-            timer.Stop();
-            action();
-        };
-        return timer;
-    }
 
     public void Dispose()
     {

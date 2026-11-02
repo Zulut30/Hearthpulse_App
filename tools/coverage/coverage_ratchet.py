@@ -8,7 +8,12 @@ once per file and line. Generated files (obj/, *.g.cs) are left out.
 Fails when a module's line coverage is more than the allowed drop below its floor in baseline.json; says when a
 module has risen far enough that its floor should be raised (the ratchet only moves up, by a commit).
 
-    python tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation [--summary FILE]
+    python tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation [--summary FILE] [--report-only]
+    python tools/coverage/coverage_ratchet.py --floors-not-below base-baseline.json
+
+Floors can only go up (the second form, run against the base branch's baseline.json), and nothing in src/ may hide
+code from coverlet: tools/skill_checks/test_coverage_ratchet.py forbids [ExcludeFromCodeCoverage] / [GeneratedCode]
+there and pins the list of *.g.cs files this script leaves out.
 """
 import argparse
 import json
@@ -108,20 +113,42 @@ def table(rows, reports):
     return out
 
 
+def lowered_floors(baseline, previous):
+    """Floors in baseline that are lower than in previous (the base branch's baseline.json)."""
+    now, before = baseline.get("floors", {}), previous.get("floors", {})
+    lowered = [f"{m}: floor {now.get(m, 0):.1f} < {floor:.1f} on the base branch"
+               for m, floor in before.items() if now.get(m, 0) < floor]
+    if baseline.get("allowed_drop", 0.5) > previous.get("allowed_drop", 0.5):
+        lowered.append(f"allowed_drop {baseline['allowed_drop']} > {previous['allowed_drop']} on the base branch")
+    return lowered
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("folders", nargs="+")
+    parser.add_argument("folders", nargs="*")
     parser.add_argument("--baseline", default=str(BASELINE))
     parser.add_argument("--summary", help="append the table to this file (GITHUB_STEP_SUMMARY)")
+    parser.add_argument("--report-only", action="store_true", help="write the table, never fail (tests failed)")
+    parser.add_argument("--floors-not-below", metavar="BASE_JSON",
+                        help="only check that no floor is lower than in this file (the base branch's baseline)")
     args = parser.parse_args(argv)
+    baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8-sig"))
+    if args.floors_not_below:
+        failures = lowered_floors(baseline, json.loads(Path(args.floors_not_below).read_text(encoding="utf-8-sig")))
+        for failure in failures:
+            print(f"::error title=Coverage floors::{failure}")
+        print("Coverage floors: none lowered." if not failures else "Coverage floors: lowered (they only go up).")
+        return 1 if failures else 0
+
     result, reports = summarize(args.folders)
-    baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
     rows, failures = check(result, baseline)
     text = "\n".join(table(rows, reports))
     print(text)
     if args.summary:
         with open(args.summary, "a", encoding="utf-8") as summary:
             summary.write(text + "\n")
+    if args.report_only:
+        return 0
     if reports == 0:
         failures.append("no coverage.cobertura.xml found")
     for failure in failures:
