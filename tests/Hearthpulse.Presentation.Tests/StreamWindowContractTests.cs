@@ -64,7 +64,7 @@ public sealed class StreamWindowContractTests
     {
         Loc.Instance.SetLanguage(Loc.English);
         var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data);
-        var ava = new AvaMain(History(), new AppSettings());
+        var ava = new AvaMain(History(), new AppSettings(), TestApp.Data);
         var told = (Wpf: 0, Ava: 0);
         wpf.StreamSettingsChanged += () => told.Wpf++;
         ava.StreamSettingsChanged += () => told.Ava++;
