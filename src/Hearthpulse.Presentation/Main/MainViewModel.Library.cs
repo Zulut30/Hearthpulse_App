@@ -85,6 +85,7 @@ public sealed partial class MainViewModel
             var headers = cards.Select(c => c.FileName is { } name
                 ? files.Header(ReplayShelf.Recent, name) ?? (saved.Contains(name) ? files.Header(ReplayShelf.Saved, name) : null)
                 : null).ToList();
+            PruneBookmarks(files);
             return (Saved: saved, Headers: headers, Imported: files.Imported.Names().Count, Uploads: uploads.All());
         }).ConfigureAwait(true);
         if (load != _libraryLoad)
@@ -328,6 +329,10 @@ public sealed partial class MainViewModel
 
         card.Starred = false;
         card.HasReplay = !last;
+        if (last)
+        {
+            ForgetBookmarks(name);
+        }
         Library.SavedCount = Math.Max(0, Library.SavedCount - 1);
         if (Library.IsSaved)
         {
@@ -339,8 +344,36 @@ public sealed partial class MainViewModel
     {
         if (LibraryFiles.DeleteImported(name))
         {
+            ForgetBookmarks(name);
             Library.Remove(card);
             Library.ImportedCount = Math.Max(0, Library.ImportedCount - 1);
+        }
+    }
+
+    /// <summary>The replay's last file is gone: its bookmarks go too (off the UI thread).</summary>
+    private void ForgetBookmarks(string name)
+    {
+        var history = _history;
+        Task.Run(() => history.RemoveBookmarks(name)).Forget("Replay bookmarks");
+    }
+
+    /// <summary>
+    /// Bookmarks of replays with no file left on any shelf (History's trim, a file deleted by hand) are taken off; on
+    /// the pool thread while the library loads.
+    /// </summary>
+    private void PruneBookmarks(ReplayLibrary files)
+    {
+        try
+        {
+            foreach (var name in _history.BookmarkedReplays()
+                .Where(n => !files.Recent.Contains(n) && !files.Saved.Contains(n) && !files.Imported.Contains(n)))
+            {
+                _history.RemoveBookmarks(name);
+            }
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Tidying replay bookmarks failed", ex);
         }
     }
 
@@ -557,11 +590,13 @@ public sealed partial class MainViewModel
             ShowLibraryTab();
         }
 
-        var card = Library.Cards.FirstOrDefault(c => c.HistoryKey == key);
+        // The game sent here must show: the search is cleared first.
+        Library.ResetSearch();
+        var card = Library.AllCards.FirstOrDefault(c => c.HistoryKey == key);
         if (card is null && _history.Game(key) is { } game)
         {
             card = LibraryCardOf(game, ReplayShelf.Recent, game.Replay, game.Key);
-            Library.SetCards([card, .. Library.Cards]);
+            Library.SetCards([card, .. Library.AllCards]);
             FillRecentAsync(_libraryLoad, [card]).Forget("Library headers");
         }
 

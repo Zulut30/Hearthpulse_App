@@ -4,8 +4,9 @@
              xmlns:c="clr-namespace:Hearthpulse.App.Controls"
              xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
              xmlns:mt="clr-namespace:Hearthpulse.App.Main.Match">
-    <!-- The History page as the replay library (docs/replay-library.md): tabs Recent / Saved / Imported, the status
-         line, the game cards. DataContext is MainViewModel.Library. Colours are theme tokens only. -->
+    <!-- The History page as the replay library (docs/replay-library.md): tabs Recent / Saved / Imported, the search and
+         the result filter, the status line, the game cards. DataContext is MainViewModel.Library. Colours are theme
+         tokens only. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -222,6 +223,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <DockPanel Margin="0,0,0,10">
@@ -258,17 +260,54 @@
             </Border>
         </DockPanel>
 
+        <!-- Search (up to 420 wide, on the left) and the result filter (on the right); both apply to every tab -->
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1000*" MaxWidth="420" />
+                <ColumnDefinition Width="*" MinWidth="12" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid VerticalAlignment="Center">
+                <!-- The theme's text box applies Padding twice (frame and text view): 17,4,15,4 reads as 34 left, 30 right -->
+                <TextBox x:Name="SearchBox" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Padding="17,4,15,4" ToolTip="{i:Loc Library.Search.Tip}"
+                         AutomationProperties.Name="{i:Loc Library.Search.Name}" PreviewKeyDown="OnSearchKey" />
+                <TextBlock Text="&#xF0349;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Faint}" Margin="12,0,0,0"
+                           HorizontalAlignment="Left" IsHitTestVisible="False" />
+                <TextBlock Text="{i:Loc Library.Search.Placeholder}" Foreground="{StaticResource Faint}" Margin="36,0,34,0" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" IsHitTestVisible="False"
+                           Visibility="{Binding Search, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                <Button Style="{StaticResource IconButton}" Content="&#xF0156;" Width="26" Height="26" FontSize="14" Focusable="False" HorizontalAlignment="Right"
+                        Margin="0,0,4,0" Click="OnClearSearchText" ToolTip="{i:Loc Library.Search.ClearTip}"
+                        AutomationProperties.Name="{i:Loc Library.Search.ClearTip}" Visibility="{Binding Search, Converter={StaticResource Vis}}" />
+            </Grid>
+            <Border Grid.Column="2" Style="{StaticResource SegmentBar}" VerticalAlignment="Center" ToolTip="{i:Loc Library.Search.ResultTip}"
+                    AutomationProperties.Name="{i:Loc Library.Search.ResultTip}">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Main.History.All}" GroupName="LibraryResult" IsChecked="{Binding ResultAll, Mode=OneWay}"
+                                 Command="{Binding SetResultFilter}" CommandParameter="All" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Library.Search.Wins}" GroupName="LibraryResult" IsChecked="{Binding ResultWins, Mode=OneWay}"
+                                 Command="{Binding SetResultFilter}" CommandParameter="Win" />
+                    <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Library.Search.Losses}" GroupName="LibraryResult" IsChecked="{Binding ResultLosses, Mode=OneWay}"
+                                 Command="{Binding SetResultFilter}" CommandParameter="Loss" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
         <!-- Status of the last action; it goes at the next tab, filter, opened match or action -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="2,0,0,10" Visibility="{Binding Status, Converter={StaticResource Vis}}">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="2,0,0,10" Visibility="{Binding Status, Converter={StaticResource Vis}}">
             <TextBlock Text="{Binding StatusGlyph}" Style="{StaticResource Icon}" FontSize="14" VerticalAlignment="Center"
                        Foreground="{Binding StatusKey, Converter={StaticResource KeyBrush}}" />
             <TextBlock Text="{Binding Status}" Style="{StaticResource Caption}" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
         </StackPanel>
 
-        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="16,12">
+        <Border Grid.Row="3" Style="{StaticResource Card}" Padding="16,12">
             <Grid>
-                <ContentControl Style="{StaticResource EmptyState}" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}"
-                                Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}" />
+                <StackPanel Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}">
+                    <ContentControl Style="{StaticResource EmptyState}" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}" />
+                    <!-- Nothing passes the search: one click back to every game of the tab -->
+                    <Button Style="{StaticResource GhostButton}" Padding="12,6" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
+                            Click="OnClearSearch" Visibility="{Binding IsSearchEmpty, Converter={StaticResource Vis}}" />
+                </StackPanel>
                 <ListBox x:Name="List" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}" SelectedItem="{Binding SelectedCard, Mode=OneWay}"
                          SelectionChanged="OnSelectionChanged" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.ScrollUnit="Pixel" HorizontalContentAlignment="Stretch">

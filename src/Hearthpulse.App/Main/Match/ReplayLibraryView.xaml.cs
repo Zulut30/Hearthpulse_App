@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
 using Microsoft.Win32;
@@ -22,6 +23,41 @@ public partial class ReplayLibraryView : UserControl
         DataContextChanged += (_, _) => Attach(DataContext as ReplayLibraryViewModel, IsLoaded);
         Loaded += (_, _) => Attach(DataContext as ReplayLibraryViewModel, listen: true);
         Unloaded += (_, _) => Attach(DataContext as ReplayLibraryViewModel, listen: false);
+    }
+
+    /// <summary>Ctrl+F: the search box takes the focus with its text selected.</summary>
+    public void FocusSearch()
+    {
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
+    /// <summary>Esc in the search box clears its text (the result filter stays); an empty box lets Esc go on.</summary>
+    private void OnSearchKey(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None && _model is { Search.Length: > 0 } model)
+        {
+            model.Search = string.Empty;
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>The box's ✕: the text goes, the focus stays in the box.</summary>
+    private void OnClearSearchText(object sender, RoutedEventArgs e)
+    {
+        if (_model is { } model)
+        {
+            model.Search = string.Empty;
+        }
+
+        SearchBox.Focus();
+    }
+
+    /// <summary>"Clear search" of the empty state: the text and the result filter go, the focus goes to the box.</summary>
+    private void OnClearSearch(object sender, RoutedEventArgs e)
+    {
+        _model?.ClearSearch.Execute(null);
+        SearchBox.Focus();
     }
 
     /// <summary>Imports the file on the clipboard, or the file whose path is there as text.</summary>

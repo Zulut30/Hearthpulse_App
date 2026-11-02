@@ -59,5 +59,15 @@
   "Library.Site.Gone": "This replay is no longer on the site.",
   "Library.Site.DeleteError.OFFLINE": "The site cannot be reached; the replay is not deleted. Try again later.",
   "Library.Site.DeleteError.RATE_LIMITED": "Too many requests: try deleting again in a minute.",
-  "Library.Site.DeleteError.SERVER_ERROR": "The site could not delete the replay. Try again later."
+  "Library.Site.DeleteError.SERVER_ERROR": "The site could not delete the replay. Try again later.",
+  "Library.Search.Placeholder": "Search: hero, class, opponent, deck",
+  "Library.Search.Name": "Search games",
+  "Library.Search.Tip": "Looks in the hero and class, the opponent and its archetype, the mode, format, deck and result. Ctrl+F to search, Esc to clear.",
+  "Library.Search.ClearTip": "Clear (Esc)",
+  "Library.Search.Wins": "Wins",
+  "Library.Search.Losses": "Losses",
+  "Library.Search.ResultTip": "Filter by result. In Battlegrounds a win is places 1–4, in Duos 1–2.",
+  "Library.Search.Empty": "Nothing matches “{0}”. Check the spelling or clear the search.",
+  "Library.Search.EmptyResult": "No games with this result on this tab.",
+  "Library.Search.Clear": "Clear search"
 }

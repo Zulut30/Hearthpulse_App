@@ -24,6 +24,7 @@ public sealed record MatchTurnRow(int FirstFrame, string Label, string Tooltip, 
 /// </summary>
 public sealed partial class MatchViewModel : Observable
 {
+    private readonly MainViewModel _owner;
     private MatchPage? _page;
     private int _frame;
     private bool _bottomLocal = true;
@@ -57,6 +58,7 @@ public sealed partial class MatchViewModel : Observable
     public MatchViewModel(MainViewModel owner, Func<TimeSpan, CancellationToken, Task>? delay = null)
     {
         _delay = delay ?? Task.Delay;
+        _owner = owner;
         Back = new RelayCommand(owner.CloseMatch);
         Previous = new RelayCommand(() => Frame--);
         Next = new RelayCommand(() => Frame++);
@@ -128,6 +130,7 @@ public sealed partial class MatchViewModel : Observable
             if (Set(ref _tab, value))
             {
                 Pause();
+                ClearHeaderStatus();
                 RaiseTabs();
             }
         }
@@ -372,6 +375,7 @@ public sealed partial class MatchViewModel : Observable
 
         var current = _page.TurnOf(_frame);
         Turns = _page.Turns.Select(t => new MatchTurnRow(t.FirstFrame, t.Label, t.Tooltip, t.Local, t.Mulligan, t == current)).ToList();
+        MoveNavigation();
         Raise(nameof(Position));
     }
 

@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.VisualTree;
 using Hearthpulse.UI;
 using Hearthpulse.UI.Main;
 
@@ -39,6 +41,7 @@ internal static partial class OffscreenRenderer
             }
 
             page.Frame = page.FrameMax * 2 / 3;
+            await RenderMatchNavigationAsync(main, view, page, folder);
 
             // Phone width: the turn's actions go under the table.
             main.Width = 420;
@@ -55,6 +58,56 @@ internal static partial class OffscreenRenderer
         }
 
         page.Back.Execute(null);
+    }
+
+    /// <summary>
+    /// Plan R1: bookmarks on three steps (written to the history, so only on a copy of the data: HEARTHPULSE_DATA, as
+    /// render.py sets it), the "Turn" list open, and the page at the narrowest window. The "Bookmarks" menu is a flyout
+    /// whose popup the headless platform does not hand out: WPF renders it.
+    /// </summary>
+    private static async Task RenderMatchNavigationAsync(Window main, MainView view, UI.Main.Match.MatchViewModel page, string folder)
+    {
+        var sample = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("HEARTHPULSE_DATA")) && page.CanBookmark;
+        if (sample)
+        {
+            foreach (var frame in new[] { page.FrameMax / 4, page.FrameMax / 2, page.FrameMax * 2 / 3 })
+            {
+                page.Frame = frame;
+                if (!page.IsBookmarked)
+                {
+                    page.ToggleBookmark.Execute(null);
+                }
+            }
+
+            await Save(main, Path.Combine(folder, "main-match-bookmarks.png"));
+        }
+        else
+        {
+            Console.WriteLine("main-match-bookmarks: skipped, HEARTHPULSE_DATA is not set (bookmarks are written to the history)");
+        }
+
+        if (view.GetVisualDescendants().OfType<ComboBox>().FirstOrDefault(c => c.Name == "TurnBox") is { } turns)
+        {
+            turns.IsDropDownOpen = true;
+            await Settle();
+            SavePopup(main, turns.GetVisualDescendants().OfType<Popup>().FirstOrDefault()?.Child, Path.Combine(folder, "main-match-turns-open.png"));
+            turns.IsDropDownOpen = false;
+        }
+
+        main.Width = 1040;
+        await Save(main, Path.Combine(folder, "main-match-1040.png"));
+        main.Width = 1260;
+
+        if (sample)
+        {
+            foreach (var frame in page.BookmarkRows.Select(r => r.Frame).ToList())
+            {
+                page.Frame = frame;
+                page.ToggleBookmark.Execute(null);
+            }
+
+            page.Frame = page.FrameMax * 2 / 3;
+        }
     }
 
     private static async Task SaveMatch(Window main, string folder, string name)

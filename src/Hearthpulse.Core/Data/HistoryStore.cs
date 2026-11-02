@@ -182,6 +182,32 @@ public sealed partial class HistoryStore
         }
     }
 
+    /// <summary>
+    /// The open connections that keep test histories alive (<see cref="InMemory"/>): a shared in-memory database lives
+    /// while one connection to it is open, and pooled ones may be cleared at any time.
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentBag<SqliteConnection> MemoryKeepers = [];
+
+    private HistoryStore(SqliteConnectionStringBuilder builder)
+    {
+        _connectionString = builder.ToString();
+        var keeper = new SqliteConnection(_connectionString);
+        keeper.Open();
+        MemoryKeepers.Add(keeper);
+        CreateSchema();
+    }
+
+    /// <summary>
+    /// A history in memory, for tests that need a <see cref="Tracking.GameSession"/> but no file: no disk, so no file
+    /// locks or "disk I/O error" from a scanner on the temp folder. It lives as long as the test process.
+    /// </summary>
+    internal static HistoryStore InMemory() => new(new SqliteConnectionStringBuilder
+    {
+        DataSource = "hp-test-" + Guid.NewGuid().ToString("N"),
+        Mode = SqliteOpenMode.Memory,
+        Cache = SqliteCacheMode.Shared,
+    });
+
     private const int SqliteCorrupt = 11;
     private const int SqliteNotADatabase = 26;
 
@@ -223,6 +249,7 @@ public sealed partial class HistoryStore
         CreateFamilyTables(connection);
         CreateSavedDeckTables(connection);
         CreateArenaRewardTables(connection);
+        CreateBookmarkTables(connection);
     }
 
     /// <summary>Columns added after the first schema, with their SQL type. Older databases get them on open.</summary>

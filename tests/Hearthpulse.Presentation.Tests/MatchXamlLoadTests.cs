@@ -95,6 +95,17 @@ public sealed class MatchXamlLoadTests
         Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
         Assert.Equal(model.TimelineSegments.Count, model.Turns.Count);
 
+        // Plan R1: the "Turn" list over the timeline shows the stretch on screen; a bookmark adds its mark under them.
+        var turns = (ComboBox)view.FindName("TurnBox");
+        Assert.Equal(model.Jumps.Count, turns.Items.Count);
+        Assert.Equal(model.JumpIndex, turns.SelectedIndex);
+        model.SetReplay("match-xaml.hpr", null, history);
+        model.ToggleBookmark.Execute(null);
+        Layout(view);
+        Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 1 + 2, timeline.Children.Count);
+        Assert.False(model.ShowHeaderActions);
+        model.ToggleBookmark.Execute(null);
+
         // The window hidden to the tray stops the playback (the page's IsVisible goes with the window's).
         var window = new Window
         {

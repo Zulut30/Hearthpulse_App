@@ -86,7 +86,58 @@ public sealed partial class MainViewModel
         }
 
         MatchPage.Show(page, keepPosition);
+        var (replay, card, built) = MatchReplayOf(key);
+        MatchPage.SetReplay(replay, card, _history);
+        if (built && card is { FileName: { } file })
+        {
+            // A card made for the header (the library shows another tab or filter): whether its file is there and starred.
+            await FillHeaderCardAsync(card, file).ConfigureAwait(true);
+        }
+
         return true;
+    }
+
+    /// <summary>The file and the star of a card made for the match header, read off the UI thread.</summary>
+    private async Task FillHeaderCardAsync(LibraryCard card, string file)
+    {
+        var files = LibraryFiles;
+        var (hasReplay, starred) = await Task.Run(() =>
+        {
+            var saved = files.SavedNames().Contains(file);
+            return (saved || files.Header(Core.Replay.ReplayShelf.Recent, file) is not null, saved);
+        }).ConfigureAwait(true);
+        card.HasReplay = hasReplay;
+        card.Starred = starred;
+    }
+
+    /// <summary>
+    /// The opened game's replay file name (its bookmarks are kept by it) and its library card (the header's star and
+    /// Share): a History game's file, or a Saved or Imported file opened without a History row.
+    /// </summary>
+    /// <returns>Built: the card was made here, not found among the library's (its file and star are still to read).</returns>
+    private (string? Replay, LibraryCard? Card, bool Built) MatchReplayOf(string key)
+    {
+        if (key.StartsWith(Core.Replay.MatchPage.FileKeyPrefix, StringComparison.Ordinal))
+        {
+            var rest = key[Core.Replay.MatchPage.FileKeyPrefix.Length..];
+            var slash = rest.IndexOf('/', StringComparison.Ordinal);
+            if (slash < 0)
+            {
+                return (null, null, false);
+            }
+
+            var name = rest[(slash + 1)..];
+            return (name, Library.AllCards.FirstOrDefault(c => c.FileName == name && c.HistoryKey is null), false);
+        }
+
+        if (_history.Game(key) is not { Replay: { Length: > 0 } replay } game)
+        {
+            return (null, null, false);
+        }
+
+        return Library.AllCards.FirstOrDefault(c => c.HistoryKey == key) is { } card
+            ? (replay, card, false)
+            : (replay, LibraryCardOf(game, Core.Replay.ReplayShelf.Recent, replay, key), true);
     }
 
     internal void CloseMatch()
