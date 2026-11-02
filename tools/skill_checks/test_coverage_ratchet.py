@@ -131,6 +131,7 @@ class NothingHidesCodeFromCoverageTests(unittest.TestCase):
 
     GENERATED = {
         "src/Hearthpulse.Core/Battlegrounds/Effects/CombatRelevance.g.cs",
+        "src/Hearthpulse.Core/Battlegrounds/Effects/PlayerCardRelevance.g.cs",
         "src/Hearthpulse.Core/Battlegrounds/Effects/deaths/GhastcoilerPool.g.cs",
         "src/Hearthpulse.Core/Battlegrounds/Effects/ongoing/UndeadPool.g.cs",
         "src/Hearthpulse.Core/CardPool/CardPoolTables.g.cs",
