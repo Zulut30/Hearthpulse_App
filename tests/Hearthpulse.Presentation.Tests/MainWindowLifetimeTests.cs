@@ -72,8 +72,7 @@ public sealed class MainWindowLifetimeTests
     /// A theme change closes the overlay window too and builds a new one; the old one must not stay alive through the
     /// overlay view model. Laid out off screen, never shown (shown, it would cover the screen).
     /// </summary>
-    [Fact(Skip = "Open: CardPoolPanel subscribes to OverlayViewModel.PropertyChanged and never lets go, so the old overlay "
-                 + "stays (overlay view code; TASK-2026-10-29-perf-ram-cpu handover)")]
+    [Fact]
     public void A_closed_wpf_overlay_window_is_collected_while_its_view_model_lives_on() => OnSta(() =>
     {
         var model = new OverlayViewModel();

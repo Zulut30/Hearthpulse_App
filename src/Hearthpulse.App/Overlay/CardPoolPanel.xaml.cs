@@ -65,17 +65,21 @@ public partial class CardPoolPanel : UserControl
 
     private OverlayViewModel? ViewModel => DataContext as OverlayViewModel;
 
+    /// <summary>
+    /// A weak subscription: the view model lives with the app, and a closed overlay window (a theme change builds a new
+    /// one) keeps its DataContext, so a plain one would keep the old window alive.
+    /// </summary>
     private void Subscribe()
     {
         if (_subscribed is not null)
         {
-            _subscribed.PropertyChanged -= OnViewModelChanged;
+            PropertyChangedEventManager.RemoveHandler(_subscribed, OnViewModelChanged, string.Empty);
         }
 
         _subscribed = ViewModel;
         if (_subscribed is not null)
         {
-            _subscribed.PropertyChanged += OnViewModelChanged;
+            PropertyChangedEventManager.AddHandler(_subscribed, OnViewModelChanged, string.Empty);
         }
     }
 
