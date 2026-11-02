@@ -93,6 +93,16 @@ public sealed partial class AppHost : IDisposable
         {
             _settingsDebounce.Kick();
         };
+        Main.CrashReportsChanged += () =>
+        {
+            // Switched off: consent withdrawn, what waits is not sent.
+            if (!Settings.SendCrashReports)
+            {
+                CrashReporter?.ClearPending();
+            }
+
+            _settingsDebounce.Kick();
+        };
         _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Battlegrounds meta load");
 
@@ -139,6 +149,12 @@ public sealed partial class AppHost : IDisposable
     public UsageGate Usage => _services.Usage;
 
     public HearthstoneMemory Memory => _services.Memory;
+
+    /// <summary>
+    /// Crash reports the player agreed to (plan 0.5), built by the desktop app before this host so a crash in its
+    /// constructor is reported too; null while rendering off-screen.
+    /// </summary>
+    public Core.Diagnostics.CrashReporter? CrashReporter { get; init; }
 
     public GameSession Session => _services.Session;
 

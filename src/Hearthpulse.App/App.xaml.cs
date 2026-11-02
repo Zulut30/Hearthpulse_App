@@ -40,6 +40,9 @@ public partial class App : Application
     private AccountService _account = null!;
     private ProfileUploader _uploader = null!;
     private UsageGate _usage = null!;
+
+    // Crash reports the player agreed to (plan 0.5); null until the services are built, then errors are only logged.
+    private Hearthpulse.Core.Diagnostics.CrashReporter? _crashReporter;
     private HistoryStore _history = null!;
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
@@ -129,20 +132,26 @@ public partial class App : Application
                 // This handler runs inside the dispatcher's exception filter, where a modal window is never drawn:
                 // show it once the failed operation has unwound.
                 var error = args.Exception;
-                _ = Dispatcher.BeginInvoke(() => CrashDialog.Show(error, fatal: false));
+                var reporter = _crashReporter;
+                var autoSent = reporter?.OnError("UI error", error, fatal: false) ?? false;
+                _ = Dispatcher.BeginInvoke(() => CrashDialog.Show(error, fatal: false, reporter, "UI error", autoSent));
             }
         };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             var ex = args.ExceptionObject as Exception ?? new InvalidOperationException(args.ExceptionObject?.ToString());
-            CrashLog.Record(args.IsTerminating ? "Fatal error" : "Unhandled error", ex);
+            var where = args.IsTerminating ? "Fatal error" : "Unhandled error";
+            var first = CrashLog.Record(where, ex);
+            var reporter = _renderDir is null ? _crashReporter : null;
+            // A crash that ends the process is only queued: it goes at the next start.
+            var autoSent = (first || args.IsTerminating) && (reporter?.OnError(where, ex, fatal: args.IsTerminating) ?? false);
             if (args.IsTerminating && _renderDir is null)
             {
                 try
                 {
                     // A background thread is dying and takes the process with it: say so before it goes.
                     // Bounded: the UI thread may itself be waiting on the dying thread, and the process must still end.
-                    Dispatcher.Invoke(() => CrashDialog.Show(ex, fatal: true), DispatcherPriority.Send, CancellationToken.None, TimeSpan.FromSeconds(30));
+                    Dispatcher.Invoke(() => CrashDialog.Show(ex, fatal: true, reporter, where, autoSent), DispatcherPriority.Send, CancellationToken.None, TimeSpan.FromSeconds(30));
                 }
                 catch (Exception dialogError)
                 {
@@ -152,11 +161,23 @@ public partial class App : Application
         };
         TaskScheduler.UnobservedTaskException += (_, args) =>
         {
-            CrashLog.Record("Background error", args.Exception);
+            if (CrashLog.Record("Background error", args.Exception) && _renderDir is null)
+            {
+                _crashReporter?.OnError("Background error", args.Exception, fatal: false);
+            }
+
             args.SetObserved();
         };
 
         _settings = AppSettings.Load();
+        if (_renderDir is null)
+        {
+            // Crash reports (plan 0.5) from here on: a crash while the history, the session or the windows start is
+            // reported too. Never while rendering pages off-screen.
+            _crashReporter = Hearthpulse.Core.Diagnostics.CrashReporter.ForApp(_settings, "wpf", UpdateService.CurrentVersion);
+            _crashReporter.SendPendingAsync().Forget("Crash reports");
+        }
+
         Loc.Instance.SetLanguage(_settings.InterfaceLanguage());
         ApplyTheme();
         Diag.Info($"Hearthpulse {UpdateService.CurrentVersion} (app {typeof(App).Assembly.GetName().Version?.ToString(3)}) starting on "
@@ -178,6 +199,17 @@ public partial class App : Application
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
         _mainViewModel.AttachAccount(_account);
+        _mainViewModel.CrashReportsChanged += () =>
+        {
+            // Switched off: consent withdrawn, what waits is not sent.
+            if (!_settings.SendCrashReports)
+            {
+                _crashReporter?.ClearPending();
+            }
+
+            _settingsDebounce.Kick();
+        };
+
         // A decision of the daily free use (plan 3.1) makes the session publish again.
         _usage.Changed += () => _ = Dispatcher.BeginInvoke(() => _session.SetMeta(_session.Advisor.Meta));
         _mainViewModel.AttachUploader(_uploader);
