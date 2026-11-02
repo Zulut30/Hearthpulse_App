@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.UI;
@@ -20,7 +21,8 @@ internal static partial class OffscreenRenderer
             host.Overlay.Update(snapshot, host.Cards, settings, null, null);
             overlayView.Fit(1920, 1080);
             await Save(overlay, Path.Combine(folder, "overlay-odds.png"));
-            if (overlayView.FindControl<Control>("OddsCard") is { } card)
+            // The card lives in the panel control (shared with the OBS window): its own name scope.
+            if (overlayView.GetVisualDescendants().OfType<OddsPanel>().FirstOrDefault()?.FindControl<Control>("OddsCard") is { } card)
             {
                 SaveCrop(overlay, card, Path.Combine(folder, "overlay-odds-panel.png"));
             }

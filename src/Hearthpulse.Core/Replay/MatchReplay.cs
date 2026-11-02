@@ -109,7 +109,11 @@ public enum ReplayActionKind
 }
 
 /// <summary>A card that left the board during an action (died, destroyed, weapon broke).</summary>
-public sealed record ReplayDeath(ReplayPlayer Player, string CardId, string Type);
+public sealed record ReplayDeath(ReplayPlayer Player, string CardId, string Type)
+{
+    /// <summary>The replay id of the card that died (the table marks it where it stood).</summary>
+    public int Ref { get; init; }
+}
 
 /// <summary>What happened in one step.</summary>
 public sealed record ReplayAction(ReplayActionKind Kind, ReplayPlayer? Player)
@@ -118,6 +122,12 @@ public sealed record ReplayAction(ReplayActionKind Kind, ReplayPlayer? Player)
     public string? CardId { get; init; }
 
     public string? TargetId { get; init; }
+
+    /// <summary>The replay id of the attacker or the card played (plan R2: the table marks it).</summary>
+    public int? ActorRef { get; init; }
+
+    /// <summary>The replay id of the attack's target, or of the card or hero a play aimed at; null without one shown.</summary>
+    public int? TargetRef { get; init; }
 
     public IReadOnlyList<string> Options { get; init; } = [];
 
@@ -413,10 +423,13 @@ public sealed class MatchReplay
                     break;
                 case "A":
                     var attacker = Card(t[1]);
+                    var defender = Card(t[2]);
                     Step(new ReplayAction(ReplayActionKind.Attack, attacker?.Player ?? _active)
                     {
                         CardId = IdOf(attacker),
-                        TargetId = Card(t[2])?.CardId,
+                        TargetId = defender?.CardId,
+                        ActorRef = attacker?.Id,
+                        TargetRef = defender?.Id,
                     });
                     break;
                 case "C" when t[1] == "MULLIGAN":
@@ -452,7 +465,8 @@ public sealed class MatchReplay
             var card = Card(t[1]);
             var kind = card?.Type == "HERO_POWER" ? ReplayActionKind.HeroPower : used ? ReplayActionKind.Use : ReplayActionKind.Play;
             // A card back played (a secret) is named when the log revealed it by the end of the game.
-            var action = new ReplayAction(kind, card?.Player ?? _active) { CardId = IdOf(card), TargetId = Card(t[2])?.CardId };
+            var target = Card(t[2]);
+            var action = new ReplayAction(kind, card?.Player ?? _active) { CardId = IdOf(card), TargetId = target?.CardId, ActorRef = card?.Id, TargetRef = target?.Id };
             if (_pendingPlay)
             {
                 // The step began at the play's B line: fill in what was played.
@@ -480,7 +494,7 @@ public sealed class MatchReplay
             if (state is not null && state.Zone == "PLAY" && zone == "GRAVEYARD" && state.CardId is { } dead
                 && state.Type is "MINION" or "WEAPON" or "LOCATION" or "HERO")
             {
-                _deaths.Add(new ReplayDeath(state.Player, dead, state.Type));
+                _deaths.Add(new ReplayDeath(state.Player, dead, state.Type) { Ref = id });
             }
 
             var enteredHand = zone == "HAND" && state?.Zone != "HAND";

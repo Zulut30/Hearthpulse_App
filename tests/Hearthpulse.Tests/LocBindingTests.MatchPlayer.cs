@@ -301,4 +301,69 @@ public sealed partial class LocBindingTests
             CloseMatch(model, window, theme, folder);
         }
     }
+
+    /// <summary>
+    /// Plan R2 on the Avalonia table: an attack marks its attacker (glow, sword badge) and target (target badge, the
+    /// health it lost), the arrow layer finds both and draws a solid arrow; a hero power aimed at a minion marks it with
+    /// the dashed frame and a play's arrow; the feed shows every row and the counters say what they count.
+    /// </summary>
+    [Fact]
+    public void Match_constructed_table_marks_the_step_and_draws_its_arrow() => Headless.Run(() =>
+    {
+        var folder = Path.Combine(Path.GetTempPath(), $"hp-match-table-{Guid.NewGuid():N}");
+        var (view, model, window, theme) = OpenMatch(folder);
+        try
+        {
+            void Go(ReplayActionKind kind)
+            {
+                model.GoFrame.Execute(model.FrameOf(kind));
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+            }
+
+            Panel Mark(int id) => view.GetVisualDescendants().OfType<Panel>().Single(p => p.Classes.Contains("mark") && MatchArrowLayer.GetRef(p) == id && p.IsEffectivelyVisible);
+            static bool Shown<T>(Panel mark, string classes) where T : Control =>
+                mark.GetVisualDescendants().OfType<T>().Any(c => classes.Split(' ').All(c.Classes.Contains) && c.IsVisible);
+
+            Go(ReplayActionKind.Attack);
+            var step = model.Step!;
+            Assert.Equal((4, 3, true), (step.ActorRef, step.TargetRef, step.IsAttack));
+            var attacker = Mark(4);
+            Assert.True(Shown<Avalonia.Controls.Shapes.Ellipse>(attacker, "halo") && Shown<Border>(attacker, "badge attacker") && Shown<Border>(attacker, "frame act"));
+            Assert.False(Shown<Border>(attacker, "badge hit"));
+            var target = Mark(3);
+            Assert.True(Shown<Border>(target, "badge hit") && Shown<Border>(target, "frame hit"));
+            Assert.False(Shown<Avalonia.Controls.Shapes.Ellipse>(target, "halo") || Shown<Avalonia.Controls.Shapes.Rectangle>(target, "aim"));
+            Assert.Contains("−4", target.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text));
+
+            var layer = view.GetVisualDescendants().OfType<MatchArrowLayer>().Single();
+            Assert.False(layer.IsHitTestVisible);
+            var arrow = layer.Arrow();
+            Assert.NotNull(arrow);
+            Assert.True(arrow.Attack);
+            Assert.False(arrow.Local);
+            // The opponent's minion is on top: the arrow goes down to ours.
+            Assert.True(arrow.Tip.Y > arrow.Start.Y);
+
+            Go(ReplayActionKind.HeroPower);
+            var aimed = Mark(model.Step!.TargetRef);
+            Assert.True(Shown<Avalonia.Controls.Shapes.Rectangle>(aimed, "aim") && Shown<Border>(aimed, "badge aim"));
+            Assert.False(Shown<Border>(aimed, "badge hit"));
+            Assert.True(Shown<Avalonia.Controls.Shapes.Ellipse>(Mark(model.Step.ActorRef), "ring act"));
+            Assert.False(layer.Arrow()!.Attack);
+
+            // The feed: a row per entry, the step's marked; the counters' names.
+            var feed = view.FindControl<ItemsControl>("Feed")!;
+            Assert.Equal(model.Feed.Count, feed.ItemCount);
+            Assert.True(view.FindControl<Border>("FeedCard")!.Bounds.Height >= 420);
+            var counters = view.GetVisualDescendants().OfType<StackPanel>().Where(p => p.Classes.Contains("counter") && p.IsEffectivelyVisible)
+                .Select(p => ToolTip.GetTip(p) as string).ToList();
+            Assert.Contains(model.Step.Bottom.HandTip, counters);
+            Assert.Contains(model.Step.Top.SecretTip, counters);
+        }
+        finally
+        {
+            CloseMatch(model, window, theme, folder);
+        }
+    });
 }

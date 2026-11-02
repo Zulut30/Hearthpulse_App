@@ -1,0 +1,57 @@
+<Window x:Class="Hearthpulse.App.Overlay.StreamWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+        WindowStyle="None" AllowsTransparency="False" ResizeMode="CanResize" ShowInTaskbar="True" ShowActivated="False"
+        Background="{StaticResource Bg}" Icon="/Hearthpulse;component/Assets/hearthpulse.ico"
+        UseLayoutRounding="True" Style="{StaticResource AppWindow}" TextOptions.TextFormattingMode="Display">
+    <!-- An OBS capture window (docs/streaming.md): one overlay panel on a plain background, for OBS "Window Capture". No title
+         bar or frame (OBS would capture them): drag anywhere, resize at the edges, everything else in the context menu (a
+         popup of its own, so never in the capture). The panel scales with the window (Viewbox), never the other way, so the
+         OBS source keeps its size. Background: the theme's Bg, or a key colour from StreamBackdrop (set in code). -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.ContextMenu>
+        <ContextMenu>
+            <MenuItem x:Name="ResetSizeItem" Header="{i:Loc Stream.Menu.ResetSize}" Click="OnResetSize">
+                <MenuItem.Icon>
+                    <TextBlock />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem x:Name="OnTopItem" Header="{i:Loc Stream.OnTop}" IsCheckable="True" Click="OnToggleOnTop">
+                <MenuItem.Icon>
+                    <TextBlock x:Name="OnTopCheck" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="15" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem x:Name="CloseItem" Header="{i:Loc Stream.Menu.Close}" Click="OnCloseWindow">
+                <MenuItem.Icon>
+                    <TextBlock />
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+    </Window.ContextMenu>
+
+    <!-- Transparent root: takes the presses (drag, menu); the panel and the tile never take the mouse, so no hover, preview or tip -->
+    <Grid x:Name="Root" Background="Transparent">
+        <Viewbox x:Name="Scaler" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="8" IsHitTestVisible="False">
+            <!-- The panel's card is a little see-through: on a key colour it would turn green and OBS would eat its edges -->
+            <Border Background="{StaticResource Bg}" CornerRadius="8">
+                <ContentControl x:Name="PanelHost" Focusable="False" />
+            </Border>
+        </Viewbox>
+        <!-- No game of this window's mode: a quiet tile, unscaled, with nothing addressed to the viewers -->
+        <Border x:Name="IdleTile" Background="{StaticResource Bg}" CornerRadius="8" HorizontalAlignment="Center" VerticalAlignment="Center"
+                IsHitTestVisible="False" Visibility="Collapsed">
+            <Border Style="{StaticResource OverlayCard}" Padding="12,8">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="/Hearthpulse;component/Assets/hearthpulse.png" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center" />
+                    <TextBlock Text="Hearthpulse" FontFamily="{StaticResource DisplayFont}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource Muted}"
+                               Margin="8,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</Window>

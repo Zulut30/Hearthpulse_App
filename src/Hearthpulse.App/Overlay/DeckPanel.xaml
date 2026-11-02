@@ -1,0 +1,116 @@
+<UserControl x:Class="Hearthpulse.App.Overlay.DeckPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls">
+    <!-- Your deck (MovablePanel "deck" and the OBS window "Hearthpulse — Deck", docs/streaming.md): the deck name and its
+         record, a row per card, the counts and the likeliest next draw. DataContext: OverlayViewModel (inherited). Rows go
+         compact under a compact MovablePanel only; the OBS window has none, so its rows stay full. Tokens only. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="OverlayLook.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <i:VisibleWhen x:Key="Vis" />
+            <i:KeyBrush x:Key="KeyBrush" />
+
+            <!-- Mana gem cost badge for card rows -->
+            <Style x:Key="CostChip" TargetType="c:ManaCost">
+                <Setter Property="Width" Value="22" />
+                <Setter Property="Height" Value="22" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+
+            <!-- Deck row: cost gem, name over card art with a rarity strip and the copy count, then the draw chance in its own
+                 column so it never runs into the name. A card with no copies left dims (art, gem and name sink back, the plate
+                 stays so the row keeps its place); the row whose count just moved flashes once. -->
+            <DataTemplate x:Key="DeckTileTemplate" DataType="{x:Type o:DeckTile}">
+                <Grid x:Name="RowRoot" Height="24" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="26" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <c:ManaCost x:Name="Gem" Style="{StaticResource CostChip}" Text="{Binding Cost}" HorizontalAlignment="Left" />
+                    <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
+                        <Grid>
+                            <Image x:Name="Art" i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                            <Rectangle x:Name="Fade" Fill="{StaticResource TileFade}" />
+                            <Border x:Name="Strip" Style="{StaticResource OverlayRarityStrip}" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                            <DockPanel Margin="9,0,3,0">
+                                <Border x:Name="Copies" Style="{StaticResource OverlayCountBadge}" DockPanel.Dock="Right" Visibility="{Binding ShowCount, Converter={StaticResource Vis}}">
+                                    <TextBlock Text="{Binding Count}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock DockPanel.Dock="Left" Text="&#xF0674;" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
+                                           VerticalAlignment="Center" Visibility="{Binding Created, Converter={StaticResource Vis}}" />
+                                <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            </DockPanel>
+                            <Border Style="{StaticResource OverlayRowSheen}" />
+                            <Border x:Name="Flash" Style="{StaticResource OverlayRowFlash}" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Grid.Column="2" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"
+                               VerticalAlignment="Center"
+                               Visibility="{Binding DataContext.ShowChance, RelativeSource={RelativeSource AncestorType=o:DeckPanel}, Converter={StaticResource Vis}}" />
+                </Grid>
+                <DataTemplate.Triggers>
+                    <!-- Compact lists (the panel's tag button): short rows without art -->
+                    <Trigger SourceName="RowRoot" Property="o:MovablePanel.Compact" Value="True">
+                        <Setter TargetName="RowRoot" Property="Height" Value="18" />
+                        <Setter TargetName="Art" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="Fade" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="Gem" Property="Width" Value="18" />
+                        <Setter TargetName="Gem" Property="Height" Value="18" />
+                    </Trigger>
+                    <DataTrigger Binding="{Binding Empty}" Value="True">
+                        <Setter TargetName="Art" Property="Opacity" Value="0.22" />
+                        <Setter TargetName="Gem" Property="Opacity" Value="0.45" />
+                        <Setter TargetName="Strip" Property="Opacity" Value="0.35" />
+                        <Setter TargetName="Copies" Property="Opacity" Value="0.55" />
+                        <Setter TargetName="CardName" Property="Foreground" Value="{StaticResource Faint}" />
+                    </DataTrigger>
+                    <!-- One short fade, only when Windows animations are on -->
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Changed}" Value="True" />
+                            <Condition Binding="{Binding Source={x:Static SystemParameters.ClientAreaAnimation}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <MultiDataTrigger.EnterActions>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="Flash" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1.4">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseIn" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </MultiDataTrigger.EnterActions>
+                    </MultiDataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource OverlayCard}" Width="252">
+        <StackPanel>
+            <Border Style="{StaticResource OverlayHeader}" Margin="0,0,0,6">
+                <StackPanel>
+                    <TextBlock Text="{Binding DeckName}" Style="{StaticResource OverlayHeaderTitle}" />
+                    <TextBlock Text="{Binding DeckRecord}" Style="{StaticResource OverlayHeaderNote}"
+                               Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
+                </StackPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" o:OverlayHit.Interactive="True" />
+            <Border BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
+                <StackPanel>
+                    <TextBlock Text="{Binding DeckCounts}" FontSize="11" Foreground="{StaticResource Muted}" />
+                    <TextBlock Text="{Binding NextDraw}" FontSize="11" Foreground="{StaticResource Text}" TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding NextDraw, Converter={StaticResource Vis}}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </Border>
+</UserControl>

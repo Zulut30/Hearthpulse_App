@@ -40,6 +40,9 @@ internal sealed class DesktopApp : HearthpulseApp
     private OverlayWindow? _overlay;
     private IOverlayPlatform? _platform;
     private NativeMenuItem? _overlayItem;
+    private NativeMenuItem? _streamerItem;
+    private TrayIcon? _tray;
+    private StreamWindows? _stream;
     private readonly List<(NativeMenuItem Item, string Key)> _trayTexts = [];
     private IDisposable? _hotkeys;
     private CancellationTokenSource? _pipeCts;
@@ -162,6 +165,11 @@ internal sealed class DesktopApp : HearthpulseApp
         _main?.Show();
         SyncWindowInUse();
 
+        // The OBS capture windows left on open again where they were (docs/streaming.md).
+        _stream = new StreamWindows(_host);
+        _host.Main.StreamSettingsChanged += OnStreamSettingsChanged;
+        _stream.Sync();
+
         SetupTray();
         ListenForActivation();
         desktop.Exit += (_, _) => Shutdown();
@@ -206,6 +214,13 @@ internal sealed class DesktopApp : HearthpulseApp
             _overlayItem.IsChecked = _host.Settings.OverlayEnabled;
         };
 
+        _streamerItem = new NativeMenuItem(Loc.T("Stream.Tray.Mode"))
+        {
+            ToggleType = MenuItemToggleType.CheckBox,
+            IsChecked = _host.Settings.StreamerMode,
+        };
+        _streamerItem.Click += (_, _) => _host.Main.StreamerMode = !_host.Main.StreamerMode;
+
         var open = new NativeMenuItem(Loc.T("Host.Tray.Open"));
         open.Click += (_, _) => ShowMain();
         var arrange = new NativeMenuItem(Loc.T("Host.Tray.Arrange"));
@@ -216,14 +231,15 @@ internal sealed class DesktopApp : HearthpulseApp
         var tray = new TrayIcon
         {
             Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://Hearthpulse.UI/Assets/hearthpulse.ico"))),
-            ToolTipText = "Hearthpulse",
-            Menu = new NativeMenu { open, _overlayItem, arrange, new NativeMenuItemSeparator(), quit },
+            ToolTipText = StreamerTrayTip(),
+            Menu = new NativeMenu { open, _overlayItem, _streamerItem, arrange, new NativeMenuItemSeparator(), quit },
         };
+        _tray = tray;
         tray.Clicked += (_, _) => ShowMain();
         TrayIcon.SetIcons(this, [tray]);
 
         // A language switch retitles the menu (the event fires on the UI thread).
-        _trayTexts.AddRange([(open, "Host.Tray.Open"), (_overlayItem, "Host.Tray.Overlay"), (arrange, "Host.Tray.Arrange"), (quit, "Host.Tray.Quit")]);
+        _trayTexts.AddRange([(open, "Host.Tray.Open"), (_overlayItem, "Host.Tray.Overlay"), (_streamerItem, "Stream.Tray.Mode"), (arrange, "Host.Tray.Arrange"), (quit, "Host.Tray.Quit")]);
         Loc.Instance.LanguageChanged += SetTrayTexts;
     }
 
@@ -232,6 +248,32 @@ internal sealed class DesktopApp : HearthpulseApp
         foreach (var (item, key) in _trayTexts)
         {
             item.Header = Loc.T(key);
+        }
+
+        SyncStreamerTray();
+    }
+
+    /// <summary>A stream setting changed (Settings → Stream, the live bar, the tray, a window's menu): windows and tray follow.</summary>
+    private void OnStreamSettingsChanged()
+    {
+        _stream?.Sync();
+        SyncStreamerTray();
+        _host?.OnSettingsChanged();
+    }
+
+    /// <summary>The tray icon's tooltip says when streamer mode is on (the indicator for the streamer, never on stream).</summary>
+    private string StreamerTrayTip() => _host?.Settings.StreamerMode == true ? Loc.T("Stream.Tray.Tip") : "Hearthpulse";
+
+    private void SyncStreamerTray()
+    {
+        if (_streamerItem is not null && _host is not null)
+        {
+            _streamerItem.IsChecked = _host.Settings.StreamerMode;
+        }
+
+        if (_tray is not null)
+        {
+            _tray.ToolTipText = StreamerTrayTip();
         }
     }
 
@@ -404,6 +446,12 @@ internal sealed class DesktopApp : HearthpulseApp
     private void Shutdown()
     {
         Loc.Instance.LanguageChanged -= SetTrayTexts;
+        if (_host is not null)
+        {
+            _host.Main.StreamSettingsChanged -= OnStreamSettingsChanged;
+        }
+
+        _stream?.CloseAll();
         _pipeCts?.Cancel();
         _hotkeys?.Dispose();
         _platform?.Dispose();

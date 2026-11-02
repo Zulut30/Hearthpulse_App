@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             x:Class="Hearthpulse.UI.Overlay.StreamView"
+             x:DataType="o:OverlayViewModel"
+             Foreground="{StaticResource Text}" FontFamily="{DynamicResource UiFont}" FontSize="13">
+    <!-- The content of an OBS capture window (docs/streaming.md; the window is Hearthpulse.Desktop/StreamWindow): one overlay
+         panel on a plain background, scaled by the window (Viewbox), never the other way, so the OBS source keeps its size.
+         Background: the theme's Bg, or a key colour from StreamBackdrop (set in code). The panel and the tile never take the
+         mouse: no hover, preview or tip; presses go to the window (drag, edges, menu). -->
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Hearthpulse.UI/Overlay/OverlayLook.axaml" />
+    </UserControl.Styles>
+
+    <Panel Name="Root" Background="{StaticResource Bg}">
+        <Viewbox Name="Scaler" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="8" IsHitTestVisible="False">
+            <!-- The panel's card is a little see-through: on a key colour it would turn green and OBS would eat its edges -->
+            <Border Background="{StaticResource Bg}" CornerRadius="8">
+                <ContentControl Name="PanelHost" Focusable="False" />
+            </Border>
+        </Viewbox>
+        <!-- No game of this window's mode: a quiet tile, unscaled, with nothing addressed to the viewers -->
+        <Border Name="IdleTile" Background="{StaticResource Bg}" CornerRadius="8" HorizontalAlignment="Center" VerticalAlignment="Center"
+                IsHitTestVisible="False" IsVisible="False">
+            <Border Classes="overlayCard" Padding="12,8">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="avares://Hearthpulse.UI/Assets/hearthpulse.png" Width="20" Height="20" RenderOptions.BitmapInterpolationMode="HighQuality" VerticalAlignment="Center" />
+                    <TextBlock Text="Hearthpulse" FontFamily="{DynamicResource DisplayFont}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource Muted}"
+                               Margin="8,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Panel>
+</UserControl>

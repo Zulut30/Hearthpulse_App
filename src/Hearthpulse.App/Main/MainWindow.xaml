@@ -741,7 +741,7 @@
                         <mt:MatchView x:Name="MatchDetails" DataContext="{Binding MatchPage}" Margin="40,0,40,120" />
                     </ScrollViewer>
 
-                    <!-- ===== Settings: tabs General / Overlay / Tracker / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
+                    <!-- ===== Settings: tabs General / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                     <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left" ToggleButton.Checked="OnSettingChanged" ToggleButton.Unchecked="OnSettingChanged">
                             <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource PageTitle}" />
@@ -752,6 +752,7 @@
                                     <RadioButton x:Name="SettingsTabGeneral" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabOverlay" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Overlay}" GroupName="SettingsTab" Tag="Overlay" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabTracker" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Tracker}" GroupName="SettingsTab" Tag="Tracker" Checked="OnSettingsTab" />
+                                    <RadioButton x:Name="SettingsTabStream" Style="{StaticResource Tab}" Content="{i:Loc Stream.Tab}" GroupName="SettingsTab" Tag="Stream" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabAccount" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Account}" GroupName="SettingsTab" Tag="Account" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabData" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.Data}" GroupName="SettingsTab" Tag="Data" Checked="OnSettingsTab" />
                                     <RadioButton x:Name="SettingsTabAbout" Style="{StaticResource Tab}" Content="{i:Loc Settings.Tab.About}" GroupName="SettingsTab" Tag="About" Checked="OnSettingsTab" />
@@ -1180,6 +1181,122 @@
                                 </Border>
                             </StackPanel>
 
+                            <!-- ===== Stream: streamer mode and the OBS windows (docs/streaming.md); bound to the main model, which tells the host ===== -->
+                            <StackPanel x:Name="SettingsStream" Visibility="Collapsed">
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <c:Ornament Text="{i:Loc Stream.Mode.Title}" Icon="&#xF05E9;" Size="13" Margin="0,0,0,14" />
+                                        <TextBlock Text="{i:Loc Stream.Mode.Note}" Style="{StaticResource CardNote}" />
+                                        <CheckBox x:Name="StreamerModeSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Mode.Switch}" IsChecked="{Binding StreamerMode}" Margin="0,0,0,12"
+                                                  ToolTip="{i:Loc Stream.Mode.SwitchTip}" />
+                                        <!-- What it hides: a description, not a state, so the same with the mode off -->
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xF0209;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                            <TextBlock Grid.Column="1" Text="{i:Loc Stream.Mode.HideNames}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                                        </Grid>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xF0209;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                            <TextBlock Grid.Column="1" Text="{i:Loc Stream.Mode.HideRatings}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                                        </Grid>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xF0209;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                            <TextBlock Grid.Column="1" Text="{i:Loc Stream.Mode.HideOwn}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                                        </Grid>
+                                        <TextBlock Text="{i:Loc Stream.Mode.Keeps}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <c:Ornament Text="{i:Loc Stream.Windows.Title}" Icon="&#xF0379;" Size="13" Margin="0,0,0,14" />
+                                        <TextBlock Text="{i:Loc Stream.Windows.Note}" Style="{StaticResource CardNote}" />
+                                        <TextBlock Text="{i:Loc Stream.Windows.Group}" Style="{StaticResource SettingGroup}" />
+                                        <CheckBox x:Name="StreamDeckSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Window.Deck}" IsChecked="{Binding StreamDeckWindow}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Stream.Window.DeckTip}" />
+                                        <CheckBox x:Name="StreamLobbySetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Window.Lobby}" IsChecked="{Binding StreamLobbyWindow}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Stream.Window.LobbyTip}" />
+                                        <CheckBox x:Name="StreamOddsSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Window.Odds}" IsChecked="{Binding StreamOddsWindow}" Margin="0,0,0,14"
+                                                  ToolTip="{i:Loc Stream.Window.OddsTip}" />
+                                        <TextBlock Text="{i:Loc Stream.Look.Group}" Style="{StaticResource SettingGroup}" />
+                                        <Grid Margin="0,0,0,14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{i:Loc Stream.Background}" Style="{StaticResource SettingLabel}" />
+                                            <Border Grid.Column="1" Style="{StaticResource SegmentBar}" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <RadioButton x:Name="StreamBackgroundThemeOption" Style="{StaticResource Segment}" Content="{i:Loc Stream.Background.Theme}" GroupName="StreamBackground"
+                                                                 IsChecked="{Binding StreamBackgroundTheme}" ToolTip="{i:Loc Stream.Background.ThemeTip}" />
+                                                    <RadioButton x:Name="StreamBackgroundGreenOption" Style="{StaticResource Segment}" Content="{i:Loc Stream.Background.Green}" GroupName="StreamBackground"
+                                                                 IsChecked="{Binding StreamBackgroundGreen}" ToolTip="{i:Loc Stream.Background.GreenTip}" />
+                                                    <RadioButton x:Name="StreamBackgroundMagentaOption" Style="{StaticResource Segment}" Content="{i:Loc Stream.Background.Magenta}" GroupName="StreamBackground"
+                                                                 IsChecked="{Binding StreamBackgroundMagenta}" ToolTip="{i:Loc Stream.Background.MagentaTip}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                        <CheckBox x:Name="StreamOnTopSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.OnTop}" IsChecked="{Binding StreamWindowsOnTop}" Margin="0,0,0,18"
+                                                  ToolTip="{i:Loc Stream.OnTopTip}" />
+                                        <!-- How to add a window to OBS: the names of OBS's own menus, as in OBS 30 -->
+                                        <Border Background="{StaticResource SecondaryContainer}" CornerRadius="8" Padding="14,12">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xF02FD;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{i:Loc Stream.Help.Title}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource Text}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <Grid Margin="0,6,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="18" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="1." Foreground="{StaticResource OnSecondaryContainer}" />
+                                                    <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step1}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                                                </Grid>
+                                                <Grid Margin="0,6,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="18" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="2." Foreground="{StaticResource OnSecondaryContainer}" />
+                                                    <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step2}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                                                </Grid>
+                                                <Grid Margin="0,6,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="18" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="3." Foreground="{StaticResource OnSecondaryContainer}" />
+                                                    <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step3}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                                                </Grid>
+                                                <Grid Margin="0,6,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="18" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="4." Foreground="{StaticResource OnSecondaryContainer}" />
+                                                    <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step4}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                                                </Grid>
+                                                <TextBlock x:Name="StreamKeyLine" Text="{Binding StreamKeyNote}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                                           Visibility="{Binding StreamKeyNote, Converter={StaticResource Vis}}" />
+                                                <TextBlock Text="{i:Loc Stream.Help.Minimize}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
                             <!-- ===== Account: the hearthpulse.net sign-in ===== -->
                             <Border x:Name="SettingsAccount" Style="{StaticResource Card}" Visibility="Collapsed">
                                 <StackPanel>
@@ -1465,6 +1582,20 @@
                                     </Button.ContextMenu>
                                 </Button>
                                 <Border Width="1" Height="18" Background="{StaticResource Outline}" Margin="6,0" VerticalAlignment="Center" />
+                                <!-- Streamer mode: its own button, always shown (a narrow bar hides the panels' quick buttons); on, the glyph sits on a
+                                     filled circle so the state reads at a glance. Only here, the tray and Settings: never on the overlay or in the OBS windows. -->
+                                <ToggleButton x:Name="StreamerModeButton" Content="&#xF05E9;" IsChecked="{Binding StreamerMode}" ToolTip="{Binding StreamerModeTip}"
+                                              AutomationProperties.Name="{i:Loc Stream.Mode.Switch}" AutomationProperties.HelpText="{Binding StreamerModeTip}">
+                                    <ToggleButton.Style>
+                                        <Style TargetType="ToggleButton" BasedOn="{StaticResource PanelToggle}">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ToggleButton.Style>
+                                </ToggleButton>
                                 <Button Style="{StaticResource IconButton}" Content="&#xF01BE;" Width="30" Height="30" FontSize="16" Margin="1,0,14,0"
                                         Click="OnArrangeOverlay" ToolTip="{i:Loc Main.Live.ArrangeTip}" AutomationProperties.Name="{i:Loc Main.Live.ArrangeTipShort}" />
                                 <CheckBox x:Name="OverlaySwitch" Style="{StaticResource Switch}" Content="{i:Loc Main.Live.Overlay}" IsChecked="{Binding Settings.OverlayEnabled, Mode=OneTime}"

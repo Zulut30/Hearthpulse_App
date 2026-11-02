@@ -54,10 +54,10 @@ public partial class MainWindow : Window
     /// <summary>Opens a page by name (see <see cref="CurrentPage"/>); the old "Constructed" opens Standard.</summary>
     public void ShowPage(string page) => PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, ConstructedPage.Migrate(page))].IsChecked = true;
 
-    /// <summary>Shows a Settings tab by its tag ("General", "Overlay", "Tracker", "Account", "Data", "About"); unknown names show General.</summary>
+    /// <summary>Shows a Settings tab by its tag ("General", "Overlay", "Tracker", "Stream", "Account", "Data", "About"); unknown names show General.</summary>
     public void ShowSettingsTab(string tab)
     {
-        var radio = new[] { SettingsTabOverlay, SettingsTabTracker, SettingsTabAccount, SettingsTabData, SettingsTabAbout }
+        var radio = new[] { SettingsTabOverlay, SettingsTabTracker, SettingsTabStream, SettingsTabAccount, SettingsTabData, SettingsTabAbout }
             .FirstOrDefault(r => (string)r.Tag == tab) ?? SettingsTabGeneral;
         radio.IsChecked = true;
         UpdateSettingsTab(radio);
@@ -445,6 +445,7 @@ public partial class MainWindow : Window
         SettingsGeneral.Visibility = SettingsTabGeneral.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsOverlay.Visibility = SettingsTabOverlay.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsTracker.Visibility = SettingsTabTracker.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        SettingsStream.Visibility = SettingsTabStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsAccount.Visibility = SettingsTabAccount.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsData.Visibility = SettingsTabData.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         SettingsAbout.Visibility = SettingsTabAbout.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;

@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.UI.Infrastructure;
 
@@ -29,6 +30,14 @@ public partial class MatchView : UserControl
             }
         }, RoutingStrategies.Tunnel);
         DataContextChanged += (_, _) => Watch(DataContext as MatchViewModel);
+        // The table's size (a step, the window, phone width) sets the feed's height.
+        TableCard.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == BoundsProperty)
+            {
+                SizeFeed();
+            }
+        };
         PropertyChanged += (_, e) =>
         {
             if (e.Property == IsVisibleProperty)
@@ -226,10 +235,53 @@ public partial class MatchView : UserControl
         if (e.PropertyName == nameof(MatchViewModel.ShowReplay))
         {
             FocusPlayer();
+            Dispatcher.UIThread.Post(KeepCurrentFeedRowInView, DispatcherPriority.Loaded);
         }
         else if (e.PropertyName == nameof(MatchViewModel.Actions) && _model is { ShowBattlegroundsTable: true })
         {
             Dispatcher.UIThread.Post(KeepCurrentActionInView, DispatcherPriority.Loaded);
+        }
+        else if (e.PropertyName == nameof(MatchViewModel.Feed) && _model is { ShowConstructedTable: true })
+        {
+            Dispatcher.UIThread.Post(KeepCurrentFeedRowInView, DispatcherPriority.Loaded);
+        }
+    }
+
+    /// <summary>The feed's least height beside the table (its list scrolls instead of stretching the row).</summary>
+    private const double FeedMinHeight = 420;
+
+    /// <summary>
+    /// The feed is as tall as the table (at least <see cref="FeedMinHeight"/>), so its list scrolls instead of stretching
+    /// the row; at phone width it sits under the table at its own height (the styles cap its list at 360).
+    /// </summary>
+    private void SizeFeed()
+    {
+        var compact = this.FindAncestorOfType<MainView>()?.Classes.Contains("compact") == true;
+        FeedCard.Height = compact ? double.NaN : Math.Max(FeedMinHeight, TableCard.Bounds.Height);
+    }
+
+    /// <summary>
+    /// The event feed scrolls on its own (not the page) to keep the step's row in view, with its turn's header when it is
+    /// the turn's first action (<see cref="MatchFeedLayout"/>).
+    /// </summary>
+    private void KeepCurrentFeedRowInView()
+    {
+        var rows = _model?.Feed ?? [];
+        var index = rows.ToList().FindIndex(r => r.Current && !r.Header);
+        if (index < 0 || !FeedScroll.IsEffectivelyVisible || Feed.ContainerFromIndex(index) is not { IsVisible: true } row || row.TranslatePoint(default, FeedScroll) is not { } at)
+        {
+            return;
+        }
+
+        var top = at.Y;
+        if (index > 0 && rows[index - 1].Header && Feed.ContainerFromIndex(index - 1) is { IsVisible: true } header && header.TranslatePoint(default, FeedScroll) is { } headerAt)
+        {
+            top = headerAt.Y;
+        }
+
+        if (MatchFeedLayout.Offset(FeedScroll.Offset.Y, FeedScroll.Viewport.Height, top, at.Y + row.Bounds.Height) is { } offset)
+        {
+            FeedScroll.Offset = new Vector(0, offset);
         }
     }
 

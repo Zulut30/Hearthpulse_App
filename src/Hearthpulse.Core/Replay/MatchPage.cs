@@ -66,6 +66,31 @@ public sealed record MatchCardView(string? CardId, string Name, bool CardBack)
     public string Note { get; init; } = string.Empty;
 
     public string Tooltip { get; init; } = string.Empty;
+
+    /// <summary>The card's replay id (0 for a card shown outside the table: a choice, a deck row).</summary>
+    public int Ref { get; init; }
+
+    /// <summary>The step's attacker, or the card played (plan R2).</summary>
+    public bool Acting { get; init; }
+
+    /// <summary>The step's attack target, or what the play aimed at.</summary>
+    public bool Targeted { get; init; }
+
+    /// <summary>Health gained (+) or lost (−) on this step; 0 when unchanged or new.</summary>
+    public int Change { get; init; }
+
+    /// <summary>A minion that died on this step, shown where it stood (it is gone from the next step).</summary>
+    public bool Dying { get; init; }
+
+    /// <summary>"−3" (U+2212), "+2", or empty: the change badge.</summary>
+    public string ChangeText => ChangeOf(Change);
+
+    public string ChangeTip => Change == 0 ? string.Empty : Loc.F("Match.Mark.Change", ChangeText);
+
+    internal static string ChangeOf(int change) =>
+        change < 0 ? "\u2212" + (-change).ToString(CultureInfo.CurrentCulture)
+        : change > 0 ? "+" + change.ToString(CultureInfo.CurrentCulture)
+        : string.Empty;
 }
 
 /// <summary>One side of the table at a step.</summary>
@@ -85,11 +110,53 @@ public sealed record MatchSideView(
     string Deck)
 {
     public string HealthText => Armor > 0 ? $"{Health} + {Armor}" : Health.ToString(CultureInfo.CurrentCulture);
+
+    /// <summary>The hero's replay id (the attack arrow's end), 0 when unknown.</summary>
+    public int HeroRef { get; init; }
+
+    /// <summary>The hero attacked this step.</summary>
+    public bool HeroActing { get; init; }
+
+    /// <summary>The hero was the attack's target, or what a play aimed at.</summary>
+    public bool HeroTargeted { get; init; }
+
+    /// <summary>Health and armor gained (+) or lost (−) on this step.</summary>
+    public int HealthChange { get; init; }
+
+    public string HealthChangeText => MatchCardView.ChangeOf(HealthChange);
+
+    public string HealthChangeTip => HealthChange == 0 ? string.Empty : Loc.F("Match.Mark.HeroChange", HealthChangeText);
+
+    /// <summary>Cards left in the deck.</summary>
+    public int DeckCount { get; init; }
+
+    /// <summary>Cards in hand (the opponent's: card backs).</summary>
+    public int HandCount { get; init; }
+
+    /// <summary>Secrets in play (the opponent's: face down until revealed).</summary>
+    public int SecretCount { get; init; }
+
+    /// <summary>The counters' tooltips and screen-reader names: "16 cards in deck", "9 cards in hand", "2 Secrets in play".</summary>
+    public string DeckTip => Loc.P("Match.Side.DeckCount", DeckCount);
+
+    public string HandTip => Loc.P("Match.Side.HandCount", HandCount);
+
+    public string SecretTip => Loc.P("Match.Side.SecretCount", SecretCount);
 }
 
 /// <summary>A step of the replay as shown: the table from the chosen side and what happened.</summary>
 public sealed record MatchStepView(int Index, int Count, string Turn, string Action, string Detail, bool LocalActs, MatchSideView Top, MatchSideView Bottom)
 {
+    /// <summary>
+    /// The step's acting card and its target by replay id (plan R2: the view draws an arrow between them); 0 when none
+    /// is on the table. <see cref="IsAttack"/>: an attack, else a play's target (a spell, a hero power, a battlecry).
+    /// </summary>
+    public int ActorRef { get; init; }
+
+    public int TargetRef { get; init; }
+
+    public bool IsAttack { get; init; }
+
     /// <summary>The cards of the step's choice: the Discover options, or both mulligans at the mulligan step.</summary>
     public IReadOnlyList<MatchChoiceView> Choices { get; init; } = [];
 }
@@ -101,6 +168,21 @@ public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> 
 public sealed record MatchTurnChip(int Number, string Label, string Tooltip, bool Local, bool Mulligan, int FirstFrame, int LastFrame);
 
 /// <summary>An action in the turn's list (clicking it goes to its step).</summary>
+/// <summary>
+/// A row of the game's event feed (plan R2): a turn's header (<see cref="Header"/>, its text in <see cref="Text"/>), or an
+/// action of that turn, which goes to its step.
+/// </summary>
+public sealed record MatchFeedRow(int Frame, string Icon, string Text, bool Local, string? CardId, bool Current, bool Header)
+{
+    /// <summary>The action is a key card's biggest swing (as <see cref="MatchActionRow.Key"/>).</summary>
+    public bool Key { get; init; }
+
+    public string? KeyReason { get; init; }
+
+    /// <summary>A header of the mulligan (its marker is neutral).</summary>
+    public bool Mulligan { get; init; }
+}
+
 public sealed record MatchActionRow(int Frame, string Icon, string Text, bool Local, string? CardId, bool Current)
 {
     /// <summary>The action is a key card's biggest swing (<see cref="KeyCardRow"/>): the row is marked.</summary>
@@ -344,16 +426,109 @@ public sealed partial class MatchPage
         }
 
         var f = replay.Frames[Math.Clamp(frame, 0, replay.Frames.Count - 1)];
-        var local = Side(f.Local, true, f.PlayerTurn);
-        var opponent = Side(f.Opponent, false, f.PlayerTurn);
+        var before = f.Index > 0 ? replay.Frames[f.Index - 1] : null;
+        var marks = new StepMarks(ActorOf(f), f.Action.TargetRef ?? 0, HealthBefore(before));
+        var died = f.Action.Deaths.Select(d => d.Ref).ToHashSet();
+        var local = Side(f.Local, true, f.PlayerTurn, marks, before?.Local, died);
+        var opponent = Side(f.Opponent, false, f.PlayerTurn, marks, before?.Opponent, died);
         var turn = f.Mulligan ? Loc.T("Match.Step.Mulligan") : f.Turn == 0 ? Loc.T("Match.Step.Start") : Loc.F("Match.Step.Turn", f.PlayerTurn, Whose(f.Active));
         return new MatchStepView(f.Index, replay.Frames.Count, turn, Describe(f.Action), Details(f.Action), f.Action.Player == ReplayPlayer.Local,
             bottom == ReplayPlayer.Local ? opponent : local,
             bottom == ReplayPlayer.Local ? local : opponent)
         {
             Choices = ChoicesOf(replay, f),
+            ActorRef = marks.Actor,
+            TargetRef = marks.Target,
+            IsAttack = f.Action.Kind == ReplayActionKind.Attack,
         };
     }
+
+    /// <summary>
+    /// The game's event feed up to its end (plan R2): each turn's header and its actions, the step on screen marked.
+    /// The same texts as the turn's actions.
+    /// </summary>
+    public IReadOnlyList<MatchFeedRow> Feed(int frame)
+    {
+        if (Replay is not { } replay)
+        {
+            return [];
+        }
+
+        var keys = Analysis?.KeyCards ?? [];
+        var rows = new List<MatchFeedRow>();
+        foreach (var chip in Turns)
+        {
+            var inTurn = frame >= chip.FirstFrame && frame <= chip.LastFrame;
+            rows.Add(new MatchFeedRow(chip.FirstFrame, string.Empty, chip.Tooltip.Split('\n')[0], chip.Local, null, inTurn, Header: true) { Mulligan = chip.Mulligan });
+            foreach (var f in replay.Frames.Skip(chip.FirstFrame).Take(chip.LastFrame - chip.FirstFrame + 1))
+            {
+                var details = Details(f.Action);
+                var local = f.Action.Player == ReplayPlayer.Local;
+                var key = keys.FirstOrDefault(k => k.Frame == f.Index && k.CardId == f.Action.CardId && k.Local == local);
+                rows.Add(new MatchFeedRow(f.Index, IconOf(f.Action.Kind), Describe(f.Action) + (details.Length > 0 ? " · " + details : string.Empty),
+                    local, f.Action.CardId, f.Index == frame, Header: false) { Key = key is not null, KeyReason = key?.Reason });
+            }
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// The step's actor on the table: the attacker or the card played; a spell (gone from the table) starts its arrow at
+    /// its side's hero. 0 without an actor.
+    /// </summary>
+    private static int ActorOf(ReplayFrame frame)
+    {
+        if (frame.Action.ActorRef is not { } actor)
+        {
+            return 0;
+        }
+
+        var boards = new[] { frame.Local, frame.Opponent };
+        if (boards.Any(b => b.Hero?.Id == actor || b.Weapon?.Id == actor || b.HeroPower?.Id == actor || b.Minions.Any(m => m.Id == actor) || b.Secrets.Any(s => s.Id == actor)))
+        {
+            return actor;
+        }
+
+        return frame.Action.Player is { } player ? frame.Of(player).Hero?.Id ?? 0 : 0;
+    }
+
+    /// <summary>What the table marks on a step: the actor, its target, and each card's health just before.</summary>
+    private sealed record StepMarks(int Actor, int Target, IReadOnlyDictionary<int, int> HealthBefore);
+
+    /// <summary>Health (and a hero's armor) of each card on the table at a step, by replay id.</summary>
+    private static Dictionary<int, int> HealthBefore(ReplayFrame? frame)
+    {
+        var health = new Dictionary<int, int>();
+        if (frame is null)
+        {
+            return health;
+        }
+
+        foreach (var board in new[] { frame.Local, frame.Opponent })
+        {
+            if (board.Hero is { } hero)
+            {
+                health[hero.Id] = hero.Health + hero.Armor;
+            }
+
+            foreach (var minion in board.Minions)
+            {
+                health[minion.Id] = minion.Health;
+            }
+        }
+
+        return health;
+    }
+
+    /// <summary>A table card with the step's marks: actor, target, health change.</summary>
+    private static MatchCardView Marked(MatchCardView view, ReplayCard card, StepMarks marks, int health) => view with
+    {
+        Ref = card.Id,
+        Acting = card.Id == marks.Actor && marks.Actor != 0,
+        Targeted = card.Id == marks.Target && marks.Target != 0,
+        Change = marks.HealthBefore.TryGetValue(card.Id, out var before) ? health - before : 0,
+    };
 
     /// <summary>The choice rows of a step: a Discover's options, or both mulligans at the mulligan step.</summary>
     private IReadOnlyList<MatchChoiceView> ChoicesOf(MatchReplay replay, ReplayFrame frame)
@@ -460,9 +635,10 @@ public sealed partial class MatchPage
         return chips;
     }
 
-    private MatchSideView Side(ReplayBoard board, bool local, int turn)
+    private MatchSideView Side(ReplayBoard board, bool local, int turn, StepMarks marks, ReplayBoard? before, IReadOnlySet<int> died)
     {
         var hero = board.Hero?.CardId ?? (local ? Game.HeroCardId : Game.OpponentHeroCardId);
+        var heroRef = board.Hero?.Id ?? 0;
         return new MatchSideView(
             local ? Loc.T("Match.You") : Loc.T("Match.Opponent"),
             local,
@@ -470,13 +646,49 @@ public sealed partial class MatchPage
             _cards.NameOf(hero),
             board.Health,
             board.Armor,
-            board.Weapon is { } weapon ? Card(weapon, turn) : null,
-            board.HeroPower is { } power ? Card(power, turn) : null,
-            board.Minions.Select(m => Card(m, turn)).ToList(),
+            board.Weapon is { } weapon ? Marked(Card(weapon, turn), weapon, marks, weapon.Health) with { Change = 0 } : null,
+            board.HeroPower is { } power ? Marked(Card(power, turn), power, marks, 0) with { Change = 0 } : null,
+            WithDying(board.Minions.Select(m => Marked(Card(m, turn), m, marks, m.Health)).ToList(), board, before, marks, turn, died),
             board.Hand.Select(c => Card(c, turn)).ToList(),
-            board.Secrets.Select(c => Card(c, turn)).ToList(),
+            board.Secrets.Select(c => Marked(Card(c, turn), c, marks, 0) with { Change = 0 }).ToList(),
             board.Mana > 0 ? $"{Math.Max(0, board.Mana - board.ManaUsed)}/{board.Mana}" : "0/0",
-            Loc.F("Match.Side.Deck", board.DeckCount, board.Hand.Count));
+            Loc.F("Match.Side.Deck", board.DeckCount, board.Hand.Count))
+        {
+            HeroRef = heroRef,
+            HeroActing = heroRef != 0 && heroRef == marks.Actor,
+            HeroTargeted = heroRef != 0 && heroRef == marks.Target,
+            HealthChange = heroRef != 0 && marks.HealthBefore.TryGetValue(heroRef, out var heroBefore) ? board.Health + board.Armor - heroBefore : 0,
+            HandCount = board.Hand.Count,
+            SecretCount = board.Secrets.Count,
+            DeckCount = board.DeckCount,
+        };
+    }
+
+    /// <summary>
+    /// The minions that died on this step stay where they stood, as dying (an exchange keeps its arrow): the step's
+    /// deaths that stood on this side the step before. A minion that left otherwise (back to the hand, shuffled into the
+    /// deck, transformed, taken by the other side) is no ghost. Their badge is the health they had.
+    /// </summary>
+    private List<MatchCardView> WithDying(List<MatchCardView> minions, ReplayBoard board, ReplayBoard? before, StepMarks marks, int turn, IReadOnlySet<int> died)
+    {
+        if (before is null)
+        {
+            return minions;
+        }
+
+        for (var i = 0; i < before.Minions.Count; i++)
+        {
+            var gone = before.Minions[i];
+            if (!died.Contains(gone.Id) || board.Minions.Any(m => m.Id == gone.Id))
+            {
+                continue;
+            }
+
+            var ghost = Marked(Card(gone, turn), gone, marks, 0) with { Dying = true };
+            minions.Insert(Math.Min(i, minions.Count), ghost);
+        }
+
+        return minions;
     }
 
     private MatchCardView Card(ReplayCard card, int turn)

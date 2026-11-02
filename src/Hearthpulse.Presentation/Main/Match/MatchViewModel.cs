@@ -36,6 +36,12 @@ public sealed partial class MatchViewModel : Observable
     private readonly SyncList<MatchActionRow> _actions = new();
     private readonly SyncList<MatchTurnRow> _turns = new();
 
+    // The game's event feed (plan R2): its rows built once per game, unmarked, and the list the view binds, where each
+    // step only moves the marks (Current) of the rows that change; the last step of each header's turn.
+    private readonly SyncList<MatchFeedRow> _feed = new();
+    private IReadOnlyList<MatchFeedRow> _feedRows = [];
+    private int[] _feedTurnEnds = [];
+
     // The lists of the Constructed step on screen, synced to each step (see Keep): the top side's board, hand and
     // secrets, the bottom side's, and the step's choices.
     private readonly SyncList<MatchCardView>[] _sides = [new(), new(), new(), new(), new(), new()];
@@ -76,6 +82,7 @@ public sealed partial class MatchViewModel : Observable
         {
             MatchTurnRow turn => turn.FirstFrame,
             MatchActionRow action => action.Frame,
+            MatchFeedRow row => row.Frame,
             int frame => frame,
             _ => Frame,
         });
@@ -96,7 +103,7 @@ public sealed partial class MatchViewModel : Observable
 
     public RelayCommand NextTurn { get; }
 
-    /// <summary>Goes to a turn chip, an action row or a step number (the timeline passes one).</summary>
+    /// <summary>Goes to a turn chip, an action row, a feed row (a header: its turn's first step) or a step number (the timeline passes one).</summary>
     public RelayCommand GoFrame { get; }
 
     /// <summary>"Replay", "Decks", "Analysis" (Constructed); "Replay" (format 4), "Rounds", "Lobby" (Battlegrounds).</summary>
@@ -199,6 +206,20 @@ public sealed partial class MatchViewModel : Observable
     /// <summary>The first step of an action kind (the mulligan, a Discover), or -1; render scenes go to it.</summary>
     public int FrameOf(ReplayActionKind kind) => _page?.Replay?.Frames.FirstOrDefault(f => f.Action.Kind == kind)?.Index ?? -1;
 
+    /// <summary>The first Constructed step whose table (the player's side at the bottom) matches, or -1; render scenes go to it.</summary>
+    public int FrameWhere(Func<MatchStepView, bool> match)
+    {
+        for (var frame = 0; _page is { Replay: not null } page && frame < page.FrameCount; frame++)
+        {
+            if (page.Step(frame, ReplayPlayer.Local) is { } step && match(step))
+            {
+                return frame;
+            }
+        }
+
+        return -1;
+    }
+
     /// <summary>The Constructed step on screen.</summary>
     public MatchStepView? Step { get => _step; private set => Set(ref _step, TableInPlace(value)); }
 
@@ -209,6 +230,12 @@ public sealed partial class MatchViewModel : Observable
     public IReadOnlyList<MatchActionRow> Actions { get => _actions; private set => Keep(_actions, value); }
 
     public IReadOnlyList<MatchTurnRow> Turns { get => _turns; private set => Keep(_turns, value); }
+
+    /// <summary>
+    /// The Constructed game's event feed (plan R2): every action under its turn's header, the step on screen and its
+    /// turn marked. Built once per game; a step changes only the rows whose mark moves (empty for Battlegrounds).
+    /// </summary>
+    public IReadOnlyList<MatchFeedRow> Feed { get => _feed; private set => Keep(_feed, value); }
 
     public IReadOnlyList<MatchDeckRow> LocalDeck { get => _localDeck; private set => Set(ref _localDeck, value); }
 
@@ -260,6 +287,8 @@ public sealed partial class MatchViewModel : Observable
         Step = null;
         Actions = [];
         Turns = [];
+        SetFeedRows([]);
+        Feed = [];
         LocalDeck = [];
         OpponentCards = [];
         OpponentPredicted = [];
@@ -296,7 +325,7 @@ public sealed partial class MatchViewModel : Observable
 
         _frame = Math.Clamp(_frame, 0, FrameMax);
         Loading = false;
-        Header = page.Header;
+        Header = Masked(page);
         Missing = page.Missing ?? string.Empty;
         LocalDeck = page.LocalDeck;
         LocalDeckNote = page.LocalDeckNote;
@@ -315,6 +344,8 @@ public sealed partial class MatchViewModel : Observable
         Rounds = page.Rounds;
         Lobby = page.Lobby;
         Analysis = page.Analysis;
+        // The feed's texts once per game (another language builds the page again): -1 marks no row.
+        SetFeedRows(page.HasBattlegroundsSteps ? [] : page.Feed(-1));
         ShowPlayer(page);
         Raise(nameof(IsConstructed));
         Raise(nameof(IsBattlegrounds));
@@ -366,11 +397,13 @@ public sealed partial class MatchViewModel : Observable
         if (HasBattlegroundsSteps)
         {
             ShowBattlegroundsStep(_page.BattlegroundsStep(_frame));
+            Feed = [];
         }
         else
         {
             Step = _page.Step(_frame, _bottomLocal ? ReplayPlayer.Local : ReplayPlayer.Opponent);
             Actions = _page.Actions(_frame);
+            Feed = FeedAt(_frame);
         }
 
         var current = _page.TurnOf(_frame);
@@ -390,6 +423,40 @@ public sealed partial class MatchViewModel : Observable
         {
             Raise(name);
         }
+    }
+
+    /// <summary>The game's feed rows as built (none marked), and where each header's turn ends.</summary>
+    private void SetFeedRows(IReadOnlyList<MatchFeedRow> rows)
+    {
+        _feedRows = rows;
+        _feedTurnEnds = new int[rows.Count];
+        var end = -1;
+        for (var i = rows.Count - 1; i >= 0; i--)
+        {
+            if (rows[i].Header)
+            {
+                _feedTurnEnds[i] = Math.Max(end, rows[i].Frame);
+                end = -1;
+            }
+            else
+            {
+                end = Math.Max(end, rows[i].Frame);
+            }
+        }
+    }
+
+    /// <summary>The feed with the step's row and the header of its turn marked (as <see cref="MatchPage.Feed"/> marks them).</summary>
+    private IReadOnlyList<MatchFeedRow> FeedAt(int frame)
+    {
+        var rows = new MatchFeedRow[_feedRows.Count];
+        for (var i = 0; i < rows.Length; i++)
+        {
+            var row = _feedRows[i];
+            var current = row.Header ? frame >= row.Frame && frame <= _feedTurnEnds[i] : row.Frame == frame;
+            rows[i] = row.Current == current ? row : row with { Current = current };
+        }
+
+        return rows;
     }
 
     /// <summary>

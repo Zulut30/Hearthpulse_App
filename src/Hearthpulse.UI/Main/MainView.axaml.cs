@@ -86,7 +86,7 @@ public partial class MainView : UserControl
         }
     }
 
-    private RadioButton[] SettingsTabs => [SettingsTabGeneral, SettingsTabOverlay, SettingsTabTracker, SettingsTabAccount, SettingsTabData, SettingsTabAbout];
+    private RadioButton[] SettingsTabs => [SettingsTabGeneral, SettingsTabOverlay, SettingsTabTracker, SettingsTabStream, SettingsTabAccount, SettingsTabData, SettingsTabAbout];
 
     /// <summary>Raised after any setting changes from the UI.</summary>
     public event Action? SettingsChanged;
@@ -250,7 +250,8 @@ public partial class MainView : UserControl
         {
             radio.IsCheckedChanged += (_, _) =>
             {
-                if (radio.IsChecked == true && _viewModel is not null && ApplyChoice(_viewModel.Settings, radio.Tag as string))
+                if (radio.IsChecked == true && _viewModel is not null
+                    && (ApplyChoice(_viewModel.Settings, radio.Tag as string) || ApplyStreamChoice(_viewModel, radio.Tag as string)))
                 {
                     SettingsChanged?.Invoke();
                 }
@@ -282,6 +283,13 @@ public partial class MainView : UserControl
         }
     }
 
+    /// <summary>
+    /// Applies a Stream tab radio's Tag ("StreamBackground.Green") through the main model, which tells the host to repaint the
+    /// OBS windows; false when nothing changed.
+    /// </summary>
+    private static bool ApplyStreamChoice(MainViewModel viewModel, string? choice) =>
+        choice?.Split('.') is ["StreamBackground", var background] && viewModel.SetStreamBackground(background);
+
     /// <summary>Applies a settings radio's Tag ("PickHints.Off", "Language.ru"); false when nothing changed.</summary>
     private static bool ApplyChoice(AppSettings settings, string? choice)
     {
@@ -299,7 +307,7 @@ public partial class MainView : UserControl
         }
     }
 
-    /// <summary>Shows a Settings tab by its tag ("General", "Overlay", "Tracker", "Account", "Data", "About"); unknown names show General.</summary>
+    /// <summary>Shows a Settings tab by its tag ("General", "Overlay", "Tracker", "Stream", "Account", "Data", "About"); unknown names show General.</summary>
     public void ShowSettingsTab(string tab)
     {
         (SettingsTabs.FirstOrDefault(r => r.Tag as string == tab) ?? SettingsTabGeneral).IsChecked = true;
@@ -311,6 +319,7 @@ public partial class MainView : UserControl
         SettingsGeneral.IsVisible = SettingsTabGeneral.IsChecked == true;
         SettingsOverlay.IsVisible = SettingsTabOverlay.IsChecked == true;
         SettingsTracker.IsVisible = SettingsTabTracker.IsChecked == true;
+        SettingsStream.IsVisible = SettingsTabStream.IsChecked == true;
         SettingsAccount.IsVisible = SettingsTabAccount.IsChecked == true;
         SettingsData.IsVisible = SettingsTabData.IsChecked == true;
         SettingsAbout.IsVisible = SettingsTabAbout.IsChecked == true;

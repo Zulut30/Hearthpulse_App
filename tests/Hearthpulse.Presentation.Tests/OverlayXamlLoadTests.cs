@@ -104,7 +104,8 @@ public sealed class OverlayXamlLoadTests
         var row = new System.Windows.Controls.ContentPresenter
         {
             Content = new DeckTile("CS2_029", "Fireball", 4, "0", true, true, "COMMON", string.Empty, false, Changed: true),
-            ContentTemplate = (DataTemplate)window.FindResource("DeckTileTemplate"),
+            // The deck panel's own template (the panel is a control of its own, shared with the OBS window).
+            ContentTemplate = (DataTemplate)new Hearthpulse.App.Overlay.DeckPanel().FindResource("DeckTileTemplate"),
         };
         ((System.Windows.Controls.Panel)root).Children.Add(row);
         row.Measure(new Size(240, 30));

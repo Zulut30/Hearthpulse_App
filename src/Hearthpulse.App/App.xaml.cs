@@ -282,6 +282,7 @@ public partial class App : Application
         }
 
         _overlay = CreateOverlay();
+        SetupStream();
         if (_renderDir is not null)
         {
             PrepareOffscreenRender();
@@ -804,6 +805,7 @@ public partial class App : Application
         _overlay.Suppressed = oldOverlay.Suppressed;
         oldOverlay.Close();
         _overlay.Show();
+        _stream?.Recreate();
     }
 
     private void OnSettingsChanged()
@@ -837,6 +839,7 @@ public partial class App : Application
             Tag = "Host.Tray.Overlay",
         };
         menu.Items.Add(_trayOverlayItem);
+        menu.Items.Add(StreamerTrayItem());
         menu.Items.Add(Loc.T("Host.Tray.Arrange"), null, (_, _) => _overlayViewModel.LayoutEditing = !_overlayViewModel.LayoutEditing).Tag = "Host.Tray.Arrange";
         menu.Items.Add(Loc.T("Host.Tray.HardRefresh"), null, (_, _) => HardRefresh("tray menu")).Tag = "Host.Tray.HardRefresh";
         _traySoftwareItem = new Forms.ToolStripMenuItem(Loc.T("Host.Tray.SoftwareRendering"), null, (_, _) => ToggleSoftwareRendering())
@@ -855,7 +858,7 @@ public partial class App : Application
         _tray = new Forms.NotifyIcon
         {
             Icon = iconStream is null ? System.Drawing.SystemIcons.Application : new System.Drawing.Icon(iconStream),
-            Text = "Hearthpulse",
+            Text = StreamerTrayTip(),
             Visible = true,
             ContextMenuStrip = menu,
         };

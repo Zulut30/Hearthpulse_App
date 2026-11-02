@@ -43,76 +43,6 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
-        <!-- Deck row: cost gem, name over card art with a rarity strip and the copy count, then the draw chance in its own
-             column so it never runs into the name. A card with no copies left dims (art, gem and name sink back, the plate
-             stays so the row keeps its place); the row whose count just moved flashes once. -->
-        <DataTemplate x:Key="DeckTileTemplate" DataType="{x:Type o:DeckTile}">
-            <Grid x:Name="RowRoot" Height="24" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="26" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <c:ManaCost x:Name="Gem" Style="{StaticResource CostChip}" Text="{Binding Cost}" HorizontalAlignment="Left" />
-                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
-                    <Grid>
-                        <Image x:Name="Art" i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                        <Rectangle x:Name="Fade" Fill="{StaticResource TileFade}" />
-                        <Border x:Name="Strip" Style="{StaticResource OverlayRarityStrip}" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                        <DockPanel Margin="9,0,3,0">
-                            <Border x:Name="Copies" Style="{StaticResource OverlayCountBadge}" DockPanel.Dock="Right" Visibility="{Binding ShowCount, Converter={StaticResource Vis}}">
-                                <TextBlock Text="{Binding Count}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <TextBlock DockPanel.Dock="Left" Text="&#xF0674;" Style="{StaticResource Icon}" FontSize="10" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
-                                       VerticalAlignment="Center" Visibility="{Binding Created, Converter={StaticResource Vis}}" />
-                            <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                        </DockPanel>
-                        <Border Style="{StaticResource OverlayRowSheen}" />
-                        <Border x:Name="Flash" Style="{StaticResource OverlayRowFlash}" />
-                    </Grid>
-                </Border>
-                <TextBlock Grid.Column="2" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"
-                           VerticalAlignment="Center"
-                           Visibility="{Binding DataContext.ShowChance, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource Vis}}" />
-            </Grid>
-            <DataTemplate.Triggers>
-                <!-- Compact lists (the panel's tag button): short rows without art -->
-                <Trigger SourceName="RowRoot" Property="o:MovablePanel.Compact" Value="True">
-                    <Setter TargetName="RowRoot" Property="Height" Value="18" />
-                    <Setter TargetName="Art" Property="Visibility" Value="Collapsed" />
-                    <Setter TargetName="Fade" Property="Visibility" Value="Collapsed" />
-                    <Setter TargetName="Gem" Property="Width" Value="18" />
-                    <Setter TargetName="Gem" Property="Height" Value="18" />
-                </Trigger>
-                <DataTrigger Binding="{Binding Empty}" Value="True">
-                    <Setter TargetName="Art" Property="Opacity" Value="0.22" />
-                    <Setter TargetName="Gem" Property="Opacity" Value="0.45" />
-                    <Setter TargetName="Strip" Property="Opacity" Value="0.35" />
-                    <Setter TargetName="Copies" Property="Opacity" Value="0.55" />
-                    <Setter TargetName="CardName" Property="Foreground" Value="{StaticResource Faint}" />
-                </DataTrigger>
-                <!-- One short fade, only when Windows animations are on -->
-                <MultiDataTrigger>
-                    <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding Changed}" Value="True" />
-                        <Condition Binding="{Binding Source={x:Static SystemParameters.ClientAreaAnimation}}" Value="True" />
-                    </MultiDataTrigger.Conditions>
-                    <MultiDataTrigger.EnterActions>
-                        <BeginStoryboard>
-                            <Storyboard>
-                                <DoubleAnimation Storyboard.TargetName="Flash" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:1.4">
-                                    <DoubleAnimation.EasingFunction>
-                                        <CubicEase EasingMode="EaseIn" />
-                                    </DoubleAnimation.EasingFunction>
-                                </DoubleAnimation>
-                            </Storyboard>
-                        </BeginStoryboard>
-                    </MultiDataTrigger.EnterActions>
-                </MultiDataTrigger>
-            </DataTemplate.Triggers>
-        </DataTemplate>
-
         <!-- Opponent's played card: hover shows the whole card beside the panel, as in the deck tracker (the full name too) -->
         <DataTemplate x:Key="PlayedTemplate" DataType="{x:Type o:PlayedTile}">
             <Grid x:Name="RowRoot" Height="22" Margin="0,0,0,2" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
@@ -897,48 +827,6 @@
             </Setter>
         </Style>
 
-        <DataTemplate x:Key="LobbyRowTemplate" DataType="{x:Type o:LobbyRow}">
-            <Grid x:Name="RowRoot" Height="28" Margin="0,0,0,2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition Width="28" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="24" />
-                    <ColumnDefinition Width="42" />
-                </Grid.ColumnDefinitions>
-                <Border x:Name="Bg" Grid.ColumnSpan="5" CornerRadius="6" Background="Transparent" Margin="-5,0" />
-                <TextBlock Text="{Binding Place}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                <Border Grid.Column="1" Width="22" Height="22" CornerRadius="11" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding HeroCardId}" />
-                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,6,0">
-                    <TextBlock x:Name="Name" Text="{Binding Name}" FontSize="11.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
-                    <Border Height="2" CornerRadius="1" Background="{StaticResource Surface3}" Margin="0,3,0,0">
-                        <Border HorizontalAlignment="Left" CornerRadius="1" Background="{StaticResource Positive}"
-                                Width="{Binding HealthFraction, Converter={StaticResource Fraction}, ConverterParameter=96}" />
-                    </Border>
-                </StackPanel>
-                <Border Grid.Column="3" Width="19" Height="18" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center" ToolTip="{i:Loc Overlay.Common.TavernTier}">
-                    <TextBlock Text="{Binding Tier}" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-                <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <TextBlock Text="{Binding Health}" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
-                    <TextBlock Text="{Binding Last}" FontSize="9.5" HorizontalAlignment="Right" Foreground="{Binding LastKey, Converter={StaticResource KeyBrush}}" />
-                </StackPanel>
-            </Grid>
-            <DataTemplate.Triggers>
-                <DataTrigger Binding="{Binding Next}" Value="True">
-                    <Setter TargetName="Bg" Property="Background" Value="{StaticResource AccentSoft}" />
-                    <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource AccentLine}" />
-                    <Setter TargetName="Bg" Property="BorderThickness" Value="1" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding You}" Value="True">
-                    <Setter TargetName="Name" Property="Foreground" Value="{StaticResource Accent}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding Dead}" Value="True">
-                    <Setter TargetName="RowRoot" Property="Opacity" Value="0.35" />
-                </DataTrigger>
-            </DataTemplate.Triggers>
-        </DataTemplate>
-
         <ItemsPanelTemplate x:Key="HRow">
             <StackPanel Orientation="Horizontal" />
         </ItemsPanelTemplate>
@@ -959,25 +847,7 @@
 
             <!-- ============ Constructed: your deck (right) ============ -->
             <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" CanCompact="True" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,12,0">
-                <Border Style="{StaticResource OverlayCard}" Width="252">
-                    <StackPanel>
-                        <Border Style="{StaticResource OverlayHeader}" Margin="0,0,0,6">
-                            <StackPanel>
-                                <TextBlock Text="{Binding DeckName}" Style="{StaticResource OverlayHeaderTitle}" />
-                                <TextBlock Text="{Binding DeckRecord}" Style="{StaticResource OverlayHeaderNote}"
-                                           Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
-                            </StackPanel>
-                        </Border>
-                        <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" o:OverlayHit.Interactive="True" />
-                        <Border BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
-                            <StackPanel>
-                                <TextBlock Text="{Binding DeckCounts}" FontSize="11" Foreground="{StaticResource Muted}" />
-                                <TextBlock Text="{Binding NextDraw}" FontSize="11" Foreground="{StaticResource Text}" TextTrimming="CharacterEllipsis"
-                                           Visibility="{Binding NextDraw, Converter={StaticResource Vis}}" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </Border>
+                <o:DeckPanel />
             </o:MovablePanel>
 
             <!-- ============ Constructed: opponent (left) ============ -->
@@ -1308,60 +1178,7 @@
 
             <!-- ============ Battlegrounds: simulated combat odds (top centre, during combat) ============ -->
             <o:MovablePanel Id="odds" Title="{i:Loc Overlay.Panel.Odds}" Shown="{Binding ShowOdds}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
-                <Border x:Name="OddsCard" Background="{StaticResource OverlayPanelSolid}" Padding="14,7,14,8" Width="250">
-                    <Border.Style>
-                        <!-- Red edge while the fight can kill the player -->
-                        <Style TargetType="Border" BasedOn="{StaticResource OverlayCard}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding LethalDanger}" Value="True">
-                                    <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <StackPanel>
-                        <UniformGrid Columns="3">
-                            <StackPanel HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding OddsWin}" Style="{StaticResource Number}" FontSize="17" Foreground="{StaticResource Positive}" HorizontalAlignment="Center" />
-                                <TextBlock Text="{i:Loc Overlay.Odds.Win}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                                <TextBlock Text="{Binding OddsDamageWin}" ToolTip="{Binding OddsDamageWinTip}" Style="{StaticResource Number}" FontSize="11" Foreground="{StaticResource Positive}"
-                                           HorizontalAlignment="Center" Visibility="{Binding OddsDamageWin, Converter={StaticResource Vis}}" />
-                            </StackPanel>
-                            <StackPanel HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding OddsTie}" Style="{StaticResource Number}" FontSize="17" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                                <TextBlock Text="{i:Loc Overlay.Odds.Tie}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                            </StackPanel>
-                            <StackPanel HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding OddsLoss}" Style="{StaticResource Number}" FontSize="17" Foreground="{StaticResource Negative}" HorizontalAlignment="Center" />
-                                <TextBlock Text="{i:Loc Overlay.Odds.Loss}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                                <TextBlock Text="{Binding OddsDamageLoss}" ToolTip="{Binding OddsDamageLossTip}" Style="{StaticResource Number}" FontSize="11" Foreground="{StaticResource Negative}"
-                                           HorizontalAlignment="Center" Visibility="{Binding OddsDamageLoss, Converter={StaticResource Vis}}" />
-                            </StackPanel>
-                        </UniformGrid>
-                        <Border Height="4" CornerRadius="1" ClipToBounds="True" Margin="0,6,0,5" Background="{StaticResource Surface3}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="{Binding WinShare}" />
-                                    <ColumnDefinition Width="{Binding TieShare}" />
-                                    <ColumnDefinition Width="{Binding LossShare}" />
-                                </Grid.ColumnDefinitions>
-                                <Border Background="{StaticResource Positive}" />
-                                <Border Grid.Column="1" Background="{StaticResource Faint}" />
-                                <Border Grid.Column="2" Background="{StaticResource Negative}" />
-                            </Grid>
-                        </Border>
-                        <!-- Lethal: the share of fights that kill either hero -->
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
-                            <StackPanel Orientation="Horizontal" Margin="5,0" ToolTip="{i:Loc Overlay.Odds.LethalTip}" Visibility="{Binding OddsLethal, Converter={StaticResource Vis}}">
-                                <TextBlock Text="&#xF068C;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Negative}" Margin="0,0,4,0" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OddsLethal}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
-                            </StackPanel>
-                            <TextBlock Text="{Binding OddsKill}" ToolTip="{i:Loc Overlay.Odds.KillTip}" FontSize="11" Foreground="{StaticResource Positive}" Margin="5,0" VerticalAlignment="Center"
-                                       Visibility="{Binding OddsKill, Converter={StaticResource Vis}}" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding OddsNote}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
-                    </StackPanel>
-                </Border>
+                <o:OddsPanel />
             </o:MovablePanel>
 
             <!-- ============ Battlegrounds: Discover pick hints (Dark Gift, triple reward…) ============ -->
@@ -1468,19 +1285,7 @@
 
             <!-- ============ Battlegrounds: lobby list (bottom-right) ============ -->
             <o:MovablePanel Id="lobby" Title="{i:Loc Overlay.Lobby.Title}" Shown="{Binding ShowLobby}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,14">
-                <Border Style="{StaticResource OverlayCard}" Width="230">
-                    <StackPanel>
-                        <!-- The header every list panel has: glyph, title, and the columns' legend on the right -->
-                        <Border Style="{StaticResource OverlayHeader}">
-                            <DockPanel>
-                                <TextBlock Text="&#xF126F;" Style="{StaticResource OverlayHeaderIcon}" />
-                                <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.Lobby.Header}" Style="{StaticResource OverlayHeaderNote}" Margin="8,0,0,0" VerticalAlignment="Center" />
-                                <TextBlock Text="{i:Loc Overlay.Lobby.Title}" Style="{StaticResource OverlayHeaderTitle}" />
-                            </DockPanel>
-                        </Border>
-                        <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" Margin="12,6,12,8" />
-                    </StackPanel>
-                </Border>
+                <o:LobbyPanel />
             </o:MovablePanel>
 
             <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->

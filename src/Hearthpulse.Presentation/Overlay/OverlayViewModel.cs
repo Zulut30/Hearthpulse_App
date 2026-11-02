@@ -277,9 +277,14 @@ public sealed partial class OverlayViewModel : Observable
     {
         _cards = cards;
         _locale = cards.Locale;
-        var enabled = settings.OverlayEnabled && snapshot.InGame;
+        UpdateStreamer(snapshot, settings);
+        // The OBS windows show the deck, lobby and odds panels with the overlay off too: the game is read while either is
+        // on, but the overlay's other panels are worked out only while the overlay is on.
+        var overlayOn = snapshot.InGame && settings.OverlayEnabled;
+        var enabled = overlayOn || (snapshot.InGame && StreamWindowSpec.AnyOn(settings));
 
         var constructed = enabled ? snapshot.Constructed : null;
+        var overlayConstructed = overlayOn ? constructed : null;
         ShowConstructed = constructed is not null && settings.ShowDeckTracker && constructed.DeckKnown;
         ShowOpponent = constructed is not null && settings.ShowOpponentTracker;
         ShowChance = settings.ShowDrawChance;
@@ -293,30 +298,31 @@ public sealed partial class OverlayViewModel : Observable
         }
 
         UpdateLive(constructed, settings);
-        UpdateHandMarks(constructed, settings);
-        UpdateCardPool(constructed, settings);
-        UpdateArchetype(constructed, settings);
-        UpdateTurnTimer(constructed, settings);
+        UpdateHandMarks(overlayConstructed, settings);
+        UpdateCardPool(overlayConstructed, settings);
+        UpdateArchetype(overlayConstructed, settings);
+        UpdateTurnTimer(overlayConstructed, settings);
         UpdateLadder(snapshot, settings);
-        UpdateSecrets(constructed, settings);
-        UpdateGraveyard(constructed, settings);
-        UpdateLikelyDeck(constructed, settings);
+        UpdateSecrets(overlayConstructed, settings);
+        UpdateGraveyard(overlayConstructed, settings);
+        UpdateLikelyDeck(overlayConstructed, settings);
         UpdatePanelLock(settings);
 
         var bg = enabled ? snapshot.Battlegrounds : null;
+        var overlayBg = overlayOn ? bg : null;
         _bg = bg;
-        UpdateBgCounters(bg, settings);
-        UpdateBgLobby(bg, settings);
+        UpdateBgCounters(overlayBg, settings);
+        UpdateBgLobby(overlayBg, settings);
         UpdateArena(snapshot.ArenaDraft, settings);
         ShowBattlegrounds = bg is not null && settings.ShowBattlegroundsBar;
         ApplyPickSettings(settings);
-        ShowHeroPick = bg is { IsHeroSelection: true } && ShowPickPanels && bg.HeroOptions.Count > 0;
-        var playing = bg is { IsHeroSelection: false, HeroCardId: not null } && ShowPickPanels;
-        ShowTrinkets = playing && bg!.TrinketOptions.Count > 0;
-        ShowDiscover = playing && bg!.DiscoverAdvice.Count > 0;
+        ShowHeroPick = overlayBg is { IsHeroSelection: true } && ShowPickPanels && overlayBg.HeroOptions.Count > 0;
+        var playing = overlayBg is { IsHeroSelection: false, HeroCardId: not null } && ShowPickPanels;
+        ShowTrinkets = playing && overlayBg!.TrinketOptions.Count > 0;
+        ShowDiscover = playing && overlayBg!.DiscoverAdvice.Count > 0;
         ShowOdds = settings.ShowCombatOdds && bg is { InCombat: true, CombatOdds: not null };
         // Buy hints sit on the tavern row, so only while recruiting and while no choice covers the shop.
-        ShowShop = playing && !bg!.InCombat && bg.TrinketOptions.Count == 0 && bg.DiscoverOptions.Count == 0 && bg.ShopAdvice.Count > 0;
+        ShowShop = playing && !overlayBg!.InCombat && overlayBg.TrinketOptions.Count == 0 && overlayBg.DiscoverOptions.Count == 0 && overlayBg.ShopAdvice.Count > 0;
         ShowLobby = bg is { IsHeroSelection: false } && settings.ShowLobbyPanel && bg.Opponents.Count > 0;
         ShowSession = bg is not null && settings.ShowSessionPanel;
         if (bg is not null)
@@ -330,7 +336,7 @@ public sealed partial class OverlayViewModel : Observable
             Browser = Array.Empty<BrowserGroup>();
         }
 
-        UpdateBgBadges(bg, settings);
+        UpdateBgBadges(overlayBg, settings);
         if (bg is null)
         {
             Lobby = null;
@@ -377,8 +383,7 @@ public sealed partial class OverlayViewModel : Observable
         });
 
         OpponentHeroId = view.OpponentHeroCardId;
-        OpponentTitle = string.IsNullOrEmpty(view.OpponentName) ? ClassName(view.OpponentClass) : view.OpponentName!;
-        OpponentSubtitle = string.Join(" · ", new[] { ClassName(view.OpponentClass), view.OpponentRank?.Display }.Where(s => !string.IsNullOrEmpty(s)));
+        (OpponentTitle, OpponentSubtitle) = OpponentHeader(view);
         OpponentHand = view.OpponentHandCount;
         OpponentDeck = view.OpponentDeckCount;
         OpponentSecrets = view.OpponentSecrets;

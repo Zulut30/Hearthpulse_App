@@ -198,10 +198,40 @@ public partial class MatchView : UserControl
         if (e.PropertyName == nameof(MatchViewModel.ShowReplay))
         {
             FocusPlayer();
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, KeepCurrentFeedRowInView);
         }
         else if (e.PropertyName == nameof(MatchViewModel.Actions) && _model is { ShowBattlegroundsTable: true })
         {
             _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, KeepCurrentActionInView);
+        }
+        else if (e.PropertyName == nameof(MatchViewModel.Feed) && _model is { ShowConstructedTable: true })
+        {
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, KeepCurrentFeedRowInView);
+        }
+    }
+
+    /// <summary>The feed is as tall as the table (at least its 420): its list scrolls instead of stretching the row.</summary>
+    private void OnTableSized(object sender, SizeChangedEventArgs e) => FeedCard.Height = Math.Max(FeedCard.MinHeight, TableCard.ActualHeight);
+
+    /// <summary>
+    /// The event feed scrolls on its own (not the page) to keep the step's row in view, with its turn's header when it is
+    /// the turn's first action (<see cref="MatchFeedLayout"/>).
+    /// </summary>
+    private void KeepCurrentFeedRowInView()
+    {
+        var rows = _model?.Feed ?? [];
+        var index = rows.ToList().FindIndex(r => r.Current && !r.Header);
+        if (index < 0 || !FeedScroll.IsVisible || Feed.ItemContainerGenerator.ContainerFromIndex(index) is not FrameworkElement { IsVisible: true } row)
+        {
+            return;
+        }
+
+        var first = index > 0 && rows[index - 1].Header && Feed.ItemContainerGenerator.ContainerFromIndex(index - 1) is FrameworkElement { IsVisible: true } header ? header : row;
+        var top = first.TransformToAncestor(FeedScroll).Transform(default).Y;
+        var bottom = row.TransformToAncestor(FeedScroll).Transform(default).Y + row.ActualHeight;
+        if (MatchFeedLayout.Offset(FeedScroll.VerticalOffset, FeedScroll.ViewportHeight, top, bottom) is { } offset)
+        {
+            FeedScroll.ScrollToVerticalOffset(offset);
         }
     }
 

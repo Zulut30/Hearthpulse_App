@@ -123,8 +123,8 @@ public sealed class UxRound2MarkupTests
     [Fact]
     public void Compact_rows_keep_text_size_and_one_gem_size_in_both_uis()
     {
-        // WPF: the row templates' triggers on the panel's compact flag.
-        var setters = Markup("src/Hearthpulse.App/Overlay/OverlayWindow.xaml").Descendants()
+        // WPF: the row templates' triggers on the panel's compact flag (the deck's rows live in their own panel control).
+        var setters = new[] { "src/Hearthpulse.App/Overlay/OverlayWindow.xaml", "src/Hearthpulse.App/Overlay/DeckPanel.xaml" }.SelectMany(f => Markup(f).Descendants())
             .Where(e => e.Name.LocalName == "Trigger" && (string?)e.Attribute("Property") == "o:MovablePanel.Compact")
             .SelectMany(t => t.Elements().Where(e => e.Name.LocalName == "Setter")).ToList();
         Assert.NotEmpty(setters);
@@ -133,8 +133,8 @@ public sealed class UxRound2MarkupTests
         Assert.Equal(4, gem.Count);
         Assert.All(gem, s => Assert.Equal("18", (string?)s.Attribute("Value")));
 
-        // Avalonia: the styles under a compact panel.
-        var styles = Markup("src/Hearthpulse.UI/Overlay/OverlayView.axaml").Descendants()
+        // Avalonia: the styles under a compact panel (in OverlayLook, shared by the overlay and the OBS windows).
+        var styles = Markup("src/Hearthpulse.UI/Overlay/OverlayLook.axaml").Descendants()
             .Where(e => e.Name.LocalName == "Style" && ((string?)e.Attribute("Selector"))?.Contains("MovablePanel.compact", StringComparison.Ordinal) == true).ToList();
         Assert.NotEmpty(styles);
         Assert.DoesNotContain(styles.SelectMany(s => s.Elements()), s => (string?)s.Attribute("Property") == "FontSize");

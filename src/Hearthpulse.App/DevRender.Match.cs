@@ -40,6 +40,7 @@ public partial class App
                 }
             }
 
+            await RenderMatchTableAsync(folder, page);
             await RenderMatchNavigationAsync(folder, page);
         }
 
@@ -51,6 +52,52 @@ public partial class App
         }
 
         _mainViewModel.MatchPage.Back.Execute(null);
+    }
+
+    /// <summary>
+    /// Plan R2: the table's marks on the game's first attack (the arrow, the attacker and its target, the change badges),
+    /// an exchange (a minion dying on the step, faded where it stood), a play aimed at a card (the dashed arrow), each as
+    /// the page and the table card, the event feed's card at the attack, and the attack at the narrowest window.
+    /// </summary>
+    private async Task RenderMatchTableAsync(string folder, Main.Match.MatchViewModel page)
+    {
+        static bool Dying(Core.Replay.MatchStepView s) => s.Top.Board.Concat(s.Bottom.Board).Any(c => c.Dying);
+        var scenes = new (string Name, Func<Core.Replay.MatchStepView, bool> Match)[]
+        {
+            ("main-match-attack", s => s is { IsAttack: true, ActorRef: not 0, TargetRef: not 0 } && !Dying(s)),
+            ("main-match-exchange", s => s.IsAttack && Dying(s)),
+            ("main-match-target", s => s is { IsAttack: false, ActorRef: not 0, TargetRef: not 0 }),
+        };
+        foreach (var (name, match) in scenes)
+        {
+            if (page.FrameWhere(match) is not (>= 0 and var frame))
+            {
+                Console.WriteLine($"{name}: skipped, the game has no such step");
+                continue;
+            }
+
+            page.Frame = frame;
+            await SaveMatchAsync(folder, name, full: false);
+            if (Named<Border>(_main, "TableCard") is { } table)
+            {
+                SaveCard(table, Path.Combine(folder, name + "-table.png"));
+            }
+
+            if (name == "main-match-attack")
+            {
+                if (Named<Border>(_main, "FeedCard") is { } feed)
+                {
+                    SaveCard(feed, Path.Combine(folder, "main-match-feed.png"));
+                }
+
+                var width = _main.Width;
+                _main.Width = 1040;
+                await SaveMatchAsync(folder, "main-match-attack-1040");
+                _main.Width = width;
+            }
+        }
+
+        page.Frame = page.FrameMax * 2 / 3;
     }
 
     /// <summary>
