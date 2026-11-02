@@ -285,6 +285,9 @@ public sealed class AppSettings
     /// </summary>
     public bool StreamerMode { get; set; }
 
+    /// <summary>The Discord status (<c>docs/discord.md</c>): off until turned on.</summary>
+    public bool DiscordStatus { get; set; }
+
     /// <summary>The OBS capture window "Hearthpulse — Deck" (the deck panel, every mode but Battlegrounds) is open.</summary>
     public bool StreamDeckWindow { get; set; }
 

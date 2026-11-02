@@ -1100,6 +1100,24 @@
                                 </StackPanel>
                             </Border>
 
+                            <Border Classes="card" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Discord.Title}" Icon="&#xF066F;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Discord.Note}" Classes="caption cardNote" />
+                                    <CheckBox Name="DiscordSetting" Classes="switch" Content="{i:Loc Discord.Switch}" IsChecked="{Binding DiscordStatus}" IsEnabled="{Binding DiscordAvailable}" Margin="0,0,0,12"
+                                              ToolTip.Tip="{i:Loc Discord.SwitchTip}" ToolTip.ShowOnDisabled="True" />
+                                    <!-- The link to the Discord app: green once connected, faint while waiting or not registered -->
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,6" IsVisible="{Binding DiscordStatusShown}">
+                                        <Panel Margin="0,5,8,0" VerticalAlignment="Top">
+                                            <Ellipse Width="8" Height="8" Fill="{StaticResource Faint}" />
+                                            <Ellipse Width="8" Height="8" Fill="{StaticResource Positive}" IsVisible="{Binding DiscordConnected}" />
+                                        </Panel>
+                                        <TextBlock Grid.Column="1" Text="{Binding DiscordStatusText}" Classes="caption" TextWrapping="Wrap" />
+                                    </Grid>
+                                    <TextBlock Text="{i:Loc Discord.Keeps}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Border>
+
                             <Border Classes="card">
                                 <StackPanel>
                                     <c:Ornament Text="{i:Loc Stream.Windows.Title}" Icon="&#xF0379;" Size="13" Margin="0,0,0,14" />

@@ -17,6 +17,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [opponent-deck.md](opponent-deck.md) | Likely deck panel: the opponent's likely meta list with its played cards marked |
 | [secrets-helper.md](secrets-helper.md) | Opponent Secrets panel |
 | [streaming.md](streaming.md) | OBS capture windows (deck, lobby, combat odds) and streamer mode: what each hides and shows |
+| [discord.md](discord.md) | Discord status: what it shows and never shows, sending limits, registering the Discord app |
 | [mulligan-v2.md](mulligan-v2.md) | Mulligan guide: research, what the app computes, proposed endpoints |
 | [match-replay.md](match-replay.md) | Match page: turn-by-turn replay and what it may reveal |
 | [replay-library.md](replay-library.md) | History as the replay library: Saved, Imported, the import filter, Share |
@@ -42,7 +43,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 
 | Doc | What it covers |
 |---|---|
-| [adr/](adr/) | Architecture decisions later tasks do not re-open: shared presentation, two UIs, analyzers, the HPR replay format, hidden information, read-only client, `Loc.Instance`, file size, only our own analytics paid |
+| [adr/](adr/) | Architecture decisions later tasks do not re-open: shared presentation, two UIs, analyzers, the HPR replay format, hidden information, read-only client, `Loc.Instance`, file size, only our own analytics paid, Mercenaries not tracked |
 | [GLOSSARY.md](GLOSSARY.md) | The project's terms: snapshot, panel, card pool vs stats pool, replay, match page, data folder… (Hearthstone terms: skill `hearthstone-context`) |
 | [upstream-sync.md](upstream-sync.md) | What was ported from HeartLens upstream and how to repeat the sync |
 | [perf-architecture-audit.md](perf-architecture-audit.md) | Performance and architecture audit, stage by stage (in Russian); measured with `tools/Hearthpulse.Bench` |

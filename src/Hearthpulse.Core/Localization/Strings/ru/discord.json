@@ -1,0 +1,17 @@
+{
+  "Discord.Title": "Статус в Discord",
+  "Discord.Note": "Все, кто видит ваш профиль Discord (друзья, участники общих серверов), видят, во что вы играете: режим, классы, ход или место и время с начала игры.",
+  "Discord.Switch": "Статус в Discord",
+  "Discord.SwitchTip": "Hearthpulse передаёт режим, классы, ход или место приложению Discord на этом компьютере, а Discord показывает их всем, кто видит ваш профиль (друзьям и участникам общих серверов). Больше никуда не отправляется. Выключите — статус пропадёт сразу.",
+  "Discord.Keeps": "Имён, BattleTag и рейтингов в статусе нет — ни ваших, ни соперников.",
+  "Discord.Status.Connected": "Подключено к Discord",
+  "Discord.Status.Waiting": "Discord не запущен — Hearthpulse подключится, когда вы его откроете.",
+  "Discord.Status.NotConfigured": "Пока недоступно: Hearthpulse ещё не зарегистрирован в Discord.",
+  "Discord.Presence.Menu": "В меню",
+  "Discord.Presence.Versus": "{0} vs {1}",
+  "Discord.Presence.Turn": "ход {0}",
+  "Discord.Presence.Place": "место {0}",
+  "Discord.Presence.Drafting": "Выбор карт",
+  "Discord.Presence.InGame": "В игре",
+  "Discord.Presence.LogoText": "Hearthpulse — трекер для Hearthstone"
+}

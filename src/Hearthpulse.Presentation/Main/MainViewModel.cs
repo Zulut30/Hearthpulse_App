@@ -358,6 +358,7 @@ public sealed partial class MainViewModel : Observable
     {
         _lastSnapshot = s;
         ApplyLadder(s);
+        ShowDiscord(s);
         HearthstoneRunning = s.HearthstoneRunning;
         MemoryAttached = s.MemoryAttached;
         MemoryStatus = s.MemoryStatus;
