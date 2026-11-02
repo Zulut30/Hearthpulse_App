@@ -35,6 +35,15 @@ public partial class App
         _main.Show();
     }
 
+    /// <summary>
+    /// <c>HEARTHPULSE_RENDER_PAGES=Overview,History</c>: only those main-window pages, then stop (a few frames instead of
+    /// the whole set, for a quick look at the main window). Null when the variable is not set.
+    /// </summary>
+    internal static HashSet<string>? RenderPagesOnly() =>
+        Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_PAGES") is { Length: > 0 } pages
+            ? new HashSet<string>(pages.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), StringComparer.OrdinalIgnoreCase)
+            : null;
+
     private async Task RenderUiAsync(string folder)
     {
         Directory.CreateDirectory(folder);
@@ -45,12 +54,19 @@ public partial class App
         _mainViewModel.Busy = string.Empty;
         try
         {
-            foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" })
+            var only = RenderPagesOnly();
+            foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" }.Where(p => only?.Contains(p) != false))
             {
                 _main.ShowPage(page);
                 await Task.Delay(2500);
                 _main.UpdateLayout();
                 Save(_main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
+            }
+
+            if (only is not null)
+            {
+                Quit();
+                return;
             }
 
             await RenderSettingsTabsAsync(folder);

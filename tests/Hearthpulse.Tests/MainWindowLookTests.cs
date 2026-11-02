@@ -146,6 +146,25 @@ public sealed class MainWindowLookTests
             ? list.Split(',').Select(w => (string?)w.Trim())
             : grid.Elements().Single(e => e.Name.LocalName == "Grid.ColumnDefinitions").Elements().Select(c => (string?)c.Attribute("Width"));
 
+    /// <summary>
+    /// A style of the Avalonia main view that picks an element by name reaches only the view's own names: an element moved
+    /// into a page control (Main/Pages) keeps its name in the page's scope, so such a style is matched by a class instead
+    /// ("Grid#PageHistory" silently stopped matching when the History grid moved and the name went to the page tag).
+    /// </summary>
+    [Fact]
+    public void Main_view_styles_by_name_find_names_of_the_view_itself()
+    {
+        var view = Load("src/Hearthpulse.UI/Main/MainView.axaml");
+        var elements = view.Descendants().Where(e => Named(e) is not null).Select(e => (e.Name.LocalName, Named(e)!)).ToHashSet();
+        var selected = view.Descendants().Where(e => e.Name.LocalName == "Style")
+            .SelectMany(e => System.Text.RegularExpressions.Regex.Matches((string?)e.Attribute("Selector") ?? string.Empty, @"(\w+)#(\w+)"))
+            .Select(m => (m.Groups[1].Value, m.Groups[2].Value))
+            .ToList();
+
+        Assert.NotEmpty(elements);
+        Assert.All(selected, pick => Assert.Contains(pick, elements));
+    }
+
     /// <summary>The elements of a main window and of every page control in <paramref name="folder"/>.</summary>
     private static IEnumerable<XElement> WithPages(XElement window, string folder, string pattern) =>
         window.Descendants().Concat(Directory.EnumerateFiles(Path.Combine(RepoRoot(), folder), pattern)

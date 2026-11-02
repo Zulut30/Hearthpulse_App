@@ -21,7 +21,7 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
-    <Grid RowDefinitions="Auto,*">
+    <Grid Classes="historyPage" RowDefinitions="Auto,*">
         <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
             <StackPanel>
                 <TextBlock Text="{i:Loc Main.Nav.History}" Classes="display pageTitle" />

@@ -67,10 +67,20 @@ internal static partial class OffscreenRenderer
         var view = new MainView { DataContext = host.Main };
         var main = new Window { Width = 1260, Height = 840, Content = view, Background = ThemeBrushes.Get("Bg") };
         main.Show();
-        foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" })
+        // HEARTHPULSE_RENDER_PAGES=Overview,History: only those main-window pages, then stop (as the WPF renderer).
+        var only = Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_PAGES") is { Length: > 0 } pages
+            ? new HashSet<string>(pages.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), StringComparer.OrdinalIgnoreCase)
+            : null;
+        foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" }.Where(p => only?.Contains(p) != false))
         {
             view.ShowPage(page);
             await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
+        }
+
+        if (only is not null)
+        {
+            main.Close();
+            return;
         }
 
         await RenderSettingsTabsAsync(main, view, folder);

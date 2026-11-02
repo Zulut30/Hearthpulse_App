@@ -156,7 +156,7 @@
             <Setter Property="VerticalAlignment" Value="Top" />
             <Setter Property="Margin" Value="0,8,0,0" />
         </Style>
-        <Style Selector="Grid#PageHistory">
+        <Style Selector="Grid.historyPage">
             <Setter Property="Margin" Value="40,0,40,110" />
         </Style>
         <Style Selector="m|MainView.compact Grid.pageHead Border.headFilter">
@@ -164,7 +164,7 @@
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="Margin" Value="0,0,0,16" />
         </Style>
-        <Style Selector="m|MainView.compact Grid#PageHistory">
+        <Style Selector="m|MainView.compact Grid.historyPage">
             <Setter Property="Margin" Value="16,0,16,110" />
         </Style>
 
