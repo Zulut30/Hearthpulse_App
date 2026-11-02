@@ -40,6 +40,9 @@ public sealed class LiveFeed(
     /// <summary>Waits before a paced apply; tests complete it themselves.</summary>
     internal Func<int, Task> Delay { get; init; } = ms => Task.Delay(ms);
 
+    /// <summary>The deck record read last (done once it is posted to the UI thread or logged as failed), for tests.</summary>
+    internal Task DeckRead { get; private set; } = Task.CompletedTask;
+
     /// <summary>The snapshot shown last.</summary>
     public LiveSnapshot Last { get; private set; } = LiveSnapshot.Empty;
 
@@ -138,24 +141,26 @@ public sealed class LiveFeed(
             return;
         }
 
-        _ = Task.Run(() => readDeck(view)).ContinueWith(t =>
-        {
-            if (t.IsFaulted)
-            {
-                Diag.Error("Deck stats lookup failed", t.Exception);
-            }
+        DeckRead = ReadDeckAsync(view, key);
+    }
 
-            if (t.IsCompletedSuccessfully)
+    private async Task ReadDeckAsync(ConstructedView view, string? key)
+    {
+        try
+        {
+            var record = await Task.Run(() => readDeck(view)).ConfigureAwait(false);
+            post(() =>
             {
-                post(() =>
+                if (_deckKey == key)
                 {
-                    if (_deckKey == key)
-                    {
-                        (Deck, Matchup) = t.Result;
-                        showOverlay();
-                    }
-                });
-            }
-        }, TaskScheduler.Default);
+                    (Deck, Matchup) = record;
+                    showOverlay();
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Diag.Error("Deck stats lookup failed", ex);
+        }
     }
 }
