@@ -44,17 +44,14 @@ public sealed class CrashLogTests
     }
 
     [Fact]
-    public async Task A_forgotten_task_that_fails_is_logged_right_away()
+    public void A_forgotten_task_that_fails_is_logged_right_away()
     {
         var marker = Guid.NewGuid().ToString("N");
-        var failing = Task.Run(() => throw new InvalidOperationException(marker));
-        failing.Forget("Test task");
-        await Assert.ThrowsAsync<InvalidOperationException>(() => failing);
-        // The continuation runs synchronously with the task's completion; give the log write a moment.
-        for (var i = 0; i < 250 && !TestDataFolder.ReadLog().Contains(marker, StringComparison.Ordinal); i++)
-        {
-            await Task.Delay(20);
-        }
+        var failing = new TaskCompletionSource();
+        failing.Task.Forget("Test task");
+
+        // The log line is written on the thread that fails the task, before SetException returns.
+        failing.SetException(new InvalidOperationException(marker));
 
         Assert.Contains($"Test task failed: System.InvalidOperationException: {marker}", TestDataFolder.ReadLog());
     }

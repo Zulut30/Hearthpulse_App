@@ -71,11 +71,12 @@ public sealed class StatsXamlLoadTests
         }
 
         var main = new MainViewModel(history, new AppSettings());
-        Pump(main.RefreshAsync());
+        var refresh = main.RefreshAsync();
+        PumpUntil(() => refresh.IsCompleted);
         var deck = new DeckDetailsViewModel(main);
         var families = DeckFamilies.Build(DeckFamilies.Versions(history.Recent(100).Where(g => g.Mode == "Ranked").ToList()), []);
         deck.Show(families.Single(), families, [], null, DeckLookContractTests.Cards);
-        Pump(Task.CompletedTask);
+        PumpUntil(() => deck.DeckList.Count > 0 && deck.MulliganRows.Count > 0);
         Assert.NotEmpty(deck.DeckList);
 
         // With rows, then with an empty main view model (every empty state shown).
@@ -124,30 +125,32 @@ public sealed class StatsXamlLoadTests
         var host = new Border { Child = view };
         host.Measure(new Size(1180, 4000));
         host.Arrange(new Rect(0, 0, 1180, 4000));
-        Pump(Task.CompletedTask);
+        PumpUntil(() => true);
         host.UpdateLayout();
         Assert.True(view.ActualHeight > 0, view.GetType().Name);
     }
 
-    /// <summary>Runs the dispatcher until <paramref name="task"/> is done and bindings and rebuilds have applied.</summary>
-    private static void Pump(Task task)
+    /// <summary>
+    /// Runs the dispatcher until <paramref name="done"/> holds (the deck page rebuilds on a worker and lands back here),
+    /// at most 10 s, then once more at idle so bindings and layout have applied.
+    /// </summary>
+    private static void PumpUntil(Func<bool> done)
     {
         var until = DateTime.UtcNow.AddSeconds(10);
-        do
+        while (!done() && DateTime.UtcNow < until)
         {
-            var frame = new DispatcherFrame();
-            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
-            Dispatcher.PushFrame(frame);
-            Thread.Sleep(20);
+            Idle();
+            Thread.Yield();
         }
-        while (!task.IsCompleted && DateTime.UtcNow < until);
 
-        for (var i = 0; i < 10; i++)
-        {
-            var frame = new DispatcherFrame();
-            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
-            Dispatcher.PushFrame(frame);
-            Thread.Sleep(10);
-        }
+        Assert.True(done(), "the view model did not finish its rebuild in 10 s");
+        Idle();
+    }
+
+    private static void Idle()
+    {
+        var frame = new DispatcherFrame();
+        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        Dispatcher.PushFrame(frame);
     }
 }

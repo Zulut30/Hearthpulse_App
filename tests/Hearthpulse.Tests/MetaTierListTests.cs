@@ -17,7 +17,7 @@ namespace Hearthpulse.Tests;
 [Collection(nameof(GlobalLanguage))]
 public sealed class MetaTierListTests : IDisposable
 {
-    private readonly string _db = Path.Combine(Path.GetTempPath(), "hp-meta-tiers-" + Guid.NewGuid().ToString("N") + ".db");
+    private readonly string _db = TestDataFolder.Scratch("hp-meta-tiers") + ".db";
     private readonly HistoryStore _history;
 
     public MetaTierListTests()
@@ -26,23 +26,7 @@ public sealed class MetaTierListTests : IDisposable
         Loc.Instance.SetLanguage(Loc.English);
     }
 
-    public void Dispose()
-    {
-        // The view model may still read the history in the background for a moment.
-        for (var attempt = 0; attempt < 20; attempt++)
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            try
-            {
-                File.Delete(_db);
-                return;
-            }
-            catch (IOException)
-            {
-                Thread.Sleep(50);
-            }
-        }
-    }
+    public void Dispose() => TestDataFolder.TryDelete(_db);
 
     [Theory]
     [InlineData(0.611, "S")]

@@ -28,12 +28,10 @@ public sealed partial class LocBindingTests
             var open = model.OpenMatchPageAsync(game.Key);
             Assert.True(model.MatchOpen);
             Assert.Equal("History", view.CurrentPage);
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            while (!open.IsCompleted && DateTime.UtcNow < deadline)
-            {
-                Dispatcher.UIThread.RunJobs();
-                Thread.Sleep(5);
-            }
+            // The page loads on a worker and lands on this thread: run its loop until then (at most 10 s).
+            var landed = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            open.ContinueWith(_ => landed.Cancel(), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            Dispatcher.UIThread.MainLoop(landed.Token);
 
             Assert.True(open.IsCompletedSuccessfully && open.Result);
             Assert.True(model.MatchOpen);

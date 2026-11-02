@@ -48,8 +48,38 @@ internal static class TestDataFolder
             }
             catch (IOException) when (attempt < 20)
             {
-                Thread.Sleep(25);
+                // The log was rotated between the existence check and the open: read again at once.
             }
+        }
+    }
+
+    /// <summary>
+    /// A scratch path of a test inside this run's folder: whatever <see cref="TryDelete"/> cannot remove yet goes with the
+    /// folder when the run ends.
+    /// </summary>
+    public static string Scratch(string name) => System.IO.Path.Combine(Path, $"{name}-{Guid.NewGuid():N}");
+
+    /// <summary>
+    /// Removes a test's scratch file or folder if nothing holds it any more. A view model may still read a history file
+    /// in the background for a moment; then it stays until the run's folder is deleted, and no test waits for it.
+    /// </summary>
+    public static void TryDelete(string path)
+    {
+        SqliteConnection.ClearAllPools();
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+            else
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Still held: left for the end of the run.
         }
     }
 

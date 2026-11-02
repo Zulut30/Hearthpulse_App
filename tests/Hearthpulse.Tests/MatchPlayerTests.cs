@@ -15,27 +15,12 @@ namespace Hearthpulse.Tests;
 /// </summary>
 public sealed class MatchPlayerTests : IDisposable
 {
-    private readonly string _folder = Path.Combine(Path.GetTempPath(), $"hp-match-player-{Guid.NewGuid():N}");
+    private readonly string _folder = TestDataFolder.Scratch("hp-match-player");
     private readonly ReplayStore _store;
 
     public MatchPlayerTests() => _store = new ReplayStore(Path.Combine(_folder, "replays"));
 
-    public void Dispose()
-    {
-        // The history store's connection pool may still hold its file for a moment.
-        for (var attempt = 0; attempt < 20 && Directory.Exists(_folder); attempt++)
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            try
-            {
-                Directory.Delete(_folder, recursive: true);
-            }
-            catch (IOException)
-            {
-                Thread.Sleep(50);
-            }
-        }
-    }
+    public void Dispose() => TestDataFolder.TryDelete(_folder);
 
     /// <summary>The playback's waits: each one completes (a played step) or is cancelled (a pause) when the test says.</summary>
     private sealed class Clock
