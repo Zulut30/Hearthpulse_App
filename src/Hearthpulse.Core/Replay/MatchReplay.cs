@@ -119,6 +119,12 @@ public sealed record ReplayAction(ReplayActionKind Kind, ReplayPlayer? Player)
 
     public string? TargetId { get; init; }
 
+    /// <summary>The replay id of the attacker or the card played (plan R2: the table marks it).</summary>
+    public int? ActorRef { get; init; }
+
+    /// <summary>The replay id of the attack's target, or of the card or hero a play aimed at; null without one shown.</summary>
+    public int? TargetRef { get; init; }
+
     public IReadOnlyList<string> Options { get; init; } = [];
 
     public IReadOnlyList<string> Picked { get; init; } = [];
@@ -413,10 +419,13 @@ public sealed class MatchReplay
                     break;
                 case "A":
                     var attacker = Card(t[1]);
+                    var defender = Card(t[2]);
                     Step(new ReplayAction(ReplayActionKind.Attack, attacker?.Player ?? _active)
                     {
                         CardId = IdOf(attacker),
-                        TargetId = Card(t[2])?.CardId,
+                        TargetId = defender?.CardId,
+                        ActorRef = attacker?.Id,
+                        TargetRef = defender?.Id,
                     });
                     break;
                 case "C" when t[1] == "MULLIGAN":
@@ -452,7 +461,8 @@ public sealed class MatchReplay
             var card = Card(t[1]);
             var kind = card?.Type == "HERO_POWER" ? ReplayActionKind.HeroPower : used ? ReplayActionKind.Use : ReplayActionKind.Play;
             // A card back played (a secret) is named when the log revealed it by the end of the game.
-            var action = new ReplayAction(kind, card?.Player ?? _active) { CardId = IdOf(card), TargetId = Card(t[2])?.CardId };
+            var target = Card(t[2]);
+            var action = new ReplayAction(kind, card?.Player ?? _active) { CardId = IdOf(card), TargetId = target?.CardId, ActorRef = card?.Id, TargetRef = target?.Id };
             if (_pendingPlay)
             {
                 // The step began at the play's B line: fill in what was played.

@@ -257,11 +257,38 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
    Battlegrounds: the step's table from `MatchBgStepView` (Bob's offer or the combat opponent on top, ours at the
    bottom, the step bar, choices, hand; leaderboard and the tavern's or combat's events on the right); a format 3
    file keeps Rounds / Lobby with a note. Constructed: "My side / Opponent's side" (which side is at the bottom), both
-   heroes, boards, hands, secrets, mana, deck count, the turn's actions. Hands, boards and choices are full card
+   heroes, boards, hands, secrets, mana, and the game's event feed. Hands, boards and choices are full card
    renders from HearthstoneJSON (`render/latest/{locale}/256x/{id}.png`, the card-data locale) through `CardArt.Card`
    (disk cache per locale, decoded at 256 px, memory cache bounded in bytes); the current attack and health sit over
    the printed ones; a card back is drawn in the theme. A step with a choice shows its row: the Discover options with
    the picked one framed, or at the mulligan both players' cards kept and replaced. Hover shows the full card.
+   The Constructed table (plan R2, `MatchStepView.ActorRef` / `TargetRef` / `IsAttack`, `MatchCardView.Acting` /
+   `Targeted` / `Change` / `Dying`, `MatchSideView.Hero*` / `HealthChange` / counts):
+   - **Marks.** The step's actor (the attacker, the card played; a spell's is its side's hero, a hero power's its chip)
+     glows in a frame of whose step it is (`Accent` yours, `Accent2` theirs), with a sword badge when it attacks; an
+     attack's target is framed in `Negative` with a target badge; a play's target (spell, hero power, battlecry, Secret)
+     has a dashed frame and an auto-fix badge in the step's colour. Heroes take a ring and the same badges, chips (hero
+     power, weapon, Secret) a ring only. Colour says whose step, the shape what kind (not colour alone: Ember, Frost).
+   - **Arrow.** `MatchArrowLayer` (one per UI) lies over the table, never takes the mouse, finds the two ends by their
+     replay ids (`MatchArrowLayer.Ref` on minions, hero portraits and chips; the step bar is `Middle`) and draws after
+     every layout that moves them. Geometry once in `Presentation/Main/Match/MatchArrowLayout.cs`: straight between the
+     sides, bent towards the step bar on one side; an attack solid with a filled head, a play dashed with a chevron, a
+     shade (`OverlayBadgeShade`) under both. No arrow when an end is not on the table or actor and target are one.
+   - **Badges.** The health a minion or hero gained or lost on the step ("−3" / "+2"; a hero's with its armor, one
+     number) sits over its art or by its portrait, in `Positive` / `Negative`; its tooltip names it. A minion that died
+     on the step stays where it stood for that step, faded under a skull, with its badge and marks (an exchange keeps
+     its arrow); it is gone from the next step.
+   - **Counters.** Under each side's name and mana (the mana wraps under the name when narrow): cards in deck, in hand
+     and Secrets in play (the Secrets at zero too), each with a "9 cards in hand" tooltip; the opponent's hand is card
+     backs and its Secrets "?" as before. Avalonia compact: the name and counters go under the portrait.
+   - **Event feed** (in place of "This turn"; Battlegrounds keeps its own list): every action of the game
+     (`MatchPage.Feed`) under each turn's header ("Turn 7 · You · 1:20", a marker in the turn's colour; the turn on
+     screen in the text colour), the same texts as the turn's actions, the step's row marked and a key card's starred.
+     Built once per game (`MatchViewModel.Feed`), each step only moves the marks in place. A row goes to its step, a
+     header to its turn's first step; neither takes the focus. The feed is as tall as the table (at least 420) in a
+     260-320 column and scrolls on its own to keep the step's row in view (out of sight: a third of the way down; near
+     an edge: just 40 off it; a turn's first action brings its header; `MatchFeedLayout`). Avalonia compact: under the
+     table, 360 at most. It shows later steps too: this is the finished game's review, under the same reveal rule.
 4. Decks: deck-tracker tiles (cost, tile art, copies, as the overlay's deck) with a hover preview. Our list (deck code,
    else the cards we drew) with drawn/played marks; "Opponent's cards": every card the log revealed, with counts, how
    and the first turn (created cards last); its archetype guess; "Likely deck": the most played meta list of its

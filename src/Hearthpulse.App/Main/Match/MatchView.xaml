@@ -75,21 +75,43 @@
             </ControlTemplate>
 
             <!-- A minion or location on the board: the full card render, the current attack and health over the printed
-                 ones, a divine shield halo; the full card shows on hover -->
+                 ones, a divine shield halo; the full card shows on hover. Plan R2: the step's actor glows in a frame of
+                 its side's colour (a sword badge when it attacks), an attack target is framed in Negative, a play's
+                 target dashed; the health it gained or lost on the step sits over the art; one that died on the step
+                 fades under a skull. Whose step and what kind come from the page's Step (MatchArrowLayer draws the arrow). -->
             <DataTemplate x:Key="Minion" DataType="{x:Type r:MatchCardView}">
                 <StackPanel Width="86" Margin="2,0" ToolTip="{Binding Tooltip}">
-                    <Grid Height="129" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
-                        <Border Margin="1,6,1,2" CornerRadius="10" BorderBrush="{StaticResource Info}" BorderThickness="2.5" Opacity="0.85"
-                                Visibility="{Binding DivineShield, Converter={StaticResource Vis}}" />
-                        <ContentControl Template="{StaticResource CardPlaceholder}" Margin="6,10,6,6" />
-                        <Image i:CardArt.Card="{Binding CardId}" Stretch="Uniform" />
-                        <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
-                                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,103,0,0" Visibility="{Binding ShowStats, Converter={StaticResource Vis}}">
-                            <TextBlock Text="{Binding Attack}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Grid Height="129" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" mt:MatchArrowLayer.Ref="{Binding Ref}" mt:MatchArrowLayer.Anchor="Minion">
+                        <Ellipse x:Name="Halo" Margin="-6,-2,-6,10" Fill="{StaticResource Glow}" Visibility="Collapsed" />
+                        <Grid x:Name="Body">
+                            <Border Margin="1,6,1,2" CornerRadius="10" BorderBrush="{StaticResource Info}" BorderThickness="2.5" Opacity="0.85"
+                                    Visibility="{Binding DivineShield, Converter={StaticResource Vis}}" />
+                            <ContentControl Template="{StaticResource CardPlaceholder}" Margin="6,10,6,6" />
+                            <Image i:CardArt.Card="{Binding CardId}" Stretch="Uniform" />
+                            <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
+                                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,103,0,0" Visibility="{Binding ShowStats, Converter={StaticResource Vis}}">
+                                <TextBlock Text="{Binding Attack}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,103,0,0" Visibility="{Binding ShowStats, Converter={StaticResource Vis}}">
+                                <TextBlock x:Name="Hp" Text="{Binding Health}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <Border x:Name="Frame" Margin="-2,3,-2,-1" CornerRadius="11" BorderThickness="2.5" BorderBrush="{StaticResource Accent2}"
+                                Visibility="Collapsed" ToolTip="{i:Loc Match.Mark.Actor}" />
+                        <Rectangle x:Name="Aim" Margin="-2,3,-2,-1" RadiusX="11" RadiusY="11" StrokeThickness="2" StrokeDashArray="3,2" Stroke="{StaticResource Accent2}"
+                                   Visibility="Collapsed" />
+                        <TextBlock x:Name="Skull" Text="&#xF0BC8;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Negative}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,11,0,0" Visibility="Collapsed" />
+                        <Border x:Name="Badge" Width="20" Height="20" CornerRadius="10" Background="{StaticResource Surface3}" BorderBrush="{StaticResource Accent2}" BorderThickness="1"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,2,0" Visibility="Collapsed">
+                            <TextBlock x:Name="BadgeGlyph" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent2}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
-                        <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
-                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,103,0,0" Visibility="{Binding ShowStats, Converter={StaticResource Vis}}">
-                            <TextBlock x:Name="Hp" Text="{Binding Health}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border MinWidth="30" Height="22" CornerRadius="11" Padding="6,0" BorderThickness="1.5" Background="{StaticResource OverlayBadgeShade}"
+                                BorderBrush="{Binding Change, Converter={StaticResource SignBrush}}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,34,0,0"
+                                ToolTip="{Binding ChangeTip}" AutomationProperties.Name="{Binding ChangeTip}" Visibility="{Binding ChangeText, Converter={StaticResource Vis}}">
+                            <TextBlock Text="{Binding ChangeText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="13"
+                                       Foreground="{Binding Change, Converter={StaticResource SignBrush}}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                     </Grid>
                     <TextBlock Text="{Binding Note}" Style="{StaticResource Caption}" FontSize="10.5" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -97,6 +119,61 @@
                 <DataTemplate.Triggers>
                     <DataTrigger Binding="{Binding Damaged}" Value="True">
                         <Setter TargetName="Hp" Property="Foreground" Value="{StaticResource Negative}" />
+                    </DataTrigger>
+                    <!-- The step's actor: the glow and the frame; your step in the accent -->
+                    <DataTrigger Binding="{Binding Acting}" Value="True">
+                        <Setter TargetName="Halo" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Frame" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Acting}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="Frame" Property="ToolTip" Value="{i:Loc Match.Mark.Attacker}" />
+                        <Setter TargetName="Badge" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Badge" Property="ToolTip" Value="{i:Loc Match.Mark.Attacker}" />
+                        <Setter TargetName="Badge" Property="AutomationProperties.Name" Value="{i:Loc Match.Mark.Attacker}" />
+                        <Setter TargetName="BadgeGlyph" Property="Text" Value="&#xF04E5;" />
+                    </MultiDataTrigger>
+                    <!-- A play's target: the dashed frame and the auto-fix badge in the side's colour -->
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Targeted}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="Aim" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Badge" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Badge" Property="ToolTip" Value="{i:Loc Match.Mark.PlayTarget}" />
+                        <Setter TargetName="Badge" Property="AutomationProperties.Name" Value="{i:Loc Match.Mark.PlayTarget}" />
+                        <Setter TargetName="BadgeGlyph" Property="Text" Value="&#xF0068;" />
+                    </MultiDataTrigger>
+                    <DataTrigger Binding="{Binding DataContext.Step.LocalActs, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                        <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource Accent}" />
+                        <Setter TargetName="Aim" Property="Stroke" Value="{StaticResource Accent}" />
+                        <Setter TargetName="Badge" Property="BorderBrush" Value="{StaticResource Accent}" />
+                        <Setter TargetName="BadgeGlyph" Property="Foreground" Value="{StaticResource Accent}" />
+                    </DataTrigger>
+                    <!-- An attack's target: the frame in Negative, the target badge -->
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Targeted}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="Frame" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource Negative}" />
+                        <Setter TargetName="Frame" Property="BorderThickness" Value="3" />
+                        <Setter TargetName="Frame" Property="ToolTip" Value="{i:Loc Match.Mark.AttackTarget}" />
+                        <Setter TargetName="Badge" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Badge" Property="BorderBrush" Value="{StaticResource Negative}" />
+                        <Setter TargetName="Badge" Property="ToolTip" Value="{i:Loc Match.Mark.AttackTarget}" />
+                        <Setter TargetName="Badge" Property="AutomationProperties.Name" Value="{i:Loc Match.Mark.AttackTarget}" />
+                        <Setter TargetName="BadgeGlyph" Property="Text" Value="&#xF04FE;" />
+                        <Setter TargetName="BadgeGlyph" Property="Foreground" Value="{StaticResource Negative}" />
+                    </MultiDataTrigger>
+                    <DataTrigger Binding="{Binding Dying}" Value="True">
+                        <Setter TargetName="Body" Property="Opacity" Value="0.4" />
+                        <Setter TargetName="Skull" Property="Visibility" Value="Visible" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
@@ -172,9 +249,11 @@
                 </StackPanel>
             </DataTemplate>
 
-            <!-- A small round card (weapon, hero power, secret) -->
+            <!-- A small round card (weapon, hero power, secret); plan R2: a ring when it acts or is aimed at, as a minion's frame -->
             <DataTemplate x:Key="Chip" DataType="{x:Type r:MatchCardView}">
-                <Grid Width="40" Height="40" Margin="4,0,0,0" ToolTip="{Binding Tooltip}" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+                <Grid Width="40" Height="40" Margin="4,0,0,0" ToolTip="{Binding Tooltip}" Background="Transparent" c:CardPreview.CardId="{Binding CardId}"
+                      mt:MatchArrowLayer.Ref="{Binding Ref}" mt:MatchArrowLayer.Anchor="Chip">
+                    <Ellipse x:Name="Ring" Margin="-3" StrokeThickness="2" Stroke="{StaticResource Accent2}" Visibility="Collapsed" />
                     <Border x:Name="Face" CornerRadius="20" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5" i:CardArt.Portrait="{Binding CardId}" />
                     <Border x:Name="Back" CornerRadius="20" Background="{StaticResource Surface3}" BorderBrush="{StaticResource Accent}" BorderThickness="1.5" Visibility="Collapsed">
                         <TextBlock Text="?" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -189,6 +268,28 @@
                         <Setter TargetName="Face" Property="Visibility" Value="Collapsed" />
                         <Setter TargetName="Back" Property="Visibility" Value="Visible" />
                     </DataTrigger>
+                    <DataTrigger Binding="{Binding Acting}" Value="True">
+                        <Setter TargetName="Ring" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Targeted}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="Ring" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Ring" Property="StrokeDashArray" Value="3,2" />
+                    </MultiDataTrigger>
+                    <DataTrigger Binding="{Binding DataContext.Step.LocalActs, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                        <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource Accent}" />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Targeted}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="Ring" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource Negative}" />
+                    </MultiDataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
 
@@ -211,29 +312,106 @@
                         <ContentControl Content="{Binding Weapon}" ContentTemplate="{StaticResource Chip}" Visibility="{Binding Weapon, Converter={StaticResource Vis}}" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Grid Width="62" Height="62" ToolTip="{Binding Hero}">
+                        <!-- Plan R2: the portrait glows and is ringed when the hero acts or is aimed at, with its health change -->
+                        <Grid Width="62" Height="62" ToolTip="{Binding Hero}" mt:MatchArrowLayer.Ref="{Binding HeroRef}" mt:MatchArrowLayer.Anchor="Hero">
+                            <Ellipse x:Name="HeroHalo" Margin="-10" Fill="{StaticResource Glow}" Visibility="Collapsed" />
+                            <Ellipse x:Name="HeroRing" Margin="-4" StrokeThickness="2.5" Stroke="{StaticResource Accent2}" Visibility="Collapsed" />
                             <Border CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="2" i:CardArt.Portrait="{Binding HeroCardId}" />
                             <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="6,1"
                                     HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-10,-4">
                                 <TextBlock Text="{Binding HealthText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12" />
+                            </Border>
+                            <Border x:Name="HeroBadge" Width="20" Height="20" CornerRadius="10" Background="{StaticResource Surface3}" BorderBrush="{StaticResource Accent2}" BorderThickness="1"
+                                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-8,-6,0,0" Visibility="Collapsed">
+                                <TextBlock x:Name="HeroBadgeGlyph" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Accent2}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <Border MinWidth="30" Height="22" CornerRadius="11" Padding="6,0" BorderThickness="1.5" Background="{StaticResource OverlayBadgeShade}"
+                                    BorderBrush="{Binding HealthChange, Converter={StaticResource SignBrush}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-12,0"
+                                    ToolTip="{Binding HealthChangeTip}" AutomationProperties.Name="{Binding HealthChangeTip}"
+                                    Visibility="{Binding HealthChangeText, Converter={StaticResource Vis}}">
+                                <TextBlock Text="{Binding HealthChangeText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="13"
+                                           Foreground="{Binding HealthChange, Converter={StaticResource SignBrush}}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                         </Grid>
                         <ContentControl Content="{Binding HeroPower}" ContentTemplate="{StaticResource Chip}" Margin="14,0,0,0" VerticalAlignment="Center"
                                         Visibility="{Binding HeroPower, Converter={StaticResource Vis}}" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" Margin="18,0,0,0" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                            <Border Style="{StaticResource Pill}" Background="{StaticResource SecondaryContainer}" Margin="8,0,0,0" ToolTip="{i:Loc Match.View.ManaTip}">
+                        <WrapPanel>
+                            <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <Border Style="{StaticResource Pill}" Background="{StaticResource SecondaryContainer}" Margin="0,2,0,2" ToolTip="{i:Loc Match.View.ManaTip}">
                                 <StackPanel Orientation="Horizontal">
                                     <c:ManaCost Width="11" Height="11" Margin="0,0,5,0" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding Mana}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
                                 </StackPanel>
                             </Border>
+                        </WrapPanel>
+                        <!-- Plan R2: deck, hand and Secrets as counters (the Secrets at zero too: one width for both sides) -->
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <StackPanel Orientation="Horizontal" Background="Transparent" ToolTip="{Binding DeckTip}" AutomationProperties.Name="{Binding DeckTip}">
+                                <TextBlock Text="&#xF0639;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,3,0" />
+                                <TextBlock Text="{Binding DeckCount}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Background="Transparent" Margin="10,0,0,0" ToolTip="{Binding HandTip}" AutomationProperties.Name="{Binding HandTip}">
+                                <TextBlock Text="&#xF0E47;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,3,0" />
+                                <TextBlock Text="{Binding HandCount}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Background="Transparent" Margin="10,0,0,0" ToolTip="{Binding SecretTip}" AutomationProperties.Name="{Binding SecretTip}">
+                                <TextBlock Text="&#xF078B;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,3,0" />
+                                <TextBlock Text="{Binding SecretCount}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
                         </StackPanel>
-                        <TextBlock Text="{Binding Deck}" Style="{StaticResource Caption}" FontSize="11.5" Margin="0,3,0,0" />
                     </StackPanel>
                 </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding HeroActing}" Value="True">
+                        <Setter TargetName="HeroHalo" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="HeroRing" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding HeroActing}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="HeroBadge" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="HeroBadge" Property="ToolTip" Value="{i:Loc Match.Mark.Attacker}" />
+                        <Setter TargetName="HeroBadge" Property="AutomationProperties.Name" Value="{i:Loc Match.Mark.Attacker}" />
+                        <Setter TargetName="HeroBadgeGlyph" Property="Text" Value="&#xF04E5;" />
+                    </MultiDataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding HeroTargeted}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="False" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="HeroRing" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="HeroRing" Property="StrokeThickness" Value="2" />
+                        <Setter TargetName="HeroRing" Property="StrokeDashArray" Value="3,2" />
+                        <Setter TargetName="HeroBadge" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="HeroBadge" Property="ToolTip" Value="{i:Loc Match.Mark.PlayTarget}" />
+                        <Setter TargetName="HeroBadge" Property="AutomationProperties.Name" Value="{i:Loc Match.Mark.PlayTarget}" />
+                        <Setter TargetName="HeroBadgeGlyph" Property="Text" Value="&#xF0068;" />
+                    </MultiDataTrigger>
+                    <DataTrigger Binding="{Binding DataContext.Step.LocalActs, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                        <Setter TargetName="HeroRing" Property="Stroke" Value="{StaticResource Accent}" />
+                        <Setter TargetName="HeroBadge" Property="BorderBrush" Value="{StaticResource Accent}" />
+                        <Setter TargetName="HeroBadgeGlyph" Property="Foreground" Value="{StaticResource Accent}" />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding HeroTargeted}" Value="True" />
+                            <Condition Binding="{Binding DataContext.Step.IsAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="HeroRing" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="HeroRing" Property="StrokeThickness" Value="3" />
+                        <Setter TargetName="HeroRing" Property="Stroke" Value="{StaticResource Negative}" />
+                        <Setter TargetName="HeroBadge" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="HeroBadge" Property="BorderBrush" Value="{StaticResource Negative}" />
+                        <Setter TargetName="HeroBadge" Property="ToolTip" Value="{i:Loc Match.Mark.AttackTarget}" />
+                        <Setter TargetName="HeroBadge" Property="AutomationProperties.Name" Value="{i:Loc Match.Mark.AttackTarget}" />
+                        <Setter TargetName="HeroBadgeGlyph" Property="Text" Value="&#xF04FE;" />
+                        <Setter TargetName="HeroBadgeGlyph" Property="Foreground" Value="{StaticResource Negative}" />
+                    </MultiDataTrigger>
+                </DataTemplate.Triggers>
             </DataTemplate>
 
             <ItemsPanelTemplate x:Key="CardRow">
@@ -274,6 +452,71 @@
                     <DataTrigger Binding="{Binding Current}" Value="True">
                         <Setter TargetName="Mark" Property="Background" Value="{StaticResource SelectedFill}" />
                         <Setter TargetName="Mark" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- A row of the game's event feed (plan R2): a turn's header (a marker in the turn's colour, its text, a rule; the
+                 turn on screen in the text colour; a click goes to its first step), or an action as the turn's action row.
+                 Neither takes the focus: the player keeps its keys. -->
+            <DataTemplate x:Key="FeedRow" DataType="{x:Type r:MatchFeedRow}">
+                <Grid>
+                    <Button x:Name="HeaderRow" Style="{StaticResource RowButton}" Focusable="False" Padding="2,0" Height="26" Margin="0,10,0,4" HorizontalContentAlignment="Stretch"
+                            Command="{Binding DataContext.GoFrame, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            ToolTip="{Binding Text}" AutomationProperties.Name="{Binding Text}" Visibility="Collapsed">
+                        <DockPanel>
+                            <Border x:Name="Marker" DockPanel.Dock="Left" Width="3" Height="14" CornerRadius="1.5" Background="{StaticResource Accent2}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="HeaderText" DockPanel.Dock="Left" Text="{Binding Text}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                                       Margin="8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <Border Height="1" Background="{StaticResource Border}" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </Button>
+                    <Button x:Name="Row" Style="{StaticResource RowButton}" Focusable="False" Padding="10,6" Margin="0,0,0,3"
+                            Command="{Binding DataContext.GoFrame, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            AutomationProperties.Name="{Binding Text}">
+                        <Grid>
+                            <Border x:Name="Mark" CornerRadius="8" Margin="-10,-6" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" />
+                            <Border x:Name="Edge" Width="3" CornerRadius="1.5" Margin="-10,-2,0,-2" HorizontalAlignment="Left" Background="{StaticResource Accent2Line}" />
+                            <DockPanel Margin="2,0,0,0">
+                                <Grid DockPanel.Dock="Left" Width="26" Height="26" Margin="0,0,10,0" VerticalAlignment="Top">
+                                    <Border x:Name="Disc" CornerRadius="13" Background="{StaticResource Accent2Soft}" />
+                                    <TextBlock x:Name="Glyph" Text="{Binding Icon}" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent2}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
+                                <TextBlock x:Name="Star" DockPanel.Dock="Right" Text="&#xF04CE;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent}"
+                                           VerticalAlignment="Top" Margin="6,5,0,0" Visibility="Collapsed" />
+                                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            </DockPanel>
+                        </Grid>
+                    </Button>
+                </Grid>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Local}" Value="True">
+                        <Setter TargetName="Edge" Property="Background" Value="{StaticResource AccentLine}" />
+                        <Setter TargetName="Disc" Property="Background" Value="{StaticResource AccentSoft}" />
+                        <Setter TargetName="Glyph" Property="Foreground" Value="{StaticResource Accent}" />
+                        <Setter TargetName="Marker" Property="Background" Value="{StaticResource Accent}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Mulligan}" Value="True">
+                        <Setter TargetName="Marker" Property="Background" Value="{StaticResource Muted}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Key}" Value="True">
+                        <Setter TargetName="Mark" Property="BorderBrush" Value="{StaticResource AccentLine}" />
+                        <Setter TargetName="Star" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Row" Property="ToolTip" Value="{Binding KeyReason}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Current}" Value="True">
+                        <Setter TargetName="Mark" Property="Background" Value="{StaticResource SelectedFill}" />
+                        <Setter TargetName="Mark" Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
+                        <Setter TargetName="HeaderText" Property="Foreground" Value="{StaticResource Text}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Header}" Value="True">
+                        <Setter TargetName="HeaderRow" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="Row" Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                    <!-- The first header (the game's first step) without the gap over it -->
+                    <DataTrigger Binding="{Binding Frame}" Value="0">
+                        <Setter TargetName="HeaderRow" Property="Margin" Value="0,0,0,4" />
                     </DataTrigger>
                 </DataTemplate.Triggers>
             </DataTemplate>
@@ -813,63 +1056,70 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Constructed: both sides, the step, the turn's actions -->
+                <!-- Constructed: both sides, the step, the game's event feed (plan R2: the feed's column 260-320, its height
+                     the table's, set by the code-behind so the list never stretches the row) -->
                 <StackPanel Visibility="{Binding ShowConstructedTable, Converter={StaticResource Vis}}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="16" />
-                            <ColumnDefinition Width="300" />
+                            <ColumnDefinition Width="0.5*" MinWidth="260" MaxWidth="320" />
                         </Grid.ColumnDefinitions>
-                        <!-- The table -->
-                        <Border Style="{StaticResource Card}" Padding="18,14" DataContext="{Binding Step}">
-                            <StackPanel>
-                                <ItemsControl ItemsSource="{Binding Top.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="116" />
-                                <ContentControl Content="{Binding Top}" ContentTemplate="{StaticResource HeroLine}" />
-                                <ItemsControl ItemsSource="{Binding Top.Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource CardRow}" MinHeight="146" Margin="0,4" />
-                                <!-- The step: whose it is shows in the edge and turn colour (gold yours, second accent theirs) -->
-                                <Border CornerRadius="8" Padding="12,7" Margin="0,8" BorderThickness="3,0,0,0">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="{StaticResource Accent2Soft}" />
-                                            <Setter Property="BorderBrush" Value="{StaticResource Accent2Line}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding LocalActs}" Value="True">
-                                                    <Setter Property="Background" Value="{StaticResource AccentSoft}" />
-                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <DockPanel>
-                                        <TextBlock DockPanel.Dock="Left" Text="{Binding Turn}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" Margin="0,0,12,0" VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{StaticResource Accent2}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding LocalActs}" Value="True">
-                                                            <Setter Property="Foreground" Value="{StaticResource Accent}" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                        <TextBlock Text="{Binding Action}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Detail}" />
-                                    </DockPanel>
-                                </Border>
-                                <!-- The step's choice: the Discover options, or both mulligans -->
-                                <ItemsControl ItemsSource="{Binding Choices}" ItemTemplate="{StaticResource ChoiceRow}" Margin="0,0,0,6"
-                                              Visibility="{Binding Choices.Count, Converter={StaticResource Vis}}" />
-                                <ItemsControl ItemsSource="{Binding Bottom.Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource CardRow}" MinHeight="146" Margin="0,4" />
-                                <ContentControl Content="{Binding Bottom}" ContentTemplate="{StaticResource HeroLine}" />
-                                <ItemsControl ItemsSource="{Binding Bottom.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="116" />
-                            </StackPanel>
+                        <!-- The table, the step's arrow over it (it never takes the mouse) -->
+                        <Border x:Name="TableCard" Style="{StaticResource Card}" Padding="18,14" VerticalAlignment="Top" DataContext="{Binding Step}" SizeChanged="OnTableSized">
+                            <Grid>
+                                <StackPanel>
+                                    <ItemsControl ItemsSource="{Binding Top.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="116" />
+                                    <ContentControl Content="{Binding Top}" ContentTemplate="{StaticResource HeroLine}" />
+                                    <ItemsControl ItemsSource="{Binding Top.Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource CardRow}" MinHeight="146" Margin="0,4" />
+                                    <!-- The step: whose it is shows in the edge and turn colour (gold yours, second accent theirs) -->
+                                    <Border CornerRadius="8" Padding="12,7" Margin="0,8" BorderThickness="3,0,0,0" mt:MatchArrowLayer.Middle="True">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{StaticResource Accent2Soft}" />
+                                                <Setter Property="BorderBrush" Value="{StaticResource Accent2Line}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding LocalActs}" Value="True">
+                                                        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+                                                        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Left" Text="{Binding Turn}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource Accent2}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding LocalActs}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding Action}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding Detail}" />
+                                        </DockPanel>
+                                    </Border>
+                                    <!-- The step's choice: the Discover options, or both mulligans -->
+                                    <ItemsControl ItemsSource="{Binding Choices}" ItemTemplate="{StaticResource ChoiceRow}" Margin="0,0,0,6"
+                                                  Visibility="{Binding Choices.Count, Converter={StaticResource Vis}}" />
+                                    <ItemsControl ItemsSource="{Binding Bottom.Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource CardRow}" MinHeight="146" Margin="0,4" />
+                                    <ContentControl Content="{Binding Bottom}" ContentTemplate="{StaticResource HeroLine}" />
+                                    <ItemsControl ItemsSource="{Binding Bottom.Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="116" />
+                                </StackPanel>
+                                <mt:MatchArrowLayer From="{Binding ActorRef}" To="{Binding TargetRef}" IsAttack="{Binding IsAttack}" Local="{Binding LocalActs}" />
+                            </Grid>
                         </Border>
-                        <!-- The turn's actions -->
-                        <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16,14">
+                        <!-- The game's event feed: every action under its turn's header, the step on screen kept in view -->
+                        <Border x:Name="FeedCard" Grid.Column="2" Style="{StaticResource Card}" Padding="16,14" MinHeight="420" VerticalAlignment="Top">
                             <DockPanel>
-                                <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Match.View.ThisTurn}" Icon="&#xF0467;" Size="13" Margin="0,0,0,8" />
-                                <ItemsControl ItemsSource="{Binding Actions}" ItemTemplate="{StaticResource ActionRow}" />
+                                <c:Ornament DockPanel.Dock="Top" Text="{i:Loc Match.View.Feed}" Icon="&#xF0279;" Size="13" Margin="0,0,0,8" />
+                                <ScrollViewer x:Name="FeedScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                                    <ItemsControl x:Name="Feed" ItemsSource="{Binding Feed}" ItemTemplate="{StaticResource FeedRow}" Focusable="False"
+                                                  AutomationProperties.Name="{i:Loc Match.View.FeedName}" />
+                                </ScrollViewer>
                             </DockPanel>
                         </Border>
                     </Grid>

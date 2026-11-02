@@ -40,6 +40,7 @@ internal static partial class OffscreenRenderer
                 }
             }
 
+            await RenderMatchTableAsync(main, view, page, folder);
             page.Frame = page.FrameMax * 2 / 3;
             await RenderMatchNavigationAsync(main, view, page, folder);
 
@@ -58,6 +59,59 @@ internal static partial class OffscreenRenderer
         }
 
         page.Back.Execute(null);
+    }
+
+    /// <summary>
+    /// Plan R2: the table's marks on the game's first attack (the arrow, the attacker and its target, the change badges),
+    /// an exchange (a minion dying on the step, faded where it stood), a play aimed at a card (the dashed arrow), each as
+    /// the page and the table card, the event feed's card at the attack, and the attack at the narrowest window and at
+    /// phone width (the feed under the table).
+    /// </summary>
+    private static async Task RenderMatchTableAsync(Window main, MainView view, UI.Main.Match.MatchViewModel page, string folder)
+    {
+        static bool Dying(Core.Replay.MatchStepView s) => s.Top.Board.Concat(s.Bottom.Board).Any(c => c.Dying);
+        Border? Named(string name) => view.GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == name && b.IsEffectivelyVisible);
+        var scenes = new (string Name, Func<Core.Replay.MatchStepView, bool> Match)[]
+        {
+            ("main-match-attack", s => s is { IsAttack: true, ActorRef: not 0, TargetRef: not 0 } && !Dying(s)),
+            ("main-match-exchange", s => s.IsAttack && Dying(s)),
+            ("main-match-target", s => s is { IsAttack: false, ActorRef: not 0, TargetRef: not 0 }),
+        };
+        foreach (var (name, match) in scenes)
+        {
+            if (page.FrameWhere(match) is not (>= 0 and var frame))
+            {
+                Console.WriteLine($"{name}: skipped, the game has no such step");
+                continue;
+            }
+
+            page.Frame = frame;
+            await Save(main, Path.Combine(folder, name + ".png"));
+            // The crops from the tall frame: the table and the feed are below the fold at 840.
+            main.Height = 2400;
+            await Save(main, Path.Combine(folder, name + "-full.png"));
+            if (Named("TableCard") is { } table)
+            {
+                SaveCrop(main, table, Path.Combine(folder, name + "-table.png"));
+            }
+
+            if (name == "main-match-attack" && Named("FeedCard") is { } feed)
+            {
+                SaveCrop(main, feed, Path.Combine(folder, "main-match-feed.png"));
+            }
+
+            main.Height = 840;
+            if (name == "main-match-attack")
+            {
+                main.Width = 1040;
+                await SaveMatch(main, folder, "main-match-attack-1040");
+                main.Width = 420;
+                main.Height = 2600;
+                await Save(main, Path.Combine(folder, "main-match-attack-compact.png"));
+                main.Width = 1260;
+                main.Height = 840;
+            }
+        }
     }
 
     /// <summary>

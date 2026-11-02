@@ -95,6 +95,21 @@ public sealed class MatchXamlLoadTests
         Assert.Equal(model.TimelineSegments.Count + model.TimelineTicks.Count + 2, timeline.Children.Count);
         Assert.Equal(model.TimelineSegments.Count, model.Turns.Count);
 
+        // Plan R2: the attack's arrow is found between the two minions (it never takes the mouse); the attacker shows its
+        // sword badge, the target its health lost; the feed lists every row beside a table as tall as it.
+        model.Frame = model.FrameOf(ReplayActionKind.Attack);
+        Layout(view);
+        var layer = Descendants(view).OfType<MatchArrowLayer>().Single();
+        Assert.False(layer.IsHitTestVisible);
+        Assert.True(layer.Arrow() is { Attack: true, Local: false });
+        Assert.Contains(Descendants(view).OfType<Border>(), b => b is { Name: "Badge", Visibility: Visibility.Visible, DataContext: MatchCardView { Acting: true } });
+        Assert.Contains(Descendants(view).OfType<TextBlock>(), t => t.Text == "−4");
+        var feed = (ItemsControl)view.FindName("Feed");
+        Assert.Equal(model.Feed.Count, feed.Items.Count);
+        Assert.True(((FrameworkElement)view.FindName("FeedCard")).ActualHeight >= 420);
+        var counters = Descendants(view).OfType<StackPanel>().Select(p => p.ToolTip as string).ToList();
+        Assert.Contains(model.Step!.Bottom.HandTip, counters);
+
         // Plan R1: the "Turn" list over the timeline shows the stretch on screen; a bookmark adds its mark under them.
         var turns = (ComboBox)view.FindName("TurnBox");
         Assert.Equal(model.Jumps.Count, turns.Items.Count);
