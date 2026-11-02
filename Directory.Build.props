@@ -9,10 +9,17 @@
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
   </PropertyGroup>
 
-  <!-- Code analyzers for the shipped code in src/* (build-time only: PrivateAssets keeps them out of the published apps).
-       Which rules are warnings and why the rest are off: .editorconfig. Not in tests/* and tools/*: there the findings
-       were test literals, console output and deliberate idioms (nested dispatcher frames, synchronous fixture I/O). -->
-  <ItemGroup Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)src'))">
+  <!-- CI (HEARTHPULSE_STRICT=true in ci.yml) fails on any warning: compiler, analyzers, XAML. NuGet vulnerability
+       advisories (NU1901-NU1904) stay warnings: one published overnight must not stop every branch; it is a task of its
+       own. Local builds and the release workflow are unchanged. -->
+  <PropertyGroup Condition="'$(HEARTHPULSE_STRICT)' == 'true'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <!-- Code analyzers for every project (build-time only: PrivateAssets keeps them out of the published apps). Which rules
+       are warnings and why the rest are off: .editorconfig; tests/* and tools/* get the soft set there (ADR 0003). -->
+  <ItemGroup>
     <PackageReference Include="Meziantou.Analyzer" Version="3.0.317" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
   </ItemGroup>

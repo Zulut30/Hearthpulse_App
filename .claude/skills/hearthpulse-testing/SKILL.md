@@ -48,8 +48,9 @@ properties) in contract tests rather than forcing the two UIs to have identical 
   `<dir>/<guid>/coverage.cobertura.xml` (per assembly `line-rate` / `branch-rate`; the WPF app is `Hearthpulse`). CI's
   Windows job collects it and writes the per-project table into the job summary (artifact `coverage-windows`).
   Instrumentation makes hot code ~15x slower: a test that asserts on wall-clock time gets
-  `[Trait("Category", "Timing")]`, and coverage runs use `--filter "Category!=Timing"` (CI runs those in a step of
-  their own).
+  `[Trait("Category", "Timing")]` and lives in a class of the `[Collection(nameof(TimingCollection))]` (no
+  parallelism, runs after the parallel collections), and coverage runs use `--filter "Category!=Timing"` (CI runs
+  those in a step of their own).
 
 ## Establish the baseline for the change
 
@@ -114,7 +115,10 @@ Every network client takes an `HttpClient`, so tests pass `new HttpClient(handle
 | `Stub(status, body)`, `Offline` | `UpdateTests` | `UpdateService.CheckAsync(new HttpClient(new Stub(HttpStatusCode.OK, json)))` |
 
 Write a private nested `HttpMessageHandler` subclass in the test file; there is no shared mock library. Time and
-delays are injected too (`AccountService.Delay`, a swappable clock) - never `Task.Delay` real seconds.
+delays are injected too (`AccountService.Delay`, a swappable clock, a `TimeProvider` parameter driven by
+`FakeTimeProvider` from Microsoft.Extensions.TimeProvider.Testing) - never `Task.Delay` or `Thread.Sleep` in a test.
+Background work is awaited through its event (`Changed`, `PropertyChanged`) or a `TaskCompletionSource`; a timeout on
+that wait only bounds a hang (10 s or more), it never decides the result.
 
 ### Data isolation
 
@@ -124,7 +128,8 @@ delays are injected too (`AccountService.Delay`, a swappable clock) - never `Tas
   `TestDataFolder.ReadLog()` - a plain `File.ReadAllText` locks out `Diag` in a parallel test and that line is lost.
 - A `GameSession` in a test: set `Clock`, `IsHearthstoneRunning` and `ReadsMemory = false` (internal hooks), so time is
   yours and a client running on the machine is not read.
-- Use a unique temp path and clean it in `Dispose`: `Path.Combine(Path.GetTempPath(), "hp-<area>-" + Guid.NewGuid().ToString("N"))`
+- Scratch files of a test: `TestDataFolder.Scratch("hp-<area>")` and `TestDataFolder.TryDelete(path)` in `Dispose`
+  (no retry loop: a file a background read still holds goes with the run's folder). Elsewhere, a unique temp path: `Path.Combine(Path.GetTempPath(), "hp-<area>-" + Guid.NewGuid().ToString("N"))`
   or `Directory.CreateTempSubdirectory("hl-platform-")`.
 - Pass paths into the class under test (`new TokenStore(path)`, `new HistoryStore(dbPath)`,
   `new HearthpulseData(api, cacheDir)`). `AppPaths` is static and creates the real folder on first use - code you

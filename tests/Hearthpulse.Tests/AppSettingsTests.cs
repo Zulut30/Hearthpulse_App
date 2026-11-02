@@ -193,17 +193,16 @@ public sealed class AppSettingsTests : IDisposable
         var saved = new AppSettings { OverlayEnabled = false };
         saved.Save(FilePath);
         var held = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.None);
-        // A thread of its own: in a full parallel run the pool can be too busy to let go in time.
-        var release = new Thread(() =>
+        var pauses = 0;
+
+        // The other program lets go during the first pause between attempts.
+        var settings = AppSettings.Load(FilePath, () =>
         {
-            Thread.Sleep(150);
+            pauses++;
             held.Dispose();
         });
-        release.Start();
 
-        var settings = AppSettings.Load(FilePath);
-        release.Join();
-
+        Assert.Equal(1, pauses);
         Assert.False(settings.OverlayEnabled);
         Assert.False(File.Exists(FilePath + ".invalid"));
     }

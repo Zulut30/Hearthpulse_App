@@ -455,10 +455,15 @@ public sealed class BgOpponentMmrTests : IDisposable
     }
 
     [Fact]
-    public void While_the_table_downloads_the_opponents_show_loading()
+    public async Task While_the_table_downloads_the_opponents_show_loading()
     {
         var server = new Server(total: 30) { Hold = new TaskCompletionSource() };
-        _session.SetBgLeaderboards(Source(server));
+        var source = Source(server);
+        _session.SetBgLeaderboards(source);
+
+        // After the session's own handler: handlers run in order, so the session has marked itself dirty by then.
+        var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        source.Changed += () => loaded.TrySetResult();
         _session.SetBgOpponentMmrEnabled(true);
         StartGame();
         var id = Opponents()[0].PlayerId;
@@ -467,12 +472,8 @@ public sealed class BgOpponentMmrTests : IDisposable
         Assert.Equal(BgMmrStatus.Loading, Opponents().Single(o => o.PlayerId == id).Mmr!.Status);
 
         server.Hold.SetResult();
-        var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (Opponents().Single(o => o.PlayerId == id).Mmr!.Status == BgMmrStatus.Loading && DateTime.UtcNow < deadline)
-        {
-            Thread.Sleep(20);
-            Tick();
-        }
+        await loaded.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Tick();
 
         Is(BgMmrStatus.Found, 19997, Opponents().Single(o => o.PlayerId == id).Mmr);
     }

@@ -12,6 +12,86 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsResources.axaml" />
             </ResourceDictionary.MergedDictionaries>
+            <!-- The rewards editor of a run: five whole numbers, Enter saves, Esc cancels (docs/arena-rewards.md) -->
+            <DataTemplate x:Key="ArenaRewardsEditor" x:DataType="m:ArenaRewardsEdit">
+                <StackPanel Margin="0,10,0,0" AutomationProperties.Name="{Binding Name}">
+                    <StackPanel.KeyBindings>
+                        <KeyBinding Gesture="Escape" Command="{Binding Cancel}" />
+                    </StackPanel.KeyBindings>
+                    <UniformGrid Columns="3">
+                        <StackPanel Margin="0,0,8,8" ToolTip.Tip="{i:Loc Stats.Arena.Rewards.FieldTip}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="&#xF0B38;" Classes="icon" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Stats.Arena.Rewards.Gold}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <TextBox Text="{Binding Gold}" Padding="6,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                                     AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Gold}" Loaded="FocusOnLoad">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Gesture="Enter" Command="{Binding Save}" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,8,8" ToolTip.Tip="{i:Loc Stats.Arena.Rewards.DustTip}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="&#xF01C8;" Classes="icon" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Stats.Arena.Rewards.Dust}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <TextBox Text="{Binding Dust}" Padding="6,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                                     AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Dust}">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Gesture="Enter" Command="{Binding Save}" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,8,8" ToolTip.Tip="{i:Loc Stats.Arena.Rewards.PacksTip}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="&#xF03D7;" Classes="icon" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Stats.Arena.Rewards.Packs}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <TextBox Text="{Binding Packs}" Padding="6,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                                     AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Packs}">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Gesture="Enter" Command="{Binding Save}" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,8,8" ToolTip.Tip="{i:Loc Stats.Arena.Rewards.TicketsTip}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="&#xF0516;" Classes="icon" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Stats.Arena.Rewards.Tickets}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <TextBox Text="{Binding Tickets}" Padding="6,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                                     AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Tickets}">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Gesture="Enter" Command="{Binding Save}" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,8,8" ToolTip.Tip="{i:Loc Stats.Arena.Rewards.CardsTip}">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="&#xF06C7;" Classes="icon" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Stats.Arena.Rewards.Cards}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <TextBox Text="{Binding Cards}" Padding="6,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                                     AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Cards}">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Gesture="Enter" Command="{Binding Save}" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                        </StackPanel>
+                    </UniformGrid>
+                    <TextBlock Text="{Binding Error}" FontSize="11.5" Foreground="{StaticResource Negative}" TextWrapping="Wrap" Margin="0,0,0,4"
+                               IsVisible="{Binding Error, Converter={StaticResource Truthy}}" />
+                    <DockPanel Margin="0,4,0,2">
+                        <Button DockPanel.Dock="Right" Classes="ghost" Content="{i:Loc Stats.Arena.Rewards.Clear}" Command="{Binding Clear}" Padding="10,6"
+                                ToolTip.Tip="{i:Loc Stats.Arena.Rewards.ClearTip}" IsVisible="{Binding CanClear}" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Classes="ghost primary" Content="{i:Loc Stats.Arena.Rewards.Save}" Command="{Binding Save}" IsEnabled="{Binding CanSave}" Padding="12,6" />
+                            <Button Classes="ghost" Content="{i:Loc Stats.Arena.Rewards.Cancel}" Command="{Binding Cancel}" Padding="10,6" Margin="6,0,0,0" />
+                        </StackPanel>
+                    </DockPanel>
+                </StackPanel>
+            </DataTemplate>
             <!-- A card of the deck score: name and ArenaSmith score in its tier colour -->
             <DataTemplate x:Key="ArenaCardLineTemplate" x:DataType="m:ArenaCardLine">
                 <Grid Margin="0,0,0,5" ColumnDefinitions="*,Auto">
@@ -24,6 +104,26 @@
     </UserControl.Resources>
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Main/Stats/StatsStyles.axaml" />
+        <!-- The rewards chip of a run (a copy of the deck page's diffChip) -->
+        <Style Selector="Border.rewardsChip">
+            <Setter Property="Background" Value="{StaticResource Surface4}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="8,3,6,3" />
+            <Setter Property="MinHeight" Value="24" />
+        </Style>
+        <Style Selector="Border.rewardsChip TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="Button.rewardsToggle:pointerover Border.rewardsChip">
+            <Setter Property="Background" Value="{StaticResource Outline}" />
+        </Style>
+        <Style Selector="Button.rewardsToggle:pointerover Border.rewardsChip TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Text}" />
+        </Style>
+        <!-- The row being edited keeps the Row fill (no hover change) -->
+        <Style Selector="Border.row.editing, Border.row.editing:pointerover">
+            <Setter Property="Background" Value="{StaticResource Row}" />
+        </Style>
     </UserControl.Styles>
     <StackPanel>
         <Grid Classes="statsHead" Margin="0,0,0,14" RowDefinitions="Auto,Auto">
@@ -39,7 +139,8 @@
             </Border>
         </Grid>
 
-        <ItemsControl ItemsSource="{Binding ArenaStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsKpiPanel}" Margin="0,0,-12,4" />
+        <!-- Six tiles (the last: rewards) in rows of three, as Constructed's -->
+        <ItemsControl ItemsSource="{Binding ArenaStatTiles}" ItemTemplate="{StaticResource StatsTile}" ItemsPanel="{StaticResource StatsTilesPanel3}" Margin="0,0,-12,4" />
 
         <Grid Margin="0,0,0,24" RowDefinitions="Auto,Auto">
             <Grid.ColumnDefinitions>
@@ -53,8 +154,8 @@
                     <ItemsControl ItemsSource="{Binding ArenaRuns}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:ArenaRunRow">
-                                <Border Classes="row" Padding="10,7" Margin="-10,0,-10,2">
-                                    <Grid>
+                                <Border Classes="row" Classes.editing="{Binding Editing}" Padding="10,7" Margin="-10,0,-10,2">
+                                    <Grid RowDefinitions="Auto,Auto,Auto">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
@@ -76,6 +177,37 @@
                                             </Border>
                                             <TextBlock Text="{Binding Record}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="16" MinWidth="44" TextAlignment="Right" />
                                         </StackPanel>
+                                        <!-- The run's rewards (entered by the player), or "+ Add rewards"; hidden while its editor is open -->
+                                        <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,6,0,0" Classes="bare rewardsToggle" HorizontalAlignment="Left"
+                                                Command="{Binding EditRewards}" CommandParameter="{Binding Key}" ToolTip.Tip="{Binding RewardsTip}" Loaded="ChipLoaded"
+                                                AutomationProperties.Name="{Binding RewardsTip}" IsVisible="{Binding !Editing}">
+                                            <Border Classes="rewardsChip">
+                                                <WrapPanel>
+                                                    <ItemsControl ItemsSource="{Binding RewardParts}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="m:ArenaRewardPart">
+                                                                <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                                                                    <TextBlock Text="{Binding Glyph}" Classes="icon" FontSize="13" VerticalAlignment="Center" />
+                                                                    <TextBlock Text="{Binding Amount}" FontSize="11.5" FontWeight="SemiBold" Margin="3,0,0,0" VerticalAlignment="Center" />
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock Text="&#xF03EB;" Classes="icon" FontSize="13" VerticalAlignment="Center" IsVisible="{Binding HasRewards}" />
+                                                    <StackPanel Orientation="Horizontal" IsVisible="{Binding !HasRewards}">
+                                                        <TextBlock Text="&#xF0415;" Classes="icon" FontSize="13" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                                        <TextBlock Text="{i:Loc Stats.Arena.Rewards.Add}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </WrapPanel>
+                                            </Border>
+                                        </Button>
+                                        <ContentControl Grid.Row="2" Grid.ColumnSpan="3" Content="{Binding Edit}" ContentTemplate="{StaticResource ArenaRewardsEditor}"
+                                                        IsVisible="{Binding Editing}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>

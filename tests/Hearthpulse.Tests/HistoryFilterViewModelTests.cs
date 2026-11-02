@@ -11,7 +11,7 @@ namespace Hearthpulse.Tests;
 /// </summary>
 public sealed class HistoryFilterViewModelTests : IDisposable
 {
-    private readonly string _db = Path.Combine(Path.GetTempPath(), $"hp-history-vm-{Guid.NewGuid():N}.db");
+    private readonly string _db = TestDataFolder.Scratch("hp-history-vm") + ".db";
     private readonly HistoryStore _history;
 
     public HistoryFilterViewModelTests()
@@ -35,23 +35,7 @@ public sealed class HistoryFilterViewModelTests : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        // A refresh ends with My Stats loading in the background, which may still hold the file for a moment.
-        for (var attempt = 0; attempt < 20; attempt++)
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            try
-            {
-                File.Delete(_db);
-                return;
-            }
-            catch (IOException)
-            {
-                Thread.Sleep(50);
-            }
-        }
-    }
+    public void Dispose() => TestDataFolder.TryDelete(_db);
 
     [Fact]
     public async Task With_the_games_in_memory_all_rows_are_there_when_the_task_ends()

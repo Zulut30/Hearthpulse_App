@@ -348,10 +348,14 @@ public sealed class DiscoverPicksTests
             load = loads[^1];
         }
 
-        if (await Task.WhenAny(load, Task.Delay(TimeSpan.FromMinutes(1))) == load)
+        try
         {
-            await load;
+            await load.WaitAsync(TimeSpan.FromMinutes(1));
             return;
+        }
+        catch (TimeoutException)
+        {
+            // Said below, with what the load did.
         }
 
         string[] urls;

@@ -11,6 +11,135 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="StatsResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <!-- The rewards chip of a run: its rewards above 0 and a pencil, or "+ Add rewards" (a copy of the deck page's DiffToggle) -->
+            <Style x:Key="RewardsChip" TargetType="Button">
+                <Setter Property="Foreground" Value="{StaticResource Muted}" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingChip}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{StaticResource Surface4}" CornerRadius="6" Padding="8,3,6,3" MinHeight="24">
+                                <ContentPresenter VerticalAlignment="Center" TextElement.FontSize="11.5" TextElement.FontWeight="SemiBold" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Outline}" />
+                                    <Setter Property="Foreground" Value="{StaticResource Text}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- The rewards editor of a run: five whole numbers, Enter saves, Esc cancels (docs/arena-rewards.md) -->
+            <DataTemplate x:Key="ArenaRewardsEditor" DataType="{x:Type m:ArenaRewardsEdit}">
+                <StackPanel Margin="0,10,0,0" AutomationProperties.Name="{Binding Name}">
+                    <StackPanel.InputBindings>
+                        <KeyBinding Key="Escape" Command="{Binding Cancel}" />
+                    </StackPanel.InputBindings>
+                    <UniformGrid Columns="3">
+                <StackPanel Margin="0,0,8,8" ToolTip="{i:Loc Stats.Arena.Rewards.FieldTip}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="&#xF0B38;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{i:Loc Stats.Arena.Rewards.Gold}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Grid>
+                        <TextBox x:Name="GoldBox" Text="{Binding Gold, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" TextAlignment="Right" MaxLength="5"
+                                 AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Gold}" Loaded="FocusOnLoad">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding Save}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <!-- Empty means 0 -->
+                        <TextBlock Text="0" Foreground="{StaticResource Faint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,9,0" IsHitTestVisible="False"
+                                   Visibility="{Binding Gold, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    </Grid>
+                </StackPanel>
+                <StackPanel Margin="0,0,8,8" ToolTip="{i:Loc Stats.Arena.Rewards.DustTip}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="&#xF01C8;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{i:Loc Stats.Arena.Rewards.Dust}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Grid>
+                        <TextBox x:Name="DustBox" Text="{Binding Dust, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" TextAlignment="Right" MaxLength="5"
+                                 AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Dust}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding Save}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <!-- Empty means 0 -->
+                        <TextBlock Text="0" Foreground="{StaticResource Faint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,9,0" IsHitTestVisible="False"
+                                   Visibility="{Binding Dust, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    </Grid>
+                </StackPanel>
+                <StackPanel Margin="0,0,8,8" ToolTip="{i:Loc Stats.Arena.Rewards.PacksTip}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="&#xF03D7;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{i:Loc Stats.Arena.Rewards.Packs}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Grid>
+                        <TextBox x:Name="PacksBox" Text="{Binding Packs, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" TextAlignment="Right" MaxLength="5"
+                                 AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Packs}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding Save}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <!-- Empty means 0 -->
+                        <TextBlock Text="0" Foreground="{StaticResource Faint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,9,0" IsHitTestVisible="False"
+                                   Visibility="{Binding Packs, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    </Grid>
+                </StackPanel>
+                <StackPanel Margin="0,0,8,8" ToolTip="{i:Loc Stats.Arena.Rewards.TicketsTip}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="&#xF0516;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{i:Loc Stats.Arena.Rewards.Tickets}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Grid>
+                        <TextBox x:Name="TicketsBox" Text="{Binding Tickets, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" TextAlignment="Right" MaxLength="5"
+                                 AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Tickets}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding Save}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <!-- Empty means 0 -->
+                        <TextBlock Text="0" Foreground="{StaticResource Faint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,9,0" IsHitTestVisible="False"
+                                   Visibility="{Binding Tickets, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    </Grid>
+                </StackPanel>
+                <StackPanel Margin="0,0,8,8" ToolTip="{i:Loc Stats.Arena.Rewards.CardsTip}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="&#xF06C7;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{i:Loc Stats.Arena.Rewards.Cards}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Grid>
+                        <TextBox x:Name="CardsBox" Text="{Binding Cards, UpdateSourceTrigger=PropertyChanged}" Padding="6,4" TextAlignment="Right" MaxLength="5"
+                                 AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Cards}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding Save}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <!-- Empty means 0 -->
+                        <TextBlock Text="0" Foreground="{StaticResource Faint}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,9,0" IsHitTestVisible="False"
+                                   Visibility="{Binding Cards, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    </Grid>
+                </StackPanel>
+                    </UniformGrid>
+                    <TextBlock Text="{Binding Error}" FontSize="11.5" Foreground="{StaticResource Negative}" TextWrapping="Wrap" Margin="0,0,0,4"
+                               Visibility="{Binding Error, Converter={StaticResource Vis}}" />
+                    <DockPanel Margin="0,4,0,2">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="{i:Loc Stats.Arena.Rewards.Clear}" Command="{Binding Clear}" Padding="10,6"
+                                ToolTip="{i:Loc Stats.Arena.Rewards.ClearTip}" Visibility="{Binding CanClear, Converter={StaticResource Vis}}" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Stats.Arena.Rewards.Save}" Command="{Binding Save}" IsEnabled="{Binding CanSave}" Padding="12,6" />
+                            <Button Style="{StaticResource GhostButton}" Content="{i:Loc Stats.Arena.Rewards.Cancel}" Command="{Binding Cancel}" Padding="10,6" Margin="6,0,0,0" />
+                        </StackPanel>
+                    </DockPanel>
+                </StackPanel>
+            </DataTemplate>
+
             <!-- A card of the deck score: name and ArenaSmith score in its tier colour -->
             <DataTemplate x:Key="ArenaCardLineTemplate" DataType="{x:Type m:ArenaCardLine}">
                 <Grid Margin="0,0,0,5">
@@ -39,7 +168,8 @@
             </Border>
         </Grid>
 
-        <ItemsControl ItemsSource="{Binding ArenaStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
+        <!-- Six tiles (the last: rewards) in rows of three, as Constructed's -->
+        <ItemsControl ItemsSource="{Binding ArenaStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel3}" />
 
         <Grid Margin="0,0,0,24">
             <Grid.ColumnDefinitions>
@@ -53,13 +183,28 @@
                     <ItemsControl ItemsSource="{Binding ArenaRuns}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:ArenaRunRow}">
-                                <Border Style="{StaticResource StatsRow}">
+                                <Border>
+                                    <!-- The row being edited keeps the Row fill (no hover change) -->
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource StatsRow}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Editing}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource Row}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
                                         <Border Width="36" Height="36" Margin="0,0,12,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}" />
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding ClassName}" FontWeight="SemiBold" />
@@ -76,6 +221,39 @@
                                             </Border>
                                             <TextBlock Text="{Binding Record}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="16" MinWidth="44" TextAlignment="Right" />
                                         </StackPanel>
+                                        <!-- The run's rewards (entered by the player), or "+ Add rewards"; hidden while its editor is open -->
+                                        <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,6,0,0" Style="{StaticResource RewardsChip}"
+                                                Command="{Binding EditRewards}" CommandParameter="{Binding Key}" ToolTip="{Binding RewardsTip}" Loaded="ChipLoaded"
+                                                AutomationProperties.Name="{Binding RewardsTip}" Visibility="{Binding Editing, Converter={StaticResource Vis}, ConverterParameter=!}">
+                                            <WrapPanel>
+                                                <ItemsControl ItemsSource="{Binding RewardParts}" Focusable="False">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type m:ArenaRewardPart}">
+                                                            <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
+                                                                <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" FontSize="13" VerticalAlignment="Center"
+                                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                                                <TextBlock Text="{Binding Amount}" Margin="3,0,0,0" VerticalAlignment="Center" />
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock Text="&#xF03EB;" Style="{StaticResource Icon}" FontSize="13" VerticalAlignment="Center"
+                                                           Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                           Visibility="{Binding HasRewards, Converter={StaticResource Vis}}" />
+                                                <StackPanel Orientation="Horizontal" Visibility="{Binding HasRewards, Converter={StaticResource Vis}, ConverterParameter=!}">
+                                                    <TextBlock Text="&#xF0415;" Style="{StaticResource Icon}" FontSize="13" VerticalAlignment="Center" Margin="0,0,4,0"
+                                                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                                    <TextBlock Text="{i:Loc Stats.Arena.Rewards.Add}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </WrapPanel>
+                                        </Button>
+                                        <ContentControl Grid.Row="2" Grid.ColumnSpan="3" Content="{Binding Edit}" ContentTemplate="{StaticResource ArenaRewardsEditor}" Focusable="False"
+                                                        Visibility="{Binding Editing, Converter={StaticResource Vis}}" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>

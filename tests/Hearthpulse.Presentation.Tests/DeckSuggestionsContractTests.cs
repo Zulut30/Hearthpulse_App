@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
@@ -64,18 +65,33 @@ public sealed class DeckSuggestionsContractTests
         Assert.True(history.Add(Game("g4", "Рыцарь смерти3", v3, 12, 30)));
         dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
         await model.RefreshAsync();
-        await Until(() => ((IEnumerable<object>)model.DeckSuggestions).Any());
+        await Until((INotifyPropertyChanged)model, () => ((IEnumerable<object>)model.DeckSuggestions).Any());
         return model;
     }
 
-    private static async Task Until(Func<bool> done)
+    /// <summary>Waits for the view model's rebuild on a worker: <paramref name="done"/> is checked at every property change.</summary>
+    private static async Task Until(INotifyPropertyChanged model, Func<bool> done)
     {
-        for (var i = 0; i < 200 && !done(); i++)
+        var reached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        PropertyChangedEventHandler check = (_, _) =>
         {
-            await Task.Delay(25);
+            if (done())
+            {
+                reached.TrySetResult();
+            }
+        };
+        model.PropertyChanged += check;
+        try
+        {
+            if (!done())
+            {
+                await reached.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            }
         }
-
-        Assert.True(done(), "the decks were not rebuilt in 5 s");
+        finally
+        {
+            model.PropertyChanged -= check;
+        }
     }
 
     [Theory]
@@ -91,7 +107,7 @@ public sealed class DeckSuggestionsContractTests
         Assert.Equal(2, ((IEnumerable<object>)model.Decks).Count());
 
         model.DismissSuggested.Execute(suggestion);
-        await Until(() => !((IEnumerable<object>)model.DeckSuggestions).Any());
+        await Until((INotifyPropertyChanged)model, () => !((IEnumerable<object>)model.DeckSuggestions).Any());
 
         Assert.Single(history.DismissedDeckPairs());
         Assert.Equal(2, ((IEnumerable<object>)model.Decks).Count());
@@ -107,7 +123,8 @@ public sealed class DeckSuggestionsContractTests
         dynamic suggestion = ((IEnumerable<dynamic>)model.DeckSuggestions).Single();
 
         model.MergeSuggested.Execute(suggestion);
-        await Until(() => ((IEnumerable<object>)model.Decks).Count() == 1);
+        // Both lists come from one rebuild: wait for the last of them too, not only the first that changed.
+        await Until((INotifyPropertyChanged)model, () => ((IEnumerable<object>)model.Decks).Count() == 1 && !((IEnumerable<object>)model.DeckSuggestions).Any());
 
         dynamic deck = ((IEnumerable<dynamic>)model.Decks).Single();
         Assert.Equal(4, (int)deck.Games);

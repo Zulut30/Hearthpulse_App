@@ -1,10 +1,20 @@
+using System.Globalization;
 using Hearthpulse.Core.Data;
 
 namespace Hearthpulse.Core.Stats;
 
 /// <summary>One Arena run: its games, oldest first.</summary>
 /// <param name="Finished">True once the run reached its loss limit or 12 wins; the latest run may still be going.</param>
-public sealed record ArenaRun(string PlayerClass, long? DeckId, DateTime Started, DateTime Ended, int Wins, int Losses, bool Finished, IReadOnlyList<GameRecord> Games);
+public sealed record ArenaRun(string PlayerClass, long? DeckId, DateTime Started, DateTime Ended, int Wins, int Losses, bool Finished, IReadOnlyList<GameRecord> Games)
+{
+    /// <summary>
+    /// The run's key for what is kept about it (the rewards the player entered): its deck id (Decks.log names one deck
+    /// per run), else its class and first game's start.
+    /// </summary>
+    public string Key => DeckId is > 0
+        ? "deck:" + DeckId.Value.ToString(CultureInfo.InvariantCulture)
+        : PlayerClass + ":" + Started.ToString("O", CultureInfo.InvariantCulture);
+}
 
 /// <summary>Header numbers of the Arena page.</summary>
 /// <param name="AverageWins">Mean wins of finished runs (null before the first finished run).</param>
