@@ -6,6 +6,7 @@ using System.Text.Json;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Cards;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Power;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Tracking;
@@ -62,6 +63,26 @@ public sealed class BgGiantsCharacterizationTests(ITestOutputHelper output)
         var actual = $"views {Fingerprint(views)} replay {Fingerprint(replay)} data {Fingerprint(data)}";
         output.WriteLine(actual);
         Assert.Equal("views 353E1634374395D9 replay 3DB931AD881A2307 data 2C492810FA8A5101", actual);
+    }
+
+    /// <summary>The pool's totals with missing numbers, malformed rows and brackets (review m10).</summary>
+    [Fact]
+    public void The_pool_reads_its_totals_as_it_did_before_the_split()
+    {
+        using var doc = JsonDocument.Parse("""
+            { "games": 140, "updated": "2026-10-23T10:00:00.000Z", "heroes": [
+              { "hero": "BG_HERO_1", "games": 120, "avgPlacement": 3.9, "top": 0.55, "first": 0.15, "offered": 200, "picked": 100 },
+              { "hero": "BG_HERO_3", "games": 60 },
+              { "hero": "BG_HERO_2", "games": 19, "avgPlacement": 2.0, "top": 0.9, "first": 0.5, "offered": 30, "picked": 19 },
+              { "hero": 5, "games": 500 } ],
+              "cards": [ { "card": "BGS_004", "games": 80 }, { "card": "BGS_039", "games": 300, "avgPlacement": 4.2 } ],
+              "trinkets": [ { "trinket": "BG30_MagicItem_442", "games": 70 } ],
+              "tribes": [ { "tribe": "BEAST", "games": 150 } ] }
+            """);
+        var meta = PoolClient.Parse(doc.RootElement);
+        var actual = $"pool {Fingerprint(new StringBuilder(JsonSerializer.Serialize(meta, Json)))}";
+        output.WriteLine(actual);
+        Assert.Equal("pool D9E8D2E649E91FDA", actual);
     }
 
     [Fact]

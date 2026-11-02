@@ -22,6 +22,7 @@
         <ResourceDictionary>
         <ResourceDictionary.MergedDictionaries>
             <ResourceDictionary Source="MainLook.xaml" />
+            <ResourceDictionary Source="Logo.xaml" />
         </ResourceDictionary.MergedDictionaries>
         <i:VisibleWhen x:Key="Vis" />
         <i:KeyBrush x:Key="KeyBrush" />
@@ -226,7 +227,7 @@
                         <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
-                        <Image Source="/Hearthpulse;component/Assets/hearthpulse.png" Width="42" Height="42" RenderOptions.BitmapScalingMode="HighQuality" />
+                        <Image Source="{StaticResource HearthpulseLogo}" Width="42" Height="42" />
                         <TextBlock Text="Hearthpulse" Style="{StaticResource H2}" FontSize="21" FontWeight="ExtraBold" Foreground="{StaticResource GildedText}"
                                    Margin="12,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>

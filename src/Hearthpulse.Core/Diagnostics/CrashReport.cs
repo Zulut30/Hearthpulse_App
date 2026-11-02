@@ -116,18 +116,19 @@ public sealed partial record CrashReport(
             return string.Empty;
         }
 
-        // Names first (a user name may also be part of a BattleTag or an e-mail), then values, then the home folder and
-        // every path from its root to the end.
+        // Names first (a user name may also be part of a BattleTag or an e-mail), then paths whole (an apostrophe inside
+        // one, "Bob's Company", does not end it), then the OS user name as a word, then quoted values and key=value.
         var scrubbed = Email().Replace(text.ReplaceLineEndings(" "), "<email>");
         scrubbed = BattleTag().Replace(scrubbed, "<name>");
-        scrubbed = Quoted().Replace(scrubbed, "$1<value>$1");
-        scrubbed = KeyValue().Replace(scrubbed, "$1=<value>");
-        foreach (var home in Homes())
+        scrubbed = AbsolutePath().Replace(scrubbed, "<path>");
+        if (Environment.UserName is { Length: >= 3 } user)
         {
-            scrubbed = scrubbed.Replace(home, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+            scrubbed = Regex.Replace(scrubbed, $@"(?<![\p{{L}}\p{{N}}_]){Regex.Escape(user)}(?![\p{{L}}\p{{N}}_])", "<user>",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
         }
 
-        scrubbed = AbsolutePath().Replace(scrubbed, "<path>");
+        scrubbed = Quoted().Replace(scrubbed, "$1<value>$2");
+        scrubbed = KeyValue().Replace(scrubbed, "$1=<value>");
         scrubbed = Address().Replace(scrubbed, "<ip>");
         scrubbed = LongNumber().Replace(scrubbed, "<number>");
         return Clip(scrubbed, max);
@@ -142,20 +143,17 @@ public sealed partial record CrashReport(
         .Take(MaxFrames)
         .ToList();
 
-    private static IEnumerable<string> Homes() =>
-        new[] { Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Environment.UserName }
-            .Where(h => h.Length >= 3)
-            .OrderByDescending(h => h.Length);
-
     private static string Clip(string text, int max) => text.Length <= max ? text : text[..max] + "…";
 
     // An absolute path, whole (folder names may hold spaces): a drive, UNC or %USERPROFILE% path on Windows, or a /home,
     // /Users, /tmp... path elsewhere, up to a quote or the end.
-    [GeneratedRegex(@"(?:[A-Za-z]:\\|\\\\|%USERPROFILE%|/(?:home|Users|tmp|var|private|mnt|media|root|Volumes)/)[^""'<>|]*", RegexOptions.CultureInvariant)]
+    // An apostrophe ends a path or a quoted value only before a space, a punctuation mark or the end: "O'Brien",
+    // "Bob's Company" stay inside.
+    [GeneratedRegex(@"(?:file:///|[A-Za-z]:[\\/]|\\\\|%USERPROFILE%(?=[\\/]|$)|/(?:home|Users|tmp|var|private|mnt|media|root|Volumes|opt|srv)/)(?:[^""'<>|«»“”„]|'(?![\s.,;:!?)\]]|$))*", RegexOptions.CultureInvariant)]
     private static partial Regex AbsolutePath();
 
-    // A quoted value: 'Name' or "Name".
-    [GeneratedRegex(@"(['""])[^'""]{1,200}\1", RegexOptions.CultureInvariant)]
+    // A quoted value in any quotes ('…', "…", «…», “…”, „…“), however long; the delimiters stay.
+    [GeneratedRegex(@"('|""|«|“|„)(?:(?<=')(?:[^']|'(?![\s.,;:!?)\]]|$))+(?='(?:[\s.,;:!?)\]]|$))|(?<="")[^""]+(?="")|(?<=«)[^»]+(?=»)|(?<=[“„])[^”“]+(?=[”“]))('|""|»|”|“)", RegexOptions.CultureInvariant)]
     private static partial Regex Quoted();
 
     // key=value, as in log-like messages (Entity=Name, tag=...).
