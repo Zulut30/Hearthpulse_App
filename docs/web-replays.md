@@ -14,6 +14,11 @@ player's own match page. Gzip, base64, `POST {site}/api/v1/tracker/replays` `{"v
 sign-in (`tracker.write`, `AccountService.UploadReplayAsync`). The answer is `{id, url, deleteToken}`; the link goes to
 the clipboard and the status line.
 
+Plan 2.3: when the card is a History game and games go to the profile (`AppSettings.UploadGamesToProfile`), the body
+also carries `gameId`, the game's profile event id (`ProfileEvents.GameEventIdOfKey`: start second and game type, no
+BattleTag), so the account's «Последние игры» on the site links the game to its replay. With the profile upload off
+it is not sent: the id is derived from the start time, which the site then does not have. The site never publishes it.
+
 `replays\uploads.json` (`ReplayUploads`) remembers each upload by `ReplayUploads.KeyOf`: Recent and Saved share the key
 (`games/<file>`, Saved is the starred copy of the same game). It is read once per library tab, off the UI thread, and
 written through a temporary file, so a broken write never loses the delete tokens.

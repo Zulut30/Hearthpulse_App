@@ -182,6 +182,28 @@ public sealed class ReplayUploadTests : IDisposable
         Assert.Equal(Loc.T("Library.Site.Removed"), vm.Library.Status);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task The_game_s_profile_id_goes_with_the_upload_only_while_games_go_to_the_profile(bool toProfile)
+    {
+        var site = new FakeReplaySite();
+        var (vm, _, name) = await LibraryAsync(site);
+        vm.Settings.UploadGamesToProfile = toProfile;
+        const string key = "20261101120000|Zulut#2187|GT_RANKED";
+        var card = new LibraryCard(ReplayShelf.Recent, name, key, battlegrounds: false) { HasReplay = true };
+
+        vm.UploadLibraryCard(card, name);
+        await vm.LibraryIdleAsync();
+
+        var body = Assert.Single(site.Posts).Body;
+        Assert.DoesNotContain("Zulut", body, StringComparison.Ordinal);
+        var gameId = ProfileEvents.GameEventIdOfKey(key)!;
+        Assert.Equal(ProfileEvents.EventId("game|20261101120000|GT_RANKED"), gameId);
+        Assert.Equal(toProfile, body.Contains($"\"gameId\":\"{gameId}\"", StringComparison.Ordinal));
+        Assert.True(card.OnSite);
+    }
+
     [Fact]
     public async Task While_uploading_the_button_cancels_and_a_second_upload_never_starts()
     {

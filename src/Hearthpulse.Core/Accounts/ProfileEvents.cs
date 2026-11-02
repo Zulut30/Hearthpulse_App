@@ -134,13 +134,14 @@ public static partial class ProfileEvents
     /// The id of a game's event. The history key is "start|BattleTag|game type"; the BattleTag is left out of it so not
     /// even a hash of it leaves the machine (one player does not start two games of one type in the same second).
     /// </summary>
-    public static string GameEventId(GameRecord game)
+    public static string GameEventId(GameRecord game) =>
+        GameEventIdOfKey(game.Key) ?? EventId($"game|{game.StartedAt.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture)}|{game.GameType}");
+
+    /// <summary>The event id from a history key alone ("start|BattleTag|game type"), or null when it is not one.</summary>
+    public static string? GameEventIdOfKey(string key)
     {
-        var parts = game.Key.Split('|');
-        var name = parts.Length >= 3
-            ? $"{parts[0]}|{parts[^1]}"
-            : $"{game.StartedAt.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture)}|{game.GameType}";
-        return EventId("game|" + name);
+        var parts = key.Split('|');
+        return parts.Length >= 3 ? EventId($"game|{parts[0]}|{parts[^1]}") : null;
     }
 
     private static ProfileEvent? BattlegroundsEvent(GameRecord game, Func<string, string> baseHero)

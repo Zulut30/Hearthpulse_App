@@ -397,7 +397,10 @@ public sealed partial class MainViewModel
                 return;
             }
 
-            var (result, error) = await account.UploadReplayAsync(body, cancel.Token).ConfigureAwait(true);
+            // The game's profile id links the replay in the site's «Последние игры»; only while games go to the profile,
+            // when the site already has the game (the id is derived from its start time).
+            var gameId = Settings.UploadGamesToProfile && card.HistoryKey is { } key ? Core.Accounts.ProfileEvents.GameEventIdOfKey(key) : null;
+            var (result, error) = await account.UploadReplayAsync(body, gameId, cancel.Token).ConfigureAwait(true);
             if (result is null)
             {
                 Library.Failed(Loc.Or("Library.Site.Error." + error, Loc.T("Library.Site.Error.SERVER_ERROR")));
