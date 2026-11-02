@@ -6,6 +6,7 @@ using Hearthpulse.Core.CardPool;
 namespace Hearthpulse.Tests;
 
 /// <summary>The HearthstoneJSON fallback of the card pool, used while the Hearthpulse API is down.</summary>
+[Collection(nameof(CardPoolCacheCollection))]
 public sealed class CardPoolFallbackTests
 {
     private const string Collectible = """

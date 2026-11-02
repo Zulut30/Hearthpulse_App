@@ -56,7 +56,7 @@ public sealed class AppServices
         // Daily free use of the stats pool's numbers (plan 3.1); the host makes the session publish again on a decision.
         Usage = new UsageGate(accountClient, Account, UsageGate.DefaultPath);
         Session.Advisor.Usage = Usage;
-        Session.GameFinished += _ => Usage.GameFinished();
+        Session.GameFinished += OnGameFinished;
     }
 
     public AppSettings Settings { get; }
@@ -82,6 +82,9 @@ public sealed class AppServices
 
     /// <summary>Daily free use of the stats pool's numbers in the overlay (plan 3.1).</summary>
     public UsageGate Usage { get; }
+
+    /// <summary>A game ended: the usage gate's next game is a new game, not a reconnect.</summary>
+    private void OnGameFinished(GameOutcome outcome) => Usage.GameFinished();
 
     /// <summary>
     /// The app's one HTTP client: compressed answers, connections renewed every 10 minutes (DNS changes), a 40-second
