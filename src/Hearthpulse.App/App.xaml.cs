@@ -18,6 +18,7 @@ using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Hearthstone;
+using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Logs;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
@@ -62,6 +63,7 @@ public partial class App : Application
     private HotkeyWindow? _hotkeys;
     private string? _installDir;
     private StartupPrefetch _prefetch = null!;
+    private AppServices _services = null!;
     private CardDb _cards = CardDb.Empty;
     private LiveFeed _feed = null!;
     private DispatcherTimer _historyDebounce = null!;
@@ -87,7 +89,6 @@ public partial class App : Application
     private bool _capNotified;
     private bool _sharingHistory;
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The SocketsHttpHandler is owned by the HttpClient (disposeHandler: true), which lives as long as the app.")]
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -166,37 +167,15 @@ public partial class App : Application
             // so the overlay is invisible; software rendering is the known workaround.
             RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
         }
-        _http = new HttpClient(new SocketsHttpHandler
-        {
-            AutomaticDecompression = DecompressionMethods.All,
-            PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-        })
-        {
-            Timeout = TimeSpan.FromSeconds(40),
-        };
-        _http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + (typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1"));
+        var services = new AppServices(_settings, typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1", () => _cards);
+        (_http, _api, _prefetch, _history, _memory, _session, _mulliganGuide, _account, _uploader) =
+            (services.Http, services.Api, services.Prefetch, services.History, services.Memory, services.Session, services.MulliganGuide, services.Account, services.Uploader);
+        _services = services;
         CardArt.Http = _http;
-        _api = new HearthpulseApi(_http);
-        // The game and the cards are looked up while the windows below are built, not after their first frame.
-        _prefetch = StartupPrefetch.Start(_settings, _http);
-
-        _history = new HistoryStore(AppPaths.Database) { Replays = Core.Replay.ReplayStore.Default };
-        _memory = new HearthstoneMemory();
-        _session = new GameSession(_history, _memory);
-        _mulliganGuide = new MulliganGuideSource(new HearthpulseData(_api)) { Rank = _settings.MulliganRank };
-        _session.SetMulliganGuide(_mulliganGuide);
-        _session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(_api)));
-        _session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(_api)));
-        _session.SetBgLeaderboards(new BgLeaderboardSource(_api));
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
-        var accountClient = new AccountClient(_http);
-        _account = new AccountService(accountClient);
         _mainViewModel.AttachAccount(_account);
-        _uploader = ProfileUploader.For(accountClient, _account, () => _settings.UploadGamesToProfile, _history);
-        _uploader.BaseHero = id => _cards.BaseHeroId(id);
-        _account.Changed += _uploader.Kick;
         _mainViewModel.AttachUploader(_uploader);
         _mainViewModel.UploadSettingChanged += () =>
         {
@@ -386,7 +365,7 @@ public partial class App : Application
 
             _session.Cards = _cards;
             _mainViewModel.SetCards(_cards);
-            LoadCardPoolAsync().Forget("Card pool load");
+            _services.LoadCardPoolAsync().Forget("Card pool load");
 
             if (!_settings.HistoryImported || !_settings.HistoryStatsFilled || !_settings.HistoryCardsFilled)
             {
@@ -796,7 +775,7 @@ public partial class App : Application
         }
 
         _session.ApplySettings(_settings);
-        LoadCardPoolAsync().Forget("Card pool load");
+        _services.LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();
         if (_renderDir is null)
         {

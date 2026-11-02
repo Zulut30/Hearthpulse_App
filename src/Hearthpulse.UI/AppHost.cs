@@ -1,6 +1,7 @@
 using System.Net;
 using Avalonia.Threading;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Api;
@@ -33,44 +34,19 @@ public sealed partial class AppHost : IDisposable
     private LogWatcher? _watcher;
     private readonly LiveFeed _feed;
     private UpdateInfo? _stagedUpdate;
-    private readonly StartupPrefetch _prefetch;
+    private readonly AppServices _services;
 
     /// <param name="rendering">Disables account restore and all live machine changes for off-screen renders.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The SocketsHttpHandler is owned by the HttpClient (disposeHandler: true), which lives as long as the app.")]
     public AppHost(AppSettings settings, bool rendering = false)
     {
         _rendering = rendering;
         Settings = settings;
         Loc.Instance.SetLanguage(settings.InterfaceLanguage());
-        Http = new HttpClient(new SocketsHttpHandler
-        {
-            AutomaticDecompression = DecompressionMethods.All,
-            PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-        })
-        {
-            Timeout = TimeSpan.FromSeconds(40),
-        };
-        Http.DefaultRequestHeaders.UserAgent.ParseAdd("Hearthpulse/" + Version);
+        _services = new AppServices(settings, Version, () => Cards);
         CardArt.Http = Http;
-        Api = new HearthpulseApi(Http);
-        // The game and the cards are looked up while the shell builds its windows, not after.
-        _prefetch = StartupPrefetch.Start(settings, Http);
-        var accountClient = new AccountClient(Http);
-        Account = new AccountService(accountClient);
 
-        History = new HistoryStore(AppPaths.Database) { Replays = Core.Replay.ReplayStore.Default };
-        Memory = new HearthstoneMemory();
-        Session = new GameSession(History, Memory);
-        var mulliganGuide = new MulliganGuideSource(new HearthpulseData(Api)) { Rank = Settings.MulliganRank };
-        Session.SetMulliganGuide(mulliganGuide);
-        Session.SetCardPoolWiki(new Hearthpulse.Core.CardPool.WikiPoolSource(new HearthpulseData(Api)));
-        Session.SetDiscoverPicks(new Hearthpulse.Core.CardPool.DiscoverChoiceSource(new HearthpulseData(Api)));
-        Session.SetBgLeaderboards(new BgLeaderboardSource(Api));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
-        Uploader = ProfileUploader.For(accountClient, Account, () => Settings.UploadGamesToProfile, History);
-        Uploader.BaseHero = id => Cards.BaseHeroId(id);
-        Account.Changed += Uploader.Kick;
         Main.AttachUploader(Uploader);
         if (!_rendering)
         {
@@ -104,7 +80,7 @@ public sealed partial class AppHost : IDisposable
         Main.LoadRankMulligan = (archetype, format, rank, cancel) => MulliganGuideSource.LoadRankSliceAsync(mulliganData, archetype, format, rank, cancel);
         Main.MulliganRankChanged += () =>
         {
-            mulliganGuide.Rank = Settings.MulliganRank;
+            _services.MulliganGuide.Rank = Settings.MulliganRank;
             OnSettingsChanged();
         };
         Main.UpdateRequested += OnInstallUpdateRequested;
@@ -145,21 +121,21 @@ public sealed partial class AppHost : IDisposable
 
     public AppSettings Settings { get; }
 
-    public HttpClient Http { get; }
+    public HttpClient Http => _services.Http;
 
     /// <summary>The Hearthpulse API (fallback community stats).</summary>
-    public HearthpulseApi Api { get; }
+    public HearthpulseApi Api => _services.Api;
 
-    public AccountService Account { get; }
+    public AccountService Account => _services.Account;
 
     /// <summary>Sends finished games to the hearthpulse.net profile while signed in (Settings, account card).</summary>
-    public ProfileUploader Uploader { get; }
+    public ProfileUploader Uploader => _services.Uploader;
 
-    public HistoryStore History { get; }
+    public HistoryStore History => _services.History;
 
-    public HearthstoneMemory Memory { get; }
+    public HearthstoneMemory Memory => _services.Memory;
 
-    public GameSession Session { get; }
+    public GameSession Session => _services.Session;
 
     public MainViewModel Main { get; }
 
@@ -194,7 +170,7 @@ public sealed partial class AppHost : IDisposable
         {
             Main.ShowBusy(() => Loc.T("Host.Busy.LookingForGame"));
             Task.Run(CacheCleanup.Run).Forget("Cache clean-up");
-            (InstallDirectory, var clientLocale) = await _prefetch.Game;
+            (InstallDirectory, var clientLocale) = await _services.Prefetch.Game;
             if (InstallDirectory is not null && Settings.HearthstonePath != InstallDirectory)
             {
                 Settings.HearthstonePath = InstallDirectory;
@@ -223,7 +199,7 @@ public sealed partial class AppHost : IDisposable
             });
 
             Main.ShowBusy(() => Loc.T("Host.Busy.LoadingCards"));
-            Cards = await _prefetch.CardsAsync(locale);
+            Cards = await _services.Prefetch.CardsAsync(locale);
             CardArt.FallbackUrl = id => Cards.BgCards.ImageUrl(id);
             if (Cards.Count == 0 && locale != "enUS")
             {
@@ -232,7 +208,7 @@ public sealed partial class AppHost : IDisposable
 
             Session.Cards = Cards;
             Main.SetCards(Cards);
-            LoadCardPoolAsync().Forget("Card pool load");
+            _services.LoadCardPoolAsync().Forget("Card pool load");
 
             if (!Settings.HistoryImported || !Settings.HistoryStatsFilled || !Settings.HistoryCardsFilled)
             {
@@ -376,7 +352,7 @@ public sealed partial class AppHost : IDisposable
     {
         _settingsDebounce.Kick();
         Session.ApplySettings(Settings);
-        LoadCardPoolAsync().Forget("Card pool load");
+        _services.LoadCardPoolAsync().Forget("Card pool load");
         RefreshOverlay();
         if (!_rendering)
         {
