@@ -242,6 +242,11 @@ public sealed class ReplayLibraryViewModel : Observable
     private readonly MainViewModel _owner;
     private string _tab = "Recent";
     private IReadOnlyList<LibraryCard> _cards = [];
+
+    /// <summary>The tab's cards before the search and the result filter (<see cref="Cards"/> is what they let through).</summary>
+    private IReadOnlyList<LibraryCard> _all = [];
+    private string _search = string.Empty;
+    private string _resultFilter = "All";
     private LibraryCard? _selected;
     private int _savedCount;
     private int _importedCount;
@@ -396,6 +401,7 @@ public sealed class ReplayLibraryViewModel : Observable
             if (Set(ref _cards, value))
             {
                 Raise(nameof(IsEmpty));
+                Raise(nameof(IsSearchEmpty));
                 Raise(nameof(EmptyText));
                 Raise(nameof(EmptyGlyph));
             }
@@ -407,12 +413,70 @@ public sealed class ReplayLibraryViewModel : Observable
 
     public bool IsEmpty => _cards.Count == 0 && !_loading;
 
-    public string EmptyText => _owner.HistoryFilter != "All" && TabCount > 0 ? Loc.T("Library.Empty.Filter")
+    /// <summary>
+    /// The search box (docs/replay-library.md): cards whose hero or class, opponent, its archetype, caption (mode, format,
+    /// deck) or result hold the text, case ignored; empty shows all. Applies to every tab.
+    /// </summary>
+    public string Search
+    {
+        get => _search;
+        set
+        {
+            if (Set(ref _search, value ?? string.Empty))
+            {
+                ApplySearch();
+            }
+        }
+    }
+
+    /// <summary>"All", "Win" or "Loss" (Battlegrounds: a top finish is a win, as on the cards).</summary>
+    public string ResultFilter
+    {
+        get => _resultFilter;
+        private set
+        {
+            if (Set(ref _resultFilter, value))
+            {
+                Raise(nameof(ResultAll));
+                Raise(nameof(ResultWins));
+                Raise(nameof(ResultLosses));
+                ApplySearch();
+            }
+        }
+    }
+
+    public bool ResultAll => _resultFilter == "All";
+
+    public bool ResultWins => _resultFilter == "Win";
+
+    public bool ResultLosses => _resultFilter == "Loss";
+
+    /// <summary>The search or the result filter hides some cards.</summary>
+    public bool IsSearching => _search.Trim().Length > 0 || _resultFilter != "All";
+
+    public RelayCommand SetResultFilter => _setResultFilter ??= new RelayCommand(p => ResultFilter = p as string is "Win" or "Loss" ? (string)p! : "All");
+
+    /// <summary>Empties the search box and shows every result again.</summary>
+    public RelayCommand ClearSearch => _clearSearch ??= new RelayCommand(ResetSearch);
+
+    private RelayCommand? _setResultFilter;
+    private RelayCommand? _clearSearch;
+
+    /// <summary>
+    /// The tab and the mode filter give games but the search or the result filter lets none through: the empty state says
+    /// so and offers "Clear search" (an empty tab or mode keeps its own text, without the button).
+    /// </summary>
+    public bool IsSearchEmpty => IsEmpty && IsSearching && _all.Count > 0;
+
+    public string EmptyText => IsSearching && _all.Count > 0
+            ? _search.Trim() is { Length: > 0 } query ? Loc.F("Library.Search.Empty", query) : Loc.T("Library.Search.EmptyResult")
+        : _owner.HistoryFilter != "All" && TabCount > 0 ? Loc.T("Library.Empty.Filter")
         : IsSaved ? Loc.T("Library.Empty.Saved")
         : IsImported ? Loc.T("Library.Empty.Imported")
         : Loc.T("Main.Home.NoGames");
 
-    public string EmptyGlyph => _owner.HistoryFilter != "All" && TabCount > 0 ? "\U000F02DA" : IsSaved ? "\U000F04D2" : IsImported ? "\U000F02FA" : "\U000F02DA";
+    public string EmptyGlyph => IsSearching && _all.Count > 0 ? "\U000F0980"
+        : _owner.HistoryFilter != "All" && TabCount > 0 ? "\U000F02DA" : IsSaved ? "\U000F04D2" : IsImported ? "\U000F02FA" : "\U000F02DA";
 
     /// <summary>The games History keeps, after the Recent tab's name.</summary>
     public int RecentCount => _owner.HistoryCount;
@@ -579,20 +643,91 @@ public sealed class ReplayLibraryViewModel : Observable
     internal void SetCards(IReadOnlyList<LibraryCard> cards, LibraryCard? select = null)
     {
         _loading = false;
-        Cards = cards;
+        _all = cards;
+        if (select is not null && !Matches(select, _search, _resultFilter))
+        {
+            // A card chosen for the player (an import, a game sent from a deck page) must show.
+            ResetSearch();
+        }
+        else
+        {
+            Cards = Filtered();
+        }
+
         SelectedCard = select;
         Raise(nameof(IsEmpty));
+        Raise(nameof(IsSearchEmpty));
+    }
+
+    /// <summary>The tab's cards before the search (a game sent here from a deck page is looked for among them).</summary>
+    internal IReadOnlyList<LibraryCard> AllCards => _all;
+
+    /// <summary>Clears the search and the result filter (a game sent here must show).</summary>
+    internal void ResetSearch()
+    {
+        _search = string.Empty;
+        _resultFilter = "All";
+        Raise(nameof(Search));
+        Raise(nameof(ResultFilter));
+        Raise(nameof(ResultAll));
+        Raise(nameof(ResultWins));
+        Raise(nameof(ResultLosses));
+        ApplySearch();
+    }
+
+    /// <summary>Whether a card passes the search text and the result filter.</summary>
+    internal static bool Matches(LibraryCard card, string search, string result)
+    {
+        if (result != "All" && card.ResultKey != result)
+        {
+            return false;
+        }
+
+        var text = search.Trim();
+        return text.Length == 0 || new[] { card.Title, card.Caption, card.Opponent, card.OpponentArchetype, card.Result, card.When }
+            .Any(field => field.Contains(text, StringComparison.CurrentCultureIgnoreCase));
+    }
+
+    private IReadOnlyList<LibraryCard> Filtered() =>
+        IsSearching ? _all.Where(c => Matches(c, _search, _resultFilter)).ToList() : _all;
+
+    private void ApplySearch()
+    {
+        Cards = Filtered();
+        if (SelectedCard is { } selected && !_cards.Contains(selected))
+        {
+            SelectedCard = null;
+        }
+
+        Raise(nameof(IsSearching));
+        Raise(nameof(IsEmpty));
+        Raise(nameof(IsSearchEmpty));
+        Raise(nameof(EmptyText));
+        Raise(nameof(EmptyGlyph));
     }
 
     internal void BeginLoading()
     {
         _loading = true;
         Raise(nameof(IsEmpty));
+        Raise(nameof(IsSearchEmpty));
     }
 
-    internal void Select(LibraryCard? card) => SelectedCard = card;
+    internal void Select(LibraryCard? card)
+    {
+        if (card is not null && !_cards.Contains(card))
+        {
+            ResetSearch();
+        }
 
-    internal void Remove(LibraryCard card) => Cards = _cards.Where(c => c != card).ToList();
+        SelectedCard = card;
+    }
+
+    internal void Remove(LibraryCard card)
+    {
+        _all = _all.Where(c => c != card).ToList();
+        Cards = _cards.Where(c => c != card).ToList();
+    }
 
     /// <summary>The History subtitle or language changed: texts made from it follow.</summary>
     internal void Refresh()

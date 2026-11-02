@@ -82,8 +82,20 @@ ranks, ratings or legend number, and no time of day. "Upload to the site" sends 
 
 ## Screens
 
-Tabs, the folder button (Saved, Imported) and Import on the first row; a status line under it (success, error,
-"Importing…"), gone at the next tab, filter, opened match or action; then the cards. Battlegrounds card: hero, name and
+Tabs, the folder button (Saved, Imported) and Import on the first row; under it the search box (up to 420 wide) and
+the result filter "All / Wins / Losses" (plan R1); a status line under them (success, error, "Importing…"), gone at the
+next tab, filter, opened match or action; then the cards.
+
+Search and the result filter (`ReplayLibraryViewModel.Search`, `ResultFilter`) apply to every tab together with the
+History mode filter in the page's header: a card shows when its hero or class (`Title`), caption (mode, format, deck),
+opponent, the opponent's archetype, result or date holds the text (substring, case ignored, spaces at the ends
+dropped) and its result passes ("Win" / "Loss"; Battlegrounds: places 1–4 win, Duos 1–2; ties, games without a result
+only under "All"). Nothing is read from the files. Ctrl+F on History focuses the box, Esc in it clears the text, the
+✕ clears it too. When the tab and mode give games but the search lets none through, the empty state says so
+("Nothing matches “…”", or that no game of the tab has the result) with "Clear search" (text and result); an empty
+tab or mode keeps its own text. A card chosen for the player (an import, a game sent from a deck page) clears a search
+that would hide it. The search and the result are not kept between runs. Avalonia compact: the box takes the whole
+width, the result filter goes under it. Battlegrounds card: hero, name and
 mode · turns · tier, hero powers and trinkets (up to 3, "+N"), the final board as small ovals with stats (golden,
 taunt, divine shield), the hand (up to 3, "+N"), place and rating change, when · how long, star, Share, delete
 (Imported). Constructed card: our hero with the opponent's portrait over its corner, deck (else class) and class ·

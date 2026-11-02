@@ -126,8 +126,9 @@ public sealed partial class MatchViewModel
     /// <summary>The game went over the recording limit: the replay stops early.</summary>
     public bool Truncated => _page?.Truncated == true;
 
-    /// <summary>The "?" tooltip: the timeline legend of the mode, then the keys.</summary>
-    public string HelpText => $"{Loc.T(IsConstructed ? "Match.Timeline.LegendConstructed" : "Match.Timeline.LegendBattlegrounds")}\n\n{Loc.T("Match.Player.Help")}";
+    /// <summary>The "?" tooltip: the timeline legend of the mode, then the keys (M only with a mulligan step).</summary>
+    public string HelpText =>
+        $"{Loc.T(IsConstructed ? "Match.Timeline.LegendConstructed" : "Match.Timeline.LegendBattlegrounds")}\n\n{Loc.T(HasMulligan ? "Match.Player.Help" : "Match.Player.HelpNoMulligan")}";
 
     /// <summary>The timeline's stretches, left to right.</summary>
     public IReadOnlyList<MatchTimelineSegment> TimelineSegments { get => _segments; private set => Set(ref _segments, value); }
@@ -273,6 +274,7 @@ public sealed partial class MatchViewModel
         var count = page.FrameCount;
         TimelineSegments = count == 0 ? [] : Segments(page.Timeline, count, frame => page.BattlegroundsStep(frame)?.ResultKey);
         TimelineTicks = count == 0 ? [] : Ticks(page.Marks, count);
+        ShowJumps();
         if (!page.HasBattlegroundsSteps)
         {
             BattlegroundsStep = null;
@@ -293,6 +295,7 @@ public sealed partial class MatchViewModel
         TimelinePosition = 0;
         BattlegroundsStep = null;
         Leaders = [];
+        ClearNavigation();
         Raise(nameof(Truncated));
     }
 

@@ -256,10 +256,9 @@ public sealed class ArenaDraftTests : IDisposable
     public void The_session_shows_the_draft_while_the_screen_is_open_and_hides_a_picked_offer()
     {
         var now = new DateTime(2026, 10, 25, 21, 0, 0, DateTimeKind.Utc);
-        // SQLite keeps the file open in its pool, so it lives outside the folder Dispose deletes (like DecksLogTests).
-        var db = Path.Combine(Path.GetTempPath(), $"hp-arena-{Guid.NewGuid():N}.db");
+        // The history in memory: a file in the temp folder sometimes failed with "disk I/O error" under a full run.
         using var memory = new HearthstoneMemory();
-        var session = new GameSession(new HistoryStore(db), memory)
+        var session = new GameSession(HistoryStore.InMemory(), memory)
         {
             Clock = () => now,
             IsHearthstoneRunning = () => true,
@@ -488,10 +487,11 @@ public sealed class ArenaDraftTests : IDisposable
     /// <summary>A session on the draft screen with the helper on, three cards drafted (<see cref="DraftLog"/>).</summary>
     private static DraftSession Session()
     {
-        var db = Path.Combine(Path.GetTempPath(), $"hp-arena-{Guid.NewGuid():N}.db");
+        // The history in memory: a file in the temp folder sometimes failed with "disk I/O error" under a full run
+        // (the drafting tests never read or write it).
         var memory = new HearthstoneMemory();
         var draft = new DraftSession(memory, new DateTime(2026, 10, 25, 21, 0, 0, DateTimeKind.Utc));
-        draft.Session = new GameSession(new HistoryStore(db), memory)
+        draft.Session = new GameSession(HistoryStore.InMemory(), memory)
         {
             Clock = () => draft.Now,
             IsHearthstoneRunning = () => true,

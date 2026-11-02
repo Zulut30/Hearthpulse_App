@@ -87,6 +87,42 @@ public sealed class MatchTimelineLayoutTests
         Assert.Equal(19, MatchTimelineLayout.FrameUnder([], spans, 450, 20, 400, 19));
     }
 
+    [Theory]
+    [InlineData(MatchTimelineLook.Mine, "Accent")]
+    [InlineData(MatchTimelineLook.Theirs, "Accent2")]
+    [InlineData(MatchTimelineLook.Won, "Positive")]
+    [InlineData(MatchTimelineLook.Lost, "Negative")]
+    [InlineData(MatchTimelineLook.Shop, "Muted")]
+    [InlineData(MatchTimelineLook.Combat, "Muted")]
+    [InlineData(MatchTimelineLook.Neutral, "Muted")]
+    public void A_turn_list_marker_takes_its_stretchs_colour(MatchTimelineLook look, string brush) =>
+        Assert.Equal(brush, MatchTimelineLayout.MarkerBrush(look));
+
+    [Fact]
+    public void Bookmarks_sit_in_their_own_row_under_the_stretches()
+    {
+        // The row is there without bookmarks too: the bar under the timeline does not jump at the first one.
+        Assert.Equal(52, MatchTimelineLayout.Height);
+        Assert.True(MatchTimelineLayout.BookmarkTop >= MatchTimelineLayout.SpanTop + MatchTimelineLayout.SpanHeight);
+        // Step 10 of 20: the middle of its slot, 190 px.
+        Assert.Equal(0.475, MatchTimelineLayout.BookmarkAt(9, 19), 9);
+        Assert.Equal((184, 40, 12, 12), MatchTimelineLayout.Bookmark(9, 19, 400));
+        Assert.Equal("Info", MatchTimelineLayout.BookmarkBrush);
+    }
+
+    [Fact]
+    public void A_click_in_the_bookmark_row_goes_to_the_nearest_bookmark_within_its_zone()
+    {
+        MatchTimelineSegment[] spans = [Turn(0, 0.5, 0), Turn(0.5, 1, 10)];
+
+        Assert.Equal(9, MatchTimelineLayout.FrameUnder([], spans, 195, 45, 400, 19, [9, 11]));
+        Assert.Equal(11, MatchTimelineLayout.FrameUnder([], spans, 226, 45, 400, 19, [9, 11]));
+        // No bookmark within 6 px: the step under the pointer, not the stretch's first step.
+        Assert.Equal(6, MatchTimelineLayout.FrameUnder([], spans, 120, 45, 400, 19, [9, 11]));
+        // Bookmarks are not looked at on the stretches.
+        Assert.Equal(0, MatchTimelineLayout.FrameUnder([], spans, 190, 30, 400, 19, [9]));
+    }
+
     [Fact]
     public void A_drag_goes_to_the_step_under_the_pointer_inside_the_game()
     {

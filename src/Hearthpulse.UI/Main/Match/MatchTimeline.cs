@@ -11,8 +11,9 @@ namespace Hearthpulse.UI.Main.Match;
 
 /// <summary>
 /// The whole-game timeline of the match page's player: event ticks over the stretches (turns, or tavern and combats),
-/// the position line and its diamond. Children are plain borders placed by the fractions of the view model; the panel
-/// takes the pointer itself: a click on a tick goes to its step, on a stretch to its first step, a drag scrubs.
+/// the position line and its diamond, the bookmarks under the stretches. Children are plain borders placed by the fractions
+/// of the view model; the panel takes the pointer itself: a click on a tick or a bookmark goes to its step, on a stretch
+/// to its first step, a drag scrubs.
 /// </summary>
 public sealed class MatchTimeline : Panel
 {
@@ -28,10 +29,14 @@ public sealed class MatchTimeline : Panel
 
     public static readonly StyledProperty<int> FrameMaxProperty = AvaloniaProperty.Register<MatchTimeline, int>(nameof(FrameMax));
 
+    public static readonly StyledProperty<IReadOnlyList<MatchBookmarkRow>?> BookmarksProperty =
+        AvaloniaProperty.Register<MatchTimeline, IReadOnlyList<MatchBookmarkRow>?>(nameof(Bookmarks));
+
     public static readonly StyledProperty<ICommand?> CommandProperty = AvaloniaProperty.Register<MatchTimeline, ICommand?>(nameof(Command));
 
     private readonly List<(MatchTimelineSegment Segment, Border Box, TextBlock Label, TextBlock Glyph, Border Bar)> _spans = [];
     private readonly List<(MatchTimelineTick Tick, Border Zone)> _ticks = [];
+    private readonly List<(int Frame, Border Zone)> _bookmarks = [];
     private readonly Rectangle _line = new() { Width = 2, IsHitTestVisible = false };
     private readonly Border _diamond = new()
     {
@@ -47,12 +52,12 @@ public sealed class MatchTimeline : Panel
 
     static MatchTimeline()
     {
-        AffectsArrange<MatchTimeline>(PositionProperty);
+        AffectsArrange<MatchTimeline>(PositionProperty, FrameMaxProperty);
     }
 
     public MatchTimeline()
     {
-        Height = 40;
+        Height = MatchTimelineLayout.Height;
         Background = Brushes.Transparent;
         Cursor = new Cursor(StandardCursorType.Hand);
         _line.Fill = ThemeBrushes.Get("Accent");
@@ -73,13 +78,16 @@ public sealed class MatchTimeline : Panel
     /// <summary>The last step: a drag maps the pointer to one of the FrameMax + 1 slots.</summary>
     public int FrameMax { get => GetValue(FrameMaxProperty); set => SetValue(FrameMaxProperty, value); }
 
+    /// <summary>The bookmarked steps: a mark each in the bookmark row.</summary>
+    public IReadOnlyList<MatchBookmarkRow>? Bookmarks { get => GetValue(BookmarksProperty); set => SetValue(BookmarksProperty, value); }
+
     /// <summary>Goes to a step (its number is the parameter).</summary>
     public ICommand? Command { get => GetValue(CommandProperty); set => SetValue(CommandProperty, value); }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == SegmentsProperty || change.Property == TicksProperty)
+        if (change.Property == SegmentsProperty || change.Property == TicksProperty || change.Property == BookmarksProperty)
         {
             Rebuild();
         }
@@ -94,6 +102,7 @@ public sealed class MatchTimeline : Panel
         Children.Clear();
         _spans.Clear();
         _ticks.Clear();
+        _bookmarks.Clear();
         var display = Font("DisplayFont");
         var icons = Font("IconFont");
         foreach (var segment in Segments ?? [])
@@ -147,6 +156,29 @@ public sealed class MatchTimeline : Panel
             Children.Add(zone);
         }
 
+        foreach (var bookmark in Bookmarks ?? [])
+        {
+            var glyph = new TextBlock
+            {
+                Text = "\U000F00C0",
+                FontFamily = icons,
+                FontSize = 11,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = ThemeBrushes.Get(MatchTimelineLayout.BookmarkBrush),
+            };
+            var zone = new Border
+            {
+                Width = MatchTimelineLayout.BookmarkZone,
+                Height = MatchTimelineLayout.BookmarkHeight,
+                Background = Brushes.Transparent,
+                Child = glyph,
+            };
+            ToolTip.SetTip(zone, bookmark.Text);
+            _bookmarks.Add((bookmark.Frame, zone));
+            Children.Add(zone);
+        }
+
         Children.Add(_line);
         Children.Add(_diamond);
         Restyle();
@@ -187,6 +219,11 @@ public sealed class MatchTimeline : Panel
             zone.Measure(Size.Infinity);
         }
 
+        foreach (var (_, zone) in _bookmarks)
+        {
+            zone.Measure(Size.Infinity);
+        }
+
         _line.Measure(Size.Infinity);
         _diamond.Measure(Size.Infinity);
         return new Size(width, MatchTimelineLayout.Height);
@@ -203,6 +240,11 @@ public sealed class MatchTimeline : Panel
         foreach (var (tick, zone) in _ticks)
         {
             zone.Arrange(Rect(MatchTimelineLayout.Tick(tick, width)));
+        }
+
+        foreach (var (frame, zone) in _bookmarks)
+        {
+            zone.Arrange(Rect(MatchTimelineLayout.Bookmark(frame, FrameMax, width)));
         }
 
         _line.Arrange(Rect(MatchTimelineLayout.Line(Position, width)));
@@ -265,9 +307,10 @@ public sealed class MatchTimeline : Panel
         _scrubbing = false;
     }
 
-    /// <summary>A click: the nearest tick in the tick row, else the stretch under the pointer, else the slot there.</summary>
+    /// <summary>A click: the nearest tick or bookmark in its row, else the stretch under the pointer, else the slot there.</summary>
     private int FrameUnder(Point point) =>
-        MatchTimelineLayout.FrameUnder(_ticks.Select(t => t.Tick), _spans.Select(s => s.Segment), point.X, point.Y, Bounds.Width, FrameMax);
+        MatchTimelineLayout.FrameUnder(_ticks.Select(t => t.Tick), _spans.Select(s => s.Segment), point.X, point.Y, Bounds.Width, FrameMax,
+            _bookmarks.Select(b => b.Frame));
 
     private static Rect Rect((double X, double Y, double Width, double Height) r) => new(r.X, r.Y, r.Width, r.Height);
 

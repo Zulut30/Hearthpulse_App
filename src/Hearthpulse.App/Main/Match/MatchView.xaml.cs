@@ -1,8 +1,10 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.App.Main.Match;
 
@@ -29,13 +31,30 @@ public partial class MatchView : UserControl
     /// <summary>
     /// The player's keys on the Replay tab, before the focused button or radio sees them (Space must not click it):
     /// Space plays or pauses, the arrows go by event and with Ctrl by turn, Enter and Backspace by step, + and − change
-    /// the speed. Esc and Alt+Left go on to the window (back to History).
+    /// the speed, G opens the "Turn" list, M goes to the mulligan, B bookmarks the step, [ and ] go to the bookmarks
+    /// around it. Esc and Alt+Left go on to the window (back to History). While the "Turn" list is open (its keys come
+    /// through here from its popup) they are the list's. Letters by their key, so the Russian layout works the same.
     /// </summary>
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
         base.OnPreviewKeyDown(e);
-        if (e.Handled || _model is not { ShowReplay: true } model)
+        if (e.Handled || _model is not { ShowReplay: true } model || model.TurnsOpen || TurnBox.IsDropDownOpen)
         {
+            return;
+        }
+
+        if (e.Key == Key.G && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            OpenTurns(model);
+            e.Handled = true;
+            return;
+        }
+
+        // Shift+B: the "Bookmarks" menu, its first entry focused (the arrows move, Enter goes, Esc closes).
+        if (e.Key == Key.B && Keyboard.Modifiers == ModifierKeys.Shift && model.CanBookmark)
+        {
+            OnBookmarksMenu(BookmarksButton, e);
+            e.Handled = true;
             return;
         }
 
@@ -50,12 +69,90 @@ public partial class MatchView : UserControl
             (Key.Back, ModifierKeys.None) => model.Previous,
             (Key.OemPlus or Key.Add, ModifierKeys.None or ModifierKeys.Shift) => model.Faster,
             (Key.OemMinus or Key.Subtract, ModifierKeys.None or ModifierKeys.Shift) => model.Slower,
+            (Key.M, ModifierKeys.None) => model.GoMulligan,
+            (Key.B, ModifierKeys.None) => model.ToggleBookmark,
+            (Key.OemOpenBrackets, ModifierKeys.None) => model.PreviousBookmark,
+            (Key.OemCloseBrackets, ModifierKeys.None) => model.NextBookmark,
             _ => null,
         };
         if (command is not null)
         {
             command.Execute(null);
             e.Handled = true;
+        }
+    }
+
+    /// <summary>G: the "Turn" list opens with the keyboard in it (the arrows move through it, Enter goes, Esc closes).</summary>
+    private void OpenTurns(MatchViewModel model)
+    {
+        if (model.Jumps.Count == 0)
+        {
+            return;
+        }
+
+        TurnBox.Focus();
+        model.OpenTurns.Execute(null);
+    }
+
+    /// <summary>The "Turn" list closed (a pick, Esc or a click outside): the keys go back to the player.</summary>
+    private void OnTurnsClosed(object? sender, EventArgs e) =>
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+        {
+            if (IsVisible)
+            {
+                Focus();
+            }
+        });
+
+    /// <summary>"Bookmarks": its menu opens under it on a click, with the bookmarks as they are now.</summary>
+    private void OnBookmarksMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } menu } button)
+        {
+            FillBookmarks(menu);
+            menu.PlacementTarget = button;
+            menu.Placement = PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+    }
+
+    /// <summary>The same menu by a right click: filled first as well.</summary>
+    private void OnBookmarksMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } menu })
+        {
+            FillBookmarks(menu);
+        }
+    }
+
+    /// <summary>The bookmarks in step order (the one on screen in bold, its glyph in the accent), or a hint without any.</summary>
+    private void FillBookmarks(ContextMenu menu)
+    {
+        menu.Items.Clear();
+        if (_model is not { } model)
+        {
+            return;
+        }
+
+        if (model.BookmarkRows.Count == 0)
+        {
+            menu.Items.Add(new MenuItem { Header = Loc.T("Match.Player.BookmarksEmpty"), IsEnabled = false });
+            return;
+        }
+
+        foreach (var row in model.BookmarkRows)
+        {
+            var glyph = new TextBlock { Text = "󰃀", FontSize = 14 };
+            glyph.SetResourceReference(StyleProperty, "Icon");
+            glyph.SetResourceReference(TextBlock.ForegroundProperty, row.Current ? "Accent" : "Info");
+            menu.Items.Add(new MenuItem
+            {
+                Header = row.Text,
+                Icon = glyph,
+                Command = model.GoBookmark,
+                CommandParameter = row,
+                FontWeight = row.Current ? FontWeights.SemiBold : FontWeights.Normal,
+            });
         }
     }
 

@@ -23,8 +23,15 @@ internal static class MatchTimelineLayout
 
     public const double SpanHeight = 22;
 
-    /// <summary>The height the timeline asks for.</summary>
-    public const double Height = 40;
+    /// <summary>The bookmark row, under the stretches: its top, height and the width of a bookmark's click zone.</summary>
+    public const double BookmarkTop = 40;
+
+    public const double BookmarkHeight = 12;
+
+    public const double BookmarkZone = 12;
+
+    /// <summary>The height the timeline asks for, with the bookmark row even without bookmarks (the bar does not jump).</summary>
+    public const double Height = 52;
 
     /// <summary>The pointer moves this far with the button down before a press scrubs instead of clicking.</summary>
     public const double DragSlop = 4;
@@ -49,6 +56,29 @@ internal static class MatchTimelineLayout
         MatchTimelineLook.Theirs => "Accent2",
         _ => "Muted",
     };
+
+    /// <summary>
+    /// The marker of a "Turn" list entry: our turn, theirs, a won or lost combat; the tavern, the mulligan, the hero choice,
+    /// the end and an open combat neutral.
+    /// </summary>
+    public static string MarkerBrush(MatchTimelineLook look) => look switch
+    {
+        MatchTimelineLook.Mine => "Accent",
+        MatchTimelineLook.Theirs => "Accent2",
+        MatchTimelineLook.Won => "Positive",
+        MatchTimelineLook.Lost => "Negative",
+        _ => "Muted",
+    };
+
+    /// <summary>A bookmark mark's brush key: told from the event ticks by its shape and row as well.</summary>
+    public const string BookmarkBrush = "Info";
+
+    /// <summary>A bookmarked step's place, 0–1: the middle of its slot, as the position line.</summary>
+    public static double BookmarkAt(int frame, int frameMax) => (frame + 0.5) / Math.Max(1, frameMax + 1);
+
+    /// <summary>Where a bookmark's click zone (and its glyph) goes, centred on its step.</summary>
+    public static (double X, double Y, double Width, double Height) Bookmark(int frame, int frameMax, double width) =>
+        ((BookmarkAt(frame, frameMax) * width) - (BookmarkZone / 2), BookmarkTop, BookmarkZone, BookmarkHeight);
 
     /// <summary>The width a stretch gets inside its 1 px margins (may be below zero for a tiny one).</summary>
     public static double SpanPixels(MatchTimelineSegment segment, double width) => ((segment.End - segment.Start) * width) - 2;
@@ -77,13 +107,24 @@ internal static class MatchTimelineLayout
 
     /// <summary>
     /// A click's step: in the tick row the nearest tick within its zone, on the stretches the first step of the stretch
-    /// under the pointer, else the slot there (<see cref="MatchViewModel.FrameAt"/>).
+    /// under the pointer, in the bookmark row the nearest bookmark within its zone, else the slot there
+    /// (<see cref="MatchViewModel.FrameAt"/>).
     /// </summary>
     public static int FrameUnder(
-        IEnumerable<MatchTimelineTick> ticks, IEnumerable<MatchTimelineSegment> spans, double x, double y, double width, int frameMax)
+        IEnumerable<MatchTimelineTick> ticks, IEnumerable<MatchTimelineSegment> spans, double x, double y, double width, int frameMax,
+        IEnumerable<int>? bookmarks = null)
     {
         width = Math.Max(1, width);
-        if (y < SpanTop)
+        if (y >= BookmarkTop)
+        {
+            var near = (bookmarks ?? []).Select(f => (Frame: f, Distance: Math.Abs((BookmarkAt(f, frameMax) * width) - x)))
+                .Where(b => b.Distance <= BookmarkZone / 2).OrderBy(b => b.Distance).ToList();
+            if (near.Count > 0)
+            {
+                return near[0].Frame;
+            }
+        }
+        else if (y < SpanTop)
         {
             var near = ticks.Where(t => Math.Abs((t.At * width) - x) <= TickZone / 2)
                 .OrderBy(t => Math.Abs((t.At * width) - x)).FirstOrDefault();

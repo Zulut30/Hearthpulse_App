@@ -8,8 +8,9 @@ namespace Hearthpulse.App.Main.Match;
 
 /// <summary>
 /// The whole-game timeline of the match page's player: event ticks over the stretches (turns, or tavern and combats),
-/// the position line and its diamond. Children are plain borders placed by the fractions of the view model; the panel
-/// takes the mouse itself: a click on a tick goes to its step, on a stretch to its first step, a drag scrubs.
+/// the position line and its diamond, the bookmarks under the stretches. Children are plain borders placed by the fractions
+/// of the view model; the panel takes the mouse itself: a click on a tick or a bookmark goes to its step, on a stretch to
+/// its first step, a drag scrubs.
 /// </summary>
 public sealed class MatchTimeline : Panel
 {
@@ -26,12 +27,16 @@ public sealed class MatchTimeline : Panel
         new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsArrange));
 
     public static readonly DependencyProperty FrameMaxProperty = DependencyProperty.Register(nameof(FrameMax), typeof(int), typeof(MatchTimeline),
-        new FrameworkPropertyMetadata(0));
+        new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsArrange));
+
+    public static readonly DependencyProperty BookmarksProperty = DependencyProperty.Register(nameof(Bookmarks), typeof(IReadOnlyList<MatchBookmarkRow>),
+        typeof(MatchTimeline), new FrameworkPropertyMetadata(null, (d, _) => ((MatchTimeline)d).Rebuild()));
 
     public static readonly DependencyProperty CommandProperty = DependencyProperty.Register(nameof(Command), typeof(ICommand), typeof(MatchTimeline));
 
     private readonly List<(MatchTimelineSegment Segment, Border Box, TextBlock Label, TextBlock Glyph, Border Bar)> _spans = [];
     private readonly List<(MatchTimelineTick Tick, Border Zone)> _ticks = [];
+    private readonly List<(int Frame, Border Zone)> _bookmarks = [];
     private readonly Rectangle _line = new() { Width = 2, IsHitTestVisible = false };
     private readonly Border _diamond = new()
     {
@@ -47,7 +52,7 @@ public sealed class MatchTimeline : Panel
 
     public MatchTimeline()
     {
-        Height = 40;
+        Height = MatchTimelineLayout.Height;
         Background = Brushes.Transparent;
         Cursor = Cursors.Hand;
         _line.SetResourceReference(Shape.FillProperty, "Accent");
@@ -68,6 +73,9 @@ public sealed class MatchTimeline : Panel
     /// <summary>The last step: a drag maps the pointer to one of the FrameMax + 1 slots.</summary>
     public int FrameMax { get => (int)GetValue(FrameMaxProperty); set => SetValue(FrameMaxProperty, value); }
 
+    /// <summary>The bookmarked steps: a mark each in the bookmark row.</summary>
+    public IReadOnlyList<MatchBookmarkRow>? Bookmarks { get => (IReadOnlyList<MatchBookmarkRow>?)GetValue(BookmarksProperty); set => SetValue(BookmarksProperty, value); }
+
     /// <summary>Goes to a step (its number is the parameter).</summary>
     public ICommand? Command { get => (ICommand?)GetValue(CommandProperty); set => SetValue(CommandProperty, value); }
 
@@ -76,6 +84,7 @@ public sealed class MatchTimeline : Panel
         Children.Clear();
         _spans.Clear();
         _ticks.Clear();
+        _bookmarks.Clear();
         foreach (var segment in Segments ?? [])
         {
             var bar = new Border { Height = 2, VerticalAlignment = VerticalAlignment.Top, CornerRadius = new CornerRadius(4, 4, 0, 0), Visibility = Visibility.Collapsed };
@@ -113,6 +122,29 @@ public sealed class MatchTimeline : Panel
             mark.SetResourceReference(Border.BackgroundProperty, MatchTimelineLayout.TickBrush(tick.Look));
             var zone = new Border { Width = MatchTimelineLayout.TickZone, Height = MatchTimelineLayout.TickHeight, Background = Brushes.Transparent, Child = mark, ToolTip = tick.Tooltip };
             _ticks.Add((tick, zone));
+            Children.Add(zone);
+        }
+
+        foreach (var bookmark in Bookmarks ?? [])
+        {
+            var glyph = new TextBlock
+            {
+                Text = "\U000F00C0",
+                FontSize = 11,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            glyph.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
+            glyph.SetResourceReference(TextBlock.ForegroundProperty, MatchTimelineLayout.BookmarkBrush);
+            var zone = new Border
+            {
+                Width = MatchTimelineLayout.BookmarkZone,
+                Height = MatchTimelineLayout.BookmarkHeight,
+                Background = Brushes.Transparent,
+                Child = glyph,
+                ToolTip = bookmark.Text,
+            };
+            _bookmarks.Add((bookmark.Frame, zone));
             Children.Add(zone);
         }
 
@@ -182,6 +214,11 @@ public sealed class MatchTimeline : Panel
             zone.Arrange(Rect(MatchTimelineLayout.Tick(tick, width)));
         }
 
+        foreach (var (frame, zone) in _bookmarks)
+        {
+            zone.Arrange(Rect(MatchTimelineLayout.Bookmark(frame, FrameMax, width)));
+        }
+
         _line.Arrange(Rect(MatchTimelineLayout.Line(Position, width)));
         _diamond.Arrange(Rect(MatchTimelineLayout.Diamond(Position, width)));
         return finalSize;
@@ -237,9 +274,10 @@ public sealed class MatchTimeline : Panel
         _scrubbing = false;
     }
 
-    /// <summary>A click: the nearest tick in the tick row, else the stretch under the pointer, else the slot there.</summary>
+    /// <summary>A click: the nearest tick or bookmark in its row, else the stretch under the pointer, else the slot there.</summary>
     private int FrameUnder(Point point) =>
-        MatchTimelineLayout.FrameUnder(_ticks.Select(t => t.Tick), _spans.Select(s => s.Segment), point.X, point.Y, ActualWidth, FrameMax);
+        MatchTimelineLayout.FrameUnder(_ticks.Select(t => t.Tick), _spans.Select(s => s.Segment), point.X, point.Y, ActualWidth, FrameMax,
+            _bookmarks.Select(b => b.Frame));
 
     private static Rect Rect((double X, double Y, double Width, double Height) r) => new(r.X, r.Y, r.Width, r.Height);
 
