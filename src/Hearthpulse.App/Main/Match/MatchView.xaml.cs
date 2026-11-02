@@ -50,6 +50,14 @@ public partial class MatchView : UserControl
             return;
         }
 
+        // Shift+B: the "Bookmarks" menu, its first entry focused (the arrows move, Enter goes, Esc closes).
+        if (e.Key == Key.B && Keyboard.Modifiers == ModifierKeys.Shift && model.CanBookmark)
+        {
+            OnBookmarksMenu(BookmarksButton, e);
+            e.Handled = true;
+            return;
+        }
+
         var command = (e.Key, Keyboard.Modifiers) switch
         {
             (Key.Space, ModifierKeys.None) => model.TogglePlay,

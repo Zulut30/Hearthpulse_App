@@ -54,7 +54,8 @@ public sealed partial class MatchViewModel
     private IReadOnlyList<MatchJumpRow> _jumps = [];
     private readonly SortedSet<int> _bookmarks = [];
     private IReadOnlyList<MatchBookmarkRow> _bookmarkRows = [];
-    private IReadOnlyList<double> _bookmarkMarks = [];
+    private IReadOnlyList<MatchBookmarkRow> _bookmarkMarks = [];
+    private int _bookmarkLoad;
     private HistoryStore? _bookmarkStore;
     private string? _replayName;
     private LibraryCard? _headerCard;
@@ -175,7 +176,13 @@ public sealed partial class MatchViewModel
     public bool HasNextBookmark => _bookmarks.Count > 0 && _bookmarks.Max > _frame;
 
     /// <summary>Where the bookmarks sit on the timeline, 0–1 (the middle of their step, as the event ticks).</summary>
-    public IReadOnlyList<double> BookmarkMarks { get => _bookmarkMarks; private set => Set(ref _bookmarkMarks, value); }
+    public IReadOnlyList<MatchBookmarkRow> BookmarkMarks { get => _bookmarkMarks; private set => Set(ref _bookmarkMarks, value); }
+
+    /// <summary>
+    /// The latest reading or writing of bookmarks, done off the UI thread (tests wait for it). A newer game's page drops
+    /// what an older one was still doing.
+    /// </summary>
+    internal Task BookmarkWork { get; private set; } = Task.CompletedTask;
 
     /// <summary>B: a bookmark on the step on screen, or off it. A failed write leaves it as it was and says so in the header.</summary>
     public RelayCommand ToggleBookmark => _toggleBookmark ??= new RelayCommand(() =>
@@ -187,27 +194,10 @@ public sealed partial class MatchViewModel
 
         ClearHeaderStatus();
         var on = !_bookmarks.Contains(_frame);
-        try
-        {
-            _bookmarkStore!.SetBookmark(_replayName!, _frame, on);
-        }
-        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException or UnauthorizedAccessException)
-        {
-            Diag.Error("Saving a replay bookmark failed", ex);
-            ShowHeaderStatus(Loc.T("Match.Player.BookmarkFailed"), "Loss", IconFailed, folder: false);
-            return;
-        }
-
-        if (on)
-        {
-            _bookmarks.Add(_frame);
-        }
-        else
-        {
-            _bookmarks.Remove(_frame);
-        }
-
-        RaiseBookmarks();
+        var bookmark = ReplayBookmark.At(_frame, FrameMax + 1, StretchStarts());
+        // Shown at once; written off the UI thread, and taken back if the write fails.
+        Mark(_frame, on);
+        BookmarkWork = SaveBookmarkAsync(_bookmarkLoad, _bookmarkStore!, _replayName!, bookmark, on);
     });
 
     /// <summary>[: the bookmark before the step on screen.</summary>
@@ -324,21 +314,96 @@ public sealed partial class MatchViewModel
         _bookmarkStore = store;
         HeaderCard = card;
         _bookmarks.Clear();
-        if (_replayName is { } name && store is not null)
-        {
-            try
-            {
-                _bookmarks.UnionWith(store.Bookmarks(name).Where(f => f <= FrameMax));
-            }
-            catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException or UnauthorizedAccessException)
-            {
-                Diag.Error("Reading replay bookmarks failed", ex);
-            }
-        }
-
+        var load = ++_bookmarkLoad;
+        BookmarkWork = _replayName is { } name && store is not null
+            ? LoadBookmarksAsync(load, store, name, FrameMax + 1, StretchStarts())
+            : Task.CompletedTask;
+        SetBookmarkMarks();
         RaiseBookmarks();
         Raise(nameof(CanBookmark));
     }
+
+    /// <summary>The first step of each timeline stretch: a bookmark keeps its place in its stretch (<see cref="ReplayBookmark"/>).</summary>
+    private List<int> StretchStarts() => _jumps.Select(j => j.Start).ToList();
+
+    /// <summary>
+    /// Reads the replay's bookmarks off the UI thread. A replay written again with another step count moves them to their
+    /// place in their stretch, or drops the ones whose place is gone; the history is changed to match.
+    /// </summary>
+    private async Task LoadBookmarksAsync(int load, HistoryStore store, string name, int frameCount, IReadOnlyList<int> starts)
+    {
+        IReadOnlyList<int> frames;
+        try
+        {
+            frames = await Task.Run(() =>
+            {
+                var saved = store.Bookmarks(name);
+                var kept = saved
+                    .Select(b => b.Resolve(frameCount, starts))
+                    .OfType<int>()
+                    .Distinct()
+                    .Select(f => ReplayBookmark.At(f, frameCount, starts))
+                    .ToList();
+                if (!kept.SequenceEqual(saved))
+                {
+                    store.ReplaceBookmarks(name, kept);
+                }
+
+                return (IReadOnlyList<int>)kept.Select(b => b.Frame).ToList();
+            }).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Reading replay bookmarks failed", ex);
+            return;
+        }
+
+        if (load != _bookmarkLoad)
+        {
+            return;
+        }
+
+        _bookmarks.UnionWith(frames);
+        SetBookmarkMarks();
+        RaiseBookmarks();
+    }
+
+    /// <summary>Writes a bookmark off the UI thread; a failure takes it back on this page and says so in the header.</summary>
+    private async Task SaveBookmarkAsync(int load, HistoryStore store, string name, ReplayBookmark bookmark, bool on)
+    {
+        try
+        {
+            await Task.Run(() => store.SetBookmark(name, bookmark, on)).ConfigureAwait(true);
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or System.IO.IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Saving a replay bookmark failed", ex);
+            if (load == _bookmarkLoad)
+            {
+                Mark(bookmark.Frame, !on);
+                ShowHeaderStatus(Loc.T("Match.Player.BookmarkFailed"), "Loss", IconFailed, folder: false);
+            }
+        }
+    }
+
+    /// <summary>Puts a bookmark on a step of this page or takes it off; the timeline's marks change only here.</summary>
+    private void Mark(int frame, bool on)
+    {
+        if (on)
+        {
+            _bookmarks.Add(frame);
+        }
+        else
+        {
+            _bookmarks.Remove(frame);
+        }
+
+        SetBookmarkMarks();
+        RaiseBookmarks();
+    }
+
+    /// <summary>The timeline's marks: a new list only when a bookmark is put on or taken off, not at every step.</summary>
+    private void SetBookmarkMarks() => BookmarkMarks = _bookmarks.Select(f => new MatchBookmarkRow(f, BookmarkText(f))).ToList();
 
     /// <summary>The "Turn" list from the timeline's stretches (both modes), built once per game.</summary>
     private void ShowJumps()
@@ -397,10 +462,8 @@ public sealed partial class MatchViewModel
 
     private void RaiseBookmarks()
     {
-        var count = _page?.FrameCount ?? 0;
         _bookmarkCurrent = _bookmarks.Contains(_frame) ? _frame : -1;
         BookmarkRows = _bookmarks.Select(f => new MatchBookmarkRow(f, BookmarkText(f), f == _frame)).ToList();
-        BookmarkMarks = count == 0 ? [] : _bookmarks.Select(f => (f + 0.5) / count).ToList();
         Raise(nameof(HasBookmarks));
         Raise(nameof(BookmarkCountText));
         Raise(nameof(BookmarksTip));

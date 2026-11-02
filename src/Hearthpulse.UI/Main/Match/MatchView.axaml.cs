@@ -97,6 +97,14 @@ public partial class MatchView : UserControl
             return;
         }
 
+        // Shift+B: the "Bookmarks" menu (the arrows move, Enter goes, Esc closes).
+        if (e.KeyModifiers == KeyModifiers.Shift && model.CanBookmark && (e.PhysicalKey == PhysicalKey.B || (e.PhysicalKey == PhysicalKey.None && e.Key == Key.B)))
+        {
+            BookmarksButton.Flyout?.ShowAt(BookmarksButton);
+            e.Handled = true;
+            return;
+        }
+
         if (e.KeyModifiers == KeyModifiers.None && LetterCommand(model, e) is { } letter)
         {
             letter.Execute(null);

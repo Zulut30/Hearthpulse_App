@@ -810,7 +810,7 @@
                             </StackPanel>
                         </Grid>
                         <mt:MatchTimeline Segments="{Binding TimelineSegments}" Ticks="{Binding TimelineTicks}" Current="{Binding TimelineCurrent}"
-                                          Position="{Binding TimelinePosition}" FrameMax="{Binding FrameMax}" Bookmarks="{Binding BookmarkRows}" Command="{Binding GoFrame}" />
+                                          Position="{Binding TimelinePosition}" FrameMax="{Binding FrameMax}" Bookmarks="{Binding BookmarkMarks}" Command="{Binding GoFrame}" />
                         <!-- Turn ‹ event ‹ step ‹ play › step › event › turn; speed, position; side (Constructed) and the keys. Wraps at phone width. -->
                         <WrapPanel Margin="0,12,0,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4">

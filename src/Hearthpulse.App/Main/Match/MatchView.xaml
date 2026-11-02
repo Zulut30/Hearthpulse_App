@@ -761,7 +761,7 @@
                                 <Button Style="{StaticResource IconButton}" Focusable="False" Width="28" Height="28" FontSize="15" Margin="8,0,0,0" Content="&#xF0141;"
                                         Command="{Binding PreviousBookmark}" IsEnabled="{Binding HasPreviousBookmark}" ToolTip="{i:Loc Match.Player.PreviousBookmark}"
                                         AutomationProperties.Name="{i:Loc Match.Player.PreviousBookmark}" ToolTipService.ShowOnDisabled="True" />
-                                <Button Style="{StaticResource GhostButton}" Focusable="False" Padding="10,4" Margin="4,0" VerticalAlignment="Center" Click="OnBookmarksMenu"
+                                <Button x:Name="BookmarksButton" Style="{StaticResource GhostButton}" Focusable="False" Padding="10,4" Margin="4,0" VerticalAlignment="Center" Click="OnBookmarksMenu"
                                         ContextMenuOpening="OnBookmarksMenuOpening" ToolTip="{Binding BookmarksTip}" AutomationProperties.Name="{Binding BookmarksTip}">
                                     <Button.ContextMenu>
                                         <ContextMenu Style="{StaticResource BookmarkMenu}" />
@@ -781,7 +781,7 @@
                             </StackPanel>
                         </Grid>
                         <mt:MatchTimeline Segments="{Binding TimelineSegments}" Ticks="{Binding TimelineTicks}" Current="{Binding TimelineCurrent}"
-                                          Position="{Binding TimelinePosition}" FrameMax="{Binding FrameMax}" Bookmarks="{Binding BookmarkRows}" Command="{Binding GoFrame}" />
+                                          Position="{Binding TimelinePosition}" FrameMax="{Binding FrameMax}" Bookmarks="{Binding BookmarkMarks}" Command="{Binding GoFrame}" />
                         <!-- Turn ‹ event ‹ step ‹ play › step › event › turn; speed, position; side (Constructed) and the keys -->
                         <WrapPanel Margin="0,12,0,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

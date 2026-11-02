@@ -236,17 +236,23 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
    another tab, another game or Back), the position, "?" with the legend and keys. Keys on the tab (caught before the
    focused control): Space play/pause, ←/→ event (`EventFrom`; turn starts, combat deaths and triggers are steps
    only), Ctrl+←/→ turn (`TurnFrom`: the next stretch that is not a combat), Enter/Backspace step, +/− speed, Esc back,
-   G the "Turn" list, M the mulligan, B a bookmark on the step, [ / ] the bookmark before / after (letters by their
+   G the "Turn" list, M the mulligan, B a bookmark on the step, Shift+B the "Bookmarks" menu, [ / ] the bookmark
+   before / after (letters by their
    physical place, so the Russian layout works the same; none of them while the "Turn" list is open).
    Over the timeline a navigation row (plan R1, `MatchPlayer.Navigation.cs`): "Turn" - the timeline's stretches one
    to one (Constructed: the mulligan, then each turn, ours and theirs; Battlegrounds: the hero choice, each tavern and
    combat, the end), each with a marker in its stretch's colour; choosing one goes to its first step, the mulligan to
    its choice step (where the offer shows); the entry on screen follows the steps (not while the list is open). On the
    right the bookmark toggle, ‹ / › and "Bookmarks N ▾" (a menu in step order: "Step 34 · turn 7"). Bookmarks are
-   steps only, kept in the local history (`HistoryStore.Bookmarks`, table `replay_bookmarks`) by the replay file's
-   name, so a starred copy in Saved shares them; they never leave the PC (not in Share, not uploaded). Each shows as a
-   bookmark glyph in its own row under the timeline's stretches (the timeline is 52 high with or without them); a
-   click there goes to the nearest one. A bookmark that cannot be written stays as it was and the header says so.
+   kept in the local history (`HistoryStore.Bookmarks`, table `replay_bookmarks`) by the replay file's name, so a
+   starred copy in Saved shares them; they never leave the PC (not in Share, not uploaded). Each keeps its step, the
+   replay's step count and its place in the game (`ReplayBookmark`: its timeline stretch and the step in it): a file
+   written again with other steps (a newer recorder, a reconnect, an import) moves it to that place, or drops it when
+   the place is gone. They are read and written off the UI thread, and go with the replay's last file (the last copy
+   unstarred, an import deleted; files gone otherwise are tidied when the library loads). Each shows as a bookmark
+   glyph in its own row under the timeline's stretches (the timeline is 52 high with or without them; the marks change
+   only when a bookmark does); a click there goes to the nearest one. A bookmark that cannot be written is taken back
+   and the header says so.
    Avalonia compact: "Turn" over the bookmarks, which drop their word.
    Battlegrounds: the step's table from `MatchBgStepView` (Bob's offer or the combat opponent on top, ours at the
    bottom, the step bar, choices, hand; leaderboard and the tavern's or combat's events on the right); a format 3

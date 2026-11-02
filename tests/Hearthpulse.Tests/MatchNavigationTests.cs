@@ -67,22 +67,33 @@ public sealed class MatchNavigationTests : IDisposable
     }
 
     [Fact]
-    public void Bookmarks_are_kept_by_the_replays_name_and_walked_in_order()
+    public async Task Bookmarks_are_kept_by_the_replays_name_and_walked_in_order()
     {
         var history = History();
         var (model, name) = Opened(history);
         Assert.False(model.CanBookmark);
 
         model.SetReplay(name, null, history);
+        await model.BookmarkWork;
         Assert.True(model.CanBookmark);
         model.Frame = 7;
         model.ToggleBookmark.Execute(null);
+        await model.BookmarkWork;
         model.Frame = 3;
+        var marks = model.BookmarkMarks;
         model.ToggleBookmark.Execute(null);
+        await model.BookmarkWork;
         Assert.True(model.IsBookmarked);
-        Assert.Equal([3, 7], history.Bookmarks(name));
+        Assert.Equal([3, 7], history.Bookmarks(name).Select(b => b.Frame));
         Assert.Equal([3, 7], model.BookmarkRows.Select(r => r.Frame));
-        Assert.Equal(2, model.BookmarkMarks.Count);
+        Assert.Equal([3, 7], model.BookmarkMarks.Select(r => r.Frame));
+        Assert.NotSame(marks, model.BookmarkMarks);
+
+        // The timeline's marks change only when a bookmark does, not at every step.
+        marks = model.BookmarkMarks;
+        model.Frame = 5;
+        model.Frame = 7;
+        Assert.Same(marks, model.BookmarkMarks);
 
         model.Frame = 0;
         model.NextBookmark.Execute(null);
@@ -97,16 +108,95 @@ public sealed class MatchNavigationTests : IDisposable
         // Opened again (another session): the bookmarks come back; one taken off is gone for good.
         var (again, _) = Opened(history);
         again.SetReplay(name, null, history);
+        await again.BookmarkWork;
         Assert.Equal([3, 7], again.BookmarkRows.Select(r => r.Frame));
         again.Frame = 7;
         again.ToggleBookmark.Execute(null);
+        await again.BookmarkWork;
         Assert.False(again.IsBookmarked);
-        Assert.Equal([3], history.Bookmarks(name));
+        Assert.Equal([3], history.Bookmarks(name).Select(b => b.Frame));
 
         // Another game's page lets them go.
         again.Clear();
         Assert.Empty(again.BookmarkRows);
         Assert.False(again.CanBookmark);
+    }
+
+    /// <summary>
+    /// M2 (R1 review): a replay written again with another step count (a newer recorder, a reconnect, an import) moves its
+    /// bookmarks to their place in their stretch; one whose place is gone is dropped, in the history too.
+    /// </summary>
+    [Fact]
+    public async Task Bookmarks_find_their_place_again_in_a_replay_with_other_steps()
+    {
+        var history = History();
+        var (model, name) = Opened(history);
+        var starts = model.Jumps.Select(j => j.Start).ToList();
+        Assert.True(starts.Count >= 3);
+        // Set on a recording of 120 steps: the second step of the third stretch, and a stretch this file has not.
+        history.SetBookmark(name, new ReplayBookmark(Frame: 77, FrameCount: 120, Stretch: 2, Offset: 1), on: true);
+        history.SetBookmark(name, new ReplayBookmark(Frame: 99, FrameCount: 120, Stretch: 40, Offset: 0), on: true);
+
+        model.SetReplay(name, null, history);
+        await model.BookmarkWork;
+
+        var moved = starts[2] + 1;
+        Assert.Equal([moved], model.BookmarkRows.Select(r => r.Frame));
+        var kept = Assert.Single(history.Bookmarks(name));
+        Assert.Equal(new ReplayBookmark(moved, model.FrameMax + 1, 2, 1), kept);
+    }
+
+    [Fact]
+    public void A_bookmark_resolves_by_its_step_count_else_its_stretch()
+    {
+        int[] starts = [0, 3, 6];
+        var bookmark = ReplayBookmark.At(4, 10, starts);
+        Assert.Equal(new ReplayBookmark(4, 10, 1, 1), bookmark);
+        Assert.Equal(4, bookmark.Resolve(10, starts));
+        Assert.Equal(6, bookmark.Resolve(12, [0, 5, 9]));
+        // The stretch is shorter now, or gone.
+        Assert.Null(bookmark.Resolve(12, [0, 5, 6]));
+        Assert.Null(bookmark.Resolve(12, [0]));
+    }
+
+    /// <summary>m1 (R1 review): bookmarks go with the replay's last file.</summary>
+    [Fact]
+    public void Bookmarks_go_when_their_replay_has_no_file_left()
+    {
+        var history = History();
+        history.SetBookmark("gone.hpr", new ReplayBookmark(1, 10, 0, 1), on: true);
+        history.SetBookmark("kept.hpr", new ReplayBookmark(1, 10, 0, 1), on: true);
+        Assert.Equal(["gone.hpr", "kept.hpr"], history.BookmarkedReplays().Order());
+
+        history.RemoveBookmarks("gone.hpr");
+        Assert.Equal(["kept.hpr"], history.BookmarkedReplays());
+    }
+
+    /// <summary>
+    /// M1 (R1 review): the library shows another tab or filter, so the game has no card there: the header's card is made
+    /// for it and still knows its file and its star.
+    /// </summary>
+    [Fact]
+    public async Task The_header_has_its_star_and_share_when_the_library_shows_another_filter()
+    {
+        var history = History();
+        var files = new ReplayLibrary(_store, Path.Combine(_folder, "saved"), Path.Combine(_folder, "imported"));
+        var name = _store.Save(MatchTimelineTests.Game(null).Key, ReplayFile.Write(new ReplayHeader(), MatchTimelineTests.Events))!;
+        var game = MatchTimelineTests.Game(name);
+        history.Add(game);
+        Assert.True(files.Star(ReplayShelf.Recent, name));
+        var main = new MainViewModel(history, new AppSettings()) { LibraryFiles = files };
+        await main.RefreshAsync();
+        main.SetHistoryFilter.Execute("Battlegrounds");
+        await main.LibraryIdleAsync();
+        Assert.DoesNotContain(main.Library.AllCards, c => c.HistoryKey == game.Key);
+
+        Assert.True(await main.OpenMatchPageAsync(game.Key));
+
+        var header = main.MatchPage.HeaderCard!;
+        Assert.True(header.HasReplay);
+        Assert.True(header.Starred);
+        Assert.True(main.MatchPage.ShowHeaderActions);
     }
 
     [Fact]
@@ -244,11 +334,12 @@ public sealed class MatchNavigationTests : IDisposable
     }
 
     [Fact]
-    public void Bookmarks_are_named_by_step_and_turn_and_the_menu_goes_to_them()
+    public async Task Bookmarks_are_named_by_step_and_turn_and_the_menu_goes_to_them()
     {
         var history = History();
         var (model, name) = Opened(history);
         model.SetReplay(name, null, history);
+        await model.BookmarkWork;
         Assert.Equal(Loc.T("Match.Player.BookmarksEmpty"), model.BookmarksTip);
         Assert.Equal(string.Empty, model.BookmarkCountText);
         Assert.False(model.HasPreviousBookmark);
@@ -258,6 +349,7 @@ public sealed class MatchNavigationTests : IDisposable
         {
             model.Frame = frame;
             model.ToggleBookmark.Execute(null);
+            await model.BookmarkWork;
         }
 
         // The start, the mulligan, a step of turn 1.
@@ -289,11 +381,12 @@ public sealed class MatchNavigationTests : IDisposable
     }
 
     [Fact]
-    public void A_bookmark_that_cannot_be_written_stays_as_it_was_and_the_header_says_so()
+    public async Task A_bookmark_that_cannot_be_written_stays_as_it_was_and_the_header_says_so()
     {
         var history = History();
         var (model, name) = Opened(history);
         model.SetReplay(name, null, history);
+        await model.BookmarkWork;
         Assert.Empty(history.Bookmarks(name));
 
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
@@ -302,6 +395,7 @@ public sealed class MatchNavigationTests : IDisposable
         try
         {
             model.ToggleBookmark.Execute(null);
+            await model.BookmarkWork;
         }
         finally
         {
@@ -316,6 +410,7 @@ public sealed class MatchNavigationTests : IDisposable
 
         // The next action takes the line away.
         model.ToggleBookmark.Execute(null);
+        await model.BookmarkWork;
         Assert.True(model.IsBookmarked);
         Assert.Equal(string.Empty, model.HeaderStatus);
     }
