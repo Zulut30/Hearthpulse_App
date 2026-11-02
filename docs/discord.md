@@ -1,9 +1,10 @@
 # Discord status ("Статус в Discord")
 
-Friends on Discord see what the player is playing (plan 3.4, `TASK-2026-11-02-discord`): Settings → Stream →
-**Discord status** in both UIs, off by default. Hearthpulse talks only to the Discord app on the same PC (its local
-RPC: the named pipe `discord-ipc-0…9` on Windows, the unix socket of that name in `XDG_RUNTIME_DIR` / `TMPDIR` / `/tmp`
-elsewhere); Discord shows the status to the player's friends. Nothing else is sent anywhere.
+Everyone who can see the player's Discord profile (friends, members of shared servers) sees what they are playing
+(plan 3.4, `TASK-2026-11-02-discord`): Settings → Stream → **Discord status** in both UIs, off by default. Hearthpulse talks only to the Discord app on the same PC (its local
+RPC: the named pipe `discord-ipc-0…9` on Windows, only when Windows lists it; the unix socket of that name in
+`XDG_RUNTIME_DIR` / `TMPDIR` / `/tmp` or Discord's flatpak / snap folder in it elsewhere); Discord shows the status to
+everyone who can see the player's profile. Nothing else is sent anywhere.
 
 Code: `src/Hearthpulse.Core/Discord/` (`DiscordIpc` the frames, `DiscordPresence` the sender), the text from a live
 snapshot in `MainViewModel.Discord.cs` (Presentation). No third-party library.
@@ -39,6 +40,8 @@ language. Separator " · ", as on the live bar.
   sent when the time is up, none is lost.
 - Without the Discord app: the status line says so and Hearthpulse looks again every 30 s; no errors for the player.
 - Off: the status is cleared at once (`SET_ACTIVITY` with no activity) and the pipe closed.
+- Each frame waits for its own answer (by nonce) for at most 5 s, answering Discord's pings; a silent or closed pipe
+  counts as "Discord is not running". Any other failure is logged and the sender starts over after 30 s.
 
 ## Registering the Discord app (owner)
 

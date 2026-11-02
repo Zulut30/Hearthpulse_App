@@ -22,23 +22,36 @@ public sealed record DiscordActivity(string Details, string? State, DateTimeOffs
 
 /// <summary>
 /// The local connection to the Discord app (its RPC over IPC: on Windows the named pipe <c>discord-ipc-0…9</c>, elsewhere
-/// the unix socket of that name in the runtime folder). A frame is a little-endian opcode, a length and UTF-8 JSON; the
-/// app says hello (handshake), then sets the activity. Nothing leaves the PC but through the Discord app.
+/// the unix socket of that name in the runtime folder or Discord's snap / flatpak folder in it). A frame is a
+/// little-endian opcode, a length and UTF-8 JSON; the app says hello (handshake), then sets the activity. Nothing leaves
+/// the PC but through the Discord app.
 /// </summary>
 public sealed class DiscordIpc : IAsyncDisposable
 {
     internal const int OpHandshake = 0;
     internal const int OpFrame = 1;
     internal const int OpClose = 2;
+    internal const int OpPing = 3;
+    internal const int OpPong = 4;
 
     /// <summary>The longest text a line takes.</summary>
     internal const int MaxText = 128;
 
+    /// <summary>Where Discord's socket may be inside the runtime folder: its own, flatpak's and snap's.</summary>
+    private static readonly string[] UnixFolders =
+        ["", "app/com.discordapp.Discord", "app/com.discordapp.DiscordCanary", "snap.discord", "snap.discord-canary"];
+
     private readonly Func<int, CancellationToken, Task<Stream?>> _open;
+    private readonly TimeSpan _answerTimeout;
     private Stream? _stream;
 
     /// <param name="open">Opens pipe <c>n</c> (0–9), or null when it is not there; tests pass their own.</param>
-    public DiscordIpc(Func<int, CancellationToken, Task<Stream?>>? open = null) => _open = open ?? OpenAsync;
+    /// <param name="answerTimeout">How long Discord may take to answer a frame (5 s).</param>
+    public DiscordIpc(Func<int, CancellationToken, Task<Stream?>>? open = null, TimeSpan? answerTimeout = null)
+    {
+        _open = open ?? OpenAsync;
+        _answerTimeout = answerTimeout ?? TimeSpan.FromSeconds(5);
+    }
 
     public bool Connected => _stream is not null;
 
@@ -57,12 +70,15 @@ public sealed class DiscordIpc : IAsyncDisposable
             try
             {
                 await WriteAsync(stream, OpHandshake, new JsonObject { ["v"] = 1, ["client_id"] = clientId }, cancellationToken).ConfigureAwait(false);
-                var (op, body) = await ReadAsync(stream, cancellationToken).ConfigureAwait(false);
-                if (op == OpFrame && body?["evt"]?.GetValue<string>() == "READY")
+                // The first dispatch is READY, or ERROR for a bad id.
+                var answer = await AwaitAsync(stream, body => body?["evt"] is not null, cancellationToken).ConfigureAwait(false);
+                if (answer?["evt"]?.GetValue<string>() == "READY")
                 {
                     _stream = stream;
                     return true;
                 }
+
+                Diag.Info("Discord: pipe " + pipe.ToString(CultureInfo.InvariantCulture) + " refused the app: " + answer?["data"]?["message"]);
             }
             catch (Exception ex) when (ex is IOException or JsonException or InvalidOperationException or ObjectDisposedException)
             {
@@ -79,16 +95,17 @@ public sealed class DiscordIpc : IAsyncDisposable
     public async Task SetActivityAsync(DiscordActivity? activity, int processId, CancellationToken cancellationToken)
     {
         var stream = _stream ?? throw new IOException("Not connected to Discord.");
+        var nonce = Guid.NewGuid().ToString("N");
         var args = new JsonObject { ["pid"] = processId, ["activity"] = activity is null ? null : Json(activity) };
-        var frame = new JsonObject { ["cmd"] = "SET_ACTIVITY", ["args"] = args, ["nonce"] = Guid.NewGuid().ToString("N") };
+        var frame = new JsonObject { ["cmd"] = "SET_ACTIVITY", ["args"] = args, ["nonce"] = nonce };
         try
         {
             await WriteAsync(stream, OpFrame, frame, cancellationToken).ConfigureAwait(false);
-            // The answer (or an error) comes back at once; reading it keeps the pipe from filling up.
-            var (op, body) = await ReadAsync(stream, cancellationToken).ConfigureAwait(false);
-            if (op == OpClose || body?["evt"]?.GetValue<string>() == "ERROR")
+            // Our answer (or an error) comes back at once; reading it keeps the pipe from filling up.
+            var answer = await AwaitAsync(stream, body => body?["nonce"]?.GetValue<string>() == nonce, cancellationToken).ConfigureAwait(false);
+            if (answer?["evt"]?.GetValue<string>() == "ERROR")
             {
-                Diag.Info("Discord: activity refused: " + body?["data"]?["message"]);
+                Diag.Info("Discord: activity refused: " + answer["data"]?["message"]);
             }
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException or ObjectDisposedException)
@@ -148,6 +165,37 @@ public sealed class DiscordIpc : IAsyncDisposable
         return trimmed.Length > MaxText ? string.Concat(trimmed.AsSpan(0, MaxText - 1), "…") : trimmed.Length < 2 ? trimmed + " " : trimmed;
     }
 
+    /// <summary>
+    /// Reads frames until one <paramref name="wanted"/> takes, answering Discord's pings on the way. Throws
+    /// <see cref="IOException"/> when Discord closes the pipe or does not answer within the timeout.
+    /// </summary>
+    private async Task<JsonNode?> AwaitAsync(Stream stream, Func<JsonNode?, bool> wanted, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(_answerTimeout);
+        try
+        {
+            while (true)
+            {
+                var (op, body) = await ReadAsync(stream, timeout.Token).ConfigureAwait(false);
+                switch (op)
+                {
+                    case OpPing:
+                        await WriteAsync(stream, OpPong, body ?? new JsonObject(), timeout.Token).ConfigureAwait(false);
+                        break;
+                    case OpClose:
+                        throw new IOException("Discord closed the connection: " + body?["message"]);
+                    case OpFrame when wanted(body):
+                        return body;
+                }
+            }
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new IOException("Discord did not answer in time.", ex);
+        }
+    }
+
     internal static async Task WriteAsync(Stream stream, int op, JsonNode payload, CancellationToken cancellationToken)
     {
         var body = Encoding.UTF8.GetBytes(payload.ToJsonString());
@@ -175,28 +223,33 @@ public sealed class DiscordIpc : IAsyncDisposable
         return (op, length == 0 ? null : JsonNode.Parse(body));
     }
 
-    /// <summary>The Discord app's pipe <paramref name="pipe"/>, or null when it does not answer.</summary>
+    /// <summary>The Discord app's pipe <paramref name="pipe"/>, or null when it is not there or does not answer.</summary>
     private static async Task<Stream?> OpenAsync(int pipe, CancellationToken cancellationToken)
     {
         var name = "discord-ipc-" + pipe.ToString(CultureInfo.InvariantCulture);
         if (OperatingSystem.IsWindows())
         {
+            // Only a pipe that exists: connecting to a missing one would wait out the timeout ten times a round.
+            if (!PipeExists(name))
+            {
+                return null;
+            }
+
             var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
             try
             {
                 await client.ConnectAsync(200, cancellationToken).ConfigureAwait(false);
                 return client;
             }
-            catch (Exception ex) when (ex is TimeoutException or IOException)
+            catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException)
             {
                 await client.DisposeAsync().ConfigureAwait(false);
                 return null;
             }
         }
 
-        var folder = new[] { "XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP" }.Select(Environment.GetEnvironmentVariable).FirstOrDefault(v => !string.IsNullOrEmpty(v)) ?? "/tmp";
-        var path = Path.Combine(folder, name);
-        if (!File.Exists(path))
+        var root = new[] { "XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP" }.Select(Environment.GetEnvironmentVariable).FirstOrDefault(v => !string.IsNullOrEmpty(v)) ?? "/tmp";
+        if (UnixFolders.Select(folder => Path.Combine(root, folder, name)).FirstOrDefault(File.Exists) is not { } path)
         {
             return null;
         }
@@ -209,13 +262,26 @@ public sealed class DiscordIpc : IAsyncDisposable
             socket = null;
             return stream;
         }
-        catch (SocketException)
+        catch (Exception ex) when (ex is SocketException or UnauthorizedAccessException)
         {
             return null;
         }
         finally
         {
             socket?.Dispose();
+        }
+    }
+
+    /// <summary>Whether Windows lists the pipe (listing does not open it); when the list cannot be read, try anyway.</summary>
+    private static bool PipeExists(string name)
+    {
+        try
+        {
+            return Directory.GetFiles(@"\\.\pipe\", name).Length > 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return true;
         }
     }
 }

@@ -26,6 +26,14 @@ public sealed class DiscordPresenceTests
 
         public string? ClientId { get; private set; }
 
+        /// <summary>The pipe broke: every write fails, as when the Discord app quits.</summary>
+        public bool Broken { get; set; }
+
+        /// <summary>Before each answer, a ping and a stranger's answer (another nonce) come first.</summary>
+        public bool Chatty { get; set; }
+
+        public int Pongs { get; private set; }
+
         /// <summary>The next activity the client sets (null clears).</summary>
         public Task<JsonNode?> Next()
         {
@@ -37,14 +45,31 @@ public sealed class DiscordPresenceTests
 
         public override void Write(byte[] buffer, int offset, int count)
         {
+            if (Broken)
+            {
+                throw new IOException("The pipe is broken.");
+            }
+
             var op = BinaryPrimitives.ReadInt32LittleEndian(buffer.AsSpan(offset));
             var length = BinaryPrimitives.ReadInt32LittleEndian(buffer.AsSpan(offset + 4));
             var body = JsonNode.Parse(Encoding.UTF8.GetString(buffer, offset + 8, length))!;
+            if (op == DiscordIpc.OpPong)
+            {
+                Pongs++;
+                return;
+            }
+
             if (op == DiscordIpc.OpHandshake)
             {
                 ClientId = body["client_id"]!.GetValue<string>();
                 Answer(new JsonObject { ["cmd"] = "DISPATCH", ["evt"] = "READY" });
                 return;
+            }
+
+            if (Chatty)
+            {
+                Answer(new JsonObject { ["ping"] = 1 }, DiscordIpc.OpPing);
+                Answer(new JsonObject { ["cmd"] = "SET_ACTIVITY", ["nonce"] = "someone-else" });
             }
 
             Answer(new JsonObject { ["cmd"] = "SET_ACTIVITY", ["nonce"] = body["nonce"]!.GetValue<string>() });
@@ -60,11 +85,11 @@ public sealed class DiscordPresenceTests
             done.SetResult(activity);
         }
 
-        private void Answer(JsonObject frame)
+        private void Answer(JsonObject frame, int op = DiscordIpc.OpFrame)
         {
             var body = Encoding.UTF8.GetBytes(frame.ToJsonString());
             var header = new byte[8];
-            BinaryPrimitives.WriteInt32LittleEndian(header, DiscordIpc.OpFrame);
+            BinaryPrimitives.WriteInt32LittleEndian(header, op);
             BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(4), body.Length);
             lock (_gate)
             {
@@ -175,6 +200,65 @@ public sealed class DiscordPresenceTests
         Assert.Null(await cleared.WaitAsync(Wait));
         await presence.Pending.WaitAsync(Wait);
         Assert.Equal(DiscordState.Off, presence.State);
+    }
+
+    [Fact]
+    public async Task Pings_are_answered_and_only_our_own_answer_ends_the_wait()
+    {
+        var discord = new FakeDiscord { Chatty = true };
+        await using var ipc = Ipc(discord);
+        Assert.True(await ipc.ConnectAsync("123", CancellationToken.None));
+
+        await ipc.SetActivityAsync(new DiscordActivity("Ranked", null, null), 42, CancellationToken.None);
+        await ipc.SetActivityAsync(new DiscordActivity("Casual", null, null), 42, CancellationToken.None);
+        Assert.Equal(2, discord.Pongs);
+        Assert.Equal(2, discord.Activities.Count);
+        Assert.True(ipc.Connected);
+    }
+
+    [Fact]
+    public async Task Switching_off_right_after_a_send_clears_the_status()
+    {
+        // Review M1: the pump may be ending just as the switch goes off; the clear must still go out. Many rounds, as
+        // the window is small.
+        for (var round = 0; round < 25; round++)
+        {
+            var discord = new FakeDiscord();
+            await using var presence = new DiscordPresence(Ipc(discord), "123");
+            var shown = discord.Next();
+            presence.Show(enabled: true, new DiscordActivity("In the menu", null, null));
+            await shown.WaitAsync(Wait);
+            var cleared = discord.Next();
+            presence.Show(enabled: false, null);
+
+            Assert.Null(await cleared.WaitAsync(Wait));
+        }
+    }
+
+    [Fact]
+    public async Task A_broken_pipe_is_left_and_the_status_goes_to_the_app_once_it_is_back()
+    {
+        var first = new FakeDiscord();
+        var second = new FakeDiscord();
+        var opened = 0;
+        var clock = new FakeTimeProvider(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
+        await using var presence = new DiscordPresence(
+            new DiscordIpc((n, _) => Task.FromResult<Stream?>(n != 0 ? null : Interlocked.Increment(ref opened) == 1 ? first : second)), "123", clock);
+
+        var shown = first.Next();
+        presence.Show(enabled: true, new DiscordActivity("In the menu", null, null));
+        await shown.WaitAsync(Wait);
+        await presence.Pending.WaitAsync(Wait);
+
+        // Discord quits mid-session: the next change fails on the old pipe and goes out on the new one.
+        first.Broken = true;
+        clock.Advance(DiscordPresence.MinInterval);
+        var again = second.Next();
+        presence.Show(enabled: true, new DiscordActivity("Ranked", "turn 1", null));
+        Assert.Equal("turn 1", (await again.WaitAsync(Wait))!["state"]!.GetValue<string>());
+        await presence.Pending.WaitAsync(Wait);
+        Assert.Equal(DiscordState.Connected, presence.State);
+        Assert.Equal(2, opened);
     }
 
     [Fact]

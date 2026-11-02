@@ -50,6 +50,7 @@ public sealed class DiscordPresence : IAsyncDisposable
     private bool _anySent;
     private DateTimeOffset _lastSend = DateTimeOffset.MinValue;
     private Task _pump = Task.CompletedTask;
+    private bool _running;
     private TaskCompletionSource _wake = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private DiscordState _state = DiscordState.Off;
 
@@ -90,8 +91,9 @@ public sealed class DiscordPresence : IAsyncDisposable
 
             _enabled = enabled;
             _wanted = activity;
-            if (_pump.IsCompleted)
+            if (!_running)
             {
+                _running = true;
                 _pump = Task.Run(PumpAsync);
             }
             else
@@ -138,10 +140,12 @@ public sealed class DiscordPresence : IAsyncDisposable
         while (!token.IsCancellationRequested)
         {
             bool enabled;
+            bool switchedOn;
             DiscordActivity? wanted;
             Task wake;
             lock (_gate)
             {
+                switchedOn = _enabled;
                 enabled = _enabled && Configured;
                 wanted = _wanted;
                 if (_wake.Task.IsCompleted)
@@ -152,65 +156,93 @@ public sealed class DiscordPresence : IAsyncDisposable
                 wake = _wake.Task;
             }
 
-            if (!enabled)
-            {
-                // Off (or no app id): the status goes away at once, the connection with it.
-                await ClearAsync(token).ConfigureAwait(false);
-                SetState(_enabled ? DiscordState.NotConfigured : DiscordState.Off);
-                if (Settled(enabled: false, wanted))
-                {
-                    return;
-                }
-
-                continue;
-            }
-
-            if (!_ipc.Connected && !await _ipc.ConnectAsync(_applicationId, token).ConfigureAwait(false))
-            {
-                SetState(DiscordState.Waiting);
-                _anySent = false;
-                await WaitAsync(RetryInterval, wake, token).ConfigureAwait(false);
-                continue;
-            }
-
-            SetState(DiscordState.Connected);
-            if (_anySent && wanted == _sent)
-            {
-                if (Settled(enabled: true, wanted))
-                {
-                    return;
-                }
-
-                continue;
-            }
-
-            var due = _lastSend + MinInterval - _time.GetUtcNow();
-            if (due > TimeSpan.Zero)
-            {
-                await WaitAsync(due, wake, token).ConfigureAwait(false);
-                continue;
-            }
-
             try
             {
-                await _ipc.SetActivityAsync(wanted, _processId, token).ConfigureAwait(false);
-                (_sent, _anySent, _lastSend) = (wanted, true, _time.GetUtcNow());
+                if (await RoundAsync(enabled, switchedOn, wanted, wake, token).ConfigureAwait(false))
+                {
+                    return;
+                }
             }
-            catch (IOException ex)
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
-                Diag.Info("Discord: the status was not sent (" + ex.Message + "); waiting for the app");
+                return;
+            }
+            catch (Exception ex)
+            {
+                // Whatever broke (a pipe that refused us, a frame we did not expect), the loop lives on: it starts over
+                // with a fresh connection after a pause, and the player sees "waiting" at worst.
+                Diag.Error("Discord: the status update failed; trying again", ex);
+                await _ipc.CloseAsync().ConfigureAwait(false);
                 _anySent = false;
                 SetState(DiscordState.Waiting);
+                await WaitAsync(RetryInterval, wake, token).ConfigureAwait(false);
             }
         }
     }
 
-    /// <summary>Nothing new was asked for since this round read the wanted state: the pump may end.</summary>
+    /// <summary>One round of the pump; true when nothing is left to do and the pump has stopped.</summary>
+    private async Task<bool> RoundAsync(bool enabled, bool switchedOn, DiscordActivity? wanted, Task wake, CancellationToken token)
+    {
+        if (!enabled)
+        {
+            // Off (or no app id): the status goes away at once, the connection with it.
+            await ClearAsync(token).ConfigureAwait(false);
+            SetState(switchedOn ? DiscordState.NotConfigured : DiscordState.Off);
+            return Settled(enabled: false, wanted);
+        }
+
+        if (!_ipc.Connected && !await _ipc.ConnectAsync(_applicationId, token).ConfigureAwait(false))
+        {
+            SetState(DiscordState.Waiting);
+            _anySent = false;
+            await WaitAsync(RetryInterval, wake, token).ConfigureAwait(false);
+            return false;
+        }
+
+        SetState(DiscordState.Connected);
+        if (_anySent && wanted == _sent)
+        {
+            return Settled(enabled: true, wanted);
+        }
+
+        var due = _lastSend + MinInterval - _time.GetUtcNow();
+        if (due > TimeSpan.Zero)
+        {
+            await WaitAsync(due, wake, token).ConfigureAwait(false);
+            return false;
+        }
+
+        try
+        {
+            await _ipc.SetActivityAsync(wanted, _processId, token).ConfigureAwait(false);
+            (_sent, _anySent, _lastSend) = (wanted, true, _time.GetUtcNow());
+        }
+        catch (IOException ex)
+        {
+            // Discord went away: the next round connects again at once (and waits only if it is not there).
+            Diag.Info("Discord: the status was not sent (" + ex.Message + "); connecting again");
+            _anySent = false;
+            SetState(DiscordState.Waiting);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Nothing new was asked for since this round read the wanted state: the pump stops, under the same lock
+    /// <see cref="Show"/> takes, so a later call starts a new one instead of waking a pump that is gone.
+    /// </summary>
     private bool Settled(bool enabled, DiscordActivity? wanted)
     {
         lock (_gate)
         {
-            return (_enabled && Configured) == enabled && _wanted == wanted && !_wake.Task.IsCompleted;
+            if ((_enabled && Configured) != enabled || _wanted != wanted || _wake.Task.IsCompleted)
+            {
+                return false;
+            }
+
+            _running = false;
+            return true;
         }
     }
 
