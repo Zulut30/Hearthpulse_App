@@ -61,13 +61,15 @@ public sealed partial class AppHost : IDisposable
             Main.Apply,
             RefreshOverlay);
         _constructedLoader = new ConstructedMetaLoader(
-            (format, tierList, cancel) => Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod, Loc.CardLocale, tierList, cancel),
+            (format, names, tierList, cancel) => Core.Constructed.ConstructedMeta.LoadAsync(new HearthpulseData(Api), Cards, format, Settings.MetaRank, Settings.MetaPeriod,
+                Loc.CardLocale, tierList, cancel, names),
             () => ArchetypeTranslations.LoadAsync(Http),
             () => Core.Constructed.ConstructedMeta.Key(Core.Constructed.ConstructedMeta.Formats, Settings.MetaFormat),
             () => Core.Constructed.ConstructedMeta.FormatKeyOf(Main.ConstructedFormat),
             Main.SetConstructedMeta,
             Session.SetConstructedMeta,
-            () => Session.RequestMemoryTrimWhenWindowAway());
+            () => Session.RequestMemoryTrimWhenWindowAway(),
+            names => (Main.ArchetypeNames, Overlay.ArchetypeNames) = (names, names));
         Session.ApplySettings(Settings);
         Overlay.SecretToggleRequested += Session.ToggleSecret;
         Overlay.CardPoolBrowserResized += OnSettingsChanged;

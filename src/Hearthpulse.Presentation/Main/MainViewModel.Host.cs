@@ -1,4 +1,5 @@
 using Hearthpulse.Core;
+using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
 
@@ -12,6 +13,12 @@ namespace Hearthpulse.UI.Main;
 public sealed partial class MainViewModel
 {
     private Func<string>? _busyText;
+
+    /// <summary>
+    /// The Russian archetype names fetched this run (<see cref="ConstructedMetaLoader"/>), for archetypes saved with games:
+    /// History rows, the match page and the deck page. Empty until they arrive; lists made after that use them.
+    /// </summary>
+    public ArchetypeTranslations ArchetypeNames { get; set; } = ArchetypeTranslations.Empty;
 
     /// <summary>
     /// Shows the busy line from a text maker, kept so a language switch shows it again in the new language; null clears

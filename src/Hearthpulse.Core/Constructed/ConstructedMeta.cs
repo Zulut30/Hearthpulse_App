@@ -153,9 +153,11 @@ public sealed class ConstructedMeta
     /// </summary>
     /// <param name="locale">The card language; "ruRU" shows Russian archetype names.</param>
     /// <param name="tierList">Gets the tier list early, before the mulligan numbers are in.</param>
+    /// <param name="names">The Russian archetype names fetched this run (none: the built-in labels).</param>
     public static Task<ConstructedMeta?> LoadAsync(Api.HearthpulseData data, Cards.CardDb cards, string? format, string? rank, string? period, string? locale,
-        IProgress<ConstructedMeta>? tierList = null, CancellationToken cancellationToken = default) =>
-        ApiConstructedMeta.LoadAsync(data, cards, Key(Formats, format), Key(Ranks, rank ?? "all"), Key(Periods, period ?? "past_week"), locale, tierList, cancellationToken);
+        IProgress<ConstructedMeta>? tierList = null, CancellationToken cancellationToken = default, ArchetypeTranslations? names = null) =>
+        ApiConstructedMeta.LoadAsync(data, cards, Key(Formats, format), Key(Ranks, rank ?? "all"), Key(Periods, period ?? "past_week"), locale, names, tierList,
+            cancellationToken);
 
     /// <summary>The <see cref="Format"/> key ("standard", "wild") of a game's FormatType; null for formats without stats.</summary>
     public static string? FormatKeyOf(string? formatType) => formatType switch

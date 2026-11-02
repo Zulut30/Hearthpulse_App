@@ -1,6 +1,8 @@
 using Hearthpulse.Core;
+using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Stats;
 using Hearthpulse.UI.Main;
 
 namespace Hearthpulse.Tests;
@@ -94,6 +96,20 @@ public sealed class MainViewModelHostTests : IDisposable
         {
             TestDataFolder.TryDelete(install);
         }
+    }
+
+    [Fact]
+    public void The_archetype_names_passed_in_label_a_saved_archetype_and_none_passed_keeps_the_built_in_label()
+    {
+        // What ArchetypeTranslations.Current used to supply: now the loader hands the names to the view models, which
+        // pass them on (here DeckDetails, as the deck page does).
+        var names = ArchetypeTranslations.Parse("""{"items": [{"name_en": "Quiet Test Mage", "name_ru": "Тихий тестовый маг"}]}""");
+        var game = new GameRecord { Key = "quiet-test", OpponentArchetype = "Quiet Test Mage", OpponentClass = "MAGE", Format = "FT_STANDARD" };
+        Language(Loc.Russian);
+
+        Assert.Equal("Тихий тестовый маг", DeckDetails.OpponentArchetype(game, null, names));
+        Assert.NotEqual("Тихий тестовый маг", DeckDetails.OpponentArchetype(game, null));
+        Assert.Same(ArchetypeTranslations.Empty, new MainViewModel(_history, new AppSettings()).ArchetypeNames);
     }
 
     /// <summary>

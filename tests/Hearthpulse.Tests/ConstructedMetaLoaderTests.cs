@@ -14,11 +14,11 @@ namespace Hearthpulse.Tests;
 public sealed class ConstructedMetaLoaderTests : IDisposable
 {
     private readonly SynchronizationContext? _context = SynchronizationContext.Current;
-    private readonly List<(string Format, IProgress<ConstructedMeta> TierList, CancellationToken Cancel, TaskCompletionSource<ConstructedMeta?> Answer)> _downloads = [];
+    private readonly List<(string Format, ArchetypeTranslations Names, IProgress<ConstructedMeta> TierList, CancellationToken Cancel, TaskCompletionSource<ConstructedMeta?> Answer)> _downloads = [];
     private readonly List<string> _page = [];
     private readonly List<string> _game = [];
     private readonly List<TaskCompletionSource<ArchetypeTranslations>> _names = [];
-    private readonly ArchetypeTranslations _namesBefore = ArchetypeTranslations.Current;
+    private readonly List<ArchetypeTranslations> _namesArrived = [];
     private string? _pageFormat;
     private int _ended;
 
@@ -32,14 +32,13 @@ public sealed class ConstructedMetaLoaderTests : IDisposable
     {
         SynchronizationContext.SetSynchronizationContext(_context);
         Language(Loc.English);
-        ArchetypeTranslations.Current = _namesBefore;
     }
 
     private ConstructedMetaLoader Loader(Action<string>? onPage = null) => new(
-        (format, tierList, cancel) =>
+        (format, names, tierList, cancel) =>
         {
             var answer = new TaskCompletionSource<ConstructedMeta?>();
-            _downloads.Add((format, tierList, cancel, answer));
+            _downloads.Add((format, names, tierList, cancel, answer));
             return answer.Task;
         },
         () =>
@@ -61,7 +60,8 @@ public sealed class ConstructedMetaLoaderTests : IDisposable
             onPage?.Invoke(text);
         },
         meta => _game.Add(Name(meta)),
-        () => _ended++);
+        () => _ended++,
+        _namesArrived.Add);
 
     private static ConstructedMeta Meta(string name) => new("standard", "legend", "past_week", DateTime.UnixEpoch, 0, [], []) { Source = name };
 
@@ -181,8 +181,11 @@ public sealed class ConstructedMetaLoaderTests : IDisposable
         var names = ArchetypeTranslations.Parse("""{"items": [{"name_en": "Big Mage", "name_ru": "Большой маг"}]}""");
         var before = _downloads.Count;
         _names[1].SetResult(names);
-        Assert.Same(names, ArchetypeTranslations.Current);
+        Assert.Same(names, loader.Names);
+        Assert.Same(names, Assert.Single(_namesArrived));
         Assert.Equal(before + 2, _downloads.Count);
+        Assert.All(_downloads.Skip(before), d => Assert.Same(names, d.Names));
+        Assert.All(_downloads.Take(before), d => Assert.Same(ArchetypeTranslations.Empty, d.Names));
     }
 
     /// <summary>

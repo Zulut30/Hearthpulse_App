@@ -91,7 +91,7 @@ public sealed partial class OverlayViewModel
         }
 
         _likelyDeckKey = key;
-        LikelyDeckName = deck is null ? string.Empty : ArchetypeTranslations.Current.Display(deck.ArchetypeKey);
+        LikelyDeckName = deck is null ? string.Empty : ArchetypeNames.Display(deck.ArchetypeKey);
         LikelyDeckChance = deck is null ? string.Empty : SharePercent(deck.Chance);
         LikelyDeckNote = deck is null || view!.OpponentArchetype is not { } odds ? string.Empty : Loc.P("Widgets.Archetype.Seen", odds.SeenCards, odds.Source);
         LikelyDeckSource = deck is null ? string.Empty

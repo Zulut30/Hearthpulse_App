@@ -56,21 +56,21 @@ public sealed partial class MatchPage
     /// may have been put in the folder by hand, so it goes through the import filter first: a file the filter refuses
     /// shows as unreadable, and what is shown is the filtered copy (no ranks, ratings, hidden cards).
     /// </summary>
-    public static MatchPage LoadFile(string? text, string fileName, CardDb cards, Func<GameRecord, ConstructedMeta?> meta)
+    public static MatchPage LoadFile(string? text, string fileName, CardDb cards, Func<GameRecord, ConstructedMeta?> meta, ArchetypeTranslations? names = null)
     {
         if (text is null)
         {
             var gone = RecordOf(null, fileName);
-            return Load(gone, (string?)null, cards, meta(gone));
+            return Load(gone, (string?)null, cards, meta(gone), names);
         }
 
         if (ReplayImport.Sanitize(text, cards, out _) is not { } clean)
         {
             var refused = RecordOf(null, fileName);
-            return new MatchPage(refused, cards, BuildHeader(refused, cards, null)) { Missing = Loc.T("Match.Missing.Unreadable") };
+            return new MatchPage(refused, cards, BuildHeader(refused, cards, null, names ?? ArchetypeTranslations.Empty)) { Missing = Loc.T("Match.Missing.Unreadable") };
         }
 
         var game = RecordOf(ReplayFile.Read(clean)?.Header, fileName);
-        return Load(game, clean, cards, meta(game));
+        return Load(game, clean, cards, meta(game), names);
     }
 }
