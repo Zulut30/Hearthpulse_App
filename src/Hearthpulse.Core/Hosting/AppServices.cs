@@ -26,14 +26,15 @@ public sealed class AppServices
     /// <param name="cards">The card data the host has loaded so far (empty until the cards are in).</param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client is kept in Http and lives as long as the app.")]
     public AppServices(AppSettings settings, string version, Func<CardDb> cards)
-        : this(settings, CreateHttp(version), cards, AppPaths.Database, UsageGate.DefaultPath)
+        : this(settings, CreateHttp(version), cards, AppData.FromAppPaths(), AppPaths.Database, UsageGate.DefaultPath)
     {
     }
 
     /// <summary>
-    /// With a client, a history file and a usage record of the test's own (no network, not the shared data folder's).
+    /// With a client, a data folder, a history file and a usage record of the test's own (no network, not the shared
+    /// data folder's).
     /// </summary>
-    internal AppServices(AppSettings settings, HttpClient http, Func<CardDb> cards, string historyPath, string usagePath)
+    internal AppServices(AppSettings settings, HttpClient http, Func<CardDb> cards, AppData data, string historyPath, string usagePath)
     {
         Settings = settings;
         Http = http;
@@ -41,7 +42,7 @@ public sealed class AppServices
         // The game and the cards are looked up while the host builds its windows, not after.
         Prefetch = StartupPrefetch.Start(settings, http);
 
-        Data = AppData.FromAppPaths();
+        Data = data;
         History = new HistoryStore(historyPath) { Replays = Data.Replays };
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);

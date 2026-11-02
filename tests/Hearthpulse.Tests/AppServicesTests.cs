@@ -5,6 +5,7 @@ using Hearthpulse.Core;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Hosting;
+using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Tests;
@@ -57,6 +58,14 @@ public sealed class AppServicesTests
         });
 
     [Fact]
+    public Task The_history_saves_its_replays_in_the_data_given() =>
+        With(new AppSettings(), (services, _) =>
+        {
+            Assert.Same(services.Data.Replays, services.History.Replays);
+            return Task.CompletedTask;
+        });
+
+    [Fact]
     public Task A_change_of_the_account_wakes_the_profile_upload() =>
         With(new AppSettings(), (services, _) =>
         {
@@ -97,8 +106,12 @@ public sealed class AppServicesTests
         handler ??= new Offline();
         var db = TestDataFolder.Scratch("hp-services") + ".db";
         var usage = TestDataFolder.Scratch("hp-services-usage") + ".json";
+        var root = TestDataFolder.Scratch("hp-services-data");
+        var replays = new ReplayStore(Path.Combine(root, "replays"));
+        var data = new AppData(root, replays, new ReplayLibrary(replays, Path.Combine(root, "saved"), Path.Combine(root, "imported")),
+            new ReplayUploads(Path.Combine(root, "uploads.json")));
         using var http = new HttpClient(handler);
-        var services = new AppServices(settings, http, cards ?? (() => CardDb.Empty), db, usage);
+        var services = new AppServices(settings, http, cards ?? (() => CardDb.Empty), data, db, usage);
         try
         {
             await test(services, handler);
@@ -108,6 +121,7 @@ public sealed class AppServicesTests
             services.Memory.Dispose();
             TestDataFolder.TryDelete(db);
             TestDataFolder.TryDelete(usage);
+            TestDataFolder.TryDelete(root);
         }
     }
 
