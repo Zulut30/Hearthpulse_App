@@ -210,7 +210,8 @@ public static partial class CombatRelevance
     private static Dictionary<string, (CardRelevance, bool)> BuildIndex()
     {
         var index = new Dictionary<string, (CardRelevance, bool)>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in CombatRelevanceTable.Entries.Concat(PlayerCardTable.Entries))
+        // The hand-labelled player cards come last and win over the generated ones.
+        foreach (var row in CombatRelevanceTable.Entries.Concat(PlayerCardGenerated.Entries).Concat(PlayerCardTable.Entries))
         {
             index[row.CardId] = (row, false);
             if (row.GoldenCardId.Length > 0)

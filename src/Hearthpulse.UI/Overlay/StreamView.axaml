@@ -19,6 +19,13 @@
     <UserControl.Styles>
         <StyleInclude Source="avares://Hearthpulse.UI/Overlay/OverlayLook.axaml" />
     </UserControl.Styles>
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Logo.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
 
     <Panel Name="Root" Background="{StaticResource Bg}">
         <Viewbox Name="Scaler" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="8" IsHitTestVisible="False">

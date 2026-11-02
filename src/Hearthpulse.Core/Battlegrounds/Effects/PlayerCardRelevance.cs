@@ -7,9 +7,9 @@ namespace Hearthpulse.Core.Battlegrounds.Effects;
 /// "not simulated" (hero powers and trinkets used not to count at all). Dark Gifts whose granted Deathrattle or Rally
 /// only acts in the Tavern are <see cref="Relevance.None"/>: they explain the granted marker on the minion, so it is not
 /// flagged. Start of Combat cards resolved before capture and Tavern-only cards are left out (unknown extras are not
-/// counted). Hero powers: those of heroes in the API's hero list; trinkets: every one with a combat trigger (the API
-/// has no trinket popularity). Not complete: a hero power or trinket missing here is not counted even if it acts in
-/// combat, so the coverage is an upper bound. See docs/bg-combat-sim.md.
+/// counted). Hero powers: those of heroes in the API's hero list; trinkets: those with a combat trigger found by hand.
+/// Every other player-level card has a row generated from its text (<see cref="PlayerCardGenerated"/>,
+/// tools/effects/gen_player_relevance.py); these rows win over it. See docs/bg-combat-sim.md.
 /// </summary>
 internal static class PlayerCardTable
 {

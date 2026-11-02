@@ -93,4 +93,27 @@ public sealed class DarkGiftsTests
         Assert.Equal(1, odds.Unsimulated);
         Assert.Equal(Origin.Player, CombatRelevance.Find("BG30_MagicItem_925")!.Origin);
     }
+
+    [Theory]
+    // a player card no table knows (newer than the card data): its effect cannot be known
+    [InlineData("BG99_MagicItem_999", 1)]
+    // generated from the text: Boom Controller summons in combat and has no effect yet
+    [InlineData("BG30_MagicItem_440", 1)]
+    // generated: a Tavern-only hero power and a trinket whose Avenge only gives a card
+    [InlineData("TB_BaconShop_HP_101", 0)]
+    [InlineData("BG30_MagicItem_545", 0)]
+    public void An_unknown_player_card_is_not_simulated_and_a_known_one_counts_by_its_row(string extra, int unsimulated)
+    {
+        var odds = CombatSimulator.Run(Side(Minion(1, 1)) with { Extras = [extra] }, Side(Minion(1, 1)), true, new SimOptions { Runs = 10 });
+
+        Assert.Equal(unsimulated, odds.Unsimulated);
+    }
+
+    [Fact]
+    public void A_hand_labelled_player_card_wins_over_its_generated_row()
+    {
+        // Bewitched Ribbon: the text heuristic misses "+2/+2 while in combat", the hand table says it acts in combat.
+        Assert.Equal(Relevance.Relevant, CombatRelevance.Find("BG35_MagicItem_923")!.Relevance);
+        Assert.DoesNotContain(PlayerCardGenerated.Entries, r => PlayerCardTable.Entries.Any(h => h.CardId == r.CardId));
+    }
 }

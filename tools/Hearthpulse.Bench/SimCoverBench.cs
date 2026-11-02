@@ -149,10 +149,12 @@ internal static class SimCoverBench
                 yield return $"{m.CardId}{(m.Golden ? " golden" : string.Empty)} {cards.Get(m.CardId)?.Name} ({what}){enchantments}{(isOpponent ? " theirs" : string.Empty)}";
             }
 
-            foreach (var extra in side.Extras.Where(id => CombatRelevance.Find(id) is { Relevance: Relevance.Relevant }
+            // as CombatSimulator counts them: relevant without an effect, or in no table (newer than the card data)
+            foreach (var extra in side.Extras.Where(id => CombatRelevance.Find(id) is null or { Relevance: Relevance.Relevant }
                                                           && !EffectRegistry.Default.Implements(id, golden: false, isOpponent)))
             {
-                yield return $"extra {extra} {cards.Get(extra)?.Name}";
+                var known = CombatRelevance.Find(extra) is null ? " (not in table)" : string.Empty;
+                yield return $"extra {extra} {cards.Get(extra)?.Name}{known}{(isOpponent ? " theirs" : string.Empty)}";
             }
         }
     }

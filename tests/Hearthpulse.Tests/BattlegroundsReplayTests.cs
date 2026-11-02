@@ -764,6 +764,22 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
         Assert.Equal("events 8F4FDA4F4E5DC78D text EC0DC7DE20857ABF view 30DDE1DCF7070D18 captures A999F5C9B68FBBC3", actual);
     }
 
+    [Fact]
+    public void A_trinkets_enchantment_is_neither_a_trinket_nor_an_extra_of_the_fight()
+    {
+        var (game, _, tracker) = Play([
+            .. Setup,
+            .. Entity(60, "BG32_MagicItem_362", Me, "PLAY", "BATTLEGROUND_TRINKET"),
+            .. Entity(61, "BG32_MagicItem_362e", Me, "PLAY", "ENCHANTMENT"),
+            Tag(3, "BACON_CURRENT_COMBAT_PLAYER_ID", 4),
+            .. Combat(),
+        ]);
+
+        Assert.Equal(["BG32_MagicItem_362"], tracker.BuildView(game).Trinkets);
+        Assert.Contains("BG32_MagicItem_362", tracker.LastCapture!.Ours.Extras);
+        Assert.DoesNotContain("BG32_MagicItem_362e", tracker.LastCapture.Ours.Extras);
+    }
+
     /// <summary>A whole short game: turn 1, a won combat, a lost one on turn 2, out in 5th place.</summary>
     internal static string[] Game5th() =>
     [
