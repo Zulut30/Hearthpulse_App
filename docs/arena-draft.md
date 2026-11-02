@@ -80,7 +80,18 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   current client), `DraftManager.OnChoicesAndContents - Draft Deck ID: {0}, Hero Card = {1}` (the deck is listed again
   after it), `DraftManager.OnChoicesAndContents - Draft deck contains card {0}`, `Client chooses: {0} ({1})` (a pick)
   and `SetDraftMode - ` with the modes `NO_ACTIVE_DRAFT` (clears), `DRAFTING`, `ACTIVE_DRAFT_DECK`, `IN_REWARDS`,
-  `REDRAFTING`. **Not yet seen in a written Arena.log**: no draft was played on the development machine.
+  `REDRAFTING`, and `DraftManager.OnBegin - Got new draft deck with ID: {0}` (a new run and its deck id, before the
+  hero; the same id again, back on the screen, keeps the run). **Seen in a real Arena.log** (owner, 2026-10-28, Underground, fixture
+  `tests/Hearthpulse.Tests/Fixtures/Arena/arena-2026-10-28.log`, `ArenaDraftLiveLogTests`; the truth is the deck code
+  of Decks.log's "Starting Arena Game With Deck"):
+  - a legendary taken with its package is logged twice in a row (`Client chooses` of the same card): one pick, so the
+    card and its package are not counted twice. Told by the card's rarity, by the package the first line brought, or,
+    without the card data, by the repeat alone (then a common taken twice in a row counts once: one card short beats a
+    package counted twice); with the card data a common taken twice in a row is two picks;
+  - the client's deck list (`Draft deck contains card`) is not always whole: 27 of 30 cards, copies missing. It adds to
+    the picks card by card (the larger count) instead of replacing them; without picks in this session (the app opened
+    after the draft) it is the deck as listed;
+  - no `OnChosen(): heroPower=` line in that run.
 - Heroes, hero powers and cards are told apart by the card data (`HERO` not collectible, `HERO_POWER`, anything else;
   a collectible hero card is a card), else by the id (`HERO_08`, `HERO_08bp`): `ArenaDraftTracker.KindOf`. A hero
   power is never counted as a deck card. A hero chosen after cards were taken, or another hero than the current one,
@@ -95,8 +106,9 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   offer stays (no blank pick); when no offer was known yet, the first one read that holds the chosen card is the
   stale one. The cards of a picked package are added to the deck right away (the log names only the clicked card).
 - The run's mode comes from the offer and is kept while the draft screen is open.
-- Out of scope here: Underground redraft (A4: `REDRAFTING` is followed only as a mode; the deck is right again once
-  the client lists it), Discover scoring in Arena games (A5), synergy (A3).
+- Out of scope here: Underground redraft (A4: `REDRAFTING` is followed only as a mode; cards taken out in a redraft
+  stay counted until Hearthstone restarts (a new Arena.log) and lists the deck again), Discover scoring in Arena games (A5),
+  synergy (A3).
 
 ## Before the beta label goes
 
@@ -105,7 +117,8 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
 2. **The package cards are on screen before the pick** (legal report `LEGAL-HeartLens-claude-arena-draft-v1.md`,
    L-M1): the badge scores the whole package and says "+N cards with it". If the client shows the package only after
    the pick (or only part of it), use `m_packageCardIds` only once the pick is made, never on the badge.
-3. Keep that Arena.log as a test fixture in place of the synthetic lines; name the log, not anything else, as the
+3. Done for Underground (2026-10-28, above); still to do for a normal Arena run (owner's checklist,
+   `reference/tasks/TASK-2026-11-02-arena-live/checklist-owner.md`). Keep that Arena.log as a test fixture in place of the synthetic lines; name the log, not anything else, as the
    source of the line formats.
 4. The owner decides on turning the helper on by default (the HSReplay data is decided: Legal status above; HearthArena
    stays unused).

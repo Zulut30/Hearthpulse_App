@@ -18,9 +18,34 @@ internal static partial class OffscreenRenderer
     private static async Task RenderArenaPageAsync(Window main, MainView view, AppHost host, string folder)
     {
         await host.LoadArenaMetaAsync();
+        // Two made-up runs, one with rewards on its chip (docs/arena-rewards.md). They go into the history only when it is
+        // a copy (HEARTHPULSE_DATA, as render.py sets it), never the player's own.
+        var sample = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("HEARTHPULSE_DATA"));
+        if (sample)
+        {
+            foreach (var game in ArenaRunsScene.Games())
+            {
+                host.History.Add(game);
+            }
+
+            host.History.SetArenaRewards(ArenaRunsScene.FinishedKey, ArenaRunsScene.FinishedRewards);
+        }
+        else
+        {
+            Console.WriteLine("main-arena-rewards: skipped, HEARTHPULSE_DATA is not set (the scene writes to the history)");
+        }
         main.Height = 2000;
         view.ShowPage("Arena");
+        await Task.Delay(2500);
         await Save(main, Path.Combine(folder, "main-arena-deck.png"));
+        if (sample)
+        {
+            // Its rewards editor open, then closed unsaved.
+            host.Main.EditArenaRewards.Execute(ArenaRunsScene.FinishedKey);
+            await Save(main, Path.Combine(folder, "main-arena-rewards.png"));
+            host.Main.ArenaRuns.FirstOrDefault(r => r.Edit is not null)?.Edit?.Cancel.Execute(null);
+        }
+
         main.Height = 840;
     }
 

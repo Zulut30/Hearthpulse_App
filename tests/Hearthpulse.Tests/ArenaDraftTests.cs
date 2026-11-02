@@ -144,11 +144,13 @@ public sealed class ArenaDraftTests : IDisposable
         Assert.Equal(["BE_085", "BE_193", "BE_085"], tracker.State.Cards);
         Assert.Equal("DRAFTING", tracker.State.Mode);
 
-        // Opening the Arena screen again lists the deck from scratch.
+        // Opening the Arena screen again lists the deck. The list is not always whole (a real log misses copies:
+        // ArenaDraftLiveLogTests), so it adds to the picks instead of replacing them.
         tracker.Feed("D 21:05:00.0000000 DraftManager.OnChoicesAndContents - Draft Deck ID: 4242, Hero Card = HERO_07");
         tracker.Feed("D 21:05:00.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card BE_090");
+        tracker.Feed("D 21:05:00.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card BE_085");
         Assert.Equal(4242, tracker.State.DeckId);
-        Assert.Equal(["BE_090"], tracker.State.Cards);
+        Assert.Equal(["BE_090", "BE_085", "BE_193", "BE_085"], tracker.State.Cards);
     }
 
     [Fact]
@@ -445,6 +447,29 @@ public sealed class ArenaDraftTests : IDisposable
         Assert.Equal(before + 3, view.Picks);
         Assert.Contains(view.Deck, c => c.CardId == "TIME_063");
         Assert.True(view.Underground);
+    }
+
+    /// <summary>
+    /// AC2 (1.6): the client logs a legendary taken with its package twice in a row (the real log of 2026-10-28). One
+    /// pick: the card and its package come once, whatever the card data knows about the card.
+    /// </summary>
+    [Fact]
+    public void A_legendary_logged_twice_in_a_row_adds_its_package_once()
+    {
+        using var draft = Session();
+        IReadOnlyList<IReadOnlyList<string>> packages = [[], ["BE_085", "TIME_063"], []];
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["BE_193", "BE_090", "VAC_301"], true, packages));
+        draft.Tick();
+        var before = draft.Session.Current.ArenaDraft!.Picks;
+
+        draft.Session.OnLines("Arena.log", ["D 21:01:00.0000000 Client chooses: Big Warlock Card (BE_090)"], catchingUp: false);
+        draft.Tick();
+        draft.Session.OnLines("Arena.log", ["D 21:01:06.0000000 Client chooses: Big Warlock Card (BE_090)"], catchingUp: false);
+        draft.Tick();
+
+        var view = draft.Session.Current.ArenaDraft!;
+        Assert.Equal(before + 3, view.Picks);
+        Assert.Single(view.Deck, c => c.CardId == "TIME_063");
     }
 
     [Fact]

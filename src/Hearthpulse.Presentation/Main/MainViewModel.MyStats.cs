@@ -132,7 +132,30 @@ public sealed record BgPlaceRow(string Place, string Share, double Fraction, boo
 
 /// <summary>One Arena run.</summary>
 /// <param name="DeckScore">"Deck score 41" (ArenaSmith average of the run's deck), or empty.</param>
-public sealed record ArenaRunRow(string ClassName, string HeroCardId, string Record, double WinFraction, string When, string Status, bool Finished, string DeckScore = "", string DeckTier = "");
+public sealed record ArenaRunRow(string ClassName, string HeroCardId, string Record, double WinFraction, string When, string Status, bool Finished, string DeckScore = "", string DeckTier = "")
+{
+    /// <summary>The run's key (<see cref="ArenaRun.Key"/>): its rewards are kept under it.</summary>
+    public string Key { get; init; } = string.Empty;
+
+    /// <summary>The rewards the player entered, or null.</summary>
+    public Core.Arena.ArenaRewards? Rewards { get; init; }
+
+    /// <summary>The chip's rewards above 0; empty shows "Add rewards".</summary>
+    public IReadOnlyList<ArenaRewardPart> RewardParts { get; init; } = [];
+
+    public bool HasRewards => RewardParts.Count > 0;
+
+    /// <summary>The chip's tooltip and screen-reader name.</summary>
+    public string RewardsTip { get; init; } = string.Empty;
+
+    /// <summary>Opens this run's rewards editor (the page's command, the key as its parameter).</summary>
+    public RelayCommand? EditRewards { get; init; }
+
+    /// <summary>The open rewards editor when it is this run's, else null.</summary>
+    public ArenaRewardsEdit? Edit { get; init; }
+
+    public bool Editing => Edit is not null;
+}
 
 public sealed partial class MainViewModel
 {
@@ -513,9 +536,16 @@ public sealed partial class MainViewModel
 
     private Action BuildArenaStats(IReadOnlyList<GameRecord> all, StatsPeriod period, CardDb cards, Core.Arena.ArenaMeta? arena)
     {
-        var games = StatsFilter.Apply(all.Where(StatsFilter.IsArena), period, DateTime.Now);
-        var runs = ArenaStats.Runs(games);
+        var now = DateTime.Now;
+        var games = StatsFilter.Apply(all.Where(StatsFilter.IsArena), period, now);
+        // Runs from every Arena game, then the ones with a game in the period: a run across the period's start stays
+        // whole, so its key (by its first game when it has no deck id) and its rewards are the same in every period.
+        var start = StatsFilter.Start(period, now);
+        var runs = ArenaStats.Runs(StatsFilter.Apply(all.Where(StatsFilter.IsArena), StatsPeriod.All, now))
+            .Where(r => start is null || r.Ended >= start)
+            .ToList();
         var summary = ArenaStats.Summary(runs);
+        var rewards = _history.ArenaRewards();
         IReadOnlyList<StatTile> tiles =
         [
             new StatTile(Loc.T("Stats.Arena.Runs"), summary.Runs.ToString("N0", CultureInfo.CurrentCulture), Loc.F("Stats.Arena.Finished", runs.Count(r => r.Finished))),
@@ -523,6 +553,7 @@ public sealed partial class MainViewModel
             new StatTile(Loc.T("Stats.Arena.BestRun"), runs.Count > 0 ? Loc.P("Stats.Arena.Wins", summary.BestWins) : "—", Loc.T("Stats.Arena.MostWins")),
             new StatTile(Loc.T("Stats.WinRate"), Percent(summary.Record.WinRate), $"{summary.Record.Wins}–{summary.Record.Losses}"),
             new StatTile(Loc.T("Stats.TimePlayed"), Hours(summary.TimePlayed), Loc.P("Stats.Games", summary.Record.Games)),
+            RewardsTile(runs, rewards),
         ];
         var runRows = runs.AsEnumerable().Reverse().Select(r =>
             {
@@ -536,7 +567,16 @@ public sealed partial class MainViewModel
                     r.Finished ? Loc.P("Stats.Games", r.Games.Count) : Loc.F("Stats.Arena.InProgress", Loc.P("Stats.Games", r.Games.Count)),
                     r.Finished,
                     deckScore,
-                    deckTier);
+                    deckTier)
+                {
+                    Key = r.Key,
+                    Rewards = rewards.GetValueOrDefault(r.Key),
+                    RewardParts = RewardParts(rewards.GetValueOrDefault(r.Key)),
+                    RewardsTip = rewards.GetValueOrDefault(r.Key) is { } given
+                        ? Loc.F("Stats.Arena.Rewards.EditTip", RewardsText(given))
+                        : Loc.T("Stats.Arena.Rewards.AddTip"),
+                    EditRewards = EditArenaRewards,
+                };
             })
             .ToList();
         var applyDeck = BuildArenaDeck(runs, cards, arena);
@@ -555,7 +595,7 @@ public sealed partial class MainViewModel
         return () =>
         {
             ArenaStatTiles = tiles;
-            ArenaRuns = runRows;
+            ArenaRuns = RebuiltArenaRuns(runRows);
             ArenaClasses = ArenaClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
             ArenaOpponents = ArenaOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
             applyDeck(this);

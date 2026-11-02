@@ -1,0 +1,63 @@
+D 00:31:53.1362676 SetDraftMode - NO_ACTIVE_DRAFT
+D 00:31:56.0587467 DraftManager.OnBegin - Got new draft deck with ID: 2776251657
+D 00:31:56.0587467 SetDraftMode - DRAFTING
+D 00:32:07.3264632 Client chooses: Сильвана Ветрокрылая (HERO_05c)
+D 00:32:08.1715415 DraftManager.OnChosen(): hero=HERO_05c
+D 00:32:15.4952050 Client chooses: Флинт Огненная Рука (WW_379)
+D 00:32:21.2803312 Client chooses: Флинт Огненная Рука (WW_379)
+D 00:32:30.8144992 Client chooses: Продавец сувениров (CORE_DMF_067)
+D 00:32:32.9880125 Client chooses: Разъяренные птахи (VAC_410)
+D 00:32:35.2416782 Client chooses: Проводник по лабиринту (CORE_REV_308)
+D 00:32:40.6427201 Client chooses: Перепутанные ископаемые (DEEP_001)
+D 00:32:42.8989686 Client chooses: Корабельный парковщик (VAC_432)
+D 00:32:45.6929345 Client chooses: Жестокий смертоглот (END_013)
+D 00:32:48.3597300 Client chooses: Юркие змеи (WW_806)
+D 00:32:50.2784501 Client chooses: Червоточина (TIME_602)
+D 00:32:57.5298821 Client chooses: Жестокий смертоглот (END_013)
+D 00:32:59.3681227 Client chooses: Рабочая лошадка (WORK_018)
+D 00:33:01.4331021 Client chooses: Молотобоец титанов (BE_733)
+D 00:33:03.3498979 Client chooses: Рабочая лошадка (WORK_018)
+D 00:33:06.4109491 Client chooses: Огр из банды (WW_418)
+D 00:33:08.5205716 Client chooses: Дракончик Бесконечности (TIME_045)
+D 00:33:09.9932954 Client chooses: Почтовый гриф (WW_807)
+D 00:33:12.0304339 Client chooses: Рабочая лошадка (WORK_018)
+D 00:33:14.1370426 Client chooses: Пробуждающие толчки (TTN_081)
+D 00:33:17.3198381 Client chooses: Живой парадокс (TIME_059)
+D 00:33:21.4416784 Client chooses: Участница хоровода (WW_433)
+D 00:33:23.4475508 Client chooses: Ученик из лужи (VAC_304)
+D 00:33:25.5477560 Client chooses: Темпоральный путешественник (TIME_434)
+D 00:33:28.2356196 Client chooses: Топорик головореза (CORE_TRL_111)
+D 00:33:30.2814557 Client chooses: Искаженный ледокрыл (YOG_506)
+D 00:33:32.3820545 Client chooses: Ловушки титанов (TTN_302)
+D 00:33:34.4081660 Client chooses: Разъяренные птахи (VAC_410)
+D 00:33:37.5919289 Client chooses: Сонный гость (VAC_406)
+D 00:33:37.7471675 SetDraftMode - ACTIVE_DRAFT_DECK
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft Deck ID: 2776251657, Hero Card = HERO_05c
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card WW_379
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card WW_808
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card WW_411
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card WW_434
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card CORE_DMF_067
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card VAC_410
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card CORE_REV_308
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card DEEP_001
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card VAC_432
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card END_013
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card WW_806
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card TIME_602
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card END_013
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card WORK_018
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card BE_733
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card WW_418
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card TIME_045
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card WW_807
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card TTN_081
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card TIME_059
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card WW_433
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card VAC_304
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card TIME_434
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card CORE_TRL_111
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card YOG_506
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card TTN_302
+D 00:40:14.2166775 DraftManager.OnChoicesAndContents - Draft deck contains card VAC_406
+D 00:40:14.2166775 SetDraftMode - ACTIVE_DRAFT_DECK

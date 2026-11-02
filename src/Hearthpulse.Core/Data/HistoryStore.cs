@@ -222,6 +222,7 @@ public sealed partial class HistoryStore
         AddMissingColumns(connection);
         CreateFamilyTables(connection);
         CreateSavedDeckTables(connection);
+        CreateArenaRewardTables(connection);
     }
 
     /// <summary>Columns added after the first schema, with their SQL type. Older databases get them on open.</summary>
