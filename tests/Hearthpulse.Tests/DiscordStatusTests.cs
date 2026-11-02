@@ -111,7 +111,7 @@ public sealed class DiscordStatusTests
     {
         Loc.Instance.SetLanguage(Loc.English);
         await using var presence = new DiscordPresence(new DiscordIpc((_, _) => Task.FromResult<Stream?>(null)), applicationId: string.Empty);
-        var vm = new MainViewModel(HistoryStore.InMemory(), new AppSettings { DiscordStatus = true }) { Discord = presence };
+        var vm = new MainViewModel(HistoryStore.InMemory(), new AppSettings { DiscordStatus = true }, TestDataFolder.App) { Discord = presence };
 
         Assert.False(vm.DiscordAvailable);
         Assert.False(vm.DiscordStatus);
@@ -125,7 +125,7 @@ public sealed class DiscordStatusTests
         Loc.Instance.SetLanguage(Loc.English);
         await using var presence = new DiscordPresence(new DiscordIpc((_, _) => Task.FromResult<Stream?>(null)), applicationId: "123");
         var settings = new AppSettings();
-        var vm = new MainViewModel(HistoryStore.InMemory(), settings) { Discord = presence };
+        var vm = new MainViewModel(HistoryStore.InMemory(), settings, TestDataFolder.App) { Discord = presence };
         Assert.True(vm.DiscordAvailable);
         Assert.False(vm.DiscordStatusShown);
 
