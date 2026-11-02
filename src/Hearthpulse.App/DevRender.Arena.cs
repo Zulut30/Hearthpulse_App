@@ -46,12 +46,27 @@ public partial class App
         (_settings.OverlayScale, _settings.ShowArenaDraft) = (scale, shown);
         _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
 
+        // Two made-up runs, one with rewards on its chip (docs/arena-rewards.md); the data folder is a copy (render.py).
+        foreach (var game in ArenaRunsScene.Games())
+        {
+            _history.Add(game);
+        }
+
+        _history.SetArenaRewards(ArenaRunsScene.FinishedKey, ArenaRunsScene.FinishedRewards);
         _main.ShowPage("Arena");
         await Task.Delay(2500);
         _main.UpdateLayout();
-        if (_main.FindName("PageArena") is ScrollViewer { Content: FrameworkElement content })
+        if (_main.FindName("PageArena") is not ScrollViewer { Content: FrameworkElement content })
         {
-            SaveFull(content, Path.Combine(folder, "main-arena-deck.png"));
+            return;
         }
+
+        SaveFull(content, Path.Combine(folder, "main-arena-deck.png"));
+        // Its rewards editor open, then closed unsaved.
+        _mainViewModel.EditArenaRewards.Execute(ArenaRunsScene.FinishedKey);
+        await Task.Delay(500);
+        _main.UpdateLayout();
+        SaveFull(content, Path.Combine(folder, "main-arena-rewards.png"));
+        _mainViewModel.ArenaRuns.FirstOrDefault(r => r.Edit is not null)?.Edit?.Cancel.Execute(null);
     }
 }

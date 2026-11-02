@@ -26,7 +26,17 @@ public sealed partial class ArenaDraftTracker
     private string? _hero;
     private string? _heroPower;
     private long _deckId;
-    private readonly List<string> _cards = [];
+
+    /// <summary>The cards picked in this run as the log showed them (a legendary's package included).</summary>
+    private readonly List<string> _picked = [];
+
+    /// <summary>
+    /// The client's latest list of the deck (<c>Draft deck contains card</c>). It is not always whole: the real log of
+    /// 2026-10-28 lists 27 of 30 cards, missing copies. So it only adds to the picks, card by card (the larger count).
+    /// </summary>
+    private readonly List<string> _listed = [];
+
+    private string? _lastPick;
     private string? _mode;
 
     public ArenaDraftState State { get; private set; } = ArenaDraftState.Empty;
@@ -68,26 +78,40 @@ public sealed partial class ArenaDraftTracker
             return Publish();
         }
 
+        if (BeginRegex().Match(line) is { Success: true } begin)
+        {
+            // A new draft deck: a new run, whose hero comes next.
+            NewRun(null);
+            _ = long.TryParse(begin.Groups["deck"].Value, CultureInfo.InvariantCulture, out _deckId);
+            return Publish();
+        }
+
         if (HeroChosenRegex().Match(line) is { Success: true } hero)
         {
-            // A hero pick starts a new run: the deck so far belongs to the previous one.
-            NewRun(hero.Groups["id"].Value);
+            // A hero pick starts a new run: the deck so far belongs to the previous one (the id OnBegin gave stays).
+            NewRun(hero.Groups["id"].Value, KeptDeckId());
             Chose(_hero);
             return Publish();
         }
 
         if (DeckIdRegex().Match(line) is { Success: true } deck)
         {
-            // The client lists the whole deck after this line, so the list starts over.
-            _ = long.TryParse(deck.Groups["deck"].Value, CultureInfo.InvariantCulture, out _deckId);
+            // The client lists the deck after this line: the list starts over. Another deck than the run's is another run.
+            _ = long.TryParse(deck.Groups["deck"].Value, CultureInfo.InvariantCulture, out var deckId);
+            if (_deckId != 0 && deckId != _deckId)
+            {
+                NewRun(null);
+            }
+
+            _deckId = deckId;
             _hero = deck.Groups["hero"].Value;
-            _cards.Clear();
+            _listed.Clear();
             return Publish();
         }
 
         if (DeckContainsRegex().Match(line) is { Success: true } contains)
         {
-            _cards.Add(contains.Groups["id"].Value);
+            _listed.Add(contains.Groups["id"].Value);
             return Publish();
         }
 
@@ -99,9 +123,9 @@ public sealed partial class ArenaDraftTracker
                 case ArenaChoiceKind.Hero:
                     // The same hero right after OnChosen is that pick logged again; another hero, or one after cards
                     // were taken, is a new run even when its OnChosen line was missed.
-                    if (_hero != id || _cards.Count > 0)
+                    if (_hero != id || _picked.Count + _listed.Count > 0)
                     {
-                        NewRun(id);
+                        NewRun(id, KeptDeckId());
                     }
 
                     break;
@@ -109,7 +133,14 @@ public sealed partial class ArenaDraftTracker
                     _heroPower = id;
                     break;
                 default:
-                    _cards.Add(id);
+                    // A legendary taken with its package is logged twice in a row (the real log of 2026-10-28): one pick.
+                    if (id == _lastPick && cards?.Get(id)?.Rarity == "LEGENDARY")
+                    {
+                        return false;
+                    }
+
+                    _picked.Add(id);
+                    _lastPick = id;
                     break;
             }
 
@@ -142,7 +173,7 @@ public sealed partial class ArenaDraftTracker
             return false;
         }
 
-        _cards.AddRange(cardIds);
+        _picked.AddRange(cardIds);
         return Publish();
     }
 
@@ -177,12 +208,17 @@ public sealed partial class ArenaDraftTracker
         return HeroPowerIdRegex().IsMatch(cardId!) ? ArenaChoiceKind.HeroPower : ArenaChoiceKind.Hero;
     }
 
-    private void NewRun(string? hero)
+    /// <summary>The run's deck id while no card was taken yet: OnBegin names the deck before the hero is picked.</summary>
+    private long KeptDeckId() => _picked.Count + _listed.Count == 0 ? _deckId : 0;
+
+    private void NewRun(string? hero, long deckId = 0)
     {
         _hero = hero;
         _heroPower = null;
-        _deckId = 0;
-        _cards.Clear();
+        _deckId = deckId;
+        _picked.Clear();
+        _listed.Clear();
+        _lastPick = null;
     }
 
     private void Chose(string? id)
@@ -193,9 +229,30 @@ public sealed partial class ArenaDraftTracker
 
     private bool Publish()
     {
-        State = new ArenaDraftState(_hero, _deckId, _cards.ToList(), _mode, _heroPower);
+        State = new ArenaDraftState(_hero, _deckId, Deck(), _mode, _heroPower);
         return true;
     }
+
+    /// <summary>The client's list in its order, then the picks it misses: each card as many times as either has it.</summary>
+    private List<string> Deck()
+    {
+        var deck = _listed.ToList();
+        var listed = _listed.GroupBy(id => id, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        var seen = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var id in _picked)
+        {
+            seen[id] = seen.GetValueOrDefault(id) + 1;
+            if (seen[id] > listed.GetValueOrDefault(id))
+            {
+                deck.Add(id);
+            }
+        }
+
+        return deck;
+    }
+
+    [GeneratedRegex(@"DraftManager\.OnBegin - Got new draft deck with ID: (?<deck>\d+)")]
+    private static partial Regex BeginRegex();
 
     [GeneratedRegex(@"DraftManager\.OnChosen\(\): hero=(?<id>\w+)")]
     private static partial Regex HeroChosenRegex();

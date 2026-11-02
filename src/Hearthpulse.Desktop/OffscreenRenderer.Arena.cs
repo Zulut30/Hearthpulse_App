@@ -18,9 +18,21 @@ internal static partial class OffscreenRenderer
     private static async Task RenderArenaPageAsync(Window main, MainView view, AppHost host, string folder)
     {
         await host.LoadArenaMetaAsync();
+        // Two made-up runs, one with rewards on its chip (docs/arena-rewards.md); the data folder is a copy (render.py).
+        foreach (var game in ArenaRunsScene.Games())
+        {
+            host.History.Add(game);
+        }
+
+        host.History.SetArenaRewards(ArenaRunsScene.FinishedKey, ArenaRunsScene.FinishedRewards);
         main.Height = 2000;
         view.ShowPage("Arena");
+        await Task.Delay(2500);
         await Save(main, Path.Combine(folder, "main-arena-deck.png"));
+        // Its rewards editor open, then closed unsaved.
+        host.Main.EditArenaRewards.Execute(ArenaRunsScene.FinishedKey);
+        await Save(main, Path.Combine(folder, "main-arena-rewards.png"));
+        host.Main.ArenaRuns.FirstOrDefault(r => r.Edit is not null)?.Edit?.Cancel.Execute(null);
         main.Height = 840;
     }
 

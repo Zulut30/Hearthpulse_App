@@ -144,11 +144,13 @@ public sealed class ArenaDraftTests : IDisposable
         Assert.Equal(["BE_085", "BE_193", "BE_085"], tracker.State.Cards);
         Assert.Equal("DRAFTING", tracker.State.Mode);
 
-        // Opening the Arena screen again lists the deck from scratch.
+        // Opening the Arena screen again lists the deck. The list is not always whole (a real log misses copies:
+        // ArenaDraftLiveLogTests), so it adds to the picks instead of replacing them.
         tracker.Feed("D 21:05:00.0000000 DraftManager.OnChoicesAndContents - Draft Deck ID: 4242, Hero Card = HERO_07");
         tracker.Feed("D 21:05:00.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card BE_090");
+        tracker.Feed("D 21:05:00.0000000 DraftManager.OnChoicesAndContents - Draft deck contains card BE_085");
         Assert.Equal(4242, tracker.State.DeckId);
-        Assert.Equal(["BE_090"], tracker.State.Cards);
+        Assert.Equal(["BE_090", "BE_085", "BE_193", "BE_085"], tracker.State.Cards);
     }
 
     [Fact]
