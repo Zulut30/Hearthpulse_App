@@ -39,5 +39,10 @@
   "Host.Crash.Text": "Hearthpulse hit an unexpected error and keeps running. It was written to the log.",
   "Host.Crash.OpenLog": "Open log",
   "Host.Crash.Close": "Close",
-  "Host.Crash.Continue": "Continue"
+  "Host.Crash.Continue": "Continue",
+  "Host.Crash.Send": "Send report",
+  "Host.Crash.Sent": "Report sent. Thank you!",
+  "Host.Crash.Queued": "The report will be sent at the next start.",
+  "Host.Crash.AutoSent": "A crash report was sent automatically (Settings → Data).",
+  "Host.Crash.SendTip": "The app and system versions, the error type and text, where in the code. Names, BattleTags, paths and quoted values are cut out."
 }
