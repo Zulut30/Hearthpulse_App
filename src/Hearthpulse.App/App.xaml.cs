@@ -64,16 +64,10 @@ public partial class App : Application
     private string? _installDir;
     private StartupPrefetch _prefetch = null!;
     private CardDb _cards = CardDb.Empty;
-    private LiveSnapshot? _pending;
-    private LiveSnapshot _last = LiveSnapshot.Empty;
-    private int _applyScheduled;
-    private readonly SnapshotPacer _pacer = new();
+    private LiveFeed _feed = null!;
     private DispatcherTimer _historyDebounce = null!;
     private DispatcherTimer _settingsDebounce = null!;
     private DispatcherTimer _metaRefresh = null!;
-    private string? _deckStatsKey;
-    private DeckAggregate? _deckStats;
-    private MatchupAggregate? _matchupStats;
     private string? _renderDir;
     /// <summary>The stats of <see cref="AppSettings.MetaFormat"/> (the format loaded at start), for the render scenes.</summary>
     private ConstructedMeta? _constructedMeta;
@@ -100,10 +94,6 @@ public partial class App : Application
     private System.Threading.Timer? _uiProbe;
     private long _probeSentAt;
     private long _lastFreezeNote;
-    private long _scheduledAt;
-    private int _appliedCount;
-    private long _slowestApply;
-    private long _longestWait;
     private long _slowestUi;
     private int _watchTicks;
     private bool _capNotified;
@@ -232,6 +222,11 @@ public partial class App : Application
             _account.RestoreAsync().Forget("Account restore");
         }
         _overlayViewModel = new OverlayViewModel();
+        _feed = new LiveFeed(
+            action => _ = Dispatcher.BeginInvoke(action, DispatcherPriority.Background),
+            view => LiveDeckRecord.Read(_history, _installDir, view),
+            _mainViewModel.Apply,
+            RefreshOverlay);
         // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
         // version stays in the settings, unused).
         _session.SetCompMode(CompMode.Manual, null);
@@ -313,14 +308,14 @@ public partial class App : Application
         _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Meta refresh");
 
-        _session.SnapshotChanged += OnSnapshot;
+        _session.SnapshotChanged += _feed.Publish;
         _session.ConstructedMetaNeeded += format => _ = Dispatcher.BeginInvoke(() => EnsureConstructedMeta(format));
         _session.GameFinished += outcome => _ = Dispatcher.BeginInvoke(() => OnGameFinished(outcome));
         _history.Changed += () => _ = Dispatcher.BeginInvoke(() =>
         {
             _historyDebounce.Stop();
             _historyDebounce.Start();
-            _deckStatsKey = null;
+            _feed.ForgetDeck();
         });
 
         if (_renderDir is null)
@@ -682,52 +677,6 @@ public partial class App : Application
 
     // ---- live snapshots ---------------------------------------------------------------------
 
-    private void OnSnapshot(LiveSnapshot snapshot)
-    {
-        // Called on the log thread; coalesce into one UI update per dispatcher pass, at most one per frame.
-        Volatile.Write(ref _pending, snapshot);
-        if (Interlocked.Exchange(ref _applyScheduled, 1) == 0)
-        {
-            var now = Environment.TickCount64;
-            Volatile.Write(ref _scheduledAt, now);
-            var delay = _pacer.Delay(now);
-            if (delay == 0)
-            {
-                _ = Dispatcher.BeginInvoke(ApplySnapshot, DispatcherPriority.Background);
-            }
-            else
-            {
-                _ = Task.Delay(delay).ContinueWith(_ => Dispatcher.BeginInvoke(ApplySnapshot, DispatcherPriority.Background), TaskScheduler.Default);
-            }
-        }
-    }
-
-    private void ApplySnapshot()
-    {
-        Interlocked.Exchange(ref _applyScheduled, 0);
-        _pacer.Applied(Environment.TickCount64);
-        var snapshot = Interlocked.Exchange(ref _pending, null);
-        if (snapshot is null)
-        {
-            return;
-        }
-
-        var waited = Environment.TickCount64 - Volatile.Read(ref _scheduledAt);
-        _longestWait = Math.Max(_longestWait, waited);
-        var started = System.Diagnostics.Stopwatch.GetTimestamp();
-        _last = snapshot;
-        _mainViewModel.Apply(snapshot);
-        RefreshDeckStats(snapshot.Constructed);
-        _overlayViewModel.Update(snapshot, _cards, _settings, _deckStats, _matchupStats);
-        var took = (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        _appliedCount++;
-        _slowestApply = Math.Max(_slowestApply, took);
-        if (took > 200 || waited > 1000)
-        {
-            Diag.Info($"Showing a snapshot took {took:N0} ms after waiting {waited:N0} ms for the UI thread (BG turn {snapshot.Battlegrounds?.Turn})");
-        }
-    }
-
     /// <summary>
     /// Watches the UI thread from a background thread. When the window stops answering, this writes it to the log while
     /// it happens; a frozen window could never write that line itself.
@@ -736,7 +685,7 @@ public partial class App : Application
     {
         var now = Environment.TickCount64;
         var sent = Volatile.Read(ref _probeSentAt);
-        var snapshotWait = Volatile.Read(ref _applyScheduled) == 1 ? now - Volatile.Read(ref _scheduledAt) : 0;
+        var snapshotWait = _feed.Waiting;
         if (((sent != 0 && now - sent > 5000) || snapshotWait > 5000) && now - _lastFreezeNote > 10_000)
         {
             _lastFreezeNote = now;
@@ -761,36 +710,7 @@ public partial class App : Application
         }, DispatcherPriority.Normal);
     }
 
-    private void RefreshDeckStats(ConstructedView? view)
-    {
-        var key = LiveDeckRecord.Key(view);
-        if (key == _deckStatsKey)
-        {
-            return;
-        }
-
-        _deckStatsKey = key;
-        _deckStats = null;
-        _matchupStats = null;
-        if (view is null)
-        {
-            return;
-        }
-
-        _ = Task.Run(() => LiveDeckRecord.Read(_history, _installDir, view)).ContinueWith(t =>
-        {
-            if (t.IsFaulted)
-            {
-                Diag.Error("Deck stats lookup failed", t.Exception);
-            }
-
-            if (t.IsCompletedSuccessfully && _deckStatsKey == key)
-            {
-                (_deckStats, _matchupStats) = t.Result;
-                _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
-            }
-        }, TaskScheduler.FromCurrentSynchronizationContext());
-    }
+    private void RefreshOverlay() => _overlayViewModel.Update(_feed.Last, _cards, _settings, _feed.Deck, _feed.Matchup);
 
     private IReadOnlyList<string> CardRaces(string cardId) => _cards.Get(cardId)?.Races ?? [];
 
@@ -1051,7 +971,7 @@ public partial class App : Application
         _session.SetBgOpponentMmrEnabled(_settings.ShowBgOpponentMmr);
         _session.SetLadderBreak(TimeSpan.FromHours(Math.Clamp(_settings.LadderSessionBreakHours, 1, 12)));
         LoadCardPoolAsync().Forget("Card pool load");
-        _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
+        RefreshOverlay();
         if (_renderDir is null)
         {
             Autostart.Apply(_settings.StartWithWindows);
@@ -1139,7 +1059,7 @@ public partial class App : Application
     /// </summary>
     private void OnLanguageChanged()
     {
-        _overlayViewModel.Update(_last, _cards, _settings, _deckStats, _matchupStats);
+        RefreshOverlay();
         // Meta texts (archetype labels, sources, empty states) are made when the meta loads; the caches make this cheap.
         if (_cards.Count > 0 && _renderDir is null)
         {
@@ -1222,12 +1142,10 @@ public partial class App : Application
         if (++_watchTicks % 8 == 0)
         {
             using var process = System.Diagnostics.Process.GetCurrentProcess();
-            Diag.Debug($"Window: showed {_appliedCount} snapshots (BG turn {_last.Battlegrounds?.Turn}), slowest {_slowestApply:N0} ms, "
-                       + $"longest wait {_longestWait:N0} ms, slowest UI answer {_slowestUi:N0} ms, overlay {(_overlay.Suppressed ? "hidden" : "on")}, "
+            var (applied, slowestApply, longestWait) = _feed.TakeStats();
+            Diag.Debug($"Window: showed {applied} snapshots (BG turn {_feed.Last.Battlegrounds?.Turn}), slowest {slowestApply:N0} ms, "
+                       + $"longest wait {longestWait:N0} ms, slowest UI answer {_slowestUi:N0} ms, overlay {(_overlay.Suppressed ? "hidden" : "on")}, "
                        + $"RAM {process.WorkingSet64 / (1024 * 1024):N0} MB, managed {GC.GetTotalMemory(false) / (1024 * 1024):N0} MB");
-            _appliedCount = 0;
-            _slowestApply = 0;
-            _longestWait = 0;
             _slowestUi = 0;
         }
 
