@@ -13,6 +13,14 @@
         <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Hearthpulse;component/Main/Logo.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
     <Window.ContextMenu>
         <ContextMenu>
             <MenuItem x:Name="ResetSizeItem" Header="{i:Loc Stream.Menu.ResetSize}" Click="OnResetSize">
@@ -47,7 +55,7 @@
                 IsHitTestVisible="False" Visibility="Collapsed">
             <Border Style="{StaticResource OverlayCard}" Padding="12,8">
                 <StackPanel Orientation="Horizontal">
-                    <Image Source="/Hearthpulse;component/Assets/hearthpulse.png" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center" />
+                    <Image Source="{StaticResource HearthpulseLogo}" Width="20" Height="20" VerticalAlignment="Center" />
                     <TextBlock Text="Hearthpulse" FontFamily="{StaticResource DisplayFont}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource Muted}"
                                Margin="8,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
