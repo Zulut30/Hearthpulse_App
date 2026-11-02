@@ -1,0 +1,84 @@
+<UserControl
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:core="using:Hearthpulse.Core"
+             xmlns:s="using:Hearthpulse.UI.Main.Stats"
+             xmlns:mm="using:Hearthpulse.UI.Main.Meta"
+             xmlns:dk="using:Hearthpulse.UI.Main.Decks"
+             xmlns:mt="using:Hearthpulse.UI.Main.Match"
+             xmlns:mg="using:Hearthpulse.UI.Main.Migration"
+             xmlns:cs="using:Hearthpulse.Core.Stats"
+             x:Class="Hearthpulse.UI.Main.Pages.BattlegroundsPage"
+             x:DataType="m:MainViewModel">
+    <!-- Battlegrounds: community tiers (heroes, comps, trinkets, cards) and the player's own stats, with the bracket picker. Same tree as the WPF BattlegroundsPage.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
+                <StackPanel>
+                    <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Classes="display pageTitle" />
+                    <c:Wave Classes="pageRule" />
+                </StackPanel>
+                <Border Classes="segmentBar headFilter"
+                        ToolTip.Tip="{i:Loc Main.Bg.ModeTip}">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Classes="segment" Content="{i:Loc Main.Bg.Solo}" GroupName="BgMode" IsChecked="True" Command="{Binding SetBgMode}" CommandParameter="Battlegrounds" />
+                        <RadioButton Classes="segment" Content="{i:Loc Main.Mode.Duos}" GroupName="BgMode" Command="{Binding SetBgMode}" CommandParameter="Duos" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- My stats (Main/Stats): header numbers, MMR over time, hero performance -->
+            <s:BattlegroundsStatsView Name="BgStats" />
+
+            <c:Ornament Text="{i:Loc Main.Bg.TierLists}" Icon="&#xF11D0;" Size="15" Margin="0,0,0,14" />
+            <WrapPanel Margin="0,0,0,14">
+                <Border Classes="segmentBar" Margin="0,0,12,8">
+                    <WrapPanel>
+                        <RadioButton Name="TabHeroes" Classes="segment" Content="{i:Loc Main.Bg.Heroes}" GroupName="BgTab" IsChecked="True"
+                                     ToolTip.Tip="{i:Loc Main.Bg.HeroesTip}" />
+                        <RadioButton Name="TabComps" Classes="segment" Content="{i:Loc Main.Bg.Comps}" GroupName="BgTab"
+                                     ToolTip.Tip="{i:Loc Main.Bg.CompCaptionComps}" />
+                        <RadioButton Name="TabTrinkets" Classes="segment" Content="{i:Loc Main.Bg.Trinkets}" GroupName="BgTab"
+                                     ToolTip.Tip="{i:Loc Main.Bg.TrinketsTip}" />
+                        <RadioButton Name="TabCards" Classes="segment" Content="{i:Loc Main.Bg.Cards}" GroupName="BgTab"
+                                     ToolTip.Tip="{i:Loc Main.Bg.CardsCaption}" />
+                        <RadioButton Name="TabMine" Classes="segment" Content="{i:Loc Main.Bg.MyHeroes}" GroupName="BgTab"
+                                     ToolTip.Tip="{i:Loc Main.Bg.MyHeroesTip}" />
+                    </WrapPanel>
+                </Border>
+                <!-- The brackets the loaded stats have (the API: top 50/20/5/1%); hidden when there is no choice -->
+                <Panel IsVisible="{Binding HasBracketChoice}">
+                    <Border Name="BracketPicker" Classes="segmentBar" Margin="0,0,0,8"
+                            ToolTip.Tip="{i:Loc Main.Bg.BracketTip}">
+                        <ItemsControl ItemsSource="{Binding BracketOptions}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:BracketOption">
+                                    <RadioButton Classes="segment" Content="{Binding Label}" GroupName="Bracket" IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                 Command="{Binding Select}" CommandParameter="{Binding Value}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                </Panel>
+            </WrapPanel>
+
+            <!-- Tier lists (Main/Meta): heroes and trinkets by tier, comps, cards, your heroes -->
+            <mm:BattlegroundsTiersView Name="BgTiers" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

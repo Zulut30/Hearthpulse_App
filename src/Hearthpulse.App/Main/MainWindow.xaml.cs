@@ -25,6 +25,8 @@ public partial class MainWindow : Window
         PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
         PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
         PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
+        PageBattlegrounds.TabChanged += OnBgTab;
+        PageConstructed.TabChanged += OnCtTab;
         _viewModel = viewModel;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelChanged;
@@ -94,10 +96,10 @@ public partial class MainWindow : Window
     private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavHistory, NavSettings];
 
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
-    private ToggleButton[] BattlegroundsTabButtons => [TabHeroes, TabComps, TabTrinkets, TabCards, TabMine];
+    private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards, PageBattlegrounds.TabMine];
 
     /// <summary>The Constructed tabs in <see cref="MainViewModel.ConstructedTabs"/> order.</summary>
-    private ToggleButton[] ConstructedTabButtons => [TabMyDecks, TabMetaTiers, TabMetaDecks, TabMetaMatchups];
+    private ToggleButton[] ConstructedTabButtons => [PageConstructed.TabMyDecks, PageConstructed.TabMetaTiers, PageConstructed.TabMetaDecks, PageConstructed.TabMetaMatchups];
 
     private static bool?[] States(ToggleButton[] buttons) => Array.ConvertAll(buttons, b => b.IsChecked);
 
@@ -134,13 +136,13 @@ public partial class MainWindow : Window
         else if (key == Key.V && Keyboard.Modifiers == ModifierKeys.Control && CurrentPage == "History" && !_viewModel.MatchOpen && e.OriginalSource is not TextBox)
         {
             // Ctrl+V on History imports the file (or the path) on the clipboard into the library.
-            LibraryView.PasteFromClipboard();
+            PageHistory.LibraryView.PasteFromClipboard();
             e.Handled = true;
         }
         else if (key == Key.F && Keyboard.Modifiers == ModifierKeys.Control && CurrentPage == "History" && !_viewModel.MatchOpen)
         {
             // Ctrl+F on History: the library's search box.
-            LibraryView.FocusSearch();
+            PageHistory.LibraryView.FocusSearch();
             e.Handled = true;
         }
     }
@@ -302,36 +304,38 @@ public partial class MainWindow : Window
             new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease });
     }
 
-    private void OnBgTab(object sender, RoutedEventArgs e)
+    /// <param name="chosen">A tab button was just checked (not unchecked): the shown view is scrolled into sight.</param>
+    private void OnBgTab(bool chosen)
     {
-        if (BgTiers is null)
+        if (PageBattlegrounds.BgTiers is null)
         {
             return;
         }
 
-        var shown = BgTiers.ShowTab(BattlegroundsTab);
-        BracketPicker.Visibility = TabMine.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
-        if (sender is RadioButton { IsChecked: true })
+        var shown = PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
+        PageBattlegrounds.BracketPicker.Visibility = PageBattlegrounds.TabMine.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
+        if (chosen)
         {
             Reveal(shown, 8);
         }
     }
 
-    private void OnCtTab(object sender, RoutedEventArgs e)
+    /// <param name="chosen">A tab button was just checked (not unchecked): the shown view is scrolled into sight.</param>
+    private void OnCtTab(bool chosen)
     {
-        if (MyDecksPanel is null || CtMeta is null)
+        if (PageConstructed.MyDecksPanel is null || PageConstructed.CtMeta is null)
         {
             return;
         }
 
-        var meta = TabMyDecks.IsChecked != true;
-        MyDecksPanel.Visibility = meta ? Visibility.Collapsed : Visibility.Visible;
-        CtStats.Visibility = MyDecksPanel.Visibility;
+        var meta = PageConstructed.TabMyDecks.IsChecked != true;
+        PageConstructed.MyDecksPanel.Visibility = meta ? Visibility.Collapsed : Visibility.Visible;
+        PageConstructed.CtStats.Visibility = PageConstructed.MyDecksPanel.Visibility;
         var tab = ConstructedTab;
-        var shown = CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
-        if (sender is RadioButton { IsChecked: true })
+        var shown = PageConstructed.CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
+        if (chosen)
         {
-            Reveal(shown ?? CtStats, 8);
+            Reveal(shown ?? PageConstructed.CtStats, 8);
         }
     }
 
@@ -388,12 +392,12 @@ public partial class MainWindow : Window
     {
         (tab switch
         {
-            "Comps" => TabComps,
-            "Trinkets" => TabTrinkets,
-            "Cards" => TabCards,
-            _ => TabHeroes,
+            "Comps" => PageBattlegrounds.TabComps,
+            "Trinkets" => PageBattlegrounds.TabTrinkets,
+            "Cards" => PageBattlegrounds.TabCards,
+            _ => PageBattlegrounds.TabHeroes,
         }).IsChecked = true;
-        TabHeroes.BringIntoView(new Rect(0, 0, TabHeroes.ActualWidth, 700));
+        PageBattlegrounds.TabHeroes.BringIntoView(new Rect(0, 0, PageBattlegrounds.TabHeroes.ActualWidth, 700));
     }
 
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
@@ -405,7 +409,7 @@ public partial class MainWindow : Window
         NavHistory.IsChecked = true;
         if (_viewModel.HistoryFilter != "All")
         {
-            HistoryAll.IsChecked = true;
+            PageHistory.HistoryAll.IsChecked = true;
             // Ends once the "All" rows are there: at once from the games in memory, else after a reload.
             await _viewModel.ShowAllGamesAsync();
         }

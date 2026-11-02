@@ -25,7 +25,7 @@ public partial class App
             // The Battlegrounds page goes on into the long tier lists: only its stats are of interest here.
             if (page == "Battlegrounds")
             {
-                SaveFull(_main.BgStats, Path.Combine(folder, "main-battlegrounds-full.png"));
+                SaveFull(_main.PageBattlegrounds.BgStats, Path.Combine(folder, "main-battlegrounds-full.png"));
             }
             else if (_main.FindName("Page" + page) is ScrollViewer { Content: FrameworkElement content })
             {
@@ -43,11 +43,11 @@ public partial class App
                 .Select(x => x.Index)
                 .DefaultIfEmpty(bgPoints.Count - 1)
                 .Last();
-            _main.BgStats.HoverGame(index);
+            _main.PageBattlegrounds.BgStats.HoverGame(index);
             await Task.Delay(2500);
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, "main-battlegrounds-hover.png"));
-            _main.BgStats.HoverGame(-1);
+            _main.PageBattlegrounds.BgStats.HoverGame(-1);
         }
 
         _main.ShowPage("Constructed");
@@ -55,11 +55,11 @@ public partial class App
         var ctPoints = _mainViewModel.CtRankChart;
         if (ctPoints.Count > 0)
         {
-            _main.CtStats.HoverGame(ctPoints.Count / 2);
+            _main.PageConstructed.CtStats.HoverGame(ctPoints.Count / 2);
             await Task.Delay(2500);
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, "main-constructed-hover.png"));
-            _main.CtStats.HoverGame(-1);
+            _main.PageConstructed.CtStats.HoverGame(-1);
         }
     }
 

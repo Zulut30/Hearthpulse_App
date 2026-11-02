@@ -109,12 +109,12 @@ public sealed class MainWindowLookTests
     [Fact]
     public void Both_main_windows_have_the_same_constructed_tabs_and_meta_views()
     {
-        var wpf = Load("src/Hearthpulse.App/Main/MainWindow.xaml");
-        var ava = Load("src/Hearthpulse.UI/Main/MainView.axaml");
+        var wpf = WithPages(Load("src/Hearthpulse.App/Main/MainWindow.xaml"), "src/Hearthpulse.App/Main/Pages", "*.xaml").ToList();
+        var ava = WithPages(Load("src/Hearthpulse.UI/Main/MainView.axaml"), "src/Hearthpulse.UI/Main/Pages", "*.axaml").ToList();
         foreach (var name in new[] { "TabMyDecks", "TabMetaTiers", "TabMetaDecks", "TabMetaMatchups", "CtMeta", "BgTiers" })
         {
-            Assert.Single(wpf.Descendants(), e => Named(e) == name);
-            Assert.Single(ava.Descendants(), e => Named(e) == name);
+            Assert.Single(wpf, e => Named(e) == name);
+            Assert.Single(ava, e => Named(e) == name);
         }
     }
 
