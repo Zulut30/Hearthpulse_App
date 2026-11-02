@@ -34,7 +34,7 @@ public sealed class ArchetypeTranslations
     /// The request's own time limit, well under the shared client's 40 s: the names only relabel a meta that is already
     /// on screen, so a host that drops packets must not keep anything waiting.
     /// </summary>
-    public static TimeSpan FetchTimeout { get; internal set; } = TimeSpan.FromSeconds(5);
+    public static TimeSpan FetchTimeout { get; } = TimeSpan.FromSeconds(5);
 
     /// <summary>A full answer is ~50 KB; anything past this is not the dictionary.</summary>
     private const int MaxBytes = 1024 * 1024;
@@ -80,7 +80,11 @@ public sealed class ArchetypeTranslations
     /// the cached list, however old, and to <see cref="Empty"/> without one.
     /// </summary>
     /// <param name="cacheDirectory">Where the answer is cached; the app's API cache folder by default (tests pass a scratch one).</param>
-    public static async Task<ArchetypeTranslations> LoadAsync(HttpClient http, string? cacheDirectory = null, CancellationToken cancellationToken = default)
+    public static Task<ArchetypeTranslations> LoadAsync(HttpClient http, string? cacheDirectory = null, CancellationToken cancellationToken = default) =>
+        LoadAsync(http, cacheDirectory, TimeProvider.System, cancellationToken);
+
+    /// <summary><see cref="LoadAsync(HttpClient, string?, CancellationToken)"/> with <see cref="FetchTimeout"/> counted on <paramref name="time"/> (tests).</summary>
+    internal static async Task<ArchetypeTranslations> LoadAsync(HttpClient http, string? cacheDirectory, TimeProvider time, CancellationToken cancellationToken = default)
     {
         var directory = cacheDirectory ?? Path.Combine(AppPaths.Cache, "api");
         var file = Path.Combine(directory, CacheName);
@@ -91,7 +95,7 @@ public sealed class ArchetypeTranslations
             return cached;
         }
 
-        if (await FetchAsync(http, cancellationToken).ConfigureAwait(false) is { } text && Parse(text) is { Count: > 0 } fetched)
+        if (await FetchAsync(http, time, cancellationToken).ConfigureAwait(false) is { } text && Parse(text) is { Count: > 0 } fetched)
         {
             await WriteFileAsync(file, text, cancellationToken).ConfigureAwait(false);
             Delete(Path.Combine(directory, FailureName));
@@ -177,10 +181,10 @@ public sealed class ArchetypeTranslations
         }
     }
 
-    private static async Task<string?> FetchAsync(HttpClient http, CancellationToken cancellationToken)
+    private static async Task<string?> FetchAsync(HttpClient http, TimeProvider time, CancellationToken cancellationToken)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(FetchTimeout);
+        using var limit = new CancellationTokenSource(FetchTimeout, time);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, limit.Token);
         try
         {
             using var response = await http.GetAsync(Endpoint, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Hearthpulse.Core.Constructed;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Hearthpulse.Tests;
 
@@ -164,24 +165,20 @@ public sealed class ArchetypeTranslationsTests : IDisposable
         Assert.Equal(TimeSpan.FromHours(hours), ArchetypeTranslations.RetryAfter(failures));
 
     [Fact]
-    public async Task A_host_that_never_answers_is_given_up_quickly()
+    public async Task A_host_that_never_answers_is_given_up_after_the_fetch_timeout()
     {
-        var old = ArchetypeTranslations.FetchTimeout;
-        ArchetypeTranslations.FetchTimeout = TimeSpan.FromMilliseconds(200);
-        try
-        {
-            using var http = new HttpClient(new FakeServer(HttpStatusCode.OK, Answer) { Delay = TimeSpan.FromSeconds(30) });
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+        var time = new FakeTimeProvider();
+        var server = new FakeServer(HttpStatusCode.OK, Answer) { Delay = Timeout.InfiniteTimeSpan };
+        using var http = new HttpClient(server);
 
-            var names = await ArchetypeTranslations.LoadAsync(http, _cache);
+        var load = ArchetypeTranslations.LoadAsync(http, _cache, time);
+        await server.Reached.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        time.Advance(ArchetypeTranslations.FetchTimeout - TimeSpan.FromMilliseconds(1));
+        Assert.False(load.IsCompleted);
+        time.Advance(TimeSpan.FromMilliseconds(1));
 
-            Assert.Equal(0, names.Count);
-            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), watch.Elapsed.ToString());
-        }
-        finally
-        {
-            ArchetypeTranslations.FetchTimeout = old;
-        }
+        var names = await load.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Equal(0, names.Count);
     }
 
     [Fact]
@@ -209,13 +206,17 @@ public sealed class ArchetypeTranslationsTests : IDisposable
     {
         public List<string> Requests { get; } = [];
 
-        /// <summary>How long the answer takes (it honours cancellation, like a real connection).</summary>
+        /// <summary>How long the answer takes (it honours cancellation, like a real connection); infinite: never.</summary>
         public TimeSpan Delay { get; init; }
+
+        /// <summary>Set when a request has arrived.</summary>
+        public TaskCompletionSource Reached { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Requests.Add(request.RequestUri!.ToString());
-            if (Delay > TimeSpan.Zero)
+            Reached.TrySetResult();
+            if (Delay > TimeSpan.Zero || Delay == Timeout.InfiniteTimeSpan)
             {
                 await Task.Delay(Delay, cancellationToken);
             }

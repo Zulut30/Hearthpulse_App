@@ -355,7 +355,7 @@ public sealed class BgBadgesTests
         layer.Arrange(new Rect(0, 0, 1920, 1080));
         // Bindings attach at DataBind priority: let them, then lay out again.
         var frame = new DispatcherFrame();
-        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
         layer.UpdateLayout();
 
@@ -384,7 +384,7 @@ public sealed class BgBadgesTests
     /// <summary>Visible in the layer: neither the element nor any parent up to <paramref name="root"/> is collapsed.</summary>
     private static bool Visible(DependencyObject element, DependencyObject root)
     {
-        for (var e = element; e is not null && e != root; e = VisualTreeHelper.GetParent(e))
+        for (var e = element; e is not null && !ReferenceEquals(e, root); e = VisualTreeHelper.GetParent(e))
         {
             if (e is UIElement { Visibility: not Visibility.Visible })
             {

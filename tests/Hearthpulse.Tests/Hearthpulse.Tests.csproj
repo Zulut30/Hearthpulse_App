@@ -15,6 +15,8 @@
     <PackageReference Include="coverlet.collector" Version="10.1.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- Only for LocBindingTests: the Avalonia {i:Loc} binding, checked on a headless platform (no window, no GPU). -->
     <PackageReference Include="Avalonia.Headless" Version="12.1.4" />
+    <!-- FakeTimeProvider: timeouts and timers advanced by the test instead of waited for (no Task.Delay / Thread.Sleep). -->
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>

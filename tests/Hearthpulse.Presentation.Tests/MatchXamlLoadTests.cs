@@ -189,7 +189,7 @@ public sealed class MatchXamlLoadTests
         view.Arrange(new Rect(0, 0, 1180, view.DesiredSize.Height));
         // Bindings and templates attach at DataBind priority: let them, then lay out again.
         var frame = new DispatcherFrame();
-        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
         view.UpdateLayout();
     }

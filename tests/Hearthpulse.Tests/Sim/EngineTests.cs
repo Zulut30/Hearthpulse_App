@@ -1,13 +1,11 @@
-using System.Diagnostics;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Battlegrounds.Effects;
-using Xunit.Abstractions;
 using static Hearthpulse.Tests.Sim.SimTestKit;
 
 namespace Hearthpulse.Tests.Sim;
 
 /// <summary>The combat pipeline with synthetic test-only effects (no real card implementations involved).</summary>
-public sealed class EngineTests(ITestOutputHelper output)
+public sealed class EngineTests
 {
     private static readonly SimMinion Token = Minion(1, 1, cardId: "TEST_TOKEN");
 
@@ -272,34 +270,6 @@ public sealed class EngineTests(ITestOutputHelper output)
     }
 
     [Fact]
-    // Asserts on wall-clock time: CI runs it without coverage instrumentation (hearthpulse-testing, "Timing").
-    [Trait("Category", "Timing")]
-    public void Full_boards_with_effects_run_fast_enough()
-    {
-        var effects = Effects(typeof(SummonTwo), typeof(ExtraTrigger), typeof(RallyPlusTen), typeof(AvengeTwo), typeof(AuraPlusTwo),
-                              typeof(SummonWatcher), typeof(GainAttackWhenDamaged), typeof(Cleave));
-        var ours = Side(
-            Minion(4, 6, cardId: "DR"), Minion(2, 8, cardId: "TITUS"), Minion(3, 5, Keyword.Reborn, "DR"), Minion(5, 5, cardId: "AV"),
-            Minion(2, 4, cardId: "AURA"), Minion(6, 6, Keyword.DivineShield, "DR"), Minion(3, 7, cardId: "WATCH"));
-        var theirs = Side(
-            Minion(5, 5, cardId: "RALLY"), Minion(4, 9, Keyword.Taunt, "HURT"), Minion(7, 3, Keyword.Reborn, "DR"), Minion(3, 3, cardId: "CLEAVE"),
-            Minion(6, 6, Keyword.DivineShield), Minion(2, 10, Keyword.Taunt, "AV"), Minion(4, 4, Keyword.Poisonous));
-        var keywordsOnly = (Side(ours.Minions.Select(m => m with { CardId = "" }).ToArray()), Side(theirs.Minions.Select(m => m with { CardId = "" }).ToArray()));
-
-        CombatSimulator.Run(ours, theirs, null, new SimOptions { Runs = 200, Effects = effects }); // warm-up
-        var clock = Stopwatch.StartNew();
-        var odds = CombatSimulator.Run(ours, theirs, null, new SimOptions { Runs = 4000, Effects = effects });
-        var withEffects = clock.Elapsed;
-        clock.Restart();
-        CombatSimulator.Run(keywordsOnly.Item1, keywordsOnly.Item2, null, new SimOptions { Runs = 4000, Effects = effects });
-        var plain = clock.Elapsed;
-
-        output.WriteLine($"4000 runs 7v7: with effects {withEffects.TotalMilliseconds:0} ms, keywords only {plain.TotalMilliseconds:0} ms; odds {odds}");
-        Assert.Equal(4000, odds.Runs);
-        Assert.True(withEffects < TimeSpan.FromSeconds(5), $"too slow: {withEffects}");
-    }
-
-    [Fact]
     public void Time_budget_stops_early_but_keeps_minimum_runs()
     {
         var effects = Effects(typeof(SummonTwo));
@@ -316,19 +286,19 @@ public sealed class EngineTests(ITestOutputHelper output)
     // ------------------------------------------------------------------------------------------- test-only effects
 
     [CardEffect("DR")]
-    private sealed class SummonTwo : CombatEffect
+    internal sealed class SummonTwo : CombatEffect
     {
         public override void Deathrattle(Fight fight, Unit self) => fight.SummonAt(self, Token, 2);
     }
 
     [CardEffect("TITUS")]
-    private sealed class ExtraTrigger : CombatEffect
+    internal sealed class ExtraTrigger : CombatEffect
     {
         public override int ExtraDeathrattles(Fight fight, Unit self) => self.Golden ? 2 : 1;
     }
 
     [CardEffect("CLEAVE")]
-    private sealed class Cleave : CombatEffect
+    internal sealed class Cleave : CombatEffect
     {
         public override void OnAttackDamage(Fight fight, Unit self, Unit target)
         {
@@ -339,7 +309,7 @@ public sealed class EngineTests(ITestOutputHelper output)
     }
 
     [CardEffect("AV")]
-    private sealed class AvengeTwo : AvengeEffect
+    internal sealed class AvengeTwo : AvengeEffect
     {
         protected override int Threshold(Unit self) => 2;
 
@@ -359,7 +329,7 @@ public sealed class EngineTests(ITestOutputHelper output)
     }
 
     [CardEffect("RALLY")]
-    private sealed class RallyPlusTen : CombatEffect
+    internal sealed class RallyPlusTen : CombatEffect
     {
         public override void OnAttack(Fight fight, Unit self, Unit target) => fight.Buff(self, 10, 0);
     }
@@ -383,13 +353,13 @@ public sealed class EngineTests(ITestOutputHelper output)
     }
 
     [CardEffect("HURT")]
-    private sealed class GainAttackWhenDamaged : CombatEffect
+    internal sealed class GainAttackWhenDamaged : CombatEffect
     {
         public override void OnDamaged(Fight fight, Unit self, Unit? source, int amount) => fight.Buff(self, amount, 0);
     }
 
     [CardEffect("WATCH")]
-    private sealed class SummonWatcher : CombatEffect
+    internal sealed class SummonWatcher : CombatEffect
     {
         public override void OnFightStart(Fight fight, Unit self) => self.Side.AddSummonBuff(Tribe.All, 1, 0);
 
@@ -407,7 +377,7 @@ public sealed class EngineTests(ITestOutputHelper output)
     }
 
     [CardEffect("AURA")]
-    private sealed class AuraPlusTwo : CombatEffect
+    internal sealed class AuraPlusTwo : CombatEffect
     {
         public override StatDelta AuraFor(Fight fight, Unit self, Unit other) => other == self ? default : new StatDelta(2, 2);
     }

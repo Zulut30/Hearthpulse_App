@@ -342,14 +342,20 @@ public sealed class AppSettings
     public static AppSettings Load() => Load(AppPaths.Settings);
 
     /// <summary>Reads a specific file without changing the process-wide data folder.</summary>
-    internal static AppSettings Load(string path)
+    internal static AppSettings Load(string path) => Load(path, RetryPause);
+
+    /// <summary>
+    /// <see cref="Load(string)"/> with the pause between read attempts given: tests release a held file there instead
+    /// of racing a timer.
+    /// </summary>
+    internal static AppSettings Load(string path, Action retryPause)
     {
         string? unpreserved = null;
         try
         {
             if (File.Exists(path))
             {
-                return FromJson(ReadWithRetry(path));
+                return FromJson(ReadWithRetry(path, retryPause));
             }
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
@@ -374,7 +380,7 @@ public sealed class AppSettings
     /// The file's text. A file another program holds for a moment (an antivirus scan, a cloud sync) is read again for up
     /// to a second before it counts as unreadable: defaults would otherwise be saved over it later.
     /// </summary>
-    private static string ReadWithRetry(string path)
+    private static string ReadWithRetry(string path, Action retryPause)
     {
         for (var attempt = 1; ; attempt++)
         {
@@ -384,10 +390,12 @@ public sealed class AppSettings
             }
             catch (IOException) when (attempt < 10 && File.Exists(path))
             {
-                Thread.Sleep(100);
+                retryPause();
             }
         }
     }
+
+    private static void RetryPause() => Thread.Sleep(100);
 
     /// <summary>
     /// Keeps every setting of a file that failed to load except the values that cannot be read (a null number, an enum

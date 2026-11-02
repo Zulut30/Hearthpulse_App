@@ -13,7 +13,7 @@ namespace Hearthpulse.Tests;
 /// </summary>
 public sealed class LibraryViewModelTests : IDisposable
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), $"hp-library-vm-{Guid.NewGuid():N}");
+    private readonly string _dir = TestDataFolder.Scratch("hp-library-vm");
     private readonly HistoryStore _history;
     private readonly ReplayLibrary _files;
     private readonly string _bgReplay;
@@ -71,22 +71,7 @@ public sealed class LibraryViewModelTests : IDisposable
         });
     }
 
-    public void Dispose()
-    {
-        for (var attempt = 0; attempt < 20; attempt++)
-        {
-            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-            try
-            {
-                Directory.Delete(_dir, recursive: true);
-                return;
-            }
-            catch (IOException)
-            {
-                Thread.Sleep(50);
-            }
-        }
-    }
+    public void Dispose() => TestDataFolder.TryDelete(_dir);
 
     private async Task<MainViewModel> Open()
     {

@@ -481,7 +481,7 @@ public sealed partial class UxPolishContractTests
     private static void Settle(FrameworkElement root)
     {
         var frame = new DispatcherFrame();
-        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
         root.UpdateLayout();
     }

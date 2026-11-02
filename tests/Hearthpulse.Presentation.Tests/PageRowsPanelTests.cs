@@ -144,7 +144,7 @@ public sealed class PageRowsPanelTests
     private static void Pump(DispatcherPriority until)
     {
         var frame = new DispatcherFrame();
-        Dispatcher.CurrentDispatcher.BeginInvoke(until, new Action(() => frame.Continue = false));
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(until, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
     }
 }
