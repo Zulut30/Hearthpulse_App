@@ -17,6 +17,7 @@ public member types and assembly identities therefore remain in place.
 | Main window state | `Main/MainViewModel*.cs` | App/UI `Main/MainViewModel*.cs`: dispatch, clipboard, established platform behavior; WPF Constructed/theme features |
 | Deck details and match replay | `Main/Decks/DeckDetailsViewModel.cs` (its rows: `DeckDetailsRows.cs`), `Main/Match/MatchViewModel.cs` | Views and code-behind in each UI |
 | Overlay state and rows | `Overlay/OverlayViewModel*.cs`, `Overlay/OverlayModels*.cs` | `OverlayViewModel.Platform.cs`, `OverlayModels.Platform.cs` |
+| Hosts' shared pipeline (live snapshots to the screen, busy line, log import, debounce) | `Overlay/LiveFeed.cs`, `Main/MainViewModel.Host.cs`, `Infrastructure/Debounce.cs` | Each host wires its dispatcher, windows and tray |
 | Property notification | `Infrastructure/Observable.cs` | `RelayCommand` stays local because command notification semantics differ |
 | Value converter rules (shown or not, brush key, share width) | `Infrastructure/DisplayRules.cs` | The `IValueConverter` classes in `Infrastructure/Converters.cs`: brush lookup, `Visibility` / `bool` |
 | Tracking and statistics algorithms | `src/Hearthpulse.Core` (outside this directory) | Hosts dispatch completed snapshots/results to the UI |
@@ -30,7 +31,8 @@ formatting, selection, snapshot mapping and collection updates shared.
 
 The remaining platform differences are intentional compatibility boundaries. For example, WPF odds shares are
 `GridLength` while Avalonia exposes `double`; hand offsets use each framework's `Thickness`; dispatcher timers
-and account clipboard actions remain local. Main-window history counts, title wording, uppercase tile labels,
+(other than the shared `Infrastructure/Debounce.cs`, which picks its framework's timer by flavour) and account
+clipboard actions remain local. Main-window history counts, title wording, uppercase tile labels,
 WPF meta/theme features and Avalonia compact behavior retain their previous contracts. Do not silently
 normalize these differences while moving code. Preserve constructor defaults, public properties, event ordering
 and bindings, including properties present on only one platform.
