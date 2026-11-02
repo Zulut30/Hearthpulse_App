@@ -3,7 +3,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
+using Hearthpulse.Core.Localization;
+using Hearthpulse.UI.Infrastructure;
 
 namespace Hearthpulse.UI.Main.Match;
 
@@ -76,12 +79,28 @@ public partial class MatchView : UserControl
 
     /// <summary>
     /// The player's keys on the Replay tab: Space plays or pauses, the arrows go by event and with Ctrl by turn, Enter
-    /// and Backspace by step, + and − change the speed. Esc and Alt+Left go on to the window (back to History).
+    /// and Backspace by step, + and − change the speed, G opens the "Turn" list, M goes to the mulligan, B bookmarks the
+    /// step, [ and ] go to the bookmarks around it. Esc and Alt+Left go on to the window (back to History). While the
+    /// "Turn" list is open they are the list's. Letters by their physical key, so another layout works the same.
     /// </summary>
     private void OnPlayerKey(object? sender, KeyEventArgs e)
     {
-        if (e.Handled || _model is not { ShowReplay: true } model)
+        if (e.Handled || _model is not { ShowReplay: true } model || model.TurnsOpen || TurnBox.IsDropDownOpen)
         {
+            return;
+        }
+
+        if (e.KeyModifiers == KeyModifiers.None && (e.PhysicalKey == PhysicalKey.G || (e.PhysicalKey == PhysicalKey.None && e.Key == Key.G)))
+        {
+            OpenTurns(model);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.KeyModifiers == KeyModifiers.None && LetterCommand(model, e) is { } letter)
+        {
+            letter.Execute(null);
+            e.Handled = true;
             return;
         }
 
@@ -102,6 +121,81 @@ public partial class MatchView : UserControl
         {
             command.Execute(null);
             e.Handled = true;
+        }
+    }
+
+    /// <summary>M, B, [ and ] by the key's place (the Russian layout gives other letters there), else by the key.</summary>
+    private static RelayCommand? LetterCommand(MatchViewModel model, KeyEventArgs e) => e.PhysicalKey switch
+    {
+        PhysicalKey.M => model.GoMulligan,
+        PhysicalKey.B => model.ToggleBookmark,
+        PhysicalKey.BracketLeft => model.PreviousBookmark,
+        PhysicalKey.BracketRight => model.NextBookmark,
+        PhysicalKey.None => e.Key switch
+        {
+            Key.M => model.GoMulligan,
+            Key.B => model.ToggleBookmark,
+            Key.OemOpenBrackets => model.PreviousBookmark,
+            Key.OemCloseBrackets => model.NextBookmark,
+            _ => null,
+        },
+        _ => null,
+    };
+
+    /// <summary>G: the "Turn" list opens with the keyboard in it (the arrows move through it, Enter goes, Esc closes).</summary>
+    private void OpenTurns(MatchViewModel model)
+    {
+        if (model.Jumps.Count == 0)
+        {
+            return;
+        }
+
+        TurnBox.Focus();
+        model.OpenTurns.Execute(null);
+    }
+
+    /// <summary>The "Turn" list closed (a pick, Esc or a click outside): the keys go back to the player.</summary>
+    private void OnTurnsClosed(object? sender, EventArgs e) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (IsVisible)
+            {
+                Focus();
+            }
+        }, DispatcherPriority.Input);
+
+    /// <summary>The "Bookmarks" menu as the bookmarks are now: in step order (the one on screen in bold), or a hint.</summary>
+    private void OnBookmarksOpening(object? sender, EventArgs e)
+    {
+        if (sender is not MenuFlyout menu)
+        {
+            return;
+        }
+
+        menu.Items.Clear();
+        if (_model is not { } model)
+        {
+            return;
+        }
+
+        if (model.BookmarkRows.Count == 0)
+        {
+            menu.Items.Add(new MenuItem { Header = Loc.T("Match.Player.BookmarksEmpty"), IsEnabled = false });
+            return;
+        }
+
+        foreach (var row in model.BookmarkRows)
+        {
+            var glyph = new TextBlock { Text = "󰃀", FontSize = 14, Foreground = ThemeBrushes.Get(row.Current ? "Accent" : "Info") };
+            glyph.Classes.Add("icon");
+            menu.Items.Add(new MenuItem
+            {
+                Header = row.Text,
+                Icon = glyph,
+                Command = model.GoBookmark,
+                CommandParameter = row,
+                FontWeight = row.Current ? FontWeight.SemiBold : FontWeight.Normal,
+            });
         }
     }
 

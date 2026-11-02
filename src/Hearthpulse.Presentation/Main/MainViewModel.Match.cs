@@ -86,7 +86,37 @@ public sealed partial class MainViewModel
         }
 
         MatchPage.Show(page, keepPosition);
+        var (replay, card) = MatchReplayOf(key);
+        MatchPage.SetReplay(replay, card, _history);
         return true;
+    }
+
+    /// <summary>
+    /// The opened game's replay file name (its bookmarks are kept by it) and its library card (the header's star and
+    /// Share): a History game's file, or a Saved or Imported file opened without a History row.
+    /// </summary>
+    private (string? Replay, LibraryCard? Card) MatchReplayOf(string key)
+    {
+        if (key.StartsWith(Core.Replay.MatchPage.FileKeyPrefix, StringComparison.Ordinal))
+        {
+            var rest = key[Core.Replay.MatchPage.FileKeyPrefix.Length..];
+            var slash = rest.IndexOf('/', StringComparison.Ordinal);
+            if (slash < 0)
+            {
+                return (null, null);
+            }
+
+            var name = rest[(slash + 1)..];
+            return (name, Library.AllCards.FirstOrDefault(c => c.FileName == name && c.HistoryKey is null));
+        }
+
+        if (_history.Game(key) is not { Replay: { Length: > 0 } replay } game)
+        {
+            return (null, null);
+        }
+
+        var card = Library.AllCards.FirstOrDefault(c => c.HistoryKey == key) ?? LibraryCardOf(game, Core.Replay.ReplayShelf.Recent, replay, key);
+        return (replay, card.HasReplay ? card : null);
     }
 
     internal void CloseMatch()

@@ -549,6 +549,38 @@
         <Style Selector="TextBlock.place.you">
             <Setter Property="Foreground" Value="{StaticResource Accent}" />
         </Style>
+        <!-- The "Turn" list's marker: the stretch's colour (MatchTimelineLayout.MarkerBrush) -->
+        <Style Selector="Border.marker">
+            <Setter Property="Background" Value="{StaticResource Muted}" />
+        </Style>
+        <Style Selector="Border.marker.mine">
+            <Setter Property="Background" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="Border.marker.theirs">
+            <Setter Property="Background" Value="{StaticResource Accent2}" />
+        </Style>
+        <Style Selector="Border.marker.won">
+            <Setter Property="Background" Value="{StaticResource Positive}" />
+        </Style>
+        <Style Selector="Border.marker.lost">
+            <Setter Property="Background" Value="{StaticResource Negative}" />
+        </Style>
+        <!-- The bookmark toggle on a bookmarked step, the header's star of a saved game: the accent -->
+        <Style Selector="Button.bookmark.on, Button.headerStar.starred">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <!-- Phone width: "Turn" over the bookmarks ("Bookmarks" drops its word: the window's .wide rule) -->
+        <Style Selector="m|MainView.compact Grid.playerNav ComboBox.turns">
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.playerNav StackPanel.bookmarks">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="2" />
+            <Setter Property="Margin" Value="0,8,0,0" />
+        </Style>
         <!-- Phone width: the turn's actions go under the table, the decks stack -->
         <Style Selector="m|MainView.compact Border.actions">
             <Setter Property="Grid.Row" Value="1" />
@@ -596,9 +628,40 @@
 
         <StackPanel IsVisible="{Binding !Loading}">
             <!-- Header: you, the result, the opponent; then the game's facts -->
-            <TextBlock Text="{Binding Header.Title}" Classes="display pageTitle" FontSize="30" TextWrapping="Wrap" />
-            <c:Wave Classes="pageRule" Margin="2,0,0,10" />
+            <DockPanel>
+                <!-- The same star and Share as the game's library card; only with a replay file -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0" IsVisible="{Binding ShowHeaderActions}">
+                    <Button Classes="icon headerStar" Classes.starred="{Binding HeaderCard.Starred, FallbackValue=False}" Content="{Binding HeaderCard.StarGlyph}"
+                            Command="{Binding ToggleHeaderStar}" ToolTip.Tip="{Binding HeaderCard.StarTip}" AutomationProperties.Name="{Binding HeaderCard.StarTip}" />
+                    <Button Classes="icon" Content="&#xF0497;" Margin="4,0,0,0" Command="{Binding ShareHeader}" ToolTip.Tip="{i:Loc Library.Share}"
+                            AutomationProperties.Name="{i:Loc Library.Share}" />
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="{Binding Header.Title}" Classes="display pageTitle" FontSize="30" TextWrapping="Wrap" />
+                    <c:Wave Classes="pageRule" Margin="2,0,0,10" />
+                </StackPanel>
+            </DockPanel>
             <TextBlock Text="{Binding Header.Subtitle}" Classes="caption" FontSize="13.5" Margin="2,0,0,18" TextWrapping="Wrap" />
+            <!-- The header's status (star, Share, bookmark) or the "only copy" question: one slot, nothing when empty -->
+            <DockPanel Margin="2,0,0,12" IsVisible="{Binding HeaderStatus, Converter={StaticResource Truthy}}">
+                <TextBlock DockPanel.Dock="Left" Text="{Binding HeaderStatusGlyph}" Classes="icon" FontSize="14" VerticalAlignment="Center"
+                           Foreground="{Binding HeaderStatusKey, Converter={StaticResource KeyBrush}}" />
+                <Button DockPanel.Dock="Right" Classes="bare" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding OpenHeaderStatusFolder}"
+                        IsVisible="{Binding HasHeaderStatusFolder}">
+                    <TextBlock Text="{i:Loc Library.OpenFolder}" Classes="caption" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                </Button>
+                <TextBlock Text="{Binding HeaderStatus}" Classes="caption" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+            </DockPanel>
+            <Border Margin="0,0,0,12" CornerRadius="8" Padding="12,8" Background="{StaticResource NegativeSoft}" BorderBrush="{StaticResource Negative}" BorderThickness="1"
+                    IsVisible="{Binding HeaderConfirming}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Classes="ghost" Padding="12,5" Margin="8,0,0,0" Content="{i:Loc Library.ConfirmNo}" Command="{Binding CancelHeader}" />
+                    <Button DockPanel.Dock="Right" Classes="ghost" Padding="12,5" Foreground="{StaticResource Negative}" Content="{i:Loc Library.ConfirmYes}"
+                            Command="{Binding ConfirmHeader}" />
+                    <TextBlock Text="&#xF05D6;" Classes="icon" FontSize="16" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding HeaderCard.ConfirmText, FallbackValue=''}" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
             <Border Classes="card" Margin="0,0,0,16">
                 <StackPanel>
                     <Grid ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto,Auto">
@@ -704,8 +767,50 @@
             <StackPanel IsVisible="{Binding ShowReplay}">
                 <Border Classes="card" Padding="16,12" Margin="0,0,0,16">
                     <StackPanel>
+                        <!-- "Turn" (G) on the left; the bookmark, ‹ "Bookmarks" › on the right (two lines at phone width) -->
+                        <Grid Classes="playerNav" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" Margin="0,0,0,10">
+                            <ComboBox Name="TurnBox" Classes="turns" Width="168" MinHeight="32" Padding="10,5" VerticalAlignment="Center" ItemsSource="{Binding Jumps}"
+                                      SelectedIndex="{Binding JumpIndex, Mode=TwoWay}" IsDropDownOpen="{Binding TurnsOpen, Mode=TwoWay}" MaxDropDownHeight="320"
+                                      ToolTip.Tip="{i:Loc Match.Player.TurnTip}" AutomationProperties.Name="{i:Loc Match.Player.Turn}" DropDownClosed="OnTurnsClosed">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="mt:MatchJumpRow">
+                                        <DockPanel ToolTip.Tip="{Binding Tooltip}" Background="Transparent">
+                                            <Border DockPanel.Dock="Left" Classes="marker" Classes.mine="{Binding MarkMine}" Classes.theirs="{Binding MarkTheirs}"
+                                                    Classes.won="{Binding MarkWon}" Classes.lost="{Binding MarkLost}" Width="3" Height="14" CornerRadius="1.5" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Text}" FontSize="13" Foreground="{StaticResource Text}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <StackPanel Grid.Column="1" Classes="bookmarks" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                        IsVisible="{Binding CanBookmark}">
+                                <Button Classes="icon bookmark" Classes.on="{Binding IsBookmarked}" Focusable="False" Content="{Binding BookmarkGlyph}"
+                                        Command="{Binding ToggleBookmark}" ToolTip.Tip="{Binding BookmarkTip}" AutomationProperties.Name="{Binding BookmarkTip}" />
+                                <Button Classes="icon" Focusable="False" Width="28" Height="28" FontSize="15" Margin="8,0,0,0" Content="&#xF0141;"
+                                        Command="{Binding PreviousBookmark}" IsEnabled="{Binding HasPreviousBookmark}" ToolTip.Tip="{i:Loc Match.Player.PreviousBookmark}"
+                                        ToolTip.ShowOnDisabled="True" AutomationProperties.Name="{i:Loc Match.Player.PreviousBookmark}" />
+                                <Button Name="BookmarksButton" Classes="ghost" Focusable="False" Padding="10,4" Margin="4,0" VerticalAlignment="Center"
+                                        ToolTip.Tip="{Binding BookmarksTip}" AutomationProperties.Name="{Binding BookmarksTip}">
+                                    <Button.Flyout>
+                                        <MenuFlyout Placement="BottomEdgeAlignedRight" Opening="OnBookmarksOpening" />
+                                    </Button.Flyout>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xF0E15;" Classes="icon" FontSize="15" Foreground="{StaticResource OnSecondaryContainer}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{i:Loc Match.Player.Bookmarks}" Classes="wide" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding BookmarkCountText}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="6,0,0,0"
+                                                   VerticalAlignment="Center" IsVisible="{Binding BookmarkCountText, Converter={StaticResource Truthy}}" />
+                                        <TextBlock Text="&#xF0140;" Classes="icon" FontSize="14" Foreground="{StaticResource OnSecondaryContainer}" Margin="4,0,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="icon" Focusable="False" Width="28" Height="28" FontSize="15" Content="&#xF0142;"
+                                        Command="{Binding NextBookmark}" IsEnabled="{Binding HasNextBookmark}" ToolTip.Tip="{i:Loc Match.Player.NextBookmark}"
+                                        ToolTip.ShowOnDisabled="True" AutomationProperties.Name="{i:Loc Match.Player.NextBookmark}" />
+                            </StackPanel>
+                        </Grid>
                         <mt:MatchTimeline Segments="{Binding TimelineSegments}" Ticks="{Binding TimelineTicks}" Current="{Binding TimelineCurrent}"
-                                          Position="{Binding TimelinePosition}" FrameMax="{Binding FrameMax}" Command="{Binding GoFrame}" />
+                                          Position="{Binding TimelinePosition}" FrameMax="{Binding FrameMax}" Bookmarks="{Binding BookmarkRows}" Command="{Binding GoFrame}" />
                         <!-- Turn ‹ event ‹ step ‹ play › step › event › turn; speed, position; side (Constructed) and the keys. Wraps at phone width. -->
                         <WrapPanel Margin="0,12,0,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4">

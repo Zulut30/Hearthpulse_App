@@ -551,11 +551,13 @@ public sealed partial class MainViewModel
             ShowLibraryTab();
         }
 
-        var card = Library.Cards.FirstOrDefault(c => c.HistoryKey == key);
+        // The game sent here must show: the search is cleared first.
+        Library.ResetSearch();
+        var card = Library.AllCards.FirstOrDefault(c => c.HistoryKey == key);
         if (card is null && _history.Game(key) is { } game)
         {
             card = LibraryCardOf(game, ReplayShelf.Recent, game.Replay, game.Key);
-            Library.SetCards([card, .. Library.Cards]);
+            Library.SetCards([card, .. Library.AllCards]);
             FillRecentAsync(_libraryLoad, [card]).Forget("Library headers");
         }
 

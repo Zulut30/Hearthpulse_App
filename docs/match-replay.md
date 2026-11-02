@@ -224,7 +224,9 @@ MOVE_MINION and every game STEP but `MAIN_END` are printed at the top level, so 
 
 History row (or a recent game on the Overview) -> match page (replaces the History list, "History" goes back):
 
-1. Header card: both heroes, names, rank/rating, class, format/mode, duration, first/coin, result.
+1. Title with the game's star and Share on its right (the same actions as its History card, on the same card: the
+   star is one state on both; only when the replay file is there), a status line or the "only copy" question under the
+   subtitle; then the header card: both heroes, names, rank/rating, class, format/mode, duration, first/coin, result.
 2. Tabs: **Replay** | **Decks** | **Analysis** (Battlegrounds: **Rounds** | **Lobby**).
 3. Replay (Constructed, and Battlegrounds games with a format 4 file, where it opens first): a player card - the
    whole-game timeline (`MatchPage.Timeline`: mulligan and turns, or tavern and combats coloured by the combat's
@@ -233,7 +235,19 @@ History row (or a recent game on the Overview) -> match page (replaces the Histo
    back and forward around play-pause, speed x1/x2/x4 (a step a second / speed, pauses on the last step, stops on
    another tab, another game or Back), the position, "?" with the legend and keys. Keys on the tab (caught before the
    focused control): Space play/pause, ←/→ event (`EventFrom`; turn starts, combat deaths and triggers are steps
-   only), Ctrl+←/→ turn (`TurnFrom`: the next stretch that is not a combat), Enter/Backspace step, +/− speed, Esc back.
+   only), Ctrl+←/→ turn (`TurnFrom`: the next stretch that is not a combat), Enter/Backspace step, +/− speed, Esc back,
+   G the "Turn" list, M the mulligan, B a bookmark on the step, [ / ] the bookmark before / after (letters by their
+   physical place, so the Russian layout works the same; none of them while the "Turn" list is open).
+   Over the timeline a navigation row (plan R1, `MatchPlayer.Navigation.cs`): "Turn" - the timeline's stretches one
+   to one (Constructed: the mulligan, then each turn, ours and theirs; Battlegrounds: the hero choice, each tavern and
+   combat, the end), each with a marker in its stretch's colour; choosing one goes to its first step, the mulligan to
+   its choice step (where the offer shows); the entry on screen follows the steps (not while the list is open). On the
+   right the bookmark toggle, ‹ / › and "Bookmarks N ▾" (a menu in step order: "Step 34 · turn 7"). Bookmarks are
+   steps only, kept in the local history (`HistoryStore.Bookmarks`, table `replay_bookmarks`) by the replay file's
+   name, so a starred copy in Saved shares them; they never leave the PC (not in Share, not uploaded). Each shows as a
+   bookmark glyph in its own row under the timeline's stretches (the timeline is 52 high with or without them); a
+   click there goes to the nearest one. A bookmark that cannot be written stays as it was and the header says so.
+   Avalonia compact: "Turn" over the bookmarks, which drop their word.
    Battlegrounds: the step's table from `MatchBgStepView` (Bob's offer or the combat opponent on top, ours at the
    bottom, the step bar, choices, hand; leaderboard and the tavern's or combat's events on the right); a format 3
    file keeps Rounds / Lobby with a note. Constructed: "My side / Opponent's side" (which side is at the bottom), both
@@ -289,3 +303,5 @@ during a combat would hide an opponent's minion frozen at that moment (it is tak
 The Rounds tab, History and My Stats take a combat's result and damage from the same hero attack: against the ghost of
 an eliminated player the damage to its combat copy counts (owner, 2026-10-29), and a fight conceded before any hero
 attack has no result (no `f` line).
+A Battlegrounds choice the timer made for the player (a hero, a Discover, a trinket) without a
+`DebugPrintEntitiesChosen` line in the log is not recorded: the step shows the offer without the pick.

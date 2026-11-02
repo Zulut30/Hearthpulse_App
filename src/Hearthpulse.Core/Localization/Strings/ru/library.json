@@ -59,5 +59,15 @@
   "Library.Site.Gone": "Этого реплея на сайте уже нет.",
   "Library.Site.DeleteError.OFFLINE": "Сайт недоступен, реплей не удалён. Попробуйте позже.",
   "Library.Site.DeleteError.RATE_LIMITED": "Слишком много запросов: попробуйте удалить через минуту.",
-  "Library.Site.DeleteError.SERVER_ERROR": "Сайт не смог удалить реплей. Попробуйте позже."
+  "Library.Site.DeleteError.SERVER_ERROR": "Сайт не смог удалить реплей. Попробуйте позже.",
+  "Library.Search.Placeholder": "Поиск: герой, класс, соперник, колода",
+  "Library.Search.Name": "Поиск игр",
+  "Library.Search.Tip": "Ищет по герою и классу, сопернику и его архетипу, режиму, формату, колоде и результату. Ctrl+F — к поиску, Esc — очистить.",
+  "Library.Search.ClearTip": "Очистить (Esc)",
+  "Library.Search.Wins": "Победы",
+  "Library.Search.Losses": "Поражения",
+  "Library.Search.ResultTip": "Фильтр по результату. В Полях сражений победа — места 1–4, в Дуэтах — 1–2.",
+  "Library.Search.Empty": "Ничего не найдено по запросу «{0}». Проверьте написание или очистите поиск.",
+  "Library.Search.EmptyResult": "На этой вкладке нет игр с таким результатом.",
+  "Library.Search.Clear": "Очистить поиск"
 }

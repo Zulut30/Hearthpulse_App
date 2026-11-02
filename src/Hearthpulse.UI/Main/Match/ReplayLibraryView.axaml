@@ -6,8 +6,9 @@
              xmlns:i="using:Hearthpulse.UI.Infrastructure"
              xmlns:m="using:Hearthpulse.UI.Main"
              xmlns:mt="using:Hearthpulse.UI.Main.Match">
-    <!-- The History page as the replay library (docs/replay-library.md): tabs Recent / Saved / Imported, the status
-         line, the game cards. DataContext is MainViewModel.Library. Colours are theme tokens only. -->
+    <!-- The History page as the replay library (docs/replay-library.md): tabs Recent / Saved / Imported, the search and
+         the result filter, the status line, the game cards. DataContext is MainViewModel.Library. Colours are theme
+         tokens only. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -196,9 +197,20 @@
         <Style Selector="m|MainView.compact StackPanel.wide">
             <Setter Property="IsVisible" Value="False" />
         </Style>
+        <!-- Compact: the search box takes the whole width, the result filter goes under it -->
+        <Style Selector="m|MainView.compact Grid.searchRow TextBox.search">
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+        </Style>
+        <Style Selector="m|MainView.compact Grid.searchRow Border.resultFilter">
+            <Setter Property="Grid.Row" Value="1" />
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Grid.ColumnSpan" Value="3" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,8,0,0" />
+        </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
         <WrapPanel Margin="0,0,0,10">
             <Border Classes="segmentBar" Margin="0,0,12,0">
                 <StackPanel Orientation="Horizontal">
@@ -234,8 +246,39 @@
             </StackPanel>
         </WrapPanel>
 
+        <!-- Search (up to 420 wide, on the left) and the result filter (on the right); both apply to every tab -->
+        <Grid Grid.Row="1" Classes="searchRow" RowDefinitions="Auto,Auto" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1000*" MaxWidth="420" />
+                <ColumnDefinition Width="*" MinWidth="12" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox Name="SearchBox" Classes="search" Text="{Binding Search}" PlaceholderText="{i:Loc Library.Search.Placeholder}" VerticalAlignment="Center"
+                     ToolTip.Tip="{i:Loc Library.Search.Tip}" AutomationProperties.Name="{i:Loc Library.Search.Name}">
+                <TextBox.InnerLeftContent>
+                    <TextBlock Text="&#xF0349;" Classes="icon" FontSize="16" Foreground="{StaticResource Faint}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                </TextBox.InnerLeftContent>
+                <TextBox.InnerRightContent>
+                    <Button Classes="icon" Content="&#xF0156;" Width="26" Height="26" FontSize="14" Focusable="False" Margin="0,0,4,0" VerticalAlignment="Center"
+                            Click="OnClearSearchText" ToolTip.Tip="{i:Loc Library.Search.ClearTip}" AutomationProperties.Name="{i:Loc Library.Search.ClearTip}"
+                            IsVisible="{Binding Search, Converter={StaticResource Truthy}}" />
+                </TextBox.InnerRightContent>
+            </TextBox>
+            <Border Grid.Column="2" Classes="segmentBar resultFilter" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Library.Search.ResultTip}"
+                    AutomationProperties.Name="{i:Loc Library.Search.ResultTip}">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Classes="segment" Content="{i:Loc Main.History.All}" GroupName="LibraryResult" IsChecked="{Binding ResultAll, Mode=OneWay}"
+                                 Command="{Binding SetResultFilter}" CommandParameter="All" />
+                    <RadioButton Classes="segment" Content="{i:Loc Library.Search.Wins}" GroupName="LibraryResult" IsChecked="{Binding ResultWins, Mode=OneWay}"
+                                 Command="{Binding SetResultFilter}" CommandParameter="Win" />
+                    <RadioButton Classes="segment" Content="{i:Loc Library.Search.Losses}" GroupName="LibraryResult" IsChecked="{Binding ResultLosses, Mode=OneWay}"
+                                 Command="{Binding SetResultFilter}" CommandParameter="Loss" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
         <!-- Status of the last action; it goes at the next tab, filter, opened match or action -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="2,0,0,10" IsVisible="{Binding Status, Converter={StaticResource Truthy}}">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="2,0,0,10" IsVisible="{Binding Status, Converter={StaticResource Truthy}}">
             <TextBlock Text="{Binding StatusGlyph}" Classes="icon" FontSize="14" VerticalAlignment="Center"
                        Foreground="{Binding StatusKey, Converter={StaticResource KeyBrush}}" />
             <TextBlock Text="{Binding Status}" Classes="caption" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
@@ -244,9 +287,14 @@
             </Button>
         </StackPanel>
 
-        <Border Grid.Row="2" Classes="card" Padding="16,12">
+        <Border Grid.Row="3" Classes="card" Padding="16,12">
             <Panel>
-                <ContentControl Classes="emptyState" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}" IsVisible="{Binding IsEmpty}" />
+                <StackPanel IsVisible="{Binding IsEmpty}">
+                    <ContentControl Classes="emptyState" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}" />
+                    <!-- Nothing passes the search: one click back to every game of the tab -->
+                    <Button Classes="ghost" Padding="12,6" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
+                            Click="OnClearSearch" IsVisible="{Binding IsSearchEmpty}" />
+                </StackPanel>
                 <ListBox Name="List" Classes="plain history" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}"
                          SelectedItem="{Binding SelectedCard, Mode=OneWay}" SelectionChanged="OnSelectionChanged"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" />

@@ -104,7 +104,10 @@ public partial class MainWindow : Window
         Native.UseDarkChrome(new WindowInteropHelper(this).Handle);
     }
 
-    /// <summary>Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page; Ctrl+V on History imports a replay (not while typing).</summary>
+    /// <summary>
+    /// Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page; Ctrl+V on History imports a replay
+    /// (not while typing), Ctrl+F goes to its search.
+    /// </summary>
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
@@ -129,6 +132,12 @@ public partial class MainWindow : Window
         {
             // Ctrl+V on History imports the file (or the path) on the clipboard into the library.
             LibraryView.PasteFromClipboard();
+            e.Handled = true;
+        }
+        else if (key == Key.F && Keyboard.Modifiers == ModifierKeys.Control && CurrentPage == "History" && !_viewModel.MatchOpen)
+        {
+            // Ctrl+F on History: the library's search box.
+            LibraryView.FocusSearch();
             e.Handled = true;
         }
     }
