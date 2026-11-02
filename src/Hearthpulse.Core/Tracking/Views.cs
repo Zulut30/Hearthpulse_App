@@ -412,6 +412,12 @@ public sealed record BattlegroundsView(
 
     public string? MetaSource { get; init; }
 
+    /// <summary>
+    /// Why the stats pool's numbers (comps, trinkets) are missing: today's free games are used up (plan 3.1,
+    /// <see cref="Accounts.UsageGate"/>); null when they are shown or there are none.
+    /// </summary>
+    public string? UsageNote { get; init; }
+
     /// <summary>Battlegrounds counters (Blood Gem, Tavern spells, Eternal Knight...); the overlay applies each one's mode.</summary>
     public IReadOnlyList<Counters.CounterView> Counters { get; init; } = [];
 }

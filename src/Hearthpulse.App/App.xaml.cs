@@ -39,6 +39,7 @@ public partial class App : Application
     private HearthpulseApi _api = null!;
     private AccountService _account = null!;
     private ProfileUploader _uploader = null!;
+    private UsageGate _usage = null!;
     private HistoryStore _history = null!;
     private HearthstoneMemory _memory = null!;
     private GameSession _session = null!;
@@ -168,14 +169,17 @@ public partial class App : Application
             RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
         }
         var services = new AppServices(_settings, typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.1", () => _cards);
-        (_http, _api, _prefetch, _history, _memory, _session, _mulliganGuide, _account, _uploader) =
-            (services.Http, services.Api, services.Prefetch, services.History, services.Memory, services.Session, services.MulliganGuide, services.Account, services.Uploader);
+        (_http, _api, _prefetch, _history, _memory, _session, _mulliganGuide, _account, _uploader, _usage) =
+            (services.Http, services.Api, services.Prefetch, services.History, services.Memory, services.Session, services.MulliganGuide, services.Account,
+                services.Uploader, services.Usage);
         _services = services;
         CardArt.Http = _http;
 
         _mainViewModel = new MainViewModel(_history, _settings);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
         _mainViewModel.AttachAccount(_account);
+        // A decision of the daily free use (plan 3.1) makes the session publish again.
+        _usage.Changed += () => _ = Dispatcher.BeginInvoke(() => _session.SetMeta(_session.Advisor.Meta));
         _mainViewModel.AttachUploader(_uploader);
         _mainViewModel.UploadSettingChanged += () =>
         {
@@ -465,6 +469,8 @@ public partial class App : Application
     /// </summary>
     private async Task LoadMetaAsync()
     {
+        // The limits on their own: a slow answer never holds the meta back.
+        _usage.RefreshLimitsAsync().Forget("Usage limits");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(_api, _http, _settings);
         if (meta is not null)
         {
@@ -844,7 +850,6 @@ public partial class App : Application
         }
     }
 
-    /// <summary>Shows a busy text in the main window, kept so a language switch can show it again in the new language.</summary>
     /// <summary>
     /// The interface language changed (on the UI thread): the overlay rebuilds its texts from the last snapshot, and the
     /// texts this host owns (the tray menu) are shown again in the new language; the busy line and update status follow
@@ -1059,7 +1064,6 @@ public partial class App : Application
             Diag.Info("Ctrl+Shift+R is taken by another app; hard refresh hotkey disabled.");
         }
     }
-
 
     /// <summary>Tray menu in the app's brown and gold palette (Surface, Surface3, Border and Accent).</summary>
     private sealed class DarkMenuRenderer : Forms.ToolStripProfessionalRenderer

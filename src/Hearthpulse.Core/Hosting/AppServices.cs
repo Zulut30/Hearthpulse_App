@@ -13,8 +13,9 @@ namespace Hearthpulse.Core.Hosting;
 
 /// <summary>
 /// The services both apps build at start the same way: the shared HTTP client and API, the start-up prefetch of the
-/// game and the cards, the history, the client memory reader, the live session with its data sources, and the site
-/// account with its profile upload. The hosts keep what is theirs: windows, tray, dispatcher and what runs when.
+/// game and the cards, the history, the client memory reader, the live session with its data sources, the site
+/// account with its profile upload, and the daily free-use gate. The hosts keep what is theirs: windows, tray,
+/// dispatcher and what runs when.
 /// </summary>
 public sealed class AppServices
 {
@@ -52,6 +53,10 @@ public sealed class AppServices
         Uploader = ProfileUploader.For(accountClient, Account, () => settings.UploadGamesToProfile, History);
         Uploader.BaseHero = id => cards().BaseHeroId(id);
         Account.Changed += Uploader.Kick;
+        // Daily free use of the stats pool's numbers (plan 3.1); the host makes the session publish again on a decision.
+        Usage = new UsageGate(accountClient, Account, UsageGate.DefaultPath);
+        Session.Advisor.Usage = Usage;
+        Session.GameFinished += _ => Usage.GameFinished();
     }
 
     public AppSettings Settings { get; }
@@ -74,6 +79,9 @@ public sealed class AppServices
     public AccountService Account { get; }
 
     public ProfileUploader Uploader { get; }
+
+    /// <summary>Daily free use of the stats pool's numbers in the overlay (plan 3.1).</summary>
+    public UsageGate Usage { get; }
 
     /// <summary>
     /// The app's one HTTP client: compressed answers, connections renewed every 10 minutes (DNS changes), a 40-second

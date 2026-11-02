@@ -10,6 +10,7 @@ Code: `src/Hearthpulse.Core/Accounts/`.
 | `AccountClient.cs` | HTTP: device code, token polling and refresh, revoke, `/me`; error envelopes |
 | `AccountService.cs` | Session for the UI: sign in (poll loop), restore at start, access tokens, sign out |
 | `Entitlements.cs` | Paid access from `/me` (`subscription`): providers, sections, `Has(section)`, `Summary` |
+| `UsageGate.cs` | Daily free limits of our own analytics: `GET usage/limits`, `POST usage/claim`, soft mode ([usage-limits.md](usage-limits.md)) |
 | `TokenStore.cs` | Refresh token, profile and last known paid access on disk (DPAPI on Windows, owner-only file elsewhere) |
 | `SystemBrowser.cs` | Opens a URL in the default browser (`UseShellExecute` / `open` / `xdg-open`) |
 
@@ -33,6 +34,8 @@ Site code (reference): `server/modules/applicationAuth/` (`routes.ts`, `model.ts
 | POST | `oauth/token` | `grant_type=refresh_token`, `refresh_token`, `client_id` | same; the refresh token is rotated |
 | POST | `oauth/revoke` | `token` (the refresh token) | `{}`; ends the whole token family |
 | GET | `me` | `Authorization: Bearer <access_token>` (needs `profile.read subscription.read`) | `{"user": {...}, "subscription": {...}}` |
+| GET | `usage/limits` | none (public) | `{"enabled", "day", "resetsAt", "features": {key: {"section", "freePerDay"}}}` (plan 3.1) |
+| POST | `usage/claim` | JSON `{"feature", "gameId"}`, Bearer (`subscription.read`) | `{"allowed", "unlimited", "used", "limit", "resetsAt"}` (plan 3.1) |
 
 Errors: the OAuth endpoints answer `400 {"error": "<code>"}` (`authorization_pending`, `slow_down`, `access_denied`,
 `expired_token`, `invalid_grant`, `invalid_request`, `unsupported_grant_type`), rate limits `429` and outages `503`

@@ -1,0 +1,4 @@
+{
+  "Usage.Limit.Left": "Hearthpulse pool stats — free games today: {0} of {1} left.",
+  "Usage.Limit.Reached": "Hearthpulse pool stats — today's free games are used up ({0} a day). No limit with a Battlegrounds subscription: Settings → Hearthpulse account → “Subscription and limits”. Resets at {1}."
+}

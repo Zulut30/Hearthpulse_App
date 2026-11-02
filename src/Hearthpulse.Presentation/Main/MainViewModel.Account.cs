@@ -20,6 +20,7 @@ public sealed partial class MainViewModel
     private RelayCommand? _openSignInPage;
     private RelayCommand? _signOut;
     private RelayCommand? _openAccountProfile;
+    private RelayCommand? _openAccountSubscription;
     private CancellationTokenSource? _signInCancel;
     private DeviceCode? _accountCode;
     private bool _accountBrowserOpened;
@@ -141,6 +142,15 @@ public sealed partial class MainViewModel
     public RelayCommand OpenAccountProfile => _openAccountProfile ??= new RelayCommand(() =>
     {
         if (_account?.OpenProfile() == false)
+        {
+            ShowAccountMessage(() => Loc.T("Main.Account.BrowserFailed"));
+        }
+    });
+
+    /// <summary>The site's plan section: the subscription that lifts the daily free limit of the pool's stats in a game (plan 3.1).</summary>
+    public RelayCommand OpenAccountSubscription => _openAccountSubscription ??= new RelayCommand(() =>
+    {
+        if (_account?.OpenSubscription() == false)
         {
             ShowAccountMessage(() => Loc.T("Main.Account.BrowserFailed"));
         }

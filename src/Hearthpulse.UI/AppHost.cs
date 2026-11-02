@@ -45,6 +45,8 @@ public sealed partial class AppHost : IDisposable
         _services = new AppServices(settings, Version, () => Cards);
         CardArt.Http = Http;
 
+        // A decision of the daily free use (plan 3.1) makes the session publish again.
+        Usage.Changed += () => Dispatcher.UIThread.Post(() => Session.SetMeta(Session.Advisor.Meta));
         Main = new MainViewModel(History, Settings);
         Main.AttachAccount(Account);
         Main.AttachUploader(Uploader);
@@ -133,6 +135,9 @@ public sealed partial class AppHost : IDisposable
 
     public HistoryStore History => _services.History;
 
+    /// <summary>Daily free use of the stats pool's numbers in the overlay (plan 3.1).</summary>
+    public UsageGate Usage => _services.Usage;
+
     public HearthstoneMemory Memory => _services.Memory;
 
     public GameSession Session => _services.Session;
@@ -147,7 +152,6 @@ public sealed partial class AppHost : IDisposable
     public ConstructedMeta? ConstructedMeta => _constructedLoader.Default;
 
     private readonly ConstructedMetaLoader _constructedLoader;
-
 
     public CardDb Cards { get; private set; } = CardDb.Empty;
 
@@ -326,6 +330,8 @@ public sealed partial class AppHost : IDisposable
     /// </summary>
     public async Task LoadMetaAsync()
     {
+        // The limits on their own: a slow answer never holds the meta back.
+        Usage.RefreshLimitsAsync().Forget("Usage limits");
         var meta = await BattlegroundsMeta.LoadCommunityAsync(Api, Http, Settings);
         if (meta is not null)
         {
@@ -362,7 +368,6 @@ public sealed partial class AppHost : IDisposable
 
     public void RefreshOverlay() => Overlay.Update(_feed.Last, Cards, Settings, _feed.Deck, _feed.Matchup);
 
-    /// <summary>Shows a busy text in the main window, kept so a language switch can show it again in the new language.</summary>
     /// <summary>
     /// The interface language changed (on the UI thread): the overlay rebuilds its texts from the last snapshot, and the
     /// busy line and update status follow by themselves (MainViewModel). The shell retitles its tray.
@@ -441,7 +446,6 @@ public sealed partial class AppHost : IDisposable
             Overlay.ShowOutcome(outcome);
         }
     }
-
 
     public void Dispose()
     {
