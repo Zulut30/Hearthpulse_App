@@ -296,7 +296,7 @@ public sealed partial class MatchViewModel : Observable
 
         _frame = Math.Clamp(_frame, 0, FrameMax);
         Loading = false;
-        Header = page.Header;
+        Header = Masked(page);
         Missing = page.Missing ?? string.Empty;
         LocalDeck = page.LocalDeck;
         LocalDeckNote = page.LocalDeckNote;

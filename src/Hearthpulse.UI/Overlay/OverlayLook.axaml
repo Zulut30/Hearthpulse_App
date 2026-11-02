@@ -1,5 +1,7 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:o="using:Hearthpulse.UI.Overlay"
+        xmlns:c="using:Hearthpulse.UI.Controls">
     <!-- Overlay-only look shared by the overlay view and its panels (WPF: Overlay/OverlayLook.xaml, same names as keys).
          Theme tokens only, no hex. Nothing here loops, blurs or casts a shadow: the overlay draws over the game. The one motion is the row flash below. -->
 
@@ -111,5 +113,52 @@
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="TextAlignment" Value="Center" />
         <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Card rows (deck, opponent, graveyard...): gem and row sizes, compact lists and the empty deck row. Here, not in the
+         overlay view, so the OBS windows (StreamView) size the deck panel's rows the same way. -->
+    <Style Selector="c|ManaCost.cost">
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="c|ManaCost.cost.short">
+        <Setter Property="Width" Value="21" />
+        <Setter Property="Height" Value="21" />
+    </Style>
+    <Style Selector="Grid.cardRow">
+        <Setter Property="Height" Value="24" />
+    </Style>
+    <Style Selector="Grid.cardRow.short">
+        <Setter Property="Height" Value="22" />
+    </Style>
+    <!-- Compact lists (the panel's tag button): short rows without art. After the full sizes, so these win. -->
+    <Style Selector="o|MovablePanel.compact Grid.cardRow">
+        <Setter Property="Height" Value="18" />
+    </Style>
+    <Style Selector="o|MovablePanel.compact Image.tileArt">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="o|MovablePanel.compact Rectangle.tileFade">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="o|MovablePanel.compact c|ManaCost.cost">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+    </Style>
+    <Style Selector="Grid.tileRow.empty Image.tileArt">
+        <Setter Property="Opacity" Value="0.22" />
+    </Style>
+    <Style Selector="Grid.tileRow.empty c|ManaCost.cost">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="Grid.tileRow.empty Border.rarityStrip">
+        <Setter Property="Opacity" Value="0.35" />
+    </Style>
+    <Style Selector="Grid.tileRow.empty Border.countBadge">
+        <Setter Property="Opacity" Value="0.55" />
+    </Style>
+    <Style Selector="Grid.tileRow.empty TextBlock.tileName">
+        <Setter Property="Foreground" Value="{StaticResource Faint}" />
     </Style>
 </Styles>

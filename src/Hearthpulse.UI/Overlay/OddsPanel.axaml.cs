@@ -1,0 +1,9 @@
+using Avalonia.Controls;
+
+namespace Hearthpulse.UI.Overlay;
+
+/// <summary>Combat odds: the overlay's "odds" panel and the OBS window "Hearthpulse — Combat odds" (bound to <see cref="OverlayViewModel"/>).</summary>
+public partial class OddsPanel : UserControl
+{
+    public OddsPanel() => InitializeComponent();
+}

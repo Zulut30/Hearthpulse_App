@@ -14,37 +14,6 @@
         <i:FractionWidth x:Key="Fraction" />
         <i:LeftMargin x:Key="LeftMargin" />
 
-        <!-- Deck row: cost gem, name over card art with a rarity strip and the copy count, then the draw chance in its own
-             column so it never runs into the name. A card with no copies left dims (art, gem and name sink back, the plate
-             stays so the row keeps its place); the row whose count just moved flashes once (OverlayLook: rowFlash). -->
-        <DataTemplate x:Key="DeckTileTemplate" x:DataType="o:DeckTile">
-            <Grid Classes="tileRow cardRow" Classes.empty="{Binding Empty}" Classes.changed="{Binding Changed}" Margin="0,0,0,2" ColumnDefinitions="26,*,Auto" Background="Transparent"
-                  c:CardPreview.CardId="{Binding CardId}">
-                <c:ManaCost Classes="cost" Text="{Binding Cost}" HorizontalAlignment="Left" />
-                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
-                    <Panel>
-                        <Image Classes="tileArt" i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
-                        <Rectangle Classes="tileFade" Fill="{StaticResource TileFade}" />
-                        <Border Classes="rarityStrip" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                        <DockPanel Margin="9,0,3,0">
-                            <Border Classes="countBadge" DockPanel.Dock="Right" IsVisible="{Binding ShowCount}">
-                                <TextBlock Text="{Binding Count}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <TextBlock DockPanel.Dock="Left" Text="&#xF0674;" Classes="icon" FontSize="10" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
-                                       VerticalAlignment="Center" IsVisible="{Binding Created}" />
-                            <TextBlock Classes="tileName" Text="{Binding Name}" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                        </DockPanel>
-                        <Border Classes="rowSheen" />
-                        <Border Classes="rowFlash" />
-                    </Panel>
-                </Border>
-                <TextBlock Grid.Column="2" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="11" Foreground="{StaticResource Muted}"
-                           VerticalAlignment="Center"
-                           IsVisible="{Binding $parent[ItemsControl].((o:OverlayViewModel)DataContext).ShowChance, FallbackValue=True}" />
-            </Grid>
-        </DataTemplate>
-
         <!-- Opponent's played card: hover shows the whole card beside the panel, as in the deck tracker (the full name too) -->
         <DataTemplate x:Key="PlayedTemplate" x:DataType="o:PlayedTile">
             <Grid Classes="cardRow short" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
@@ -401,29 +370,6 @@
             </Panel>
         </DataTemplate>
 
-        <DataTemplate x:Key="LobbyRowTemplate" x:DataType="o:LobbyRow">
-            <Grid Classes="lobbyRow" Classes.next="{Binding Next}" Classes.you="{Binding You}" Classes.dead="{Binding Dead}"
-                  Height="28" Margin="0,0,0,2" ColumnDefinitions="16,28,*,24,42">
-                <Border Name="Bg" Grid.ColumnSpan="5" CornerRadius="6" Margin="-5,0" />
-                <TextBlock Text="{Binding Place}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
-                <Border Grid.Column="1" Width="22" Height="22" CornerRadius="11" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding HeroCardId}" />
-                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,6,0">
-                    <TextBlock Name="HeroName" Text="{Binding Name}" FontSize="11.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
-                    <Border Height="2" CornerRadius="1" Background="{StaticResource Surface3}" Margin="0,3,0,0">
-                        <Border HorizontalAlignment="Left" CornerRadius="1" Background="{StaticResource Positive}"
-                                Width="{Binding HealthFraction, Converter={StaticResource Fraction}, ConverterParameter=96}" />
-                    </Border>
-                </StackPanel>
-                <Border Grid.Column="3" Width="19" Height="18" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Overlay.Common.TavernTier}">
-                    <TextBlock Text="{Binding Tier}" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-                <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Right">
-                    <TextBlock Text="{Binding Health}" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
-                    <TextBlock Text="{Binding Last}" FontSize="9.5" HorizontalAlignment="Right" Foreground="{Binding LastKey, Converter={StaticResource KeyBrush}}" />
-                </StackPanel>
-            </Grid>
-        </DataTemplate>
-
         <ItemsPanelTemplate x:Key="HRow">
             <StackPanel Orientation="Horizontal" />
         </ItemsPanelTemplate>
@@ -464,50 +410,6 @@
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
             <Setter Property="Margin" Value="0,0,0,6" />
-        </Style>
-        <Style Selector="c|ManaCost.cost">
-            <Setter Property="Width" Value="22" />
-            <Setter Property="Height" Value="22" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style Selector="c|ManaCost.cost.short">
-            <Setter Property="Width" Value="21" />
-            <Setter Property="Height" Value="21" />
-        </Style>
-        <Style Selector="Grid.cardRow">
-            <Setter Property="Height" Value="24" />
-        </Style>
-        <Style Selector="Grid.cardRow.short">
-            <Setter Property="Height" Value="22" />
-        </Style>
-        <!-- Compact lists (the panel's tag button): short rows without art. After the full sizes, so these win. -->
-        <Style Selector="o|MovablePanel.compact Grid.cardRow">
-            <Setter Property="Height" Value="18" />
-        </Style>
-        <Style Selector="o|MovablePanel.compact Image.tileArt">
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
-        <Style Selector="o|MovablePanel.compact Rectangle.tileFade">
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
-        <Style Selector="o|MovablePanel.compact c|ManaCost.cost">
-            <Setter Property="Width" Value="18" />
-            <Setter Property="Height" Value="18" />
-        </Style>
-        <Style Selector="Grid.tileRow.empty Image.tileArt">
-            <Setter Property="Opacity" Value="0.22" />
-        </Style>
-        <Style Selector="Grid.tileRow.empty c|ManaCost.cost">
-            <Setter Property="Opacity" Value="0.45" />
-        </Style>
-        <Style Selector="Grid.tileRow.empty Border.rarityStrip">
-            <Setter Property="Opacity" Value="0.35" />
-        </Style>
-        <Style Selector="Grid.tileRow.empty Border.countBadge">
-            <Setter Property="Opacity" Value="0.55" />
-        </Style>
-        <Style Selector="Grid.tileRow.empty TextBlock.tileName">
-            <Setter Property="Foreground" Value="{StaticResource Faint}" />
         </Style>
         <Style Selector="TextBlock.handDetail">
             <Setter Property="Foreground" Value="{StaticResource Muted}" />
@@ -610,19 +512,6 @@
         </Style>
         <Style Selector="Grid.marking Border.shopBadge.best TextBlock#Buy">
             <Setter Property="IsVisible" Value="True" />
-        </Style>
-
-        <!-- Lobby rows -->
-        <Style Selector="Grid.lobbyRow.next Border#Bg">
-            <Setter Property="Background" Value="{StaticResource AccentSoft}" />
-            <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
-            <Setter Property="BorderThickness" Value="1" />
-        </Style>
-        <Style Selector="Grid.lobbyRow.you TextBlock#HeroName">
-            <Setter Property="Foreground" Value="{StaticResource Accent}" />
-        </Style>
-        <Style Selector="Grid.lobbyRow.dead">
-            <Setter Property="Opacity" Value="0.35" />
         </Style>
 
         <!-- Session place chips -->
@@ -928,25 +817,7 @@
 
                 <!-- ============ Constructed: your deck (right) ============ -->
                 <o:MovablePanel Id="deck" Title="{i:Loc Overlay.Panel.Deck}" CanCompact="True" Shown="{Binding ShowConstructed}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,76,12,0">
-                    <Border Classes="overlayCard" Width="252">
-                        <StackPanel>
-                            <Border Classes="overlayHeader" Margin="0,0,0,6">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding DeckName}" Classes="headerTitle" />
-                                    <TextBlock Text="{Binding DeckRecord}" Classes="headerNote"
-                                               Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.Caption="{Binding DeckRecordTip}" />
-                                </StackPanel>
-                            </Border>
-                            <ItemsControl ItemsSource="{Binding Deck}" ItemTemplate="{StaticResource DeckTileTemplate}" Margin="8,0,8,4" o:OverlayHit.Interactive="True" />
-                            <Border BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="12,7,12,9">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding DeckCounts}" FontSize="11" Foreground="{StaticResource Muted}" />
-                                    <TextBlock Text="{Binding NextDraw}" FontSize="11" TextTrimming="CharacterEllipsis"
-                                               IsVisible="{Binding NextDraw, Converter={StaticResource Truthy}}" />
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Border>
+                    <o:DeckPanel />
                 </o:MovablePanel>
 
                 <!-- ============ Constructed: opponent (left) ============ -->
@@ -1249,51 +1120,7 @@
 
                 <!-- ============ Battlegrounds: simulated combat odds (top centre, during combat) ============ -->
                 <o:MovablePanel Id="odds" Title="{i:Loc Overlay.Panel.Odds}" Shown="{Binding ShowOdds}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
-                    <Border x:Name="OddsCard" Classes="overlayCard" Classes.lethal="{Binding LethalDanger}" Background="{StaticResource OverlayPanelSolid}" Padding="14,7,14,8" Width="250">
-                        <Border.Styles>
-                            <!-- Red edge while the fight can kill the player -->
-                            <Style Selector="Border.lethal">
-                                <Setter Property="BorderBrush" Value="{StaticResource Negative}" />
-                            </Style>
-                        </Border.Styles>
-                        <StackPanel>
-                            <UniformGrid Columns="3">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding OddsWin}" Classes="number" FontSize="17" Foreground="{StaticResource Positive}" HorizontalAlignment="Center" />
-                                    <TextBlock Text="{i:Loc Overlay.Odds.Win}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                                    <TextBlock Text="{Binding OddsDamageWin}" ToolTip.Tip="{Binding OddsDamageWinTip}" Classes="number" FontSize="11" Foreground="{StaticResource Positive}"
-                                               HorizontalAlignment="Center" IsVisible="{Binding OddsDamageWin, Converter={StaticResource Truthy}}" />
-                                </StackPanel>
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding OddsTie}" Classes="number" FontSize="17" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                                    <TextBlock Text="{i:Loc Overlay.Odds.Tie}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                                </StackPanel>
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding OddsLoss}" Classes="number" FontSize="17" Foreground="{StaticResource Negative}" HorizontalAlignment="Center" />
-                                    <TextBlock Text="{i:Loc Overlay.Odds.Loss}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
-                                    <TextBlock Text="{Binding OddsDamageLoss}" ToolTip.Tip="{Binding OddsDamageLossTip}" Classes="number" FontSize="11" Foreground="{StaticResource Negative}"
-                                               HorizontalAlignment="Center" IsVisible="{Binding OddsDamageLoss, Converter={StaticResource Truthy}}" />
-                                </StackPanel>
-                            </UniformGrid>
-                            <Border Height="4" CornerRadius="1" ClipToBounds="True" Margin="0,6,0,5" Background="{StaticResource Surface3}">
-                                <StackPanel Orientation="Horizontal">
-                                    <Border Background="{StaticResource Positive}" Width="{Binding WinShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                                    <Border Background="{StaticResource Faint}" Width="{Binding TieShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                                    <Border Background="{StaticResource Negative}" Width="{Binding LossShare, Converter={StaticResource Fraction}, ConverterParameter=220}" />
-                                </StackPanel>
-                            </Border>
-                            <!-- Lethal: the share of fights that kill either hero -->
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
-                                <StackPanel Orientation="Horizontal" Margin="5,0" ToolTip.Tip="{i:Loc Overlay.Odds.LethalTip}" IsVisible="{Binding OddsLethal, Converter={StaticResource Truthy}}">
-                                    <TextBlock Text="&#xF068C;" Classes="icon" FontSize="12" Foreground="{StaticResource Negative}" Margin="0,0,4,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding OddsLethal}" FontSize="11.5" FontWeight="SemiBold" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
-                                </StackPanel>
-                                <TextBlock Text="{Binding OddsKill}" ToolTip.Tip="{i:Loc Overlay.Odds.KillTip}" FontSize="11" Foreground="{StaticResource Positive}" Margin="5,0" VerticalAlignment="Center"
-                                           IsVisible="{Binding OddsKill, Converter={StaticResource Truthy}}" />
-                            </StackPanel>
-                            <TextBlock Text="{Binding OddsNote}" FontSize="10" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
-                        </StackPanel>
-                    </Border>
+                    <o:OddsPanel />
                 </o:MovablePanel>
 
                 <!-- ============ Battlegrounds: Discover pick hints (Dark Gift, triple reward…) ============ -->
@@ -1393,19 +1220,7 @@
 
                 <!-- ============ Battlegrounds: lobby list (bottom-right) ============ -->
                 <o:MovablePanel Id="lobby" Title="{i:Loc Overlay.Lobby.Title}" Shown="{Binding ShowLobby}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,14">
-                    <Border Classes="overlayCard" Width="230">
-                        <StackPanel>
-                            <!-- The header every list panel has: glyph, title, and the columns' legend on the right -->
-                            <Border Classes="overlayHeader">
-                                <DockPanel>
-                                    <TextBlock Text="&#xF126F;" Classes="icon headerIcon" />
-                                    <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.Lobby.Header}" Classes="headerNote" Margin="8,0,0,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="{i:Loc Overlay.Lobby.Title}" Classes="headerTitle" />
-                                </DockPanel>
-                            </Border>
-                            <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" Margin="12,6,12,8" />
-                        </StackPanel>
-                    </Border>
+                    <o:LobbyPanel />
                 </o:MovablePanel>
 
                 <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->

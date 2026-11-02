@@ -40,7 +40,7 @@ public sealed class AppSettings
     /// <summary>Interface language: "en", "ru", or "auto" for the operating system's language (English when it is neither).</summary>
     public string Language { get; set; } = Localization.Loc.Auto;
 
-    /// <summary>The Settings page tab shown last ("General", "Overlay", "Tracker", "Account", "Data", "About").</summary>
+    /// <summary>The Settings page tab shown last ("General", "Overlay", "Tracker", "Stream", "Account", "Data", "About").</summary>
     public string SettingsTab { get; set; } = "General";
 
     /// <summary>
@@ -273,6 +273,44 @@ public sealed class AppSettings
     /// <summary>Show simulated win / tie / loss odds while a Battlegrounds combat plays out.</summary>
     public bool ShowCombatOdds { get; set; } = true;
 
+    /// <summary>
+    /// Streamer mode (docs/streaming.md): the overlay, the OBS windows and the match page header show no opponent's
+    /// name, BattleTag or rating and not the player's own BattleTag. It only hides; everything is still read and saved.
+    /// </summary>
+    public bool StreamerMode { get; set; }
+
+    /// <summary>The OBS capture window "Hearthpulse — Deck" (the deck panel, every mode but Battlegrounds) is open.</summary>
+    public bool StreamDeckWindow { get; set; }
+
+    /// <summary>The OBS capture window "Hearthpulse — Lobby" (the Battlegrounds lobby list) is open.</summary>
+    public bool StreamLobbyWindow { get; set; }
+
+    /// <summary>The OBS capture window "Hearthpulse — Combat odds" (Battlegrounds fights) is open.</summary>
+    public bool StreamOddsWindow { get; set; }
+
+    /// <summary>The OBS windows' background: "Theme" (the theme's), "Green" or "Magenta" (pure key colours for OBS).</summary>
+    public string StreamWindowBackground { get; set; } = StreamBackgrounds.Theme;
+
+    /// <summary>The OBS windows stay above other windows, the game included.</summary>
+    public bool StreamWindowsOnTop { get; set; }
+
+    /// <summary>Where each OBS window was left, by its id ("deck", "lobby", "odds"); missing = its default spot and size.</summary>
+    public Dictionary<string, StreamWindowPlacement> StreamWindows { get; set; } = new(StringComparer.Ordinal);
+
+    // Radio buttons of the background choice (WPF binds them; setting false is ignored, as for the choices above).
+
+    /// <summary>OBS window background: the theme's.</summary>
+    [JsonIgnore]
+    public bool StreamBackgroundTheme { get => StreamWindowBackground == StreamBackgrounds.Theme; set => SetIf(value, () => StreamWindowBackground = StreamBackgrounds.Theme); }
+
+    /// <summary>OBS window background: pure green.</summary>
+    [JsonIgnore]
+    public bool StreamBackgroundGreen { get => StreamWindowBackground == StreamBackgrounds.Green; set => SetIf(value, () => StreamWindowBackground = StreamBackgrounds.Green); }
+
+    /// <summary>OBS window background: pure magenta.</summary>
+    [JsonIgnore]
+    public bool StreamBackgroundMagenta { get => StreamWindowBackground == StreamBackgrounds.Magenta; set => SetIf(value, () => StreamWindowBackground = StreamBackgrounds.Magenta); }
+
     /// <summary>User-placed overlay panels by id; panels without an entry use their default spot.</summary>
     public Dictionary<string, PanelPlacement> Panels { get; set; } = new(StringComparer.Ordinal);
 
@@ -497,6 +535,24 @@ public sealed class AppSettings
             look.Opacity = Bounded(look.Opacity, PanelLook.MinOpacity, 1, 1);
         }
 
+        if (!StreamBackgrounds.All.Contains(StreamWindowBackground, StringComparer.Ordinal)) StreamWindowBackground = StreamBackgrounds.Theme;
+        StreamWindows ??= new(StringComparer.Ordinal);
+        foreach (var (key, window) in StreamWindows.ToArray())
+        {
+            if (window is null || !double.IsFinite(window.X) || !double.IsFinite(window.Y) || !double.IsFinite(window.Width) || !double.IsFinite(window.Height)
+                || window.Width <= 0 || window.Height <= 0)
+            {
+                StreamWindows.Remove(key);
+                continue;
+            }
+
+            // Far outside any desktop is no place either: the window then opens at its default spot (StreamWindowLayout).
+            window.X = Math.Clamp(window.X, -StreamWindowPlacement.MaxCoordinate, StreamWindowPlacement.MaxCoordinate);
+            window.Y = Math.Clamp(window.Y, -StreamWindowPlacement.MaxCoordinate, StreamWindowPlacement.MaxCoordinate);
+            window.Width = Math.Min(window.Width, StreamWindowPlacement.MaxSize);
+            window.Height = Math.Min(window.Height, StreamWindowPlacement.MaxSize);
+        }
+
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
         if (!Enum.IsDefined(CompMode)) CompMode = CompMode.Manual;
         OverlayScale = Bounded(OverlayScale, 0.6, 1.6, 1);
@@ -620,6 +676,36 @@ public sealed class MigrationRecord
     public int Decks { get; set; }
 
     public int Replays { get; set; }
+}
+
+/// <summary>The choices of <see cref="AppSettings.StreamWindowBackground"/>.</summary>
+public static class StreamBackgrounds
+{
+    public const string Theme = "Theme";
+
+    public const string Green = "Green";
+
+    public const string Magenta = "Magenta";
+
+    public static readonly IReadOnlyList<string> All = [Theme, Green, Magenta];
+}
+
+/// <summary>An OBS capture window's bounds in device-independent pixels (pixels at 100 %), top-left corner first.</summary>
+public sealed class StreamWindowPlacement
+{
+    /// <summary>Saved coordinates beyond this are clamped (no desktop reaches that far).</summary>
+    public const double MaxCoordinate = 100_000;
+
+    /// <summary>Saved sizes beyond this are clamped; there is no other maximum.</summary>
+    public const double MaxSize = 20_000;
+
+    public double X { get; set; }
+
+    public double Y { get; set; }
+
+    public double Width { get; set; }
+
+    public double Height { get; set; }
 }
 
 /// <summary>Top-left corner as fractions of the overlay surface, plus a per-panel size multiplier.</summary>

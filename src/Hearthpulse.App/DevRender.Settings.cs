@@ -6,7 +6,7 @@ namespace Hearthpulse.App;
 /// <summary>Render-check scenes of the Settings tabs (<c>main-settings-general.png</c>...), in the interface language of the data copy.</summary>
 public partial class App
 {
-    private static readonly string[] SettingsTabs = ["General", "Overlay", "Tracker", "Account", "Data", "About"];
+    private static readonly string[] SettingsTabs = ["General", "Overlay", "Tracker", "Stream", "Account", "Data", "About"];
 
     private async Task RenderSettingsTabsAsync(string folder)
     {

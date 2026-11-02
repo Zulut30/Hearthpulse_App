@@ -277,7 +277,9 @@ public sealed partial class OverlayViewModel : Observable
     {
         _cards = cards;
         _locale = cards.Locale;
-        var enabled = settings.OverlayEnabled && snapshot.InGame;
+        UpdateStreamer(snapshot, settings);
+        // The OBS windows show these panels with the overlay off too: the game is read while either is on.
+        var enabled = snapshot.InGame && (settings.OverlayEnabled || StreamWindowSpec.AnyOn(settings));
 
         var constructed = enabled ? snapshot.Constructed : null;
         ShowConstructed = constructed is not null && settings.ShowDeckTracker && constructed.DeckKnown;
@@ -377,8 +379,7 @@ public sealed partial class OverlayViewModel : Observable
         });
 
         OpponentHeroId = view.OpponentHeroCardId;
-        OpponentTitle = string.IsNullOrEmpty(view.OpponentName) ? ClassName(view.OpponentClass) : view.OpponentName!;
-        OpponentSubtitle = string.Join(" · ", new[] { ClassName(view.OpponentClass), view.OpponentRank?.Display }.Where(s => !string.IsNullOrEmpty(s)));
+        (OpponentTitle, OpponentSubtitle) = OpponentHeader(view);
         OpponentHand = view.OpponentHandCount;
         OpponentDeck = view.OpponentDeckCount;
         OpponentSecrets = view.OpponentSecrets;

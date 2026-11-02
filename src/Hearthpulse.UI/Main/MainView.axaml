@@ -198,6 +198,10 @@
         <Style Selector="ToggleButton.panelToggle:checked">
             <Setter Property="Foreground" Value="{StaticResource Accent}" />
         </Style>
+        <!-- Streamer mode on: a filled circle all the time, not only under the pointer -->
+        <Style Selector="ToggleButton.panelToggle.streamer:checked">
+            <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+        </Style>
         <Style Selector="ToggleButton.panelToggle:pointerover /template/ Border#Bd">
             <Setter Property="Background" Value="{StaticResource Hover}" />
         </Style>
@@ -713,7 +717,7 @@
                     <mt:MatchView Name="MatchDetails" DataContext="{Binding MatchPage}" />
                 </ScrollViewer>
 
-                <!-- ===== Settings: tabs General / Overlay / Tracker / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
+                <!-- ===== Settings: tabs General / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                 <ScrollViewer Name="PageSettings" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel MaxWidth="780" HorizontalAlignment="Left">
                         <TextBlock Text="{i:Loc Settings.Title}" Classes="display pageTitle" />
@@ -724,6 +728,7 @@
                                 <RadioButton Name="SettingsTabGeneral" Classes="segment" Content="{i:Loc Settings.Tab.General}" GroupName="SettingsTab" Tag="General" IsChecked="True" />
                                 <RadioButton Name="SettingsTabOverlay" Classes="segment" Content="{i:Loc Settings.Tab.Overlay}" GroupName="SettingsTab" Tag="Overlay" />
                                 <RadioButton Name="SettingsTabTracker" Classes="segment" Content="{i:Loc Settings.Tab.Tracker}" GroupName="SettingsTab" Tag="Tracker" />
+                                <RadioButton Name="SettingsTabStream" Classes="segment" Content="{i:Loc Stream.Tab}" GroupName="SettingsTab" Tag="Stream" />
                                 <RadioButton Name="SettingsTabAccount" Classes="segment" Content="{i:Loc Settings.Tab.Account}" GroupName="SettingsTab" Tag="Account" />
                                 <RadioButton Name="SettingsTabData" Classes="segment" Content="{i:Loc Settings.Tab.Data}" GroupName="SettingsTab" Tag="Data" />
                                 <RadioButton Name="SettingsTabAbout" Classes="segment" Content="{i:Loc Settings.Tab.About}" GroupName="SettingsTab" Tag="About" />
@@ -1065,6 +1070,94 @@
                             </Border>
                         </StackPanel>
 
+                        <!-- ===== Stream: streamer mode and the OBS windows (docs/streaming.md); bound to the main model, which tells the host ===== -->
+                        <StackPanel Name="SettingsStream" IsVisible="False">
+                            <Border Classes="card" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Stream.Mode.Title}" Icon="&#xF05E9;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Stream.Mode.Note}" Classes="caption cardNote" />
+                                    <CheckBox Name="StreamerModeSetting" Classes="switch" Content="{i:Loc Stream.Mode.Switch}" IsChecked="{Binding StreamerMode}" Margin="0,0,0,12"
+                                              ToolTip.Tip="{i:Loc Stream.Mode.SwitchTip}" />
+                                    <!-- What it hides: a description, not a state, so the same with the mode off -->
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,6">
+                                        <TextBlock Text="&#xF0209;" Classes="icon" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Stream.Mode.HideNames}" Classes="caption" TextWrapping="Wrap" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,6">
+                                        <TextBlock Text="&#xF0209;" Classes="icon" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Stream.Mode.HideRatings}" Classes="caption" TextWrapping="Wrap" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,6">
+                                        <TextBlock Text="&#xF0209;" Classes="icon" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                                        <TextBlock Grid.Column="1" Text="{i:Loc Stream.Mode.HideOwn}" Classes="caption" TextWrapping="Wrap" />
+                                    </Grid>
+                                    <TextBlock Text="{i:Loc Stream.Mode.Keeps}" Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="card">
+                                <StackPanel>
+                                    <c:Ornament Text="{i:Loc Stream.Windows.Title}" Icon="&#xF0379;" Size="13" Margin="0,0,0,14" />
+                                    <TextBlock Text="{i:Loc Stream.Windows.Note}" Classes="caption cardNote" />
+                                    <TextBlock Text="{i:Loc Stream.Windows.Group}" Classes="label settingGroup" />
+                                    <CheckBox Name="StreamDeckSetting" Classes="switch" Content="{i:Loc Stream.Window.Deck}" IsChecked="{Binding StreamDeckWindow}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Stream.Window.DeckTip}" />
+                                    <CheckBox Name="StreamLobbySetting" Classes="switch" Content="{i:Loc Stream.Window.Lobby}" IsChecked="{Binding StreamLobbyWindow}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Stream.Window.LobbyTip}" />
+                                    <CheckBox Name="StreamOddsSetting" Classes="switch" Content="{i:Loc Stream.Window.Odds}" IsChecked="{Binding StreamOddsWindow}" Margin="0,0,0,14"
+                                              ToolTip.Tip="{i:Loc Stream.Window.OddsTip}" />
+                                    <TextBlock Text="{i:Loc Stream.Look.Group}" Classes="label settingGroup" />
+                                    <!-- Each radio's Tag is applied in MainView.axaml.cs (ApplyStreamChoice) -->
+                                    <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,14">
+                                        <TextBlock Text="{i:Loc Stream.Background}" Classes="settingLabel" />
+                                        <Border Classes="segmentBar choice">
+                                            <WrapPanel>
+                                                <RadioButton Name="StreamBackgroundThemeOption" Classes="segment" Content="{i:Loc Stream.Background.Theme}" GroupName="StreamBackground"
+                                                             IsChecked="{Binding StreamBackgroundTheme, Mode=OneWay}" Tag="StreamBackground.Theme"
+                                                             ToolTip.Tip="{i:Loc Stream.Background.ThemeTip}" />
+                                                <RadioButton Name="StreamBackgroundGreenOption" Classes="segment" Content="{i:Loc Stream.Background.Green}" GroupName="StreamBackground"
+                                                             IsChecked="{Binding StreamBackgroundGreen, Mode=OneWay}" Tag="StreamBackground.Green"
+                                                             ToolTip.Tip="{i:Loc Stream.Background.GreenTip}" />
+                                                <RadioButton Name="StreamBackgroundMagentaOption" Classes="segment" Content="{i:Loc Stream.Background.Magenta}" GroupName="StreamBackground"
+                                                             IsChecked="{Binding StreamBackgroundMagenta, Mode=OneWay}" Tag="StreamBackground.Magenta"
+                                                             ToolTip.Tip="{i:Loc Stream.Background.MagentaTip}" />
+                                            </WrapPanel>
+                                        </Border>
+                                    </Grid>
+                                    <CheckBox Name="StreamOnTopSetting" Classes="switch" Content="{i:Loc Stream.OnTop}" IsChecked="{Binding StreamWindowsOnTop}" Margin="0,0,0,18"
+                                              ToolTip.Tip="{i:Loc Stream.OnTopTip}" />
+                                    <!-- How to add a window to OBS: the names of OBS's own menus, as in OBS 30 -->
+                                    <Border Background="{StaticResource SecondaryContainer}" CornerRadius="8" Padding="14,12">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xF02FD;" Classes="icon" FontSize="16" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="{i:Loc Stream.Help.Title}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource Text}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <Grid ColumnDefinitions="18,*" Margin="0,6,0,0">
+                                                <TextBlock Text="1." Foreground="{StaticResource OnSecondaryContainer}" />
+                                                <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step1}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                                            </Grid>
+                                            <Grid ColumnDefinitions="18,*" Margin="0,6,0,0">
+                                                <TextBlock Text="2." Foreground="{StaticResource OnSecondaryContainer}" />
+                                                <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step2}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                                            </Grid>
+                                            <Grid ColumnDefinitions="18,*" Margin="0,6,0,0">
+                                                <TextBlock Text="3." Foreground="{StaticResource OnSecondaryContainer}" />
+                                                <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step3}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                                            </Grid>
+                                            <Grid ColumnDefinitions="18,*" Margin="0,6,0,0">
+                                                <TextBlock Text="4." Foreground="{StaticResource OnSecondaryContainer}" />
+                                                <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step4}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                                            </Grid>
+                                            <TextBlock Name="StreamKeyLine" Text="{Binding StreamKeyNote}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                                       IsVisible="{Binding StreamKeyNote, Converter={StaticResource Truthy}}" />
+                                            <TextBlock Text="{i:Loc Stream.Help.Minimize}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <!-- ===== Account: the hearthpulse.net sign-in ===== -->
                         <Border Name="SettingsAccount" Classes="card" IsVisible="False">
                             <StackPanel>
@@ -1251,6 +1344,11 @@
                                 </Button.Flyout>
                             </Button>
                             <Border Classes="wide" Width="1" Height="18" Background="{StaticResource Outline}" Margin="6,0" VerticalAlignment="Center" />
+                            <!-- Streamer mode: its own button, always shown (compact hides the panels' quick buttons); on, the glyph sits on a
+                                 filled circle so the state reads at a glance. Only here, the tray and Settings: never on the overlay or in the OBS windows. -->
+                            <ToggleButton Name="StreamerModeButton" Classes="panelToggle streamer" Content="&#xF05E9;" IsChecked="{Binding StreamerMode}"
+                                          ToolTip.Tip="{Binding StreamerModeTip}" AutomationProperties.Name="{i:Loc Stream.Mode.Switch}"
+                                          AutomationProperties.HelpText="{Binding StreamerModeTip}" />
                             <!-- On Windows the tips name the global shortcuts (MainView.axaml.cs, UseShortcutTips) -->
                             <Button Name="ArrangeButton" Classes="icon wide" Content="&#xF01BE;" Width="30" Height="30" FontSize="16" Margin="1,0,14,0"
                                     Click="OnArrangeOverlay" ToolTip.Tip="{i:Loc Main.Live.ArrangeTipShort}" AutomationProperties.Name="{i:Loc Main.Live.ArrangeTipShort}" />

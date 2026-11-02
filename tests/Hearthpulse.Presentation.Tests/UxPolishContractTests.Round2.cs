@@ -229,7 +229,8 @@ public sealed partial class UxPolishContractTests
         var row = new ContentPresenter
         {
             Content = new DeckTile("CS2_029", "Fireball", 4, "2", true, false, "COMMON", string.Empty, false),
-            ContentTemplate = (DataTemplate)window.FindResource("DeckTileTemplate"),
+            // The deck panel's own template (the panel is a control of its own, shared with the OBS window).
+            ContentTemplate = (DataTemplate)new Hearthpulse.App.Overlay.DeckPanel().FindResource("DeckTileTemplate"),
         };
         var root = (Panel)window.Content;
         root.Children.Add(row);

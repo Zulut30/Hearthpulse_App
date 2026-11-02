@@ -8,7 +8,7 @@ namespace Hearthpulse.Desktop;
 /// <summary>Render-check scenes of the Settings tabs (<c>main-settings-general.png</c>...), in the interface language of the data copy.</summary>
 internal static partial class OffscreenRenderer
 {
-    private static readonly string[] SettingsTabs = ["General", "Overlay", "Tracker", "Account", "Data", "About"];
+    private static readonly string[] SettingsTabs = ["General", "Overlay", "Tracker", "Stream", "Account", "Data", "About"];
 
     private static async Task RenderSettingsTabsAsync(Window main, MainView view, string folder)
     {

@@ -18,7 +18,8 @@ public partial class App
             };
             _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
             await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-odds.png"), 1920, 1080, 0);
-            if (_overlay.FindName("OddsCard") is FrameworkElement card)
+            // The card lives in the panel control (shared with the OBS window): its own name scope.
+            if (FindLogical<Overlay.OddsPanel>(_overlay)?.FindName("OddsCard") is FrameworkElement card)
             {
                 SaveScaled(card, Path.Combine(folder, "overlay-odds-panel.png"));
             }
@@ -27,5 +28,24 @@ public partial class App
         {
             Diag.Error("Render of the combat odds failed", ex);
         }
+    }
+
+    /// <summary>The first <typeparamref name="T"/> in the logical tree under <paramref name="root"/>.</summary>
+    private static T? FindLogical<T>(DependencyObject root) where T : DependencyObject
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is T found)
+            {
+                return found;
+            }
+
+            if (FindLogical<T>(child) is { } nested)
+            {
+                return nested;
+            }
+        }
+
+        return null;
     }
 }

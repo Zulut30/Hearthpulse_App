@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Overlay.LobbyPanel"
+             x:DataType="o:OverlayViewModel">
+    <!-- The Battlegrounds lobby list (MovablePanel "lobby" and the OBS window "Hearthpulse — Lobby", docs/streaming.md): every
+         player by place with hero, health, tavern tier and last fight. DataContext: OverlayViewModel (inherited). Tokens only. -->
+    <UserControl.Resources>
+        <i:KeyBrush x:Key="KeyBrush" />
+        <i:FractionWidth x:Key="Fraction" />
+
+        <DataTemplate x:Key="LobbyRowTemplate" x:DataType="o:LobbyRow">
+            <Grid Classes="lobbyRow" Classes.next="{Binding Next}" Classes.you="{Binding You}" Classes.dead="{Binding Dead}"
+                  Height="28" Margin="0,0,0,2" ColumnDefinitions="16,28,*,24,42">
+                <Border Name="Bg" Grid.ColumnSpan="5" CornerRadius="6" Margin="-5,0" />
+                <TextBlock Text="{Binding Place}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                <Border Grid.Column="1" Width="22" Height="22" CornerRadius="11" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding HeroCardId}" />
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,6,0">
+                    <TextBlock Name="HeroName" Text="{Binding Name}" FontSize="11.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                    <Border Height="2" CornerRadius="1" Background="{StaticResource Surface3}" Margin="0,3,0,0">
+                        <Border HorizontalAlignment="Left" CornerRadius="1" Background="{StaticResource Positive}"
+                                Width="{Binding HealthFraction, Converter={StaticResource Fraction}, ConverterParameter=96}" />
+                    </Border>
+                </StackPanel>
+                <Border Grid.Column="3" Width="19" Height="18" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Overlay.Common.TavernTier}">
+                    <TextBlock Text="{Binding Tier}" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <TextBlock Text="{Binding Health}" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                    <TextBlock Text="{Binding Last}" FontSize="9.5" HorizontalAlignment="Right" Foreground="{Binding LastKey, Converter={StaticResource KeyBrush}}" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!-- Lobby rows -->
+        <Style Selector="Grid.lobbyRow.next Border#Bg">
+            <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Grid.lobbyRow.you TextBlock#HeroName">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+        </Style>
+        <Style Selector="Grid.lobbyRow.dead">
+            <Setter Property="Opacity" Value="0.35" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="overlayCard" Width="230">
+        <StackPanel>
+            <!-- The header every list panel has: glyph, title, and the columns' legend on the right -->
+            <Border Classes="overlayHeader">
+                <DockPanel>
+                    <TextBlock Text="&#xF126F;" Classes="icon headerIcon" />
+                    <TextBlock DockPanel.Dock="Right" Text="{i:Loc Overlay.Lobby.Header}" Classes="headerNote" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{i:Loc Overlay.Lobby.Title}" Classes="headerTitle" />
+                </DockPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding LobbyRows}" ItemTemplate="{StaticResource LobbyRowTemplate}" Margin="12,6,12,8" />
+        </StackPanel>
+    </Border>
+</UserControl>
