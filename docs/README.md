@@ -33,13 +33,14 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [bg-opponent-mmr.md](bg-opponent-mmr.md) | Battlegrounds opponents' MMR from Blizzard's public leaderboard, its conditions |
 | [accounts-api.md](accounts-api.md) | Sign-in with a hearthpulse.net account (OAuth device flow) |
 | [profile-upload.md](profile-upload.md) | Finished games sent to the hearthpulse.net profile |
+| [usage-limits.md](usage-limits.md) | Daily free limits of our own analytics (stats pool in the BG overlay), soft mode |
 | [local-data.md](local-data.md) | Broken or busy settings, history and API cache files; known limits |
 
 ## Project records
 
 | Doc | What it covers |
 |---|---|
-| [adr/](adr/) | Architecture decisions later tasks do not re-open: shared presentation, two UIs, analyzers, the HPR replay format, hidden information, read-only client, `Loc.Instance`, file size |
+| [adr/](adr/) | Architecture decisions later tasks do not re-open: shared presentation, two UIs, analyzers, the HPR replay format, hidden information, read-only client, `Loc.Instance`, file size, only our own analytics paid |
 | [GLOSSARY.md](GLOSSARY.md) | The project's terms: snapshot, panel, card pool vs stats pool, replay, match page, data folder… (Hearthstone terms: skill `hearthstone-context`) |
 | [upstream-sync.md](upstream-sync.md) | What was ported from HeartLens upstream and how to repeat the sync |
 | [perf-architecture-audit.md](perf-architecture-audit.md) | Performance and architecture audit, stage by stage (in Russian); measured with `tools/Hearthpulse.Bench` |

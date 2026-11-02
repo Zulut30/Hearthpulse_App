@@ -65,7 +65,7 @@ public sealed class MainWindowXamlLoadTests
         root.Measure(new Size(1260, 840));
         root.Arrange(new Rect(0, 0, 1260, 840));
         var frame = new DispatcherFrame();
-        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
         root.UpdateLayout();
 

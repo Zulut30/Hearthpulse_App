@@ -23,7 +23,7 @@ namespace Hearthpulse.Bench;
 /// <summary>
 /// Memory over a run of games in one process, the way the app lives through an evening (plan 0.2): the kept logs are
 /// replayed through one <see cref="GameSession"/> whose snapshots go to the <see cref="MainViewModel"/> and to the shown
-/// WPF <see cref="OverlayWindow"/> at 3840x2160 (the owner's screen), as App.ApplySnapshot does. After the overlay is
+/// WPF <see cref="OverlayWindow"/> at 3840x2160 (the owner's screen), as the app shows a snapshot (LiveFeed). After the overlay is
 /// shown and after every finished game: working set and private bytes as they are, then after a full collection with
 /// finalizers (what is still held). Growth that levels off is caches warming up; growth with every game is a leak.
 /// Off-screen Windows never composes the window: HP_BENCH_ONSCREEN=1 for its real cost (stage 11 of the perf audit).

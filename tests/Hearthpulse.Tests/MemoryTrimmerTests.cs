@@ -223,8 +223,9 @@ public sealed class MemoryTrimmerTests : IDisposable
         bool? lockFree = null;
         _session.Trimmer = new MemoryTrimmer(() =>
         {
-            var other = Task.Run(() => _session.SetCompMode(CompMode.Manual, null));
-            lockFree = other.Wait(TimeSpan.FromSeconds(5));
+            // A thread of its own, not a pool thread a busy run may start late; the bound only ends a deadlock.
+            var other = Task.Factory.StartNew(() => _session.SetCompMode(CompMode.Manual, null), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            lockFree = other.Wait(TimeSpan.FromSeconds(30));
         });
         _session.RequestMemoryTrimWhenWindowAway(windowLetGo: true);
         TickAt(MemoryTrimmer.MinInterval);

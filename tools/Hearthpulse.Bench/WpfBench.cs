@@ -826,7 +826,7 @@ internal static class WpfBench
     internal static void Pump(DispatcherPriority until = DispatcherPriority.ApplicationIdle)
     {
         var frame = new DispatcherFrame();
-        Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() => frame.Continue = false), until);
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() => frame.Continue = false), until);
         Dispatcher.PushFrame(frame);
     }
 

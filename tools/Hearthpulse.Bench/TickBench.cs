@@ -450,7 +450,7 @@ internal static class TickBench
     private static void Pump()
     {
         var frame = new DispatcherFrame();
-        Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() => frame.Continue = false), DispatcherPriority.ApplicationIdle);
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() => frame.Continue = false), DispatcherPriority.ApplicationIdle);
         Dispatcher.PushFrame(frame);
     }
 }

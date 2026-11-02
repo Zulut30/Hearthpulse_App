@@ -177,7 +177,7 @@ public sealed class BgLobbyPanelTests
         panel.Arrange(new Rect(0, 0, 400, 800));
         // Bindings attach at DataBind priority: let them, then lay out again.
         var frame = new DispatcherFrame();
-        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
+        _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
         panel.UpdateLayout();
 
@@ -198,7 +198,7 @@ public sealed class BgLobbyPanelTests
     /// <summary>Visible in the panel: neither the element nor any parent up to <paramref name="root"/> is collapsed.</summary>
     private static bool Visible(DependencyObject element, DependencyObject root)
     {
-        for (var e = element; e is not null && e != root; e = VisualTreeHelper.GetParent(e))
+        for (var e = element; e is not null && !ReferenceEquals(e, root); e = VisualTreeHelper.GetParent(e))
         {
             if (e is UIElement { Visibility: not Visibility.Visible })
             {

@@ -20,6 +20,7 @@ public sealed partial class MainViewModel
     private RelayCommand? _openSignInPage;
     private RelayCommand? _signOut;
     private RelayCommand? _openAccountProfile;
+    private RelayCommand? _openAccountSubscription;
     private CancellationTokenSource? _signInCancel;
     private DeviceCode? _accountCode;
     private bool _accountBrowserOpened;
@@ -91,7 +92,7 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>Gets a code from hearthpulse.net, opens the confirmation page and waits for the player.</summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs; an async command type is a change of its own: TASK-2026-10-29-quality-analyzers, question Q1.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs. Kept on purpose (Q7, 2026-11-02): the account service reports failures as results, and anything else that escapes still reaches the dispatcher's crash window instead of only the log.")]
     public RelayCommand SignIn => _signIn ??= new RelayCommand(async () =>
     {
         if (_account is null || AccountWaiting)
@@ -128,7 +129,7 @@ public sealed partial class MainViewModel
         }
     });
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs; an async command type is a change of its own: TASK-2026-10-29-quality-analyzers, question Q1.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates", Justification = "RelayCommand takes an Action in both UIs. Kept on purpose (Q7, 2026-11-02): the account service reports failures as results, and anything else that escapes still reaches the dispatcher's crash window instead of only the log.")]
     public RelayCommand SignOut => _signOut ??= new RelayCommand(async () =>
     {
         if (_account is not null)
@@ -141,6 +142,15 @@ public sealed partial class MainViewModel
     public RelayCommand OpenAccountProfile => _openAccountProfile ??= new RelayCommand(() =>
     {
         if (_account?.OpenProfile() == false)
+        {
+            ShowAccountMessage(() => Loc.T("Main.Account.BrowserFailed"));
+        }
+    });
+
+    /// <summary>The site's plan section: the subscription that lifts the daily free limit of the pool's stats in a game (plan 3.1).</summary>
+    public RelayCommand OpenAccountSubscription => _openAccountSubscription ??= new RelayCommand(() =>
+    {
+        if (_account?.OpenSubscription() == false)
         {
             ShowAccountMessage(() => Loc.T("Main.Account.BrowserFailed"));
         }

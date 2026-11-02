@@ -222,7 +222,7 @@ public sealed class ApiLoadTests : IDisposable
 
         // The new rank tells the session at once (Changed), and the next ask starts the guide again at that rank.
         source.Rank = "diamond";
-        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(1)));
+        Assert.True(changed.Wait(0)); // raised by the setter itself, not by a load
         Assert.Null(source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty));
         Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
         Assert.Equal("diamond", source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty)!.Rank);
@@ -330,17 +330,18 @@ public sealed class ApiLoadTests : IDisposable
         var other = deck with { Cards = new Dictionary<int, int>(priestList) { [1] = 1 } };
         var source = new MulliganGuideSource(Data(server));
         var changed = 0;
-        source.Changed += () => Interlocked.Increment(ref changed);
+        var landed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        source.Changed += () =>
+        {
+            Interlocked.Increment(ref changed);
+            landed.TrySetResult();
+        };
 
         Assert.Null(source.For("PRIEST", deck, "FT_STANDARD", CardDb.Empty));
         Assert.Null(source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty));
 
         // Only the second deck's lookup may land.
-        for (var i = 0; i < 100 && source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty) is null; i++)
-        {
-            await Task.Delay(50);
-        }
-
+        await landed.Task.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Equal("Quest Priest", source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty)?.Name);
         Assert.Equal(1, Volatile.Read(ref changed));
     }

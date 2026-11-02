@@ -1002,6 +1002,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
                 }
 
                 var rating = _rating is null ? (int?)null : game.IsDuos ? _rating.Duos : _rating.Solo;
+                // The game's start marks it for the daily free limit of the stats pool (in memory only).
+                Advisor.Game = game.StartedAt;
                 battlegrounds = Advisor.Enrich(battlegrounds, rating, _cards);
                 // After the copy kept for the finished game above: the names and ratings stay in the live view only.
                 battlegrounds = WithOpponentMmr(battlegrounds, game);

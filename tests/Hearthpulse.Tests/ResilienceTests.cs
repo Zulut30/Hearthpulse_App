@@ -118,14 +118,14 @@ public sealed class ResilienceTests
         using var watcher = new LogWatcher(consumer, () => install);
         watcher.Start();
 
-        Assert.True(consumer.WaitForLines(2, TimeSpan.FromSeconds(5)), "the first pass should deliver the last game");
+        Assert.True(consumer.WaitForLines(2, TimeSpan.FromSeconds(30)), "the first pass should deliver the last game");
         Assert.Equal(1, consumer.Sessions);
         Assert.DoesNotContain("GAME_ONE", consumer.Snapshot());
 
         consumer.Clear();
         watcher.RequestResync(replayCurrentGame: true);
 
-        Assert.True(consumer.WaitForLines(2, TimeSpan.FromSeconds(5)), "the resync should replay the last game");
+        Assert.True(consumer.WaitForLines(2, TimeSpan.FromSeconds(30)), "the resync should replay the last game");
         Assert.Equal(1, consumer.Resyncs);
         Assert.Equal(CreateGame, consumer.Snapshot()[0]);
         Assert.DoesNotContain("GAME_ONE", consumer.Snapshot());
@@ -167,6 +167,7 @@ public sealed class ResilienceTests
             lock (_gate)
             {
                 _lines.AddRange(lines);
+                Monitor.PulseAll(_gate);
             }
         }
 
@@ -182,14 +183,24 @@ public sealed class ResilienceTests
             }
         }
 
-        public bool WaitForLines(int count, TimeSpan timeout) =>
-            SpinWait.SpinUntil(() =>
+        /// <summary>Woken by every delivery; <paramref name="timeout"/> only bounds a watcher that never delivers.</summary>
+        public bool WaitForLines(int count, TimeSpan timeout)
+        {
+            var until = DateTime.UtcNow + timeout;
+            lock (_gate)
             {
-                lock (_gate)
+                while (_lines.Count < count)
                 {
-                    return _lines.Count >= count;
+                    var left = until - DateTime.UtcNow;
+                    if (left <= TimeSpan.Zero || !Monitor.Wait(_gate, left))
+                    {
+                        return _lines.Count >= count;
+                    }
                 }
-            }, timeout);
+
+                return true;
+            }
+        }
 
         public List<string> Snapshot()
         {

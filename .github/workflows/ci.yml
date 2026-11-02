@@ -18,6 +18,8 @@ concurrency:
 env:
   DOTNET_NOLOGO: "true"
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  # Any build warning fails the job (Directory.Build.props, ADR 0003); release.yml does not set it.
+  HEARTHPULSE_STRICT: "true"
 
 jobs:
   scripts:
@@ -78,24 +80,12 @@ jobs:
         run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "Category=Timing" --logger "trx;LogFileName=timing.trx" --results-directory TestResults/timing
       - name: WPF and Avalonia presentation contracts
         run: dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-build -c Release --collect:"XPlat Code Coverage" --logger "trx;LogFileName=presentation.trx" --results-directory TestResults/presentation
-      # Line and branch coverage per project into the job summary; no external service.
-      - name: Coverage summary
-        if: always()
-        shell: pwsh
-        run: |
-          $invariant = [cultureinfo]::InvariantCulture
-          $lines = @('### Code coverage (Windows)', '', '| Test suite | Project | Lines | Branches |', '|---|---|---:|---:|')
-          foreach ($suite in @(@{ Dir = 'tests'; Name = 'Hearthpulse.Tests' }, @{ Dir = 'presentation'; Name = 'Hearthpulse.Presentation.Tests' })) {
-            $file = Get-ChildItem "TestResults/$($suite.Dir)" -Recurse -Filter coverage.cobertura.xml -ErrorAction SilentlyContinue | Select-Object -First 1
-            if (-not $file) { $lines += "| $($suite.Name) | no coverage file | | |"; continue }
-            foreach ($package in ([xml](Get-Content $file.FullName -Raw)).coverage.packages.package) {
-              # The WPF app's assembly is called Hearthpulse.
-              $project = if ($package.name -eq 'Hearthpulse') { 'Hearthpulse.App (WPF)' } else { $package.name }
-              $lines += [string]::Format($invariant, '| {0} | {1} | {2:0.0} % | {3:0.0} % |', $suite.Name, $project, 100 * [double]$package.'line-rate', 100 * [double]$package.'branch-rate')
-            }
-          }
-          $lines | Write-Output
-          $lines | Add-Content $env:GITHUB_STEP_SUMMARY
+      # Line and branch coverage per module (src/ folder; both suites merged, shared Presentation counted once) into the
+      # job summary, and the ratchet: a module more than 0.5 pp under its floor in tools/coverage/baseline.json fails the
+      # job. Timing tests are not instrumented and do not count. No external service.
+      - name: Coverage by module and ratchet
+        if: ${{ !cancelled() }}
+        run: python -B -I tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation --summary "$env:GITHUB_STEP_SUMMARY"
       - name: Test results
         if: always()
         uses: actions/upload-artifact@v4

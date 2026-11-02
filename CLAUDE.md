@@ -77,8 +77,9 @@ Ground rules: restore with `--source https://api.nuget.org/v3/index.json`; run t
 player can see; after the match the review may show everything the log revealed by the end of the game (the match
 page only, `docs/match-replay.md`); the one in-game exception is BG opponents' MMR from Blizzard's public
 leaderboard, off by default, on the conditions in `docs/bg-opponent-mmr.md` (owner, 2026-10-29); every user-facing
-feature goes into both UIs; the build stays at 0 warnings, including the Meziantou and VS Threading analyzers on `src/*`
-(rule set and reasons in `.editorconfig`: fix a finding, or suppress it in place with a `Justification`); coverage:
+feature goes into both UIs; the build stays at 0 warnings, including the Meziantou and VS Threading analyzers on every project
+(a softer set on tests and tools; rule set and reasons in `.editorconfig`, CI fails on a warning: fix a finding, or
+suppress it in place with a `Justification`); coverage:
 `hearthpulse-testing`.
 
 **Default workflow (owner's standing permission, 2026-10-27).** The coordinating session (the one the owner talks to

@@ -98,7 +98,8 @@ It is optional external material; if absent, keep the report in the agreed works
 
 **9. Build and the rest**
 - `dotnet build Hearthpulse.slnx --no-restore`: **0 errors, 0 warnings** (a new CS0618 is a finding).
-- New analyzer warnings (MA*, VSTHRD*, CA2000/CA2213 in `src/`): fixed, not silenced. A new `[SuppressMessage]` needs
+- New analyzer warnings (MA*, VSTHRD*, CA2000/CA2213 in `src/`; the softer set in `tests/` and `tools/`): fixed, not
+  silenced; CI builds with `HEARTHPULSE_STRICT=true` and fails on any warning. A new `[SuppressMessage]` needs
   a `Justification` that holds up; a rule turned off or down in `.editorconfig` needs its reason line. `MA0004`
   belongs to Core only.
 - `--render-ui` returns nonzero on fatal startup/render errors; the `render.py` wrapper also fails when mandatory

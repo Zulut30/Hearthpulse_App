@@ -115,6 +115,7 @@
   "Settings.Account.Title": "Аккаунт Hearthpulse",
   "Settings.Account.SignedInAs": "Вы вошли через HeartPulse как",
   "Settings.Account.OpenProfile": "Открыть профиль на сайте",
+  "Settings.Account.Subscription": "Подписка и лимиты",
   "Settings.Account.SignInAgain": "Войти снова",
   "Settings.Account.SignOut": "Выйти",
   "Settings.Account.SignedOutCaption": "Откроет hearthpulse.net в браузере. Трекер работает так же и без аккаунта.",

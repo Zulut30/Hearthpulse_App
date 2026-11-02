@@ -1,9 +1,10 @@
 root = true
 
-# Code analyzers: Meziantou.Analyzer (MA*) and Microsoft.VisualStudio.Threading.Analyzers (VSTHRD*), referenced for the
-# src/* projects in Directory.Build.props. The build stays at 0 warnings: a warning here is fixed, or suppressed in place
-# with [SuppressMessage(..., Justification = "...")]. Each line below differs from the package default, or pins a default
-# worth stating, and says why; rules not listed keep their default.
+# Code analyzers: Meziantou.Analyzer (MA*) and Microsoft.VisualStudio.Threading.Analyzers (VSTHRD*), referenced for every
+# project in Directory.Build.props; tests/* and tools/* get a softer set (section below). The build stays at 0 warnings
+# (CI fails on one): a warning here is fixed, or suppressed in place with [SuppressMessage(..., Justification = "...")].
+# Each line below differs from the package default, or pins a default worth stating, and says why; rules not listed
+# keep their default.
 
 [*.cs]
 
@@ -107,6 +108,25 @@ dotnet_diagnostic.MA0176.severity = none
 # Deprecated in Meziantou in favour of CA1822.
 dotnet_diagnostic.MA0038.severity = none
 dotnet_diagnostic.MA0041.severity = none
+
+[{tests,tools}/**.cs]
+
+# Tests and tools: the soft set. The correctness rules stay warnings as in src (unobserved awaitables, async void and
+# async delegates, == against an overridden Equals, finalizers, ignored return values); the rules about culture,
+# string comparison, allocations and blocking calls are off: test inputs are ASCII literals and expected strings, the
+# tools are console programs without a synchronization context, and fixtures read files synchronously on purpose.
+dotnet_diagnostic.MA0001.severity = none
+dotnet_diagnostic.MA0011.severity = none
+dotnet_diagnostic.MA0074.severity = none
+dotnet_diagnostic.MA0075.severity = none
+dotnet_diagnostic.MA0089.severity = none
+dotnet_diagnostic.MA0020.severity = none
+dotnet_diagnostic.MA0110.severity = none
+dotnet_diagnostic.MA0159.severity = none
+# Synchronous waits and sync calls in async methods: bounded waits on worker tasks the test itself started, or on a
+# task already complete; a deadlock would hang the test, not a player's UI.
+dotnet_diagnostic.VSTHRD002.severity = none
+dotnet_diagnostic.VSTHRD103.severity = none
 
 [src/**.cs]
 
