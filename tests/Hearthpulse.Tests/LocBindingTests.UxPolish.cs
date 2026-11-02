@@ -226,7 +226,7 @@ public sealed partial class LocBindingTests
     [Fact]
     public async Task Getting_started_steps_follow_the_app_and_its_buttons_run_the_existing_actions()
     {
-        var model = new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, $"hp-ux-polish-{Guid.NewGuid():N}.db")), new AppSettings());
+        var model = new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, $"hp-ux-polish-{Guid.NewGuid():N}.db")), new AppSettings(), TestDataFolder.App);
         await model.RefreshAsync();
         Assert.True(model.ShowGettingStarted);
         Headless.Run(() => WithMainView((view, _) =>
@@ -323,7 +323,7 @@ public sealed partial class LocBindingTests
         var app = Application.Current!;
         app.Styles.Add(theme);
         var window = new Window { Width = 1260, Height = 840 };
-        model ??= new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, $"hp-ux-polish-{Guid.NewGuid():N}.db")), settings ?? new AppSettings());
+        model ??= new MainViewModel(new HistoryStore(Path.Combine(AppPaths.Root, $"hp-ux-polish-{Guid.NewGuid():N}.db")), settings ?? new AppSettings(), TestDataFolder.App);
         try
         {
             var view = new MainView { DataContext = model };

@@ -43,7 +43,7 @@ public sealed class MatchNavigationTests : IDisposable
     {
         var name = _store.Save(MatchTimelineTests.Game(null).Key, ReplayFile.Write(new ReplayHeader(), MatchTimelineTests.Events));
         Assert.NotNull(name);
-        var model = new MatchViewModel(new MainViewModel(history, new AppSettings()));
+        var model = new MatchViewModel(new MainViewModel(history, new AppSettings(), TestDataFolder.App));
         model.Show(MatchPage.Load(MatchTimelineTests.Game(name), _store, CardDb.Empty, null));
         return (model, name);
     }
@@ -185,7 +185,7 @@ public sealed class MatchNavigationTests : IDisposable
         var game = MatchTimelineTests.Game(name);
         history.Add(game);
         Assert.True(files.Star(ReplayShelf.Recent, name));
-        var main = new MainViewModel(history, new AppSettings()) { LibraryFiles = files };
+        var main = new MainViewModel(history, new AppSettings(), TestDataFolder.App) { LibraryFiles = files };
         await main.RefreshAsync();
         main.SetHistoryFilter.Execute("Battlegrounds");
         await main.LibraryIdleAsync();
@@ -222,7 +222,7 @@ public sealed class MatchNavigationTests : IDisposable
     public void The_library_shows_the_cards_the_search_lets_through_and_says_when_none()
     {
         var history = History();
-        var main = new MainViewModel(history, new AppSettings());
+        var main = new MainViewModel(history, new AppSettings(), TestDataFolder.App);
         var library = main.Library;
         LibraryCard Card(string title, string result) => new(ReplayShelf.Recent, title + ".hpr", null, battlegrounds: false) { Title = title, ResultKey = result };
         library.SetCards([Card("Priest", "Win"), Card("Hunter", "Loss"), Card("Mage", "Win")]);
@@ -264,7 +264,7 @@ public sealed class MatchNavigationTests : IDisposable
     [Fact]
     public void A_card_chosen_for_the_player_clears_a_search_that_would_hide_it()
     {
-        var main = new MainViewModel(History(), new AppSettings());
+        var main = new MainViewModel(History(), new AppSettings(), TestDataFolder.App);
         var library = main.Library;
         LibraryCard Card(string title, string result) => new(ReplayShelf.Recent, title + ".hpr", null, battlegrounds: false) { Title = title, ResultKey = result };
         var priest = Card("Priest", "Win");
@@ -322,7 +322,7 @@ public sealed class MatchNavigationTests : IDisposable
     [Fact]
     public void Without_a_mulligan_step_M_does_nothing_and_the_keys_help_leaves_it_out()
     {
-        var model = new MatchViewModel(new MainViewModel(History(), new AppSettings()));
+        var model = new MatchViewModel(new MainViewModel(History(), new AppSettings(), TestDataFolder.App));
 
         Assert.False(model.HasMulligan);
         model.GoMulligan.Execute(null);
@@ -420,7 +420,7 @@ public sealed class MatchNavigationTests : IDisposable
     {
         var history = History();
         var files = new ReplayLibrary(_store, Path.Combine(_folder, "saved"), Path.Combine(_folder, "imported"));
-        var main = new MainViewModel(history, new AppSettings()) { LibraryFiles = files };
+        var main = new MainViewModel(history, new AppSettings(), TestDataFolder.App) { LibraryFiles = files };
         var name = _store.Save(MatchTimelineTests.Game(null).Key, ReplayFile.Write(new ReplayHeader(), MatchTimelineTests.Events));
         Assert.NotNull(name);
         var model = new MatchViewModel(main);

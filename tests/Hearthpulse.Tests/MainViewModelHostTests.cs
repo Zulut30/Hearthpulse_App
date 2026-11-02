@@ -1,7 +1,9 @@
 using Hearthpulse.Core;
 using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Replay;
 using Hearthpulse.Core.Stats;
 using Hearthpulse.UI.Main;
 
@@ -32,7 +34,7 @@ public sealed class MainViewModelHostTests : IDisposable
     [Fact]
     public void The_busy_line_and_the_update_status_are_shown_again_in_the_new_language()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         vm.ShowBusy(() => Loc.T("Host.Busy.NothingToImport"));
         vm.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
         Assert.Equal("Hearthstone install not found — nothing to import.", vm.Busy);
@@ -48,7 +50,7 @@ public sealed class MainViewModelHostTests : IDisposable
     [Fact]
     public void A_cleared_busy_line_stays_clear_and_a_ready_update_replaces_the_status()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         vm.ShowBusy(() => Loc.T("Host.Busy.Importing"));
         vm.ShowBusy(null);
         vm.SetUpdateStatus(() => Loc.T("Host.Update.Off"));
@@ -65,7 +67,7 @@ public sealed class MainViewModelHostTests : IDisposable
     public async Task Without_the_game_folder_nothing_is_imported_and_the_flags_stay()
     {
         var settings = new AppSettings();
-        var vm = new MainViewModel(_history, settings);
+        var vm = new MainViewModel(_history, settings, TestDataFolder.App);
 
         await vm.ImportLogsAsync(null, force: true);
 
@@ -84,7 +86,7 @@ public sealed class MainViewModelHostTests : IDisposable
         try
         {
             var settings = new AppSettings();
-            var vm = new MainViewModel(_history, settings);
+            var vm = new MainViewModel(_history, settings, TestDataFolder.App);
 
             await vm.ImportLogsAsync(install, force);
 
@@ -109,7 +111,23 @@ public sealed class MainViewModelHostTests : IDisposable
 
         Assert.Equal("Тихий тестовый маг", DeckDetails.OpponentArchetype(game, null, names));
         Assert.NotEqual("Тихий тестовый маг", DeckDetails.OpponentArchetype(game, null));
-        Assert.Same(ArchetypeTranslations.Empty, new MainViewModel(_history, new AppSettings()).ArchetypeNames);
+        Assert.Same(ArchetypeTranslations.Empty, new MainViewModel(_history, new AppSettings(), TestDataFolder.App).ArchetypeNames);
+    }
+
+    [Fact]
+    public void The_data_folder_and_the_library_come_from_the_data_passed_in()
+    {
+        // What AppPaths.Root, ReplayLibrary.Default and ReplayUploads.Default used to supply (Q3b).
+        var root = TestDataFolder.Scratch("hp-host-data");
+        var replays = new ReplayStore(Path.Combine(root, "replays"));
+        var data = new AppData(root, replays, new ReplayLibrary(replays, Path.Combine(root, "saved"), Path.Combine(root, "imported")),
+            new ReplayUploads(Path.Combine(root, "uploads.json")));
+
+        var vm = new MainViewModel(_history, new AppSettings(), data);
+
+        Assert.Equal(root, vm.DataFolder);
+        Assert.Same(data.Library, vm.LibraryFiles);
+        Assert.Same(data.Uploads, vm.LibraryUploads);
     }
 
     /// <summary>

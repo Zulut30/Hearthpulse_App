@@ -72,7 +72,7 @@ public sealed class ReplayUploadTests : IDisposable
     public async Task Without_a_site_sign_in_nothing_is_uploaded_and_the_card_says_why()
     {
         Directory.CreateDirectory(_dir);
-        var vm = new MainViewModel(new HistoryStore(Path.Combine(_dir, "h.db")), new AppSettings())
+        var vm = new MainViewModel(new HistoryStore(Path.Combine(_dir, "h.db")), new AppSettings(), TestDataFolder.App)
         {
             LibraryUploads = new ReplayUploads(Path.Combine(_dir, "uploads.json")),
         };
@@ -245,7 +245,7 @@ public sealed class ReplayUploadTests : IDisposable
     public void An_imported_replay_is_someone_else_s_game_and_has_no_upload()
     {
         Directory.CreateDirectory(_dir);
-        var vm = new MainViewModel(new HistoryStore(Path.Combine(_dir, "h.db")), new AppSettings());
+        var vm = new MainViewModel(new HistoryStore(Path.Combine(_dir, "h.db")), new AppSettings(), TestDataFolder.App);
         var card = new LibraryCard(ReplayShelf.Imported, "game.hpr", null, battlegrounds: false) { HasReplay = true };
 
         vm.Library.SiteAction.Execute(card);
@@ -273,7 +273,7 @@ public sealed class ReplayUploadTests : IDisposable
         var files = new ReplayLibrary(new ReplayStore(Path.Combine(_dir, "replays")), Path.Combine(_dir, "saved"), Path.Combine(_dir, "imported"));
         var name = files.Recent.Save("20261101120000|me#1|GT_RANKED", ReplayImportTests.Constructed())!;
         var uploads = new ReplayUploads(Path.Combine(_dir, "uploads.json"));
-        var vm = new MainViewModel(history ?? new HistoryStore(Path.Combine(_dir, "h.db")), new AppSettings()) { LibraryFiles = files, LibraryUploads = uploads };
+        var vm = new MainViewModel(history ?? new HistoryStore(Path.Combine(_dir, "h.db")), new AppSettings(), TestDataFolder.App) { LibraryFiles = files, LibraryUploads = uploads };
         vm.AttachAccount(account);
         return (vm, uploads, name);
     }

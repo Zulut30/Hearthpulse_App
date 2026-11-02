@@ -39,7 +39,8 @@ public sealed class AppServices
         // The game and the cards are looked up while the host builds its windows, not after.
         Prefetch = StartupPrefetch.Start(settings, http);
 
-        History = new HistoryStore(historyPath) { Replays = ReplayStore.Default };
+        Data = AppData.FromAppPaths();
+        History = new HistoryStore(historyPath) { Replays = Data.Replays };
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
         MulliganGuide = new MulliganGuideSource(new HearthpulseData(Api)) { Rank = settings.MulliganRank };
@@ -66,6 +67,9 @@ public sealed class AppServices
     public HearthpulseApi Api { get; }
 
     public StartupPrefetch Prefetch { get; }
+
+    /// <summary>The data folder and its replay stores.</summary>
+    public AppData Data { get; }
 
     public HistoryStore History { get; }
 

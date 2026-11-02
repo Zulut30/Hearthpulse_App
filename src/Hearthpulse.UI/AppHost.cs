@@ -47,7 +47,7 @@ public sealed partial class AppHost : IDisposable
 
         // A decision of the daily free use (plan 3.1) makes the session publish again.
         Usage.Changed += () => Dispatcher.UIThread.Post(() => Session.SetMeta(Session.Advisor.Meta));
-        Main = new MainViewModel(History, Settings);
+        Main = new MainViewModel(History, Settings, _services.Data);
         Main.AttachAccount(Account);
         Main.AttachUploader(Uploader);
         if (!_rendering)

@@ -57,7 +57,7 @@ public sealed class MainWindowXamlLoadTests
         var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Resources.MergedDictionaries.Clear();
         app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Frost", 0, 0, 1)));
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = new WpfWindow(model);
         window.ShowPage("Settings");
         window.ShowSettingsTab("General");
@@ -80,8 +80,8 @@ public sealed class MainWindowXamlLoadTests
     [Fact]
     public void Both_hosts_offer_the_same_presets_and_keep_the_key_not_the_localized_name()
     {
-        var wpf = new WpfMain(History(), new AppSettings());
-        var ava = new AvaMain(History(), new AppSettings());
+        var wpf = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var ava = new AvaMain(History(), new AppSettings(), TestApp.Data);
         Assert.Equal(wpf.Themes.Select(t => (t.Key, t.Name, t.Selected)), ava.Themes.Select(t => (t.Key, t.Name, t.Selected)));
         Assert.True(wpf.Themes.Single(t => t.Key == ThemePalette.DefaultName).Selected);
 

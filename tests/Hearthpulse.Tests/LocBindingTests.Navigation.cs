@@ -41,7 +41,7 @@ public sealed partial class LocBindingTests
             view.ShowPage("Overview");
             Dispatcher.UIThread.RunJobs();
             Assert.False(model.MatchOpen);
-        }, model: new MainViewModel(history, new AppSettings()));
+        }, model: new MainViewModel(history, new AppSettings(), TestDataFolder.App));
     });
 
     /// <summary>Standard → Wild → Standard: each step shows only the format it goes to.</summary>

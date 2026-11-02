@@ -27,7 +27,7 @@ public sealed partial class LocBindingTests
         };
         var app = Application.Current!;
         app.Styles.Add(theme);
-        var model = new MainViewModel(new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-dashboard-{Guid.NewGuid():N}.db")), new AppSettings());
+        var model = new MainViewModel(new HistoryStore(Path.Combine(Path.GetTempPath(), $"hp-dashboard-{Guid.NewGuid():N}.db")), new AppSettings(), TestDataFolder.App);
         try
         {
             var view = BuildAndLetGo(model);

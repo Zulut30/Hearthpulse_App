@@ -11,6 +11,7 @@ using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Updates;
@@ -106,10 +107,14 @@ public sealed partial class MainViewModel : Observable
     private CardDb _cards = CardDb.Empty;
     private BattlegroundsMeta? _meta;
 
-    public MainViewModel(HistoryStore history, AppSettings settings)
+    /// <param name="data">The data folder and its replay stores (<see cref="Core.Hosting.AppServices.Data"/>).</param>
+    public MainViewModel(HistoryStore history, AppSettings settings, AppData data)
     {
         _history = history;
         Settings = settings;
+        DataFolder = data.Root;
+        LibraryFiles = data.Library;
+        LibraryUploads = data.Uploads;
         Loc.Instance.LanguageChanged += OnLanguageChanged;
         SetBracket = new RelayCommand(p =>
         {
@@ -196,7 +201,7 @@ public sealed partial class MainViewModel : Observable
 
     public string Version { get; } = "v" + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
 
-    public string DataFolder => AppPaths.Root;
+    public string DataFolder { get; }
 
     public string Attribution => Loc.T("Settings.Sources.Text");
 

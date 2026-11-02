@@ -24,7 +24,7 @@ public sealed class MainWindowLifetimeTests
     [Fact]
     public void A_closed_wpf_main_window_is_collected_while_its_view_model_lives_on() => OnSta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = OpenAndClose(model);
         Collect(window);
         Assert.False(window.IsAlive);
@@ -35,7 +35,7 @@ public sealed class MainWindowLifetimeTests
     [Fact]
     public void A_rebuilt_wpf_main_window_opens_where_the_last_one_was() => OnSta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var first = OffScreen(new WpfWindow(model));
         first.Show();
         first.ShowPage("Wild");

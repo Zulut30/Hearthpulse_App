@@ -34,11 +34,11 @@ public sealed partial class MainViewModel
 
     public ReplayLibraryViewModel Library => _library ??= new ReplayLibraryViewModel(this, LibraryFiles);
 
-    /// <summary>The library's folders; tests give their own.</summary>
-    internal ReplayLibrary LibraryFiles { get; init; } = ReplayLibrary.Default;
+    /// <summary>The library's folders (from the constructor's data folder); tests give their own.</summary>
+    internal ReplayLibrary LibraryFiles { get; init; }
 
     /// <summary>Replays uploaded to the site, by file name (plan 2.2).</summary>
-    internal ReplayUploads LibraryUploads { get; init; } = ReplayUploads.Default;
+    internal ReplayUploads LibraryUploads { get; init; }
 
     /// <summary>History's games for the current filter (from <c>ApplyHistoryFilter</c>): the library shows its tab again.</summary>
     private void ShowLibrary(IReadOnlyList<GameRecord> games)

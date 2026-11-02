@@ -196,7 +196,7 @@ public partial class App : Application
         _services = services;
         CardArt.Http = _http;
 
-        _mainViewModel = new MainViewModel(_history, _settings);
+        _mainViewModel = new MainViewModel(_history, _settings, _services.Data);
         _mainViewModel.UpdateRequested += OnInstallUpdateRequested;
         _mainViewModel.AttachAccount(_account);
         _mainViewModel.CrashReportsChanged += () =>

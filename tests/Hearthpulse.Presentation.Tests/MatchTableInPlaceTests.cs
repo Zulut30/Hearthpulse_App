@@ -136,7 +136,7 @@ public sealed class MatchTableInPlaceTests
         };
         // Lines end in \n in the file, whatever this source file uses.
         game = game with { Replay = store.Save(game.Key, Game5th.ReplaceLineEndings("\n")) };
-        var model = new MatchViewModel(new WpfMain(history, new AppSettings()));
+        var model = new MatchViewModel(new WpfMain(history, new AppSettings(), TestApp.Data));
         var page = MatchPage.Load(game, store, CardDb.Empty, null);
         Assert.True(page.HasBattlegroundsSteps);
         var view = new MatchView { DataContext = model };
