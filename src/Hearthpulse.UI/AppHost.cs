@@ -31,13 +31,7 @@ public sealed partial class AppHost : IDisposable
     private readonly DispatcherTimer _settingsDebounce;
     private readonly DispatcherTimer _metaRefresh;
     private LogWatcher? _watcher;
-    private LiveSnapshot? _pending;
-    private LiveSnapshot _last = LiveSnapshot.Empty;
-    private int _applyScheduled;
-    private readonly SnapshotPacer _pacer = new();
-    private string? _deckStatsKey;
-    private DeckAggregate? _deckStats;
-    private MatchupAggregate? _matchupStats;
+    private readonly LiveFeed _feed;
     private UpdateInfo? _stagedUpdate;
     private Func<string>? _busy;
     private Task? _archetypeNames;
@@ -121,7 +115,12 @@ public sealed partial class AppHost : IDisposable
         _metaRefresh = new DispatcherTimer { Interval = BattlegroundsMeta.RefreshInterval };
         _metaRefresh.Tick += (_, _) => RefreshMetaAsync().Forget("Battlegrounds meta load");
 
-        Session.SnapshotChanged += OnSnapshot;
+        _feed = new LiveFeed(
+            action => Dispatcher.UIThread.Post(action, DispatcherPriority.Background),
+            view => LiveDeckRecord.Read(History, InstallDirectory, view),
+            Main.Apply,
+            RefreshOverlay);
+        Session.SnapshotChanged += _feed.Publish;
         Session.ConstructedMetaNeeded += format => Dispatcher.UIThread.Post(() => EnsureConstructedMeta(format));
         Main.ConstructedMetaRequested += format =>
         {
@@ -145,7 +144,7 @@ public sealed partial class AppHost : IDisposable
         {
             _historyDebounce.Stop();
             _historyDebounce.Start();
-            _deckStatsKey = null;
+            _feed.ForgetDeck();
         });
         Loc.Instance.LanguageChanged += OnLanguageChanged;
     }
@@ -568,7 +567,7 @@ public sealed partial class AppHost : IDisposable
         }
     }
 
-    public void RefreshOverlay() => Overlay.Update(_last, Cards, Settings, _deckStats, _matchupStats);
+    public void RefreshOverlay() => Overlay.Update(_feed.Last, Cards, Settings, _feed.Deck, _feed.Matchup);
 
     /// <summary>Shows a busy text in the main window, kept so a language switch can show it again in the new language.</summary>
     private void SetBusy(Func<string>? text)
@@ -660,77 +659,6 @@ public sealed partial class AppHost : IDisposable
         {
             yield return line;
         }
-    }
-
-    private void OnSnapshot(LiveSnapshot snapshot)
-    {
-        // Called on the log thread; coalesce into one UI update per dispatcher pass, at most one per frame.
-        Volatile.Write(ref _pending, snapshot);
-        if (Interlocked.Exchange(ref _applyScheduled, 1) == 0)
-        {
-            var delay = _pacer.Delay(Environment.TickCount64);
-            if (delay == 0)
-            {
-                Dispatcher.UIThread.Post(ApplySnapshot, DispatcherPriority.Background);
-            }
-            else
-            {
-                _ = Task.Delay(delay).ContinueWith(_ => Dispatcher.UIThread.Post(ApplySnapshot, DispatcherPriority.Background), TaskScheduler.Default);
-            }
-        }
-    }
-
-    private void ApplySnapshot()
-    {
-        Interlocked.Exchange(ref _applyScheduled, 0);
-        _pacer.Applied(Environment.TickCount64);
-        var snapshot = Interlocked.Exchange(ref _pending, null);
-        if (snapshot is null)
-        {
-            return;
-        }
-
-        _last = snapshot;
-        Main.Apply(snapshot);
-        RefreshDeckStats(snapshot.Constructed);
-        RefreshOverlay();
-    }
-
-    private void RefreshDeckStats(ConstructedView? view)
-    {
-        var key = LiveDeckRecord.Key(view);
-        if (key == _deckStatsKey)
-        {
-            return;
-        }
-
-        _deckStatsKey = key;
-        _deckStats = null;
-        _matchupStats = null;
-        if (view is null)
-        {
-            return;
-        }
-
-        _ = Task.Run(() => LiveDeckRecord.Read(History, InstallDirectory, view)).ContinueWith(t =>
-        {
-            if (t.IsFaulted)
-            {
-                Diag.Error("Deck stats lookup failed", t.Exception);
-            }
-
-            if (t.IsCompletedSuccessfully)
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (_deckStatsKey == key)
-                    {
-                        (_deckStats, _matchupStats) = t.Result;
-                        RefreshOverlay();
-                    }
-                });
-            }
-        }, TaskScheduler.Default);
     }
 
     private void OnGameFinished(GameOutcome outcome)
