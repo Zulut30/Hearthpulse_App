@@ -40,7 +40,7 @@ public sealed class HistoryFilterViewModelTests : IDisposable
     [Fact]
     public async Task With_the_games_in_memory_all_rows_are_there_when_the_task_ends()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         await vm.RefreshAsync();
         vm.SetHistoryFilter.Execute("Battlegrounds");
         Assert.Equal(["bg-1"], vm.HistoryRows.Select(r => r.Key));
@@ -58,7 +58,7 @@ public sealed class HistoryFilterViewModelTests : IDisposable
     [Fact]
     public async Task Before_the_first_refresh_the_task_ends_after_the_reload()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         Assert.Empty(vm.HistoryRows);
 
         await vm.ShowAllGamesAsync();
@@ -70,7 +70,7 @@ public sealed class HistoryFilterViewModelTests : IDisposable
     [Fact]
     public async Task A_filter_change_uses_the_games_already_read()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         await vm.RefreshAsync();
         var changes = 0;
         vm.PropertyChanged += (_, e) => changes += e.PropertyName == nameof(MainViewModel.HistoryRows) ? 1 : 0;

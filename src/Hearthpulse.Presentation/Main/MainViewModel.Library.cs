@@ -34,11 +34,11 @@ public sealed partial class MainViewModel
 
     public ReplayLibraryViewModel Library => _library ??= new ReplayLibraryViewModel(this, LibraryFiles);
 
-    /// <summary>The library's folders; tests give their own.</summary>
-    internal ReplayLibrary LibraryFiles { get; init; } = ReplayLibrary.Default;
+    /// <summary>The library's folders (from the constructor's data folder); tests give their own.</summary>
+    internal ReplayLibrary LibraryFiles { get; init; }
 
     /// <summary>Replays uploaded to the site, by file name (plan 2.2).</summary>
-    internal ReplayUploads LibraryUploads { get; init; } = ReplayUploads.Default;
+    internal ReplayUploads LibraryUploads { get; init; }
 
     /// <summary>History's games for the current filter (from <c>ApplyHistoryFilter</c>): the library shows its tab again.</summary>
     private void ShowLibrary(IReadOnlyList<GameRecord> games)
@@ -222,7 +222,7 @@ public sealed partial class MainViewModel
             }.Where(x => !string.IsNullOrEmpty(x))),
             OpponentHeroCardId = g.OpponentHeroCardId,
             Opponent = g.OpponentClass is { Length: > 0 } opponent ? Loc.F("Main.Game.Vs", OverlayViewModel.ClassName(opponent)) : string.Empty,
-            OpponentArchetype = g.OpponentArchetype is { Length: > 0 } archetype ? ArchetypeTranslations.Current.Display(archetype) ?? archetype : string.Empty,
+            OpponentArchetype = g.OpponentArchetype is { Length: > 0 } archetype ? ArchetypeNames.Display(archetype) ?? archetype : string.Empty,
             Result = ResultText(g.Result),
             ResultKey = resultKey,
             Rating = rating,
@@ -287,11 +287,11 @@ public sealed partial class MainViewModel
 
             // Saved and Imported files are opened through the import filter (MatchPage.LoadFile).
             var name = rest[(slash + 1)..];
-            return Core.Replay.MatchPage.LoadFile(LibraryFiles.Load(shelf, name), name, cards, MetaOf);
+            return Core.Replay.MatchPage.LoadFile(LibraryFiles.Load(shelf, name), name, cards, MetaOf, ArchetypeNames);
         }
 
         return _history.Game(key) is { } game
-            ? Core.Replay.MatchPage.Load(game, LibraryFiles.Load(ReplayShelf.Recent, game.Replay), cards, MetaOf(game))
+            ? Core.Replay.MatchPage.Load(game, LibraryFiles.Load(ReplayShelf.Recent, game.Replay), cards, MetaOf(game), ArchetypeNames)
             : null;
     }
 

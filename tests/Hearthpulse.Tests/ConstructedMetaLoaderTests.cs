@@ -7,24 +7,25 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// <see cref="ConstructedMetaLoader"/>, the Constructed stats download both hosts used to keep their own copy of: a page
 /// or a game joins a running download, a reload overtakes it (cancelled, its answer dropped), the tier list shows early,
-/// and Russian archetype names load every format again. Downloads are the test's; the UI thread is this one (no
-/// synchronization context, so a finished download continues at once).
+/// and Russian archetype names load every format again. Downloads are the test's; the UI thread is this one, with a
+/// context that runs what is posted to it at once: a finished download continues and a tier-list report shows before the
+/// next line.
 /// </summary>
 [Collection(nameof(GlobalLanguage))]
 public sealed class ConstructedMetaLoaderTests : IDisposable
 {
     private readonly SynchronizationContext? _context = SynchronizationContext.Current;
-    private readonly List<(string Format, IProgress<ConstructedMeta> TierList, CancellationToken Cancel, TaskCompletionSource<ConstructedMeta?> Answer)> _downloads = [];
+    private readonly List<(string Format, ArchetypeTranslations Names, IProgress<ConstructedMeta> TierList, CancellationToken Cancel, TaskCompletionSource<ConstructedMeta?> Answer)> _downloads = [];
     private readonly List<string> _page = [];
     private readonly List<string> _game = [];
     private readonly List<TaskCompletionSource<ArchetypeTranslations>> _names = [];
-    private readonly ArchetypeTranslations _namesBefore = ArchetypeTranslations.Current;
+    private readonly List<ArchetypeTranslations> _namesArrived = [];
     private string? _pageFormat;
     private int _ended;
 
     public ConstructedMetaLoaderTests()
     {
-        SynchronizationContext.SetSynchronizationContext(null);
+        SynchronizationContext.SetSynchronizationContext(new Inline());
         Language(Loc.English);
     }
 
@@ -32,14 +33,13 @@ public sealed class ConstructedMetaLoaderTests : IDisposable
     {
         SynchronizationContext.SetSynchronizationContext(_context);
         Language(Loc.English);
-        ArchetypeTranslations.Current = _namesBefore;
     }
 
-    private ConstructedMetaLoader Loader(Action<string>? onPage = null) => new(
-        (format, tierList, cancel) =>
+    private ConstructedMetaLoader Loader() => new(
+        (format, names, tierList, cancel) =>
         {
             var answer = new TaskCompletionSource<ConstructedMeta?>();
-            _downloads.Add((format, tierList, cancel, answer));
+            _downloads.Add((format, names, tierList, cancel, answer));
             return answer.Task;
         },
         () =>
@@ -50,18 +50,10 @@ public sealed class ConstructedMetaLoaderTests : IDisposable
         },
         () => "standard",
         () => _pageFormat,
-        meta =>
-        {
-            var text = meta is null ? "none" : Name(meta);
-            lock (_page)
-            {
-                _page.Add(text);
-            }
-
-            onPage?.Invoke(text);
-        },
+        meta => _page.Add(meta is null ? "none" : Name(meta)),
         meta => _game.Add(Name(meta)),
-        () => _ended++);
+        () => _ended++,
+        _namesArrived.Add);
 
     private static ConstructedMeta Meta(string name) => new("standard", "legend", "past_week", DateTime.UnixEpoch, 0, [], []) { Source = name };
 
@@ -141,25 +133,20 @@ public sealed class ConstructedMetaLoaderTests : IDisposable
     }
 
     [Fact]
-    public async Task The_tier_list_shows_early_but_not_once_the_download_was_overtaken()
+    public void The_tier_list_shows_early_but_not_once_the_download_was_overtaken()
     {
-        var shown = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var loader = Loader(text => shown.TrySetResult(text));
+        var loader = Loader();
         loader.Ensure("standard");
 
         _downloads[0].TierList.Report(Meta("tiers"));
-        Assert.Equal("tiers", await shown.Task.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(["tiers"], _page);
 
-        // Overtaken: a report from the old download is not shown (the new download's answer is the next page text).
-        shown = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Overtaken: a report from the old download is not shown; the new download's answer is.
         _ = loader.ReloadAllAsync();
         _downloads[0].TierList.Report(Meta("old tiers"));
+        Assert.Equal(["tiers"], _page);
         _downloads[1].Answer.SetResult(Meta("new"));
-        Assert.Equal("new", await shown.Task.WaitAsync(TimeSpan.FromSeconds(10)));
-        lock (_page)
-        {
-            Assert.DoesNotContain("old tiers", _page);
-        }
+        Assert.Equal(["tiers", "new"], _page);
     }
 
     [Fact]
@@ -181,8 +168,11 @@ public sealed class ConstructedMetaLoaderTests : IDisposable
         var names = ArchetypeTranslations.Parse("""{"items": [{"name_en": "Big Mage", "name_ru": "Большой маг"}]}""");
         var before = _downloads.Count;
         _names[1].SetResult(names);
-        Assert.Same(names, ArchetypeTranslations.Current);
+        Assert.Same(names, loader.Names);
+        Assert.Same(names, Assert.Single(_namesArrived));
         Assert.Equal(before + 2, _downloads.Count);
+        Assert.All(_downloads.Skip(before), d => Assert.Same(names, d.Names));
+        Assert.All(_downloads.Take(before), d => Assert.Same(ArchetypeTranslations.Empty, d.Names));
     }
 
     /// <summary>
@@ -190,4 +180,10 @@ public sealed class ConstructedMetaLoaderTests : IDisposable
     /// switch, and they may only be touched from that thread.
     /// </summary>
     private static void Language(string language) => LocBindingTests.Headless.Run(() => Loc.Instance.SetLanguage(language));
+
+    /// <summary>Runs what is posted to it at once, on the posting thread: this test's UI thread.</summary>
+    private sealed class Inline : SynchronizationContext
+    {
+        public override void Post(SendOrPostCallback d, object? state) => d(state);
+    }
 }

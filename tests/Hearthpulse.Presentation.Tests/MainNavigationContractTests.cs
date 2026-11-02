@@ -55,7 +55,7 @@ public sealed class MainNavigationContractTests
             Mode = "Ranked", GameType = "GT_RANKED", Format = "FT_STANDARD", Result = "Win",
             PlayerClass = "MAGE", OpponentClass = "WARRIOR", DeckName = "First deck",
         }));
-        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         await model.RefreshAsync();
         Assert.True(await (Task<bool>)model.OpenMatchPageAsync("navigation-game"));
 
@@ -77,7 +77,7 @@ public sealed class MainNavigationContractTests
     [Fact]
     public void The_wpf_window_opens_every_page_and_reads_it_back() => OnSta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = OffScreen(new WpfWindow(model));
         window.Show();
         Pump();

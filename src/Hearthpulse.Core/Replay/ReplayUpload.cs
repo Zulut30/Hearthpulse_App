@@ -79,8 +79,6 @@ public sealed class ReplayUploads(string path)
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly Lock _gate = new();
 
-    public static ReplayUploads Default { get; } = new(Path.Combine(AppPaths.Replays, "uploads.json"));
-
     /// <summary>
     /// The key of a game: Recent and Saved hold the same game under the same file name (Saved is its starred copy),
     /// so they share it; Imported replays are never uploaded.

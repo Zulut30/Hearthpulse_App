@@ -36,7 +36,7 @@ public sealed partial class LocBindingTests
         load ??= s => MatchPage.Load(MatchTimelineTests.Game(s.Save(MatchTimelineTests.Game(null).Key, ReplayFile.Write(new ReplayHeader(), MatchTimelineTests.Events))),
             s, CardDb.Empty, null);
         // Playback waits until the test ends: no step is played by the clock here.
-        var model = new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(folder, "history.db")), new AppSettings()),
+        var model = new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(folder, "history.db")), new AppSettings(), TestDataFolder.App),
             (_, token) => Task.Delay(Timeout.Infinite, token));
         model.Show(load(store));
         var view = new MatchView { DataContext = model };

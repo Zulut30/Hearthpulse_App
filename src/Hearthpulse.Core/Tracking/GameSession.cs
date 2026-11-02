@@ -126,6 +126,8 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
     {
         _history = history;
         _memory = memory;
+        // A history without a store of its own (tests) saves into the data folder's replays, as before.
+        Replays = history.Replays ?? new ReplayStore(AppPaths.Replays);
         _memoryPoller = new MemoryPoller(memory);
         _turnClock = new TurnClock(() => _parser?.LastTimestamp);
         _history.Changed += () =>

@@ -100,7 +100,8 @@ jobs:
           elseif ($env:BEFORE -and $env:BEFORE -notmatch '^0+$') { $base = $env:BEFORE }
           else { 'Coverage floors: no earlier commit to compare with, skipped.'; exit 0 }
           git fetch --no-tags --depth=1 origin $base
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          # A force-push leaves the earlier commit unreachable: nothing to compare with.
+          if ($LASTEXITCODE) { "Coverage floors: $base could not be fetched, skipped."; exit 0 }
           git cat-file -e FETCH_HEAD:tools/coverage/baseline.json 2>$null
           if ($LASTEXITCODE) { 'Coverage floors: no baseline.json before this change, skipped.'; exit 0 }
           git show FETCH_HEAD:tools/coverage/baseline.json | Set-Content -Encoding utf8 "$env:RUNNER_TEMP/baseline-before.json"

@@ -48,7 +48,7 @@ public sealed class DeckLookContractTests
             Assert.True(history.Add(game));
         }
 
-        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic owner = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         dynamic model = wpf ? (object)new Hearthpulse.App.Main.Decks.DeckDetailsViewModel(owner)
             : new Hearthpulse.UI.Main.Decks.DeckDetailsViewModel(owner);
         var families = DeckFamilies.Build(DeckFamilies.Versions(games), []);
@@ -98,7 +98,7 @@ public sealed class DeckLookContractTests
             }));
         }
 
-        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         await Changed((INotifyPropertyChanged)model, "BgPlaces", () => model.RefreshAsync());
         var rows = ((IEnumerable<object>)model.BgPlaces).Cast<dynamic>().ToList();
         Assert.Equal(8, rows.Count);

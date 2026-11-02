@@ -26,7 +26,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Busy_line_ends_in_an_ellipsis_and_its_tip_carries_the_whole_message() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         // The narrowest window: the line has the least room left of the status chips.
         var (window, root) = Open(model, "Home", width: 1040);
         model.Busy = Loc.T("Host.Busy.GameNotFound");
@@ -65,7 +65,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Settings_cards_say_what_they_are_for_and_the_replay_rule_is_a_visible_line() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, root) = Open(model, "Settings", "Data");
 
         var note = window.FindResource("CardNote");
@@ -105,7 +105,7 @@ public sealed partial class UxPolishContractTests
     public void Live_line_says_when_the_deck_panel_waits_for_an_unknown_deck(bool wpf)
     {
         Loc.Instance.SetLanguage(Loc.English);
-        dynamic model = wpf ? new WpfMain(History(), new AppSettings()) : new AvaMain(History(), new AppSettings());
+        dynamic model = wpf ? new WpfMain(History(), new AppSettings(), TestApp.Data) : new AvaMain(History(), new AppSettings(), TestApp.Data);
         var unknown = Ranked(new ConstructedView(5, null, false, "HERO_08", "MAGE", "HERO_01", "WARRIOR", null, [], 30, 4, [], [], 0, 0, 0, null, null));
         model.Apply(unknown);
         var detail = (string)model.LiveDetail;
@@ -133,7 +133,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Keyboard_focus_shows_on_sliders_diff_chips_and_the_update_button() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, _) = Open(model, "Settings", "Overlay");
         var sliders = Logical<Slider>(Named<ScrollViewer>(window, "PageSettings")).ToList();
         Assert.NotEmpty(sliders);
@@ -153,7 +153,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Leaderboard_calibration_says_what_it_is_for_and_shows_each_sliders_value() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, root) = Open(model, "Settings", "Overlay");
         foreach (var name in new[] { "LeaderboardTopSlider", "LeaderboardSlotSlider", "LeaderboardWidthSlider" })
         {
@@ -176,7 +176,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_says_so_at_full_contrast() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, root) = Open(model, "Settings", "Overlay");
 
         Named<Button>(window, "OpenTrackerTab").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
@@ -245,7 +245,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Settings_list_every_keyboard_shortcut_as_the_app_registers_them() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, _) = Open(model, "Settings", "General");
         var card = Named<Border>(window, "ShortcutsCard");
         Assert.True(card.ActualHeight > 0);
@@ -278,7 +278,7 @@ public sealed partial class UxPolishContractTests
     public async Task Getting_started_shows_once_the_history_is_read_empty_and_leaves_with_the_first_game(bool wpf)
     {
         var history = History();
-        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings()) : new AvaMain(history, new AppSettings());
+        dynamic model = wpf ? (object)new WpfMain(history, new AppSettings(), TestApp.Data) : new AvaMain(history, new AppSettings(), TestApp.Data);
         // Not before the history is read: a player with games never sees it flash.
         Assert.False((bool)model.ShowGettingStarted);
         await (Task)model.RefreshAsync();
@@ -300,7 +300,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public async Task Getting_started_steps_follow_the_app_and_its_buttons_run_the_existing_actions()
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         await model.RefreshAsync();
         Sta(() =>
         {
@@ -351,7 +351,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Settings_follow_the_overlay_switched_from_the_live_bar_or_the_tray() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, root) = Open(model, "Settings", "Overlay");
         var master = Named<CheckBox>(window, "OverlaySetting");
         var banner = Named<Border>(window, "OverlayOffBanner");
@@ -393,7 +393,7 @@ public sealed partial class UxPolishContractTests
     [Fact]
     public void Live_line_tip_carries_the_whole_line_when_the_bar_trims_it() => Sta(() =>
     {
-        var model = new WpfMain(History(), new AppSettings());
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, root) = Open(model, "Home");
         try
         {

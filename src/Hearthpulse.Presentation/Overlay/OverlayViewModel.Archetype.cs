@@ -17,6 +17,12 @@ namespace Hearthpulse.UI.Overlay;
 /// <summary>The "opponent-archetype" panel: the opponent's likely archetype and the cards it may still hold.</summary>
 public sealed partial class OverlayViewModel
 {
+    /// <summary>
+    /// The Russian archetype names fetched this run (<see cref="Main.ConstructedMetaLoader"/>), for the archetype, likely
+    /// deck and mulligan labels; empty until they arrive. The next snapshot uses them.
+    /// </summary>
+    public ArchetypeTranslations ArchetypeNames { get; set; } = ArchetypeTranslations.Empty;
+
     private bool _showArchetype;
     private string _archetypeName = string.Empty;
     private string _archetypeChance = string.Empty;
@@ -90,7 +96,7 @@ public sealed partial class OverlayViewModel
 
         // Archetype names come from the meta in English; the label follows the interface language.
         var best = odds.Best;
-        ArchetypeName = ArchetypeTranslations.Current.Display(best.Key);
+        ArchetypeName = ArchetypeNames.Display(best.Key);
         ArchetypeChance = SharePercent(best.Chance);
         ArchetypeTier = OverlayTiers.Meta(best.WinRate, best.Games) ?? string.Empty;
         var winRate = Loc.F("Widgets.Archetype.WinRate", best.WinRate);
@@ -98,7 +104,7 @@ public sealed partial class OverlayViewModel
         ArchetypeNote = Loc.P("Widgets.Archetype.Seen", odds.SeenCards, odds.Source);
         Replace(nameof(ArchetypeAlternatives), odds.Archetypes, a => $"{a.Key}{a.Chance:0.00}{a.WinRate:0.000}{a.Games}", () => ArchetypeAlternatives = odds.Archetypes
             .Skip(1)
-            .Select(a => new ArchetypeRow(ArchetypeTranslations.Current.Display(a.Key), SharePercent(a.Chance), Math.Clamp(a.Chance, 0.02, 1), OverlayTiers.Meta(a.WinRate, a.Games) ?? string.Empty))
+            .Select(a => new ArchetypeRow(ArchetypeNames.Display(a.Key), SharePercent(a.Chance), Math.Clamp(a.Chance, 0.02, 1), OverlayTiers.Meta(a.WinRate, a.Games) ?? string.Empty))
             .ToList());
         Replace(nameof(LikelyCards), odds.Cards, c => $"{c.CardId}{c.Chance:0.00}", () => LikelyCards = odds.Cards
             .Select(c => new LikelyTile(c.CardId, c.Name, c.Cost, SharePercent(c.Chance)))

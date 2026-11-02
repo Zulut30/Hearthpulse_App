@@ -198,7 +198,7 @@ public sealed class MetaTierListTests : IDisposable
     [Fact]
     public void The_page_waits_with_loading_until_its_own_format_arrives()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         string? asked = null;
         vm.ConstructedMetaRequested += f => asked = f;
 
@@ -218,7 +218,7 @@ public sealed class MetaTierListTests : IDisposable
 
     private MainViewModel Shown(ConstructedMeta meta)
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         vm.ShowConstructedFormat("FT_STANDARD");
         vm.SetConstructedMeta(meta);
         return vm;

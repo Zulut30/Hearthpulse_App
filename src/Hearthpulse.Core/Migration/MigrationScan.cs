@@ -57,7 +57,7 @@ public static class MigrationScan
         IProgress<MigrationProgress>? progress = null, CancellationToken cancellationToken = default) => found switch
     {
         { ServerOnly: true } => MigrationResult.Failed(MigrationErrors.Missing),
-        { Source: MigrationSource.Hdt } => HdtImport.Import(found.Path, history, ReplayStore.Default, cards, WorkDir, progress, cancellationToken),
+        { Source: MigrationSource.Hdt } => HdtImport.Import(found.Path, history, history.Replays ?? new ReplayStore(AppPaths.Replays), cards, WorkDir, progress, cancellationToken),
         _ => FirestoneImport.Import(found.Path, history, cards, WorkDir, progress, cancellationToken),
     };
 }

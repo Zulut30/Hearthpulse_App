@@ -25,8 +25,6 @@ public sealed class ReplayStore(string directory)
 
     private int _oldFormatChecked;
 
-    public static ReplayStore Default { get; } = new(AppPaths.Replays);
-
     public string Directory { get; } = directory;
 
     public long MaxTotalBytes { get; init; } = MaxBytes;

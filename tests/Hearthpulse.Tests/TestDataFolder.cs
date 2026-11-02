@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Hosting;
 using Microsoft.Data.Sqlite;
 
 namespace Hearthpulse.Tests;
@@ -12,6 +13,11 @@ namespace Hearthpulse.Tests;
 internal static class TestDataFolder
 {
     public static string Path { get; private set; } = string.Empty;
+
+    /// <summary>The run's data folder with its replay stores, for view models that take one (built on first use).</summary>
+    public static AppData App => LazyApp.Value;
+
+    private static readonly Lazy<AppData> LazyApp = new(AppData.FromAppPaths);
 
     [ModuleInitializer]
     internal static void Initialize()

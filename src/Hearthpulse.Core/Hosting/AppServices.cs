@@ -26,12 +26,14 @@ public sealed class AppServices
     /// <param name="cards">The card data the host has loaded so far (empty until the cards are in).</param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The client is kept in Http and lives as long as the app.")]
     public AppServices(AppSettings settings, string version, Func<CardDb> cards)
-        : this(settings, CreateHttp(version), cards, AppPaths.Database)
+        : this(settings, CreateHttp(version), cards, AppPaths.Database, UsageGate.DefaultPath)
     {
     }
 
-    /// <summary>With a client and a history file of the test's own (no network, not the shared data folder's history).</summary>
-    internal AppServices(AppSettings settings, HttpClient http, Func<CardDb> cards, string historyPath)
+    /// <summary>
+    /// With a client, a history file and a usage record of the test's own (no network, not the shared data folder's).
+    /// </summary>
+    internal AppServices(AppSettings settings, HttpClient http, Func<CardDb> cards, string historyPath, string usagePath)
     {
         Settings = settings;
         Http = http;
@@ -39,7 +41,8 @@ public sealed class AppServices
         // The game and the cards are looked up while the host builds its windows, not after.
         Prefetch = StartupPrefetch.Start(settings, http);
 
-        History = new HistoryStore(historyPath) { Replays = ReplayStore.Default };
+        Data = AppData.FromAppPaths();
+        History = new HistoryStore(historyPath) { Replays = Data.Replays };
         Memory = new HearthstoneMemory();
         Session = new GameSession(History, Memory);
         MulliganGuide = new MulliganGuideSource(new HearthpulseData(Api)) { Rank = settings.MulliganRank };
@@ -54,7 +57,7 @@ public sealed class AppServices
         Uploader.BaseHero = id => cards().BaseHeroId(id);
         Account.Changed += Uploader.Kick;
         // Daily free use of the stats pool's numbers (plan 3.1); the host makes the session publish again on a decision.
-        Usage = new UsageGate(accountClient, Account, UsageGate.DefaultPath);
+        Usage = new UsageGate(accountClient, Account, usagePath);
         Session.Advisor.Usage = Usage;
         Session.GameFinished += _ => Usage.GameFinished();
     }
@@ -66,6 +69,9 @@ public sealed class AppServices
     public HearthpulseApi Api { get; }
 
     public StartupPrefetch Prefetch { get; }
+
+    /// <summary>The data folder and its replay stores.</summary>
+    public AppData Data { get; }
 
     public HistoryStore History { get; }
 

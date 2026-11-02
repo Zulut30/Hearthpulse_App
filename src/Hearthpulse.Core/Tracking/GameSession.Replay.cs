@@ -7,8 +7,8 @@ namespace Hearthpulse.Core.Tracking;
 /// <summary>The match replay of each finished game (<c>docs/match-replay.md</c>).</summary>
 public sealed partial class GameSession
 {
-    /// <summary>Where replays are saved; tests point it at a scratch folder.</summary>
-    internal ReplayStore Replays { get; set; } = ReplayStore.Default;
+    /// <summary>Where replays are saved: History's store (<see cref="HistoryStore.Replays"/>); tests point it at a scratch folder.</summary>
+    internal ReplayStore Replays { get; set; }
 
     private GameRecord SaveReplay(GameRecord record, GameState game)
     {

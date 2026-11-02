@@ -32,8 +32,6 @@ public sealed class ReplayLibrary(ReplayStore recent, string saved, string impor
 
     private readonly ConcurrentDictionary<(ReplayShelf, string, DateTime), (ReplayHeader?, bool)> _checked = new();
 
-    public static ReplayLibrary Default { get; } = new(ReplayStore.Default, AppPaths.SavedReplays, AppPaths.ImportedReplays);
-
     public ReplayStore Recent { get; } = recent;
 
     public ReplayStore Saved { get; } = new(saved) { AutoPrune = false, MaxTotalBytes = long.MaxValue, MaxTotalFiles = int.MaxValue };

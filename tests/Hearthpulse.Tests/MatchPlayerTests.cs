@@ -43,7 +43,7 @@ public sealed class MatchPlayerTests : IDisposable
     {
         Directory.CreateDirectory(_folder);
         clock = new Clock();
-        return new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(_folder, $"{Guid.NewGuid():N}.db")), new AppSettings()), clock.Delay);
+        return new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(_folder, $"{Guid.NewGuid():N}.db")), new AppSettings(), TestDataFolder.App), clock.Delay);
     }
 
     /// <summary>The Constructed game of <see cref="MatchTimelineTests.Events"/>: ten steps over the mulligan and three turns.</summary>

@@ -23,7 +23,7 @@ public sealed class MulliganRankViewModelTests : IDisposable
     public void Legend_is_the_default_and_a_picked_rank_is_saved_and_announced()
     {
         var settings = new AppSettings();
-        var vm = new MainViewModel(_history, settings);
+        var vm = new MainViewModel(_history, settings, TestDataFolder.App);
         var announced = 0;
         vm.MulliganRankChanged += () => announced++;
 
@@ -42,7 +42,7 @@ public sealed class MulliganRankViewModelTests : IDisposable
     [Fact]
     public void A_slice_lists_cards_kept_often_enough_best_first()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         var slice = new MulliganSlice("diamond_4to1", MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, 5000,
         [
             new SliceCard("A", 1, 900, 0.01, 600, 0.02, 300, 0.01),
@@ -59,7 +59,7 @@ public sealed class MulliganRankViewModelTests : IDisposable
     [Fact]
     public void The_page_shows_the_base_win_rate_of_the_slice_and_says_when_it_fell_back_or_has_none()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         var slice = new MulliganSlice("all", MulliganGuide.AnyCoin, MulliganGuide.AnyOpponent, 5000, [new SliceCard("B", 2, 900, 0.03, 700, 0.05, 300, 0.02)]);
 
         // The base the overlay uses too (RankSlice.Baseline), not the meta page's own win rate.

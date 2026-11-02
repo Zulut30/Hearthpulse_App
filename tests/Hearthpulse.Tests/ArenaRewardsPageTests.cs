@@ -44,7 +44,7 @@ public sealed class ArenaRewardsPageTests : IDisposable
     [Fact]
     public async Task The_editor_survives_a_rebuild_keeps_a_failed_save_and_closes_with_its_run()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         await Runs(vm, () => vm.RefreshAsync(), rows => rows.Count == 2);
 
         vm.EditArenaRewards.Execute(ArenaRunsScene.FinishedKey);
@@ -74,7 +74,7 @@ public sealed class ArenaRewardsPageTests : IDisposable
     [Fact]
     public async Task A_save_shows_the_rewards_and_gives_the_focus_back_to_the_chip()
     {
-        var vm = new MainViewModel(_history, new AppSettings());
+        var vm = new MainViewModel(_history, new AppSettings(), TestDataFolder.App);
         await Runs(vm, () => vm.RefreshAsync(), rows => rows.Count == 2);
 
         vm.EditArenaRewards.Execute(ArenaRunsScene.FinishedKey);

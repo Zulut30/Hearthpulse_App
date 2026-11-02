@@ -43,7 +43,7 @@ internal static class WindowBench
         }
 
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
-        var vm = new MainViewModel(history, settings);
+        var vm = new MainViewModel(history, settings, Hearthpulse.Core.Hosting.AppData.FromAppPaths());
         var main = WpfBench.OffScreen(new MainWindow(vm));
         main.Show();
         WpfBench.Pump();
@@ -120,7 +120,7 @@ internal static class WindowBench
         Quiet();
         var history = new HistoryStore(db);
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
-        var vm = new MainViewModel(history, settings);
+        var vm = new MainViewModel(history, settings, Hearthpulse.Core.Hosting.AppData.FromAppPaths());
         var main = WpfBench.OffScreen(new MainWindow(vm));
         main.Show();
         WpfBench.Pump();
