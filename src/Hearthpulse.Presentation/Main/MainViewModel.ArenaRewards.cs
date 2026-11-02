@@ -33,6 +33,7 @@ public sealed class ArenaRewardsEdit : Observable
     private string _tickets;
     private string _cards;
     private string _error = string.Empty;
+    private bool _focused;
 
     internal ArenaRewardsEdit(string key, string name, ArenaRewards? saved, Action<ArenaRewardsEdit, ArenaRewards?> save, Action cancel)
     {
@@ -95,6 +96,17 @@ public sealed class ArenaRewardsEdit : Observable
 
     internal void Failed() => Error = Loc.T("Stats.Arena.Rewards.SaveFailed");
 
+    /// <summary>
+    /// True the first time only: the view puts the focus in the first field when the editor opens, not again when the
+    /// run list is rebuilt under it (a game saved, the language changed) in the middle of typing.
+    /// </summary>
+    public bool TakeFocus()
+    {
+        var first = !_focused;
+        _focused = true;
+        return first;
+    }
+
     private void SetField(ref string field, string value)
     {
         if (Set(ref field, value ?? string.Empty))
@@ -132,6 +144,12 @@ public sealed class ArenaRewardsEdit : Observable
 public sealed partial class MainViewModel
 {
     private ArenaRewardsEdit? _arenaRewardsEdit;
+
+    /// <summary>The run whose chip gets the focus back once it is shown again (its editor closed), else null.</summary>
+    private string? _arenaFocusKey;
+
+    /// <summary>The same, after the rebuild a save starts (the chip then shows the new rewards).</summary>
+    private string? _arenaFocusAfterBuild;
     private RelayCommand? _editArenaRewards;
 
     /// <summary>Opens the rewards editor of the run whose key is the parameter (closing another one unsaved).</summary>
@@ -157,7 +175,30 @@ public sealed partial class MainViewModel
         return rows.Select(r => r with { Edit = r.Key == _arenaRewardsEdit?.Key ? _arenaRewardsEdit : null }).ToList();
     }
 
-    private void SaveArenaRewards(ArenaRewardsEdit edit, ArenaRewards? rewards)
+    /// <summary>True once for the run whose editor just closed: the view gives its chip the focus back.</summary>
+    public bool TakeArenaRewardsFocus(string key)
+    {
+        if (_arenaFocusKey != key)
+        {
+            return false;
+        }
+
+        _arenaFocusKey = null;
+        return true;
+    }
+
+    /// <summary>The run list a rebuild made: the open editor on its run, the focus back on a chip after a save.</summary>
+    private IReadOnlyList<ArenaRunRow> RebuiltArenaRuns(IReadOnlyList<ArenaRunRow> rows)
+    {
+        if (_arenaFocusAfterBuild is { } key)
+        {
+            (_arenaFocusKey, _arenaFocusAfterBuild) = (key, null);
+        }
+
+        return WithEditor(rows);
+    }
+
+    internal void SaveArenaRewards(ArenaRewardsEdit edit, ArenaRewards? rewards)
     {
         try
         {
@@ -170,12 +211,15 @@ public sealed partial class MainViewModel
             return;
         }
 
-        CloseArenaRewards();
+        _arenaRewardsEdit = null;
+        _arenaFocusAfterBuild = edit.Key;
+        ArenaRuns = WithEditor(ArenaRuns);
         RebuildArenaStats();
     }
 
     private void CloseArenaRewards()
     {
+        _arenaFocusKey = _arenaRewardsEdit?.Key;
         _arenaRewardsEdit = null;
         ArenaRuns = WithEditor(ArenaRuns);
     }

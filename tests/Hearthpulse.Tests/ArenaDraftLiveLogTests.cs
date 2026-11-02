@@ -13,7 +13,8 @@ public sealed class ArenaDraftLiveLogTests
     private static readonly CardDb Cards = CardDb.Parse("ruRU", new MemoryStream("""
         [
           {"id":"HERO_05c","dbfId":1,"name":"Сильвана Ветрокрылая","type":"HERO","cardClass":"HUNTER"},
-          {"id":"WW_379","dbfId":2,"name":"Флинт Огненная Рука","type":"MINION","rarity":"LEGENDARY","collectible":true}
+          {"id":"WW_379","dbfId":2,"name":"Флинт Огненная Рука","type":"MINION","rarity":"LEGENDARY","collectible":true},
+          {"id":"WORK_018","dbfId":3,"name":"Рабочая лошадка","type":"MINION","rarity":"COMMON","collectible":true}
         ]
         """u8.ToArray()));
 
@@ -84,6 +85,55 @@ public sealed class ArenaDraftLiveLogTests
 
         Assert.Equal(27, tracker.State.Cards.Count);
         Assert.Equal(2776251657, tracker.State.DeckId);
+    }
+
+    /// <summary>
+    /// Without the card data (offline first start, a failed load) the legendary's repeat is still one pick: the whole
+    /// log gives the client's 30 cards.
+    /// </summary>
+    [Fact]
+    public void Without_the_card_data_the_whole_log_still_gives_the_deck()
+    {
+        var tracker = new ArenaDraftTracker();
+        foreach (var line in Log())
+        {
+            tracker.Feed(line, CardDb.Empty);
+        }
+
+        Assert.Equal(30, tracker.State.Cards.Count);
+        Assert.Single(tracker.State.Cards, c => c == "WW_379");
+    }
+
+    /// <summary>A card whose pick came with a package (from the offer) and is logged again is one pick, legendary or not.</summary>
+    [Fact]
+    public void A_repeat_after_a_package_is_one_pick()
+    {
+        var tracker = new ArenaDraftTracker();
+        tracker.Feed("D 00:00:01.0 Client chooses: Сильвана Ветрокрылая (HERO_05c)", Cards);
+        tracker.Feed("D 00:00:02.0 Client chooses: Рабочая лошадка (WORK_018)", Cards);
+        tracker.AddPackage(["WW_808", "WW_411"]);
+        var picks = tracker.PickCount;
+        Assert.False(tracker.Feed("D 00:00:03.0 Client chooses: Рабочая лошадка (WORK_018)", Cards));
+
+        Assert.Equal(picks, tracker.PickCount);
+        Assert.Equal(["WORK_018", "WW_808", "WW_411"], tracker.State.Cards);
+    }
+
+    /// <summary>OnBegin again with the run's own deck id (back on the screen) keeps the run and its picks.</summary>
+    [Fact]
+    public void The_same_deck_begun_again_is_the_same_run()
+    {
+        var tracker = new ArenaDraftTracker();
+        tracker.Feed("D 00:00:00.0 DraftManager.OnBegin - Got new draft deck with ID: 5", Cards);
+        tracker.Feed("D 00:00:01.0 Client chooses: Сильвана Ветрокрылая (HERO_05c)", Cards);
+        tracker.Feed("D 00:00:02.0 Client chooses: Рабочая лошадка (WORK_018)", Cards);
+        tracker.Feed("D 00:01:00.0 DraftManager.OnBegin - Got new draft deck with ID: 5", Cards);
+        Assert.Equal(["WORK_018"], tracker.State.Cards);
+        Assert.Equal("HERO_05c", tracker.State.HeroCardId);
+
+        tracker.Feed("D 00:02:00.0 DraftManager.OnBegin - Got new draft deck with ID: 6", Cards);
+        Assert.Empty(tracker.State.Cards);
+        Assert.Equal(6, tracker.State.DeckId);
     }
 
     /// <summary>A common taken twice in a row is two picks; only a legendary's repeat is the same pick.</summary>

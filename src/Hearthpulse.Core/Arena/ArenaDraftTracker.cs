@@ -37,6 +37,9 @@ public sealed partial class ArenaDraftTracker
     private readonly List<string> _listed = [];
 
     private string? _lastPick;
+
+    /// <summary>The latest pick came with a package (<see cref="AddPackage"/>).</summary>
+    private bool _lastPickPackage;
     private string? _mode;
 
     public ArenaDraftState State { get; private set; } = ArenaDraftState.Empty;
@@ -80,9 +83,15 @@ public sealed partial class ArenaDraftTracker
 
         if (BeginRegex().Match(line) is { Success: true } begin)
         {
-            // A new draft deck: a new run, whose hero comes next.
+            // A new draft deck: a new run, whose hero comes next. The same deck again (back on the screen) is the same run.
+            _ = long.TryParse(begin.Groups["deck"].Value, CultureInfo.InvariantCulture, out var begun);
+            if (begun != 0 && begun == _deckId)
+            {
+                return false;
+            }
+
             NewRun(null);
-            _ = long.TryParse(begin.Groups["deck"].Value, CultureInfo.InvariantCulture, out _deckId);
+            _deckId = begun;
             return Publish();
         }
 
@@ -134,13 +143,17 @@ public sealed partial class ArenaDraftTracker
                     break;
                 default:
                     // A legendary taken with its package is logged twice in a row (the real log of 2026-10-28): one pick.
-                    if (id == _lastPick && cards?.Get(id)?.Rarity == "LEGENDARY")
+                    // Told by its rarity, by the package that came with the first line, or, without the card data, by
+                    // the repeat alone (a common taken twice in a row then counts once: one card short beats a package
+                    // counted twice).
+                    if (id == _lastPick && (_lastPickPackage || cards?.Get(id) is not { } known || known.Rarity == "LEGENDARY"))
                     {
                         return false;
                     }
 
                     _picked.Add(id);
                     _lastPick = id;
+                    _lastPickPackage = false;
                     break;
             }
 
@@ -174,6 +187,7 @@ public sealed partial class ArenaDraftTracker
         }
 
         _picked.AddRange(cardIds);
+        _lastPickPackage = true;
         return Publish();
     }
 
@@ -219,6 +233,7 @@ public sealed partial class ArenaDraftTracker
         _picked.Clear();
         _listed.Clear();
         _lastPick = null;
+        _lastPickPackage = false;
     }
 
     private void Chose(string? id)

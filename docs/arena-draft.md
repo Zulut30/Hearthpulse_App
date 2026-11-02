@@ -81,11 +81,13 @@ Backlog A2 (data and card scores), A1 (draft helper on the overlay), W2 (communi
   after it), `DraftManager.OnChoicesAndContents - Draft deck contains card {0}`, `Client chooses: {0} ({1})` (a pick)
   and `SetDraftMode - ` with the modes `NO_ACTIVE_DRAFT` (clears), `DRAFTING`, `ACTIVE_DRAFT_DECK`, `IN_REWARDS`,
   `REDRAFTING`, and `DraftManager.OnBegin - Got new draft deck with ID: {0}` (a new run and its deck id, before the
-  hero). **Seen in a real Arena.log** (owner, 2026-10-28, Underground, fixture
+  hero; the same id again, back on the screen, keeps the run). **Seen in a real Arena.log** (owner, 2026-10-28, Underground, fixture
   `tests/Hearthpulse.Tests/Fixtures/Arena/arena-2026-10-28.log`, `ArenaDraftLiveLogTests`; the truth is the deck code
   of Decks.log's "Starting Arena Game With Deck"):
   - a legendary taken with its package is logged twice in a row (`Client chooses` of the same card): one pick, so the
-    card and its package are not counted twice (a common taken twice in a row still is two picks);
+    card and its package are not counted twice. Told by the card's rarity, by the package the first line brought, or,
+    without the card data, by the repeat alone (then a common taken twice in a row counts once: one card short beats a
+    package counted twice); with the card data a common taken twice in a row is two picks;
   - the client's deck list (`Draft deck contains card`) is not always whole: 27 of 30 cards, copies missing. It adds to
     the picks card by card (the larger count) instead of replacing them; without picks in this session (the app opened
     after the draft) it is the deck as listed;

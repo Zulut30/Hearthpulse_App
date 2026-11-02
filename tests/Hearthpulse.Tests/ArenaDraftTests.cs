@@ -449,6 +449,29 @@ public sealed class ArenaDraftTests : IDisposable
         Assert.True(view.Underground);
     }
 
+    /// <summary>
+    /// AC2 (1.6): the client logs a legendary taken with its package twice in a row (the real log of 2026-10-28). One
+    /// pick: the card and its package come once, whatever the card data knows about the card.
+    /// </summary>
+    [Fact]
+    public void A_legendary_logged_twice_in_a_row_adds_its_package_once()
+    {
+        using var draft = Session();
+        IReadOnlyList<IReadOnlyList<string>> packages = [[], ["BE_085", "TIME_063"], []];
+        draft.Session.SetDraftOffer(new ArenaDraftOffer(["BE_193", "BE_090", "VAC_301"], true, packages));
+        draft.Tick();
+        var before = draft.Session.Current.ArenaDraft!.Picks;
+
+        draft.Session.OnLines("Arena.log", ["D 21:01:00.0000000 Client chooses: Big Warlock Card (BE_090)"], catchingUp: false);
+        draft.Tick();
+        draft.Session.OnLines("Arena.log", ["D 21:01:06.0000000 Client chooses: Big Warlock Card (BE_090)"], catchingUp: false);
+        draft.Tick();
+
+        var view = draft.Session.Current.ArenaDraft!;
+        Assert.Equal(before + 3, view.Picks);
+        Assert.Single(view.Deck, c => c.CardId == "TIME_063");
+    }
+
     [Fact]
     public void With_the_helper_off_the_draft_screen_is_not_shown()
     {

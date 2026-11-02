@@ -18,5 +18,11 @@ My Stats → Arena: each run row has a rewards chip, and the period's tiles end 
   leaves the period. A failed save keeps the editor open with an error.
 - **Tile:** the period's gold, then the other rewards ("gold · 340 dust · 6 packs"); "—" while no run of the period
   has rewards. The Arena tiles are in rows of three (six tiles).
+- **Period:** runs are made from every Arena game, then the ones with a game in the period are shown whole, so a run
+  across the period's start has the same key (and rewards) in every period.
+- **Focus:** the editor puts the focus in "Gold" once when it opens (not again when the list is rebuilt under it);
+  closing or saving gives it back to the run's chip. The row being edited keeps the `Row` fill.
+- **Render scene** writes the two made-up runs only when `HEARTHPULSE_DATA` is set (render.py's copy); without it
+  the rewards scene is skipped, so the player's own history never gets them.
 - Render scenes: `main-arena-deck.png` (two made-up runs, one with rewards: `Arena/ArenaRunsScene.cs`) and
   `main-arena-rewards.png` (its editor open).

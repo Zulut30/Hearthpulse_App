@@ -536,8 +536,14 @@ public sealed partial class MainViewModel
 
     private Action BuildArenaStats(IReadOnlyList<GameRecord> all, StatsPeriod period, CardDb cards, Core.Arena.ArenaMeta? arena)
     {
-        var games = StatsFilter.Apply(all.Where(StatsFilter.IsArena), period, DateTime.Now);
-        var runs = ArenaStats.Runs(games);
+        var now = DateTime.Now;
+        var games = StatsFilter.Apply(all.Where(StatsFilter.IsArena), period, now);
+        // Runs from every Arena game, then the ones with a game in the period: a run across the period's start stays
+        // whole, so its key (by its first game when it has no deck id) and its rewards are the same in every period.
+        var start = StatsFilter.Start(period, now);
+        var runs = ArenaStats.Runs(StatsFilter.Apply(all.Where(StatsFilter.IsArena), StatsPeriod.All, now))
+            .Where(r => start is null || r.Ended >= start)
+            .ToList();
         var summary = ArenaStats.Summary(runs);
         var rewards = _history.ArenaRewards();
         IReadOnlyList<StatTile> tiles =
@@ -589,7 +595,7 @@ public sealed partial class MainViewModel
         return () =>
         {
             ArenaStatTiles = tiles;
-            ArenaRuns = WithEditor(runRows);
+            ArenaRuns = RebuiltArenaRuns(runRows);
             ArenaClasses = ArenaClassesSort.Apply(StatGroupRow.Marked(classes), (r, c) => r.SortValue(c));
             ArenaOpponents = ArenaOpponentsSort.Apply(StatGroupRow.Marked(opponents), (r, c) => r.SortValue(c));
             applyDeck(this);

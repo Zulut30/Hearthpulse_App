@@ -183,7 +183,17 @@
                     <ItemsControl ItemsSource="{Binding ArenaRuns}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:ArenaRunRow}">
-                                <Border Style="{StaticResource StatsRow}">
+                                <Border>
+                                    <!-- The row being edited keeps the Row fill (no hover change) -->
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource StatsRow}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Editing}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource Row}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
@@ -213,7 +223,7 @@
                                         </StackPanel>
                                         <!-- The run's rewards (entered by the player), or "+ Add rewards"; hidden while its editor is open -->
                                         <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,6,0,0" Style="{StaticResource RewardsChip}"
-                                                Command="{Binding EditRewards}" CommandParameter="{Binding Key}" ToolTip="{Binding RewardsTip}"
+                                                Command="{Binding EditRewards}" CommandParameter="{Binding Key}" ToolTip="{Binding RewardsTip}" Loaded="ChipLoaded"
                                                 AutomationProperties.Name="{Binding RewardsTip}" Visibility="{Binding Editing, Converter={StaticResource Vis}, ConverterParameter=!}">
                                             <WrapPanel>
                                                 <ItemsControl ItemsSource="{Binding RewardParts}" Focusable="False">

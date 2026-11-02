@@ -120,6 +120,10 @@
         <Style Selector="Button.rewardsToggle:pointerover Border.rewardsChip TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Text}" />
         </Style>
+        <!-- The row being edited keeps the Row fill (no hover change) -->
+        <Style Selector="Border.row.editing, Border.row.editing:pointerover">
+            <Setter Property="Background" Value="{StaticResource Row}" />
+        </Style>
     </UserControl.Styles>
     <StackPanel>
         <Grid Classes="statsHead" Margin="0,0,0,14" RowDefinitions="Auto,Auto">
@@ -150,7 +154,7 @@
                     <ItemsControl ItemsSource="{Binding ArenaRuns}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:ArenaRunRow">
-                                <Border Classes="row" Padding="10,7" Margin="-10,0,-10,2">
+                                <Border Classes="row" Classes.editing="{Binding Editing}" Padding="10,7" Margin="-10,0,-10,2">
                                     <Grid RowDefinitions="Auto,Auto,Auto">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
@@ -175,7 +179,7 @@
                                         </StackPanel>
                                         <!-- The run's rewards (entered by the player), or "+ Add rewards"; hidden while its editor is open -->
                                         <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,6,0,0" Classes="bare rewardsToggle" HorizontalAlignment="Left"
-                                                Command="{Binding EditRewards}" CommandParameter="{Binding Key}" ToolTip.Tip="{Binding RewardsTip}"
+                                                Command="{Binding EditRewards}" CommandParameter="{Binding Key}" ToolTip.Tip="{Binding RewardsTip}" Loaded="ChipLoaded"
                                                 AutomationProperties.Name="{Binding RewardsTip}" IsVisible="{Binding !Editing}">
                                             <Border Classes="rewardsChip">
                                                 <WrapPanel>
