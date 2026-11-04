@@ -45,6 +45,13 @@ public partial class App
         _mainViewModel.Busy = string.Empty;
         try
         {
+            if (RenderOnlyBrawl)
+            {
+                await RenderBrawlAsync(folder);
+                Quit();
+                return;
+            }
+
             foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" })
             {
                 _main.ShowPage(page);
@@ -52,6 +59,8 @@ public partial class App
                 _main.UpdateLayout();
                 Save(_main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
             }
+
+            await RenderBrawlAsync(folder);
 
             await RenderSettingsTabsAsync(folder);
 

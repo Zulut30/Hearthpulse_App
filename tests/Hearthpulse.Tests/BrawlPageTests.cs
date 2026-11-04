@@ -90,6 +90,23 @@ public sealed class BrawlPageTests
     }
 
     [Fact]
+    public async Task Numbers_over_a_week_old_say_when_they_were_fetched()
+    {
+        // Review m1: the server has not answered for a while; "this week's" would be wrong.
+        Loc.Instance.SetLanguage(Loc.English);
+        var vm = new MainViewModel(HistoryStore.InMemory(), new AppSettings(), TestDataFolder.App);
+        var fresh = new BrawlMeta([new BrawlClassStat("PRIEST", 0.56, 0.12, 3540)], 3540, 0) { FetchedAt = DateTime.UtcNow.AddDays(-1) };
+        vm.SetBrawlMeta(fresh);
+        await Until(() => vm.BrawlClasses.Count == 1);
+        Assert.Equal(Loc.T("Brawl.Classes.Note"), vm.BrawlClassesNote);
+
+        var fetched = DateTime.UtcNow.AddDays(-8);
+        vm.SetBrawlMeta(fresh with { FetchedAt = fetched });
+        await Until(() => vm.BrawlClassesNote != Loc.T("Brawl.Classes.Note"));
+        Assert.Equal(Loc.F("Brawl.Classes.NoteStale", fetched.ToLocalTime()), vm.BrawlClassesNote);
+    }
+
+    [Fact]
     public async Task Community_empty_states_loading_unavailable_and_no_numbers()
     {
         Loc.Instance.SetLanguage(Loc.English);
@@ -168,7 +185,8 @@ public sealed class BrawlPageTests
         Assert.True(store.Add(Game("before-column", null, Monday.AddHours(1), "WARLOCK")));
         await vm.RefreshAsync();
         await Until(() => vm.BrawlMineOld);
-        Assert.True(vm.BrawlMineEmpty);
+        // Review m2: only the "recorded before this version" line, not the "no games yet" state as well.
+        Assert.False(vm.BrawlMineEmpty);
         Assert.Equal(string.Empty, vm.BrawlMineNote);
     }
 }

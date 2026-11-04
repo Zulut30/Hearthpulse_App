@@ -32,6 +32,7 @@ public sealed partial class MainViewModel
     private IReadOnlyList<StatGroupRow> _brawlMine = [];
     private string _brawlMineNote = string.Empty;
     private bool _brawlMineOld;
+    private string _brawlClassesNote = Loc.T("Brawl.Classes.Note");
     private TableSort? _brawlClassesSort;
     private TableSort? _brawlMineSort;
 
@@ -82,14 +83,30 @@ public sealed partial class MainViewModel
         }
     }
 
-    /// <summary>No game of a Brawl with a known scenario.</summary>
-    public bool BrawlMineEmpty => _brawlMine.Count == 0;
+    /// <summary>No Brawl game at all (with only games from before the scenario was kept, <see cref="BrawlMineOld"/> says why instead).</summary>
+    public bool BrawlMineEmpty => _brawlMine.Count == 0 && !_brawlMineOld;
 
     /// <summary>"The Tavern Brawl you played last: games since October 28."; empty without games.</summary>
     public string BrawlMineNote { get => _brawlMineNote; private set => Set(ref _brawlMineNote, value); }
 
     /// <summary>Brawl games are kept, but all from before the scenario was recorded: the empty state says so.</summary>
-    public bool BrawlMineOld { get => _brawlMineOld; private set => Set(ref _brawlMineOld, value); }
+    public bool BrawlMineOld
+    {
+        get => _brawlMineOld;
+        private set
+        {
+            if (Set(ref _brawlMineOld, value))
+            {
+                Raise(nameof(BrawlMineEmpty));
+            }
+        }
+    }
+
+    /// <summary>
+    /// The community card's note: "this week's Brawl", or, when the numbers are over a week old (the server has not
+    /// answered since), when they were fetched instead.
+    /// </summary>
+    public string BrawlClassesNote { get => _brawlClassesNote; private set => Set(ref _brawlClassesNote, value); }
 
     /// <summary>
     /// The Brawl numbers the host loaded. <see cref="BrawlMeta.Empty"/> (neither the server nor the cache had any) counts
@@ -141,6 +158,7 @@ public sealed partial class MainViewModel
             BrawlClasses = BrawlClassesSort.Apply(StatGroupRow.Marked(built.Classes), (r, c) => r.SortValue(c));
             BrawlUnclassed = built.Unclassed;
             BrawlSource = built.Source;
+            BrawlClassesNote = built.Note;
             BrawlMine = BrawlMineSort.Apply(StatGroupRow.Marked(built.Mine), (r, c) => r.SortValue(c));
             BrawlMineNote = built.MineNote;
             BrawlMineOld = built.MineOld;
@@ -152,7 +170,10 @@ public sealed partial class MainViewModel
         }
     }
 
-    private sealed record BrawlBuilt(List<StatGroupRow> Classes, string Unclassed, string Source, List<StatGroupRow> Mine, string MineNote, bool MineOld);
+    private sealed record BrawlBuilt(List<StatGroupRow> Classes, string Unclassed, string Source, string Note, List<StatGroupRow> Mine, string MineNote, bool MineOld);
+
+    /// <summary>Numbers older than this are not "this week's" any more.</summary>
+    internal static readonly TimeSpan BrawlStaleAfter = TimeSpan.FromDays(7);
 
     private static BrawlBuilt BuildBrawl(IReadOnlyList<GameRecord> all, BrawlMeta? meta)
     {
@@ -169,11 +190,14 @@ public sealed partial class MainViewModel
             .ToList();
         var unclassed = meta is { OtherGames: > 0 } ? Loc.F("Brawl.Classes.Unclassed", Loc.P("Stats.Games", meta.OtherGames)) : string.Empty;
         var source = meta is { TotalGames: > 0 } ? HearthpulseData.Attribution + " · " + Loc.P("Stats.Games", meta.TotalGames) : string.Empty;
+        var note = meta?.FetchedAt is { } fetched && DateTime.UtcNow - fetched > BrawlStaleAfter
+            ? Loc.F("Brawl.Classes.NoteStale", fetched.ToLocalTime())
+            : Loc.T("Brawl.Classes.Note");
 
         var latest = BrawlStats.LatestBrawl(all);
         var mine = ConstructedStats.ByPlayerClass(latest).Select(g => Group(g, ClassHero(g.Key), OverlayViewModel.ClassName(g.Key))).ToList();
-        var note = latest.Count > 0 ? Loc.F("Brawl.Mine.Note", latest.Min(g => g.StartedAt)) : string.Empty;
-        var old = latest.Count == 0 && all.Any(g => g.Mode == "Brawl" && !g.IsAbandoned);
-        return new BrawlBuilt(classes, unclassed, source, mine, note, old);
+        var mineNote = latest.Count > 0 ? Loc.F("Brawl.Mine.Note", latest.Min(g => g.StartedAt)) : string.Empty;
+        var old = latest.Count == 0 && all.Any(g => g.Mode == "Brawl" && g.GameType == "GT_TAVERNBRAWL" && !g.IsAbandoned);
+        return new BrawlBuilt(classes, unclassed, source, note, mine, mineNote, old);
     }
 }

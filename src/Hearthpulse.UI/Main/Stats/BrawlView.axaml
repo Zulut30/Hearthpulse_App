@@ -23,7 +23,7 @@
         <Border Classes="card statsLeft" VerticalAlignment="Top">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Brawl.Classes}" Icon="&#xF0127;" Size="13" Margin="0,0,0,10" />
-                <TextBlock Text="{i:Loc Brawl.Classes.Note}" Classes="caption cardNote" />
+                <TextBlock Text="{Binding BrawlClassesNote}" Classes="caption cardNote" />
                 <ContentControl Content="{i:Loc Stats.Table.Class}" Tag="{Binding BrawlClassesSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}"
                                 IsVisible="{Binding BrawlClasses, Converter={StaticResource Truthy}}" />
                 <ItemsControl ItemsSource="{Binding BrawlClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />

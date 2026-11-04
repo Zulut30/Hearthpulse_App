@@ -15,8 +15,11 @@ Code: Core `Stats/BrawlStats.cs` (summing archetypes into classes, the latest Br
   HSGuru (`docs/localization.md`).
 - HSGuru splits the Brawl into archetypes. Some are just a class ("Priest"), some a name with a class ("C'Thun Priest",
   "STD Zoolock"): `ArchetypeNames.ClassOf` gives the class. A class's games are the sum of its archetypes' games, its
-  win rate the games-weighted average, its share the sum of their popularity. An archetype whose class can't be told is
-  left out of the table; its games are counted in the line "Not in the table: N games…" so they are not lost silently.
+  win rate the games-weighted average, its share the sum of their popularity. An archetype whose class can't be told
+  (or that comes without a name or a win rate) is left out of the table; its games are counted in the line "Not in the
+  table: N games…" so they are not lost silently.
+- The card's note says "this week's Brawl"; when the numbers are over 7 days old (the server has not answered since,
+  the cache file's time is `BrawlMeta.FetchedAt`), it says when they were fetched instead.
 - Rows: class portrait, name, "N games · X % of all games", win rate to one decimal (large samples), best/worst marks
   from 5 games. The Record column stays empty (the community has no W–L, as on the Arena page). Strongest first; the
   column heads sort.
@@ -28,9 +31,11 @@ Code: Core `Stats/BrawlStats.cs` (summing archetypes into classes, the latest Br
 
 ## Your games in this Tavern Brawl
 
-- "This Brawl" is the scenario of the Brawl played last: History column `scenario_id` (the game's `ScenarioID` from
-  Power.log, `GameRecord.ScenarioId`) of the newest Brawl game; every game of that scenario counts, abandoned games
-  don't. `BrawlStats.LatestBrawl`. A date of the week change is not used (Blizzard's changeover moves).
+- "This Brawl" is the scenario of the Tavern Brawl played last (`GT_TAVERNBRAWL` only: friendly and other Brawl modes
+  don't pick it): History column `scenario_id` (the game's `ScenarioID` from Power.log, `GameRecord.ScenarioId`) of
+  the newest such game, and the unbroken run of games before it with the same scenario. A Brawl that comes back weeks
+  later under the same id starts a run of its own; abandoned games don't count. `BrawlStats.LatestBrawl`. A date of
+  the week change is not used (Blizzard's changeover moves).
 - Games recorded before the column existed have no scenario (NULL) and never count; when only such games exist the
   empty state says so.
 - Rows per own class: games, W–L, win rate (whole percent), as in My Stats; most played first. The note above the table
@@ -48,5 +53,4 @@ numbers are never limited, the own table is a plain count).
 ## Not in scope
 
 Brawl decks (`v1/hsguru/brawl/decks`), archetypes inside a class, rank or coin filters, the Brawl's name (the log has
-none and the scenario id names nothing), in-game hints on the overlay, the time of the last update in the source line
-(the Brawl answer carries no fetch time yet).
+none and the scenario id names nothing), in-game hints on the overlay.

@@ -22,7 +22,7 @@
         <Border Style="{StaticResource Card}" VerticalAlignment="Top">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Brawl.Classes}" Icon="&#xF0127;" Size="13" Margin="0,0,0,10" />
-                <TextBlock Text="{i:Loc Brawl.Classes.Note}" Style="{StaticResource CardNote}" />
+                <TextBlock Text="{Binding BrawlClassesNote}" Style="{StaticResource CardNote}" />
                 <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding BrawlClassesSort}" Visibility="{Binding BrawlClasses, Converter={StaticResource Vis}}" />
                 <ItemsControl ItemsSource="{Binding BrawlClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                 <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF051F;" Content="{i:Loc Arena.Page.CommunityLoading}"

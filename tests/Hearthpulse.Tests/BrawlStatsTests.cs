@@ -34,7 +34,8 @@ public sealed class BrawlStatsTests
         Assert.Equal(4000, priest.Games);
         Assert.Equal((0.60 * 1000 + 0.70 * 3000) / 4000, priest.WinRate, 6);
         Assert.Equal(0.40, priest.Popularity, 6);
-        Assert.Equal(300, meta.OtherGames);
+        // The unclassed archetype, the nameless one and the one without a win rate.
+        Assert.Equal(320, meta.OtherGames);
         Assert.Equal(10000, meta.TotalGames);
     }
 
@@ -83,11 +84,44 @@ public sealed class BrawlStatsTests
     }
 
     [Fact]
+    public void A_brawl_that_comes_back_later_counts_only_its_own_run()
+    {
+        // Review M1: 3002, then 3003, then 3002 again weeks later: only the last run of 3002.
+        var week = new DateTime(2026, 10, 5, 18, 0, 0, DateTimeKind.Utc);
+        GameRecord[] games =
+        [
+            Brawl("a1", 3002, week, "PRIEST"),
+            Brawl("a2", 3002, week.AddHours(1), "PRIEST"),
+            Brawl("b1", 3003, week.AddDays(7), "MAGE"),
+            Brawl("c1", 3002, week.AddDays(21), "ROGUE"),
+            Brawl("c2", 3002, week.AddDays(21).AddHours(1), "ROGUE", "Loss"),
+        ];
+
+        Assert.Equal(["c1", "c2"], BrawlStats.LatestBrawl(games).Select(g => g.Key).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void Only_the_tavern_brawl_picks_the_scenario()
+    {
+        // Review m4: a friendly or another Brawl mode played later does not take over the table.
+        var day = new DateTime(2026, 11, 2, 18, 0, 0, DateTimeKind.Utc);
+        GameRecord[] games =
+        [
+            Brawl("t1", 3002, day, "PRIEST"),
+            Brawl("friend", 9001, day.AddHours(1), "MAGE") with { GameType = "GT_FSG_BRAWL_VS_FRIEND" },
+        ];
+
+        Assert.Equal(["t1"], BrawlStats.LatestBrawl(games).Select(g => g.Key));
+    }
+
+    [Fact]
     public void A_scenario_found_later_fills_the_saved_game()
     {
         var store = HistoryStore.InMemory();
         var started = new DateTime(2026, 11, 2, 18, 0, 0, DateTimeKind.Utc);
         Assert.True(store.Add(Brawl("g", null, started, "PRIEST")));
+        var old = Assert.Single(store.Recent(10, "Brawl"));
+        Assert.Null(old.ScenarioId);
         Assert.True(store.FillMissingFields(Brawl("g", 3003, started, "PRIEST")));
         Assert.Equal(3003, Assert.Single(store.Recent(10, "Brawl")).ScenarioId);
         Assert.Empty(BrawlStats.LatestBrawl([]));
