@@ -17,6 +17,12 @@
     <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
   </PropertyGroup>
 
+  <!-- Opt-in edit-compile loop (tools/dev/check.ps1 -Fast sets HEARTHPULSE_FAST=true): no analyzers, so a build is
+       quicker but misses their warnings. Never in strict mode: CI and the default check keep every analyzer. -->
+  <PropertyGroup Condition="'$(HEARTHPULSE_FAST)' == 'true' and '$(HEARTHPULSE_STRICT)' != 'true'">
+    <RunAnalyzers>false</RunAnalyzers>
+  </PropertyGroup>
+
   <!-- Code analyzers for every project (build-time only: PrivateAssets keeps them out of the published apps). Which rules
        are warnings and why the rest are off: .editorconfig; tests/* and tools/* get the soft set there (ADR 0003). -->
   <ItemGroup>

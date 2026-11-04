@@ -2,11 +2,19 @@
 # build-mode none analyses the sources without building them, but still restores the NuGet dependencies with the .NET
 # SDK, hence setup-dotnet. EnableWindowsTargeting lets that restore take the WPF app (net10.0-windows) on Linux, as
 # installer/windows/build.sh does. Results: the repository's Security tab -> Code scanning.
+# A push that changes no C# source or project file (docs, skills, scripts, XAML) has nothing new to analyse.
 name: CodeQL
 
 on:
   push:
     branches: [main]
+    paths:
+      - '**/*.cs'
+      - '**/*.csproj'
+      - '**/*.props'
+      - '**/*.targets'
+      - '**/*.projitems'
+      - '.github/workflows/codeql.yml'
   schedule:
     - cron: '17 3 * * 1'
   workflow_dispatch:
