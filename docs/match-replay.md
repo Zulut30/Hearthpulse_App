@@ -67,7 +67,11 @@ rule:
   slot, `PLAYER_ID`; Bob has none), hero powers, trinkets and board in play. They leave view at the combat's end; the
   page keeps no "last known board" between combats.
 - **No hand but ours, no other player's tavern**; no secret but our quest; nothing set aside except the options of our
-  own choices, as card ids on the `C` line. Cards of any other controller (a Duos partner) are not written.
+  own choices, as card ids on the `C` line.
+- **Duos: our partner's table only while it fights** (format 5): the partner is the other player with our
+  `BACON_DUO_TEAM_ID`; their hero and board in play during a combat are side `P` and leave view at the combat's end like
+  the opponent's. Their tavern, hand and choices are never written (not on our screen). Cards of any other controller
+  are not written.
 - **No names**: no player name, BattleTag, account id, rating or MMR of anybody (the bg-mmr rule); the leaderboard is
   hero card ids with place, health, armor and tavern tier, as the game shows them. The file's summary has our hero,
   place and rating (`ReplaySummary`), never a name.
@@ -93,6 +97,9 @@ rule:
   file's date). A log import trims once at the end. A deleted file just means "no replay".
 - Format 1 (`HPR1`, with deck card ids in the events) is never read: such a file is deleted when it is opened or saved
   over, and the first trim of a session deletes every one left (plus temp files a crash left behind).
+- Format 5 (`HPR5`) is format 4 plus side `P` (our Duos partner's table in combat). It is written only for a file
+  with such a line, so every other file stays `HPR4` and older readers keep reading it; the import accepts `P` only in a
+  version 5 file.
 - Format 2 (`HPR2`, events only) is still read: its games show as seen, without later reveals. Format 3 (`HPR3`) is
   read too: its Battlegrounds games have rounds and lobby but no steps (they cannot be rebuilt without the log). A log
   import of the same game replaces either with format 4 (`ReplayStore.Save` overwrites any file that is not of the
@@ -177,7 +184,7 @@ foreign file can start from it.
 | `C kind source opt,opt,..` | Our choice, written at the pick with the options as they were then (a hero reroll changes one): `HERO`, `DISCOVER`, `TRINKET`, `QUEST`; `source` a card id or `-`; 1-16 option card ids. Step (the hero choice opens the game). A choice the log never shows picked (the turn ran out) is written without `c` when the next choice comes, the combat starts or the game ends |
 | `c card` | Our pick, one of the options of the `C` before it (several lines for several picks) |
 | `R place` | The game is over for us: our hero's leaderboard place when it ended (`0` when the game gave none). Step |
-| `E n side zone pos card type [TAG=v ...]` | Card `n` is shown at `zone` slot `pos` (`0` for a hero, a hero power, a trinket, a card just put in hand). `side` + `zone` + `type`: `L PLAY` `HERO HERO_POWER MINION BATTLEGROUND_TRINKET BATTLEGROUND_QUEST_REWARD`; `L HAND` `MINION BATTLEGROUND_SPELL SPELL`; `L SECRET` `SPELL` (our quest); `B PLAY` (Bob's offer) `MINION BATTLEGROUND_SPELL SPELL`; `O PLAY` (the combat opponent) the types of `L PLAY`. Nothing else. Tags from `ATK HEALTH DAMAGE ARMOR PREMIUM TAUNT DIVINE_SHIELD REBORN POISONOUS VENOMOUS WINDFURY MEGA_WINDFURY STEALTH FROZEN TECH_LEVEL`, written when not 0 |
+| `E n side zone pos card type [TAG=v ...]` | Card `n` is shown at `zone` slot `pos` (`0` for a hero, a hero power, a trinket, a card just put in hand). `side` + `zone` + `type`: `L PLAY` `HERO HERO_POWER MINION BATTLEGROUND_TRINKET BATTLEGROUND_QUEST_REWARD`; `L HAND` `MINION BATTLEGROUND_SPELL SPELL`; `L SECRET` `SPELL` (our quest); `B PLAY` (Bob's offer) `MINION BATTLEGROUND_SPELL SPELL`; `O PLAY` (the combat opponent) the types of `L PLAY`; `P PLAY` (our Duos partner's table in combat, format 5) the types of `L PLAY`. Nothing else. Tags from `ATK HEALTH DAMAGE ARMOR PREMIUM TAUNT DIVINE_SHIELD REBORN POISONOUS VENOMOUS WINDFURY MEGA_WINDFURY STEALTH FROZEN TECH_LEVEL`, written when not 0 |
 | `X n` | Card `n` left view (sold, refreshed away, removed after a fight) |
 | `Y n` | Card `n` died (from play to the graveyard): shown dying in this step, gone after it |
 | `Z n pos` | Card `n` moved to slot `pos` |
@@ -186,7 +193,8 @@ foreign file can start from it.
 | `L slot side hero place health armor tier` | A leaderboard row changed: `slot` = the game's player slot, `side` `L` ours or `-`, the hero card shown, place (`0` before it is known), health left (`0` for a dead hero, never negative), armor, tavern tier. The rows before `f` and `R` are the ones of that moment |
 
 Rules a reader (and the import sanitizer) can check: `B` cards never appear between `F` and `f`; `O` cards only there
-(all of them leave view by the next `T`); `HAND` and `SECRET` only on side `L`; a `V`/`Z`/`X`/`Y` line only for a card
+(all of them leave view by the next `T`); `P` cards only there and only in a format 5 file (they leave view by the next
+`T` too); `HAND` and `SECRET` only on side `L`; a `V`/`Z`/`X`/`Y` line only for a card
 shown. Steps: a tavern action is one top-level block of ours (`TB_BaconShop_DragBuy(_Spell)` buy, `TB_BaconShop_DragSell`
 sell, `TB_BaconShop_8p_Reroll_Button` refresh, `TB_BaconShopTechUp0N_Button` upgrade, `TB_BaconShopLockAll_Button`
 freeze, a PLAY from our hand, a hero power, a PLAY of our minion on the table (its activated power: `USE`),
@@ -330,8 +338,9 @@ playback speeds, a library of replays.
 Known limits: Battlegrounds games saved before format 4 keep rounds, not a step-by-step replay; the opponent's rank
 shows only when the client's memory was read during the game (live, not log imports); a reconnect's replay starts at
 the reconnect; games played before this feature have no replay. Battlegrounds: the combat is the server's (GameState
-lines, the whole fight within a second), not the client's animation; in Duos only our board and the opponent's are
-written (the partner's board in combat is not) and no real Duos log was checked; the result and damage of a combat come
+lines, the whole fight within a second), not the client's animation; Duos (our partner's table in combat, the local
+player told from the partner by the tavern's drag targets) is built and tested on synthetic lines only: **no real Duos
+log was checked**; the result and damage of a combat come
 from the hero attack after the fight (none: a tie, unless our hero lost health otherwise); a recording that starts
 during a combat would hide an opponent's minion frozen at that moment (it is taken for Bob's frozen offer).
 The Rounds tab, History and My Stats take a combat's result and damage from the same hero attack: against the ghost of

@@ -8,7 +8,8 @@ description: Use when Hearthpulse code talks to anything outside the machine or 
 Endpoint-by-endpoint detail: [reference/endpoints.md](reference/endpoints.md). Field-level notes on the data API:
 [hearthstone-context reference/kolodahearthstone-api.md](../hearthstone-context/reference/kolodahearthstone-api.md).
 Before adding a new data API call, check that reference first: it lists what exists but the app does not call yet
-(matchup matrix, BG hero detail and trinkets, leaderboards, balance radar, streamers, Brawl, esports) and which answers
+(matchup matrix, BG hero detail and trinkets, leaderboards, balance radar, streamers, Brawl decks, esports; Brawl meta is
+called since stage 4) and which answers
 are premium-sourced. HSReplay per-deck mulligan is a legal Blocker
 (`reference/reviews/LEGAL-HeartLens-card-choices.md`): do not call it. HSReplay card choices are under the same Blocker,
 but the owner accepted that risk on 2026-10-27: the Discover pick hint reads `v1/hsreplay/card-choices`.

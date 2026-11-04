@@ -90,7 +90,7 @@ public sealed partial class LocBindingTests
             // Main/MainLook.axaml is included: the gold rule under each page title takes its size from there.
             var all = view.GetLogicalDescendants().OfType<Hearthpulse.UI.Controls.Wave>().Where(w => w.Classes.Contains("pageRule")).ToList();
             var rules = all.Where(w => w.FindLogicalAncestorOfType<Hearthpulse.UI.Main.Match.MatchView>() is null).ToList();
-            Assert.Equal(6, rules.Count);
+            Assert.Equal(7, rules.Count);
             // The match page (inside History) has its own rule under the game's title.
             Assert.Single(all.Except(rules));
             Assert.All(all, r => Assert.Equal(168, r.Width));

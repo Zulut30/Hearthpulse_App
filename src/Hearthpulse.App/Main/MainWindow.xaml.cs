@@ -103,7 +103,7 @@ public partial class MainWindow : Window
     public string CurrentPage => MainViewModel.NavChecked(MainViewModel.NavPages, States(PageButtons)) ?? MainViewModel.NavPages[0];
 
     /// <summary>The sidebar buttons in <see cref="MainViewModel.NavPages"/> order.</summary>
-    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavHistory, NavSettings];
+    private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings];
 
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
     private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards, PageBattlegrounds.TabMine];
@@ -120,7 +120,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Ctrl+1…7 open the sidebar pages; Esc and Alt+Left leave a deck or match page; Ctrl+V on History imports a replay
+    /// Ctrl+1…8 open the sidebar pages; Esc and Alt+Left leave a deck or match page; Ctrl+V on History imports a replay
     /// (not while typing), Ctrl+F goes to its search.
     /// </summary>
     protected override void OnKeyDown(KeyEventArgs e)
@@ -255,6 +255,7 @@ public partial class MainWindow : Window
         }
 
         PageArena.Visibility = NavArena.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageBrawl.Visibility = NavBrawl.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         // The match page stands in for the History list while a game is open.
         PageHistory.Visibility = NavHistory.IsChecked == true && !_viewModel.MatchOpen ? Visibility.Visible : Visibility.Collapsed;
         PageMatch.Visibility = NavHistory.IsChecked == true && _viewModel.MatchOpen ? Visibility.Visible : Visibility.Collapsed;
@@ -264,7 +265,7 @@ public partial class MainWindow : Window
         }
 
         PageSettings.Visibility = NavSettings.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        Reveal(new FrameworkElement[] { PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageArena, PageHistory, PageMatch, PageSettings }
+        Reveal(new FrameworkElement[] { PageOverview, PageBattlegrounds, PageConstructed, PageDeck, PageArena, PageBrawl, PageHistory, PageMatch, PageSettings }
             .First(p => p.Visibility == Visibility.Visible));
         PlacePill(animate: true);
     }
@@ -274,7 +275,7 @@ public partial class MainWindow : Window
     /// <summary>Moves the selection pill behind the checked sidebar item, with a light spring when animated.</summary>
     private void PlacePill(bool animate)
     {
-        var nav = new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavHistory, NavSettings }.FirstOrDefault(n => n.IsChecked == true);
+        var nav = new[] { NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings }.FirstOrDefault(n => n.IsChecked == true);
         if (nav is null || Sidebar is null || nav.ActualHeight <= 0)
         {
             return;

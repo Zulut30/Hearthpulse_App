@@ -363,6 +363,7 @@ public sealed partial class AppHost : IDisposable
         }
 
         LoadArenaMetaAsync().Forget("Arena stats load");
+        LoadBrawlMetaAsync().Forget("Brawl stats load");
         Session.RequestMemoryTrimWhenWindowAway();
 
         // The Standard and Wild pages show these stats; they also feed the in-game mulligan panel.

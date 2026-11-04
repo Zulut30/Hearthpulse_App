@@ -10,6 +10,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 |---|---|
 | [arena-draft.md](arena-draft.md) | Arena draft helper on the overlay, card scores, community Arena numbers |
 | [arena-rewards.md](arena-rewards.md) | Arena run rewards: entered on each run in My Stats, the period's total tile |
+| [brawl.md](brawl.md) | Tavern Brawl page: this week's class win rates by everyone's games, your classes in the Brawl played last |
 | [counters-constructed.md](counters-constructed.md) | In-game counters for Constructed and Arena |
 | [counters-battlegrounds.md](counters-battlegrounds.md) | Battlegrounds counter chips (`bg-counters` panel) |
 | [discover-pool.md](discover-pool.md) | Card pool panel for Discover and random-card effects |

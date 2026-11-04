@@ -87,7 +87,10 @@ public sealed partial class BattlegroundsReplayRecorder
         PendingCard(shown.Id, line.ToString(), full: true);
     }
 
-    /// <summary>Which side shows the entity now: ours (L), Bob's offer (B), the combat opponent's (O), or none.</summary>
+    /// <summary>
+    /// Which side shows the entity now: ours (L), Bob's offer (B), the combat opponent's (O), our Duos partner's board in
+    /// combat (P), or none. The partner's tavern is never on our screen, so only their table in combat is written.
+    /// </summary>
     private char SideOf(GameState game, Entity entity)
     {
         var card = entity.CardId;
@@ -107,6 +110,11 @@ public sealed partial class BattlegroundsReplayRecorder
                 "SECRET" when type == "SPELL" && entity.Has("QUEST") => 'L',
                 _ => '\0',
             };
+        }
+
+        if (_combat && zone == "PLAY" && entity.Controller != 0 && entity.Controller == game.PartnerPlayerId)
+        {
+            return TableTypes.Contains(type) && (type != "HERO" || entity.GetInt(GameTag.PlayerId) > 0) ? 'P' : '\0';
         }
 
         if (entity.Controller != game.OpponentPlayerId || zone != "PLAY")

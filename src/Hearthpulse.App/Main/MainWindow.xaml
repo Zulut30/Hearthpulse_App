@@ -85,6 +85,8 @@
                                  ToolTip="{i:Loc Main.Nav.WildTip}" />
                     <RadioButton x:Name="NavArena" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Arena}" Tag="&#xF0538;" GroupName="Nav" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.ArenaTip}" />
+                    <RadioButton x:Name="NavBrawl" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Brawl}" Tag="&#xF1116;" GroupName="Nav" Checked="OnNavigate"
+                                 ToolTip="{i:Loc Brawl.NavTip}" />
 
                     <Grid Style="{StaticResource NavGroup}">
                         <Grid.ColumnDefinitions>
@@ -193,6 +195,15 @@
                             <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource PageTitle}" />
                             <c:Wave Style="{StaticResource PageRule}" />
                             <s:ArenaStatsView />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ===== Tavern Brawl ===== -->
+                    <ScrollViewer x:Name="PageBrawl" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel Margin="40,0,40,120">
+                            <TextBlock Text="{i:Loc Main.Mode.Brawl}" Style="{StaticResource PageTitle}" />
+                            <c:Wave Style="{StaticResource PageRule}" />
+                            <s:BrawlView />
                         </StackPanel>
                     </ScrollViewer>
 

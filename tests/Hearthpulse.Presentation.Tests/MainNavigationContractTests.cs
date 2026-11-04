@@ -29,14 +29,15 @@ public sealed class MainNavigationContractTests
         Assert.Equal(["Decks", "Tiers", "Top", "Matchups"], AvaMain.ConstructedTabs);
 
         Assert.Equal(3, WpfMain.NavIndex(WpfMain.NavPages, ConstructedPage.Wild));
-        Assert.Equal(5, AvaMain.NavIndex(AvaMain.NavPages, "History"));
+        Assert.Equal(5, AvaMain.NavIndex(AvaMain.NavPages, "Brawl"));
+        Assert.Equal(6, AvaMain.NavIndex(AvaMain.NavPages, "History"));
         Assert.Equal(4, AvaMain.NavIndex(AvaMain.BattlegroundsTabs, "Mine"));
         // An unknown name opens the first: Overview, Heroes, Decks.
         Assert.Equal(0, WpfMain.NavIndex(WpfMain.NavPages, "Nowhere"));
         Assert.Equal(0, WpfMain.NavIndex(WpfMain.ConstructedTabs, string.Empty));
 
         Assert.Equal("Trinkets", WpfMain.NavChecked(WpfMain.BattlegroundsTabs, [false, null, true, false, false]));
-        Assert.Equal("Overview", AvaMain.NavChecked(AvaMain.NavPages, [true, false, false, false, false, false, false]));
+        Assert.Equal("Overview", AvaMain.NavChecked(AvaMain.NavPages, [true, false, false, false, false, false, false, false]));
         // Between two buttons of a radio group none is checked.
         Assert.Null(AvaMain.NavChecked(AvaMain.ConstructedTabs, [false, false, null, false]));
     }

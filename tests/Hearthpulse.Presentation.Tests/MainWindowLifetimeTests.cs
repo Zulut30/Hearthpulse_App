@@ -101,7 +101,7 @@ public sealed class MainWindowLifetimeTests
     {
         var window = OffScreen(new WpfWindow(model));
         window.Show();
-        foreach (var page in new[] { "Battlegrounds", "Standard", "Arena", "History", "Settings", "Overview" })
+        foreach (var page in new[] { "Battlegrounds", "Standard", "Arena", "Brawl", "History", "Settings", "Overview" })
         {
             window.ShowPage(page);
             Pump();

@@ -51,10 +51,39 @@ public static class ReplayUpload
             return null;
         }
 
+        clean = WithoutPartner(clean);
         var lines = clean.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
         var constructed = lines.Length > 1 && lines[1].Contains("\"kind\":\"constructed\"", StringComparison.Ordinal);
         var kept = lines.Where((line, index) => index < 2 || !constructed || !(line.StartsWith("N ", StringComparison.Ordinal) || line.StartsWith("K ", StringComparison.Ordinal)));
         return string.Join('\n', kept);
+    }
+
+    /// <summary>
+    /// The site reads formats up to 4 (docs/web-replays.md): a version 5 file loses our Duos partner's table (side P,
+    /// its tag lines and the steps that name it) and goes as version 4. The player's own copy keeps it.
+    /// </summary>
+    internal static string WithoutPartner(string clean)
+    {
+        if (!clean.StartsWith(ReplayFile.Magic5 + "\n", StringComparison.Ordinal) || ReplayFile.Read(clean) is not { } read)
+        {
+            return clean;
+        }
+
+        var (header, body) = read;
+
+        var partner = body.Where(ReplayFile.HasPartner).Select(l => l.Split(' ')[1]).ToHashSet(StringComparer.Ordinal);
+        var kept = body.Where(line =>
+        {
+            var t = line.Split(' ');
+            return t[0] switch
+            {
+                "E" or "X" or "Y" or "Z" => !partner.Contains(t[1]),
+                "V" => t[1] == "L" || !partner.Contains(t[1]),
+                "M" => !t.Skip(2).Any(partner.Contains),
+                _ => true,
+            };
+        }).ToList();
+        return ReplayFile.Write(header with { Events = Math.Max(0, header.Events - (body.Count - kept.Count)) }, kept);
     }
 
     /// <summary>Gzip, then base64: the body the site takes.</summary>

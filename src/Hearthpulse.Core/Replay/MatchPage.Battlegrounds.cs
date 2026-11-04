@@ -30,6 +30,7 @@ public sealed partial class MatchPage
         var f = replay.Frames[Math.Clamp(frame, 0, replay.Frames.Count - 1)];
         var combat = f.Phase == MatchPhase.Combat;
         var opponent = Of(f, 'O', "PLAY", "HERO").LastOrDefault();
+        var partner = combat ? Of(f, 'P', "PLAY", "HERO").LastOrDefault() : null;
         var board = Of(f, 'L', "PLAY", "MINION").Select(c => CardView(f, c)).ToList();
         if (f is { Kind: MatchStepKind.Sell, Actor: { } sold } && f.Cards.All(c => c.Id != sold.Id))
         {
@@ -44,13 +45,15 @@ public sealed partial class MatchPage
             Opponent = combat && opponent is not null ? HeroView(f, opponent, f.Leaderboard.FirstOrDefault(l => l.HeroCardId == opponent.CardId)?.Tier ?? 0) : null,
             Board = board,
             OpponentBoard = combat ? Of(f, 'O', "PLAY", "MINION").Select(c => CardView(f, c)).ToList() : [],
+            Partner = partner is not null ? HeroView(f, partner, f.Leaderboard.FirstOrDefault(l => l.HeroCardId == partner.CardId)?.Tier ?? 0) : null,
+            PartnerBoard = combat ? Of(f, 'P', "PLAY", "MINION").Select(c => CardView(f, c)).ToList() : [],
             Shop = shop,
             Hand = Of(f, 'L', "HAND").Select(c => CardView(f, c)).ToList(),
             Choices = f.Choice is { } choice ? [ChoiceView(choice)] : [],
             Leaderboard = f.Leaderboard
                 .OrderBy(l => l.Place <= 0 ? 99 : l.Place)
                 .Select(l => new MatchBgLeaderRow(l.HeroCardId, _cards.NameOf(l.HeroCardId), l.Place, l.Health, l.Armor, l.Tier, l.Local,
-                    combat && !l.Local && l.HeroCardId == opponent?.CardId, l.Dead))
+                    combat && !l.Local && (l.HeroCardId == opponent?.CardId || l.HeroCardId == partner?.CardId), l.Dead))
                 .ToList(),
             Gold = !combat && f.MaxGold > 0 ? string.Create(CultureInfo.CurrentCulture, $"{f.Gold} / {f.MaxGold}") : string.Empty,
             ShopFrozen = shop.Exists(c => c.Frozen),
@@ -111,11 +114,14 @@ public sealed partial class MatchPage
     /// <summary>Left/right stop at tavern actions, the start and end of each combat, attacks and the end of the game.</summary>
     private static bool BgEvent(MatchStepKind kind) => kind is not (MatchStepKind.Start or MatchStepKind.TurnStart or MatchStepKind.Deaths or MatchStepKind.Trigger);
 
-    /// <summary>The step is the player's: everything in the tavern, our attacks and triggers, deaths of our minions.</summary>
+    /// <summary>
+    /// The step is the player's: everything in the tavern, our attacks and triggers, deaths of our minions (not the
+    /// opponent's, nor our Duos partner's).
+    /// </summary>
     private static bool BgLocal(BgReplayFrame f) => f.Kind switch
     {
-        MatchStepKind.Attack or MatchStepKind.Trigger => f.Actor?.Side != 'O',
-        MatchStepKind.Deaths => f.Cards.FirstOrDefault(c => c.Dying)?.Side != 'O',
+        MatchStepKind.Attack or MatchStepKind.Trigger => f.Actor?.Side is not ('O' or 'P'),
+        MatchStepKind.Deaths => f.Cards.FirstOrDefault(c => c.Dying)?.Side is not ('O' or 'P'),
         _ => true,
     };
 

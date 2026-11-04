@@ -54,6 +54,13 @@ public partial class App
         _mainViewModel.Busy = string.Empty;
         try
         {
+            if (RenderOnlyBrawl)
+            {
+                await RenderBrawlAsync(folder);
+                Quit();
+                return;
+            }
+
             var only = RenderPagesOnly();
             foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" }.Where(p => only?.Contains(p) != false))
             {
@@ -68,6 +75,8 @@ public partial class App
                 Quit();
                 return;
             }
+
+            await RenderBrawlAsync(folder);
 
             await RenderSettingsTabsAsync(folder);
 

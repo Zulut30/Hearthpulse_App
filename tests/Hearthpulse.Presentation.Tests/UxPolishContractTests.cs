@@ -257,9 +257,9 @@ public sealed partial class UxPolishContractTests
         var labels = Logical<TextBlock>(card).Where(t => ReferenceEquals(t.Style, t.TryFindResource("SettingLabel"))).Select(t => t.Text);
         Assert.Equal(rows.Select(r => Loc.T("Settings.Shortcuts." + r)), labels);
         var keys = Logical<Border>(card).Where(b => ReferenceEquals(b.Style, b.TryFindResource("Pill"))).Select(b => ((TextBlock)b.Child).Text);
-        Assert.Equal(["Ctrl+1…7", "Esc · Alt+← · mouse Back", "Ctrl+Shift+H", "Ctrl+Shift+L", "Ctrl+Shift+R"], keys);
-        // Ctrl+1…7 open the sidebar's pages in order.
-        Assert.Equal(7, WpfMain.NavPages.Count);
+        Assert.Equal(["Ctrl+1…8", "Esc · Alt+← · mouse Back", "Ctrl+Shift+H", "Ctrl+Shift+L", "Ctrl+Shift+R"], keys);
+        // Ctrl+1…8 open the sidebar's pages in order.
+        Assert.Equal(8, WpfMain.NavPages.Count);
         window.Close();
     });
 

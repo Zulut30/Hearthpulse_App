@@ -164,7 +164,8 @@ public sealed partial class BattlegroundsReplayRecorder
         Write(string.Create(CultureInfo.InvariantCulture, $"f {result} {taken} {_dealt}"));
         _combat = false;
         Flush();
-        foreach (var (entityId, shown) in _shown.Where(s => s.Value.Side == 'O').ToList())
+        // The opponent's table and our Duos partner's leave the screen with the fight.
+        foreach (var (entityId, shown) in _shown.Where(s => s.Value.Side is 'O' or 'P').ToList())
         {
             Remove(shown, entityId, died: false);
         }
@@ -206,7 +207,8 @@ public sealed partial class BattlegroundsReplayRecorder
             {
                 "ATTACK" when seen is not null => new Step("ATTACK", source, lazy: false),
                 "TRIGGER" or "POWER" when TableTypes.Contains(source.CardType) && (seen is not null || _ids.ContainsKey(source.Id))
-                                          && (ours || source.Controller == game.OpponentPlayerId) => new Step("TRIGGER", source, lazy: true),
+                                          && (ours || source.Controller == game.OpponentPlayerId
+                                              || (source.Controller != 0 && source.Controller == game.PartnerPlayerId)) => new Step("TRIGGER", source, lazy: true),
                 _ => null,
             };
         }
