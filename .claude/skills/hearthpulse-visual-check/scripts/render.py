@@ -26,7 +26,7 @@ PROJECTS = {"wpf": "src/Hearthpulse.App", "ava": "src/Hearthpulse.Desktop"}
 NUGET = "https://api.nuget.org/v3/index.json"
 REQUIRED_SCENES = frozenset({
     "main-overview.png", "main-battlegrounds.png", "main-standard.png", "main-wild.png",
-    "main-history.png", "main-settings.png", "overlay-layout.png",
+    "main-history.png", "main-settings.png", "main-constructed-full.png", "overlay-layout.png",
 })
 
 

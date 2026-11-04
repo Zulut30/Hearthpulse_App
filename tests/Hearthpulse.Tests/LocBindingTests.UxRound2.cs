@@ -19,8 +19,8 @@ public sealed partial class LocBindingTests
         model.Apply(LiveSnapshot.Empty with { LogConfigMissing = ["Power", "LoadingScreen", "Decks"] });
         Dispatcher.UIThread.RunJobs();
 
-        var banner = view.FindControl<Border>("SetupBanner")!;
-        var text = view.FindControl<TextBlock>("SetupWarningText")!;
+        var banner = Named<Border>(view, "SetupBanner");
+        var text = Named<TextBlock>(view, "SetupWarningText");
         Assert.True(banner.IsVisible);
         // The glyph takes what it needs, the text the rest of the card, and it wraps there (as WPF does).
         var grid = Assert.IsType<Grid>(banner.Child);
@@ -37,8 +37,8 @@ public sealed partial class LocBindingTests
     {
         view.ShowSettingsTab("Overlay");
         Dispatcher.UIThread.RunJobs();
-        var master = view.FindControl<CheckBox>("OverlaySetting")!;
-        var switches = view.FindControl<StackPanel>("OverlayPanelSwitches")!;
+        var master = Named<CheckBox>(view, "OverlaySetting")!;
+        var switches = Named<StackPanel>(view, "OverlayPanelSwitches")!;
         var card = Assert.IsType<StackPanel>(master.Parent);
         var blocks = card.Children.ToList();
 

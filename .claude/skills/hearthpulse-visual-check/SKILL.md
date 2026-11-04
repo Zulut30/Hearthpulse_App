@@ -43,8 +43,12 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
   "`<scene>`: no kept Battlegrounds log reaches this moment, skipped".
 - Language: the data copy's `settings.json` decides (`"Language": "ru"` or `"en"`; `"auto"` = the machine's). Render
   each language from its own copy (`--data %TEMP%\hpd-ru`, `--data %TEMP%\hpd-en`); see `docs/localization.md`.
-- No other arguments exist (no size). One scene filter: `HEARTHPULSE_RENDER_ONLY=brawl` renders only the Brawl page
-  (`main-brawl`, Avalonia also `main-brawl-compact`); more groups can be added the same way. Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
+- No other arguments exist (no size). A few frames instead of the whole set: `HEARTHPULSE_RENDER_PAGES=Overview,History`
+  renders only those main-window pages (`Overview`, `Battlegrounds`, `Standard`, `Wild`, `History`, `Settings`) and
+  stops, in both UIs; the wrapper's mandatory-file check does not apply then, so run the built exe or `dotnet run` directly.
+  Another filter: `HEARTHPULSE_RENDER_ONLY=brawl` renders only the Brawl page
+  (`main-brawl`, Avalonia also `main-brawl-compact`); more groups can be added the same way.
+  Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
   honoured only while rendering, WPF only (the Avalonia app has themes, but its renderer stays Tavern).
 - Data: main pages from `history.db`; overlay moments replayed from the **kept Hearthstone logs**
   (`<install>/Logs`, resolved from the configured install); counters fall back to a synthetic scene; meta and card pool come

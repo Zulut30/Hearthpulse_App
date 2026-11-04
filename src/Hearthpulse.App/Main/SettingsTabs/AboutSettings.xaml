@@ -1,0 +1,31 @@
+<UserControl x:Class="Hearthpulse.App.Main.SettingsTabs.AboutSettings"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="clr-namespace:Hearthpulse.App.Main"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:s="clr-namespace:Hearthpulse.App.Main.Stats"
+             xmlns:mm="clr-namespace:Hearthpulse.App.Main.Meta"
+             xmlns:dk="clr-namespace:Hearthpulse.App.Main.Decks"
+             xmlns:mt="clr-namespace:Hearthpulse.App.Main.Match"
+             xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
+             xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
+             xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
+             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs">
+    <!-- Settings, About: version, updates, licences. Same tree as the Avalonia AboutSettings.axaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+    </UserControl.Resources>
+    <Border Style="{StaticResource Card}">
+        <StackPanel>
+            <c:Ornament Text="{i:Loc Settings.About.Title}" Icon="&#xF02FD;" Size="13" Margin="0,0,0,10" />
+            <TextBlock Text="{i:Loc Settings.About.Text}" TextWrapping="Wrap" Style="{StaticResource Caption}" />
+            <TextBlock Text="{i:Loc Settings.About.Fonts}" Style="{StaticResource Caption}" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
+            <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,4,0,0" />
+            <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
+            <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource Caption}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ParseErrorsText}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" Foreground="{StaticResource Negative}"
+                       Visibility="{Binding ParseErrorsText, Converter={StaticResource Vis}}" />
+        </StackPanel>
+    </Border>
+</UserControl>

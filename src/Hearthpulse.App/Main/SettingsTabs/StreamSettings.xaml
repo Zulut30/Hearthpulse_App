@@ -1,0 +1,155 @@
+<UserControl x:Class="Hearthpulse.App.Main.SettingsTabs.StreamSettings"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="clr-namespace:Hearthpulse.App.Main"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:s="clr-namespace:Hearthpulse.App.Main.Stats"
+             xmlns:mm="clr-namespace:Hearthpulse.App.Main.Meta"
+             xmlns:dk="clr-namespace:Hearthpulse.App.Main.Decks"
+             xmlns:mt="clr-namespace:Hearthpulse.App.Main.Match"
+             xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
+             xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
+             xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
+             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs">
+    <!-- Settings, Stream: streamer mode and the OBS windows. Same tree as the Avalonia StreamSettings.axaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Stream.Mode.Title}" Icon="&#xF05E9;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Stream.Mode.Note}" Style="{StaticResource CardNote}" />
+                <CheckBox x:Name="StreamerModeSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Mode.Switch}" IsChecked="{Binding StreamerMode}" Margin="0,0,0,12"
+                          ToolTip="{i:Loc Stream.Mode.SwitchTip}" />
+                <!-- What it hides: a description, not a state, so the same with the mode off -->
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xF0209;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Text="{i:Loc Stream.Mode.HideNames}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                </Grid>
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xF0209;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Text="{i:Loc Stream.Mode.HideRatings}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                </Grid>
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xF0209;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Text="{i:Loc Stream.Mode.HideOwn}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                </Grid>
+                <TextBlock Text="{i:Loc Stream.Mode.Keeps}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Discord.Title}" Icon="&#xF066F;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Discord.Note}" Style="{StaticResource CardNote}" />
+                <CheckBox x:Name="DiscordSetting" Style="{StaticResource Switch}" Content="{i:Loc Discord.Switch}" IsChecked="{Binding DiscordStatus}" IsEnabled="{Binding DiscordAvailable}" Margin="0,0,0,12"
+                          ToolTip="{i:Loc Discord.SwitchTip}" ToolTipService.ShowOnDisabled="True" />
+                <!-- The link to the Discord app: green once connected, faint while waiting or not registered -->
+                <Grid Margin="0,0,0,6" Visibility="{Binding DiscordStatusShown, Converter={StaticResource Vis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Margin="0,5,8,0" VerticalAlignment="Top">
+                        <Ellipse Width="8" Height="8" Fill="{StaticResource Faint}" />
+                        <Ellipse Width="8" Height="8" Fill="{StaticResource Positive}" Visibility="{Binding DiscordConnected, Converter={StaticResource Vis}}" />
+                    </Grid>
+                    <TextBlock Grid.Column="1" Text="{Binding DiscordStatusText}" Style="{StaticResource Caption}" TextWrapping="Wrap" />
+                </Grid>
+                <TextBlock Text="{i:Loc Discord.Keeps}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Stream.Windows.Title}" Icon="&#xF0379;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Stream.Windows.Note}" Style="{StaticResource CardNote}" />
+                <TextBlock Text="{i:Loc Stream.Windows.Group}" Style="{StaticResource SettingGroup}" />
+                <CheckBox x:Name="StreamDeckSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Window.Deck}" IsChecked="{Binding StreamDeckWindow}" Margin="0,0,0,14"
+                          ToolTip="{i:Loc Stream.Window.DeckTip}" />
+                <CheckBox x:Name="StreamLobbySetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Window.Lobby}" IsChecked="{Binding StreamLobbyWindow}" Margin="0,0,0,14"
+                          ToolTip="{i:Loc Stream.Window.LobbyTip}" />
+                <CheckBox x:Name="StreamOddsSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.Window.Odds}" IsChecked="{Binding StreamOddsWindow}" Margin="0,0,0,14"
+                          ToolTip="{i:Loc Stream.Window.OddsTip}" />
+                <TextBlock Text="{i:Loc Stream.Look.Group}" Style="{StaticResource SettingGroup}" />
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{i:Loc Stream.Background}" Style="{StaticResource SettingLabel}" />
+                    <Border Grid.Column="1" Style="{StaticResource SegmentBar}" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="StreamBackgroundThemeOption" Style="{StaticResource Segment}" Content="{i:Loc Stream.Background.Theme}" GroupName="StreamBackground"
+                                         IsChecked="{Binding StreamBackgroundTheme}" ToolTip="{i:Loc Stream.Background.ThemeTip}" />
+                            <RadioButton x:Name="StreamBackgroundGreenOption" Style="{StaticResource Segment}" Content="{i:Loc Stream.Background.Green}" GroupName="StreamBackground"
+                                         IsChecked="{Binding StreamBackgroundGreen}" ToolTip="{i:Loc Stream.Background.GreenTip}" />
+                            <RadioButton x:Name="StreamBackgroundMagentaOption" Style="{StaticResource Segment}" Content="{i:Loc Stream.Background.Magenta}" GroupName="StreamBackground"
+                                         IsChecked="{Binding StreamBackgroundMagenta}" ToolTip="{i:Loc Stream.Background.MagentaTip}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <CheckBox x:Name="StreamOnTopSetting" Style="{StaticResource Switch}" Content="{i:Loc Stream.OnTop}" IsChecked="{Binding StreamWindowsOnTop}" Margin="0,0,0,18"
+                          ToolTip="{i:Loc Stream.OnTopTip}" />
+                <!-- How to add a window to OBS: the names of OBS's own menus, as in OBS 30 -->
+                <Border Background="{StaticResource SecondaryContainer}" CornerRadius="8" Padding="14,12">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xF02FD;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Muted}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{i:Loc Stream.Help.Title}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource Text}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="1." Foreground="{StaticResource OnSecondaryContainer}" />
+                            <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step1}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                        </Grid>
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="2." Foreground="{StaticResource OnSecondaryContainer}" />
+                            <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step2}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                        </Grid>
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="3." Foreground="{StaticResource OnSecondaryContainer}" />
+                            <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step3}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                        </Grid>
+                        <Grid Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="4." Foreground="{StaticResource OnSecondaryContainer}" />
+                            <TextBlock Grid.Column="1" Text="{i:Loc Stream.Help.Step4}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" />
+                        </Grid>
+                        <TextBlock x:Name="StreamKeyLine" Text="{Binding StreamKeyNote}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                   Visibility="{Binding StreamKeyNote, Converter={StaticResource Vis}}" />
+                        <TextBlock Text="{i:Loc Stream.Help.Minimize}" Foreground="{StaticResource OnSecondaryContainer}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

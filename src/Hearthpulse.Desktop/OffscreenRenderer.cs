@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Hearthpulse.Core;
@@ -73,10 +74,20 @@ internal static partial class OffscreenRenderer
             return;
         }
 
-        foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" })
+        // HEARTHPULSE_RENDER_PAGES=Overview,History: only those main-window pages, then stop (as the WPF renderer).
+        var only = Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_PAGES") is { Length: > 0 } pages
+            ? new HashSet<string>(pages.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), StringComparer.OrdinalIgnoreCase)
+            : null;
+        foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" }.Where(p => only?.Contains(p) != false))
         {
             view.ShowPage(page);
             await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
+        }
+
+        if (only is not null)
+        {
+            main.Close();
+            return;
         }
 
         await RenderSettingsTabsAsync(main, view, folder);
@@ -84,7 +95,8 @@ internal static partial class OffscreenRenderer
         // The Battlegrounds counters list sits far down the Tracker tab of the settings page.
         view.ShowPage("Settings");
         view.ShowSettingsTab("Tracker");
-        if (view.FindControl<Control>("BgCountersHeading") is { } heading)
+        // In the Tracker settings tab (Main/SettingsTabs): a name in the tab's own scope.
+        if (view.GetLogicalDescendants().OfType<Control>().FirstOrDefault(c => c.Name == "BgCountersHeading") is { } heading)
         {
             heading.BringIntoView(new Rect(0, 0, heading.Bounds.Width, 640));
             await Save(main, Path.Combine(folder, "main-settings-counters.png"));

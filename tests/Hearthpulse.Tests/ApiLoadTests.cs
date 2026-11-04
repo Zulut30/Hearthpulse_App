@@ -119,7 +119,7 @@ public sealed class ApiLoadTests : IDisposable
         source.Changed += () => changed.TrySetResult();
 
         Assert.Null(source.For("SHAMAN", deck, "FT_WILD", CardDb.Empty));
-        await changed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await changed.Task.WaitAsync(TimeSpan.FromMinutes(1));
         var guide = source.For("SHAMAN", deck, "FT_WILD", CardDb.Empty);
 
         Assert.NotNull(guide);
@@ -152,7 +152,7 @@ public sealed class ApiLoadTests : IDisposable
 
         // Before the mulligan: the guide with the all-games slice.
         Assert.Null(source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty));
-        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromMinutes(1)));
         var guide = source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty)!;
         Assert.Equal("Zoolock", guide.HsguruArchetype);
         var all = Assert.Single(guide.Slices);
@@ -160,7 +160,7 @@ public sealed class ApiLoadTests : IDisposable
 
         // The mulligan on the coin against a Warlock: those slices follow, once.
         Assert.Same(guide, source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty, "WARLOCK", false));
-        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromMinutes(1)));
         guide = source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty, "WARLOCK", false)!;
         Assert.Equal(3, guide.Slices.Count);
         Assert.Contains(guide.Slices, s => s is { Coin: "on_coin", Games: 25195 });
@@ -217,14 +217,14 @@ public sealed class ApiLoadTests : IDisposable
         source.Changed += () => changed.Release();
 
         Assert.Null(source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty));
-        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromMinutes(1)));
         Assert.Equal("legend", source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty)!.Rank);
 
         // The new rank tells the session at once (Changed), and the next ask starts the guide again at that rank.
         source.Rank = "diamond";
         Assert.True(changed.Wait(0)); // raised by the setter itself, not by a load
         Assert.Null(source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty));
-        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromMinutes(1)));
         Assert.Equal("diamond", source.For("WARLOCK", deck, "FT_STANDARD", CardDb.Empty)!.Rank);
     }
 
@@ -340,8 +340,9 @@ public sealed class ApiLoadTests : IDisposable
         Assert.Null(source.For("PRIEST", deck, "FT_STANDARD", CardDb.Empty));
         Assert.Null(source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty));
 
-        // Only the second deck's lookup may land.
-        await landed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        // Only the second deck's lookup may land. The bound only ends a hang: under a full parallel run at low priority
+        // the lookup's pool thread can start late (as DiscoverPicksTests found on CI).
+        await landed.Task.WaitAsync(TimeSpan.FromMinutes(1));
         Assert.Equal("Quest Priest", source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty)?.Name);
         Assert.Equal(1, Volatile.Read(ref changed));
     }

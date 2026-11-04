@@ -51,14 +51,15 @@ public sealed class MainWindowLookTests
     [Fact]
     public void Every_page_title_has_the_gold_rule_under_it_in_both_UIs()
     {
+        // The window and its page controls (Main/Pages), which hold the pages' trees.
         var wpf = Load("src/Hearthpulse.App/Main/MainWindow.xaml");
-        var titles = wpf.Descendants().Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Style") == "{StaticResource PageTitle}").ToList();
+        var titles = WithPages(wpf, "src/Hearthpulse.App/Main/Pages", "*.xaml").Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Style") == "{StaticResource PageTitle}").ToList();
         Assert.Equal(7, titles.Count);
         Assert.All(titles, t => Assert.Equal("{StaticResource PageRule}", (string?)Next(t)?.Attribute("Style")));
         Assert.DoesNotContain(wpf.Descendants(), e => (string?)e.Attribute("Style") == "{StaticResource Display}");
 
         var ava = Load("src/Hearthpulse.UI/Main/MainView.axaml");
-        var avaTitles = ava.Descendants().Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Classes") == "display pageTitle").ToList();
+        var avaTitles = WithPages(ava, "src/Hearthpulse.UI/Main/Pages", "*.axaml").Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Classes") == "display pageTitle").ToList();
         Assert.Equal(7, avaTitles.Count);
         Assert.All(avaTitles, t => Assert.Equal("pageRule", (string?)Next(t)?.Attribute("Classes")));
     }
@@ -108,12 +109,12 @@ public sealed class MainWindowLookTests
     [Fact]
     public void Both_main_windows_have_the_same_constructed_tabs_and_meta_views()
     {
-        var wpf = Load("src/Hearthpulse.App/Main/MainWindow.xaml");
-        var ava = Load("src/Hearthpulse.UI/Main/MainView.axaml");
+        var wpf = WithPages(Load("src/Hearthpulse.App/Main/MainWindow.xaml"), "src/Hearthpulse.App/Main/Pages", "*.xaml").ToList();
+        var ava = WithPages(Load("src/Hearthpulse.UI/Main/MainView.axaml"), "src/Hearthpulse.UI/Main/Pages", "*.axaml").ToList();
         foreach (var name in new[] { "TabMyDecks", "TabMetaTiers", "TabMetaDecks", "TabMetaMatchups", "CtMeta", "BgTiers" })
         {
-            Assert.Single(wpf.Descendants(), e => Named(e) == name);
-            Assert.Single(ava.Descendants(), e => Named(e) == name);
+            Assert.Single(wpf, e => Named(e) == name);
+            Assert.Single(ava, e => Named(e) == name);
         }
     }
 
@@ -144,6 +145,30 @@ public sealed class MainWindowLookTests
         (string?)grid.Attribute("ColumnDefinitions") is { } list
             ? list.Split(',').Select(w => (string?)w.Trim())
             : grid.Elements().Single(e => e.Name.LocalName == "Grid.ColumnDefinitions").Elements().Select(c => (string?)c.Attribute("Width"));
+
+    /// <summary>
+    /// A style of the Avalonia main view that picks an element by name reaches only the view's own names: an element moved
+    /// into a page control (Main/Pages) keeps its name in the page's scope, so such a style is matched by a class instead
+    /// ("Grid#PageHistory" silently stopped matching when the History grid moved and the name went to the page tag).
+    /// </summary>
+    [Fact]
+    public void Main_view_styles_by_name_find_names_of_the_view_itself()
+    {
+        var view = Load("src/Hearthpulse.UI/Main/MainView.axaml");
+        var elements = view.Descendants().Where(e => Named(e) is not null).Select(e => (e.Name.LocalName, Named(e)!)).ToHashSet();
+        var selected = view.Descendants().Where(e => e.Name.LocalName == "Style")
+            .SelectMany(e => System.Text.RegularExpressions.Regex.Matches((string?)e.Attribute("Selector") ?? string.Empty, @"(\w+)#(\w+)"))
+            .Select(m => (m.Groups[1].Value, m.Groups[2].Value))
+            .ToList();
+
+        Assert.NotEmpty(elements);
+        Assert.All(selected, pick => Assert.Contains(pick, elements));
+    }
+
+    /// <summary>The elements of a main window and of every page control in <paramref name="folder"/>.</summary>
+    private static IEnumerable<XElement> WithPages(XElement window, string folder, string pattern) =>
+        window.Descendants().Concat(Directory.EnumerateFiles(Path.Combine(RepoRoot(), folder), pattern)
+            .SelectMany(f => XDocument.Load(f).Root!.Descendants()));
 
     private static XElement Load(string relative) => XDocument.Load(Path.Combine(RepoRoot(), relative)).Root!;
 

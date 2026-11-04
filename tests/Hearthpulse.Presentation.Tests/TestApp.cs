@@ -1,11 +1,13 @@
 using Hearthpulse.Core.Hosting;
+using Hearthpulse.Tests;
 
 namespace Hearthpulse.Presentation.Tests;
 
-/// <summary>The data folder and its replay stores the main view models of these tests use (built on first use).</summary>
+/// <summary>
+/// The data and replay stores the main view models of these tests get: those of the run's scratch data folder, which
+/// <see cref="TestDataFolder"/> (linked from Hearthpulse.Tests) sets before any test touches <c>AppPaths</c>.
+/// </summary>
 internal static class TestApp
 {
-    private static readonly Lazy<AppData> LazyData = new(AppData.FromAppPaths);
-
-    public static AppData Data => LazyData.Value;
+    public static AppData Data => TestDataFolder.App;
 }

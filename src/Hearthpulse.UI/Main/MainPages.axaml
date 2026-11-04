@@ -1,0 +1,105 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:m="using:Hearthpulse.UI.Main"
+                    xmlns:c="using:Hearthpulse.UI.Controls"
+                    xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- What the main view's pages share: converters, row and tile templates, the tile and row panels. The view and each
+         page control (Main/Pages) include it, so a page finds these keys when it is built on its own. -->
+    <i:Truthy x:Key="Truthy" />
+    <i:KeyBrush x:Key="KeyBrush" />
+    <i:SignBrush x:Key="SignBrush" />
+    <i:FractionWidth x:Key="Fraction" />
+
+    <DataTemplate x:Key="StatTileTemplate" x:DataType="m:StatTile">
+        <Border Classes="card tile" Margin="0,0,14,0" Padding="20,16" ToolTip.Tip="{Binding Detail}">
+            <StackPanel>
+                <TextBlock Text="{Binding Label}" Classes="label" />
+                <TextBlock Text="{Binding Value}" Classes="stat" Margin="0,8,0,2" TextTrimming="CharacterEllipsis"
+                           Foreground="{Binding Sign, Converter={StaticResource SignBrush}, ConverterParameter=text}" />
+                <TextBlock Text="{Binding Detail}" Classes="caption" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="GameRowTemplate" x:DataType="m:GameRow">
+        <Border Classes="row">
+            <Grid ColumnDefinitions="50,2*,3*,110,92,64">
+                <Border Width="38" Height="38" CornerRadius="19" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
+                        ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,12,0">
+                    <TextBlock Text="{Binding Hero}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Mode}" Classes="caption" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           Margin="0,0,16,0" ToolTip.Tip="{Binding Detail}" />
+                <TextBlock Grid.Column="3" Text="{Binding When}" Classes="caption" VerticalAlignment="Center" />
+                <Border Grid.Column="4" CornerRadius="6" Padding="10,3" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{StaticResource Surface3}">
+                    <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                </Border>
+                <TextBlock Grid.Column="5" Text="{Binding Rating}" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold"
+                           Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip.Tip="{i:Loc Main.Game.RatingChange}" />
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <!-- A game row that opens the match page (History, recent games) -->
+    <DataTemplate x:Key="OpenGameRow" x:DataType="m:GameRow">
+        <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="{i:Loc Match.View.OpenTip}"
+                Command="{Binding $parent[m:MainView].((m:MainViewModel)DataContext).OpenMatch}" CommandParameter="{Binding}"
+                Content="{Binding}" ContentTemplate="{StaticResource GameRowTemplate}" />
+    </DataTemplate>
+
+    <ItemsPanelTemplate x:Key="TilesPanel">
+        <UniformGrid Rows="1" />
+    </ItemsPanelTemplate>
+
+    <!-- Theme picker: each theme is a small window in its own colours - its backdrop and motif, a sidebar whose first
+         item is lit, a page plate with a title line, a button in its accent and a gem of its second accent.
+         Same as the WPF ThemeTile. -->
+    <DataTemplate x:Key="ThemeTile" x:DataType="m:ThemeChoice">
+        <Border Classes="themeTile" Classes.selected="{Binding Selected}" Width="132" CornerRadius="12" Background="{Binding Background}"
+                BorderThickness="1.5" Padding="8">
+            <StackPanel>
+                <Panel Height="66" ClipToBounds="True">
+                    <Path Data="{Binding Motif}" Stretch="Uniform" Width="70" Height="70" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                          Margin="0,0,-18,-20" Stroke="{Binding Accent}" StrokeThickness="1" Opacity="0.3" />
+                    <Grid ColumnDefinitions="26,*">
+                        <StackPanel Margin="0,2,6,0">
+                            <Border Height="9" CornerRadius="3" Background="{Binding Surface}">
+                                <Border Width="2" CornerRadius="1" Margin="0,2" HorizontalAlignment="Left" Background="{Binding Accent}" />
+                            </Border>
+                            <Border Height="9" CornerRadius="3" Background="{Binding Surface}" Opacity="0.45" Margin="0,5,0,0" />
+                            <Border Height="9" CornerRadius="3" Background="{Binding Surface}" Opacity="0.45" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <Border Grid.Column="1" CornerRadius="6" Background="{Binding Card}" BorderBrush="{Binding Surface}" BorderThickness="1" Padding="7"
+                                VerticalAlignment="Top">
+                            <StackPanel>
+                                <Border Width="44" Height="5" CornerRadius="2.5" HorizontalAlignment="Left" Background="{Binding Text}" />
+                                <Border Width="60" Height="4" CornerRadius="2" HorizontalAlignment="Left" Background="{Binding Muted}" Opacity="0.7" Margin="0,5,0,0" />
+                                <DockPanel Margin="0,9,0,0" LastChildFill="False">
+                                    <Border DockPanel.Dock="Left" Width="30" Height="11" CornerRadius="3" Background="{Binding Accent}" />
+                                    <Ellipse DockPanel.Dock="Right" Width="9" Height="9" Fill="{Binding Secondary}" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Panel>
+                <DockPanel Margin="2,8,0,0">
+                    <TextBlock DockPanel.Dock="Right" Text="&#xF012C;" Classes="icon" FontSize="15" Foreground="{Binding Accent}" IsVisible="{Binding Selected}" />
+                    <TextBlock Text="{Binding Name}" Foreground="{Binding Text}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+    <!-- The colour wheel laid flat, under the hue sliders (a deliberate rainbow, not theme colours) -->
+    <LinearGradientBrush x:Key="HueStrip" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="#FF4D4D" Offset="0" />
+        <GradientStop Color="#FFD24D" Offset="0.167" />
+        <GradientStop Color="#7DFF4D" Offset="0.333" />
+        <GradientStop Color="#4DFFE0" Offset="0.5" />
+        <GradientStop Color="#4D7DFF" Offset="0.667" />
+        <GradientStop Color="#D24DFF" Offset="0.833" />
+        <GradientStop Color="#FF4D4D" Offset="1" />
+    </LinearGradientBrush>
+</ResourceDictionary>

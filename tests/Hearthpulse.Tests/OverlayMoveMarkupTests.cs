@@ -11,8 +11,8 @@ namespace Hearthpulse.Tests;
 public sealed class OverlayMoveMarkupTests
 {
     [Theory]
-    [InlineData("src/Hearthpulse.App/Main/MainWindow.xaml", "Overlay.Move.Settings")]
-    [InlineData("src/Hearthpulse.UI/Main/MainView.axaml", "Overlay.Move.SettingsWindows")]
+    [InlineData("src/Hearthpulse.App/Main/SettingsTabs/OverlaySettings.xaml", "Overlay.Move.Settings")]
+    [InlineData("src/Hearthpulse.UI/Main/SettingsTabs/OverlaySettings.axaml", "Overlay.Move.SettingsWindows")]
     public void The_layout_card_names_ctrl_over_a_panel_and_the_layout_shortcut(string file, string key)
     {
         var card = XDocument.Load(Path.Combine(RepoRoot(), file)).Root!.Descendants()
@@ -36,8 +36,8 @@ public sealed class OverlayMoveMarkupTests
     /// bound to the setting the overlay's own button flips (and named, so SyncOverlaySwitch can refresh it).
     /// </summary>
     [Theory]
-    [InlineData("src/Hearthpulse.App/Main/MainWindow.xaml", "Overlay.Move.Settings", "x:Name")]
-    [InlineData("src/Hearthpulse.UI/Main/MainView.axaml", "Overlay.Move.SettingsWindows", "Name")]
+    [InlineData("src/Hearthpulse.App/Main/SettingsTabs/OverlaySettings.xaml", "Overlay.Move.Settings", "x:Name")]
+    [InlineData("src/Hearthpulse.UI/Main/SettingsTabs/OverlaySettings.axaml", "Overlay.Move.SettingsWindows", "Name")]
     public void The_layout_card_has_the_unlock_switch_under_its_line(string file, string key, string name)
     {
         var card = XDocument.Load(Path.Combine(RepoRoot(), file)).Root!.Descendants()

@@ -1,0 +1,120 @@
+<UserControl x:Class="Hearthpulse.App.Main.SettingsTabs.TrackerSettings"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="clr-namespace:Hearthpulse.App.Main"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:s="clr-namespace:Hearthpulse.App.Main.Stats"
+             xmlns:mm="clr-namespace:Hearthpulse.App.Main.Meta"
+             xmlns:dk="clr-namespace:Hearthpulse.App.Main.Decks"
+             xmlns:mt="clr-namespace:Hearthpulse.App.Main.Match"
+             xmlns:mg="clr-namespace:Hearthpulse.App.Main.Migration"
+             xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
+             xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
+             xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs">
+    <!-- Settings, Tracker: the Constructed deck tracker, counters and mulligan. Same tree as the Avalonia TrackerSettings.axaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Hearthpulse;component/Main/MainPages.xaml" />
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+            <StackPanel DataContext="{Binding Settings}">
+                <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.Note.Tracker}" Style="{StaticResource CardNote}" />
+                <Border x:Name="TrackerOverlayOffBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,-4,0,14"
+                        Visibility="{Binding OverlayOn, RelativeSource={RelativeSource AncestorType=st:TrackerSettings}, Converter={StaticResource Vis}, ConverterParameter=!}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xF002A;" Style="{StaticResource Icon}" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,10,0" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Settings.Overlay.OffNote}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                    </Grid>
+                </Border>
+                <StackPanel x:Name="TrackerPanelSwitches">
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Deck}" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14"
+                          ToolTip="{i:Loc Settings.Tracker.OpponentTip}" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.CardPool}" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
+                          ToolTip="{i:Loc Settings.Tracker.CardPoolTip}" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Arena.Settings.Show}" IsChecked="{Binding ShowArenaDraft}" Margin="0,0,0,14"
+                          ToolTip="{i:Loc Arena.Settings.ShowTip}" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Tracker.Summary}" IsChecked="{Binding ShowGameToasts}" />
+                </StackPanel>
+                <!-- The overlay's master switch, size and layout are one tab back -->
+                <TextBlock Text="{i:Loc Settings.Tracker.OverlayLink}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,22,0,10" />
+                <Button x:Name="OpenOverlayTab" Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Tracker.OpenOverlay}" HorizontalAlignment="Left" Click="RaiseOpenOverlayTabClicked" />
+            </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.Counters.Title}" Icon="&#xF012C;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.Note.Counters}" Style="{StaticResource CardNote}" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Counters.Show}" IsChecked="{Binding Settings.ShowCounters}" Margin="0,0,0,14"
+                          ToolTip="{i:Loc Settings.Counters.Caption}" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Counters.Opponent}" IsChecked="{Binding Settings.ShowOpponentCounters}" Margin="0,0,0,14" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Counters.Mulligan}" IsChecked="{Binding Settings.ShowMulligan}" Margin="0,0,0,8"
+                          ToolTip="{i:Loc Settings.Counters.MulliganTip}" />
+                <ItemsControl ItemsSource="{Binding CounterRows}" ItemsPanel="{StaticResource PageRows}" Margin="0,8,0,0" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type m:CounterSettingRow}">
+                            <Grid Margin="0,0,0,8" ToolTip="{Binding Description}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="1" Style="{StaticResource SegmentBar}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Counters.Auto}" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
+                                                     Command="{Binding DataContext.SetCounterMode, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                     CommandParameter="{Binding Id, StringFormat={}{0}|Auto}" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Counters.Always}" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
+                                                     Command="{Binding DataContext.SetCounterMode, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                     CommandParameter="{Binding Id, StringFormat={}{0}|Always}" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Counters.Off}" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
+                                                     Command="{Binding DataContext.SetCounterMode, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                     CommandParameter="{Binding Id, StringFormat={}{0}|Off}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Battlegrounds counters: same modes, ids start with "bg-" -->
+                <TextBlock x:Name="BgCountersHeading" Text="{i:Loc Settings.Counters.Battlegrounds}" Style="{StaticResource H2}" Margin="0,14,0,10"
+                           Background="Transparent" ToolTip="{i:Loc Settings.Counters.BgCaption}" />
+                <ItemsControl ItemsSource="{Binding BgCounterRows}" ItemsPanel="{StaticResource PageRows}" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type m:CounterSettingRow}">
+                            <Grid Margin="0,0,0,8" ToolTip="{Binding Description}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="1" Style="{StaticResource SegmentBar}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Counters.Auto}" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
+                                                     Command="{Binding DataContext.SetCounterMode, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                     CommandParameter="{Binding Id, StringFormat={}{0}|Auto}" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Counters.Always}" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
+                                                     Command="{Binding DataContext.SetCounterMode, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                     CommandParameter="{Binding Id, StringFormat={}{0}|Always}" />
+                                        <RadioButton Style="{StaticResource Segment}" Content="{i:Loc Settings.Counters.Off}" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
+                                                     Command="{Binding DataContext.SetCounterMode, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                     CommandParameter="{Binding Id, StringFormat={}{0}|Off}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

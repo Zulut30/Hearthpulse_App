@@ -1,0 +1,130 @@
+<UserControl
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:core="using:Hearthpulse.Core"
+             xmlns:s="using:Hearthpulse.UI.Main.Stats"
+             xmlns:mm="using:Hearthpulse.UI.Main.Meta"
+             xmlns:dk="using:Hearthpulse.UI.Main.Decks"
+             xmlns:mt="using:Hearthpulse.UI.Main.Match"
+             xmlns:mg="using:Hearthpulse.UI.Main.Migration"
+             xmlns:cs="using:Hearthpulse.Core.Stats"
+             x:Class="Hearthpulse.UI.Main.Pages.ConstructedPageView"
+             x:DataType="m:MainViewModel">
+    <!-- Standard and Wild: the player's decks and stats, the meta's tiers, decks and matchups. Same tree as the WPF ConstructedPageView.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Text="{Binding ConstructedTitle}" Classes="display pageTitle" />
+            <c:Wave Classes="pageRule" />
+
+            <Border HorizontalAlignment="Left" Classes="segmentBar" Margin="0,0,0,14">
+                <WrapPanel>
+                    <RadioButton Name="TabMyDecks" Classes="segment" Content="{i:Loc Main.Ct.MyStats}" GroupName="CtTab" IsChecked="True"
+                                 ToolTip.Tip="{i:Loc Main.Ct.MyStatsTip}" />
+                    <RadioButton Name="TabMetaTiers" Classes="segment" Content="{i:Loc Main.Ct.MetaTiers}" GroupName="CtTab"
+                                 ToolTip.Tip="{i:Loc Main.Ct.MetaTiersTip}" />
+                    <RadioButton Name="TabMetaDecks" Classes="segment" Content="{i:Loc Main.Ct.TopDecks}" GroupName="CtTab"
+                                 ToolTip.Tip="{i:Loc Main.Ct.TopDecksTip}" />
+                    <RadioButton Name="TabMetaMatchups" Classes="segment" Content="{i:Loc Main.Ct.MetaMatchups}" GroupName="CtTab"
+                                 ToolTip.Tip="{i:Loc Main.Ct.MetaMatchupsTip}" />
+                </WrapPanel>
+            </Border>
+
+            <!-- Community tabs (Main/Meta): tier list, top decks, matchup heat map -->
+            <mm:ConstructedMetaView Name="CtMeta" IsVisible="False" />
+
+            <!-- My stats (Main/Stats): Standard/Wild results; your decks follow below -->
+            <s:ConstructedStatsView Name="CtStats" />
+
+            <Grid Name="DeckColumns" ColumnDefinitions="3*,16,2*">
+                <Border Classes="card" VerticalAlignment="Top">
+                    <StackPanel>
+                        <c:Ornament Text="{i:Loc Main.Ct.Decks}" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
+                        <!-- Decks that look like versions of one -->
+                        <ItemsControl ItemsSource="{Binding DeckSuggestions}" Margin="0,0,0,6">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="dk:DeckSuggestionRow">
+                                    <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <TextBlock Text="&#xF062C;" Classes="icon" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis"><Run Text="{i:Loc Main.Ct.SameDeck}" Foreground="{StaticResource Muted}" /><Run Text="{Binding Title, Mode=OneWay}" /></TextBlock>
+                                                <TextBlock Text="{Binding Detail}" Classes="caption" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Classes="ghost primary" Content="{i:Loc Main.Ct.Merge}" Padding="12,5" FontSize="12" Margin="8,0,6,0"
+                                                        Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).MergeSuggested}" CommandParameter="{Binding}"
+                                                        ToolTip.Tip="{i:Loc Main.Ct.MergeTip}" />
+                                                <Button Classes="ghost" Content="{i:Loc Main.Ct.NotSame}" Padding="10,5" FontSize="12"
+                                                        Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).DismissSuggested}" CommandParameter="{Binding}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Decks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:DeckRow">
+                                    <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                            Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).OpenDeck}" CommandParameter="{Binding}">
+                                        <Border Classes="row" Padding="13,9" Margin="0,0,0,3">
+                                            <Grid ColumnDefinitions="*,70,150,22">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Classes="caption"><Run Text="{Binding Class, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding LastPlayed, Mode=OneWay}" /></TextBlock>
+                                                    <TextBlock Text="{Binding Versions}" Classes="caption" Foreground="{StaticResource Info}"
+                                                               IsVisible="{Binding Versions, Converter={StaticResource Truthy}}" ToolTip.Tip="{i:Loc Main.Ct.VersionsTip}" />
+                                                    <TextBlock Text="{Binding Meta}" Classes="caption" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
+                                                               IsVisible="{Binding Meta, Converter={StaticResource Truthy}}" ToolTip.Tip="{i:Loc Main.Ct.MetaTip}" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="{Binding Record}" VerticalAlignment="Center" HorizontalAlignment="Right" Classes="caption"
+                                                           ToolTip.Tip="{i:Loc Main.Ct.RecordTip}" />
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Main.Table.WinRate}">
+                                                    <c:WinBar Width="80" Height="8" VerticalAlignment="Center" Fraction="{Binding WinFraction}" Games="{Binding Games}" Few="{Binding Few}" />
+                                                    <TextBlock Text="{Binding WinRate}" Width="50" TextAlignment="Right" FontWeight="Bold" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="3" Text="&#xF0142;" Classes="icon" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{i:Loc Main.Ct.DecksEmpty}" Classes="caption" Margin="0,8"
+                                   IsVisible="{Binding Decks, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+                <Border Name="MatchupCard" Grid.Column="2" Classes="card" VerticalAlignment="Top">
+                    <StackPanel>
+                        <c:Ornament Text="{i:Loc Main.Ct.Matchups}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,10"
+                                    ToolTip.Tip="{i:Loc Main.Ct.MatchupsHint}" />
+                        <ItemsControl ItemsSource="{Binding Matchups}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:MatchupRow">
+                                    <Border Classes="row" Padding="10,8">
+                                        <Grid ColumnDefinitions="*,60,56">
+                                            <TextBlock Text="{Binding Class}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Record}" Classes="caption" HorizontalAlignment="Right" />
+                                            <TextBlock Grid.Column="2" Text="{Binding WinRate}" FontWeight="Bold" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{i:Loc Main.Ct.MatchupsEmpty}" Classes="caption" IsVisible="{Binding Matchups, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

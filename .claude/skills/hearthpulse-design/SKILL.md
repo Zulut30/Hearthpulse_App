@@ -58,7 +58,7 @@ Consequences:
 - A hex literal in `MainWindow.xaml`, `OverlayWindow.xaml` or C# is **not** recoloured and breaks non-default themes.
   Use `{StaticResource Key}` (WPF) / `{StaticResource Key}` or `ThemeBrushes.Get("Key")` (Avalonia,
   `Infrastructure/Converters.cs`); in WPF code `FindResource("Key")` / `TryFindResource`. Existing exceptions are
-  deliberate: the hue-slider rainbow (`HueStrip` in MainWindow.xaml) and transparent stops.
+  deliberate: the hue-slider rainbow (`HueStrip` in `Main/MainPages.xaml`) and transparent stops.
 - New colour token: add it to **both** theme files with the same key. If its colour carries meaning (win/loss, tier,
   rarity) give it a key starting with one of the fixed prefixes, or it will turn purple/blue under Arcane/Frost.
 - Gold-ish hue (15-60) means "will be themed", and so does patina teal (150-186, the second accent); pick other

@@ -26,7 +26,7 @@ public sealed partial class LocBindingTests
     [Fact]
     public void Avalonia_settings_switch_follows_the_overlay_lock_button() => Headless.Run(() => WithMainView((view, model) =>
     {
-        var unlock = view.FindControl<CheckBox>("PanelLockSetting")!;
+        var unlock = Named<CheckBox>(view, "PanelLockSetting")!;
         Assert.False(unlock.IsChecked);
         model.Settings.OverlayPanelsUnlocked = true;
         view.SyncOverlaySwitch();

@@ -30,6 +30,18 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
+        PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
+        PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
+        PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
+        // The Tracker tab's "overlay is off" banner follows the Overlay tab's switch (two controls now, one binding).
+        SettingsTracker.Bind(global::Hearthpulse.UI.Main.SettingsTabs.TrackerSettings.OverlayOnProperty,
+            SettingsOverlay.OverlaySetting.GetObservable(ToggleButton.IsCheckedProperty, on => on == true));
+        SettingsOverlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(SettingsOverlay, e);
+        SettingsOverlay.ArrangeOverlayClicked += e => OnArrangeOverlay(SettingsOverlay, e);
+        SettingsTracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(SettingsTracker, e);
+        SettingsAccount.CopyAccountCodeClicked += e => OnCopyAccountCode(SettingsAccount, e);
+        SettingsData.ReimportClicked += e => OnReimport(SettingsData, e);
+        SettingsData.OpenDataClicked += e => OnOpenData(SettingsData, e);
         _page = CurrentPage;
         var pages = PageButtons;
         for (var i = 0; i < pages.Length; i++)
@@ -51,12 +63,12 @@ public partial class MainView : UserControl
             };
         }
 
-        foreach (var tab in new[] { TabHeroes, TabComps, TabTrinkets, TabCards, TabMine })
+        foreach (var tab in new[] { PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards, PageBattlegrounds.TabMine })
         {
             tab.IsCheckedChanged += (_, _) => UpdateTabs();
         }
 
-        foreach (var tab in new[] { TabMyDecks, TabMetaTiers, TabMetaDecks, TabMetaMatchups })
+        foreach (var tab in new[] { PageConstructed.TabMyDecks, PageConstructed.TabMetaTiers, PageConstructed.TabMetaDecks, PageConstructed.TabMetaMatchups })
         {
             tab.IsCheckedChanged += (_, _) => UpdateConstructedTabs();
         }
@@ -77,8 +89,8 @@ public partial class MainView : UserControl
     private void UseShortcutTips()
     {
         var global = Hearthpulse.UI.Overlay.OverlayView.GlobalShortcuts;
-        ShortcutHideRow.IsVisible = global;
-        ShortcutLayoutRow.IsVisible = global;
+        SettingsGeneral.ShortcutHideRow.IsVisible = global;
+        SettingsGeneral.ShortcutLayoutRow.IsVisible = global;
         if (global)
         {
             ArrangeButton.Bind(ToolTip.TipProperty, new LocExtension("Main.Live.ArrangeTip").ProvideValue(null!));
@@ -136,10 +148,10 @@ public partial class MainView : UserControl
     private ToggleButton[] PageButtons => [NavOverview, NavBattlegrounds, NavStandard, NavWild, NavArena, NavBrawl, NavHistory, NavSettings];
 
     /// <summary>The Battlegrounds tabs in <see cref="MainViewModel.BattlegroundsTabs"/> order.</summary>
-    private ToggleButton[] BattlegroundsTabButtons => [TabHeroes, TabComps, TabTrinkets, TabCards, TabMine];
+    private ToggleButton[] BattlegroundsTabButtons => [PageBattlegrounds.TabHeroes, PageBattlegrounds.TabComps, PageBattlegrounds.TabTrinkets, PageBattlegrounds.TabCards, PageBattlegrounds.TabMine];
 
     /// <summary>The Constructed tabs in <see cref="MainViewModel.ConstructedTabs"/> order.</summary>
-    private ToggleButton[] ConstructedTabButtons => [TabMyDecks, TabMetaTiers, TabMetaDecks, TabMetaMatchups];
+    private ToggleButton[] ConstructedTabButtons => [PageConstructed.TabMyDecks, PageConstructed.TabMetaTiers, PageConstructed.TabMetaDecks, PageConstructed.TabMetaMatchups];
 
     private static bool?[] States(ToggleButton[] buttons) => Array.ConvertAll(buttons, b => b.IsChecked);
 
@@ -185,13 +197,13 @@ public partial class MainView : UserControl
         else if (e.Key == Key.V && e.KeyModifiers == KeyModifiers.Control && CurrentPage == "History" && !_viewModel.MatchOpen && e.Source is not TextBox)
         {
             // Ctrl+V on History imports the file (or the path) on the clipboard into the library.
-            LibraryView.PasteFromClipboardAsync().Forget("Replay paste");
+            PageHistory.LibraryView.PasteFromClipboardAsync().Forget("Replay paste");
             e.Handled = true;
         }
         else if (e.Key == Key.F && e.KeyModifiers == KeyModifiers.Control && CurrentPage == "History" && !_viewModel.MatchOpen)
         {
             // Ctrl+F on History: the library's search box.
-            LibraryView.FocusSearch();
+            PageHistory.LibraryView.FocusSearch();
             e.Handled = true;
         }
     }
@@ -340,10 +352,10 @@ public partial class MainView : UserControl
     public void ShowPage(string page) => PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, ConstructedPage.Migrate(page))].IsChecked = true;
 
     /// <summary>Shows the hover card of one point of the Battlegrounds rating chart (-1 hides it), for the render check.</summary>
-    public void HoverBattlegroundsGame(int index) => BgStats.HoverGame(index);
+    public void HoverBattlegroundsGame(int index) => PageBattlegrounds.BgStats.HoverGame(index);
 
     /// <summary>Shows the hover card of one point of the rank chart (-1 hides it), for the render check.</summary>
-    public void HoverConstructedGame(int index) => CtStats.HoverGame(index);
+    public void HoverConstructedGame(int index) => PageConstructed.CtStats.HoverGame(index);
 
     /// <summary>Shows the hover card of one point of the deck page's win-rate chart (-1 hides it), for the render check.</summary>
     public void HoverDeckGame(int index) => DeckDetails.HoverGame(index);
@@ -359,9 +371,9 @@ public partial class MainView : UserControl
         if (_viewModel is not null)
         {
             OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
-            OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
+            SettingsOverlay.OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
             // The overlay's own lock button changes this one too.
-            PanelLockSetting.IsChecked = _viewModel.Settings.OverlayPanelsUnlocked;
+            SettingsOverlay.PanelLockSetting.IsChecked = _viewModel.Settings.OverlayPanelsUnlocked;
         }
     }
 
@@ -374,7 +386,7 @@ public partial class MainView : UserControl
         UpdateTilePanels();
         Frame.ColumnDefinitions[0].Width = new GridLength(compact ? 76 : 250);
         // Side-by-side cards stack on narrow screens.
-        foreach (var (grid, right) in new[] { (HomeCharts, (Control)PlacementCard), (DeckColumns, MatchupCard) })
+        foreach (var (grid, right) in new[] { (PageOverview.HomeCharts, (Control)PageOverview.PlacementCard), (PageConstructed.DeckColumns, PageConstructed.MatchupCard) })
         {
             grid.ColumnDefinitions = compact ? new ColumnDefinitions("*") : new ColumnDefinitions("3*,16,2*");
             grid.RowDefinitions = compact ? new RowDefinitions("Auto,16,Auto") : new RowDefinitions("Auto");
@@ -382,7 +394,7 @@ public partial class MainView : UserControl
             Grid.SetRow(right, compact ? 2 : 0);
         }
 
-        CtMeta.Stack(compact);
+        PageConstructed.CtMeta.Stack(compact);
     }
 
     /// <summary>Stat tiles sit in one row on wide screens and two columns on narrow ones (grids classed "fixed" keep theirs).</summary>
@@ -488,19 +500,19 @@ public partial class MainView : UserControl
     {
         (tab switch
         {
-            "Comps" => TabComps,
-            "Trinkets" => TabTrinkets,
-            "Cards" => TabCards,
-            _ => TabHeroes,
+            "Comps" => PageBattlegrounds.TabComps,
+            "Trinkets" => PageBattlegrounds.TabTrinkets,
+            "Cards" => PageBattlegrounds.TabCards,
+            _ => PageBattlegrounds.TabHeroes,
         }).IsChecked = true;
         UpdateTabs();
-        TabHeroes.BringIntoView(new Rect(0, 0, TabHeroes.Bounds.Width, 700));
+        PageBattlegrounds.TabHeroes.BringIntoView(new Rect(0, 0, PageBattlegrounds.TabHeroes.Bounds.Width, 700));
     }
 
     private void UpdateTabs()
     {
-        BgTiers.ShowTab(BattlegroundsTab);
-        BracketPicker.IsVisible = TabMine.IsChecked != true;
+        PageBattlegrounds.BgTiers.ShowTab(BattlegroundsTab);
+        PageBattlegrounds.BracketPicker.IsVisible = PageBattlegrounds.TabMine.IsChecked != true;
     }
 
     /// <summary>Opens a Constructed tab: "Decks", "Tiers", "Top" or "Matchups" (used by the UI render check).</summary>
@@ -512,11 +524,11 @@ public partial class MainView : UserControl
 
     private void UpdateConstructedTabs()
     {
-        var mine = TabMyDecks.IsChecked == true;
-        CtStats.IsVisible = mine;
-        DeckColumns.IsVisible = mine;
+        var mine = PageConstructed.TabMyDecks.IsChecked == true;
+        PageConstructed.CtStats.IsVisible = mine;
+        PageConstructed.DeckColumns.IsVisible = mine;
         var tab = ConstructedTab;
-        CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
+        PageConstructed.CtMeta.ShowTab(tab == MainViewModel.ConstructedTabs[0] ? null : tab);
     }
 
     private void OnSettingChanged(CheckBox box)
@@ -529,15 +541,13 @@ public partial class MainView : UserControl
         // Avalonia writes the switch back to AppSettings only after IsCheckedChanged: the bar re-reads it once it has.
         Dispatcher.UIThread.Post(_viewModel.RefreshPanelToggles);
 
-        if (box == OverlaySetting)
+        if (box == SettingsOverlay.OverlaySetting)
         {
             OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
         }
 
         SettingsChanged?.Invoke();
     }
-
-    private void OnViewHistory(object? sender, RoutedEventArgs e) => NavHistory.IsChecked = true;
 
     /// <summary>Opens History on one game (from a deck page): scrolled to and marked as selected.</summary>
     private void ShowHistoryGame(string key) => ShowHistoryGameAsync(key).Forget("Show a game in History");
@@ -553,7 +563,7 @@ public partial class MainView : UserControl
         NavHistory.IsChecked = true;
         if (viewModel.HistoryFilter != "All")
         {
-            HistoryAll.IsChecked = true;
+            PageHistory.HistoryAll.IsChecked = true;
             // Ends once the "All" rows are there: at once from the games in memory, else after a reload.
             await viewModel.ShowAllGamesAsync();
         }
@@ -575,7 +585,7 @@ public partial class MainView : UserControl
         }
 
         _viewModel.Settings.OverlayEnabled = OverlaySwitch.IsChecked == true;
-        OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
+        SettingsOverlay.OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
         SettingsChanged?.Invoke();
     }
 

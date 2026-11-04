@@ -33,8 +33,8 @@ public sealed class BgBadgesMarkupTests
     }
 
     [Theory]
-    [InlineData("src/Hearthpulse.App/Main/MainWindow.xaml")]
-    [InlineData("src/Hearthpulse.UI/Main/MainView.axaml")]
+    [InlineData("src/Hearthpulse.App/Main/SettingsTabs/OverlaySettings.xaml")]
+    [InlineData("src/Hearthpulse.UI/Main/SettingsTabs/OverlaySettings.axaml")]
     public void The_switch_follows_the_lobby_panels_and_is_on_by_default(string file)
     {
         var switches = XDocument.Load(Path.Combine(RepoRoot(), file)).Root!.Descendants().Where(e => e.Name.LocalName == "CheckBox").ToList();
