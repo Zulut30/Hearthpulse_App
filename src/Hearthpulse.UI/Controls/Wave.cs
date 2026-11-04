@@ -6,80 +6,74 @@ using Hearthpulse.UI.Infrastructure;
 namespace Hearthpulse.UI.Controls;
 
 /// <summary>
-/// A gold rule that fills its width: a small diamond at the left end and a hairline that fades out to the right.
-/// (The name is kept from the old wavy divider so existing XAML keeps working.)
+/// A rule that fills its width: a hairline that fades out to the right. With <see cref="Pulse"/> it starts with a
+/// heartbeat in the flame of the logo (the page rule under titles). (The name is kept from the old wavy divider so
+/// existing XAML keeps working.)
 /// </summary>
 public sealed class Wave : Control
 {
-    /// <summary>Edge of the diamond before rotation; the rotated square spans about 7 px.</summary>
-    private const double DiamondSide = 5;
+    /// <summary>The beat's corners from its start: x and y offsets from the line.</summary>
+    private static readonly (double X, double Y)[] Beat = [(0, 0), (12, 0), (15, -4), (19, 6), (23, -7), (26, 0), (30, 0)];
 
-    private static readonly double DiamondHalf = DiamondSide / Math.Sqrt(2);
+    private const double BeatHeight = 16;
 
     public static readonly StyledProperty<IBrush?> StrokeProperty = AvaloniaProperty.Register<Wave, IBrush?>(nameof(Stroke));
 
-    public static readonly StyledProperty<double> AmplitudeProperty = AvaloniaProperty.Register<Wave, double>(nameof(Amplitude), 2.2);
-
-    public static readonly StyledProperty<double> WavelengthProperty = AvaloniaProperty.Register<Wave, double>(nameof(Wavelength), 11.0);
-
-    public static readonly StyledProperty<double> ThicknessProperty = AvaloniaProperty.Register<Wave, double>(nameof(Thickness), 1.5);
+    public static readonly StyledProperty<bool> PulseProperty = AvaloniaProperty.Register<Wave, bool>(nameof(Pulse));
 
     static Wave()
     {
-        AffectsRender<Wave>(StrokeProperty, AmplitudeProperty, WavelengthProperty, ThicknessProperty);
-        AffectsMeasure<Wave>(AmplitudeProperty, ThicknessProperty);
+        AffectsRender<Wave>(StrokeProperty, PulseProperty);
+        AffectsMeasure<Wave>(PulseProperty);
     }
 
-    /// <summary>Colour of the rule at its left end (defaults to the theme's GoldTrim).</summary>
+    /// <summary>Colour of the hairline at its left end (defaults to the theme's GoldTrim, FlameLine after a beat).</summary>
     public IBrush? Stroke { get => GetValue(StrokeProperty); set => SetValue(StrokeProperty, value); }
 
-    /// <summary>Kept for compatibility; the rule is straight.</summary>
-    public double Amplitude { get => GetValue(AmplitudeProperty); set => SetValue(AmplitudeProperty, value); }
-
-    /// <summary>Kept for compatibility; the rule is straight.</summary>
-    public double Wavelength { get => GetValue(WavelengthProperty); set => SetValue(WavelengthProperty, value); }
-
-    /// <summary>Kept for compatibility; the rule is always a 1 px hairline.</summary>
-    public double Thickness { get => GetValue(ThicknessProperty); set => SetValue(ThicknessProperty, value); }
+    /// <summary>Start with a heartbeat in the theme's flame.</summary>
+    public bool Pulse { get => GetValue(PulseProperty); set => SetValue(PulseProperty, value); }
 
     protected override Size MeasureOverride(Size availableSize) =>
-        new(double.IsInfinity(availableSize.Width) ? 40 : availableSize.Width,
-            Math.Max((Amplitude * 2) + Thickness + 1, Math.Ceiling(DiamondHalf * 2) + 1));
+        new(double.IsInfinity(availableSize.Width) ? 40 : availableSize.Width, Pulse ? BeatHeight : 3);
 
     public override void Render(DrawingContext context)
     {
-        Draw(context, Stroke ?? ThemeBrushes.Get("GoldTrim"), ThemeBrushes.Get("Accent"), 0, Bounds.Width, Bounds.Height / 2);
-    }
+        var y = Bounds.Height / 2;
+        if (!Pulse)
+        {
+            Hairline(context, Stroke ?? ThemeBrushes.Get("GoldTrim"), 0, Bounds.Width, y);
+            return;
+        }
 
-    /// <summary>Draws the rule from <paramref name="from"/> to <paramref name="to"/> centred on <paramref name="y"/>.</summary>
-    /// <remarks>Signature kept from the wavy version; amplitude, wavelength and thickness are ignored.</remarks>
-    public static void Draw(DrawingContext context, IBrush stroke, double from, double to, double y, double amplitude, double wavelength, double thickness) =>
-        Draw(context, stroke, stroke, from, to, y);
-
-    /// <summary>Diamond in <paramref name="diamond"/> at the left end, then a hairline in <paramref name="stroke"/> fading to transparent.</summary>
-    public static void Draw(DrawingContext context, IBrush stroke, IBrush diamond, double from, double to, double y)
-    {
-        var length = to - from;
-        if (length < (DiamondHalf * 2) + 8)
+        if (Bounds.Width < Beat[^1].X + 8)
         {
             return;
         }
 
-        var cx = from + DiamondHalf + 0.5;
-        var gem = new StreamGeometry();
-        using (var ctx = gem.Open())
+        var beat = new StreamGeometry();
+        using (var ctx = beat.Open())
         {
-            ctx.BeginFigure(new Point(cx, y - DiamondHalf), true);
-            ctx.LineTo(new Point(cx + DiamondHalf, y));
-            ctx.LineTo(new Point(cx, y + DiamondHalf));
-            ctx.LineTo(new Point(cx - DiamondHalf, y));
-            ctx.EndFigure(true);
+            ctx.BeginFigure(new Point(Beat[0].X + 0.5, y + Beat[0].Y), false);
+            foreach (var (x, dy) in Beat.Skip(1))
+            {
+                ctx.LineTo(new Point(x + 0.5, y + dy));
+            }
+
+            ctx.EndFigure(false);
         }
 
-        context.DrawGeometry(diamond, null, gem);
+        context.DrawGeometry(null, new Pen(ThemeBrushes.Get("FlameRule"), 1.6, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), beat);
+        Hairline(context, Stroke ?? ThemeBrushes.Get("FlameLine"), Beat[^1].X, Bounds.Width, y);
+    }
 
-        // A crisp 1 px line on the pixel grid, faded with an opacity mask so any brush works.
-        var start = cx + DiamondHalf + 3;
+    /// <summary>A crisp 1 px line from <paramref name="from"/> to <paramref name="to"/> on <paramref name="y"/>, fading to transparent.</summary>
+    public static void Hairline(DrawingContext context, IBrush stroke, double from, double to, double y)
+    {
+        if (to - from < 8)
+        {
+            return;
+        }
+
         var line = Math.Floor(y) + 0.5;
         var fade = new LinearGradientBrush
         {
@@ -91,9 +85,9 @@ public sealed class Wave : Control
                 new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
             },
         };
-        using (context.PushOpacityMask(fade, new Rect(start, line - 1, to - start, 2)))
+        using (context.PushOpacityMask(fade, new Rect(from, line - 1, to - from, 2)))
         {
-            context.DrawLine(new Pen(stroke, 1), new Point(start, line), new Point(to, line));
+            context.DrawLine(new Pen(stroke, 1), new Point(from, line), new Point(to, line));
         }
     }
 }

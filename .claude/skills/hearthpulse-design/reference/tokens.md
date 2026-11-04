@@ -18,8 +18,8 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 | TextColor | #F4E7C9 | `Text` | body text (parchment) |
 | MutedColor | #CDB894 | `Muted`, `TierC` | secondary text, icons, labels |
 | FaintColor | #8F7A5C | `Faint` | separators, glyphs, empty-box placeholders, disabled (below AA: not for text to be read) |
-| AccentColor | #E9B949 | `Accent`, `GoldFill` | gold accent |
-| AccentDeepColor | #C48E2C | `AccentDeep` | darker gold |
+| AccentColor | #F5AE4C | `Accent`, `GoldFill` | warm amber accent (the logo's flame, lit) |
+| AccentDeepColor | #D9822F | `AccentDeep` | darker amber |
 | AccentContainerColor | #5A3D17 | `AccentContainer` | icon cookie fill behind gold glyphs |
 | SecondaryContainerColor | #3F2C19 | `SecondaryContainer` | neutral container |
 | PositiveColor | #8CCF63 | `Positive` | wins, gains (fixed) |
@@ -30,17 +30,17 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 
 | Key | Value | Use |
 |---|---|---|
-| AccentSoft | #1FE9B949 | faint gold wash |
-| AccentLine | #99E9B949 | gold line |
+| AccentSoft | #1FF5AE4C | faint gold wash |
+| AccentLine | #99F5AE4C | gold line |
 | OnAccent | #2A1906 | text on gold (PrimaryButton, chart tag) |
 | OnAccentContainer | #FBE3A6 | text on AccentContainer |
 | OnSecondaryContainer | #EBDDBD | ghost-button text |
 | PositiveSoft / NegativeSoft | #228CCF63 / #24EC6A52 | tinted backgrounds (fixed) |
 | Hover / Pressed | #12F4E7C9 / #1FF4E7C9 | state layers |
-| Decor / DecorStrong | #0EE9B949 / #16E9B949 | decorative shapes |
+| Decor / DecorStrong | #0EF5AE4C / #16F5AE4C | decorative shapes |
 | OverlayPanel | #F0201510 | overlay panel fill |
 | OverlayPanelSolid | WPF: gradient #FA2C1F14→#FA1C130C; Avalonia: solid #FA201510 | opaque overlay panel |
-| OverlayBorder | #40E9B949 | overlay panel edge |
+| OverlayBorder | #40F5AE4C | overlay panel edge |
 | OverlayBadgeShade | #CC140D08 | shade behind overlay badges (both files) |
 | OverlayPlaceholder | #E6201510 | layout-mode placeholder (WPF only) |
 | Row | #2E1F13 | list row plate |
@@ -53,8 +53,12 @@ Theme.xaml through `ThemePalette.Map` (see SKILL.md), so never copy these hex va
 | RarityCommon/Rare/Epic/Legendary | #D8CDB8 / #5B9BFF / #B98AF5 / #FFB547 | rarity (fixed) |
 | TierS/A/B/C/D | #FFC857 / #8CCF63 / #7CC0FF / Muted / Negative | tier letters (fixed) |
 
-"Gilded Tavern" gradients (both files): `GildedText` (Display headings), `StatText` (Stat numbers), `WindowFill`,
-`ContentEdge`, `CardFill`, `CardEdge` (lit top, the rim catches the accent), `GhostFill`, `GhostEdge`, `PrimaryEdge`,
+Hearth brushes (both files, docs/design-identity.md): `Flame` (vertical yellow-to-orange, the logo's flame: primary
+action, selected nav, step marks), `FlameRule` (horizontal, the pulse rule), `FlameSoft` / `FlameLine` (the section
+drop of `Ornament`), `EmberGlow` (radial light behind an empty state's glyph). `PrimaryFill` is the flame gradient.
+
+"Gilded Tavern" gradients (both files): `GildedText` (Display headings, now parchment, no gold), `StatText` (Stat numbers), `WindowFill`,
+`ContentEdge`, `CardFill`, `CardEdge` (dark top, warm ember edge at the bottom), `GhostFill`, `GhostEdge`, `PrimaryEdge`,
 `BestEdge`, `BestHalo` (gold glow behind the recommended option, a gradient not a bitmap effect), `Sheen`,
 `GrooveFill`, `GrooveEdge` (SegmentBar), `NavSelectedFill`, `NavSelectedEdge`, `OverlayCardFill`, `OverlayEdge`.
 Legacy aliases kept so older templates resolve: `PanelFill`, `OverlayFill`, `SidebarFill`, `WindowBg`.
@@ -67,7 +71,7 @@ Theme character (both files; `ThemeFileTests` keeps the colour, brush and geomet
 | `Accent2Soft` / `Accent2Line` | #1F4FC2A8 / #994FC2A8 | second-accent wash and line |
 | `Glow` / `Accent2Glow` | radial gradients | soft halo behind a highlighted element (no bitmap effect, overlay-safe) |
 | `EdgeLight` | horizontal gradient | lit top hairline of a raised plate (selected Segment/Tab) |
-| `MotifInk` / `MotifInk2` | #17E9B949 / #244FC2A8 | backdrop motif lines / dots |
+| `MotifInk` / `MotifInk2` | #17F5AE4C / #244FC2A8 | backdrop motif lines / dots |
 | `Motif<Name>`, `Motif<Name>Alt` | geometries in a 1000x1000 box | original line art per preset: Tavern rosette, Frost crystal, Fel sigil, Arcane orbits, Ember flames, Tide wave, Shadow crescent (`tools/themes/motifs.py`) |
 | `MotifBrush` | DrawingBrush, Uniform | the active theme's motif alone (lines in AccentLine, dots in Accent2) for a square decoration |
 | `ContentFill` | DrawingBrush, cached | content plate: lamplight top left, a second-accent wash and the motif carved faintly into the bottom right |

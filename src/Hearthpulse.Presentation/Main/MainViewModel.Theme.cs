@@ -30,7 +30,7 @@ public sealed record ThemeChoice(string Key, string Name, Brush Background, Brus
         ThemeEngine.Brush(0xFF140D08, theme),
         ThemeEngine.Brush(0xFF2C1F13, theme),
         ThemeEngine.Brush(0xFF4A331E, theme),
-        ThemeEngine.Brush(0xFFE9B949, theme),
+        ThemeEngine.Brush(0xFFF5AE4C, theme),
         ThemeEngine.Brush(0xFFF4E7C9, theme),
         ThemeEngine.Brush(0xFFCDB894, theme),
         ThemeEngine.Brush(0xFF4FC2A8, theme),

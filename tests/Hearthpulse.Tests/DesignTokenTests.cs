@@ -25,8 +25,8 @@ public sealed class DesignTokenTests
     /// </summary>
     private static readonly Dictionary<string, (int Font, int Radius, int Space)> Baseline = new(StringComparer.Ordinal)
     {
-        ["wpf"] = (397, 85, 631),
-        ["avalonia"] = (408, 86, 627),
+        ["wpf"] = (395, 85, 624),
+        ["avalonia"] = (406, 86, 620),
     };
 
     private static readonly string[] TokenElements = ["Double", "CornerRadius", "Thickness"];

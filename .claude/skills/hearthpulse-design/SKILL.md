@@ -5,7 +5,9 @@ description: Use when changing how Hearthpulse looks - colours and design tokens
 
 # Hearthpulse visual design
 
-Look: Hearthstone menus - dark wood and leather surfaces, parchment text, gold trim. Two UIs share the look:
+Look: "Hearth" (docs/design-identity.md) - dark wood surfaces and parchment text from the tavern, the logo's flame as
+the one accent (primary action, selection, the pulse rule, section drops), ember light from below, less clutter.
+Two UIs share the look:
 
 | UI | Project | Theme file | Main view | Overlay |
 |---|---|---|---|---|
@@ -95,7 +97,7 @@ with the motif), `Motif<Name>` geometries.
   `PagePadding` 40,0,40,120. Margin/Padding literals stay on 0/1/2/4/8/12/16/24/32 (multiples of 4 from 40 are
   layout offsets). `DesignTokenTests` counts literal font sizes and off-scale radii/spacing per UI and only lets the
   count fall; `python -I tools/design/migrate_tokens.py <files>` moves a file onto the scale with the same rules.
-- Section headings use the `Ornament` control (gold icon in a scallop cookie + title + rule), e.g.
+- Section headings use the `Ornament` control (glyph in a flame-tinted drop + bold title, no rule), e.g.
   `<c:Ornament Text="Rating" Icon="&#xF012A;" Size="13" />`. Mixed-case text is kept; ALL CAPS is sentence-cased.
 - The logo (flame with a pulse) is the brand mark: `{StaticResource HearthpulseLogo}`, a `DrawingImage` from
   `Main/Logo.xaml` / `Main/Logo.axaml`, fixed colours that no theme recolours (keep it out of `Theme.*`). Icons,
@@ -136,8 +138,8 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
   files hold no flat gem (on cards it is a lit 3D mesh, `GenFX_Gem_Mana_D` is only its dark diffuse). Shipping
   Blizzard art is a Blocker in `reference/reviews/LEGAL-HeartLens-claude-mana-assets.md`; the owner accepted that risk
   on 2026-10-27. Do not put the gem behind the paywall.
-- `Wave` - gold rule: diamond + fading hairline (`Stroke` defaults to `GoldTrim`; Amplitude/Wavelength/Thickness are
-  kept only for compatibility).
+- `Wave` - a fading hairline (`Stroke` defaults to `GoldTrim`); `Pulse="True"` starts it with a heartbeat in
+  `FlameRule` (the page rule under titles: `PageRule` / `c|Wave.pageRule` in `MainLook`).
 - `RatingChart` - rating curve (`Points`), min/max guides, latest value tag.
 - `StatsLineChart` - line of `IChartValue` points with a hover card (`HoverTemplate`, `HoverIndex`); `Sparkline` (You vs
   a dashed comparison), `MiniBars` (shares with comparison ticks, marker, 1..N labels). Used by the My Stats views in

@@ -42,7 +42,7 @@
 
   "Deck.Matchups.Title": "Matchups",
   "Deck.Matchups.Hint": "Click a matchup to see only those games below. Archetypes show when the opponent's cards told.",
-  "Deck.Matchups.Empty": "No opponents recorded yet.",
+  "Deck.Matchups.Empty": "Play this deck and the opponents' classes appear here, with your wins against each.",
 
   "Deck.Versions.Title": "Versions",
   "Deck.Versions.MainChip": "Main version",
@@ -126,7 +126,7 @@
 
   "Deck.Recent.Title": "Recent games",
   "Deck.Recent.ShowInHistory": "Show in History",
-  "Deck.Recent.Empty": "No games in this matchup.",
+  "Deck.Recent.Empty": "No games against this opponent yet.",
   "Deck.Game.Vs": "vs {0}",
   "Deck.Game.UnknownOpponent": "Unknown opponent",
   "Deck.Game.Turns": "{0} turn|{0} turns",

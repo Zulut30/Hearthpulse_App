@@ -9,9 +9,10 @@
         <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
     <Style Selector="c|Wave.pageRule">
+        <Setter Property="Pulse" Value="True" />
         <Setter Property="Width" Value="168" />
         <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="Margin" Value="2,0,0,22" />
+        <Setter Property="Margin" Value="2,0,0,24" />
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
@@ -26,18 +27,18 @@
     <!-- Settings cards: one muted line under the card's Ornament heading says what the card is for -->
     <Style Selector="TextBlock.caption.cardNote">
         <Setter Property="TextWrapping" Value="Wrap" />
-        <Setter Property="Margin" Value="0,-6,0,18" />
+        <Setter Property="Margin" Value="0,-8,0,16" />
     </Style>
     <!-- A setting's name on the left of a slider or a choice: the same size as a switch's text -->
     <Style Selector="TextBlock.settingLabel">
-        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLead}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="0,0,16,0" />
         <Setter Property="Background" Value="Transparent" />
     </Style>
     <!-- A group of rows inside a settings card: a small muted heading with space above it -->
     <Style Selector="TextBlock.label.settingGroup">
-        <Setter Property="Margin" Value="0,10,0,10" />
+        <Setter Property="Margin" Value="0,12,0,12" />
     </Style>
 
     <!-- Theme picker tile (MainView ThemeTile): the app's accent frames the theme in use -->
@@ -48,21 +49,21 @@
         <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
     </Style>
 
-    <!-- An empty list: the section's glyph in a cookie over one short line, centred. Tag = glyph, Content = text. -->
+    <!-- An empty list: the section's glyph in ember light over one short line, centred. Tag = glyph, Content = text. -->
     <Style Selector="ContentControl.emptyState">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="Margin" Value="0,14,0,8" />
+        <Setter Property="Margin" Value="0,16,0,8" />
         <Setter Property="Template">
             <ControlTemplate TargetType="ContentControl">
                 <StackPanel>
-                    <Panel Width="48" Height="48" HorizontalAlignment="Center">
-                        <c:Scallop Fill="{StaticResource AccentContainer}" Lobes="9" Depth="0.12" />
-                        <TextBlock Name="Glyph" Text="{TemplateBinding Tag}" Classes="icon" FontSize="22"
+                    <Panel Width="112" Height="56" HorizontalAlignment="Center">
+                        <Ellipse Fill="{StaticResource EmberGlow}" />
+                        <TextBlock Name="Glyph" Text="{TemplateBinding Tag}" Classes="icon" FontSize="{StaticResource FontSizeHeadline}"
                                    Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Panel>
-                    <TextBlock Name="Text" Text="{TemplateBinding Content}" Classes="caption" TextAlignment="Center"
-                               TextWrapping="Wrap" MaxWidth="440" Margin="0,10,0,0" />
+                    <TextBlock Name="Text" Text="{TemplateBinding Content}" Classes="caption" FontSize="{StaticResource FontSizeBody}" TextAlignment="Center"
+                               TextWrapping="Wrap" MaxWidth="440" Margin="0,8,0,0" />
                 </StackPanel>
             </ControlTemplate>
         </Setter>
