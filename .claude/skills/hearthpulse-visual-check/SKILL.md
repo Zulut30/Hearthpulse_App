@@ -47,7 +47,9 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
   renders only those main-window pages (`Overview`, `Battlegrounds`, `Standard`, `Wild`, `History`, `Settings`) and
   stops, in both UIs; the wrapper's mandatory-file check does not apply then, so run the built exe or `dotnet run` directly.
   Another filter: `HEARTHPULSE_RENDER_ONLY=brawl` renders only the Brawl page
-  (`main-brawl`, Avalonia also `main-brawl-compact`); more groups can be added the same way.
+  (`main-brawl`, Avalonia also `main-brawl-compact`); `HEARTHPULSE_RENDER_ONLY=overlay` renders only the overlay
+  (the Battlegrounds moments `overlay-pick/-trinket/-discover/-game/-bg-counters`, `overlay-constructed` with its
+  previews, `overlay-layout`); more groups can be added the same way.
   Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
   honoured only while rendering, WPF only (the Avalonia app has themes, but its renderer stays Tavern).
 - Data: main pages from `history.db`; overlay moments replayed from the **kept Hearthstone logs**
