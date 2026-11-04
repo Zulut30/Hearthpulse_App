@@ -165,7 +165,7 @@ public sealed partial class OverlayViewModel
             return;
         }
 
-        var scale = Math.Clamp(settings.OverlayScale, 0.6, 1.6);
+        var scale = SurfaceScale(settings);
         ArenaPickRowWidth = (draft!.HeroPick ? ArenaHeroPitch : ArenaCardPitch) * Math.Max(draft.Options.Count, 1) / scale;
         ArenaPickDrop = draft.HeroPick ? ArenaHeroDrop / scale : 0;
 

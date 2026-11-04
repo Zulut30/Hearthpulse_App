@@ -66,13 +66,13 @@ public sealed class OverlayMoveMarkupTests
     [Fact]
     public void The_lock_button_keeps_its_word_readable_under_the_mouse()
     {
-        var wpf = XDocument.Load(Path.Combine(RepoRoot(), "src/Hearthpulse.App/Overlay/OverlayWindow.xaml")).Root!;
+        var wpf = XDocument.Load(Path.Combine(RepoRoot(), "src/Hearthpulse.App/Overlay/OverlayPanels.xaml")).Root!;
         var style = wpf.Descendants().Single(e => e.Name.LocalName == "Style" && e.Attributes().Any(a => a.Name.LocalName == "Key" && a.Value == "LockButton"));
         var hover = style.Descendants().Single(e => e.Name.LocalName == "Trigger" && (string?)e.Attribute("Property") == "IsMouseOver").Elements().Single();
         Assert.Equal(("Plate", "Background", "{StaticResource PrimaryFillHover}"),
             ((string?)hover.Attribute("TargetName"), (string?)hover.Attribute("Property"), (string?)hover.Attribute("Value")));
 
-        var ava = XDocument.Load(Path.Combine(RepoRoot(), "src/Hearthpulse.UI/Overlay/OverlayView.axaml")).Root!;
+        var ava = XDocument.Load(Path.Combine(RepoRoot(), "src/Hearthpulse.UI/Overlay/OverlayPanelStyles.axaml")).Root!;
         var pointer = ava.Descendants().Single(e => e.Name.LocalName == "Style" && (string?)e.Attribute("Selector") == "Button.lockButton:pointerover /template/ Border#Plate")
             .Elements().Single();
         Assert.Equal(("Background", "{StaticResource PrimaryFillHover}"), ((string?)pointer.Attribute("Property"), (string?)pointer.Attribute("Value")));

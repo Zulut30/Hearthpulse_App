@@ -1,0 +1,86 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="using:Hearthpulse.UI.Overlay"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             x:Class="Hearthpulse.UI.Overlay.BattlegroundsBarPanel"
+             x:DataType="o:OverlayViewModel">
+    <!-- Content of the "bgbar" overlay panel: rating, turn, anomaly and combat history,
+         and the tavern tiers and tribes that open the minion browser. Same tree as the WPF BattlegroundsBarPanel.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Overlay/OverlayPanels.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Classes="overlayCard" Padding="10,5" HorizontalAlignment="Left" o:OverlayHit.Interactive="True">
+            <StackPanel Orientation="Horizontal">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Overlay.Bar.TurnTip}">
+                    <TextBlock Text="{i:Loc Overlay.Bar.Turn}" Classes="headerNote" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <TextBlock Text="{Binding Turn}" Classes="number" VerticalAlignment="Center" />
+                </StackPanel>
+                <Border Classes="divider" />
+                <ItemsControl ItemsSource="{Binding Tiers}" ItemTemplate="{StaticResource TierTemplate}" ItemsPanel="{StaticResource HRow}" VerticalAlignment="Center" />
+                <Border Classes="divider" />
+                <Panel VerticalAlignment="Center" MaxWidth="300" ToolTip.Tip="{i:Loc Overlay.Bar.TribesTip}">
+                    <!-- Each tribe filters the tier list below; the chosen one is filled -->
+                    <ItemsControl ItemsSource="{Binding TribeChips}" ItemsPanel="{StaticResource WrapRow}" Margin="0,2,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="o:TribeChip">
+                                <Button Classes="bare tribeChip" Classes.selected="{Binding Selected}" Margin="0,0,4,2" Focusable="False" Cursor="Hand"
+                                        Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).SelectTribe}" CommandParameter="{Binding Key}"
+                                        ToolTip.Tip="{i:Loc Overlay.Bar.TribeFilterTip}">
+                                    <Border Name="Chip" Height="22" CornerRadius="11" Padding="9,0" BorderThickness="1">
+                                        <TextBlock Name="Name" Text="{Binding Name}" FontSize="11" VerticalAlignment="Center" />
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{i:Loc Overlay.Bar.ReadingLobby}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
+                               IsVisible="{Binding TribeChips, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                </Panel>
+                <Border Classes="divider" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Overlay.Bar.RatingTip}">
+                    <TextBlock Text="{Binding Rating}" Classes="number" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding RatingDelta}" FontSize="11" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"
+                               Foreground="{Binding RatingDeltaValue, Converter={StaticResource SignBrush}}" />
+                </StackPanel>
+                <Border Classes="divider" IsVisible="{Binding Combats, Converter={StaticResource Truthy}}" />
+                <ItemsControl ItemsSource="{Binding Combats}" ItemTemplate="{StaticResource CombatTemplate}" ItemsPanel="{StaticResource HRow}"
+                              VerticalAlignment="Center" IsVisible="{Binding Combats, Converter={StaticResource Truthy}}" />
+            </StackPanel>
+        </Border>
+        <Border Classes="overlayCard" Padding="10,4" Margin="0,6,0,0" HorizontalAlignment="Left"
+                IsVisible="{Binding Anomaly, Converter={StaticResource Truthy}}">
+            <TextBlock FontSize="11"><Run Text="{i:Loc Overlay.Bar.Anomaly}" Foreground="{StaticResource Muted}" /><Run Text="  " /><Run Text="{Binding Anomaly, Mode=OneWay}" /></TextBlock>
+        </Border>
+
+        <!-- Minion browser for the selected tier -->
+        <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Margin="0,6,0,0" Padding="10,7,10,8"
+                HorizontalAlignment="Left" MaxWidth="880" o:OverlayHit.Interactive="True"
+                IsVisible="{Binding Browser, Converter={StaticResource Truthy}}">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                    <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0143;" Width="24" Height="24" Command="{Binding CloseBrowser}"
+                            ToolTip.Tip="{i:Loc Overlay.Browser.Collapse}" Focusable="False" />
+                    <TextBlock VerticalAlignment="Center"><Run Text="{Binding BrowserTitle, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" /><Run Text="  ·  " FontSize="11" Foreground="{StaticResource Faint}" /><Run Text="{Binding BrowserScope, Mode=OneWay}" FontSize="11.5" Foreground="{StaticResource Muted}" /></TextBlock>
+                </DockPanel>
+                <ScrollViewer MaxHeight="760" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Browser}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="o:BrowserGroup">
+                                <StackPanel Margin="0,0,0,6">
+                                    <TextBlock Text="{Binding Title}" Classes="sectionLabel" Margin="1,0,0,1" />
+                                    <ItemsControl ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource BrowserCardTemplate}" ItemsPanel="{StaticResource WrapRow}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

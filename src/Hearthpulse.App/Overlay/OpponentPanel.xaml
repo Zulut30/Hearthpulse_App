@@ -1,0 +1,66 @@
+<UserControl x:Class="Hearthpulse.App.Overlay.OpponentPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:o="clr-namespace:Hearthpulse.App.Overlay"
+             xmlns:i="clr-namespace:Hearthpulse.App.Infrastructure"
+             xmlns:c="clr-namespace:Hearthpulse.App.Controls">
+    <!-- Content of the "opponent" overlay panel: the opponent's hero, hand, deck and Secrets, the cards it played and holds.
+         Same tree as the Avalonia OpponentPanel.axaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Hearthpulse;component/Overlay/OverlayPanels.xaml" />
+    </UserControl.Resources>
+    <Border Style="{StaticResource OverlayCard}" Width="214">
+        <StackPanel>
+            <Border Style="{StaticResource OverlayHeader}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <!-- Portrait in a gold ring -->
+                    <Border Width="34" Height="34" CornerRadius="17" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" Padding="1">
+                        <Border CornerRadius="16" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding OpponentHeroId}" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding OpponentTitle}" Style="{StaticResource OverlayHeaderTitle}" />
+                        <TextBlock Text="{Binding OpponentSubtitle}" Style="{StaticResource OverlayHeaderNote}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        <StackPanel Margin="12,0,12,10">
+            <!-- Hand, deck and Secrets: the numbers first, on one dark plate -->
+            <Border Style="{StaticResource OverlayStatPlate}" Margin="0,10,0,0">
+                <UniformGrid Columns="3">
+                    <StackPanel>
+                        <TextBlock Text="{Binding OpponentHand}" Style="{StaticResource OverlayStatValue}" FontSize="17" />
+                        <TextBlock Text="{i:Loc Overlay.Opponent.Hand}" Style="{StaticResource OverlayStatLabel}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="{Binding OpponentDeck}" Style="{StaticResource OverlayStatValue}" FontSize="17" />
+                        <TextBlock Text="{i:Loc Overlay.Opponent.Deck}" Style="{StaticResource OverlayStatLabel}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="{Binding OpponentSecrets}" Style="{StaticResource OverlayStatValue}" FontSize="17" />
+                        <TextBlock Text="{i:Loc Overlay.Opponent.Secrets}" Style="{StaticResource OverlayStatLabel}" />
+                    </StackPanel>
+                </UniformGrid>
+            </Border>
+            <!-- Your record with this deck against their class, short ("2–1 · 67 %"); whose games these are is in the tooltip -->
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left" Background="Transparent"
+                        ToolTip="{Binding OpponentMatchupTip}" o:OverlayHit.Interactive="True"
+                        Visibility="{Binding OpponentMatchup, Converter={StaticResource Vis}}">
+                <TextBlock Text="{Binding OpponentMatchup}" FontSize="11" FontWeight="SemiBold" />
+                <TextBlock Text=" · " FontSize="11" Foreground="{StaticResource Faint}" Visibility="{Binding OpponentMatchupRate, Converter={StaticResource Vis}}" />
+                <TextBlock Text="{Binding OpponentMatchupRate}" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{Binding OpponentMatchupEdge, Converter={StaticResource SignBrush}}" />
+            </StackPanel>
+
+            <c:Ornament Text="{i:Loc Overlay.Opponent.Played}" Size="10.5" Margin="0,12,0,6" Visibility="{Binding Played, Converter={StaticResource Vis}}" />
+            <ItemsControl ItemsSource="{Binding Played}" ItemTemplate="{StaticResource PlayedTemplate}" />
+
+            <c:Ornament Text="{i:Loc Overlay.Opponent.CardsInHand}" Size="10.5" Margin="0,12,0,6" Visibility="{Binding Hand, Converter={StaticResource Vis}}" />
+            <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource HandTemplate}" />
+        </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

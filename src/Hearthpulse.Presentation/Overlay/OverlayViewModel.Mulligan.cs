@@ -149,7 +149,7 @@ public sealed partial class OverlayViewModel
     private void UpdateMulligan(MulliganView? mulligan, AppSettings settings)
     {
         ShowMulligan = settings.ShowMulligan && mulligan is not null;
-        MulliganRowWidth = MulliganRowGameWidth / Math.Clamp(settings.OverlayScale, 0.6, 1.6);
+        MulliganRowWidth = MulliganRowGameWidth / SurfaceScale(settings);
         _mulliganCompact = settings.OverlayScale >= MulliganCompactScale;
         // The tracker logs why the strip has or lacks numbers; only the setting is known here.
         var offBySetting = mulligan is not null && !settings.ShowMulligan;

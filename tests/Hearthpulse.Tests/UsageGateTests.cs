@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Localization;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Hearthpulse.Tests;
 
@@ -20,8 +21,11 @@ public sealed class UsageGateTests : IDisposable
 
     private AccountClient Client() => new(new HttpClient(_site), FakeUsageSite.Base);
 
-    private UsageGate Gate(AccountService? account = null, TimeSpan? timeout = null) =>
-        new(Client(), account, Path.Combine(_dir, "usage.json")) { UtcNow = () => _now, ClaimTimeout = timeout ?? TimeSpan.FromSeconds(5) };
+    // The claim's timeout runs on this clock: a test moves it past the timeout instead of waiting for a real one.
+    private readonly FakeTimeProvider _time = new();
+
+    private UsageGate Gate(AccountService? account = null) =>
+        new(Client(), account, Path.Combine(_dir, "usage.json")) { UtcNow = () => _now, Time = _time };
 
     /// <summary>The last game ended (the hosts call this on the session's GameFinished), then the next one is asked for.</summary>
     private static Task<bool> NextAsync(UsageGate gate, object game)
@@ -30,7 +34,10 @@ public sealed class UsageGateTests : IDisposable
         return UseAsync(gate, game);
     }
 
-    /// <summary>Asks for the game and waits for the decision, as the next snapshot would.</summary>
+    /// <summary>
+    /// Asks for the game and waits for the decision, as the next snapshot would. The bound only ends a hang: the decision
+    /// comes from the claim (or the claim's timeout, moved by the test), not from a clock.
+    /// </summary>
     private static async Task<bool> UseAsync(UsageGate gate, object game)
     {
         var decided = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -42,7 +49,7 @@ public sealed class UsageGateTests : IDisposable
 
         if (gate.Decision(UsageGate.BgPoolStats) is null)
         {
-            await decided.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await decided.Task.WaitAsync(TimeSpan.FromMinutes(1));
         }
 
         return gate.Allow(UsageGate.BgPoolStats, game);
@@ -106,7 +113,7 @@ public sealed class UsageGateTests : IDisposable
         Assert.False(gate.Allow(UsageGate.BgPoolStats, "game-1"), "waiting for the site");
         Assert.Equal(string.Empty, gate.Note(UsageGate.BgPoolStats));
         _site.Hold.SetResult();
-        await decided.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await decided.Task.WaitAsync(TimeSpan.FromMinutes(1));
         Assert.True(gate.Allow(UsageGate.BgPoolStats, "game-1"));
         var claim = Assert.Single(_site.Claims);
         Assert.Equal(UsageGate.BgPoolStats, claim.Feature);
@@ -168,7 +175,7 @@ public sealed class UsageGateTests : IDisposable
     public async Task Any_failure_of_the_site_counts_the_game_here_soft_mode(string failure)
     {
         var account = await SignedInAsync(subscription: false);
-        var gate = await RefreshedAsync(Gate(account, TimeSpan.FromMilliseconds(200)));
+        var gate = await RefreshedAsync(Gate(account));
         switch (failure)
         {
             case "offline":
@@ -182,11 +189,29 @@ public sealed class UsageGateTests : IDisposable
                 break;
         }
 
-        Assert.True(await NextAsync(gate, 1));
-        Assert.True(await NextAsync(gate, 2));
-        Assert.True(await NextAsync(gate, 3));
-        Assert.False(await NextAsync(gate, 4));
+        Assert.True(await DecidedAsync(gate, 1));
+        Assert.True(await DecidedAsync(gate, 2));
+        Assert.True(await DecidedAsync(gate, 3));
+        Assert.False(await DecidedAsync(gate, 4));
         _site.Hold?.TrySetResult();
+    }
+
+    /// <summary>
+    /// The next game, decided: a claim the site holds gives up once it has reached the site and the claim's timeout has
+    /// passed on the test's clock (the gate's 5 s, moved at once).
+    /// </summary>
+    private async Task<bool> DecidedAsync(UsageGate gate, object game)
+    {
+        if (_site.Hold is null)
+        {
+            return await NextAsync(gate, game);
+        }
+
+        var reached = _site.ClaimReached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var next = NextAsync(gate, game);
+        await reached.Task.WaitAsync(TimeSpan.FromMinutes(1));
+        _time.Advance(TimeSpan.FromSeconds(5));
+        return await next;
     }
 
     [Fact]
@@ -257,6 +282,9 @@ public sealed class UsageGateTests : IDisposable
         /// <summary>When set, a claim waits for it (or for the app to give up).</summary>
         public TaskCompletionSource? Hold { get; set; }
 
+        /// <summary>Set when a claim reaches the site, before it waits for <see cref="Hold"/>.</summary>
+        public TaskCompletionSource? ClaimReached { get; set; }
+
         public List<(string Feature, string GameId)> Claims { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -287,6 +315,7 @@ public sealed class UsageGateTests : IDisposable
 
                     if (Hold is not null)
                     {
+                        ClaimReached?.TrySetResult();
                         await Hold.Task.WaitAsync(cancellationToken);
                     }
 

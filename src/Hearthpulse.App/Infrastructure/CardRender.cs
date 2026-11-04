@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Hearthpulse.Core;
+using Hearthpulse.Core.Cards;
 
 namespace Hearthpulse.App.Infrastructure;
 
@@ -23,11 +24,10 @@ public static class CardRender
     private static readonly SizedCache<ImageSource> Memory = new(MaxCachedBytes, CardArt.PixelBytes);
     private static readonly ConcurrentDictionary<string, Task<ImageSource?>> Pending = new();
     private static readonly ConcurrentDictionary<string, bool> Failed = new();
-    private static readonly ConcurrentDictionary<string, bool> TrimmedFolders = new();
 
     // About 200 MB of 256 px renders on disk.
     private const int MaxDiskFiles = 2000;
-    private static readonly SemaphoreSlim Downloads = new(4);
+    private static readonly CardImageFiles Files = new(downloads: 4);
     private static readonly SemaphoreSlim Decodes = new(3);
 
     public static readonly DependencyProperty CardProperty = DependencyProperty.RegisterAttached(
@@ -79,10 +79,8 @@ public static class CardRender
         // Never finish synchronously: the task must be in Pending before it removes itself (end of this method).
         await Task.Yield();
         var key = Key(cardId);
-        var locale = CardArt.Locale;
-        var dir = Path.Combine(AppPaths.Images, "render-" + locale);
-        TrimDiskCache(dir);
-        var file = Path.Combine(dir, cardId + ".png");
+        var (url, file) = CardImageFiles.Render(cardId, CardArt.Locale, AppPaths.Images);
+        Files.TrimOnce(Path.GetDirectoryName(file)!, MaxDiskFiles);
         ImageSource? image = null;
         try
         {
@@ -90,18 +88,10 @@ public static class CardRender
             {
                 if (!File.Exists(file) && CardArt.Http is { } http)
                 {
-                    await Downloads.WaitAsync().ConfigureAwait(false);
-                    try
+                    if (!await Files.DownloadRenderAsync(http, url, file).ConfigureAwait(false))
                     {
-                        if (!await DownloadAsync(http, $"https://art.hearthstonejson.com/v1/render/latest/{locale}/256x/{cardId}.png", file, dir).ConfigureAwait(false))
-                        {
-                            // No render for this card (404, not a PNG): do not ask again this session.
-                            Failed[key] = true;
-                        }
-                    }
-                    finally
-                    {
-                        Downloads.Release();
+                        // No render for this card (404, not a PNG): do not ask again this session.
+                        Failed[key] = true;
                     }
                 }
 
@@ -117,7 +107,7 @@ public static class CardRender
                     {
                         Failed[key] = true;
                         Diag.Error($"Cached card render {cardId} is unreadable and was deleted", ex);
-                        TryDelete(file);
+                        CardImageFiles.TryDelete(file);
                     }
                     finally
                     {
@@ -138,54 +128,6 @@ public static class CardRender
 
         Pending.TryRemove(key, out _);
         return image;
-    }
-
-    /// <returns>False when the server has no PNG for the card.</returns>
-    private static async Task<bool> DownloadAsync(HttpClient http, string url, string file, string dir)
-    {
-        using var response = await http.GetAsync(url).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
-        {
-            return false;
-        }
-
-        var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-        // PNG only: a captive portal's web page must never land in the cache.
-        if (bytes.Length < 8 || bytes[0] != 0x89 || bytes[1] != 0x50 || bytes[2] != 0x4E || bytes[3] != 0x47)
-        {
-            Diag.Info($"Card render download was not a PNG ({url})");
-            return false;
-        }
-
-        Directory.CreateDirectory(dir);
-        await File.WriteAllBytesAsync(file + ".tmp", bytes).ConfigureAwait(false);
-        File.Move(file + ".tmp", file, overwrite: true);
-        return true;
-    }
-
-    /// <summary>
-    /// Once per session and folder: keeps the newest <see cref="MaxDiskFiles"/> renders (a Wild pool alone can be
-    /// thousands of cards, ~100 KB each).
-    /// </summary>
-    private static void TrimDiskCache(string dir)
-    {
-        if (!TrimmedFolders.TryAdd(dir, true) || !Directory.Exists(dir))
-        {
-            return;
-        }
-
-        try
-        {
-            var files = new DirectoryInfo(dir).GetFiles("*.png");
-            foreach (var old in files.OrderByDescending(f => f.LastWriteTimeUtc).Skip(MaxDiskFiles))
-            {
-                old.Delete();
-            }
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Diag.Error("Card render cache not trimmed", ex);
-        }
     }
 
     /// <summary>The card itself inside the 256x388 render; the rest is transparent margin.</summary>
@@ -215,16 +157,5 @@ public static class CardRender
         var card = BitmapSource.Create(Visible.Width, Visible.Height, bitmap.DpiX, bitmap.DpiY, crop.Format, crop.Palette, pixels, stride);
         card.Freeze();
         return card;
-    }
-
-    private static void TryDelete(string file)
-    {
-        try
-        {
-            File.Delete(file);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-        }
     }
 }

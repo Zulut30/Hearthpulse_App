@@ -12,24 +12,6 @@ using Hearthpulse.Core.Cards;
 
 namespace Hearthpulse.App.Infrastructure;
 
-public enum ArtKind
-{
-    /// <summary>Deck-list strip (256x59).</summary>
-    Tile,
-
-    /// <summary>Square card art crop, used for hero portraits.</summary>
-    Portrait,
-
-    /// <summary>Full Battlegrounds card render.</summary>
-    BattlegroundsCard,
-
-    /// <summary>Full-size card art (512x512), used as a faded page banner.</summary>
-    Splash,
-
-    /// <summary>Full Constructed card render (256 px wide) in the card-data locale, shown by the hover preview.</summary>
-    Card,
-}
-
 /// <summary>
 /// Card images from HearthstoneJSON, cached on disk and in memory as frozen bitmaps so list
 /// refreshes never flicker. Images set through the attached properties load asynchronously.
@@ -49,7 +31,7 @@ public static class CardArt
     private static readonly SizedCache<ImageSource> Memory = new(MaxCachedBytes, PixelBytes);
     private static readonly ConcurrentDictionary<string, Task<ImageSource?>> Pending = new();
     private static readonly ConcurrentDictionary<string, bool> Unreadable = new();
-    private static readonly SemaphoreSlim Downloads = new(6);
+    private static readonly CardImageFiles Files = new(downloads: 6);
 
     /// <summary>
     /// How many images are decoded at the same time. Decoding is the expensive part, and a burst (the comp panel
@@ -159,7 +141,7 @@ public static class CardArt
     private static readonly DependencyProperty PlaceholderProperty =
         DependencyProperty.RegisterAttached("Placeholder", typeof(Brush), typeof(CardArt), new PropertyMetadata(null));
 
-    private static string Key(ArtKind kind, string cardId) => $"{kind}:{cardId}";
+    private static string Key(ArtKind kind, string cardId) => CardImageFiles.Key(kind, cardId);
 
     public static Task<ImageSource?> GetAsync(ArtKind kind, string cardId)
     {
@@ -203,19 +185,7 @@ public static class CardArt
 
     private static async Task<ImageSource?> LoadAsync(ArtKind kind, string cardId)
     {
-        var (url, ext) = kind switch
-        {
-            ArtKind.Tile => ($"https://art.hearthstonejson.com/v1/tiles/{cardId}.png", "png"),
-            ArtKind.Portrait => ($"https://art.hearthstonejson.com/v1/256x/{cardId}.jpg", "jpg"),
-            ArtKind.Splash => ($"https://art.hearthstonejson.com/v1/512x/{cardId}.jpg", "jpg"),
-            ArtKind.Card => ($"https://art.hearthstonejson.com/v1/render/latest/{Locale}/256x/{cardId}.png", "png"),
-            _ => ($"https://art.hearthstonejson.com/v1/bgs/latest/{Locale}/256x/{cardId}.png", "png"),
-        };
-        // Renders carry the card text, so each locale keeps its own copies.
-        var dir = kind == ArtKind.Card
-            ? Path.Combine(AppPaths.Images, "card", Locale)
-            : Path.Combine(AppPaths.Images, kind.ToString().ToLowerInvariant());
-        var file = Path.Combine(dir, $"{cardId}.{ext}");
+        var (url, file) = CardImageFiles.Art(kind, cardId, Locale, AppPaths.Images);
         ImageSource? image = null;
         if (Unreadable.ContainsKey(Key(kind, cardId)))
         {
@@ -224,21 +194,9 @@ public static class CardArt
 
         try
         {
-            if (!File.Exists(file) && Http is { } http)
+            if (Http is { } http)
             {
-                await Downloads.WaitAsync().ConfigureAwait(false);
-                try
-                {
-                    if (!await TryDownloadAsync(http, url, file, dir).ConfigureAwait(false) && kind != ArtKind.Card
-                        && FallbackUrl?.Invoke(cardId) is { Length: > 0 } fallback)
-                    {
-                        await TryDownloadAsync(http, fallback, file, dir).ConfigureAwait(false);
-                    }
-                }
-                finally
-                {
-                    Downloads.Release();
-                }
+                await Files.EnsureArtAsync(http, url, file, kind == ArtKind.Card ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
             }
 
             if (File.Exists(file))
@@ -288,59 +246,6 @@ public static class CardArt
         }
     }
 
-    /// <summary>URLs that answered 404 this session (tokens without a render...): not asked again on every hover.</summary>
-    private static readonly ConcurrentDictionary<string, bool> Missing = new();
-
-    private static async Task<bool> TryDownloadAsync(HttpClient http, string url, string file, string dir)
-    {
-        if (Missing.ContainsKey(url))
-        {
-            return false;
-        }
-
-        try
-        {
-            using var response = await http.GetAsync(url).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-            {
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    Missing[url] = true;
-                }
-
-                return false;
-            }
-
-            var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-            if (!LooksLikeImage(bytes))
-            {
-                Diag.Info($"Art download was not an image ({url})");
-                return false;
-            }
-
-            Directory.CreateDirectory(dir);
-            await File.WriteAllBytesAsync(file + ".tmp", bytes).ConfigureAwait(false);
-            File.Move(file + ".tmp", file, overwrite: true);
-            return true;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or TaskCanceledException)
-        {
-            Diag.Error($"Art download failed ({url})", ex);
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// PNG, JPEG or WebP signature. A proxy or a captive portal can answer 200 with a web page, which must never land
-    /// in the image cache: it would fail to decode for that card on every later start.
-    /// </summary>
-    private static bool LooksLikeImage(byte[] bytes) =>
-        bytes.Length > 12
-        && ((bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47)
-            || (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
-            || (bytes[0] == (byte)'R' && bytes[1] == (byte)'I' && bytes[2] == (byte)'F' && bytes[3] == (byte)'F'
-                && bytes[8] == (byte)'W' && bytes[9] == (byte)'E' && bytes[10] == (byte)'B' && bytes[11] == (byte)'P'));
-
     /// <summary>Deletes a cached file that cannot be decoded, so the next session downloads it again.</summary>
     private static void Discard(string key, string file, Exception ex)
     {
@@ -348,13 +253,7 @@ public static class CardArt
         // downloaded and thrown away again on every redraw.
         Unreadable[key] = true;
         Diag.Error($"Cached art {Path.GetFileName(file)} is unreadable and was deleted", ex);
-        try
-        {
-            File.Delete(file);
-        }
-        catch (Exception deleteError) when (deleteError is IOException or UnauthorizedAccessException)
-        {
-        }
+        CardImageFiles.TryDelete(file);
     }
 
     private static BitmapSource Decode(string file, ArtKind kind)

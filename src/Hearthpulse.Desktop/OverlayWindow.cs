@@ -27,9 +27,7 @@ internal sealed class OverlayWindow : Window
     private readonly DispatcherTimer _timer;
     private PixelRect? _lastArea;
     private bool _shown;
-    private int _hoverReadBusy;
-    private DateTime _nextHoverRead;
-    private volatile string? _memoryHover;
+    private readonly HoveredHeroReader _hoverReader = new();
 
     public OverlayWindow(AppHost host, IOverlayPlatform platform)
     {
@@ -168,10 +166,10 @@ internal sealed class OverlayWindow : Window
         }
         else
         {
-            _memoryHover = null;
+            _hoverReader.Clear();
         }
 
-        _view.UpdateLeaderboardHover(local, _memoryHover);
+        _view.UpdateLeaderboardHover(local, _hoverReader.Hero);
         _view.UpdateCardPoolPointer(local, buttons);
     }
 
@@ -179,33 +177,12 @@ internal sealed class OverlayWindow : Window
     private void PollHoveredHero()
     {
         var memory = _host.Memory;
-        var now = DateTime.UtcNow;
-        if (!memory.IsAttached || now < _nextHoverRead || Interlocked.Exchange(ref _hoverReadBusy, 1) == 1)
+        if (!memory.IsAttached)
         {
-            if (!memory.IsAttached)
-            {
-                _memoryHover = null;
-            }
-
+            _hoverReader.Clear();
             return;
         }
 
-        _nextHoverRead = now.AddMilliseconds(250);
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                _memoryHover = memory.GetHoveredLeaderboardHero();
-            }
-            catch (Exception ex)
-            {
-                _memoryHover = null;
-                Diag.Error("leaderboard hover read failed", ex);
-            }
-            finally
-            {
-                Volatile.Write(ref _hoverReadBusy, 0);
-            }
-        });
+        _hoverReader.Poll(memory.GetHoveredLeaderboardHero, DateTime.UtcNow);
     }
 }

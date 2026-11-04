@@ -3,7 +3,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -36,15 +35,11 @@ public partial class OverlayView : UserControl
         // The deck row flash (OverlayLook.axaml) runs only when the system allows animations, like the panel fades.
         Classes.Set("motion", PoolInput.AnimationsOn());
         // Hides the end-of-game toast and the one-time move tip a few seconds after either shows.
-        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(9) };
+        _toastTimer = new DispatcherTimer { Interval = OverlayViewModel.ToastTime };
         _toastTimer.Tick += (_, _) =>
         {
             _toastTimer.Stop();
-            if (_viewModel is not null)
-            {
-                _viewModel.ShowToast = false;
-                _viewModel.ShowMoveTip = false;
-            }
+            _viewModel?.HideToasts();
         };
 
         foreach (var panel in Surface.Children.OfType<MovablePanel>())
@@ -90,7 +85,7 @@ public partial class OverlayView : UserControl
             return;
         }
 
-        var scale = height / ReferenceHeight * Math.Clamp(Settings.OverlayScale, 0.6, 1.6);
+        var scale = height / ReferenceHeight * OverlayViewModel.SurfaceScale(Settings);
         if (Math.Abs(scale - _scale) > 0.0005 || SurfaceHost.LayoutTransform is null)
         {
             _scale = scale;
@@ -106,7 +101,7 @@ public partial class OverlayView : UserControl
             ApplyLayout();
         }
 
-        Surface.Opacity = Math.Clamp(Settings.OverlayOpacity, 0.3, 1);
+        Surface.Opacity = OverlayViewModel.SurfaceOpacity(Settings);
         UpdateGuides();
         _viewModel?.ArrangeLeaderboard(Surface.Width, Surface.Height, Settings);
     }
@@ -153,52 +148,21 @@ public partial class OverlayView : UserControl
     /// </returns>
     public bool UpdateDragArm(Point? pointer, bool controlDown, DateTime now)
     {
-        var editing = _viewModel?.LayoutEditing == true;
-        MovablePanel? over = null;
-        if (pointer is { } p && !editing)
-        {
-            // Later panels draw over earlier ones.
-            for (var i = _panels.Count - 1; i >= 0 && over is null; i--)
-            {
-                var panel = _panels[i];
-                if (panel is not { Shown: true, IsVisible: true, Bounds.Width: > 0 })
-                {
-                    continue;
-                }
-
-                // A panel with its tag up also owns the strip above it where the tag and buttons show.
-                var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.Bounds.Size);
-                if (this.TranslatePoint(p, panel) is { } local && area.Contains(local))
-                {
-                    over = panel;
-                }
-            }
-        }
-
-        var (armed, offered, note) = _arming.Update(over?.Id, over?.SitsOnGame == true, controlDown, _viewModel?.PanelsUnlocked == true, now);
-        if (note is not null)
-        {
-            Diag.Debug(note);
-        }
-
-        var dragging = false;
-        foreach (var panel in _panels)
-        {
-            var arm = (armed && panel == over) || (panel.IsDragging && !editing);
-            dragging |= panel.IsDragging;
-            if (panel.IsDragArmed != arm)
-            {
-                panel.IsDragArmed = arm;
-            }
-
-            var offer = offered && panel == over;
-            if (panel.OffersLock != offer)
-            {
-                panel.OffersLock = offer;
-            }
-        }
-
+        var (armed, dragging) = _arming.Tick(_panels, pointer is { } p ? panel => IsUnder(panel, p) : null,
+            _viewModel?.LayoutEditing == true, controlDown, _viewModel?.PanelsUnlocked == true, now);
         return armed || dragging;
+    }
+
+    /// <summary>Whether the pointer (view coordinates) is on a shown panel, or on its tag strip while the tag is up.</summary>
+    private bool IsUnder(MovablePanel panel, Point pointer)
+    {
+        if (panel is not { Shown: true, IsVisible: true, Bounds.Width: > 0 })
+        {
+            return false;
+        }
+
+        var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.Bounds.Size);
+        return this.TranslatePoint(pointer, panel) is { } local && area.Contains(local);
     }
 
     /// <summary>The lock button on a panel's tag: the panels unlock (or lock again), and the setting is saved.</summary>
@@ -246,16 +210,16 @@ public partial class OverlayView : UserControl
     }
 
     /// <summary>
-    /// Updates the opponent-board popup from the pointer position (view coordinates, null when outside) and the hero the
-    /// game reports under the mouse (null when unknown: then the leaderboard calibration decides).
-    /// </summary>
-    /// <summary>
     /// The card pool panel lets clicks through on every desktop: the host passes the pointer (view coordinates, null
     /// when outside) and the mouse buttons it reads globally, for hover and right-click on the panel.
     /// </summary>
     public void UpdateCardPoolPointer(Point? pointer, (bool Left, bool Right) buttons) =>
         (CardPoolPopup.IsEffectivelyVisible ? CardPoolPopup : CardPool).UpdatePointer(this, pointer, buttons);
 
+    /// <summary>
+    /// Updates the opponent-board popup from the pointer position (view coordinates, null when outside) and the hero the
+    /// game reports under the mouse (null when unknown: then the leaderboard calibration decides).
+    /// </summary>
     public void UpdateLeaderboardHover(Point? pointer, string? hoveredHero)
     {
         if (_viewModel is not { } vm)
@@ -274,14 +238,14 @@ public partial class OverlayView : UserControl
         var y = p.Y / _scale;
         var units = Surface.Height;
         var left = LeaderboardGeometry.Beside(Surface.Width, units, Settings);
-        var top = Math.Clamp(y - 40, 8, Math.Max(8, units - 240));
+        var top = LeaderboardGeometry.PopupTop(y, units);
         if (hoveredHero is not null)
         {
             vm.HoverLeaderboardHero(hoveredHero, top, left);
             return;
         }
 
-        vm.HoverLeaderboard(LeaderboardSlotAt(x, y), top, left);
+        vm.HoverLeaderboard(LeaderboardGeometry.SlotAt(x, y, Surface.Width, units, Settings, vm.IsDuos), top, left);
     }
 
     /// <summary>
@@ -296,9 +260,7 @@ public partial class OverlayView : UserControl
             return false;
         }
 
-        var units = Surface.Height;
-        var x = p.X / _scale;
-        return x >= 0 && x <= LeaderboardLeft() + Math.Max(Settings.LeaderboardWidth * units * 2, units * 0.2);
+        return LeaderboardGeometry.Near(p.X / _scale, Surface.Width, Surface.Height, Settings);
     }
 
     /// <summary>Shows the popup for one leaderboard place (off-screen rendering).</summary>
@@ -309,92 +271,42 @@ public partial class OverlayView : UserControl
             return;
         }
 
-        var (top, _) = LeaderboardTile(slot - 1);
-        _viewModel.HoverLeaderboard(slot, Math.Max(8, top - 20), LeaderboardGeometry.Beside(Surface.Width, Surface.Height, Settings));
-    }
-
-    /// <summary>
-    /// Left edge of the leaderboard in overlay units. Hearthstone draws it at the edge of the centred 4:3 area, so on
-    /// wide screens it sits well right of the window edge.
-    /// </summary>
-    private double LeaderboardLeft() => LeaderboardGeometry.Left(Surface.Width, Surface.Height);
-
-    /// <summary>Top and height of leaderboard tile <paramref name="index"/> (0..7) in overlay units.</summary>
-    private (double Top, double Height) LeaderboardTile(int index) => LeaderboardGeometry.Tile(index, Surface.Height, Settings, _viewModel?.IsDuos == true);
-
-    /// <summary>Leaderboard place (1..8) under the given overlay point, or 0.</summary>
-    private int LeaderboardSlotAt(double x, double y)
-    {
-        var left = LeaderboardLeft();
-        var width = Settings.LeaderboardWidth * Surface.Height;
-        if (x < left - 8 || x > left + width)
-        {
-            return 0;
-        }
-
-        for (var i = 0; i < 8; i++)
-        {
-            var (top, height) = LeaderboardTile(i);
-            if (y >= top && y < top + height)
-            {
-                return i + 1;
-            }
-        }
-
-        return 0;
+        _viewModel.HoverLeaderboard(slot, LeaderboardGeometry.SlotPopupTop(slot, Surface.Height, Settings, _viewModel.IsDuos),
+            LeaderboardGeometry.Beside(Surface.Width, Surface.Height, Settings));
     }
 
     public void ApplyLayout()
     {
         foreach (var panel in _panels)
         {
-            panel.Apply(Settings.Panels.GetValueOrDefault(panel.Id), _layoutSize, Math.Clamp(Settings.OverlayScale, 0.6, 1.6));
+            panel.Apply(Settings.Panels.GetValueOrDefault(panel.Id), _layoutSize, OverlayViewModel.SurfaceScale(Settings));
             panel.ApplyLook(Settings.PanelLooks.GetValueOrDefault(panel.Id));
         }
     }
 
     private void OnLookChanged(MovablePanel panel, PanelLook? look)
     {
-        if (look is null)
-        {
-            Settings.PanelLooks.Remove(panel.Id);
-        }
-        else
-        {
-            Settings.PanelLooks[panel.Id] = look;
-        }
-
+        OverlayViewModel.SaveLook(Settings, panel.Id, look);
         LayoutChanged?.Invoke();
     }
 
     private void OnPlacementChanged(MovablePanel panel, PanelPlacement? placement)
     {
-        if (placement is null)
-        {
-            Settings.Panels.Remove(panel.Id);
-        }
-        else
-        {
-            Settings.Panels[panel.Id] = placement;
-        }
-
-        Diag.Debug(PanelArming.Placed(panel.Id, placement));
-        panel.Apply(placement, _layoutSize, Math.Clamp(Settings.OverlayScale, 0.6, 1.6));
+        OverlayViewModel.SavePlacement(Settings, panel.Id, placement);
+        panel.Apply(placement, _layoutSize, OverlayViewModel.SurfaceScale(Settings));
         LayoutChanged?.Invoke();
     }
 
     private void ResetLayout()
     {
-        Settings.Panels.Clear();
-        Settings.PanelLooks.Clear();
+        OverlayViewModel.ClearLayout(Settings);
         ApplyLayout();
         LayoutChanged?.Invoke();
     }
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if ((e.PropertyName == nameof(OverlayViewModel.ShowToast) && _viewModel?.ShowToast == true)
-            || (e.PropertyName == nameof(OverlayViewModel.ShowMoveTip) && _viewModel?.ShowMoveTip == true))
+        if (_viewModel?.ToastJustShown(e.PropertyName) == true)
         {
             _toastTimer.Stop();
             _toastTimer.Start();
@@ -418,30 +330,20 @@ public partial class OverlayView : UserControl
             return;
         }
 
-        var left = LeaderboardLeft();
-        for (var i = 0; i < 8; i++)
+        foreach (var (left, top, width, height) in LeaderboardGeometry.Guides(Surface.Width, Surface.Height, Settings, _viewModel?.IsDuos == true))
         {
-            var (top, height) = LeaderboardTile(i);
             var box = new Rectangle
             {
-                Width = Settings.LeaderboardWidth * Surface.Height,
-                Height = Math.Max(4, height - 2),
+                Width = width,
+                Height = height,
                 Stroke = ThemeBrushes.Get("Accent"),
                 StrokeThickness = 1.5,
                 StrokeDashArray = [4, 3],
                 Fill = ThemeBrushes.Get("AccentSoft"),
             };
             Canvas.SetLeft(box, left);
-            Canvas.SetTop(box, top + 1);
+            Canvas.SetTop(box, top);
             GuideLayer.Children.Add(box);
-        }
-    }
-
-    private void OnTierClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: TierButton tier })
-        {
-            _viewModel?.SelectTier.Execute(tier.Tier);
         }
     }
 }

@@ -4,8 +4,9 @@ using System.Windows.Controls;
 namespace Hearthpulse.App.Main.SettingsTabs;
 
 /// <summary>
-/// Settings, Data: history, the data folder, where the numbers come from (its data: <see cref="MainViewModel"/>). What only the main window does (saving and
-/// applying settings, opening folders, the overlay) the window keeps: this tab's buttons raise events it handles.
+/// Settings, Data: history, the data folder, where the numbers come from (its data: <see cref="MainViewModel"/>). What
+/// only the main window does (saving and applying settings, opening folders, the overlay) the window keeps: this tab's
+/// buttons raise events it handles.
 /// </summary>
 public partial class DataSettings : UserControl
 {

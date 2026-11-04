@@ -4,7 +4,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Api;
-using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Power;
@@ -57,6 +56,13 @@ public partial class App
             if (RenderOnlyBrawl)
             {
                 await RenderBrawlAsync(folder);
+                Quit();
+                return;
+            }
+
+            if (RenderOnlyOverlay)
+            {
+                await RenderOverlayCheckAsync(folder);
                 Quit();
                 return;
             }
@@ -122,36 +128,7 @@ public partial class App
                 _mainViewModel.PoolAvailable = PoolClient.Available(_settings);
             }
 
-            var rating = _history.RatingHistory().LastOrDefault()?.Rating;
-            var moments = new (string Name, Func<BattlegroundsView, bool> When, int Hover)[]
-            {
-                ("overlay-pick", v => v is { IsHeroSelection: true, HeroOptions.Count: > 1 }, 0),
-                ("overlay-trinket", v => v is { IsHeroSelection: false, TrinketOptions.Count: > 1 }, 0),
-                ("overlay-discover", v => v is { IsHeroSelection: false, DiscoverOptions.Count: > 1 }, 0),
-                ("overlay-game", v => v is { InCombat: false, Turn: >= 6, Shop.Count: >= 3 } && v.Opponents.Count(o => o.LastBoard.Count > 0) >= 3, 3),
-                ("overlay-bg-counters", v => v is { IsHeroSelection: false, HeroCardId: not null, InCombat: false, Turn: >= 2, Counters.Count: > 0 }, 0),
-            };
-            foreach (var (name, when, hover) in moments)
-            {
-                var view = await Task.Run(() => ReplayLatestBattlegrounds(when));
-                if (view is null)
-                {
-                    continue;
-                }
-
-                var advisor = new BattlegroundsAdvisor { Meta = _meta };
-                var snapshot = LiveSnapshot.Empty with
-                {
-                    Scene = "GAMEPLAY",
-                    HearthstoneRunning = true,
-                    InGame = true,
-                    GameType = "GT_BATTLEGROUNDS",
-                    Battlegrounds = advisor.Enrich(view, rating, _cards),
-                    Rating = rating is { } r ? new Core.Memory.BattlegroundsRating(r, 0) : null,
-                };
-                _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
-                await _overlay.RenderToFileAsync(Path.Combine(folder, name + ".png"), 1920, 1080, hover);
-            }
+            await RenderBattlegroundsMomentsAsync(folder);
 
             await RenderCountersAsync(folder);
             await RenderCombatOddsAsync(folder);

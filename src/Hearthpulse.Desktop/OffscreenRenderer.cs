@@ -2,11 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
-using Avalonia.Media;
 using Avalonia.Threading;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Api;
-using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Tracking;
 using Hearthpulse.Core.Tracking.Counters;
 using Hearthpulse.UI;
@@ -74,6 +72,13 @@ internal static partial class OffscreenRenderer
             return;
         }
 
+        if (RenderOnlyOverlay)
+        {
+            main.Close();
+            await RenderOverlayCheckAsync(host, settings, folder);
+            return;
+        }
+
         // HEARTHPULSE_RENDER_PAGES=Overview,History: only those main-window pages, then stop (as the WPF renderer).
         var only = Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_PAGES") is { Length: > 0 } pages
             ? new HashSet<string>(pages.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), StringComparer.OrdinalIgnoreCase)
@@ -118,56 +123,9 @@ internal static partial class OffscreenRenderer
         await Save(main, Path.Combine(folder, "main-compact.png"));
         main.Close();
 
-        var overlayView = new OverlayView { DataContext = host.Overlay, Settings = settings };
-        var overlay = new Window
-        {
-            Width = 1920,
-            Height = 1080,
-            Content = overlayView,
-            // Stand-in for the game behind the transparent overlay.
-            Background = new RadialGradientBrush
-            {
-                GradientStops = { new GradientStop(Color.FromRgb(0x4A, 0x3A, 0x2A), 0), new GradientStop(Color.FromRgb(0x1A, 0x13, 0x0D), 1) },
-                RadiusX = new RelativeScalar(0.8, RelativeUnit.Relative),
-                RadiusY = new RelativeScalar(0.8, RelativeUnit.Relative),
-            },
-        };
-        overlay.Show();
-        overlayView.Fit(1920, 1080);
+        var (overlay, overlayView) = OpenOverlay(host, settings);
 
-        var rating = host.History.RatingHistory().LastOrDefault()?.Rating;
-        var moments = new (string Name, Func<BattlegroundsView, bool> When, int Hover)[]
-        {
-            ("overlay-pick", v => v is { IsHeroSelection: true, HeroOptions.Count: > 1 }, 0),
-            ("overlay-trinket", v => v is { IsHeroSelection: false, TrinketOptions.Count: > 1 }, 0),
-            ("overlay-discover", v => v is { IsHeroSelection: false, DiscoverOptions.Count: > 1 }, 0),
-            ("overlay-game", v => v is { InCombat: false, Turn: >= 6, Shop.Count: >= 3 } && v.Opponents.Count(o => o.LastBoard.Count > 0) >= 3, 3),
-            ("overlay-bg-counters", v => v is { IsHeroSelection: false, HeroCardId: not null, InCombat: false, Turn: >= 2, Counters.Count: > 0 }, 0),
-        };
-        foreach (var (name, when, hover) in moments)
-        {
-            var battle = await Task.Run(() => host.ReplayLatestBattlegrounds(when));
-            if (battle is null)
-            {
-                Console.WriteLine($"{name}: no kept Battlegrounds log reaches this moment, skipped");
-                continue;
-            }
-
-            var advisor = new Core.Battlegrounds.BattlegroundsAdvisor { Meta = host.Meta };
-            var snapshot = LiveSnapshot.Empty with
-            {
-                Scene = "GAMEPLAY",
-                HearthstoneRunning = true,
-                InGame = true,
-                GameType = "GT_BATTLEGROUNDS",
-                Battlegrounds = advisor.Enrich(battle, rating, host.Cards),
-                Rating = rating is { } r ? new BattlegroundsRating(r, 0) : null,
-            };
-            host.Overlay.Update(snapshot, host.Cards, settings, null, null);
-            overlayView.Fit(1920, 1080);
-            overlayView.ShowLeaderboardSlot(hover);
-            await Save(overlay, Path.Combine(folder, name + ".png"));
-        }
+        await RenderBattlegroundsMomentsAsync(host, settings, overlay, overlayView, folder);
 
         await RenderCountersAsync(folder, host, settings, overlay, overlayView);
         await RenderCombatOddsAsync(folder, host, settings, overlay, overlayView);

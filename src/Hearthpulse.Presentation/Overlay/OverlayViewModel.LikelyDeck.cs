@@ -81,7 +81,7 @@ public sealed partial class OverlayViewModel
     {
         var deck = settings.ShowLikelyDeck ? view?.OpponentDeck : null;
         ShowLikelyDeck = deck is not null;
-        LikelyDeckMaxHeight = MaxHeightAt(settings.OverlayScale);
+        LikelyDeckMaxHeight = MaxHeightAt(SurfaceScale(settings));
         var key = deck is null ? string.Empty
             : $"{Loc.Instance.Language}|{deck.ArchetypeKey}|{deck.Chance:0.000}|{deck.Rank}|{deck.Period}|{deck.Games}|{view!.OpponentArchetype?.SeenCards}|"
               + string.Join(',', deck.Rows.Concat(deck.OffList).Select(r => $"{r.CardId}:{r.Copies}:{r.Played}"));
@@ -105,7 +105,7 @@ public sealed partial class OverlayViewModel
         LikelyDeckOffMore = deck is { OffList.Count: > LikelyOffListRows } ? Loc.F("OpponentDeck.More", deck.OffList.Count - LikelyOffListRows) : string.Empty;
 
         static double MaxHeightAt(double overlayScale) =>
-            Math.Clamp(Math.Floor((EndTurnTop / Math.Clamp(overlayScale, 0.6, 1.6)) - LikelyDeckTop - 6), 160, LikelyDeckHeight);
+            Math.Clamp(Math.Floor((EndTurnTop / overlayScale) - LikelyDeckTop - 6), 160, LikelyDeckHeight);
 
         // "2" untouched, "1/2" and "2/2" once played; one copy: nothing, or "★" for a legendary, as the deck tracker.
         static string Mark(LikelyDeckRow row) =>

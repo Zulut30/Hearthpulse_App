@@ -21,7 +21,7 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). Data into
 | Role | WPF `src/Hearthpulse.App/Overlay/` | Avalonia `src/Hearthpulse.UI/Overlay/` |
 |---|---|---|
 | Surface with all panels | `OverlayWindow.xaml` (+ `.xaml.cs`: layout, click-through, `RenderToFileAsync`) | `OverlayView.axaml` (+ `.axaml.cs`: layout, `IsInteractiveAt`) |
-| Panel host control | `MovablePanel.cs` | `MovablePanel.cs` (also defines `OverlayHit`) |
+| Panel host control | `MovablePanel.cs` (placement math shared: `Presentation/Overlay/PanelLayout.cs`, `PanelSnap.cs`, arming `PanelArming.cs`) | `MovablePanel.cs` (also defines `OverlayHit`) |
 | Platform VM adapter | `OverlayViewModel.Platform.cs` (framework values/timer), `.Focus.cs` (WPF feature) | `OverlayViewModel.Platform.cs` |
 | Platform records | `OverlayModels.Platform.cs` (`HandMark`, WPF-only members) | `OverlayModels.Platform.cs` (`HandMark`) |
 | Extracted panels | `MulliganPanel`, `OpponentHandPanel`, `CardPoolPanel`, `CardPoolBrowser` (`.xaml`) | same (`.axaml`) |
@@ -66,7 +66,13 @@ while the cross-platform test project continues to reference Avalonia UI.
    (copy `MulliganPanel` headers: WPF `xmlns:o="clr-namespace:Hearthpulse.App.Overlay"`, local `i:VisibleWhen`;
    Avalonia `xmlns:o="using:Hearthpulse.UI.Overlay"`, `x:DataType="o:OverlayViewModel"`, `i:Truthy`). DataContext is
    inherited from the overlay - do not set it. Card style: WPF `Style="{StaticResource OverlayCard}"`, Avalonia
-   `Classes="overlayCard"`; colours only from tokens.
+   `Classes="overlayCard"`; colours only from tokens. A panel that uses the overlay's row and badge templates or
+   converters merges `Overlay/OverlayPanels.xaml` / includes `OverlayPanels.axaml` (see `OpponentPanel`): it is built
+   before it joins the window. The window keeps no templates or styles of its own: they live there, and in Avalonia
+   the styles in `OverlayPanelStyles.axaml`.
+   - Logic of the overlay views (leaderboard places, popup and guides `LeaderboardGeometry`, saving the layout,
+     scale, opacity and toast time in `OverlayViewModel.Layout.cs`, the hovered-hero read `HoveredHeroReader`) is
+     shared in `Presentation/Overlay`; the views only apply it.
 7. **Host it** as a **direct child of the `Surface` grid** (panels are discovered with
    `Surface.Children.OfType<MovablePanel>()`, nested ones are never positioned or saved):
    ```xml

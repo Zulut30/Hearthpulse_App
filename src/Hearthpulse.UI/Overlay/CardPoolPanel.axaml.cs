@@ -66,11 +66,28 @@ public partial class CardPoolPanel : UserControl
     {
         base.OnAttachedToVisualTree(e);
         // The game window was resized: the surface (and the card's spot on it) changes, the panel does not.
-        if (Anchored && Parent is Control layer)
+        if (Anchored && _layer is null && Parent is Control layer)
         {
-            layer.SizeChanged += (_, _) => Place();
+            _layer = layer;
+            layer.SizeChanged += OnLayerSizeChanged;
         }
     }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        // The overlay is rebuilt or closed: the old layer must not keep this panel (and place it) after that.
+        if (_layer is not null)
+        {
+            _layer.SizeChanged -= OnLayerSizeChanged;
+            _layer = null;
+        }
+    }
+
+    // The layer an anchored panel follows while it is in the tree.
+    private Control? _layer;
+
+    private void OnLayerSizeChanged(object? sender, SizeChangedEventArgs e) => Place();
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {

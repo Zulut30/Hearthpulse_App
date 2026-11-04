@@ -70,7 +70,7 @@ Approval page shows the client name "Manacost Tracker"; `/connect?user_code=` pr
 - `https://api.hearthstonejson.com/v1/latest/{locale}/cards.json` -> `cache/cards.{locale}.json`, 2 days (`CardDb`).
 - `https://api.hearthstonejson.com/v1/latest/enUS/cards.collectible.json` -> `cache/cards.enUS.collectible.json`,
   2 days (card pool fallback).
-- Art (`CardArt`, `CardRender` in both UIs): `https://art.hearthstonejson.com/v1/tiles/{id}.png`, `v1/256x/{id}.jpg`,
+- Art (`CardArt`, `CardRender` in both UIs; addresses, cache files and downloads in `Core/Cards/CardImageFiles.cs`): `https://art.hearthstonejson.com/v1/tiles/{id}.png`, `v1/256x/{id}.jpg`,
   `v1/512x/{id}.jpg` (WPF), `v1/render/latest/{locale}/256x/{id}.png`, `v1/bgs/latest/{locale}/256x/{id}.png`.
 - Generators read the enUS dump you download yourself: `tools/counters/gen_counter_cards.py`,
   `tools/cardpool/gen_pool_tables.py`, `tools/effects/*.py`.

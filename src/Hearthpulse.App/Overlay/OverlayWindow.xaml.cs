@@ -54,9 +54,7 @@ public partial class OverlayWindow : Window
     private string _guideKey = string.Empty;
     private readonly List<MovablePanel> _panels = new();
     private Size _layoutSize;
-    private int _hoverReadBusy;
-    private DateTime _nextHoverRead;
-    private volatile string? _memoryHover;
+    private readonly HoveredHeroReader _hoverReader = new();
 
     public OverlayWindow(OverlayViewModel viewModel, AppSettings settings)
     {
@@ -67,12 +65,11 @@ public partial class OverlayWindow : Window
         _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = ActiveTick };
         _timer.Tick += (_, _) => Tick();
         // Hides the end-of-game toast and the one-time move tip a few seconds after either shows.
-        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(9) };
+        _toastTimer = new DispatcherTimer { Interval = OverlayViewModel.ToastTime };
         _toastTimer.Tick += (_, _) =>
         {
             _toastTimer.Stop();
-            ViewModel.ShowToast = false;
-            ViewModel.ShowMoveTip = false;
+            ViewModel.HideToasts();
         };
         viewModel.ResetLayoutRequested += ResetLayout;
         Loaded += (_, _) =>
@@ -144,8 +141,7 @@ public partial class OverlayWindow : Window
 
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if ((e.PropertyName == nameof(OverlayViewModel.ShowToast) && ViewModel.ShowToast)
-            || (e.PropertyName == nameof(OverlayViewModel.ShowMoveTip) && ViewModel.ShowMoveTip))
+        if (ViewModel.ToastJustShown(e.PropertyName))
         {
             _toastTimer.Stop();
             _toastTimer.Start();
@@ -216,7 +212,7 @@ public partial class OverlayWindow : Window
         _dpi = VisualTreeHelper.GetDpi(this).DpiScaleY;
         var heightDip = r.Height / _dpi;
         var widthDip = r.Width / _dpi;
-        _scale = heightDip / ReferenceHeight * Math.Clamp(_settings.OverlayScale, 0.6, 1.6);
+        _scale = heightDip / ReferenceHeight * OverlayViewModel.SurfaceScale(_settings);
         if (Math.Abs(SurfaceScale.ScaleX - _scale) > 0.0005)
         {
             SurfaceScale.ScaleX = _scale;
@@ -232,7 +228,7 @@ public partial class OverlayWindow : Window
             ApplyLayout();
         }
 
-        Surface.Opacity = Math.Clamp(_settings.OverlayOpacity, 0.3, 1);
+        Surface.Opacity = OverlayViewModel.SurfaceOpacity(_settings);
 
         Native.GetCursorPos(out var cursor);
         UpdateClickThrough(cursor, r, now);
@@ -336,53 +332,21 @@ public partial class OverlayWindow : Window
     /// comes up. Every change is one line in the log (<see cref="PanelArming"/>).
     /// </summary>
     /// <returns>Whether a panel under the mouse is armed, so the overlay must take the mouse.</returns>
-    internal bool UpdateDragArm(Point? point, bool controlDown, DateTime now)
+    internal bool UpdateDragArm(Point? point, bool controlDown, DateTime now) =>
+        _arming.Tick(_panels, point is { } p ? panel => IsUnder(panel, p) : null, ViewModel.LayoutEditing, controlDown, ViewModel.PanelsUnlocked, now).Armed;
+
+    /// <summary>Whether the mouse (window units) is on a shown panel, or on its tag strip while the tag is up.</summary>
+    private bool IsUnder(MovablePanel panel, Point point)
     {
-        var editing = ViewModel.LayoutEditing;
-        MovablePanel? over = null;
-        if (point is { } p && !editing)
+        // The tick runs only while the overlay shows, so the panel's own visibility is the one that counts (IsVisible
+        // also needs a window on screen).
+        if (panel is not { Shown: true, Visibility: Visibility.Visible, ActualWidth: > 0 })
         {
-            // Later panels draw over earlier ones. The tick runs only while the overlay shows, so the panel's own
-            // visibility is the one that counts (IsVisible also needs a window on screen).
-            for (var i = _panels.Count - 1; i >= 0 && over is null; i--)
-            {
-                var panel = _panels[i];
-                if (panel is not { Shown: true, Visibility: Visibility.Visible, ActualWidth: > 0 })
-                {
-                    continue;
-                }
-
-                // A panel with its tag up also owns the strip above it where the tag and buttons show.
-                var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.RenderSize);
-                if (area.Contains(Root.TranslatePoint(p, panel)))
-                {
-                    over = panel;
-                }
-            }
+            return false;
         }
 
-        var (armed, offered, note) = _arming.Update(over?.Id, over?.SitsOnGame == true, controlDown, ViewModel.PanelsUnlocked, now);
-        if (note is not null)
-        {
-            Diag.Debug(note);
-        }
-
-        foreach (var panel in _panels)
-        {
-            var arm = (armed && panel == over) || (panel.IsDragging && !editing);
-            if (panel.IsDragArmed != arm)
-            {
-                panel.IsDragArmed = arm;
-            }
-
-            var offer = offered && panel == over;
-            if (panel.OffersLock != offer)
-            {
-                panel.OffersLock = offer;
-            }
-        }
-
-        return armed;
+        var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.RenderSize);
+        return area.Contains(Root.TranslatePoint(point, panel));
     }
 
     /// <summary>The lock button on a panel's tag: the panels unlock (or lock again), and the setting is saved.</summary>
@@ -397,7 +361,7 @@ public partial class OverlayWindow : Window
     {
         if (!ViewModel.ShowBattlegrounds || !_settings.ShowOpponentBoards || ViewModel.LayoutEditing)
         {
-            _memoryHover = null;
+            _hoverReader.Clear();
             ViewModel.HoverLeaderboard(0, 0, 0);
             return;
         }
@@ -408,140 +372,54 @@ public partial class OverlayWindow : Window
         var units = Surface.Height;
 
         // The game is asked only while the mouse is near the leaderboard; elsewhere it answers nothing anyway.
-        if (NearLeaderboard(x))
+        if (LeaderboardGeometry.Near(x, Surface.Width, units, _settings))
         {
-            PollHoveredHero();
+            if (HoveredHero is { } read)
+            {
+                _hoverReader.Poll(read, DateTime.UtcNow);
+            }
         }
         else
         {
-            _memoryHover = null;
+            _hoverReader.Clear();
         }
         var left = LeaderboardGeometry.Beside(Surface.Width, units, _settings);
-        var top = Math.Clamp(y - 40, 8, Math.Max(8, units - 240));
+        var top = LeaderboardGeometry.PopupTop(y, units);
 
-        if (_memoryHover is { } hero)
+        if (_hoverReader.Hero is { } hero)
         {
             ViewModel.HoverLeaderboardHero(hero, top, left);
             return;
         }
 
-        var slot = LeaderboardSlotAt(x, y);
-        ViewModel.HoverLeaderboard(slot, top, left);
-    }
-
-    /// <summary>
-    /// Whether an overlay x is in the left part of the window where Hearthstone draws the leaderboard. Generous: the
-    /// hero is read from the game precisely because the tile boxes may not be lined up.
-    /// </summary>
-    private bool NearLeaderboard(double x)
-    {
-        var units = Surface.Height;
-        return x >= 0 && x <= LeaderboardLeft() + Math.Max(_settings.LeaderboardWidth * units * 2, units * 0.2);
-    }
-
-    /// <summary>Starts a background read of the hovered leaderboard hero, at most four times a second.</summary>
-    private void PollHoveredHero()
-    {
-        var provider = HoveredHero;
-        var now = DateTime.UtcNow;
-        if (provider is null || now < _nextHoverRead || Interlocked.Exchange(ref _hoverReadBusy, 1) == 1)
-        {
-            return;
-        }
-
-        _nextHoverRead = now.AddMilliseconds(250);
-        _ = Task.Run(() =>
-        {
-            try
-            {
-                _memoryHover = provider();
-            }
-            catch (Exception ex)
-            {
-                _memoryHover = null;
-                Diag.Error("leaderboard hover read failed", ex);
-            }
-            finally
-            {
-                Volatile.Write(ref _hoverReadBusy, 0);
-            }
-        });
-    }
-
-    /// <summary>
-    /// Left edge of the leaderboard in overlay units. Hearthstone draws it at the edge of the centred 4:3 area,
-    /// so on wide screens it sits well right of the window edge.
-    /// </summary>
-    private double LeaderboardLeft() => LeaderboardGeometry.Left(Surface.Width, Surface.Height);
-
-    /// <summary>Top and height of leaderboard tile <paramref name="index"/> (0..7) in overlay units.</summary>
-    private (double Top, double Height) LeaderboardTile(int index) => LeaderboardGeometry.Tile(index, Surface.Height, _settings, ViewModel.IsDuos);
-
-    /// <summary>Leaderboard place (1..8) under the given overlay point, or 0.</summary>
-    private int LeaderboardSlotAt(double x, double y)
-    {
-        var left = LeaderboardLeft();
-        var width = _settings.LeaderboardWidth * Surface.Height;
-        if (x < left - 8 || x > left + width)
-        {
-            return 0;
-        }
-
-        for (var i = 0; i < 8; i++)
-        {
-            var (top, height) = LeaderboardTile(i);
-            if (y >= top && y < top + height)
-            {
-                return i + 1;
-            }
-        }
-
-        return 0;
+        ViewModel.HoverLeaderboard(LeaderboardGeometry.SlotAt(x, y, Surface.Width, units, _settings, ViewModel.IsDuos), top, left);
     }
 
     private void ApplyLayout()
     {
         foreach (var panel in _panels)
         {
-            panel.Apply(_settings.Panels.GetValueOrDefault(panel.Id), _layoutSize, Math.Clamp(_settings.OverlayScale, 0.6, 1.6));
+            panel.Apply(_settings.Panels.GetValueOrDefault(panel.Id), _layoutSize, OverlayViewModel.SurfaceScale(_settings));
             panel.ApplyLook(_settings.PanelLooks.GetValueOrDefault(panel.Id));
         }
     }
 
     private void OnLookChanged(MovablePanel panel, PanelLook? look)
     {
-        if (look is null)
-        {
-            _settings.PanelLooks.Remove(panel.Id);
-        }
-        else
-        {
-            _settings.PanelLooks[panel.Id] = look;
-        }
-
+        OverlayViewModel.SaveLook(_settings, panel.Id, look);
         LayoutChanged?.Invoke();
     }
 
     private void OnPlacementChanged(MovablePanel panel, PanelPlacement? placement)
     {
-        if (placement is null)
-        {
-            _settings.Panels.Remove(panel.Id);
-        }
-        else
-        {
-            _settings.Panels[panel.Id] = placement;
-        }
-
-        Diag.Debug(PanelArming.Placed(panel.Id, placement));
-        panel.Apply(placement, _layoutSize, Math.Clamp(_settings.OverlayScale, 0.6, 1.6));
+        OverlayViewModel.SavePlacement(_settings, panel.Id, placement);
+        panel.Apply(placement, _layoutSize, OverlayViewModel.SurfaceScale(_settings));
         LayoutChanged?.Invoke();
     }
 
     private void ResetLayout()
     {
-        _settings.Panels.Clear();
-        _settings.PanelLooks.Clear();
+        OverlayViewModel.ClearLayout(_settings);
         ApplyLayout();
         LayoutChanged?.Invoke();
     }
@@ -557,7 +435,7 @@ public partial class OverlayWindow : Window
         Width = width;
         Height = height;
         Root.Visibility = Visibility.Visible;
-        _scale = height / ReferenceHeight * Math.Clamp(_settings.OverlayScale, 0.6, 1.6);
+        _scale = height / ReferenceHeight * OverlayViewModel.SurfaceScale(_settings);
         SurfaceScale.ScaleX = SurfaceScale.ScaleY = _scale;
         Surface.Width = width / _scale;
         Surface.Height = height / _scale;
@@ -566,8 +444,8 @@ public partial class OverlayWindow : Window
         ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
         if (hoverSlot > 0)
         {
-            var (top, _) = LeaderboardTile(hoverSlot - 1);
-            ViewModel.HoverLeaderboard(hoverSlot, Math.Max(8, top - 20), LeaderboardGeometry.Beside(Surface.Width, Surface.Height, _settings));
+            ViewModel.HoverLeaderboard(hoverSlot, LeaderboardGeometry.SlotPopupTop(hoverSlot, Surface.Height, _settings, ViewModel.IsDuos),
+                LeaderboardGeometry.Beside(Surface.Width, Surface.Height, _settings));
         }
 
         // Give card art time to download and decode.
@@ -611,21 +489,19 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        var left = LeaderboardLeft();
-        for (var i = 0; i < 8; i++)
+        foreach (var (left, top, width, height) in LeaderboardGeometry.Guides(Surface.Width, Surface.Height, _settings, ViewModel.IsDuos))
         {
-            var (top, height) = LeaderboardTile(i);
             var box = new Rectangle
             {
-                Width = _settings.LeaderboardWidth * Surface.Height,
-                Height = Math.Max(4, height - 2),
+                Width = width,
+                Height = height,
                 Stroke = (Brush)FindResource("Accent"),
                 StrokeThickness = 1.5,
                 StrokeDashArray = [4, 3],
                 Fill = (Brush)FindResource("AccentSoft"),
             };
             Canvas.SetLeft(box, left);
-            Canvas.SetTop(box, top + 1);
+            Canvas.SetTop(box, top);
             GuideLayer.Children.Add(box);
         }
     }

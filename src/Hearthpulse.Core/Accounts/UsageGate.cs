@@ -103,6 +103,9 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
     /// <summary>How long the site may take to decide before the game is counted here.</summary>
     internal TimeSpan ClaimTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>The clock of <see cref="ClaimTimeout"/>; tests move it instead of waiting.</summary>
+    internal TimeProvider Time { get; init; } = TimeProvider.System;
+
     /// <summary>The site's limits as last known (null: never answered, nothing is limited).</summary>
     public UsageLimits? Limits
     {
@@ -250,7 +253,7 @@ public sealed class UsageGate(AccountClient client, AccountService? account, str
         if (account is { SignedIn: true })
         {
             // A slow site must not hide the numbers for long: past a few seconds the game is counted here.
-            using var timeout = new CancellationTokenSource(ClaimTimeout);
+            using var timeout = new CancellationTokenSource(ClaimTimeout, Time);
             try
             {
                 claim = await account.ClaimUsageAsync(game.Feature, game.Id, timeout.Token).ConfigureAwait(false);
