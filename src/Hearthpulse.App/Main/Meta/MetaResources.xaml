@@ -14,7 +14,7 @@
     </ItemsPanelTemplate>
 
     <Style x:Key="TableHead" TargetType="TextBlock" BasedOn="{StaticResource Label}">
-        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
@@ -42,11 +42,11 @@
         </Setter>
     </Style>
     <Style x:Key="SortLabel" TargetType="TextBlock" BasedOn="{StaticResource Label}">
-        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
         <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
     </Style>
     <Style x:Key="SortArrow" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="9" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
         <Setter Property="Margin" Value="4,0,0,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{StaticResource Accent}" />
@@ -55,8 +55,8 @@
     <!-- List rows: no rules, a soft highlight on hover -->
     <Style x:Key="RowBorder" TargetType="Border">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="10,8" />
-        <Setter Property="Margin" Value="-10,0,-10,2" />
+        <Setter Property="Padding" Value="8,8" />
+        <Setter Property="Margin" Value="-8,0,-8,2" />
         <Setter Property="Background" Value="Transparent" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -68,15 +68,15 @@
     <Style x:Key="TierBadge" TargetType="Border">
         <Setter Property="Width" Value="30" />
         <Setter Property="Height" Value="26" />
-        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="CornerRadius" Value="4" />
         <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
 
     <!-- A tier's head: the big letter on its colour, "Tier S" and its bound; the tier colour runs down the left edge -->
     <Style x:Key="TierHead" TargetType="Border">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="10,8" />
-        <Setter Property="Margin" Value="-10,10,-10,6" />
+        <Setter Property="Padding" Value="8,8" />
+        <Setter Property="Margin" Value="-8,8,-8,4" />
         <Setter Property="BorderThickness" Value="3,0,0,0" />
         <Setter Property="Background" Value="{StaticResource Surface2}" />
     </Style>

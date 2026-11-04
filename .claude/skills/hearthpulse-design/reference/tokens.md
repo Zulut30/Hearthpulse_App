@@ -95,13 +95,13 @@ Font files (both projects, `Assets/Fonts/`): `Montserrat-Bold.ttf`, `Montserrat-
 | WPF style (`TextBlock`) | Avalonia class | Font | Size | Weight | Colour |
 |---|---|---|---|---|---|
 | `Base` | (inherited from view: UiFont 13) | UiFont | 13 | Normal | Text |
-| `Display` | `display` | DisplayFont | WPF 36 / Avalonia 34 | ExtraBold | `GildedText` |
-| `H1` | - | DisplayFont | 30 | ExtraBold | Text |
+| `Display` | `display` | DisplayFont | 32 (`FontSizeDisplay`) | ExtraBold | `GildedText` |
+| `H1` | - | DisplayFont | 32 | ExtraBold | Text |
 | `H2` | `h2` | DisplayFont | 16 | Bold | Text |
 | `Label` | `label` | UiFont | 12 | SemiBold | Muted |
-| `Caption` | `caption` | UiFont | 12.5 | Normal | Muted |
+| `Caption` | `caption` | UiFont | 12 | Normal | Muted |
 | `Stat` | `stat` | DisplayFont | 28 | Bold | `StatText` |
-| - | `number` | DisplayFont | 15 | SemiBold | - |
+| - | `number` | DisplayFont | 16 | SemiBold | - |
 | `Icon` | `icon` | IconFont | 18 | Normal | Muted |
 
 WPF windows set base type through the `AppWindow` style (UiFont 13, Text, tabular numerals) rather than an implicit
@@ -111,9 +111,9 @@ TextBlock style, so icon glyph TextBlocks inside templates are not restyled.
 
 | WPF key | Avalonia selector | Shape |
 |---|---|---|
-| `Card` (Border) | `Border.card` | r12, padding 22,18, 1px edge, `CardFill`/`CardEdge` |
-| `OverlayCard` | `Border.overlayCard` | r8, 1px edge, `OverlayCardFill`/`OverlayEdge` |
-| `Pill` | `Border.pill` | Surface4, r6, padding 9,2 |
+| `Card` (Border) | `Border.card` | `RadiusLarge` 12, `CardPadding` 24, 1px edge, `CardFill`/`CardEdge` |
+| `OverlayCard` | `Border.overlayCard` | `RadiusMedium` 8, 1px edge, `OverlayCardFill`/`OverlayEdge` |
+| `Pill` | `Border.pill` | Surface4, `RadiusSmall` 4, padding 8,2 |
 | `SegmentBar` | `Border.segmentBar` | r8, padding 4, `GrooveFill`/`GrooveEdge` |
 | `GhostButton` | `Button.ghost` | padding 18,9, SemiBold 13, template r8, OnSecondaryContainer text |
 | `PrimaryButton` (BasedOn GhostButton) | `Button.ghost.primary` (use both classes) | PrimaryFill gold, OnAccent text, Bold, top sheen |
@@ -121,7 +121,7 @@ TextBlock style, so icon glyph TextBlocks inside templates are not restyled.
 | `CaptionButton`, `CloseCaptionButton` | - | window controls (WPF only) |
 | - | `Button.bare` | unstyled button (Avalonia) |
 | `NavItem` (RadioButton) | `RadioButton.nav` | height 46, SemiBold 14, glyph in `Tag`; WPF selected look is the sliding `NavPill` in MainWindow |
-| `Segment` (RadioButton) | `RadioButton.segment` | chip inside a SegmentBar, 12.5 SemiBold |
+| `Segment` (RadioButton) | `RadioButton.segment` | chip inside a SegmentBar, 12 SemiBold |
 | `Tab` (BasedOn Segment, 2px gold underline) | - (Avalonia tabs use `segment`) | page tabs |
 | `Switch` (CheckBox) | `CheckBox.switch` | Surface4 track with a Muted rim, `PrimaryFill` when on; the knob slides and grows |
 | `FocusRing*` | Fluent focus | thin gold outline per shape (Chip, Nav, Row, Round, Switch) |

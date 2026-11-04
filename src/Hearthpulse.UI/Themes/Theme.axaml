@@ -284,6 +284,7 @@
             <SolidColorBrush x:Key="Accent2" Color="{StaticResource Accent2Color}" />
             <SolidColorBrush x:Key="Accent2Soft" Color="#1F4FC2A8" />
             <SolidColorBrush x:Key="Accent2Line" Color="#994FC2A8" />
+            <SolidColorBrush x:Key="ScrollThumbFill" Color="#3DE9B949" />
             <RadialGradientBrush x:Key="Glow">
                 <GradientStop Color="#3DE9B949" Offset="0" />
                 <GradientStop Color="#14E9B949" Offset="0.55" />
@@ -376,6 +377,24 @@
             <SolidColorBrush x:Key="TierC" Color="{StaticResource MutedColor}" />
             <SolidColorBrush x:Key="TierD" Color="{StaticResource NegativeColor}" />
 
+            <!-- ===== Scale (D1, hearthpulse-design): type ramp, corner radii, padding of plates. Spacing literals stay on
+                 0/1/2/4/8/12/16/24/32 (and multiples of 4 from 40); DesignTokenTests counts the rest. ===== -->
+            <x:Double x:Key="FontSizeMicro">10</x:Double>
+            <x:Double x:Key="FontSizeSmall">11</x:Double>
+            <x:Double x:Key="FontSizeLabel">12</x:Double>
+            <x:Double x:Key="FontSizeBody">13</x:Double>
+            <x:Double x:Key="FontSizeLead">14</x:Double>
+            <x:Double x:Key="FontSizeTitle">16</x:Double>
+            <x:Double x:Key="FontSizeIcon">18</x:Double>
+            <x:Double x:Key="FontSizeSubhead">20</x:Double>
+            <x:Double x:Key="FontSizeHeadline">24</x:Double>
+            <x:Double x:Key="FontSizeStat">28</x:Double>
+            <x:Double x:Key="FontSizeDisplay">32</x:Double>
+            <CornerRadius x:Key="RadiusSmall">4</CornerRadius>
+            <CornerRadius x:Key="RadiusMedium">8</CornerRadius>
+            <CornerRadius x:Key="RadiusLarge">12</CornerRadius>
+            <CornerRadius x:Key="RadiusPill">999</CornerRadius>
+            <Thickness x:Key="CardPadding">24</Thickness>
             <!-- ===== Type: Montserrat for display (OFL), the platform UI font for text, Material Design Icons ===== -->
             <!-- UiFont is replaced at startup with the platform's UI font (Segoe UI on Windows, Inter elsewhere). -->
             <FontFamily x:Key="UiFont">fonts:Inter#Inter</FontFamily>
@@ -387,38 +406,38 @@
     <!-- ===== Text ===== -->
     <Style Selector="TextBlock.display">
         <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
-        <Setter Property="FontSize" Value="34" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeDisplay}" />
         <Setter Property="FontWeight" Value="ExtraBold" />
         <Setter Property="Foreground" Value="{StaticResource GildedText}" />
     </Style>
     <Style Selector="TextBlock.h2">
         <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
-        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}" />
         <Setter Property="FontWeight" Value="Bold" />
     </Style>
     <Style Selector="TextBlock.label">
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
     </Style>
     <Style Selector="TextBlock.caption">
-        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
     </Style>
     <Style Selector="TextBlock.stat">
         <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
-        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeStat}" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="Foreground" Value="{StaticResource StatText}" />
     </Style>
     <Style Selector="TextBlock.number">
         <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}" />
     </Style>
     <Style Selector="TextBlock.icon">
         <Setter Property="FontFamily" Value="{DynamicResource IconFont}" />
-        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeIcon}" />
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="VerticalAlignment" Value="Center" />
@@ -429,19 +448,19 @@
         <Setter Property="Background" Value="{StaticResource CardFill}" />
         <Setter Property="BorderBrush" Value="{StaticResource CardEdge}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="12" />
-        <Setter Property="Padding" Value="22,18" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusLarge}" />
+        <Setter Property="Padding" Value="{StaticResource CardPadding}" />
     </Style>
     <Style Selector="Border.overlayCard">
         <Setter Property="Background" Value="{StaticResource OverlayCardFill}" />
         <Setter Property="BorderBrush" Value="{StaticResource OverlayEdge}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
     </Style>
     <Style Selector="Border.pill">
         <Setter Property="Background" Value="{StaticResource Surface4}" />
-        <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="Padding" Value="9,2" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusSmall}" />
+        <Setter Property="Padding" Value="8,2" />
     </Style>
     <Style Selector="Border.segmentBar">
         <Setter Property="Background" Value="{StaticResource GrooveFill}" />
@@ -458,9 +477,9 @@
         <Setter Property="Background" Value="{StaticResource GhostFill}" />
         <Setter Property="BorderBrush" Value="{StaticResource GhostEdge}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="18,9" />
+        <Setter Property="Padding" Value="16,8" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusAdorner">
             <FocusAdornerTemplate>
@@ -548,7 +567,7 @@
         <Setter Property="Width" Value="32" />
         <Setter Property="Height" Value="32" />
         <Setter Property="FontFamily" Value="{DynamicResource IconFont}" />
-        <Setter Property="FontSize" Value="17" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeIcon}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusAdorner">
             <FocusAdornerTemplate>
@@ -600,7 +619,7 @@
          The page sets ContentTemplate. Same as the WPF ThemeSwatch. -->
     <Style Selector="Button.themeSwatch">
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Margin" Value="0,0,10,10" />
+        <Setter Property="Margin" Value="0,0,8,8" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="FocusAdorner">
             <FocusAdornerTemplate>
@@ -633,13 +652,13 @@
     <Style Selector="RadioButton.nav">
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLead}" />
         <Setter Property="Height" Value="46" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusAdorner">
             <FocusAdornerTemplate>
-                <Border Margin="10,2" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Accent}" />
+                <Border Margin="8,2" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource Accent}" />
             </FocusAdornerTemplate>
         </Setter>
         <Setter Property="Template">
@@ -713,12 +732,12 @@
     <!-- ===== Chips / segmented filter ===== -->
     <Style Selector="RadioButton.segment">
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
-        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusAdorner">
             <FocusAdornerTemplate>
-                <Border CornerRadius="6" BorderThickness="1" BorderBrush="{StaticResource Accent}" />
+                <Border CornerRadius="4" BorderThickness="1" BorderBrush="{StaticResource Accent}" />
             </FocusAdornerTemplate>
         </Setter>
         <Setter Property="Template">
@@ -769,7 +788,7 @@
     <Style Selector="CheckBox.switch">
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Foreground" Value="{StaticResource Text}" />
-        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLead}" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="Template">
             <ControlTemplate>
@@ -777,8 +796,8 @@
                     <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" Margin="0,0,16,0" />
                     <!-- Same as the WPF switch: a Surface4 track with a Muted rim, gold when on; the knob slides and grows -->
                     <Panel Grid.Column="1" Width="48" Height="28">
-                        <Border Name="Track" CornerRadius="14" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
-                        <Border Name="OnFill" CornerRadius="14" Background="{StaticResource PrimaryFill}" Opacity="0">
+                        <Border Name="Track" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
+                        <Border Name="OnFill" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource PrimaryFill}" Opacity="0">
                             <Border.Transitions>
                                 <Transitions>
                                     <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut" />
@@ -825,8 +844,8 @@
     <!-- ===== List rows ===== -->
     <Style Selector="Border.row">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="10,8" />
-        <Setter Property="Margin" Value="-10,0,-10,2" />
+        <Setter Property="Padding" Value="8,8" />
+        <Setter Property="Margin" Value="-8,0,-8,2" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Transitions">
             <Transitions>
@@ -862,22 +881,22 @@
         <Setter Property="BorderThickness" Value="1.5" />
     </Style>
     <Style Selector="ComboBox /template/ Border#PopupBorder">
-        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="4" />
     </Style>
     <Style Selector="ComboBoxItem">
-        <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,8" />
         <Setter Property="Margin" Value="0,1" />
     </Style>
     <Style Selector="MenuFlyoutPresenter">
-        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="4" />
         <Setter Property="MinWidth" Value="200" />
     </Style>
     <Style Selector="MenuFlyoutPresenter MenuItem">
-        <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,8" />
     </Style>
     <Style Selector="MenuItem TextBlock.icon">
         <Setter Property="Foreground" Value="{StaticResource Accent}" />
@@ -890,8 +909,8 @@
         <Setter Property="BorderBrush" Value="{StaticResource CardEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="12,7" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
         <Setter Property="MaxWidth" Value="320" />
     </Style>
 

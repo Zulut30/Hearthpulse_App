@@ -69,40 +69,40 @@
                                 <Border Classes="tierHead" BorderBrush="{Binding Tier, Converter={StaticResource KeyBrush}}">
                                     <StackPanel Orientation="Horizontal">
                                         <Border Classes="tierLetter" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
-                                            <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="17" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                            <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="{StaticResource FontSizeIcon}" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
-                                            <TextBlock Text="{Binding Caption}" Classes="caption" FontSize="11.5" />
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                            <TextBlock Text="{Binding Caption}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
                                 <ItemsControl ItemsSource="{Binding Rows}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="m:MetaHeroRow">
-                                            <Border Classes="row" Padding="10,6">
+                                            <Border Classes="row" Padding="8,4">
                                                 <Grid ColumnDefinitions="40,50,*,56,190,64,56,72,80,100">
                                                     <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
                                                     <Border Grid.Column="1" Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}"
                                                             HorizontalAlignment="Left" ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
-                                                    <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                     <Border Grid.Column="3" Classes="tierBadge" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
-                                                        <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                                        <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                     </Border>
                                                     <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding AveragePlace}" Width="44" FontWeight="Bold" />
-                                                        <Border Width="128" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                                                        <Border Width="128" Height="8" CornerRadius="2" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                            <Border HorizontalAlignment="Left" CornerRadius="2" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
                                                                     Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=128}" />
                                                         </Border>
                                                     </StackPanel>
-                                                    <TextBlock Grid.Column="5" Text="{Binding Top4}" FontWeight="SemiBold" FontSize="12.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="6" Text="{Binding FirstPlace}" FontSize="12.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="5" Text="{Binding Top4}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="6" Text="{Binding FirstPlace}" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                                     <TextBlock Grid.Column="7" Text="{Binding PickRate}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                                     <TextBlock Grid.Column="8" Text="{Binding DataPoints}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="9" Text="{Binding Personal}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" />
+                                                    <TextBlock Grid.Column="9" Text="{Binding Personal}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="{StaticResource FontSizeLabel}" />
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -114,7 +114,7 @@
                 </ItemsControl>
                 <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{Binding MetaUpdated}"
                                 IsVisible="{Binding HeroTierGroups, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap"
+                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap"
                            IsVisible="{Binding HeroTierGroups, Converter={StaticResource Truthy}}" />
             </StackPanel>
         </Border>
@@ -125,24 +125,24 @@
                 <ItemsControl ItemsSource="{Binding CompTiers}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="m:MetaCompRow">
-                            <Border Classes="row" Padding="10,10">
+                            <Border Classes="row" Padding="8,8">
                                 <Grid ColumnDefinitions="40,*,56,230">
                                     <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Top" Margin="0,2,0,0" />
                                     <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                                        <TextBlock FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"><Run Text="{Binding Name, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding Tribes, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" FontSize="12" /></TextBlock>
+                                        <TextBlock FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextWrapping="Wrap"><Run Text="{Binding Name, Mode=OneWay}" /><Run Text="   " /><Run Text="{Binding Tribes, Mode=OneWay}" Foreground="{StaticResource Muted}" FontWeight="Normal" FontSize="{StaticResource FontSizeLabel}" /></TextBlock>
                                         <TextBlock Classes="caption" TextWrapping="Wrap" Margin="0,4,0,0"><Run Text="{i:Loc Main.Bg.Core}" Foreground="{StaticResource Muted}" /><Run Text="{Binding KeyCards, Mode=OneWay}" /></TextBlock>
-                                        <TextBlock Text="{Binding Commit}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.85"
+                                        <TextBlock Text="{Binding Commit}" FontSize="{StaticResource FontSizeLabel}" TextWrapping="Wrap" Margin="0,4,0,0" Opacity="0.85"
                                                    IsVisible="{Binding Commit, Converter={StaticResource Truthy}}" />
                                     </StackPanel>
                                     <Border Grid.Column="2" Classes="tierBadge" VerticalAlignment="Top" Background="{Binding Power, Converter={StaticResource KeyBrush}}"
                                             ToolTip.Tip="{i:Loc Main.Bg.PowerBestTip}">
-                                        <TextBlock Text="{Binding Power}" FontWeight="Bold" FontSize="13" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                        <TextBlock Text="{Binding Power}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
                                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,4,0,0" ToolTip.Tip="{i:Loc Main.Bg.AvgPlacementTip}">
                                         <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
-                                        <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
+                                        <Border Width="164" Height="8" CornerRadius="2" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                            <Border HorizontalAlignment="Left" CornerRadius="2" Background="{StaticResource Accent}"
                                                     Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
                                         </Border>
                                     </StackPanel>
@@ -153,7 +153,7 @@
                 </ItemsControl>
                 <TextBlock Text="{Binding CompEmptyText}" Classes="caption" TextWrapping="Wrap" Margin="0,8"
                            IsVisible="{Binding CompTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
@@ -175,30 +175,30 @@
                                 <Border Classes="tierHead" BorderBrush="{Binding Tier, Converter={StaticResource KeyBrush}}">
                                     <StackPanel Orientation="Horizontal">
                                         <Border Classes="tierLetter" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
-                                            <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="17" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                            <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="{StaticResource FontSizeIcon}" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
-                                            <TextBlock Text="{Binding Caption}" Classes="caption" FontSize="11.5" />
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                            <TextBlock Text="{Binding Caption}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
                                 <ItemsControl ItemsSource="{Binding Rows}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="m:MetaTrinketRow">
-                                            <Border Classes="row" Padding="10,7">
+                                            <Border Classes="row" Padding="8,8">
                                                 <Grid ColumnDefinitions="40,*,56,230,80,90">
                                                     <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                     <Border Grid.Column="2" Classes="tierBadge" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
-                                                        <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                                        <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" FontFamily="{DynamicResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                     </Border>
                                                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
-                                                        <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                                                        <Border Width="164" Height="8" CornerRadius="2" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                            <Border HorizontalAlignment="Left" CornerRadius="2" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
                                                                     Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
                                                         </Border>
                                                     </StackPanel>
@@ -215,7 +215,7 @@
                 </ItemsControl>
                 <ContentControl Classes="emptyState" Tag="&#xF0127;" Content="{Binding TrinketEmptyText}"
                                 IsVisible="{Binding TrinketTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
@@ -237,20 +237,20 @@
                 <ItemsControl ItemsSource="{Binding CardTiers}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="m:MetaCardRow">
-                            <Border Classes="row" Padding="10,6">
+                            <Border Classes="row" Padding="8,4">
                                 <Grid ColumnDefinitions="40,64,*,230,100">
                                     <TextBlock Text="{Binding Rank}" Classes="caption" VerticalAlignment="Center" />
-                                    <Border Grid.Column="1" Width="54" Height="38" CornerRadius="6" ClipToBounds="True" Background="{StaticResource Surface3}" HorizontalAlignment="Left">
+                                    <Border Grid.Column="1" Width="54" Height="38" CornerRadius="4" ClipToBounds="True" Background="{StaticResource Surface3}" HorizontalAlignment="Left">
                                         <Image i:CardArt.Tile="{Binding CardId}" Stretch="UniformToFill" />
                                     </Border>
                                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,12,0">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding Kind}" Classes="caption" FontSize="11.5" />
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Kind}" Classes="caption" FontSize="{StaticResource FontSizeLabel}" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Main.Bg.AvgPlacementTip}">
                                         <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
-                                        <Border Width="164" Height="8" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                            <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
+                                        <Border Width="164" Height="8" CornerRadius="2" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                            <Border HorizontalAlignment="Left" CornerRadius="2" Background="{StaticResource Accent}"
                                                     Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
                                         </Border>
                                     </StackPanel>
@@ -263,7 +263,7 @@
                 </ItemsControl>
                 <TextBlock Text="{Binding CardEmptyText}" Classes="caption" TextWrapping="Wrap" Margin="0,8"
                            IsVisible="{Binding CardTiers, Converter={StaticResource Truthy}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding MetaUpdated}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
@@ -281,11 +281,11 @@
                 <ItemsControl ItemsSource="{Binding MyHeroes}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="m:HeroRow">
-                            <Border Classes="row" Padding="10,6">
+                            <Border Classes="row" Padding="8,4">
                                 <Grid ColumnDefinitions="50,*,80,100,80,80,90">
                                     <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                             i:CardArt.Portrait="{Binding CardId}" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Grid.Column="2" Text="{Binding Games}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                     <TextBlock Grid.Column="3" Text="{Binding AveragePlace}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="Bold"
                                                Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />

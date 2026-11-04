@@ -25,10 +25,10 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <c:ManaCost Width="22" Height="22" Text="{Binding Cost}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <Border Grid.Column="1" Width="28" Height="28" Margin="0,0,10,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding CardId}" />
+                    <Border Grid.Column="1" Width="28" Height="28" Margin="0,0,8,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding CardId}" />
                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding Copies}" Style="{StaticResource Caption}" FontSize="11" />
+                        <TextBlock Text="{Binding Copies}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" />
                     </StackPanel>
                 </Grid>
             </DataTemplate>
@@ -68,21 +68,21 @@
 
             <!-- A card that differs: "+2" / "−1" and its tile; the full card shows on hover -->
             <DataTemplate x:Key="DiffTile" DataType="{x:Type d:CardDiffRow}">
-                <Grid Height="28" Margin="0,0,0,3" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
+                <Grid Height="28" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Placement="Below">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="30" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12.5" VerticalAlignment="Center"
+                    <TextBlock Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                Foreground="{Binding Sign, Converter={StaticResource SignBrush}}" />
-                    <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
+                    <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="4" c:RoundClip.Radius="4">
                         <Grid>
                             <!-- The art's own edge hides under the fade, as in the overlay's deck rows -->
                             <Grid Width="180" HorizontalAlignment="Right">
                                 <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                                 <Rectangle Fill="{StaticResource TileFade}" />
                             </Grid>
-                            <TextBlock Text="{Binding Name}" Margin="9,0,6,0" FontSize="12.5" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Name}" Margin="8,0,4,0" FontSize="{StaticResource FontSizeLabel}" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </Grid>
                     </Border>
                 </Grid>
@@ -90,23 +90,23 @@
 
             <!-- A card of the main version as the tracker lists it: cost gem, name over the art, rarity edge, copies -->
             <DataTemplate x:Key="DeckListTile" DataType="{x:Type d:DeckListRow}">
-                <Grid Height="30" Margin="0,0,0,3" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+                <Grid Height="30" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="28" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <c:ManaCost Width="28" Height="28" Text="{Binding Cost}" VerticalAlignment="Center" />
-                    <Border Grid.Column="1" Margin="4,0,0,0" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
+                    <Border Grid.Column="1" Margin="4,0,0,0" Background="{StaticResource Row}" CornerRadius="4" c:RoundClip.Radius="4">
                         <Grid>
                             <Grid Width="180" HorizontalAlignment="Right">
                                 <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                                 <Rectangle Fill="{StaticResource TileFade}" />
                             </Grid>
                             <Border Width="3" HorizontalAlignment="Left" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                            <TextBlock Text="{Binding Name}" Margin="11,0,34,0" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Name}" Margin="12,0,32,0" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             <Border Width="24" HorizontalAlignment="Right" Background="{StaticResource Surface}" Opacity="0.92"
                                     Visibility="{Binding Count, Converter={StaticResource Vis}}">
-                                <TextBlock x:Name="CountText" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="13"
+                                <TextBlock x:Name="CountText" Text="{Binding Count}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}"
                                            Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                         </Grid>
@@ -121,13 +121,13 @@
 
             <!-- One cost of the mana curve: count, bar (share of the tallest), the cost in a gem -->
             <DataTemplate x:Key="CurveBar" DataType="{x:Type d:ManaCurveBar}">
-                <StackPanel Margin="3,0" VerticalAlignment="Bottom">
-                    <TextBlock x:Name="Count" Text="{Binding Count}" Style="{StaticResource Caption}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,3" />
+                <StackPanel Margin="2,0" VerticalAlignment="Bottom">
+                    <TextBlock x:Name="Count" Text="{Binding Count}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2" />
                     <Grid Height="64">
-                        <Border x:Name="Bar" VerticalAlignment="Bottom" MinHeight="2" CornerRadius="3,3,1,1" Background="{StaticResource Accent}"
+                        <Border x:Name="Bar" VerticalAlignment="Bottom" MinHeight="2" CornerRadius="2,2,1,1" Background="{StaticResource Accent}"
                                 Height="{Binding Fraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />
                     </Grid>
-                    <Border Height="1" Background="{StaticResource Outline}" Margin="-3,0" />
+                    <Border Height="1" Background="{StaticResource Outline}" Margin="-2,0" />
                     <c:ManaCost Width="20" Height="20" Text="{Binding Label}" HorizontalAlignment="Center" Margin="0,4,0,0" />
                 </StackPanel>
                 <DataTemplate.Triggers>
@@ -170,8 +170,8 @@
             <Style x:Key="TableHead" TargetType="Border">
                 <Setter Property="BorderBrush" Value="{StaticResource Border}" />
                 <Setter Property="BorderThickness" Value="0,0,0,1" />
-                <Setter Property="Padding" Value="10,0,10,6" />
-                <Setter Property="Margin" Value="-10,0,-10,4" />
+                <Setter Property="Padding" Value="8,0,8,4" />
+                <Setter Property="Margin" Value="-8,0,-8,4" />
                 <Setter Property="c:StickyHeader.IsEnabled" Value="True" />
             </Style>
             <!-- A share with a thin bar under it (the keep rate) -->
@@ -179,7 +179,7 @@
                 <Setter Property="Height" Value="3" />
                 <Setter Property="Width" Value="46" />
                 <Setter Property="HorizontalAlignment" Value="Right" />
-                <Setter Property="Margin" Value="0,3,0,0" />
+                <Setter Property="Margin" Value="0,2,0,0" />
                 <Setter Property="Foreground" Value="{StaticResource Accent}" />
             </Style>
         </ResourceDictionary>
@@ -187,14 +187,14 @@
 
     <StackPanel>
         <!-- Header: back, portrait, name, class/format/versions, meta archetype -->
-        <Button Style="{StaticResource GhostButton}" Command="{Binding Back}" HorizontalAlignment="Left" Margin="0,0,0,16" Padding="12,7"
+        <Button Style="{StaticResource GhostButton}" Command="{Binding Back}" HorizontalAlignment="Left" Margin="0,0,0,16" Padding="12,8"
                 ToolTip="{i:Loc Deck.BackTip}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xF004D;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource OnSecondaryContainer}" Margin="0,0,6,0" />
+                <TextBlock Text="&#xF004D;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource OnSecondaryContainer}" Margin="0,0,4,0" />
                 <TextBlock Text="{i:Loc Deck.Back}" VerticalAlignment="Center" />
             </StackPanel>
         </Button>
-        <Grid Margin="0,0,0,20">
+        <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -202,14 +202,14 @@
             </Grid.ColumnDefinitions>
             <Border Width="72" Height="72" Style="{StaticResource StatsPortrait}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="2"
                     i:CardArt.Portrait="{Binding HeroCardId}" />
-            <StackPanel Grid.Column="1" Margin="18,0,16,0" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Margin="16,0,16,0" VerticalAlignment="Center">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF03EB;" VerticalAlignment="Center" Margin="10,0,0,0" Click="OnRename"
+                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF03EB;" VerticalAlignment="Center" Margin="8,0,0,0" Click="OnRename"
                             ToolTip="{i:Loc Deck.Versions.Rename}" />
-                    <TextBlock Text="{Binding Name}" Style="{StaticResource Display}" FontSize="30" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Name}" Style="{StaticResource Display}" FontSize="{StaticResource FontSizeDisplay}" TextTrimming="CharacterEllipsis" />
                 </DockPanel>
                 <!-- Class, format, versions; then the meta archetype -->
-                <WrapPanel Margin="0,10,0,0">
+                <WrapPanel Margin="0,8,0,0">
                     <ItemsControl ItemsSource="{Binding Facts}" Focusable="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -218,17 +218,17 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource Pill}" Background="{StaticResource Surface4}" Padding="10,3" Margin="0,0,6,6">
-                                    <TextBlock Text="{Binding}" FontSize="12" FontWeight="SemiBold" />
+                                <Border Style="{StaticResource Pill}" Background="{StaticResource Surface4}" Padding="8,2" Margin="0,0,8,8">
+                                    <TextBlock Text="{Binding}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" />
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Border Style="{StaticResource Pill}" Background="{StaticResource AccentContainer}" Padding="8,3,10,3" Margin="0,0,6,6"
+                    <Border Style="{StaticResource Pill}" Background="{StaticResource AccentContainer}" Padding="8,2" Margin="0,0,8,8"
                             Visibility="{Binding ArchetypeLine, Converter={StaticResource Vis}}" ToolTip="{i:Loc Deck.ArchetypeTip}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xF0639;" Style="{StaticResource Icon}" FontSize="13" Foreground="{StaticResource Accent}" Margin="0,0,5,0" />
-                            <TextBlock Text="{Binding ArchetypeLine}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xF0639;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeBody}" Foreground="{StaticResource Accent}" Margin="0,0,4,0" />
+                            <TextBlock Text="{Binding ArchetypeLine}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Border>
                 </WrapPanel>
@@ -236,26 +236,26 @@
             </StackPanel>
 
             <!-- The big win rate (the games shown) and where it sits on the scale -->
-            <Border Grid.Column="2" Style="{DynamicResource TileCard}" Padding="20,14,20,16" VerticalAlignment="Center" ToolTip="{i:Loc Deck.WinRate.ScaleTip}">
+            <Border Grid.Column="2" Style="{DynamicResource TileCard}" Padding="16,12,16,16" VerticalAlignment="Center" ToolTip="{i:Loc Deck.WinRate.ScaleTip}">
                 <StackPanel Width="200">
                     <TextBlock Text="{i:Loc Deck.Tile.WinRate}" Style="{StaticResource Label}" />
                     <TextBlock Text="{Binding WinRateText}" Style="{StaticResource BigWinRate}" Margin="0,2,0,0" />
                     <TextBlock Text="{Binding WinRecord}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
                     <!-- 30-47 % red, 47-53 % neutral, 53-70 % green; the dot is the deck -->
-                    <Grid Height="14" Margin="0,10,0,0">
+                    <Grid Height="14" Margin="0,8,0,0">
                         <Grid Height="6" VerticalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="17*" />
                                 <ColumnDefinition Width="6*" />
                                 <ColumnDefinition Width="17*" />
                             </Grid.ColumnDefinitions>
-                            <Border Background="{StaticResource Negative}" Opacity="0.8" CornerRadius="3,0,0,3" Margin="0,0,1,0" />
+                            <Border Background="{StaticResource Negative}" Opacity="0.8" CornerRadius="2,0,0,2" Margin="0,0,1,0" />
                             <Border Grid.Column="1" Background="{StaticResource Outline}" />
-                            <Border Grid.Column="2" Background="{StaticResource Positive}" Opacity="0.8" CornerRadius="0,3,3,0" Margin="1,0,0,0" />
+                            <Border Grid.Column="2" Background="{StaticResource Positive}" Opacity="0.8" CornerRadius="0,2,2,0" Margin="1,0,0,0" />
                         </Grid>
                         <StackPanel Orientation="Horizontal" Visibility="{Binding HasWinScale, Converter={StaticResource Vis}}">
                             <Border Width="{Binding WinScale, Converter={StaticResource Fraction}, ConverterParameter=200}" />
-                            <Ellipse Width="14" Height="14" Margin="-7,0,0,0" Fill="{StaticResource Text}" Stroke="{StaticResource Bg}" StrokeThickness="2.5" />
+                            <Ellipse Width="14" Height="14" Margin="-8,0,0,0" Fill="{StaticResource Text}" Stroke="{StaticResource Bg}" StrokeThickness="2.5" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -263,12 +263,12 @@
         </Grid>
 
         <!-- Matchup filter -->
-        <Border Style="{StaticResource Pill}" Background="{StaticResource SecondaryContainer}" Padding="12,6" Margin="0,0,0,14" HorizontalAlignment="Left"
+        <Border Style="{StaticResource Pill}" Background="{StaticResource SecondaryContainer}" Padding="12,4" Margin="0,0,0,12" HorizontalAlignment="Left"
                 Visibility="{Binding FilterText, Converter={StaticResource Vis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xF0233;" Style="{StaticResource Icon}" FontSize="15" Foreground="{StaticResource Accent}" Margin="0,0,8,0" />
+                <TextBlock Text="&#xF0233;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Accent}" Margin="0,0,8,0" />
                 <TextBlock Text="{Binding FilterText}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
-                <Button Style="{StaticResource IconButton}" Content="&#xF0156;" Width="24" Height="24" FontSize="14" Margin="8,0,0,0"
+                <Button Style="{StaticResource IconButton}" Content="&#xF0156;" Width="24" Height="24" FontSize="{StaticResource FontSizeLead}" Margin="8,0,0,0"
                         Command="{Binding ClearMatchup}" ToolTip="{i:Loc Deck.ClearFilterTip}" />
             </StackPanel>
         </Border>
@@ -285,14 +285,14 @@
             </Grid.ColumnDefinitions>
             <Border Style="{StaticResource Card}">
                 <DockPanel>
-                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Deck.Chart.Title}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
                         <TextBlock Text="{i:Loc Deck.Chart.Caption}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                     <c:StatsLineChart x:Name="WinRateChart" Height="200" Points="{Binding Chart}" EmptyText="{i:Loc Deck.Chart.Empty}">
                         <c:StatsLineChart.HoverTemplate>
                             <DataTemplate DataType="{x:Type d:DeckGamePoint}">
-                                <Border Width="260" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="10" Padding="14,12">
+                                <Border Width="260" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,12">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
@@ -301,15 +301,15 @@
                                         <Border Width="42" Height="42" Style="{StaticResource StatsPortrait}" VerticalAlignment="Top" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1"
                                                 i:CardArt.Portrait="{Binding OpponentHeroCardId}" />
                                         <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
                                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                                 <TextBlock Text="{Binding ResultText}" FontWeight="Bold" Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
                                                 <TextBlock Text=" · " Foreground="{StaticResource Faint}" />
                                                 <TextBlock Text="{Binding ChartLabel}" FontWeight="SemiBold" />
                                             </StackPanel>
-                                            <TextBlock Text="{Binding SoFar}" Style="{StaticResource Caption}" FontSize="11.5" Margin="0,4,0,0" />
-                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding When}" Style="{StaticResource Caption}" FontSize="11.5" />
+                                            <TextBlock Text="{Binding SoFar}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Margin="0,4,0,0" />
+                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding When}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -320,7 +320,7 @@
             </Border>
             <Border Grid.Column="2" Style="{StaticResource Card}">
                 <DockPanel>
-                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Deck.Length.Title}" Icon="&#xF0128;" Size="13" HorizontalAlignment="Left" />
                         <TextBlock Text="{i:Loc Deck.Length.Caption}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
@@ -359,9 +359,9 @@
                         <ItemsControl ItemsSource="{Binding Matchups}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type d:DeckMatchupRow}">
-                                    <Button Style="{StaticResource RowButton}" Padding="10,6" Margin="0,0,0,2" Command="{Binding DataContext.SelectMatchup, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    <Button Style="{StaticResource RowButton}" Padding="8,4" Margin="0,0,0,2" Command="{Binding DataContext.SelectMatchup, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding Key}">
-                                        <Border x:Name="Plate" CornerRadius="6" Margin="-10,-6" Padding="10,6" BorderThickness="1" BorderBrush="Transparent">
+                                        <Border x:Name="Plate" CornerRadius="4" Margin="-8,-4" Padding="8,4" BorderThickness="1" BorderBrush="Transparent">
                                             <Grid x:Name="Row">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto" />
@@ -369,10 +369,10 @@
                                                     <ColumnDefinition Width="56" />
                                                     <ColumnDefinition Width="128" />
                                                 </Grid.ColumnDefinitions>
-                                                <Border x:Name="Portrait" Width="28" Height="28" Margin="0,0,10,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}" />
+                                                <Border x:Name="Portrait" Width="28" Height="28" Margin="0,0,8,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}" />
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Text="{Binding Games}" Style="{StaticResource Caption}" FontSize="11.5" />
+                                                    <TextBlock Text="{Binding Games}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" />
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="2" Text="{Binding Record}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                                 <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -386,7 +386,7 @@
                                     </Button>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding IsArchetype}" Value="True">
-                                            <Setter TargetName="Row" Property="Margin" Value="38,0,0,0" />
+                                            <Setter TargetName="Row" Property="Margin" Value="40,0,0,0" />
                                             <Setter TargetName="Portrait" Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Few}" Value="True">
@@ -407,13 +407,13 @@
 
                 <Border x:Name="VersionsCard" Style="{StaticResource Card}">
                     <StackPanel>
-                        <Grid Margin="0,0,0,10">
+                        <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <c:Ornament Text="{i:Loc Deck.Versions.Title}" Icon="&#xF062C;" Size="13" />
-                            <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xF03EB;" Width="30" Height="30" FontSize="15" Margin="10,0,0,0"
+                            <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xF03EB;" Width="30" Height="30" FontSize="{StaticResource FontSizeTitle}" Margin="8,0,0,0"
                                     Command="{Binding StartRename}" ToolTip="{i:Loc Deck.Versions.Rename}" />
                         </Grid>
 
@@ -424,7 +424,7 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="NameBox" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Padding="6,4"
+                            <TextBox x:Name="NameBox" Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Padding="4,4"
                                      ToolTip="{i:Loc Deck.Versions.RenameTip}">
                                 <TextBox.InputBindings>
                                     <KeyBinding Key="Return" Command="{Binding Rename}" />
@@ -432,15 +432,15 @@
                                 </TextBox.InputBindings>
                             </TextBox>
                             <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Content="{i:Loc Deck.Versions.Save}" Command="{Binding Rename}"
-                                    Padding="12,6" Margin="8,0,0,0" />
+                                    Padding="12,4" Margin="8,0,0,0" />
                             <Button Grid.Column="2" Style="{StaticResource GhostButton}" Content="{i:Loc Deck.Versions.Cancel}" Command="{Binding CancelRename}"
-                                    Padding="10,6" Margin="6,0,0,0" />
+                                    Padding="8,4" Margin="4,0,0,0" />
                         </Grid>
 
                         <ItemsControl ItemsSource="{Binding Versions}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type d:DeckVersionRow}">
-                                    <Border Style="{StaticResource StatsRow}" Margin="-10,0,-10,6">
+                                    <Border Style="{StaticResource StatsRow}" Margin="-8,0,-8,4">
                                         <StackPanel>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
@@ -452,17 +452,17 @@
                                                 <StackPanel VerticalAlignment="Center">
                                                     <WrapPanel>
                                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="220" VerticalAlignment="Center" />
-                                                        <Border Style="{StaticResource Pill}" Margin="8,0,0,0" Padding="6,1,8,1" Background="{StaticResource AccentContainer}" VerticalAlignment="Center"
+                                                        <Border Style="{StaticResource Pill}" Margin="8,0,0,0" Padding="4,1,8,1" Background="{StaticResource AccentContainer}" VerticalAlignment="Center"
                                                                 Visibility="{Binding IsMain, Converter={StaticResource Vis}}" ToolTip="{i:Loc Deck.Versions.MainChipTip}">
                                                             <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="&#xF04CE;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Accent}" Margin="0,0,4,0" />
-                                                                <TextBlock Text="{i:Loc Deck.Versions.MainChip}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
+                                                                <TextBlock Text="&#xF04CE;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Accent}" Margin="0,0,4,0" />
+                                                                <TextBlock Text="{i:Loc Deck.Versions.MainChip}" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Foreground="{StaticResource OnAccentContainer}" />
                                                             </StackPanel>
                                                         </Border>
                                                     </WrapPanel>
-                                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="1" Text="{Binding Record}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="10,0,10,0" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Record}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="8,0,8,0" />
                                                 <StackPanel Grid.Column="2" VerticalAlignment="Center" ToolTip="{i:Loc Deck.Versions.WinRateTip}">
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                                         <c:WinBar Width="64" Height="8" VerticalAlignment="Center" Fraction="{Binding WinFraction}" Games="{Binding Games}" Few="{Binding Few}" />
@@ -480,11 +480,11 @@
                                                             </TextBlock.Style>
                                                         </TextBlock>
                                                     </StackPanel>
-                                                    <TextBlock Text="{i:Loc Deck.Versions.FewGames}" Style="{StaticResource Caption}" FontSize="11" HorizontalAlignment="Right"
+                                                    <TextBlock Text="{i:Loc Deck.Versions.FewGames}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" HorizontalAlignment="Right"
                                                                Visibility="{Binding Few, Converter={StaticResource Vis}}" ToolTip="{Binding FewGamesTip}" />
                                                 </StackPanel>
                                                 <!-- ⋯ menu: make main, take out, show differences (only in a family of two or more) -->
-                                                <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF01D8;" Width="28" Height="28" FontSize="16" Margin="6,0,-4,0"
+                                                <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF01D8;" Width="28" Height="28" FontSize="{StaticResource FontSizeTitle}" Margin="4,0,-4,0"
                                                         VerticalAlignment="Center" ToolTip="{i:Loc Deck.Versions.MoreTip}" Click="OnMore"
                                                         Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         Visibility="{Binding CanManage, Converter={StaticResource Vis}}">
@@ -493,29 +493,29 @@
                                                             <MenuItem Header="{i:Loc Deck.Versions.MakeMain}" Visibility="{Binding CanMakeMain, Converter={StaticResource Vis}}"
                                                                       Command="{Binding PlacementTarget.Tag.SetMain, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding Key}">
                                                                 <MenuItem.Icon>
-                                                                    <TextBlock Text="&#xF04CE;" Style="{StaticResource Icon}" FontSize="15" />
+                                                                    <TextBlock Text="&#xF04CE;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" />
                                                                 </MenuItem.Icon>
                                                             </MenuItem>
                                                             <MenuItem Header="{Binding DiffAction}" Visibility="{Binding HasDiff, Converter={StaticResource Vis}}"
                                                                       Command="{Binding PlacementTarget.Tag.ToggleDiff, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding Key}">
                                                                 <MenuItem.Icon>
-                                                                    <TextBlock Text="&#xF0208;" Style="{StaticResource Icon}" FontSize="15" />
+                                                                    <TextBlock Text="&#xF0208;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" />
                                                                 </MenuItem.Icon>
                                                             </MenuItem>
                                                             <MenuItem Header="{i:Loc Deck.Versions.SplitOff}" ToolTip="{i:Loc Deck.Versions.SplitOffTip}"
                                                                       Command="{Binding PlacementTarget.Tag.Split, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding Key}">
                                                                 <MenuItem.Icon>
-                                                                    <TextBlock Text="&#xF0156;" Style="{StaticResource Icon}" FontSize="15" />
+                                                                    <TextBlock Text="&#xF0156;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" />
                                                                 </MenuItem.Icon>
                                                             </MenuItem>
                                                         </ContextMenu>
                                                     </Button.ContextMenu>
                                                 </Button>
                                             </Grid>
-                                            <Button Style="{StaticResource DiffToggle}" Margin="0,5,0,0" Visibility="{Binding HasDiff, Converter={StaticResource Vis}}"
+                                            <Button Style="{StaticResource DiffToggle}" Margin="0,4,0,0" Visibility="{Binding HasDiff, Converter={StaticResource Vis}}"
                                                     Command="{Binding DataContext.ToggleDiff, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}"
                                                     Content="{Binding Changes}" Tag="{Binding DiffOpen}" ToolTip="{i:Loc Deck.Versions.DiffTip}" />
-                                            <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,6,0,0"
+                                            <ItemsControl ItemsSource="{Binding Diff}" ItemTemplate="{StaticResource DiffTile}" Margin="0,4,0,0"
                                                           Visibility="{Binding DiffOpen, Converter={StaticResource Vis}}" />
                                         </StackPanel>
                                     </Border>
@@ -524,7 +524,7 @@
                         </ItemsControl>
 
                         <!-- Right after a merge into this deck: undo -->
-                        <Border Background="{StaticResource SecondaryContainer}" CornerRadius="8" Padding="12,4,6,4" Margin="0,2,0,8"
+                        <Border Background="{StaticResource SecondaryContainer}" CornerRadius="8" Padding="12,4,4,4" Margin="0,2,0,8"
                                 Visibility="{Binding UndoText, Converter={StaticResource Vis}}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -532,12 +532,12 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Positive}" Margin="0,0,8,0" />
+                                <TextBlock Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Positive}" Margin="0,0,8,0" />
                                 <TextBlock Grid.Column="1" Text="{Binding UndoText}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}"
                                            TextWrapping="Wrap" />
-                                <Button Grid.Column="2" Style="{StaticResource GhostButton}" Command="{Binding UndoMerge}" Padding="10,5" Margin="8,0,0,0" FontSize="12">
+                                <Button Grid.Column="2" Style="{StaticResource GhostButton}" Command="{Binding UndoMerge}" Padding="8,4" Margin="8,0,0,0" FontSize="{StaticResource FontSizeLabel}">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xF054C;" Style="{StaticResource Icon}" FontSize="14" Foreground="{StaticResource Accent}" Margin="0,0,5,0" />
+                                        <TextBlock Text="&#xF054C;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeLead}" Foreground="{StaticResource Accent}" Margin="0,0,4,0" />
                                         <TextBlock Text="{i:Loc Deck.Versions.Undo}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
@@ -546,14 +546,14 @@
 
                         <!-- Decks that look like versions of this one -->
                         <StackPanel Visibility="{Binding Suggestions, Converter={StaticResource Vis}}" Margin="0,8,0,0">
-                            <TextBlock Text="{i:Loc Deck.Versions.SuggestionsTitle}" Style="{StaticResource Label}" Margin="0,0,0,6" />
+                            <TextBlock Text="{i:Loc Deck.Versions.SuggestionsTitle}" Style="{StaticResource Label}" Margin="0,0,0,4" />
                             <ItemsControl ItemsSource="{Binding Suggestions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type d:DeckSuggestionRow}">
-                                        <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,0,0,6">
+                                        <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,4">
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" TextWrapping="Wrap" />
                                                 <Grid Margin="0,8,0,0">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
@@ -564,10 +564,10 @@
                                                             Command="{Binding DataContext.ToggleDiff, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding SecondKey}"
                                                             Content="{Binding Changes}" Tag="{Binding DiffOpen}" ToolTip="{i:Loc Deck.Versions.ShowCards}" />
                                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Deck.Versions.Merge}" Padding="12,5" FontSize="12" Margin="8,0,6,0"
+                                                        <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Deck.Versions.Merge}" Padding="12,4" FontSize="{StaticResource FontSizeLabel}" Margin="8,0,4,0"
                                                                 ToolTip="{i:Loc Deck.Versions.MergeTip}"
                                                                 Command="{Binding DataContext.Merge, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                                                        <Button Style="{StaticResource GhostButton}" Content="{i:Loc Deck.Versions.NotSame}" Padding="10,5" FontSize="12"
+                                                        <Button Style="{StaticResource GhostButton}" Content="{i:Loc Deck.Versions.NotSame}" Padding="8,4" FontSize="{StaticResource FontSizeLabel}"
                                                                 ToolTip="{i:Loc Deck.Versions.NotSameTip}"
                                                                 Command="{Binding DataContext.Dismiss, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                                                     </StackPanel>
@@ -582,14 +582,14 @@
                         </StackPanel>
 
                         <!-- Add another deck of this class and format by hand -->
-                        <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Padding="12,6" Margin="0,8,0,0" Command="{Binding TogglePicker}"
+                        <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Left" Padding="12,4" Margin="0,8,0,0" Command="{Binding TogglePicker}"
                                 ToolTip="{i:Loc Deck.Versions.AddDeckTip}" Visibility="{Binding PickerOpen, Converter={StaticResource Vis}, ConverterParameter=!}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xF0415;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
+                                <TextBlock Text="&#xF0415;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Accent}" Margin="0,0,4,0" />
                                 <TextBlock Text="{i:Loc Deck.Versions.AddDeck}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-                        <Border x:Name="Picker" Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="10" Padding="12"
+                        <Border x:Name="Picker" Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="8" Padding="12"
                                 Margin="0,8,0,0" Visibility="{Binding PickerOpen, Converter={StaticResource Vis}}">
                             <StackPanel>
                                 <Grid Margin="0,0,0,8">
@@ -598,22 +598,22 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{i:Loc Deck.Versions.PickerTitle}" Style="{StaticResource Label}" VerticalAlignment="Center" />
-                                    <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xF0156;" Width="26" Height="26" FontSize="14"
+                                    <Button Grid.Column="1" Style="{StaticResource IconButton}" Content="&#xF0156;" Width="26" Height="26" FontSize="{StaticResource FontSizeLead}"
                                             Command="{Binding TogglePicker}" ToolTip="{i:Loc Deck.Versions.Cancel}" />
                                 </Grid>
                                 <Grid>
                                     <!-- The theme's text box applies Padding twice (frame and text view): 17,4 reads as 34,8 -->
-                                    <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Padding="17,4,6,4" />
-                                    <TextBlock Text="&#xF0349;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Faint}" Margin="12,0,0,0"
+                                    <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Padding="16,4,4,4" />
+                                    <TextBlock Text="&#xF0349;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Faint}" Margin="12,0,0,0"
                                                HorizontalAlignment="Left" IsHitTestVisible="False" />
-                                    <TextBlock Text="{i:Loc Deck.Versions.SearchPlaceholder}" Foreground="{StaticResource Faint}" Margin="36,0,0,0" VerticalAlignment="Center"
+                                    <TextBlock Text="{i:Loc Deck.Versions.SearchPlaceholder}" Foreground="{StaticResource Faint}" Margin="32,0,0,0" VerticalAlignment="Center"
                                                IsHitTestVisible="False" Visibility="{Binding Search, Converter={StaticResource Vis}, ConverterParameter=!}" />
                                 </Grid>
                                 <ScrollViewer MaxHeight="264" Margin="-4,8,-4,0" VerticalScrollBarVisibility="Auto" Visibility="{Binding Candidates, Converter={StaticResource Vis}}">
                                     <ItemsControl ItemsSource="{Binding Candidates}" Margin="4,0">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type d:MergeCandidateRow}">
-                                                <Button Style="{StaticResource CandidateRow}" Padding="10,7" Margin="0,0,0,2"
+                                                <Button Style="{StaticResource CandidateRow}" Padding="8,8" Margin="0,0,0,2"
                                                         Command="{Binding DataContext.Choose, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}">
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
@@ -622,16 +622,16 @@
                                                             <ColumnDefinition Width="Auto" />
                                                             <ColumnDefinition Width="22" />
                                                         </Grid.ColumnDefinitions>
-                                                        <Border Width="30" Height="30" Margin="0,0,10,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}" />
+                                                        <Border Width="30" Height="30" Margin="0,0,8,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}" />
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
-                                                            <TextBlock Text="{i:Loc Deck.Versions.MarkedDifferent}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}"
+                                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{i:Loc Deck.Versions.MarkedDifferent}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
                                                                        Visibility="{Binding Dismissed, Converter={StaticResource Vis}}" />
                                                         </StackPanel>
                                                         <TextBlock Grid.Column="2" Text="{Binding Shared}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
-                                                                   Margin="10,0,0,0" ToolTip="{i:Loc Deck.Versions.SharedTip}" />
-                                                        <TextBlock Grid.Column="3" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Accent}"
+                                                                   Margin="8,0,0,0" ToolTip="{i:Loc Deck.Versions.SharedTip}" />
+                                                        <TextBlock Grid.Column="3" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Accent}"
                                                                    HorizontalAlignment="Right" Visibility="{Binding Selected, Converter={StaticResource Vis}}" />
                                                     </Grid>
                                                 </Button>
@@ -639,11 +639,11 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </ScrollViewer>
-                                <TextBlock Text="{Binding CandidatesEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="2,10,2,2"
+                                <TextBlock Text="{Binding CandidatesEmpty}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="2,8,2,2"
                                            Visibility="{Binding CandidatesEmpty, Converter={StaticResource Vis}}" />
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-                                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Deck.Versions.Cancel}" Command="{Binding TogglePicker}" Padding="12,6" />
-                                    <Button Content="{i:Loc Deck.Versions.AddChosen}" Command="{Binding AddChosen}" Padding="12,6" Margin="8,0,0,0"
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Deck.Versions.Cancel}" Command="{Binding TogglePicker}" Padding="12,4" />
+                                    <Button Content="{i:Loc Deck.Versions.AddChosen}" Command="{Binding AddChosen}" Padding="12,4" Margin="8,0,0,0"
                                             IsEnabled="{Binding CanAddChosen}" ToolTipService.ShowOnDisabled="True">
                                         <Button.Style>
                                             <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
@@ -668,7 +668,7 @@
                     <c:Ornament Text="{i:Loc Deck.List.Title}" Icon="&#xF0638;" Size="13" Margin="0,0,0,4" />
                     <TextBlock Text="{Binding DeckListNote}" Style="{StaticResource Caption}" Margin="2,0,0,12" Visibility="{Binding DeckListNote, Converter={StaticResource Vis}}" />
                     <StackPanel Visibility="{Binding Curve, Converter={StaticResource Vis}}" Margin="0,0,0,16">
-                        <TextBlock Text="{i:Loc Deck.List.Curve}" Style="{StaticResource StatsHead}" Margin="0,0,0,6" />
+                        <TextBlock Text="{i:Loc Deck.List.Curve}" Style="{StaticResource StatsHead}" Margin="0,0,0,4" />
                         <ItemsControl ItemsSource="{Binding Curve}" ItemTemplate="{StaticResource CurveBar}" Focusable="False">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -687,7 +687,7 @@
         <!-- Personal mulligan -->
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Deck.Mulligan.Title}" Icon="&#xF04E1;" Size="13" Margin="0,0,0,10" />
+                <c:Ornament Text="{i:Loc Deck.Mulligan.Title}" Icon="&#xF04E1;" Size="13" Margin="0,0,0,8" />
                 <Border Style="{StaticResource TableHead}">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -749,14 +749,14 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{Binding MulliganNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="2,10,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding MulliganNote}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="2,8,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
         <!-- Card performance -->
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Deck.Cards.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,10" />
+                <c:Ornament Text="{i:Loc Deck.Cards.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,8" />
                 <Border Style="{StaticResource TableHead}">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -809,14 +809,14 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{Binding CardsNote}" Style="{StaticResource Caption}" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="2,10,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding CardsNote}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="2,8,0,0" TextWrapping="Wrap" />
             </StackPanel>
         </Border>
 
         <!-- Recent games -->
         <Border Style="{StaticResource Card}" Margin="0,0,0,24">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Deck.Recent.Title}" Icon="&#xF02DA;" Size="13" Margin="0,0,0,10" />
+                <c:Ornament Text="{i:Loc Deck.Recent.Title}" Icon="&#xF02DA;" Size="13" Margin="0,0,0,8" />
                 <ItemsControl ItemsSource="{Binding Games}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type d:DeckGameRow}">
@@ -828,16 +828,16 @@
                                         <ColumnDefinition Width="Auto" MinWidth="60" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <Border Width="30" Height="30" Margin="0,0,10,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding OpponentHeroCardId}" />
+                                    <Border Width="30" Height="30" Margin="0,0,8,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding OpponentHeroCardId}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Opponent}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis">
+                                        <TextBlock Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis">
                                             <Run Text="{Binding When, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Detail, Mode=OneWay}" />
                                         </TextBlock>
                                     </StackPanel>
                                     <TextBlock Grid.Column="2" Text="{Binding ResultText}" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center"
                                                Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
-                                    <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF02DA;" Margin="10,0,0,0" ToolTip="{i:Loc Deck.Recent.ShowInHistory}"
+                                    <Button Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF02DA;" Margin="8,0,0,0" ToolTip="{i:Loc Deck.Recent.ShowInHistory}"
                                             Command="{Binding DataContext.OpenGame, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Key}" />
                                 </Grid>
                             </Border>
