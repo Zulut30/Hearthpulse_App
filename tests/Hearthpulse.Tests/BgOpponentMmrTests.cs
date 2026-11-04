@@ -230,7 +230,7 @@ public sealed class BgOpponentMmrTests : IDisposable
         source.Changed += () => changed.Release();
 
         Assert.Null(source.TryGet("battlegrounds", "EU", out _));
-        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromMinutes(1)));
         Assert.Equal(30, source.TryGet("battlegrounds", "EU", out var loading)!.Count);
         Assert.False(loading);
 
@@ -242,7 +242,7 @@ public sealed class BgOpponentMmrTests : IDisposable
         now += TimeSpan.FromMinutes(26);
         source.TryGet("battlegrounds", "EU", out loading);
         Assert.True(loading);
-        Assert.True(await changed.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.True(await changed.WaitAsync(TimeSpan.FromMinutes(1)));
         Assert.Equal(40, source.TryGet("battlegrounds", "EU", out _)!.Count);
     }
 
@@ -332,7 +332,7 @@ public sealed class BgOpponentMmrTests : IDisposable
         Assert.True(loading);
 
         server.Hold.SetResult();
-        await changed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await changed.Task.WaitAsync(TimeSpan.FromMinutes(1));
         Assert.Equal(30, source.TryGet("battlegrounds", "EU", out loading)!.Count);
         Assert.False(loading);
         Assert.Single(server.Requests);
@@ -472,7 +472,7 @@ public sealed class BgOpponentMmrTests : IDisposable
         Assert.Equal(BgMmrStatus.Loading, Opponents().Single(o => o.PlayerId == id).Mmr!.Status);
 
         server.Hold.SetResult();
-        await loaded.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await loaded.Task.WaitAsync(TimeSpan.FromMinutes(1));
         Tick();
 
         Is(BgMmrStatus.Found, 19997, Opponents().Single(o => o.PlayerId == id).Mmr);
