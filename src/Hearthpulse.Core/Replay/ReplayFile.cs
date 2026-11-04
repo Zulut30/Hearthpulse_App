@@ -33,7 +33,7 @@ public sealed record ReplayHeader
     /// <summary>Number of event lines.</summary>
     public int Events { get; init; }
 
-    /// <summary>The format the file was read as (2, 3 or 4); not written.</summary>
+    /// <summary>The format the file was read as (2 to 5); not written.</summary>
     [JsonIgnore]
     public int Version { get; init; } = ReplayFile.Version;
 }
@@ -95,6 +95,15 @@ public static class ReplayFile
     /// <summary>The number of the format written (<see cref="Magic"/>).</summary>
     public const int Version = 4;
 
+    /// <summary>
+    /// Version 5: version 4 plus our Duos partner's table in combat (<c>E … P PLAY</c>). Written only for a file that has
+    /// such a line, so every other file stays version 4 and older readers keep reading it.
+    /// </summary>
+    public const string Magic5 = "HPR5";
+
+    /// <summary>The number of <see cref="Magic5"/>.</summary>
+    public const int PartnerVersion = 5;
+
     /// <summary>The third version's format line: read, never written (Battlegrounds games keep only rounds and lobby).</summary>
     public const string Magic3 = "HPR3";
 
@@ -116,16 +125,21 @@ public static class ReplayFile
 
     public static string Write(ReplayHeader header, IEnumerable<string> events)
     {
+        var lines = events as IReadOnlyCollection<string> ?? events.ToList();
         var text = new StringBuilder();
-        text.Append(Magic).Append('\n');
+        text.Append(lines.Any(HasPartner) ? Magic5 : Magic).Append('\n');
         text.Append(JsonSerializer.Serialize(header, Json)).Append('\n');
-        foreach (var line in events)
+        foreach (var line in lines)
         {
             text.Append(line).Append('\n');
         }
 
         return text.ToString();
     }
+
+    /// <summary>An event line of our Duos partner's table (<c>E id P …</c>), which needs <see cref="Magic5"/>.</summary>
+    internal static bool HasPartner(string line) =>
+        line.StartsWith("E ", StringComparison.Ordinal) && line.IndexOf(' ', 2) is var space and > 0 && line.AsSpan(space).StartsWith(" P ", StringComparison.Ordinal);
 
     /// <summary>A Battlegrounds file: <paramref name="events"/> (none for a game recorded without steps), then the rounds and lobby.</summary>
     public static string WriteBattlegrounds(ReplayHeader header, BattlegroundsReplayData data, IReadOnlyList<string>? events = null) =>
@@ -137,6 +151,7 @@ public static class ReplayFile
         var lines = text.Split('\n');
         var version = lines[0].TrimEnd('\r') switch
         {
+            Magic5 => PartnerVersion,
             Magic => Version,
             Magic3 => 3,
             PreviousMagic => 2,

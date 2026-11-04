@@ -8,13 +8,13 @@ namespace Hearthpulse.UI.Main;
 
 /// <summary>
 /// Navigation shared by both main windows: the sidebar pages and the page tabs by name, what showing a page does,
-/// Ctrl+1…7 pages, Esc / Back to leave a detail page. The windows keep their buttons in the lists' order.
+/// Ctrl+1…8 pages, Esc / Back to leave a detail page. The windows keep their buttons in the lists' order.
 /// </summary>
 public sealed partial class MainViewModel
 {
     /// <summary>The sidebar pages in order, as the window's <c>ShowPage</c> takes them; Ctrl+1 opens the first.</summary>
     public static IReadOnlyList<string> NavPages { get; } =
-        ["Overview", "Battlegrounds", ConstructedPage.Standard, ConstructedPage.Wild, "Arena", "History", "Settings"];
+        ["Overview", "Battlegrounds", ConstructedPage.Standard, ConstructedPage.Wild, "Arena", "Brawl", "History", "Settings"];
 
     /// <summary>The Battlegrounds page's tabs in order, as the window's <c>BattlegroundsTab</c> takes them; the first is the default.</summary>
     public static IReadOnlyList<string> BattlegroundsTabs { get; } = ["Heroes", "Comps", "Trinkets", "Cards", "Mine"];

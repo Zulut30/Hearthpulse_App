@@ -34,7 +34,7 @@ internal static partial class BattlegroundsReplayGrammar
         + "|C (?:HERO|DISCOVER|TRINKET|QUEST) (?:" + Card + "|-) " + Card + "(?:," + Card + "){0,15}"
         + "|c " + Card
         + "|R " + Small
-        + "|E " + Id + " (?:L PLAY" + At + Table + "|L HAND" + At + Offer + "|L SECRET" + At + "SPELL|B PLAY" + At + Offer + "|O PLAY" + At + Table + ")" + Tags
+        + "|E " + Id + " (?:L PLAY" + At + Table + "|L HAND" + At + Offer + "|L SECRET" + At + "SPELL|B PLAY" + At + Offer + "|[OP] PLAY" + At + Table + ")" + Tags
         + "|[XY] " + Id
         + "|Z " + Id + " " + Small
         + "|V " + Id + " " + CardTag + " " + Number

@@ -61,7 +61,7 @@ public sealed partial class LocBindingTests
         var view = new MainView { DataContext = model };
         window.Content = view;
         Dispatcher.UIThread.RunJobs();
-        foreach (var page in new[] { "Battlegrounds", "Standard", "Arena", "History", "Settings", "Overview" })
+        foreach (var page in new[] { "Battlegrounds", "Standard", "Arena", "Brawl", "History", "Settings", "Overview" })
         {
             view.ShowPage(page);
             Dispatcher.UIThread.RunJobs();

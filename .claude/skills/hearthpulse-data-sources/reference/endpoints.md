@@ -27,6 +27,7 @@ Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)
 | `api/v1/constructed-cards?format=wild&per_page=200&page=N` (<= 80 pages) | `cache/api/card-pool.json`, 1 day | `CardPoolCatalog` |
 | `datasets/hsreplay_arena_cards_advanced` (envelope `data.structured.cards[]`, ~1.7 MB, list repeated in `hsreplay_extracted`) | `arena-cards.json`, trimmed to id/dbfId/score/win_rate/pick_rate/times_played (`ShrinkArenaCards`) | `HearthpulseData.LoadArenaMetaAsync` -> `ArenaMeta` (ArenaSmith `score`; one all-classes slice, Underground, last 4 days) |
 | `v1/arena/classes?limit=20` | `arena-classes.json` | `ArenaMeta.Classes` (win rate, pick rate, 7+ share, drafts) |
+| `v1/hsguru/brawl/meta` (all ranks) | `hsguru-brawl-meta.json` (its time = `BrawlMeta.FetchedAt`) | `HearthpulseData.LoadBrawlMetaAsync` -> `BrawlStats.ByClass` -> the Brawl page (`docs/brawl.md`): archetypes summed into classes, nameless / rateless / unclassed archetypes as other games |
 | `v1/hsreplay/card-choices/cards` | `card-choices-cards.json`, trimmed to card_id/dbf_id/formats/has_hsreplay_stats | `LoadChoiceCardsAsync` -> `DiscoverChoiceSource` (which cards have numbers, by card id or dbfId) |
 | `v1/hsreplay/card-choices?card=&format=&rank=legend` (`CardIdKey`; `card` takes a card id or a dbfId) | `card-choices-{format}-{rank}-{cardId}.json`, trimmed to card/format/rank/stats.state+as_of/options (card_id, dbf_id, popularity, win_rate, low_sample) | `LoadCardChoicesAsync` -> `DiscoverPicks.Build`: the card pool panel's pick hint (percent -> share; `stats.state` `not_collected` = no options, no hint) |
 
@@ -40,7 +41,8 @@ The two Arena endpoints above (ArenaSmith scores, class results) are HSReplay da
 Available without a token but not called yet (fields in
 [kolodahearthstone-api.md](../../hearthstone-context/reference/kolodahearthstone-api.md)): HSGuru
 matchup matrix `v1/hsguru/matchups`, BG hero detail `api/bg/heroes/{dbf}` and trinkets
-`api/bg/trinkets`, Blizzard leaderboards `v1/leaderboards*`, balance radar, patches, streamers, Brawl, esports.
+`api/bg/trinkets`, Blizzard leaderboards `v1/leaderboards*`, balance radar, patches, streamers, Brawl decks
+`v1/hsguru/brawl/decks`, esports.
 Premium-sourced HSReplay data needs a `hearthpulse-legal` check before it reaches players.
 Docs: `docs/constructed-meta-api.md`, `docs/mulligan-v2.md`,
 `docs/discover-pool.md`, `docs/arena-draft.md` (Arena; endpoints the server lacks: per-class scores, normal vs

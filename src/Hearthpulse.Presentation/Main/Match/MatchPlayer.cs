@@ -83,12 +83,15 @@ public sealed partial class MatchViewModel
     private readonly SyncList<MatchBgCardView> _bgShop = new();
     private readonly SyncList<MatchBgCardView> _bgBoard = new();
     private readonly SyncList<MatchBgCardView> _bgOpponentBoard = new();
+    private readonly SyncList<MatchBgCardView> _bgPartnerBoard = new();
     private readonly SyncList<MatchBgCardView> _bgHand = new();
     private readonly SyncList<MatchChoiceView> _bgChoices = new();
     private readonly SyncList<MatchBgCardView> _heroPowers = new();
     private readonly SyncList<MatchBgCardView> _heroTrinkets = new();
     private readonly SyncList<MatchBgCardView> _opponentPowers = new();
     private readonly SyncList<MatchBgCardView> _opponentTrinkets = new();
+    private readonly SyncList<MatchBgCardView> _partnerPowers = new();
+    private readonly SyncList<MatchBgCardView> _partnerTrinkets = new();
 
     public RelayCommand PreviousEvent { get; }
 
@@ -380,8 +383,10 @@ public sealed partial class MatchViewModel
         {
             Hero = InPlace(step.Hero, _heroPowers, _heroTrinkets),
             Opponent = InPlace(step.Opponent, _opponentPowers, _opponentTrinkets),
+            Partner = InPlace(step.Partner, _partnerPowers, _partnerTrinkets),
             Board = Synced(_bgBoard, step.Board),
             OpponentBoard = Synced(_bgOpponentBoard, step.OpponentBoard),
+            PartnerBoard = Synced(_bgPartnerBoard, step.PartnerBoard),
             Shop = Synced(_bgShop, step.Shop),
             Hand = Synced(_bgHand, step.Hand),
             Choices = Synced(_bgChoices, step.Choices),
@@ -389,7 +394,7 @@ public sealed partial class MatchViewModel
 
     private MatchBgStepView? Emptied()
     {
-        foreach (var list in new[] { _bgShop, _bgBoard, _bgOpponentBoard, _bgHand, _heroPowers, _heroTrinkets, _opponentPowers, _opponentTrinkets })
+        foreach (var list in new[] { _bgShop, _bgBoard, _bgOpponentBoard, _bgPartnerBoard, _bgHand, _heroPowers, _heroTrinkets, _opponentPowers, _opponentTrinkets, _partnerPowers, _partnerTrinkets })
         {
             list.Sync([]);
         }

@@ -28,6 +28,7 @@ public sealed partial class MainViewModel
         RebuildBattlegroundsStats();
         RebuildConstructedStats();
         RebuildArenaStats();
+        RebuildBrawlStats();
 
         // The deck list, merge suggestions and the open deck page (shown again from the rebuilt families).
         RebuildDecks();

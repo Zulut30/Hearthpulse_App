@@ -382,10 +382,10 @@ public sealed class MatchPlayerTests : IDisposable
         var page = BattlegroundsPage("bg-5th", Bg.Game5th());
         model.Show(page);
         var first = model.BattlegroundsStep!;
-        object[] Lists(MatchBgStepView s) => [s.Board, s.Shop, s.Hand, s.OpponentBoard, s.Choices, model.Leaders, model.Actions, model.Turns];
+        object[] Lists(MatchBgStepView s) => [s.Board, s.Shop, s.Hand, s.OpponentBoard, s.PartnerBoard, s.Choices, model.Leaders, model.Actions, model.Turns];
         var lists = Lists(first);
         // The heroes' lists, from the first step that shows each hero (the opponent only in combat).
-        var heroLists = new object?[4];
+        var heroLists = new object?[6];
         var raised = new List<string?>();
         model.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
         var before = first;
@@ -402,9 +402,10 @@ public sealed class MatchPlayerTests : IDisposable
             Assert.Equal(shown.Shop, step.Shop);
             Assert.Equal(shown.Hand, step.Hand);
             Assert.Equal(shown.OpponentBoard, step.OpponentBoard);
+            Assert.Equal(shown.PartnerBoard, step.PartnerBoard);
             SameChoices(shown.Choices, step.Choices);
             Assert.Equal(shown.Leaderboard.Select(MatchViewModel.Leader), model.Leaders);
-            foreach (var (index, expected, actual) in new[] { (0, shown.Hero, step.Hero), (2, shown.Opponent, step.Opponent) })
+            foreach (var (index, expected, actual) in new[] { (0, shown.Hero, step.Hero), (2, shown.Opponent, step.Opponent), (4, shown.Partner, step.Partner) })
             {
                 Assert.Equal(expected is null, actual is null);
                 if (expected is null || actual is null)
@@ -429,6 +430,8 @@ public sealed class MatchPlayerTests : IDisposable
                 Opponent = step.Opponent,
                 Board = step.Board,
                 OpponentBoard = step.OpponentBoard,
+                Partner = step.Partner,
+                PartnerBoard = step.PartnerBoard,
                 Shop = step.Shop,
                 Hand = step.Hand,
                 Choices = step.Choices,

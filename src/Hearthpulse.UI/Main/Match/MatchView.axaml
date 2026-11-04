@@ -1193,13 +1193,26 @@
                             </Border>
                             <!-- The step's choice: hero, Discover, trinket, quest -->
                             <ItemsControl ItemsSource="{Binding Choices}" ItemTemplate="{StaticResource ChoiceRow}" Margin="0,0,0,6" IsVisible="{Binding Choices.Count}" />
-                            <!-- Bottom: our board, hero and hand -->
-                            <Panel MinHeight="96">
-                                <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource BgBoardMinion}" ItemsPanel="{StaticResource CardRow}" />
-                                <TextBlock Text="{i:Loc Match.Player.Table.EmptyBoard}" Classes="caption" Foreground="{StaticResource Faint}" HorizontalAlignment="Center"
-                                           VerticalAlignment="Center" IsVisible="{Binding !Board.Count}" />
-                            </Panel>
-                            <ContentControl Content="{Binding Hero}" ContentTemplate="{StaticResource BgHeroLine}" IsVisible="{Binding Hero, Converter={StaticResource Truthy}}" />
+                            <!-- Bottom: our board, hero and hand; in a Duos combat our partner's board and hero while their table fights -->
+                            <StackPanel IsVisible="{Binding !PartnerFighting}">
+                                <Panel MinHeight="96">
+                                    <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource BgBoardMinion}" ItemsPanel="{StaticResource CardRow}" />
+                                    <TextBlock Text="{i:Loc Match.Player.Table.EmptyBoard}" Classes="caption" Foreground="{StaticResource Faint}" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" IsVisible="{Binding !Board.Count}" />
+                                </Panel>
+                                <ContentControl Content="{Binding Hero}" ContentTemplate="{StaticResource BgHeroLine}" IsVisible="{Binding Hero, Converter={StaticResource Truthy}}" />
+                            </StackPanel>
+                            <StackPanel x:Name="BattlegroundsPartner" IsVisible="{Binding PartnerFighting}">
+                                <StackPanel Orientation="Horizontal" Height="28">
+                                    <TextBlock Text="{i:Loc Match.Player.Table.Partner}" Classes="label" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <Panel MinHeight="96">
+                                    <ItemsControl ItemsSource="{Binding PartnerBoard}" ItemTemplate="{StaticResource BgBoardMinion}" ItemsPanel="{StaticResource CardRow}" />
+                                    <TextBlock Text="{i:Loc Match.Player.Table.EmptyBoard}" Classes="caption" Foreground="{StaticResource Faint}" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" IsVisible="{Binding !PartnerBoard.Count}" />
+                                </Panel>
+                                <ContentControl Content="{Binding Partner}" ContentTemplate="{StaticResource BgHeroLine}" IsVisible="{Binding Partner, Converter={StaticResource Truthy}}" />
+                            </StackPanel>
                             <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource BgHandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="100" />
                         </StackPanel>
                     </Border>
