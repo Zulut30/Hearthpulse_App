@@ -42,10 +42,10 @@ public sealed partial class LocBindingTests
 
             view.ShowSettingsTab("Stream");
             Assert.Equal("Stream", settings.SettingsTab);
-            Assert.True(view.FindControl<StackPanel>("SettingsStream")!.IsVisible);
-            Assert.False(view.FindControl<StackPanel>("SettingsOverlay")!.IsVisible);
+            Assert.True(view.FindControl<Control>("SettingsStream")!.IsVisible);
+            Assert.False(view.FindControl<Control>("SettingsOverlay")!.IsVisible);
 
-            var page = view.FindControl<CheckBox>("StreamerModeSetting")!;
+            var page = Named<CheckBox>(view, "StreamerModeSetting")!;
             var button = view.FindControl<ToggleButton>("StreamerModeButton")!;
             Assert.False(page.IsChecked);
             Assert.False(button.IsChecked);
@@ -67,7 +67,7 @@ public sealed partial class LocBindingTests
             Assert.Equal(2, told);
 
             // A window's switch, and the window closed by hand.
-            var deck = view.FindControl<CheckBox>("StreamDeckSetting")!;
+            var deck = Named<CheckBox>(view, "StreamDeckSetting")!;
             deck.IsChecked = true;
             Dispatcher.UIThread.RunJobs();
             Assert.True(settings.StreamDeckWindow);
@@ -78,9 +78,9 @@ public sealed partial class LocBindingTests
             Assert.False(settings.StreamDeckWindow);
 
             // The key background: the help gains its filter line, named after the colour.
-            var keyLine = view.FindControl<TextBlock>("StreamKeyLine")!;
+            var keyLine = Named<TextBlock>(view, "StreamKeyLine")!;
             Assert.False(keyLine.IsVisible);
-            view.FindControl<RadioButton>("StreamBackgroundGreenOption")!.IsChecked = true;
+            Named<RadioButton>(view, "StreamBackgroundGreenOption")!.IsChecked = true;
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(StreamBackgrounds.Green, settings.StreamWindowBackground);
             Assert.True(keyLine.IsVisible);

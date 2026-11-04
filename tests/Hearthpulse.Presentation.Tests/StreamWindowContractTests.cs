@@ -151,7 +151,7 @@ public sealed class StreamWindowContractTests
         var page = (FrameworkElement)main.Content;
         Layout(page, 1260, 840);
         Assert.Equal(Visibility.Visible, ((FrameworkElement)main.FindName("SettingsStream")).Visibility);
-        var pageSwitch = (CheckBox)main.FindName("StreamerModeSetting");
+        var pageSwitch = (CheckBox)LogicalTreeHelper.FindLogicalNode(main, "StreamerModeSetting");
         var button = (ToggleButton)main.FindName("StreamerModeButton");
         Assert.True(button.ActualWidth > 0);
         button.IsChecked = true;
@@ -159,10 +159,10 @@ public sealed class StreamWindowContractTests
         Assert.True(pageSwitch.IsChecked);
         Assert.Equal(1, told);
         Assert.Equal(Loc.T("Stream.Mode.On"), button.ToolTip);
-        ((RadioButton)main.FindName("StreamBackgroundGreenOption")).IsChecked = true;
+        ((RadioButton)LogicalTreeHelper.FindLogicalNode(main, "StreamBackgroundGreenOption")).IsChecked = true;
         Assert.Equal(StreamBackgrounds.Green, model.Settings.StreamWindowBackground);
         Assert.Equal(2, told);
-        Assert.False(((RadioButton)main.FindName("StreamBackgroundThemeOption")).IsChecked);
+        Assert.False(((RadioButton)LogicalTreeHelper.FindLogicalNode(main, "StreamBackgroundThemeOption")).IsChecked);
         main.CloseForReal();
     }
 

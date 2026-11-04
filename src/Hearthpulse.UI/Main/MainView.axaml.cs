@@ -33,6 +33,15 @@ public partial class MainView : UserControl
         PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
         PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
         PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
+        // The Tracker tab's "overlay is off" banner follows the Overlay tab's switch (two controls now, one binding).
+        SettingsTracker.Bind(global::Hearthpulse.UI.Main.SettingsTabs.TrackerSettings.OverlayOnProperty,
+            SettingsOverlay.OverlaySetting.GetObservable(ToggleButton.IsCheckedProperty, on => on == true));
+        SettingsOverlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(SettingsOverlay, e);
+        SettingsOverlay.ArrangeOverlayClicked += e => OnArrangeOverlay(SettingsOverlay, e);
+        SettingsTracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(SettingsTracker, e);
+        SettingsAccount.CopyAccountCodeClicked += e => OnCopyAccountCode(SettingsAccount, e);
+        SettingsData.ReimportClicked += e => OnReimport(SettingsData, e);
+        SettingsData.OpenDataClicked += e => OnOpenData(SettingsData, e);
         _page = CurrentPage;
         var pages = PageButtons;
         for (var i = 0; i < pages.Length; i++)
@@ -80,8 +89,8 @@ public partial class MainView : UserControl
     private void UseShortcutTips()
     {
         var global = Hearthpulse.UI.Overlay.OverlayView.GlobalShortcuts;
-        ShortcutHideRow.IsVisible = global;
-        ShortcutLayoutRow.IsVisible = global;
+        SettingsGeneral.ShortcutHideRow.IsVisible = global;
+        SettingsGeneral.ShortcutLayoutRow.IsVisible = global;
         if (global)
         {
             ArrangeButton.Bind(ToolTip.TipProperty, new LocExtension("Main.Live.ArrangeTip").ProvideValue(null!));
@@ -362,9 +371,9 @@ public partial class MainView : UserControl
         if (_viewModel is not null)
         {
             OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
-            OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
+            SettingsOverlay.OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
             // The overlay's own lock button changes this one too.
-            PanelLockSetting.IsChecked = _viewModel.Settings.OverlayPanelsUnlocked;
+            SettingsOverlay.PanelLockSetting.IsChecked = _viewModel.Settings.OverlayPanelsUnlocked;
         }
     }
 
@@ -531,7 +540,7 @@ public partial class MainView : UserControl
         // Avalonia writes the switch back to AppSettings only after IsCheckedChanged: the bar re-reads it once it has.
         Dispatcher.UIThread.Post(_viewModel.RefreshPanelToggles);
 
-        if (box == OverlaySetting)
+        if (box == SettingsOverlay.OverlaySetting)
         {
             OverlaySwitch.IsChecked = _viewModel.Settings.OverlayEnabled;
         }
@@ -575,7 +584,7 @@ public partial class MainView : UserControl
         }
 
         _viewModel.Settings.OverlayEnabled = OverlaySwitch.IsChecked == true;
-        OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
+        SettingsOverlay.OverlaySetting.IsChecked = _viewModel.Settings.OverlayEnabled;
         SettingsChanged?.Invoke();
     }
 

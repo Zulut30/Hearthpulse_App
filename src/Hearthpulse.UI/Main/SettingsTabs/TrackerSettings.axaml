@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:core="using:Hearthpulse.Core"
+             xmlns:s="using:Hearthpulse.UI.Main.Stats"
+             xmlns:mm="using:Hearthpulse.UI.Main.Meta"
+             xmlns:dk="using:Hearthpulse.UI.Main.Decks"
+             xmlns:mt="using:Hearthpulse.UI.Main.Match"
+             xmlns:mg="using:Hearthpulse.UI.Main.Migration"
+             xmlns:cs="using:Hearthpulse.Core.Stats"
+             xmlns:pg="using:Hearthpulse.UI.Main.Pages"
+             xmlns:st="using:Hearthpulse.UI.Main.SettingsTabs"
+             x:Class="Hearthpulse.UI.Main.SettingsTabs.TrackerSettings"
+             x:DataType="m:MainViewModel">
+    <!-- Settings, Tracker: the Constructed deck tracker, counters and mulligan. Same tree as the WPF TrackerSettings.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Classes="card" Margin="0,0,0,16">
+            <StackPanel DataContext="{Binding Settings}" x:DataType="core:AppSettings">
+                <c:Ornament Text="{i:Loc Settings.Tracker.Title}" Icon="&#xF0639;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.Note.Tracker}" Classes="caption cardNote" />
+                <Border Name="TrackerOverlayOffBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,-4,0,14"
+                        IsVisible="{Binding !$parent[st:TrackerSettings].OverlayOn}">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Text="&#xF002A;" Classes="icon" Foreground="{StaticResource OnAccentContainer}" Margin="0,0,10,0" />
+                        <TextBlock Grid.Column="1" Text="{i:Loc Settings.Overlay.OffNote}" TextWrapping="Wrap" Foreground="{StaticResource OnAccentContainer}" />
+                    </Grid>
+                </Border>
+                <StackPanel Name="TrackerPanelSwitches">
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Deck}" IsChecked="{Binding ShowDeckTracker}" Margin="0,0,0,14" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.DrawChance}" IsChecked="{Binding ShowDrawChance}" Margin="0,0,0,14" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Opponent}" IsChecked="{Binding ShowOpponentTracker}" Margin="0,0,0,14"
+                          ToolTip.Tip="{i:Loc Settings.Tracker.OpponentTip}" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.CardPool}" IsChecked="{Binding ShowCardPool}" Margin="0,0,0,14"
+                          ToolTip.Tip="{i:Loc Settings.Tracker.CardPoolTip}" />
+                <CheckBox Classes="switch" Content="{i:Loc Arena.Settings.Show}" IsChecked="{Binding ShowArenaDraft}" Margin="0,0,0,14"
+                          ToolTip.Tip="{i:Loc Arena.Settings.ShowTip}" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Tracker.Summary}" IsChecked="{Binding ShowGameToasts}" />
+                </StackPanel>
+                <!-- The overlay's master switch, size and layout are one tab back -->
+                <TextBlock Text="{i:Loc Settings.Tracker.OverlayLink}" Classes="caption" TextWrapping="Wrap" Margin="0,22,0,10" />
+                <Button Name="OpenOverlayTab" Classes="ghost" Content="{i:Loc Settings.Tracker.OpenOverlay}" HorizontalAlignment="Left" Click="RaiseOpenOverlayTabClicked" />
+            </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.Counters.Title}" Icon="&#xF012C;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.Note.Counters}" Classes="caption cardNote" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Show}" IsChecked="{Binding Settings.ShowCounters}" Margin="0,0,0,14"
+                          ToolTip.Tip="{i:Loc Settings.Counters.Caption}" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Opponent}" IsChecked="{Binding Settings.ShowOpponentCounters}" Margin="0,0,0,14" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Counters.Mulligan}" IsChecked="{Binding Settings.ShowMulligan}" Margin="0,0,0,8"
+                          ToolTip.Tip="{i:Loc Settings.Counters.MulliganTip}" />
+                <ItemsControl ItemsSource="{Binding CounterRows}" Margin="0,8,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:CounterSettingRow">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" ToolTip.Tip="{Binding Description}">
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="1" Classes="segmentBar">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Auto}" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
+                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AutoKey}" />
+                                        <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Always}" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
+                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AlwaysKey}" />
+                                        <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Off}" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
+                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding OffKey}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Battlegrounds counters: same modes, ids start with "bg-" -->
+                <TextBlock x:Name="BgCountersHeading" Text="{i:Loc Settings.Counters.Battlegrounds}" Classes="h2" Margin="0,14,0,10"
+                           Background="Transparent" ToolTip.Tip="{i:Loc Settings.Counters.BgCaption}" />
+                <ItemsControl ItemsSource="{Binding BgCounterRows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:CounterSettingRow">
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8" ToolTip.Tip="{Binding Description}">
+                                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Border Grid.Column="1" Classes="segmentBar">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Auto}" GroupName="{Binding Id}" IsChecked="{Binding IsAuto, Mode=OneWay}"
+                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AutoKey}" />
+                                        <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Always}" GroupName="{Binding Id}" IsChecked="{Binding IsAlways, Mode=OneWay}"
+                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding AlwaysKey}" />
+                                        <RadioButton Classes="segment" Content="{i:Loc Settings.Counters.Off}" GroupName="{Binding Id}" IsChecked="{Binding IsOff, Mode=OneWay}"
+                                                     Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetCounterMode}" CommandParameter="{Binding OffKey}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

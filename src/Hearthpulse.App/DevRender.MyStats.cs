@@ -27,7 +27,9 @@ public partial class App
             {
                 SaveFull(_main.PageBattlegrounds.BgStats, Path.Combine(folder, "main-battlegrounds-full.png"));
             }
-            else if (_main.FindName("Page" + page) is ScrollViewer { Content: FrameworkElement content })
+            // A page control (Main/Pages) holds its ScrollViewer; the Arena page is still one itself.
+            else if (_main.FindName("Page" + page) is { } found
+                     && (found as ScrollViewer ?? (found as UserControl)?.Content as ScrollViewer) is { Content: FrameworkElement content })
             {
                 SaveFull(content, Path.Combine(folder, $"main-{page.ToLowerInvariant()}-full.png"));
             }

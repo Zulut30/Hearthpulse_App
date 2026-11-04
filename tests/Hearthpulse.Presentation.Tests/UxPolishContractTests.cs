@@ -68,8 +68,9 @@ public sealed partial class UxPolishContractTests
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var (window, root) = Open(model, "Settings", "Data");
 
-        var note = window.FindResource("CardNote");
-        var notes = Logical<TextBlock>(Named<ScrollViewer>(window, "PageSettings")).Where(t => ReferenceEquals(t.Style, note)).ToList();
+        // Each settings tab (Main/SettingsTabs) holds its own copy of the shared dictionaries: the note style is the one the
+        // text block finds from where it is.
+        var notes = Logical<TextBlock>(Named<ScrollViewer>(window, "PageSettings")).Where(t => ReferenceEquals(t.Style, t.TryFindResource("CardNote"))).ToList();
         Assert.Equal(CardNotes.Select(Loc.T), notes.Select(t => t.Text));
 
         var rule = Named<TextBlock>(window, "ReplayLimitNote");
@@ -168,7 +169,7 @@ public sealed partial class UxPolishContractTests
 
         // The note is a line under the heading, not only the switch's tip.
         var note = Logical<TextBlock>(window).Single(t => t.Text == Loc.T("Settings.Leaderboard.Caption"));
-        Assert.Same(window.FindResource("CardNote"), note.Style);
+        Assert.Same(note.FindResource("CardNote"), note.Style);
         Assert.True(note.ActualHeight > 0);
         window.Close();
     });
@@ -180,11 +181,11 @@ public sealed partial class UxPolishContractTests
         var (window, root) = Open(model, "Settings", "Overlay");
 
         Named<Button>(window, "OpenTrackerTab").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-        Assert.Equal(Visibility.Visible, Named<StackPanel>(window, "SettingsTracker").Visibility);
-        Assert.Equal(Visibility.Collapsed, Named<StackPanel>(window, "SettingsOverlay").Visibility);
+        Assert.Equal(Visibility.Visible, Named<FrameworkElement>(window, "SettingsTracker").Visibility);
+        Assert.Equal(Visibility.Collapsed, Named<FrameworkElement>(window, "SettingsOverlay").Visibility);
         Assert.Equal("Tracker", model.Settings.SettingsTab);
         Named<Button>(window, "OpenOverlayTab").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-        Assert.Equal(Visibility.Visible, Named<StackPanel>(window, "SettingsOverlay").Visibility);
+        Assert.Equal(Visibility.Visible, Named<FrameworkElement>(window, "SettingsOverlay").Visibility);
         Assert.Equal("Overlay", model.Settings.SettingsTab);
 
         var master = Named<CheckBox>(window, "OverlaySetting");
@@ -193,7 +194,7 @@ public sealed partial class UxPolishContractTests
         var groups = new[] { Named<StackPanel>(window, "OverlayPanelSwitches"), Named<StackPanel>(window, "TrackerPanelSwitches") };
         var switches = groups.SelectMany(Logical<CheckBox>).ToList();
         string[] sections = ["Widgets.Settings.Section", "Settings.Overlay.Constructed", "Settings.Overlay.Battlegrounds"];
-        var headings = Logical<TextBlock>(groups[0]).Where(t => ReferenceEquals(t.Style, window.FindResource("SettingGroup"))).ToList();
+        var headings = Logical<TextBlock>(groups[0]).Where(t => ReferenceEquals(t.Style, t.TryFindResource("SettingGroup"))).ToList();
         Assert.Equal(sections.Select(Loc.T), headings.Select(h => h.Text));
         // The dimmed heading style is gone: headings read at Muted on the card (AA in every preset) whatever the switch.
         Assert.Null(window.TryFindResource("SettingGroupOverlayOff"));
@@ -249,14 +250,13 @@ public sealed partial class UxPolishContractTests
         var (window, _) = Open(model, "Settings", "General");
         var card = Named<Border>(window, "ShortcutsCard");
         Assert.True(card.ActualHeight > 0);
-        Assert.Same(Named<StackPanel>(window, "SettingsGeneral"), card.Parent);
+        Assert.Same(Named<UserControl>(window, "SettingsGeneral").Content, card.Parent);
 
         // Each row: what it does, and its keys in a pill. App.xaml.cs registers H, L and R with Ctrl+Shift.
         string[] rows = ["Pages", "Back", "Hide", "Layout", "Refresh"];
-        var labels = Logical<TextBlock>(card).Where(t => ReferenceEquals(t.Style, window.FindResource("SettingLabel"))).Select(t => t.Text);
+        var labels = Logical<TextBlock>(card).Where(t => ReferenceEquals(t.Style, t.TryFindResource("SettingLabel"))).Select(t => t.Text);
         Assert.Equal(rows.Select(r => Loc.T("Settings.Shortcuts." + r)), labels);
-        var pill = window.FindResource("Pill");
-        var keys = Logical<Border>(card).Where(b => ReferenceEquals(b.Style, pill)).Select(b => ((TextBlock)b.Child).Text);
+        var keys = Logical<Border>(card).Where(b => ReferenceEquals(b.Style, b.TryFindResource("Pill"))).Select(b => ((TextBlock)b.Child).Text);
         Assert.Equal(["Ctrl+1…7", "Esc · Alt+← · mouse Back", "Ctrl+Shift+H", "Ctrl+Shift+L", "Ctrl+Shift+R"], keys);
         // Ctrl+1…7 open the sidebar's pages in order.
         Assert.Equal(7, WpfMain.NavPages.Count);
@@ -488,7 +488,7 @@ public sealed partial class UxPolishContractTests
 
     /// <summary>A named element of the window or of a page control in it (a page keeps its names in its own scope).</summary>
     private static T Named<T>(FrameworkElement window, string name) where T : class =>
-        Assert.IsType<T>(window.FindName(name) ?? LogicalTreeHelper.FindLogicalNode(window, name)
+        Assert.IsAssignableFrom<T>(window.FindName(name) ?? LogicalTreeHelper.FindLogicalNode(window, name)
             ?? throw new InvalidOperationException(name + " is not in the window"));
 
     /// <summary>The width a text block would take with no limit.</summary>

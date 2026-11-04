@@ -74,7 +74,7 @@ public partial class App
             // The Battlegrounds counters list sits far down the Tracker tab of the settings page.
             _main.ShowPage("Settings");
             _main.ShowSettingsTab("Tracker");
-            if (_main.FindName("BgCountersHeading") is FrameworkElement heading)
+            if (_main.SettingsTracker.FindName("BgCountersHeading") is FrameworkElement heading)
             {
                 await Task.Delay(500);
                 heading.BringIntoView(new Rect(0, 0, heading.ActualWidth, 640));

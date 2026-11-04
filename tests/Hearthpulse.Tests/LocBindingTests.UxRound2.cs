@@ -37,8 +37,8 @@ public sealed partial class LocBindingTests
     {
         view.ShowSettingsTab("Overlay");
         Dispatcher.UIThread.RunJobs();
-        var master = view.FindControl<CheckBox>("OverlaySetting")!;
-        var switches = view.FindControl<StackPanel>("OverlayPanelSwitches")!;
+        var master = Named<CheckBox>(view, "OverlaySetting")!;
+        var switches = Named<StackPanel>(view, "OverlayPanelSwitches")!;
         var card = Assert.IsType<StackPanel>(master.Parent);
         var blocks = card.Children.ToList();
 

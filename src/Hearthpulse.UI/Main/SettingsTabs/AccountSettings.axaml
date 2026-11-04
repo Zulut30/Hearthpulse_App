@@ -1,0 +1,121 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:core="using:Hearthpulse.Core"
+             xmlns:s="using:Hearthpulse.UI.Main.Stats"
+             xmlns:mm="using:Hearthpulse.UI.Main.Meta"
+             xmlns:dk="using:Hearthpulse.UI.Main.Decks"
+             xmlns:mt="using:Hearthpulse.UI.Main.Match"
+             xmlns:mg="using:Hearthpulse.UI.Main.Migration"
+             xmlns:cs="using:Hearthpulse.Core.Stats"
+             xmlns:pg="using:Hearthpulse.UI.Main.Pages"
+             xmlns:st="using:Hearthpulse.UI.Main.SettingsTabs"
+             x:Class="Hearthpulse.UI.Main.SettingsTabs.AccountSettings"
+             x:DataType="m:MainViewModel">
+    <!-- Settings, Account: the hearthpulse.net sign-in. Same tree as the WPF AccountSettings.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Border Classes="card">
+        <StackPanel>
+            <c:Ornament Text="{i:Loc Settings.Account.Title}" Icon="&#xF0004;" Size="13" Margin="0,0,0,14" />
+            <TextBlock Text="{i:Loc Settings.Note.Account}" Classes="caption cardNote" Margin="0,-6,0,8" />
+            <!-- Signed in -->
+            <StackPanel IsVisible="{Binding AccountShowProfile}">
+                <TextBlock Text="{i:Loc Settings.Account.SignedInAs}" Classes="caption" Margin="0,4,0,2" />
+                <TextBlock Text="{Binding AccountName}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
+                <DockPanel Margin="0,6,0,0">
+                    <TextBlock DockPanel.Dock="Left" Text="&#xF01A5;" Classes="icon" FontSize="14" Foreground="{StaticResource Accent}" VerticalAlignment="Top" Margin="0,1,6,0"
+                               IsVisible="{Binding AccountHasSubscription}" />
+                    <TextBlock Text="{Binding AccountSubscription}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap"
+                               IsVisible="{Binding AccountHasSubscription}" />
+                    <TextBlock Text="{Binding AccountSubscription}" Classes="caption" IsVisible="{Binding !AccountHasSubscription}" />
+                </DockPanel>
+                <TextBlock Text="{Binding AccountSessionNote}" Classes="caption" Margin="0,6,0,0" IsVisible="{Binding !AccountSessionEndingSoon}" />
+                <TextBlock Text="{Binding AccountSessionNote}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0"
+                           IsVisible="{Binding AccountSessionEndingSoon}" />
+                <Button Classes="bare" Command="{Binding OpenAccountProfile}" HorizontalAlignment="Left" Margin="0,8,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{i:Loc Settings.Account.OpenProfile}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                        <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <!-- Plan 3.1: the subscription that lifts the daily free limit of the pool's stats in a game -->
+                <Button Classes="bare" Command="{Binding OpenAccountSubscription}" HorizontalAlignment="Left" Margin="0,4,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{i:Loc Settings.Account.Subscription}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                        <TextBlock Text="&#xF03CC;" Classes="icon" FontSize="13" Foreground="{StaticResource Accent}" Margin="4,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <!-- Games to the profile on the site ("My statistics") -->
+                <CheckBox Classes="switch" Content="{i:Loc Upload.Switch}" IsChecked="{Binding UploadGames}" Margin="0,14,0,4">
+                    <ToolTip.Tip>
+                        <StackPanel>
+                            <TextBlock Text="{i:Loc Upload.Intro}" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Upload.What}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </ToolTip.Tip>
+                </CheckBox>
+                <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <Button Classes="bare" Command="{Binding OpenPrivacy}" Margin="0,0,14,0">
+                        <TextBlock Text="{i:Loc Upload.Privacy}" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
+                    </Button>
+                    <Button Classes="bare" Command="{Binding OpenTrackerData}">
+                        <TextBlock Text="{i:Loc Upload.YourData}" Foreground="{StaticResource Accent}" TextDecorations="Underline" FontSize="12" />
+                    </Button>
+                </WrapPanel>
+                <WrapPanel Orientation="Horizontal" Margin="0,8,0,0" IsVisible="{Binding UploadGames}">
+                    <Button Classes="ghost" Content="{i:Loc Upload.PastGames}" Command="{Binding UploadPastGames}" Margin="0,0,12,0"
+                            ToolTip.Tip="{i:Loc Upload.PastGamesTip}" />
+                    <TextBlock Text="{Binding UploadStatus}" Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </WrapPanel>
+                <TextBlock Text="{Binding UploadMessage}" Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0"
+                           IsVisible="{Binding UploadMessage, Converter={StaticResource Truthy}}" />
+                <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
+                    <Button Classes="ghost primary" Content="{i:Loc Settings.Account.SignInAgain}" Command="{Binding SignIn}" Margin="0,0,8,0" IsVisible="{Binding AccountSessionEndingSoon}" />
+                    <Button Classes="ghost" Content="{i:Loc Settings.Account.SignOut}" Command="{Binding SignOut}" />
+                </WrapPanel>
+            </StackPanel>
+            <!-- Signed out -->
+            <StackPanel IsVisible="{Binding AccountSignedOut}">
+                <Button Classes="ghost primary" Content="{i:Loc Settings.Account.SignIn}" Command="{Binding SignIn}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                        ToolTip.Tip="{i:Loc Settings.Account.SignedOutCaption}" />
+            </StackPanel>
+            <!-- Signing in: getting a code, then waiting for the player to confirm it on the site -->
+            <StackPanel IsVisible="{Binding AccountWaiting}">
+                <TextBlock Text="{i:Loc Settings.Account.GettingCode}" Classes="caption" Margin="0,4,0,14" IsVisible="{Binding !AccountHasCode}" />
+                <StackPanel IsVisible="{Binding AccountHasCode}">
+                    <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="{i:Loc Settings.Account.Open}" Margin="0,0,4,0" />
+                        <Button Classes="bare" Command="{Binding OpenSignInPage}">
+                            <TextBlock Text="{Binding AccountCodeUri}" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
+                        </Button>
+                        <TextBlock Text="{i:Loc Settings.Account.EnterCode}" Margin="4,0,0,0" />
+                    </WrapPanel>
+                    <WrapPanel Orientation="Horizontal" Margin="0,10,0,10">
+                        <Border Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="18,6">
+                            <TextBlock Text="{Binding AccountUserCode}" FontFamily="{StaticResource DisplayFont}" FontWeight="ExtraBold" FontSize="28"
+                                       Foreground="{StaticResource Accent}" />
+                        </Border>
+                        <Button Classes="ghost" Click="RaiseCopyAccountCodeClicked" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xF018F;" Classes="icon" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{i:Loc Settings.Account.Copy}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding AccountWaitingHint}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,14" />
+                </StackPanel>
+                <Button Classes="ghost" Content="{i:Loc Settings.Account.Cancel}" Command="{Binding CancelSignIn}" HorizontalAlignment="Left" />
+            </StackPanel>
+            <TextBlock Text="{Binding AccountMessage}" Classes="caption" TextWrapping="Wrap" Margin="0,10,0,0"
+                       IsVisible="{Binding AccountMessage, Converter={StaticResource Truthy}}" />
+        </StackPanel>
+    </Border>
+</UserControl>

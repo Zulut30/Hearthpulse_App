@@ -27,6 +27,16 @@ public partial class MainWindow : Window
         PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
         PageBattlegrounds.TabChanged += OnBgTab;
         PageConstructed.TabChanged += OnCtTab;
+        // The Tracker tab's "overlay is off" banner follows the Overlay tab's switch (two controls now, one binding).
+        BindingOperations.SetBinding(SettingsTracker, global::Hearthpulse.App.Main.SettingsTabs.TrackerSettings.OverlayOnProperty,
+            new Binding(nameof(ToggleButton.IsChecked)) { Source = SettingsOverlay.OverlaySetting });
+        SettingsGeneral.SettingClicked += e => OnSettingChanged(SettingsGeneral, e);
+        SettingsOverlay.SliderChanged += e => OnSliderChanged(SettingsOverlay, e);
+        SettingsOverlay.OpenTrackerTabClicked += e => OnOpenTrackerTab(SettingsOverlay, e);
+        SettingsOverlay.ArrangeOverlayClicked += e => OnArrangeOverlay(SettingsOverlay, e);
+        SettingsTracker.OpenOverlayTabClicked += e => OnOpenOverlayTab(SettingsTracker, e);
+        SettingsData.ReimportClicked += e => OnReimport(SettingsData, e);
+        SettingsData.OpenDataClicked += e => OnOpenData(SettingsData, e);
         _viewModel = viewModel;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelChanged;
@@ -80,8 +90,8 @@ public partial class MainWindow : Window
         _syncingSettings = true;
         try
         {
-            BindingOperations.GetBindingExpression(OverlaySetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
-            BindingOperations.GetBindingExpression(PanelLockSetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+            BindingOperations.GetBindingExpression(SettingsOverlay.OverlaySetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
+            BindingOperations.GetBindingExpression(SettingsOverlay.PanelLockSetting, ToggleButton.IsCheckedProperty)?.UpdateTarget();
         }
         finally
         {

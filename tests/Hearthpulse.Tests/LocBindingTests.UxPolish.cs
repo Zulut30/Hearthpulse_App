@@ -55,7 +55,7 @@ public sealed partial class LocBindingTests
             .Where(t => t.Classes.Contains("cardNote")).ToList();
         Assert.Equal(cards.Select(Loc.T), notes.Select(t => t.Text));
 
-        var rule = view.FindControl<TextBlock>("ReplayLimitNote")!;
+        var rule = Named<TextBlock>(view, "ReplayLimitNote")!;
         Assert.True(rule.IsVisible);
         Assert.Equal(Loc.T("Match.Settings.ReplayLimit"), rule.Text);
         Assert.Equal(Avalonia.Media.TextWrapping.Wrap, rule.TextWrapping);
@@ -112,7 +112,7 @@ public sealed partial class LocBindingTests
     {
         foreach (var name in new[] { "LeaderboardTopSlider", "LeaderboardSlotSlider", "LeaderboardWidthSlider" })
         {
-            var slider = view.FindControl<Slider>(name)!;
+            var slider = Named<Slider>(view, name);
             slider.Value = 0.08;
             Dispatcher.UIThread.RunJobs();
             var value = ((Grid)slider.Parent!).Children.OfType<TextBlock>().Single(t => Grid.GetColumn(t) == 2);
@@ -124,20 +124,20 @@ public sealed partial class LocBindingTests
     public void Overlay_and_tracker_tabs_link_to_each_other_and_an_off_overlay_says_so_at_full_contrast() => Headless.Run(() => WithMainView((view, model) =>
     {
         view.ShowSettingsTab("Overlay");
-        view.FindControl<Button>("OpenTrackerTab")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Named<Button>(view, "OpenTrackerTab")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Dispatcher.UIThread.RunJobs();
-        Assert.True(view.FindControl<StackPanel>("SettingsTracker")!.IsVisible);
-        Assert.False(view.FindControl<StackPanel>("SettingsOverlay")!.IsVisible);
+        Assert.True(view.FindControl<Control>("SettingsTracker")!.IsVisible);
+        Assert.False(view.FindControl<Control>("SettingsOverlay")!.IsVisible);
         Assert.Equal("Tracker", model.Settings.SettingsTab);
-        view.FindControl<Button>("OpenOverlayTab")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Named<Button>(view, "OpenOverlayTab")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Dispatcher.UIThread.RunJobs();
-        Assert.True(view.FindControl<StackPanel>("SettingsOverlay")!.IsVisible);
+        Assert.True(view.FindControl<Control>("SettingsOverlay")!.IsVisible);
         Assert.Equal("Overlay", model.Settings.SettingsTab);
 
-        var master = view.FindControl<CheckBox>("OverlaySetting")!;
-        var banners = new[] { view.FindControl<Border>("OverlayOffBanner")!, view.FindControl<Border>("TrackerOverlayOffBanner")! };
-        var note = view.FindControl<TextBlock>("OverlayOffNote")!;
-        var groups = new[] { view.FindControl<StackPanel>("OverlayPanelSwitches")!, view.FindControl<StackPanel>("TrackerPanelSwitches")! };
+        var master = Named<CheckBox>(view, "OverlaySetting")!;
+        var banners = new[] { Named<Border>(view, "OverlayOffBanner")!, Named<Border>(view, "TrackerOverlayOffBanner")! };
+        var note = Named<TextBlock>(view, "OverlayOffNote")!;
+        var groups = new[] { Named<StackPanel>(view, "OverlayPanelSwitches")!, Named<StackPanel>(view, "TrackerPanelSwitches")! };
         var switches = groups.SelectMany(g => g.GetLogicalDescendants().OfType<CheckBox>()).ToList();
         var headings = groups[0].GetLogicalDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("settingGroup")).ToList();
         string[] sections = ["Widgets.Settings.Section", "Settings.Overlay.Constructed", "Settings.Overlay.Battlegrounds"];
@@ -191,13 +191,13 @@ public sealed partial class LocBindingTests
     public void Settings_list_the_shortcuts_this_platform_has_and_the_live_bar_names_them() => Headless.Run(() => WithMainView((view, _) =>
     {
         var global = OperatingSystem.IsWindows();
-        var card = view.FindControl<Border>("ShortcutsCard")!;
-        Assert.Same(view.FindControl<StackPanel>("SettingsGeneral"), card.Parent);
+        var card = Named<Border>(view, "ShortcutsCard")!;
+        Assert.Same(view.FindControl<UserControl>("SettingsGeneral")!.Content, card.Parent);
         var rows = card.GetLogicalDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("settingLabel")).ToList();
         Assert.Equal(new[] { "Pages", "Back", "Hide", "Layout" }.Select(r => Loc.T("Settings.Shortcuts." + r)), rows.Select(r => r.Text));
         // Ctrl+Shift+H and Ctrl+Shift+L are registered on Windows only; there is no hard refresh in this app.
-        Assert.Equal(global, view.FindControl<Grid>("ShortcutHideRow")!.IsVisible);
-        Assert.Equal(global, view.FindControl<Grid>("ShortcutLayoutRow")!.IsVisible);
+        Assert.Equal(global, Named<Grid>(view, "ShortcutHideRow")!.IsVisible);
+        Assert.Equal(global, Named<Grid>(view, "ShortcutLayoutRow")!.IsVisible);
         Assert.DoesNotContain(card.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == Loc.T("Settings.Shortcuts.RefreshKeys"));
 
         Assert.Equal(Loc.T(global ? "Main.Live.ArrangeTip" : "Main.Live.ArrangeTipShort"), ToolTip.GetTip(view.FindControl<Button>("ArrangeButton")!));

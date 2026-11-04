@@ -1,0 +1,147 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:core="using:Hearthpulse.Core"
+             xmlns:s="using:Hearthpulse.UI.Main.Stats"
+             xmlns:mm="using:Hearthpulse.UI.Main.Meta"
+             xmlns:dk="using:Hearthpulse.UI.Main.Decks"
+             xmlns:mt="using:Hearthpulse.UI.Main.Match"
+             xmlns:mg="using:Hearthpulse.UI.Main.Migration"
+             xmlns:cs="using:Hearthpulse.Core.Stats"
+             xmlns:pg="using:Hearthpulse.UI.Main.Pages"
+             xmlns:st="using:Hearthpulse.UI.Main.SettingsTabs"
+             x:Class="Hearthpulse.UI.Main.SettingsTabs.GeneralSettings"
+             x:DataType="m:MainViewModel">
+    <!-- Settings, General: language, theme, app. Same tree as the WPF GeneralSettings.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <StackPanel>
+        <Border Classes="card" Margin="0,0,0,16">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.Language.Title}" Icon="&#xF05CA;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.Note.Language}" Classes="caption cardNote" />
+                <!-- Each radio's Tag is applied in MainView.axaml.cs (ApplyChoice) -->
+                <Grid Classes="choiceRow" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" DataContext="{Binding Settings}" x:DataType="core:AppSettings">
+                    <TextBlock Text="{i:Loc Settings.Language.Label}" Classes="settingLabel" ToolTip.Tip="{i:Loc Settings.Language.Caption}" />
+                    <Border Classes="segmentBar choice">
+                        <WrapPanel>
+                            <RadioButton Classes="segment" Content="{i:Loc Settings.Language.System}" GroupName="Language"
+                                         IsChecked="{Binding LanguageAuto, Mode=OneWay}" Tag="Language.auto" />
+                            <RadioButton Classes="segment" Content="English" GroupName="Language"
+                                         IsChecked="{Binding LanguageEnglish, Mode=OneWay}" Tag="Language.en" />
+                            <RadioButton Classes="segment" Content="Русский" GroupName="Language"
+                                         IsChecked="{Binding LanguageRussian, Mode=OneWay}" Tag="Language.ru" />
+                        </WrapPanel>
+                    </Border>
+                </Grid>
+                <TextBlock Text="{Binding LanguageRestartHint}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12,0,0"
+                           IsVisible="{Binding LanguageRestartHint, Converter={StaticResource Truthy}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Theme: presets as tiles in their own colours, then your own accent and background (shared view model,
+             Presentation MainViewModel.Theme.cs; the app repaints in place, Infrastructure/ThemeEngine.cs) -->
+        <Border Classes="card" Margin="0,0,0,16">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.Theme.Title}" Icon="&#xF03D8;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.Note.Theme}" Classes="caption cardNote" />
+                <TextBlock Text="{i:Loc Settings.Theme.Presets}" Classes="label settingGroup" Margin="0,0,0,10" />
+                <ItemsControl ItemsSource="{Binding Themes}" Margin="0,0,-10,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="m:ThemeChoice">
+                            <!-- The preset's key, not its localized name: the settings keep the key -->
+                            <Button Classes="themeSwatch" Content="{Binding}" ContentTemplate="{StaticResource ThemeTile}" ToolTip.Tip="{Binding Name}"
+                                    AutomationProperties.Name="{Binding Name}" CommandParameter="{Binding Key}"
+                                    Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SelectTheme}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="{i:Loc Settings.Theme.MakeOwn}" Classes="label settingGroup" />
+                <Grid Classes="themeCustom" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                    <ContentControl Content="{Binding CustomPreview}" ContentTemplate="{StaticResource ThemeTile}" VerticalAlignment="Top" Focusable="False" />
+                    <StackPanel Classes="themeSliders">
+                        <Grid ColumnDefinitions="150,*" Margin="0,0,0,10">
+                            <TextBlock Text="{i:Loc Settings.Theme.Accent}" Classes="settingLabel" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <Slider Minimum="0" Maximum="360" Value="{Binding AccentHue}" SmallChange="5" LargeChange="30"
+                                        AutomationProperties.Name="{i:Loc Settings.Theme.Accent}" />
+                                <Border Height="4" CornerRadius="2" Margin="8,-6,8,0" Background="{StaticResource HueStrip}" IsHitTestVisible="False" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="150,*" Margin="0,0,0,10">
+                            <TextBlock Text="{i:Loc Settings.Theme.Background}" Classes="settingLabel" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <Slider Minimum="0" Maximum="360" Value="{Binding BaseHue}" SmallChange="5" LargeChange="30"
+                                        AutomationProperties.Name="{i:Loc Settings.Theme.Background}" />
+                                <Border Height="4" CornerRadius="2" Margin="8,-6,8,0" Background="{StaticResource HueStrip}" IsHitTestVisible="False" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="150,*" Margin="0,0,0,14">
+                            <TextBlock Text="{i:Loc Settings.Theme.Tint}" Classes="settingLabel" />
+                            <Slider Grid.Column="1" Minimum="0" Maximum="1.5" Value="{Binding BaseTint}" SmallChange="0.05" LargeChange="0.25"
+                                    AutomationProperties.Name="{i:Loc Settings.Theme.Tint}" ToolTip.Tip="{i:Loc Settings.Theme.TintTip}" />
+                        </Grid>
+                        <Button Classes="ghost primary" Content="{i:Loc Settings.Theme.UseMine}" Command="{Binding ApplyCustomTheme}" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.App.Title}" Icon="&#xF0614;" Size="13" Margin="0,0,0,14" />
+                <TextBlock Text="{i:Loc Settings.Note.App}" Classes="caption cardNote" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.App.Tray}" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.App.AutoUpdate}" IsChecked="{Binding Settings.AutoUpdate}" Margin="0,0,0,14"
+                          ToolTip.Tip="{i:Loc Settings.App.AutoUpdateTip}" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.App.StartWithSignIn}" IsChecked="{Binding Settings.StartWithWindows}" Margin="0,0,0,14" />
+                <CheckBox Classes="switch" Content="{i:Loc Settings.App.StartMinimized}" IsChecked="{Binding Settings.StartMinimized}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Every shortcut in one place (they were only in tips). The overlay's global ones exist on Windows only
+             (WindowsOverlayPlatform), so their rows show there (MainView.axaml.cs); there is no hard refresh here. -->
+        <Border Name="ShortcutsCard" Classes="card" Margin="0,16,0,0">
+            <StackPanel>
+                <c:Ornament Text="{i:Loc Settings.Shortcuts.Title}" Icon="&#xF030C;" Size="13" Margin="0,0,0,14" />
+                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                    <TextBlock Text="{i:Loc Settings.Shortcuts.Pages}" Classes="settingLabel" TextWrapping="Wrap" Margin="0,0,16,0" />
+                    <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
+                        <TextBlock Text="{i:Loc Settings.Shortcuts.PagesKeys}" FontSize="12" FontWeight="SemiBold" />
+                    </Border>
+                </Grid>
+                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                    <TextBlock Text="{i:Loc Settings.Shortcuts.Back}" Classes="settingLabel" TextWrapping="Wrap" Margin="0,0,16,0" />
+                    <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
+                        <TextBlock Text="{i:Loc Settings.Shortcuts.BackKeys}" FontSize="12" FontWeight="SemiBold" />
+                    </Border>
+                </Grid>
+                <Grid Name="ShortcutHideRow" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                    <TextBlock Text="{i:Loc Settings.Shortcuts.Hide}" Classes="settingLabel" TextWrapping="Wrap" Margin="0,0,16,0" />
+                    <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
+                        <TextBlock Text="{i:Loc Settings.Shortcuts.HideKeys}" FontSize="12" FontWeight="SemiBold" />
+                    </Border>
+                </Grid>
+                <Grid Name="ShortcutLayoutRow" ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{i:Loc Settings.Shortcuts.Layout}" Classes="settingLabel" TextWrapping="Wrap" Margin="0,0,16,0" />
+                    <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
+                        <TextBlock Text="{i:Loc Settings.Shortcuts.LayoutKeys}" FontSize="12" FontWeight="SemiBold" />
+                    </Border>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

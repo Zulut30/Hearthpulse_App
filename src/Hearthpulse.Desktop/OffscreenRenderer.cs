@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Hearthpulse.Core;
@@ -88,7 +89,8 @@ internal static partial class OffscreenRenderer
         // The Battlegrounds counters list sits far down the Tracker tab of the settings page.
         view.ShowPage("Settings");
         view.ShowSettingsTab("Tracker");
-        if (view.FindControl<Control>("BgCountersHeading") is { } heading)
+        // In the Tracker settings tab (Main/SettingsTabs): a name in the tab's own scope.
+        if (view.GetLogicalDescendants().OfType<Control>().FirstOrDefault(c => c.Name == "BgCountersHeading") is { } heading)
         {
             heading.BringIntoView(new Rect(0, 0, heading.Bounds.Width, 640));
             await Save(main, Path.Combine(folder, "main-settings-counters.png"));
