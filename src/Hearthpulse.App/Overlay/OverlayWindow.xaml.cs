@@ -357,28 +357,7 @@ public partial class OverlayWindow : Window
             }
         }
 
-        var (armed, offered, note) = _arming.Update(over?.Id, over?.SitsOnGame == true, controlDown, ViewModel.PanelsUnlocked, now);
-        if (note is not null)
-        {
-            Diag.Debug(note);
-        }
-
-        foreach (var panel in _panels)
-        {
-            var arm = (armed && panel == over) || (panel.IsDragging && !editing);
-            if (panel.IsDragArmed != arm)
-            {
-                panel.IsDragArmed = arm;
-            }
-
-            var offer = offered && panel == over;
-            if (panel.OffersLock != offer)
-            {
-                panel.OffersLock = offer;
-            }
-        }
-
-        return armed;
+        return _arming.Apply(_panels, over, editing, controlDown, ViewModel.PanelsUnlocked, now).Armed;
     }
 
     /// <summary>The lock button on a panel's tag: the panels unlock (or lock again), and the setting is saved.</summary>

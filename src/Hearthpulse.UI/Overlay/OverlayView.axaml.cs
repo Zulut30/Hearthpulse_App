@@ -171,29 +171,7 @@ public partial class OverlayView : UserControl
             }
         }
 
-        var (armed, offered, note) = _arming.Update(over?.Id, over?.SitsOnGame == true, controlDown, _viewModel?.PanelsUnlocked == true, now);
-        if (note is not null)
-        {
-            Diag.Debug(note);
-        }
-
-        var dragging = false;
-        foreach (var panel in _panels)
-        {
-            var arm = (armed && panel == over) || (panel.IsDragging && !editing);
-            dragging |= panel.IsDragging;
-            if (panel.IsDragArmed != arm)
-            {
-                panel.IsDragArmed = arm;
-            }
-
-            var offer = offered && panel == over;
-            if (panel.OffersLock != offer)
-            {
-                panel.OffersLock = offer;
-            }
-        }
-
+        var (armed, dragging) = _arming.Apply(_panels, over, editing, controlDown, _viewModel?.PanelsUnlocked == true, now);
         return armed || dragging;
     }
 

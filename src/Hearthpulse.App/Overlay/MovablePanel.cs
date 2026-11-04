@@ -16,7 +16,7 @@ namespace Hearthpulse.App.Overlay;
 /// opacity, compact lists, reset and the panels' lock (<see cref="OffersLock"/>). Without a saved
 /// placement it keeps the alignment and margin from XAML.
 /// </summary>
-public sealed class MovablePanel : ContentControl
+public sealed class MovablePanel : ContentControl, IArmablePanel
 {
     public static readonly DependencyProperty IdProperty = DependencyProperty.Register(nameof(Id), typeof(string), typeof(MovablePanel));
 
@@ -222,7 +222,7 @@ public sealed class MovablePanel : ContentControl
     /// <summary>Shows the panel with the player's look (null = opaque, full rows).</summary>
     public void ApplyLook(PanelLook? look)
     {
-        var opacity = Math.Clamp(look?.Opacity ?? 1, PanelLook.MinOpacity, 1);
+        var opacity = PanelLayout.LookOpacity(look);
         PanelOpacity = opacity;
         OpacityText = PanelSnap.OpacityText(opacity);
         SetCompact(this, look?.Compact == true);
@@ -459,17 +459,17 @@ public sealed class MovablePanel : ContentControl
             _saved = null;
             HorizontalAlignment = _defaultHorizontal;
             VerticalAlignment = _defaultVertical;
-            Margin = GameAnchored && overlayScale > 0
-                ? new Thickness(_defaultMargin.Left / overlayScale, _defaultMargin.Top / overlayScale, _defaultMargin.Right / overlayScale, _defaultMargin.Bottom / overlayScale)
-                : _defaultMargin;
+            var divisor = PanelLayout.DefaultMarginDivisor(GameAnchored, overlayScale);
+            Margin = new Thickness(_defaultMargin.Left / divisor, _defaultMargin.Top / divisor, _defaultMargin.Right / divisor, _defaultMargin.Bottom / divisor);
             SetScale(1);
             return;
         }
 
-        SetScale(Math.Clamp(placement.Scale, PanelSnap.MinScale, PanelSnap.MaxScale));
+        SetScale(PanelLayout.PlacedScale(placement));
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
-        _saved = new Point(placement.X * surface.Width, placement.Y * surface.Height);
+        var (x, y) = PanelLayout.PlacedSpot(placement, surface.Width, surface.Height);
+        _saved = new Point(x, y);
         Margin = new Thickness(_saved.Value.X, _saved.Value.Y, 0, 0);
         KeepOnScreen();
     }
@@ -519,8 +519,7 @@ public sealed class MovablePanel : ContentControl
         // right after an overlay-scale change was clamped to the smaller surface and stayed there).
         var surfaceWidth = double.IsNaN(surface.Width) ? surface.ActualWidth : surface.Width;
         var surfaceHeight = double.IsNaN(surface.Height) ? surface.ActualHeight : surface.Height;
-        var left = Math.Clamp(saved.X, 0, Math.Max(0, surfaceWidth - (width * _scale.ScaleX)));
-        var top = Math.Clamp(saved.Y, 0, Math.Max(0, surfaceHeight - (height * _scale.ScaleY)));
+        var (left, top) = PanelLayout.KeepInside(saved.X, saved.Y, width * _scale.ScaleX, height * _scale.ScaleY, surfaceWidth, surfaceHeight);
         var margin = new Thickness(left, top, 0, 0);
         if (Margin != margin)
         {
@@ -536,12 +535,7 @@ public sealed class MovablePanel : ContentControl
     {
         var surface = Surface;
         var origin = TopLeft();
-        return new PanelPlacement
-        {
-            X = surface is { ActualWidth: > 0 } s ? origin.X / s.ActualWidth : 0,
-            Y = surface is { ActualHeight: > 0 } h ? origin.Y / h.ActualHeight : 0,
-            Scale = _scale.ScaleX,
-        };
+        return PanelLayout.Placement(origin.X, origin.Y, surface?.ActualWidth ?? 0, surface?.ActualHeight ?? 0, _scale.ScaleX);
     }
 
     protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -597,8 +591,8 @@ public sealed class MovablePanel : ContentControl
         var height = ActualHeight * _scale.ScaleY;
         // Edges, the centre line and the other panels' edges pull the panel in, so panels line up without pixel hunting.
         var neighbours = _neighbours ??= Neighbours(surface);
-        var left = Math.Clamp(PanelSnap.Snap(_originStart.X + (position.X - _dragStart.X), width, surface.ActualWidth, neighbours.Across), 0, Math.Max(0, surface.ActualWidth - width));
-        var top = Math.Clamp(PanelSnap.Snap(_originStart.Y + (position.Y - _dragStart.Y), height, surface.ActualHeight, neighbours.Down), 0, Math.Max(0, surface.ActualHeight - height));
+        var (left, top) = PanelLayout.DragSpot(_originStart.X, _originStart.Y, position.X - _dragStart.X, position.Y - _dragStart.Y, width, height,
+            surface.ActualWidth, surface.ActualHeight, neighbours.Across, neighbours.Down);
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         Margin = new Thickness(left, top, 0, 0);
@@ -665,8 +659,7 @@ public sealed class MovablePanel : ContentControl
         var down = new List<(double, double)>();
         foreach (var other in (surface as Panel)?.Children.OfType<MovablePanel>() ?? [])
         {
-            // A wide row's placeholder is only a label at one end of the row: its bounds are not where it shows.
-            if (other != this && other is { IsVisible: true, ActualWidth: > 0 } && (other.Shown || (other.IsEditing && other.PlaceholderAlignment == HorizontalAlignment.Stretch)))
+            if (other != this && PanelLayout.PullsDrags(other.IsVisible, other.ActualWidth, other.Shown, other.IsEditing, other.PlaceholderAlignment == HorizontalAlignment.Stretch))
             {
                 var origin = other.TranslatePoint(new Point(0, 0), surface);
                 across.Add((origin.X, origin.X + (other.ActualWidth * other._scale.ScaleX)));
@@ -701,7 +694,7 @@ public sealed class MovablePanel : ContentControl
     private void StepScale(bool up)
     {
         CaptureDefaults();
-        var next = Math.Clamp(Math.Round(_scale.ScaleX + (up ? 0.05 : -0.05), 2), PanelSnap.MinScale, PanelSnap.MaxScale);
+        var next = PanelLayout.StepScale(_scale.ScaleX, up);
         var origin = TopLeft();
         SetScale(next);
         HorizontalAlignment = HorizontalAlignment.Left;

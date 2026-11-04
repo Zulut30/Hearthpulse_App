@@ -59,6 +59,42 @@ public sealed class PanelArming
         return (armed, offered, note);
     }
 
+    /// <summary>
+    /// One tick for every panel of an overlay: arms <paramref name="over"/> (the topmost shown panel under the pointer,
+    /// found by the overlay; null over empty space and in layout mode) or offers its lock button as <see cref="Update"/>
+    /// decides, takes both from the other panels, and keeps a panel being dragged armed until its button comes up (not in
+    /// layout mode, where every panel moves anyway). The log line goes to hearthpulse.log.
+    /// </summary>
+    /// <returns>Whether <paramref name="over"/> is armed, and whether any panel is being dragged or resized.</returns>
+    public (bool Armed, bool Dragging) Apply(IReadOnlyList<IArmablePanel> panels, IArmablePanel? over, bool editing, bool controlDown, bool unlocked, DateTime now)
+    {
+        ArgumentNullException.ThrowIfNull(panels);
+        var (armed, offered, note) = Update(over?.Id, over?.SitsOnGame == true, controlDown, unlocked, now);
+        if (note is not null)
+        {
+            Diag.Debug(note);
+        }
+
+        var dragging = false;
+        foreach (var panel in panels)
+        {
+            var arm = (armed && panel == over) || (panel.IsDragging && !editing);
+            dragging |= panel.IsDragging;
+            if (panel.IsDragArmed != arm)
+            {
+                panel.IsDragArmed = arm;
+            }
+
+            var offer = offered && panel == over;
+            if (panel.OffersLock != offer)
+            {
+                panel.OffersLock = offer;
+            }
+        }
+
+        return (armed, dragging);
+    }
+
     /// <summary>The log line for a drag the player starts on a panel (move, or resize from the corner marker).</summary>
     public static string DragStarted(string id, bool resizing) => $"Overlay panel {id} drag started ({(resizing ? "corner, resize" : "move")})";
 
@@ -66,4 +102,23 @@ public sealed class PanelArming
     public static string Placed(string id, PanelPlacement? placement) => placement is null
         ? $"Overlay panel {id} reset to its default spot"
         : string.Create(CultureInfo.InvariantCulture, $"Overlay panel {id} placed at {placement.X:0.###}, {placement.Y:0.###}, size {placement.Scale:0.##}");
+}
+
+/// <summary>What <see cref="PanelArming.Apply"/> reads and sets on a movable panel (each UI's <c>MovablePanel</c>).</summary>
+public interface IArmablePanel
+{
+    /// <summary>The panel's settings key ("deck", "opponent"...).</summary>
+    string Id { get; }
+
+    /// <summary>The panel lies on the game's own cards (mulligan, picks, Discover, tavern): only Ctrl arms it.</summary>
+    bool SitsOnGame { get; }
+
+    /// <summary>The player is moving or resizing it.</summary>
+    bool IsDragging { get; }
+
+    /// <summary>It takes the mouse and moves as in layout mode.</summary>
+    bool IsDragArmed { get; set; }
+
+    /// <summary>Its tag shows the lock button.</summary>
+    bool OffersLock { get; set; }
 }
