@@ -74,10 +74,15 @@ jobs:
             apt: rpm
             appimage: true
             build: installer/linux/build.sh "$V" arm64
-          - name: macOS installers
-            id: macos
+          # One runner per architecture: built one after the other they were the longest job of the release.
+          - name: macOS arm64 installers
+            id: macos-arm64
             os: macos-latest
-            build: installer/macos/build.sh "$V" arm64 x64
+            build: installer/macos/build.sh "$V" arm64
+          - name: macOS x64 installers
+            id: macos-x64
+            os: macos-latest
+            build: installer/macos/build.sh "$V" x64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

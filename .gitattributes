@@ -1,0 +1,2 @@
+# The CI helper scripts run under bash on the Windows runners too, where checkout would otherwise give them CRLF.
+.github/ci/*.sh text eol=lf

@@ -11,8 +11,10 @@ on:
 permissions:
   contents: read
 
+# A newer run on a branch or pull request cancels the older one. Every push to main runs to the end: the coverage ratchet
+# compares the floors with the pushed range's previous commit, so a cancelled run would leave a range unchecked.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -21,6 +23,8 @@ env:
   # Any build warning fails the job (Directory.Build.props, ADR 0003); release.yml does not set it.
   HEARTHPULSE_STRICT: "true"
 
+# A change of documentation only (docs/, *.md: .github/ci/code-changed.sh) skips the .NET steps; every job still ends
+# green. The skill and pool checks always run: they read the Markdown files.
 jobs:
   scripts:
     name: Pool API and skill scripts
@@ -40,17 +44,30 @@ jobs:
       - name: Skill script tests
         run: python -B -I -m unittest discover -s tools/skill_checks -v
 
+  # Windows is the longest part of CI, so it runs as three jobs at once: the whole solution (WPF app included) with the
+  # presentation contracts, and the core suite in two halves by test class name. The coverage job then merges their
+  # cobertura reports (a line counts as covered when any of them ran it) and applies the ratchet.
   windows:
     name: Windows (whole solution, WPF app included)
     runs-on: windows-latest
+    outputs:
+      run: ${{ steps.code.outputs.run }}
     steps:
       - uses: actions/checkout@v4
+      - name: Code changed?
+        id: code
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash .github/ci/code-changed.sh
       # C: on the hosted Windows runners is slow and scanned by Defender on every write: the SQLite-heavy tests took
       # 1.5-2.5 min there against 15 s on Linux. Temp files and NuGet packages go to D: and are left out of scanning.
       # (No NuGet cache: unpacking it took as long as restoring from nuget.org.)
       - name: Fast temp and package folders
+        if: steps.code.outputs.run == 'true'
         shell: pwsh
-        run: |
+        run: &fast-folders |
           $temp = Join-Path $env:RUNNER_TEMP 'tmp'
           $nuget = Join-Path $env:RUNNER_TEMP 'nuget'
           New-Item -ItemType Directory -Force $temp, $nuget | Out-Null
@@ -58,43 +75,134 @@ jobs:
           "TEMP=$temp", "TMP=$temp", "NUGET_PACKAGES=$nuget" | Add-Content $env:GITHUB_ENV
       # The image already has a .NET 10 SDK; downloading another one cost ~40 s. Install only when it is missing.
       - name: Installed .NET SDK
+        if: steps.code.outputs.run == 'true'
         id: sdk
         shell: bash
-        run: |
+        run: &sdk-check |
           dotnet --list-sdks || true
           if dotnet --list-sdks 2>/dev/null | grep -q '^10\.'; then echo "have10=true" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/setup-dotnet@v4
-        if: steps.sdk.outputs.have10 != 'true'
+        if: steps.code.outputs.run == 'true' && steps.sdk.outputs.have10 != 'true'
         with:
           dotnet-version: 10.0.x
       - name: Restore
+        if: steps.code.outputs.run == 'true'
         run: dotnet restore Hearthpulse.slnx --source https://api.nuget.org/v3/index.json
       - name: Build
+        if: steps.code.outputs.run == 'true'
         run: dotnet build Hearthpulse.slnx --no-restore -c Release
-      # One after the other: run together on the 2-core runner, the presentation tests' 10 s waits timed out.
-      # Code coverage (coverlet, cobertura XML) is collected in this job only, the one that runs both suites. Tests that
-      # assert on wall-clock time (Category=Timing) run in their own step without the instrumentation, which slows hot code.
-      - name: Tests
-        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "Category!=Timing" --collect:"XPlat Code Coverage" --logger "trx;LogFileName=tests.trx" --results-directory TestResults/tests
-      - name: Timing tests (without coverage)
-        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "Category=Timing" --logger "trx;LogFileName=timing.trx" --results-directory TestResults/timing
+      # Code coverage (coverlet, cobertura XML) is collected on Windows only, where every suite runs.
       - name: WPF and Avalonia presentation contracts
+        if: steps.code.outputs.run == 'true'
         run: dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-build -c Release --collect:"XPlat Code Coverage" --logger "trx;LogFileName=presentation.trx" --results-directory TestResults/presentation
-      # Line and branch coverage per module (src/ folder; both suites merged, shared Presentation counted once) into the
+      - name: Test results
+        if: always() && steps.code.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows-presentation
+          path: TestResults
+      - name: Coverage (cobertura)
+        if: always() && steps.code.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-windows-presentation
+          # <suite>/<guid>/ only: with the trx logger the test platform also copies each report under .../In/<machine>/.
+          path: TestResults/presentation/*/coverage.cobertura.xml
+          if-no-files-found: ignore
+
+  windows-tests:
+    name: Windows tests ${{ matrix.shard }}/2 (core suite, coverage)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Test classes A-H and the rest (about half the test time each). The second filter is the negation of the
+          # first, so a new class always lands in exactly one half. Tests that assert on wall-clock time
+          # (Category=Timing) run once, in their own step without the coverage instrumentation, which slows hot code.
+          - shard: 1
+            filter: "(FullyQualifiedName~Hearthpulse.Tests.A|FullyQualifiedName~Hearthpulse.Tests.B|FullyQualifiedName~Hearthpulse.Tests.C|FullyQualifiedName~Hearthpulse.Tests.D|FullyQualifiedName~Hearthpulse.Tests.E|FullyQualifiedName~Hearthpulse.Tests.F|FullyQualifiedName~Hearthpulse.Tests.G|FullyQualifiedName~Hearthpulse.Tests.H)&Category!=Timing"
+            timing: true
+          - shard: 2
+            filter: "FullyQualifiedName!~Hearthpulse.Tests.A&FullyQualifiedName!~Hearthpulse.Tests.B&FullyQualifiedName!~Hearthpulse.Tests.C&FullyQualifiedName!~Hearthpulse.Tests.D&FullyQualifiedName!~Hearthpulse.Tests.E&FullyQualifiedName!~Hearthpulse.Tests.F&FullyQualifiedName!~Hearthpulse.Tests.G&FullyQualifiedName!~Hearthpulse.Tests.H&Category!=Timing"
+            timing: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Code changed?
+        id: code
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash .github/ci/code-changed.sh
+      - name: Fast temp and package folders
+        if: steps.code.outputs.run == 'true'
+        shell: pwsh
+        run: *fast-folders
+      - name: Installed .NET SDK
+        if: steps.code.outputs.run == 'true'
+        id: sdk
+        shell: bash
+        run: *sdk-check
+      - uses: actions/setup-dotnet@v4
+        if: steps.code.outputs.run == 'true' && steps.sdk.outputs.have10 != 'true'
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        if: steps.code.outputs.run == 'true'
+        run: dotnet restore tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --source https://api.nuget.org/v3/index.json
+      - name: Build
+        if: steps.code.outputs.run == 'true'
+        run: dotnet build tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore -c Release
+      - name: Tests
+        if: steps.code.outputs.run == 'true'
+        env:
+          FILTER: ${{ matrix.filter }}
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "$env:FILTER" --collect:"XPlat Code Coverage" --logger "trx;LogFileName=tests.trx" --results-directory TestResults/tests
+      - name: Timing tests (without coverage)
+        if: steps.code.outputs.run == 'true' && matrix.timing
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "Category=Timing" --logger "trx;LogFileName=timing.trx" --results-directory TestResults/timing
+      - name: Test results
+        if: always() && steps.code.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows-${{ matrix.shard }}
+          path: TestResults
+      - name: Coverage (cobertura)
+        if: always() && steps.code.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-windows-${{ matrix.shard }}
+          path: TestResults/tests/*/coverage.cobertura.xml
+          if-no-files-found: ignore
+
+  coverage:
+    name: Windows coverage and ratchet
+    needs: [windows, windows-tests]
+    if: ${{ !cancelled() && needs.windows.outputs.run == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-windows-*
+          path: TestResults
+      # Line and branch coverage per module (src/ folder; the reports merged, shared Presentation counted once) into the
       # job summary, also when a test failed. Timing tests are not instrumented and do not count. No external service.
       - name: Coverage by module
-        if: ${{ !cancelled() }}
-        run: python -B -I tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation --report-only --summary "$env:GITHUB_STEP_SUMMARY"
+        run: python3 -B -I tools/coverage/coverage_ratchet.py TestResults --report-only --summary "$GITHUB_STEP_SUMMARY"
       # The ratchet, only on green tests (a failed suite covers less): a module more than 0.5 pp under its floor in
       # tools/coverage/baseline.json fails the job, and no floor may be lower than before this change: on a push the
       # pushed range's previous commit, on a pull request its base branch (nothing to compare with: skipped).
       - name: Coverage ratchet
+        if: needs.windows.result == 'success' && needs.windows-tests.result == 'success'
+        shell: pwsh
         env:
           BEFORE: ${{ github.event.before }}
           BASE_REF: ${{ github.base_ref }}
         run: |
           # pwsh goes on after a failed program: each exit code is checked.
-          python -B -I tools/coverage/coverage_ratchet.py TestResults/tests TestResults/presentation
+          python3 -B -I tools/coverage/coverage_ratchet.py TestResults
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           if ($env:GITHUB_EVENT_NAME -eq 'pull_request') { $base = $env:BASE_REF }
           elseif ($env:BEFORE -and $env:BEFORE -notmatch '^0+$') { $base = $env:BEFORE }
@@ -106,21 +214,7 @@ jobs:
           if ($LASTEXITCODE) { 'Coverage floors: no baseline.json before this change, skipped.'; exit 0 }
           git show FETCH_HEAD:tools/coverage/baseline.json | Set-Content -Encoding utf8 "$env:RUNNER_TEMP/baseline-before.json"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          python -B -I tools/coverage/coverage_ratchet.py --floors-not-below "$env:RUNNER_TEMP/baseline-before.json"
-      - name: Test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-windows
-          path: TestResults
-      - name: Coverage (cobertura)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-windows
-          # <suite>/<guid>/ only: with the trx logger the test platform also copies each report under .../In/<machine>/.
-          path: TestResults/*/*/coverage.cobertura.xml
-          if-no-files-found: ignore
+          python3 -B -I tools/coverage/coverage_ratchet.py --floors-not-below "$env:RUNNER_TEMP/baseline-before.json"
 
   # Linux and macOS: the tests, then the self-contained app as the installers ship it (native SQLite, Skia, HarfBuzz for
   # the runtime identifier), started for real with an empty data folder: windows, tray, overlay platform, card data.
@@ -129,15 +223,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Code changed?
+        id: code
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash .github/ci/code-changed.sh
       - uses: actions/setup-dotnet@v4
+        if: steps.code.outputs.run == 'true'
         with:
           dotnet-version: 10.0.x
       # The WPF app targets Windows only; the Avalonia app and the tests cover Linux.
       - name: Publish the cross-platform app (linux-x64)
+        if: steps.code.outputs.run == 'true'
         run: dotnet publish src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj -c Release -r linux-x64 --self-contained -o publish
       - name: Tests
+        if: steps.code.outputs.run == 'true'
         run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj -c Release
       - name: Start the app
+        if: steps.code.outputs.run == 'true'
         shell: bash
         timeout-minutes: 4
         run: |
@@ -146,7 +251,7 @@ jobs:
           xvfb-run -a ./publish/Hearthpulse --smoke-test | tee smoke.txt
           grep -q "start-up done" smoke.txt
       - name: App log
-        if: always()
+        if: always() && steps.code.outputs.run == 'true'
         shell: bash
         run: cat "$RUNNER_TEMP/hearthpulse-data/hearthpulse.log" 2>/dev/null || echo "no log"
 
@@ -155,14 +260,25 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Code changed?
+        id: code
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash .github/ci/code-changed.sh
       - uses: actions/setup-dotnet@v4
+        if: steps.code.outputs.run == 'true'
         with:
           dotnet-version: 10.0.x
       - name: Publish the cross-platform app (osx-arm64)
+        if: steps.code.outputs.run == 'true'
         run: dotnet publish src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj -c Release -r osx-arm64 --self-contained -o publish
       - name: Tests
+        if: steps.code.outputs.run == 'true'
         run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj -c Release
       - name: Start the app
+        if: steps.code.outputs.run == 'true'
         shell: bash
         timeout-minutes: 4
         run: |
@@ -170,6 +286,6 @@ jobs:
           ./publish/Hearthpulse --smoke-test | tee smoke.txt
           grep -q "start-up done" smoke.txt
       - name: App log
-        if: always()
+        if: always() && steps.code.outputs.run == 'true'
         shell: bash
         run: cat "$RUNNER_TEMP/hearthpulse-data/hearthpulse.log" 2>/dev/null || echo "no log"
