@@ -85,9 +85,16 @@ with the motif), `Motif<Name>` geometries.
 - Fonts: `UiFont` (text), `DisplayFont` = Montserrat Bold/ExtraBold (headings, numbers), `IconFont` = Material Design
   Icons. Glyphs are written as entities `&#xF0xxx;` (e.g. `&#xF02DC;` home). Use the `Icon` style / `icon` class;
   do not add other icon fonts or image icons for UI chrome.
-- Ramp (WPF style / Avalonia class): `Display` 36 / `display` 34 page titles; `H1` 30 (WPF only); `H2` / `h2` 16
-  section titles; `Label` / `label` 12 SemiBold Muted; `Caption` / `caption` 12.5 Muted; `Stat` / `stat` 28 big
-  numbers; `number` 15 (Avalonia); base text 13.
+- Ramp (WPF style / Avalonia class): `Display` / `display` 32 page titles; `H1` 32 (WPF only); `H2` / `h2` 16
+  section titles; `Label` / `label` 12 SemiBold Muted; `Caption` / `caption` 12 Muted; `Stat` / `stat` 28 big
+  numbers; `number` 16 (Avalonia); base text 13.
+- **Scale (D1).** Sizes come from tokens defined with the same values in both theme files: `FontSizeMicro` 10,
+  `Small` 11, `Label` 12, `Body` 13, `Lead` 14, `Title` 16, `Icon` 18, `Subhead` 20, `Headline` 24, `Stat` 28,
+  `Display` 32 (`FontSize="{StaticResource FontSizeBody}"`); radii `RadiusSmall` 4, `RadiusMedium` 8, `RadiusLarge` 12,
+  `RadiusXLarge` 16, `RadiusPill` 999 (a pill or circle may use half its size); `CardPadding` 24, `TilePadding` 16,12,
+  `PagePadding` 40,0,40,120. Margin/Padding literals stay on 0/1/2/4/8/12/16/24/32 (multiples of 4 from 40 are
+  layout offsets). `DesignTokenTests` counts literal font sizes and off-scale radii/spacing per UI and only lets the
+  count fall; `python -I tools/design/migrate_tokens.py <files>` moves a file onto the scale with the same rules.
 - Section headings use the `Ornament` control (gold icon in a scallop cookie + title + rule), e.g.
   `<c:Ornament Text="Rating" Icon="&#xF012A;" Size="13" />`. Mixed-case text is kept; ALL CAPS is sentence-cased.
 - The logo (flame with a pulse) is the brand mark: `{StaticResource HearthpulseLogo}`, a `DrawingImage` from
@@ -98,9 +105,9 @@ with the motif), `Motif<Name>` geometries.
 
 | Purpose | WPF `Style="{StaticResource X}"` | Avalonia `Classes="x"` |
 |---|---|---|
-| Framed panel | `Card` (r12, padding 22,18) | `card` |
+| Framed panel | `Card` (`RadiusLarge`, `CardPadding`) | `card` |
 | Overlay panel | `OverlayCard` (r8) | `overlayCard` |
-| Small tag | `Pill` (r6, 9,2) | `pill` |
+| Small tag | `Pill` (r8, 8,2) | `pill` |
 | Secondary button | `GhostButton` | `ghost` |
 | Primary (one per area) | `PrimaryButton` | `ghost primary` |
 | Round icon button | `IconButton` (32x32) | `icon` |

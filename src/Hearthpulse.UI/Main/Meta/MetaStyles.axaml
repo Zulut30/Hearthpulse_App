@@ -22,11 +22,11 @@
         <Setter Property="Foreground" Value="{StaticResource Text}" />
     </Style>
     <Style Selector="Button.sortHead TextBlock.sortLabel">
-        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="TextBlock.sortArrow">
-        <Setter Property="FontSize" Value="9" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
         <Setter Property="Margin" Value="4,0,0,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{StaticResource Accent}" />
@@ -35,8 +35,8 @@
     <!-- A tier's head: the big letter on its colour, "Tier S" and its bound; the tier colour runs down the left edge -->
     <Style Selector="Border.tierHead">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="10,8" />
-        <Setter Property="Margin" Value="-10,10,-10,6" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Margin" Value="-12,12,-12,8" />
         <Setter Property="BorderThickness" Value="3,0,0,0" />
         <Setter Property="Background" Value="{StaticResource Surface2}" />
     </Style>
@@ -53,8 +53,8 @@
         <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
     </Style>
     <Style Selector="Border.row.archetype">
-        <Setter Property="Padding" Value="10,6" />
-        <Setter Property="Margin" Value="-10,0,-10,3" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Margin" Value="-12,0,-12,4" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="Transparent" />
     </Style>

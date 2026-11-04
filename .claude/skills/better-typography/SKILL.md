@@ -102,7 +102,7 @@ straight characters.
 
 ## Size floors
 
-Body text is 13 DIP (`UiFont`, the windows' base); `Label` 12 and `Caption` 12.5 are the floor for text the player
+Body text is 13 DIP (`UiFont`, the windows' base); `Label` 12 and `Caption` 12 are the floor for text the player
 reads. In the overlay, sizes are on the 1080-high reference surface and shrink with `OverlayScale` and panel scale
 down to 0.6, so overlay text the player reads in a game stays at 12 or more on the reference surface.
 

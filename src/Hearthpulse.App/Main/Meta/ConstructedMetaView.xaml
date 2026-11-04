@@ -30,40 +30,40 @@
                         <TextBlock Text="{Binding Rank}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
                         <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Background="{StaticResource Surface3}" HorizontalAlignment="Left"
                                 i:CardArt.Portrait="{Binding HeroId}" />
-                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,10,0">
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="11.5" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                         <Border Grid.Column="3" Style="{StaticResource TierBadge}" Background="{Binding Tier, Converter={StaticResource KeyBrush}}" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="13" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                            <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="{Binding WinRate}" Width="54" Style="{StaticResource WinRateText}" ToolTip="{Binding WinRateTip}" />
                             <Border Width="54" Height="6" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                                <Border HorizontalAlignment="Left" CornerRadius="4" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
                                         Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=54}" />
                             </Border>
                         </StackPanel>
                         <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Popularity}" Width="48" Style="{StaticResource Caption}" FontSize="12.5" />
+                            <TextBlock Text="{Binding Popularity}" Width="48" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" />
                             <Border Width="44" Height="6" CornerRadius="3" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
+                                <Border HorizontalAlignment="Left" CornerRadius="4" Background="{StaticResource Accent}"
                                         Width="{Binding PopularityFraction, Converter={StaticResource Fraction}, ConverterParameter=44}" />
                             </Border>
                         </StackPanel>
                         <!-- Shown only when the source splits games by who went first -->
                         <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center"
                                     Visibility="{Binding DataContext.MetaHasPlaySplit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource Vis}}">
-                            <TextBlock Width="56" Text="{Binding First}" FontSize="12.5" TextAlignment="Right" />
-                            <TextBlock Width="56" Text="{Binding Coin}" FontSize="12.5" TextAlignment="Right" />
+                            <TextBlock Width="56" Text="{Binding First}" FontSize="{StaticResource FontSizeLabel}" TextAlignment="Right" />
+                            <TextBlock Width="56" Text="{Binding Coin}" FontSize="{StaticResource FontSizeLabel}" TextAlignment="Right" />
                         </StackPanel>
                     </Grid>
                 </Button>
             </DataTemplate>
 
             <DataTemplate x:Key="MetaDeckTemplate" DataType="{x:Type m:MetaDeckRow}">
-                <Border Style="{StaticResource RowBorder}" Padding="10,7">
+                <Border Style="{StaticResource RowBorder}" Padding="12,8">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="40" />
@@ -85,7 +85,7 @@
                                    ToolTip="{i:Loc Main.Meta.ExactListTip}" />
                         <TextBlock Grid.Column="4" Text="{Binding Dust}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"
                                    ToolTip="{i:Loc Main.Meta.DustTip}" />
-                        <Button Grid.Column="5" Style="{StaticResource GhostButton}" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" FontSize="12" Margin="12,0,0,0"
+                        <Button Grid.Column="5" Style="{StaticResource GhostButton}" Content="{i:Loc Main.Meta.Copy}" Padding="12,4" FontSize="{StaticResource FontSizeLabel}" Margin="12,0,0,0"
                                 Command="{Binding DataContext.CopyDeck, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                 ToolTip="{i:Loc Main.Meta.CopyTip}" />
                     </Grid>
@@ -97,7 +97,7 @@
 
     <StackPanel>
         <!-- Filters: rank and period, then class and minimum games (hearthpulse.net's "Рейтинг", "Период", "Минимум игр") -->
-        <StackPanel x:Name="MetaFilters" Margin="0,0,0,14">
+        <StackPanel x:Name="MetaFilters" Margin="0,0,0,16">
             <!-- Plan 2.4: eight rank chips; the periods move below them when the row is too narrow, as in Avalonia -->
             <WrapPanel Margin="0,0,0,2">
                 <Border Margin="0,0,12,8" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Main.Ct.RankTip}">
@@ -227,12 +227,12 @@
                                     <Border Style="{StaticResource TierHead}" BorderBrush="{Binding Tier, Converter={StaticResource KeyBrush}}">
                                         <StackPanel Orientation="Horizontal">
                                             <Border Style="{StaticResource TierLetter}" Background="{Binding Tier, Converter={StaticResource KeyBrush}}">
-                                                <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="17" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
+                                                <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="{StaticResource FontSizeIcon}" FontFamily="{StaticResource DisplayFont}" Foreground="{StaticResource OnAccent}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
-                                                <TextBlock Text="{Binding Caption}" Style="{StaticResource Caption}" FontSize="11.5" />
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" Foreground="{Binding Tier, Converter={StaticResource KeyBrush}}" />
+                                                <TextBlock Text="{Binding Caption}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" />
                                             </StackPanel>
                                         </StackPanel>
                                     </Border>
@@ -254,21 +254,21 @@
                                     Visibility="{Binding MetaUnavailable, Converter={StaticResource Vis}}" />
                     <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF0233;" Content="{i:Loc Main.Meta.Empty}"
                                     Visibility="{Binding MetaEmpty, Converter={StaticResource Vis}}" />
-                    <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
+                    <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
                                TextWrapping="Wrap" Visibility="{Binding MetaStatusShown, Converter={StaticResource Vis}}" />
                 </StackPanel>
             </Border>
 
             <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
                 <StackPanel>
-                    <TextBlock Text="{Binding SelectedArchetypeTitle}" FontSize="20" FontWeight="SemiBold"
+                    <TextBlock Text="{Binding SelectedArchetypeTitle}" FontSize="{StaticResource FontSizeSubhead}" FontWeight="SemiBold"
                                FontFamily="{StaticResource DisplayFont}" TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding ArchetypeSummary}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Visibility="{Binding SelectedArchetype.HasPlaySplit, Converter={StaticResource Vis}, FallbackValue=Collapsed}">
-                        <Border Style="{StaticResource SegmentBar}" Padding="12,6" Margin="0,0,8,0" ToolTip="{i:Loc Main.Meta.FirstTip}">
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0" Visibility="{Binding SelectedArchetype.HasPlaySplit, Converter={StaticResource Vis}, FallbackValue=Collapsed}">
+                        <Border Style="{StaticResource SegmentBar}" Padding="12,8" Margin="0,0,8,0" ToolTip="{i:Loc Main.Meta.FirstTip}">
                             <TextBlock><Run Text="{i:Loc Main.Meta.GoingFirst}" Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.First, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
                         </Border>
-                        <Border Style="{StaticResource SegmentBar}" Padding="12,6" ToolTip="{i:Loc Main.Meta.CoinTip}">
+                        <Border Style="{StaticResource SegmentBar}" Padding="12,8" ToolTip="{i:Loc Main.Meta.CoinTip}">
                             <TextBlock><Run Text="{i:Loc Main.Meta.OnCoin}" Foreground="{StaticResource Muted}" /><Run Text="{Binding SelectedArchetype.Coin, Mode=OneWay}" FontWeight="Bold" /></TextBlock>
                         </Border>
                     </StackPanel>
@@ -276,7 +276,7 @@
                     <c:Ornament Text="{i:Loc Main.Meta.MulliganGuide}" Icon="&#xF012C;" Size="13" Margin="0,16,0,8"
                                 ToolTip="{i:Loc Main.Meta.MulliganCaption}" />
                     <!-- Plan 2.4: the mulligan's own rank (Legend by default); the overlay follows it -->
-                    <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" Margin="0,0,0,6" ToolTip="{i:Loc Main.Meta.MulliganRankTip}">
+                    <Border HorizontalAlignment="Left" Style="{StaticResource SegmentBar}" Margin="0,0,0,8" ToolTip="{i:Loc Main.Meta.MulliganRankTip}">
                         <ItemsControl ItemsSource="{Binding MulliganRanks}" ItemsPanel="{StaticResource ChoiceWrap}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type m:MetaChoice}">
@@ -286,12 +286,12 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Border>
-                    <TextBlock Text="{Binding MulliganSource}" Style="{StaticResource Caption}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,6"
+                    <TextBlock Text="{Binding MulliganSource}" Style="{StaticResource Caption}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"
                                Visibility="{Binding MulliganSource, Converter={StaticResource Vis}}" />
                     <ItemsControl ItemsSource="{Binding Mulligan}" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type m:MulliganRow}">
-                                <Border Style="{StaticResource RowBorder}" Padding="8,5">
+                                <Border Style="{StaticResource RowBorder}" Padding="8,4">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="36" />
@@ -319,7 +319,7 @@
                     <TextBlock Text="{i:Loc Main.Meta.MulliganEmpty}" Style="{StaticResource Caption}" Margin="0,4"
                                Visibility="{Binding Mulligan, Converter={StaticResource Vis}, ConverterParameter=!}" />
 
-                    <c:Ornament Text="{i:Loc Main.Meta.BestLists}" Icon="&#xF0639;" Size="13" Margin="0,18,0,8" />
+                    <c:Ornament Text="{i:Loc Main.Meta.BestLists}" Icon="&#xF0639;" Size="13" Margin="0,16,0,8" />
                     <ItemsControl ItemsSource="{Binding ArchetypeDecks}" ItemTemplate="{StaticResource MetaDeckTemplate}" Focusable="False" />
                     <TextBlock Text="{i:Loc Main.Meta.ListsEmpty}" Style="{StaticResource Caption}" Margin="0,4"
                                Visibility="{Binding ArchetypeDecks, Converter={StaticResource Vis}, ConverterParameter=!}" />
@@ -332,7 +332,7 @@
         <!-- Top decks -->
         <Border x:Name="MetaDecksPanel" Style="{StaticResource Card}" Visibility="Collapsed">
             <StackPanel>
-                <Grid Margin="10,0,10,8">
+                <Grid Margin="12,0,12,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="40" />
                         <ColumnDefinition Width="*" />
@@ -355,7 +355,7 @@
                                 Visibility="{Binding MetaDecksEmpty, Converter={StaticResource Vis}}" />
                 <TextBlock Text="{Binding CopyNote}" Style="{StaticResource Caption}" Foreground="{StaticResource Positive}" TextWrapping="Wrap" Margin="0,8,0,0"
                            Visibility="{Binding CopyNote, Converter={StaticResource Vis}}" />
-                <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
+                <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
                            TextWrapping="Wrap" Visibility="{Binding MetaStatusShown, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
@@ -367,12 +367,12 @@
                     <c:Ornament Text="{i:Loc Main.Ct.MetaMatchups}" Icon="&#xF04E5;" Size="13" HorizontalAlignment="Left" VerticalAlignment="Center" />
                     <!-- Legend: red loses, plain is even, green wins -->
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="14" Height="14" CornerRadius="3" Background="{StaticResource Negative}" />
-                        <TextBlock Text="{i:Loc Main.Meta.LegendLose}" Style="{StaticResource Caption}" Margin="6,0,14,0" VerticalAlignment="Center" />
-                        <Border Width="14" Height="14" CornerRadius="3" Background="{StaticResource Surface3}" />
-                        <TextBlock Text="{i:Loc Main.Meta.LegendEven}" Style="{StaticResource Caption}" Margin="6,0,14,0" VerticalAlignment="Center" />
-                        <Border Width="14" Height="14" CornerRadius="3" Background="{StaticResource Positive}" />
-                        <TextBlock Text="{i:Loc Main.Meta.LegendWin}" Style="{StaticResource Caption}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                        <Border Width="14" Height="14" CornerRadius="4" Background="{StaticResource Negative}" />
+                        <TextBlock Text="{i:Loc Main.Meta.LegendLose}" Style="{StaticResource Caption}" Margin="8,0,16,0" VerticalAlignment="Center" />
+                        <Border Width="14" Height="14" CornerRadius="4" Background="{StaticResource Surface3}" />
+                        <TextBlock Text="{i:Loc Main.Meta.LegendEven}" Style="{StaticResource Caption}" Margin="8,0,16,0" VerticalAlignment="Center" />
+                        <Border Width="14" Height="14" CornerRadius="4" Background="{StaticResource Positive}" />
+                        <TextBlock Text="{i:Loc Main.Meta.LegendWin}" Style="{StaticResource Caption}" Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                 </Grid>
                 <TextBlock Text="{i:Loc Main.Meta.MatchupsCaption}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,12" />
@@ -382,7 +382,7 @@
                               Visibility="{Binding HasMatchupMatrix, Converter={StaticResource Vis}}">
                     <StackPanel x:Name="MatchupGrid">
                         <!-- Column heads: the opponent's portrait and short name, the full name on hover -->
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <Border Width="190" />
                             <TextBlock Width="62" Text="{i:Loc Main.Meta.MatchupsOverall}" Style="{StaticResource TableHead}" TextAlignment="Center" VerticalAlignment="Bottom"
                                        ToolTip="{i:Loc Main.Meta.MatchupsOverallTip}" />
@@ -392,8 +392,8 @@
                                         <StackPanel Width="50" ToolTip="{Binding Tip}">
                                             <Border Width="26" Height="26" CornerRadius="13" Background="{StaticResource Surface3}" HorizontalAlignment="Center"
                                                     i:CardArt.Portrait="{Binding HeroId}" />
-                                            <TextBlock Text="{Binding Name}" Style="{StaticResource Caption}" FontSize="10" TextAlignment="Center" TextWrapping="Wrap"
-                                                       Height="28" Margin="1,3,1,0" />
+                                            <TextBlock Text="{Binding Name}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeMicro}" TextAlignment="Center" TextWrapping="Wrap"
+                                                       Height="28" Margin="1,4,1,0" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -417,7 +417,7 @@
                                                     <Grid Width="48" Height="32" Margin="1,0" ToolTip="{Binding Tip}">
                                                         <Border CornerRadius="4" Background="{StaticResource Surface2}" />
                                                         <Border CornerRadius="4" Background="{Binding Edge, Converter={StaticResource SignBrush}}" Opacity="{Binding Heat}" />
-                                                        <TextBlock Text="{Binding Text}" FontWeight="SemiBold" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        <TextBlock Text="{Binding Text}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                     </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
@@ -434,7 +434,7 @@
                                 Visibility="{Binding MetaUnavailable, Converter={StaticResource Vis}}" />
                 <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF04E5;" Content="{i:Loc Main.Meta.MatchupsEmpty}"
                                 Visibility="{Binding MetaMatchupsEmpty, Converter={StaticResource Vis}}" />
-                <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
+                <TextBlock Text="{Binding ConstructedMetaStatus}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
                            TextWrapping="Wrap" Visibility="{Binding MetaStatusShown, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>

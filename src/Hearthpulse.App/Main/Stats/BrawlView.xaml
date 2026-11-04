@@ -21,7 +21,7 @@
         </Grid.ColumnDefinitions>
         <Border Style="{StaticResource Card}" VerticalAlignment="Top">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Brawl.Classes}" Icon="&#xF0127;" Size="13" Margin="0,0,0,10" />
+                <c:Ornament Text="{i:Loc Brawl.Classes}" Icon="&#xF0127;" Size="13" Margin="0,0,0,12" />
                 <TextBlock Text="{Binding BrawlClassesNote}" Style="{StaticResource CardNote}" />
                 <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding BrawlClassesSort}" Visibility="{Binding BrawlClasses, Converter={StaticResource Vis}}" />
                 <ItemsControl ItemsSource="{Binding BrawlClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
@@ -31,15 +31,15 @@
                                 Visibility="{Binding BrawlClassesUnavailable, Converter={StaticResource Vis}}" />
                 <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0127;" Content="{i:Loc Brawl.Classes.None}"
                                 Visibility="{Binding BrawlClassesNone, Converter={StaticResource Vis}}" />
-                <TextBlock Text="{Binding BrawlUnclassed}" Style="{StaticResource Caption}" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"
+                <TextBlock Text="{Binding BrawlUnclassed}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap" Margin="0,12,0,0"
                            Visibility="{Binding BrawlUnclassed, Converter={StaticResource Vis}}" />
-                <TextBlock Text="{Binding BrawlSource}" Style="{StaticResource Caption}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"
+                <TextBlock Text="{Binding BrawlSource}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap" Margin="0,8,0,0"
                            Visibility="{Binding BrawlSource, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
         <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
             <StackPanel>
-                <c:Ornament Text="{i:Loc Brawl.Mine}" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
+                <c:Ornament Text="{i:Loc Brawl.Mine}" Icon="&#xF0004;" Size="13" Margin="0,0,0,12" />
                 <TextBlock Text="{Binding BrawlMineNote}" Style="{StaticResource CardNote}" Visibility="{Binding BrawlMineNote, Converter={StaticResource Vis}}" />
                 <ContentControl Style="{StaticResource StatsTableHead}" Content="{i:Loc Stats.Table.Class}" Tag="{Binding BrawlMineSort}" Visibility="{Binding BrawlMine, Converter={StaticResource Vis}}" />
                 <ItemsControl ItemsSource="{Binding BrawlMine}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
