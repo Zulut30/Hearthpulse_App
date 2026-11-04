@@ -25,7 +25,7 @@ data comes from. Code comments and skills link to them by path, so keep the name
 | [web-replays.md](web-replays.md) | Upload to the site: what is sent (no post-game lines), the site's checks, limits, deleting |
 | [migration.md](migration.md) | Moving over from HDT / Firestone: games, decks, what is read and never read |
 | [localization.md](localization.md) | English and Russian interface strings |
-| [design-identity.md](design-identity.md) | Visual identity: why the look follows the logo (flame and pulse), the rejected directions |
+| [design-identity.md](design-identity.md) | Visual identity: what every direction keeps (mana crystal, art rows, less clutter), the rejected ones |
 
 ## Data sources and accounts
 
