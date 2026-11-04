@@ -20,6 +20,8 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof
 | Role | WPF `src/Hearthpulse.App/Main/` | Avalonia `src/Hearthpulse.UI/Main/` |
 |---|---|---|
 | Sidebar + pages | `MainWindow.xaml` (Window 1260x840, min 1040x660) | `MainView.axaml` (UserControl; window in `src/Hearthpulse.Desktop/MainWindow.axaml`) |
+| Page and tab controls | `Pages/{Overview,Battlegrounds,Constructed,History}Page`, `SettingsTabs/<Tab>Settings` | same names, `.axaml` |
+| Shared keys of pages | `MainPages.xaml` (merges `MainLook.xaml`) | `MainPages.axaml` |
 | Navigation code | `MainWindow.xaml.cs`: `ShowPage`, `CurrentPage`, `OnNavigate`, `PlacePill`, `Reveal`, `ShowConstructedTab`, tab handlers `OnBgTab`/`OnCtTab` | `MainView.axaml.cs`: `ShowPage`, `UpdatePages`, `UpdateTabs`, `ApplyWidth` (compact), `ApplyChoice` |
 | Platform VM partials | Small `MainViewModel*.cs` adapters; `.Constructed` is the WPF clipboard copy of a deck code, `.Theme` is WPF-only | Small `MainViewModel*.cs` adapters for framework/established platform differences |
 | My Stats views | `Stats/BattlegroundsStatsView`, `ConstructedStatsView`, `ArenaStatsView`, `StatsResources.xaml` | same names, `.axaml` |
@@ -27,6 +29,21 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof
 | Logic | `src/Hearthpulse.Core` (e.g. `Stats/BattlegroundsStats.cs`, `ConstructedStats.cs`, `ArenaStats.cs`) | same |
 
 Element names match between the UIs (`NavArena`/`PageArena`, `TabHeroes`...): WPF `x:Name`, Avalonia `Name`.
+
+**Page and tab controls (since Nov 2026).** Overview, Battlegrounds, Constructed, History and every settings tab are
+`UserControl`s with the same tree in both UIs. The window holds one tag per control, and that tag keeps the name and
+visibility (`<pg:OverviewPage x:Name="PageOverview" />`, `<st:TrackerSettings x:Name="SettingsTracker" ... />`).
+- Converters, row templates and panels the pages use live in `Main/MainPages.xaml(.axaml)`. The window and each
+  control merge it: a control is built before it joins the window, so a `StaticResource` from the window's
+  resources is not found there.
+- Names inside a control are in its own namescope. Window code reaches them through the control
+  (`PageBattlegrounds.TabHeroes`, `SettingsOverlay.OverlaySetting`): WPF `x:Name` fields are internal. Test helpers
+  and tools search the logical tree instead: WPF `LogicalTreeHelper.FindLogicalNode`, Avalonia logical descendants.
+- Buttons in a control raise events the window handles (`HistoryRequested`, `TabChanged`, `ReimportClicked`). The
+  event carries only the args: forwarding a foreign `sender` trips MA0091.
+- An Avalonia window style `Type#Name` matches only the window's own names. A page styles itself by a class
+  (`Grid.historyPage`); `MainWindowLookTests` checks this.
+- The Arena, Deck, Match and Settings pages are still `ScrollViewer`s in the window.
 The common view model lives once in `src/Hearthpulse.Presentation/Main/MainViewModel*.cs`; deck and match models
 are in its `Main/Decks` and `Main/Match` subdirectories. Its `.projitems` compiles those sources into each existing
 UI assembly with the original namespaces, so XAML type names stay unchanged. See
@@ -108,8 +125,8 @@ never writes `Settings.MetaFormat` (it only names the format loaded at start).
 The Settings page has tabs (a `SegmentBar` of `Tab` radios in WPF, `segment` radios in Avalonia; the shown tab is kept in
 `AppSettings.SettingsTab`, `ShowSettingsTab(tag)` on `MainWindow`/`MainView`): **General** (Language, Theme - WPF
 only, App), **Overlay** (In-game overlay, Panel layout + Leaderboard hover), **Tracker** (Deck tracker, Counters and
-mulligan), **Account**, **Data** (Your data, Data sources), **About**. Each tab is a panel named `Settings<Tag>`; a new
-card goes into the tab that fits. Content `MaxWidth="780"`, left aligned. Renders: `main-settings-<tab>.png`.
+mulligan), **Account**, **Data** (Your data, Data sources), **About**. Each tab is a control `Main/SettingsTabs/<Tag>Settings`
+whose tag in the window is named `Settings<Tag>`; a new card goes into the tab that fits. Content `MaxWidth="780"`, left aligned. Renders: `main-settings-<tab>.png`.
 
 - New setting: property + default + `/// <summary>` in `src/Hearthpulse.Core/AppSettings.cs`; bind in both UIs
   (WPF `Style="{StaticResource Switch}"`, Avalonia `Classes="switch"`). Toggles are picked up automatically (WPF

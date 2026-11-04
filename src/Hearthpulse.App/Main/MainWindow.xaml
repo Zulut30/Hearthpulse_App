@@ -180,7 +180,7 @@
                     <pg:BattlegroundsPage x:Name="PageBattlegrounds" Grid.Row="1" Visibility="Collapsed" />
 
                     <!-- ===== Constructed ===== -->
-                    <pg:ConstructedPage x:Name="PageConstructed" Grid.Row="1" Visibility="Collapsed" />
+                    <pg:ConstructedPageView x:Name="PageConstructed" Grid.Row="1" Visibility="Collapsed" />
 
                     <!-- ===== Deck page (Main/Decks): replaces the Constructed page while a deck is open ===== -->
                     <ScrollViewer x:Name="PageDeck" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">

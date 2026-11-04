@@ -334,7 +334,7 @@ internal static class WpfBench
             Pump();
             foreach (var tab in new[] { "TabHeroes", "TabComps", "TabTrinkets", "TabCards", "TabMine", "TabMetaTiers", "TabMetaDecks" })
             {
-                if (main.FindName(tab) is ToggleButton { IsVisible: true } toggle)
+                if (Part(main, tab) is ToggleButton { IsVisible: true } toggle)
                 {
                     toggle.IsChecked = true;
                     Pump();
@@ -549,7 +549,7 @@ internal static class WpfBench
             Pump();
             foreach (var tab in tabs)
             {
-                if (main.FindName(tab) is ToggleButton { IsVisible: true } toggle)
+                if (Part(main, tab) is ToggleButton { IsVisible: true } toggle)
                 {
                     Time($"{page}/{tab}", () => toggle.IsChecked = true);
                 }
@@ -564,7 +564,7 @@ internal static class WpfBench
             {
                 main.ShowSettingsTab(tab);
             }
-            else if (main.FindName(tab) is ToggleButton toggle)
+            else if (Part(main, tab) is ToggleButton toggle)
             {
                 toggle.IsChecked = true;
             }
@@ -593,7 +593,7 @@ internal static class WpfBench
                 Console.WriteLine($"[pages] {page}/{tab} 2 s on the page: visuals {Elements(main) - before:+#,0;-#,0;0}, input waited at most {worst.TotalMilliseconds:N0} ms");
             }
 
-            var scroll = (System.Windows.Controls.ScrollViewer)main.FindName(scroller);
+            var scroll = Scroller(main, scroller) ?? throw new InvalidOperationException($"No scrolling page {scroller}");
             // Wheel notches (3 lines of 16 px each) through the whole page: the slowest one is what a stutter would be.
             var notches = new List<double>();
             var wheel = Stopwatch.StartNew();
@@ -801,10 +801,24 @@ internal static class WpfBench
     private static bool RowsPending(System.Windows.Controls.Panel panel) =>
         panel.GetType().GetField("_aheadQueued", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(panel) is true;
 
+    /// <summary>
+    /// A named part of the window, also one inside a page or settings tab control (Main/Pages, Main/SettingsTabs):
+    /// those keep their own namescope, where the window's FindName does not look.
+    /// </summary>
+    private static DependencyObject? Part(MainWindow main, string name) => LogicalTreeHelper.FindLogicalNode(main, name);
+
+    /// <summary>A page's scrolling area: a page control holds its ScrollViewer, the other pages are one.</summary>
+    private static System.Windows.Controls.ScrollViewer? Scroller(MainWindow main, string name) => Part(main, name) switch
+    {
+        System.Windows.Controls.ScrollViewer scroll => scroll,
+        System.Windows.Controls.UserControl { Content: System.Windows.Controls.ScrollViewer scroll } => scroll,
+        _ => null,
+    };
+
     /// <summary>Content height of the scrolling page on screen: a list that builds fewer rows must keep it.</summary>
     private static string PageExtent(MainWindow main) =>
         new[] { "PageOverview", "PageBattlegrounds", "PageConstructed", "PageDeck", "PageArena", "PageMatch", "PageSettings" }
-            .Select(main.FindName).OfType<System.Windows.Controls.ScrollViewer>().FirstOrDefault(p => p.IsVisible) is { } page
+            .Select(name => Scroller(main, name)).FirstOrDefault(p => p is { IsVisible: true }) is { } page
             ? page.ExtentHeight.ToString("N1", CultureInfo.InvariantCulture)
             : "-";
 

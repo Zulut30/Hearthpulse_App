@@ -11,9 +11,9 @@
              xmlns:mt="using:Hearthpulse.UI.Main.Match"
              xmlns:mg="using:Hearthpulse.UI.Main.Migration"
              xmlns:cs="using:Hearthpulse.Core.Stats"
-             x:Class="Hearthpulse.UI.Main.Pages.ConstructedPage"
+             x:Class="Hearthpulse.UI.Main.Pages.ConstructedPageView"
              x:DataType="m:MainViewModel">
-    <!-- Standard and Wild: the player's decks and stats, the meta's tiers, decks and matchups. Same tree as the WPF ConstructedPage.xaml. -->
+    <!-- Standard and Wild: the player's decks and stats, the meta's tiers, decks and matchups. Same tree as the WPF ConstructedPageView.xaml. -->
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
