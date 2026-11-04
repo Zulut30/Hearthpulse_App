@@ -126,6 +126,8 @@ public sealed partial class BattlegroundsReplayRecorder
         _combat = true;
         _combatSteps = 0;
         _localHeroAtStart = Durability(game.LocalHero);
+        _ownHeroId = game.LocalHero?.Id ?? 0;
+        _ownTeam = game.TeamOf(game.LocalPlayerId);
         _opponentHero = null;
         _heroAttack = null;
         _fightResult = null;

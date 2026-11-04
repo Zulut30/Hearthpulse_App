@@ -103,6 +103,15 @@ public sealed partial class BattlegroundsReplayRecorder
         var type = entity.CardType;
         if (entity.Controller == game.LocalPlayerId)
         {
+            // Duos, HDT's model (TagChangeActions.OnHeroEntityChange, BobsBuddyInvoker): while our partner fights for the
+            // team, our player's HERO_ENTITY points at the partner's hero and the partner's minions come in under our
+            // controller. A minion first shown then is the partner's (P); one of ours already shown stays ours; nothing
+            // else of theirs (hero, hero power, trinkets) is written.
+            if (PartnerOnTable(game) && !(_shown.TryGetValue(entity.Id, out var seen) && seen.Side == 'L'))
+            {
+                return zone == "PLAY" && type == "MINION" ? 'P' : '\0';
+            }
+
             return zone switch
             {
                 "PLAY" when TableTypes.Contains(type) => 'L',
@@ -112,9 +121,10 @@ public sealed partial class BattlegroundsReplayRecorder
             };
         }
 
-        if (_combat && zone == "PLAY" && entity.Controller != 0 && entity.Controller == game.PartnerPlayerId)
+        // A fallback should the partner be a player of their own: only their minions in a fight, never their hero.
+        if (_combat && zone == "PLAY" && type == "MINION" && entity.Controller != 0 && entity.Controller == game.PartnerPlayerId)
         {
-            return TableTypes.Contains(type) && (type != "HERO" || entity.GetInt(GameTag.PlayerId) > 0) ? 'P' : '\0';
+            return 'P';
         }
 
         if (entity.Controller != game.OpponentPlayerId || zone != "PLAY")
@@ -128,6 +138,14 @@ public sealed partial class BattlegroundsReplayRecorder
             ? TableTypes.Contains(type) && (type != "HERO" || entity.GetInt(GameTag.PlayerId) > 0) && !_offer.Contains(entity.Id) ? 'O' : '\0'
             : CardTypes.Contains(type) ? 'B' : '\0';
     }
+
+    /// <summary>
+    /// Our partner's table is the one fighting for the team: in a combat, our player's hero is not the one we had when it
+    /// started but a hero of our Duos team (<c>BACON_DUO_TEAM_ID</c>).
+    /// </summary>
+    private bool PartnerOnTable(GameState game) =>
+        _combat && _ownHeroId != 0 && _ownTeam > 0
+        && game.LocalHero is { } hero && hero.Id != _ownHeroId && hero.GetInt(GameTag.BaconDuoTeamId) == _ownTeam;
 
     private void Remove(Shown shown, int entityId, bool died)
     {

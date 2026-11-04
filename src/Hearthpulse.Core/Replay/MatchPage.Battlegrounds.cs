@@ -53,7 +53,7 @@ public sealed partial class MatchPage
             Leaderboard = f.Leaderboard
                 .OrderBy(l => l.Place <= 0 ? 99 : l.Place)
                 .Select(l => new MatchBgLeaderRow(l.HeroCardId, _cards.NameOf(l.HeroCardId), l.Place, l.Health, l.Armor, l.Tier, l.Local,
-                    combat && !l.Local && (l.HeroCardId == opponent?.CardId || l.HeroCardId == partner?.CardId), l.Dead))
+                    combat && !l.Local && l.HeroCardId == opponent?.CardId, l.Dead))
                 .ToList(),
             Gold = !combat && f.MaxGold > 0 ? string.Create(CultureInfo.CurrentCulture, $"{f.Gold} / {f.MaxGold}") : string.Empty,
             ShopFrozen = shop.Exists(c => c.Frozen),

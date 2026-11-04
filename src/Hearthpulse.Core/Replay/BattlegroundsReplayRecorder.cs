@@ -118,6 +118,11 @@ public sealed partial class BattlegroundsReplayRecorder
     // How the combat ends: the hero attack after the fight is its damage (its block may be nested in the game's own).
     private int _localHeroAtStart;
     private Entity? _opponentHero;
+
+    /// <summary>Duos: our hero and our team when the combat started (<see cref="PartnerOnTable"/>).</summary>
+    private int _ownHeroId;
+
+    private int _ownTeam;
     private HeroAttack? _heroAttack;
     private string? _fightResult;
     private int _taken;

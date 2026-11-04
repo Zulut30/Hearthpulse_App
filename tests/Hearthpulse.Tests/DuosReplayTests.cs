@@ -7,11 +7,89 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// Duos (plan R3, <c>TASK-2026-11-02-duos-replay</c>): our partner's table is written as side P while it is on the screen
 /// in combat, never their tavern; a file with it is <c>HPR5</c>, every other stays <c>HPR4</c>; the import keeps P only
-/// in fights of a version 5 file; the match page shows it. Synthetic lines: no real Duos log was checked.
+/// in fights of a version 5 file; the match page shows it. HDT's model (our HERO_ENTITY switches to the partner's hero,
+/// their minions come under our controller) and the fallback of a partner player. Synthetic lines: no real Duos log was
+/// checked.
 /// </summary>
 public sealed class DuosReplayTests
 {
     private const int Partner = 5;
+
+    /// <summary>The Battlegrounds setup as a Duos game in HDT's model: our player and the partner's hero are team 1, no partner player.</summary>
+    private static string[] HdtSetup()
+    {
+        var lines = Setup.ToList();
+        lines.Insert(lines.IndexOf("DebugPrintPower() -         tag=HERO_ENTITY value=10") + 1, "DebugPrintPower() -         tag=BACON_DUO_TEAM_ID value=1");
+        lines[lines.IndexOf("DebugPrintGame() - GameType=GT_BATTLEGROUNDS")] = "DebugPrintGame() - GameType=GT_BATTLEGROUNDS_DUO";
+        return [.. lines];
+    }
+
+    /// <summary>
+    /// The partner's hero made before the combat, on the leaderboard; in the combat our hero entity turns to theirs,
+    /// their hero power and minion come in under our controller, the minion attacks, then our hero is ours again for the end.
+    /// </summary>
+    private static ReplayRecorder HdtGame() => Run([.. HdtSetup(),
+        .. Entity(121, "TB_BaconShop_HERO_08", Bob, "PLAY", "HERO", "PLAYER_ID=5", "HEALTH=30", "BACON_DUO_TEAM_ID=1", "PLAYER_LEADERBOARD_PLACE=3"),
+        .. CombatSetup(),
+        Player("HERO_ENTITY", 121),
+        .. Entity(122, "TB_BaconShop_HP_008", Me, "PLAY", "HERO_POWER"),
+        .. Entity(120, "BG25_011", Me, "PLAY", "MINION", "ATK=4", "HEALTH=4", "ZONE_POSITION=1"),
+        Start("ATTACK", 120), Game("PROPOSED_DEFENDER", 111), Tag(111, "DAMAGE", 1), Tag(120, "DAMAGE", 1), End,
+        Player("HERO_ENTITY", 10),
+        .. Fight(win: true),
+        ]);
+
+    [Fact]
+    public void Hdt_model_the_partners_minions_under_our_controller_are_their_table()
+    {
+        var events = HdtGame().Events;
+        var minion = IdOf(events, "BG25_011");
+        var fight = events.SkipWhile(e => !e.StartsWith("F ", StringComparison.Ordinal)).TakeWhile(e => !e.StartsWith("f ", StringComparison.Ordinal)).ToList();
+
+        Assert.Contains(fight, e => e.StartsWith($"E {minion} P PLAY 1 BG25_011 MINION", StringComparison.Ordinal));
+        Assert.Contains(fight, e => e.StartsWith($"M ATTACK {minion} ", StringComparison.Ordinal));
+        // Review m2: their permanent entities (hero made before the fight, hero power) are never P, nor ours.
+        Assert.DoesNotContain(events, e => e.Contains("TB_BaconShop_HERO_08", StringComparison.Ordinal) && e.StartsWith("E ", StringComparison.Ordinal));
+        Assert.DoesNotContain(events, e => e.Contains("TB_BaconShop_HP_008", StringComparison.Ordinal) && e.StartsWith("E ", StringComparison.Ordinal));
+        // Our minion stays ours all fight long.
+        Assert.Contains(events, e => e.StartsWith("E ", StringComparison.Ordinal) && e.Contains(" L PLAY ", StringComparison.Ordinal) && e.Contains("BG26_801", StringComparison.Ordinal));
+        Assert.DoesNotContain(events, e => e.Contains(" P PLAY ", StringComparison.Ordinal) && e.Contains("BG26_801", StringComparison.Ordinal));
+        var after = events.SkipWhile(e => !e.StartsWith("f ", StringComparison.Ordinal)).ToList();
+        Assert.Contains(after, e => e is var x && (x == $"X {minion}" || x == $"Y {minion}"));
+    }
+
+    [Fact]
+    public void Hdt_model_page_shows_the_partner_fighting_but_not_as_the_fighter_on_the_leaderboard()
+    {
+        var text = HdtGame().Battlegrounds.Text(new ReplayHeader { Summary = new ReplaySummary { Mode = "Duos" } }, new BattlegroundsReplayData());
+        Assert.StartsWith("HPR5\n", text, StringComparison.Ordinal);
+        var page = MatchPage.Load(new Core.Data.GameRecord { Key = "duos-hdt", Mode = "Duos" }, text, CardDb.Empty, null);
+        var steps = Enumerable.Range(0, page.FrameCount).Select(i => page.BattlegroundsStep(i)!).ToList();
+
+        var fighting = steps.Where(s => s.PartnerFighting).ToList();
+        Assert.NotEmpty(fighting);
+        Assert.All(fighting, s => Assert.Contains(s.PartnerBoard, c => c.CardId == "BG25_011"));
+        // Review m1: the partner's leaderboard row is never marked as the one fighting us.
+        Assert.DoesNotContain(steps.SelectMany(s => s.Leaderboard), l => l.HeroCardId == "TB_BaconShop_HERO_08" && l.Fighting);
+        // Review m2: the partner's hero alone turns nothing on.
+        Assert.All(steps.Where(s => s.PartnerBoard.Count == 0), s => Assert.False(s.PartnerFighting));
+    }
+
+    [Fact]
+    public void Two_players_without_a_team_and_bobs_dummy_on_our_team_fall_back_to_the_first_player_but_us()
+    {
+        // Review m3: no team ids at all: the opponent is the first player but us, there is no partner.
+        var solo = Play([.. Setup, .. CombatSetup()]).Game;
+        Assert.Equal(Bob, solo.OpponentPlayerId);
+        Assert.Equal(0, solo.PartnerPlayerId);
+
+        // Bob's dummy player carrying our team id: still the opponent, never the partner.
+        var lines = HdtSetup().ToList();
+        lines.Insert(lines.IndexOf("DebugPrintPower() -         tag=BACON_DUMMY_PLAYER value=1") + 1, "DebugPrintPower() -         tag=BACON_DUO_TEAM_ID value=1");
+        var dummy = Play([.. lines, .. CombatSetup()]).Game;
+        Assert.Equal(Bob, dummy.OpponentPlayerId);
+        Assert.Equal(0, dummy.PartnerPlayerId);
+    }
 
     /// <summary>The Battlegrounds setup as a Duos game: we and player 5 are team 1, Bob's dummy player is not on it.</summary>
     private static string[] DuosSetup()
@@ -49,11 +127,11 @@ public sealed class DuosReplayTests
     {
         var events = DuosGame().Events;
         var minion = IdOf(events, "BG25_011");
-        var hero = IdOf(events, "TB_BaconShop_HERO_08");
         var fight = events.SkipWhile(e => !e.StartsWith("F ", StringComparison.Ordinal)).TakeWhile(e => !e.StartsWith("f ", StringComparison.Ordinal)).ToList();
 
         Assert.Contains(fight, e => e.StartsWith($"E {minion} P PLAY 1 BG25_011 MINION", StringComparison.Ordinal));
-        Assert.Contains(fight, e => e.StartsWith($"E {hero} P PLAY", StringComparison.Ordinal));
+        // The fallback writes the partner player's minions only, never their hero (review m2).
+        Assert.DoesNotContain(events, e => e.Contains("TB_BaconShop_HERO_08", StringComparison.Ordinal) && e.StartsWith("E ", StringComparison.Ordinal));
         Assert.Contains(fight, e => e.StartsWith($"M ATTACK {minion} ", StringComparison.Ordinal));
         // Gone from view once the fight is over; the partner's tavern never shows.
         var after = events.SkipWhile(e => !e.StartsWith("f ", StringComparison.Ordinal)).ToList();
@@ -137,7 +215,7 @@ public sealed class DuosReplayTests
         var fighting = steps.Where(s => s.PartnerFighting).ToList();
         Assert.NotEmpty(fighting);
         Assert.All(fighting, s => Assert.True(s.InCombat));
-        Assert.Contains(fighting, s => s.PartnerBoard.Any(c => c.CardId == "BG25_011") && s.Partner?.HeroCardId == "TB_BaconShop_HERO_08");
+        Assert.Contains(fighting, s => s.PartnerBoard.Any(c => c.CardId == "BG25_011"));
         // Our board stays ours: the partner's minion never joins it.
         Assert.DoesNotContain(steps, s => s.Board.Any(c => c.CardId == "BG25_011"));
         Assert.All(steps.Where(s => !s.InCombat), s => Assert.Empty(s.PartnerBoard));
