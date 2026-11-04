@@ -154,7 +154,6 @@ public sealed partial class MainViewModel
                 return;
             }
 
-            _brawlShownMeta = meta;
             BrawlClasses = BrawlClassesSort.Apply(StatGroupRow.Marked(built.Classes), (r, c) => r.SortValue(c));
             BrawlUnclassed = built.Unclassed;
             BrawlSource = built.Source;
@@ -162,6 +161,9 @@ public sealed partial class MainViewModel
             BrawlMine = BrawlMineSort.Apply(StatGroupRow.Marked(built.Mine), (r, c) => r.SortValue(c));
             BrawlMineNote = built.MineNote;
             BrawlMineOld = built.MineOld;
+            // Last: once the states say "shown", every line of this build is in place (a reader off the UI thread
+            // waiting on them sees no half-applied build).
+            _brawlShownMeta = meta;
             RaiseBrawlClassesStates();
         }
         catch (Exception ex)
