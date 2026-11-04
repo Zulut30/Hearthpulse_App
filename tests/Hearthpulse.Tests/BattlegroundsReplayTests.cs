@@ -616,7 +616,7 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
     /// </summary>
     private static string[] Combat(bool win = true) => [.. CombatSetup(), .. Fight(win)];
 
-    private static string[] Fight(bool win) =>
+    internal static string[] Fight(bool win) =>
     [
         Start("ATTACK", 101), Game("PROPOSED_DEFENDER", 111), Tag(111, "DEFENDING", 1),
         Tag(111, "DAMAGE", 2), Tag(101, "DAMAGE", 1), Tag(111, "DEFENDING", 0), End,
@@ -643,7 +643,7 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
     ];
 
     /// <summary>Turn 1 ends, the combat turn starts: Bob's offer goes, the opponent's hero and board are set up.</summary>
-    private static string[] CombatSetup() =>
+    internal static string[] CombatSetup() =>
     [
         .. Entity(101, "BG26_801", Me, "PLAY", "MINION", "ATK=4", "HEALTH=6", "ZONE_POSITION=1"),
         Game("TURN", 2),
@@ -791,7 +791,7 @@ public sealed class BattlegroundsReplayTests(ITestOutputHelper output)
     internal static IReadOnlyList<BgReplayFrame> Frames(IReadOnlyList<string> events) =>
         BattlegroundsMatchReplay.Parse(ReplayFile.WriteBattlegrounds(new ReplayHeader(), new BattlegroundsReplayData(), events))!.Frames;
 
-    private static string IdOf(IReadOnlyList<string> events, string cardId) =>
+    internal static string IdOf(IReadOnlyList<string> events, string cardId) =>
         events.First(e => e.StartsWith("E ", StringComparison.Ordinal) && e.Split(' ')[5] == cardId).Split(' ')[1];
 
     private static List<string> After(IReadOnlyList<string> events, string line) => events.SkipWhile(e => e != line).Skip(1).ToList();

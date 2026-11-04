@@ -7,6 +7,7 @@ using Hearthpulse.App.Main.Match;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Replay;
 using WpfMain = Hearthpulse.App.Main.MainViewModel;
 
@@ -188,6 +189,36 @@ public sealed class MatchXamlLoadTests
             Assert.Equal(ovals, Descendants(card).OfType<Border>().Count(b => b.Name == "Oval"));
             Assert.Contains(Descendants(card).OfType<TextBlock>(), t => t.Text == step.Title);
         }
+
+        // Duos: while the partner's table fights, the bottom shows their board and hero under the caption, not ours.
+        var partnerPanel = (FrameworkElement)view.FindName("BattlegroundsPartner");
+        Assert.Equal(Visibility.Collapsed, partnerPanel.Visibility);
+        var duos = combat with
+        {
+            Partner = new MatchBgHeroView("TB_BaconShop_HERO_02", "Partner hero", 30, 0, 3),
+            PartnerBoard = [Minion("P") with { Attacking = true }, Minion("Q")],
+        };
+        card.DataContext = duos;
+        Layout(view);
+        Assert.Equal(Visibility.Visible, partnerPanel.Visibility);
+        bool Shown(DependencyObject element)
+        {
+            for (var at = element; at is not null && !ReferenceEquals(at, card); at = VisualTreeHelper.GetParent(at))
+            {
+                if (at is UIElement { Visibility: not Visibility.Visible })
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        Assert.Equal(3, Descendants(card).OfType<Border>().Count(b => b.Name == "Oval" && Shown(b)));
+        var shownTexts = Descendants(card).OfType<TextBlock>().Where(Shown).Select(t => t.Text).ToList();
+        Assert.Contains(Loc.T("Match.Player.Table.Partner"), shownTexts);
+        Assert.Contains("Partner hero", shownTexts);
+        Assert.DoesNotContain("Hagatha", shownTexts);
 
         var row = (FrameworkElement)((DataTemplate)view.Resources["LeaderRow"]).LoadContent();
         row.DataContext = Hearthpulse.App.Main.Match.MatchViewModel.Leader(tavern.Leaderboard[0]);

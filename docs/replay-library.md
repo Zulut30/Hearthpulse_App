@@ -46,7 +46,7 @@ Power.log (`ReplayImport.ImportFile`). A foreign file is untrusted:
 
 - **Size:** at most 16 MB packed and 32 MB of text; unpacking stops at the limit (gzip bomb). Event lines at most as
   many as the recorder writes (60 000 Constructed, 100 000 Battlegrounds), post-game lines at most 20 000.
-- **Format line** `HPR2`-`HPR4` (`HPR1` and newer ones: "format not supported"; anything else: "not a replay").
+- **Format line** `HPR2`-`HPR5` (`HPR1` and newer ones: "format not supported"; anything else: "not a replay").
 - **Grammar:** every line must match its format (Constructed: `ConstructedLine` in `ReplayImport`, the format 3 table
   of match-replay.md; Battlegrounds: `BattlegroundsReplayGrammar`; post-game `N`/`K`), else the whole file is refused
   ("damaged or altered"). Card ids look like the game's (letters and digits with an underscore, or one of the 11 real

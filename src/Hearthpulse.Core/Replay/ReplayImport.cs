@@ -126,7 +126,7 @@ public static partial class ReplayImport
             return null;
         }
 
-        if (first is not (ReplayFile.Magic or ReplayFile.Magic3 or ReplayFile.PreviousMagic))
+        if (first is not (ReplayFile.Magic5 or ReplayFile.Magic or ReplayFile.Magic3 or ReplayFile.PreviousMagic))
         {
             error = ReplayImportError.Version;
             return null;
@@ -395,11 +395,14 @@ public static partial class ReplayImport
                     fight = false;
                     break;
                 case "T":
-                    // The combat opponent leaves view by the next tavern.
+                    // The combat opponent and our Duos partner's table leave view by the next tavern.
                     LeaveView(events, shown, 'O');
+                    LeaveView(events, shown, 'P');
                     fight = opponentInView = false;
                     break;
-                case "E" when (t[2] == "B" && fight) || (t[2] == "O" && !opponentInView):
+                case "E" when (t[2] == "B" && fight) || (t[2] == "O" && !opponentInView)
+                              || (t[2] == "P" && (!fight || header.Version < ReplayFile.PartnerVersion)):
+                    // The partner's table only in a fight of a version 5 file: never their tavern.
                     continue;
                 case "E":
                     shown[t[1]] = t[2][0];

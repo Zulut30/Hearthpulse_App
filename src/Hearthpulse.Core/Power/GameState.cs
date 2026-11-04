@@ -97,9 +97,11 @@ public sealed class GameState
                 return null;
             }
 
+            // In Duos the partner is a player of the game too: the opponent is the first player not on our team.
+            var team = TeamOf(LocalPlayerId);
             foreach (var player in Players.Values)
             {
-                if (player.PlayerId != LocalPlayerId)
+                if (player.PlayerId != LocalPlayerId && (team == 0 || TeamOf(player.PlayerId) != team))
                 {
                     return player;
                 }
@@ -110,6 +112,41 @@ public sealed class GameState
     }
 
     public int OpponentPlayerId => OpponentPlayer?.PlayerId ?? 0;
+
+    /// <summary>Duos: our partner's player id (the other player with our <c>BACON_DUO_TEAM_ID</c>), else 0.</summary>
+    public int PartnerPlayerId
+    {
+        get
+        {
+            var team = TeamOf(LocalPlayerId);
+            if (team == 0)
+            {
+                return 0;
+            }
+
+            foreach (var player in Players.Values)
+            {
+                if (player.PlayerId != LocalPlayerId && TeamOf(player.PlayerId) == team)
+                {
+                    return player.PlayerId;
+                }
+            }
+
+            return 0;
+        }
+    }
+
+    /// <summary>A player's Duos team: <c>BACON_DUO_TEAM_ID</c> on the player entity, else on its hero; 0 when the log gave none.</summary>
+    public int TeamOf(int playerId)
+    {
+        if (Players.GetValueOrDefault(playerId) is not { } slot || Entities.GetValueOrDefault(slot.EntityId) is not { } player)
+        {
+            return 0;
+        }
+
+        var team = player.GetInt(GameTag.BaconDuoTeamId);
+        return team > 0 ? team : HeroOf(player)?.GetInt(GameTag.BaconDuoTeamId) ?? 0;
+    }
 
     public Entity? LocalPlayerEntity => LocalPlayer is { } p ? Entities.GetValueOrDefault(p.EntityId) : null;
 
@@ -193,6 +230,14 @@ public sealed class GameState
             if (real.Count == 1)
             {
                 LocalPlayerId = real[0].PlayerId;
+                return;
+            }
+
+            // Duos: our partner has an account too. Only our tavern is on our screen, so the drag-to-buy and
+            // drag-to-sell targets are ours (not checked on a live Duos log).
+            if (real.Count > 1 && Entities.Values.FirstOrDefault(e => e.CardType == "MOVE_MINION_HOVER_TARGET" && Players.ContainsKey(e.Controller)) is { } drag)
+            {
+                LocalPlayerId = drag.Controller;
                 return;
             }
         }

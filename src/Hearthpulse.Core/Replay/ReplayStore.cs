@@ -409,7 +409,7 @@ public sealed class ReplayStore(string directory)
     private static bool IsOldFormat(string path) => Head(path) == ReplayFile.OldMagic;
 
     /// <summary>True for a file of the format this version writes (an unreadable file counts as current: it is left alone).</summary>
-    private static bool IsCurrentFormat(string path) => Head(path) is ReplayFile.Magic or null;
+    private static bool IsCurrentFormat(string path) => Head(path) is ReplayFile.Magic or ReplayFile.Magic5 or null;
 
     /// <summary>The format line of a saved file, or null when it cannot be read.</summary>
     private static string? Head(string path)

@@ -8,7 +8,8 @@ goes into a separate post-game part that only the match page reads ([0005](0005-
 
 ## Consequences
 
-- The format line is the version. A reader supports a fixed range (`HPR2`-`HPR4`); `HPR1` carried deck card ids and is
+- The format line is the version. A reader supports a fixed range (`HPR2`-`HPR5`; `HPR5` only adds the Duos
+  partner's side `P` and is written only for files that have it); `HPR1` carried deck card ids and is
   deleted on sight; a newer format is "not supported", never guessed at.
 - A format change bumps the number, keeps reading older formats where it can, and lets a log import of the same game
   overwrite an older file.
