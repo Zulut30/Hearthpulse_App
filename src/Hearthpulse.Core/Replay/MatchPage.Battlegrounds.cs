@@ -207,7 +207,10 @@ public sealed partial class MatchPage
         {
             var picked = left.Remove(id);
             return Offered(id, picked, !picked && choice.Picked.Count > 0, string.Empty);
-        }).ToList());
+        }).ToList())
+        {
+            IsHero = choice.Kind == "HERO",
+        };
     }
 
     private MatchBgHeroView HeroView(BgReplayFrame f, BgReplayCard hero, int tier) =>

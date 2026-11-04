@@ -629,7 +629,18 @@ public partial class MainView : UserControl
             }
 
             Show();
-            PropertyChangedEventHandler listener = (_, _) => Show();
+            // A toggle may change off the UI thread (a language switch from a worker): the item is touched on its own thread only.
+            PropertyChangedEventHandler listener = (_, _) =>
+            {
+                if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+                {
+                    Show();
+                }
+                else
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(Show);
+                }
+            };
             toggle.PropertyChanged += listener;
             _menuListeners.Add(() => toggle.PropertyChanged -= listener);
             menu.Items.Add(item);

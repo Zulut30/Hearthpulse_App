@@ -9,5 +9,11 @@
   "Brawl.Mine": "Your games in this Tavern Brawl",
   "Brawl.Mine.Note": "The Tavern Brawl you played last: games since {0:MMMM d}.",
   "Brawl.Mine.Empty": "No Tavern Brawl games yet. Play one and your classes, record and win rate show up here.",
-  "Brawl.Mine.EmptyOld": "Tavern Brawl games recorded before this Hearthpulse version aren't counted: they don't say which brawl they were."
+  "Brawl.Mine.EmptyOld": "Tavern Brawl games recorded before this Hearthpulse version aren't counted: they don't say which brawl they were.",
+  "Brawl.Article.Title": "About this Brawl",
+  "Brawl.Article.Meta": "{0:MMMM d} · {1}",
+  "Brawl.Article.Read": "Read the article",
+  "Brawl.Article.ReadTip": "Opens in your browser: hs-manacost.ru",
+  "Brawl.Article.Decks": "Deck collection: {0}",
+  "Brawl.Article.InRussian": "The article is in Russian"
 }

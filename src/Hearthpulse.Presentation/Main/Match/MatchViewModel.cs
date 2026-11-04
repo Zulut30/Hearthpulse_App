@@ -36,6 +36,10 @@ public sealed partial class MatchViewModel : Observable
     private readonly SyncList<MatchActionRow> _actions = new();
     private readonly SyncList<MatchTurnRow> _turns = new();
 
+    // The page and its turn the turn list was built for (Refresh rebuilds it only when either changes).
+    private MatchPage? _turnsPage;
+    private MatchTurnChip? _turnsCurrent;
+
     // The game's event feed (plan R2): its rows built once per game, unmarked, and the list the view binds, where each
     // step only moves the marks (Current) of the rows that change; the last step of each header's turn.
     private readonly SyncList<MatchFeedRow> _feed = new();
@@ -287,6 +291,8 @@ public sealed partial class MatchViewModel : Observable
         Step = null;
         Actions = [];
         Turns = [];
+        _turnsPage = null;
+        _turnsCurrent = null;
         SetFeedRows([]);
         Feed = [];
         LocalDeck = [];
@@ -406,8 +412,14 @@ public sealed partial class MatchViewModel : Observable
             Feed = FeedAt(_frame);
         }
 
+        // The turn list is rebuilt only when the page or its current turn changes, not on every step of the same turn.
         var current = _page.TurnOf(_frame);
-        Turns = _page.Turns.Select(t => new MatchTurnRow(t.FirstFrame, t.Label, t.Tooltip, t.Local, t.Mulligan, t == current)).ToList();
+        if (!ReferenceEquals(_turnsPage, _page) || !Equals(_turnsCurrent, current))
+        {
+            _turnsPage = _page;
+            _turnsCurrent = current;
+            Turns = _page.Turns.Select(t => new MatchTurnRow(t.FirstFrame, t.Label, t.Tooltip, t.Local, t.Mulligan, t == current)).ToList();
+        }
         MoveNavigation();
         Raise(nameof(Position));
     }

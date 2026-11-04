@@ -66,9 +66,9 @@ internal static partial class OffscreenRenderer
         var view = new MainView { DataContext = host.Main };
         var main = new Window { Width = 1260, Height = 840, Content = view, Background = ThemeBrushes.Get("Bg") };
         main.Show();
-        if (RenderOnlyBrawl)
+        if (RenderOnlyGroups.Length > 0)
         {
-            await RenderBrawlPageAsync(main, view, host, folder);
+            await RenderOnlyAsync(main, view, host, folder);
             return;
         }
 

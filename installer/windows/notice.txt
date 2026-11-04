@@ -51,6 +51,8 @@ DATA AND CREDITS
   Hearthpulse archetype dictionary (api.blizzcore.ru). Opponents' MMR:
   Blizzard's public Battlegrounds leaderboard (8000 and up), through
   Hearthpulse data.
+- The Brawl page's article: hs-manacost.ru (its "Потасовка" posts and their
+  cover pictures; the article opens in the browser).
 - Card data and art: HearthstoneJSON. The mana gem picture is cut from a
   HearthstoneJSON card render; it is (c) Blizzard Entertainment, Inc.
 - Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font

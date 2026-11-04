@@ -45,6 +45,9 @@ public sealed record MatchCardView(string? CardId, string Name, bool CardBack)
     /// <summary>In a choice: a card not picked, or sent back at the mulligan.</summary>
     public bool Dimmed { get; init; }
 
+    /// <summary>The screen-reader name of an option at a choice: "Picked: Name" for the pick, else the name.</summary>
+    public string ChoiceName => Picked ? Loc.F("Match.Player.HeroPicked", Name) : Name;
+
     public int Attack { get; init; }
 
     public int Health { get; init; }
@@ -109,7 +112,14 @@ public sealed record MatchSideView(
     string Mana,
     string Deck)
 {
-    public string HealthText => Armor > 0 ? $"{Health} + {Armor}" : Health.ToString(CultureInfo.CurrentCulture);
+    /// <summary>The health on the portrait's badge, next to a heart; the armor has its own value next to a shield.</summary>
+    public string HealthText => Health.ToString(CultureInfo.CurrentCulture);
+
+    /// <summary>The armor next to the shield ("" without armor: the shield is not shown).</summary>
+    public string ArmorText => Armor > 0 ? Armor.ToString(CultureInfo.CurrentCulture) : string.Empty;
+
+    /// <summary>"Health 30, armor 5" on the badge's tooltip and as its screen-reader name, as on the Battlegrounds table.</summary>
+    public string HealthTip => MatchBgHeroView.HealthTipOf(Health, Armor);
 
     /// <summary>The hero's replay id (the attack arrow's end), 0 when unknown.</summary>
     public int HeroRef { get; init; }
@@ -161,8 +171,20 @@ public sealed record MatchStepView(int Index, int Count, string Turn, string Act
     public IReadOnlyList<MatchChoiceView> Choices { get; init; } = [];
 }
 
-/// <summary>A row of cards offered at a choice ("Your mulligan", "Discover from ..."), each marked picked or not.</summary>
-public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> Cards);
+/// <summary>
+/// A row of cards offered at a choice ("Your mulligan", "Discover from ..."), each marked picked or not. Equal by value,
+/// cards included: the player's list keeps the row of a choice shown again on the next step instead of building it anew.
+/// </summary>
+public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> Cards)
+{
+    /// <summary>The Battlegrounds hero choice: the views show the options as round hero portraits, not as cards.</summary>
+    public bool IsHero { get; init; }
+
+    public bool Equals(MatchChoiceView? other) =>
+        other is not null && (ReferenceEquals(this, other) || (Title == other.Title && IsHero == other.IsHero && Cards.SequenceEqual(other.Cards)));
+
+    public override int GetHashCode() => HashCode.Combine(Title, IsHero, Cards.Count);
+}
 
 /// <summary>A turn chip in the turn strip.</summary>
 public sealed record MatchTurnChip(int Number, string Label, string Tooltip, bool Local, bool Mulligan, int FirstFrame, int LastFrame);

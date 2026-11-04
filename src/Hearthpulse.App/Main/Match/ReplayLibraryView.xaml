@@ -46,15 +46,17 @@
             </DataTemplate>
 
             <!-- A minion of the final board: a small oval (golden: accent rim, taunt: thick rim, divine shield: outer
-                 ring) and its stats under it -->
+                 ring) and its stats under it. 48 wide and 1 apart (LibrarySummary.MinionRoom): "736/639" fits in tabular
+                 digits; longer stats trim, the tooltip has them whole. -->
             <DataTemplate x:Key="Minion" DataType="{x:Type mt:LibraryMinion}">
-                <StackPanel Width="28" ToolTip="{Binding Tooltip}" c:CardPreview.CardId="{Binding CardId}">
+                <StackPanel Width="48" Margin="0,0,1,0" Background="Transparent" ToolTip="{Binding Tooltip}" c:CardPreview.CardId="{Binding CardId}">
                     <Grid Width="28" Height="34" HorizontalAlignment="Center">
                         <Border x:Name="Shield" CornerRadius="14" BorderBrush="{StaticResource Info}" BorderThickness="1.5" Visibility="Collapsed" />
                         <Border x:Name="Oval" Width="26" Height="32" CornerRadius="13" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}"
                                 BorderThickness="1" i:CardArt.Portrait="{Binding CardId}" />
                     </Grid>
-                    <TextBlock Text="{Binding Stats}" FontFamily="{StaticResource DisplayFont}" FontSize="10" HorizontalAlignment="Center"
+                    <TextBlock Text="{Binding Stats}" FontFamily="{StaticResource DisplayFont}" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center"
+                               TextAlignment="Center" TextTrimming="CharacterEllipsis" Typography.NumeralAlignment="Tabular" Margin="0,1,0,0"
                                Foreground="{StaticResource Muted}" />
                 </StackPanel>
                 <DataTemplate.Triggers>
@@ -72,15 +74,23 @@
                 </DataTemplate.Triggers>
             </DataTemplate>
 
-            <!-- A card in hand at the end: a small card portrait -->
-            <DataTemplate x:Key="HandCard" DataType="{x:Type mt:LibraryChip}">
-                <Border Width="18" Height="24" Margin="0,0,3,0" CornerRadius="3" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Border}"
-                        BorderThickness="1" i:CardArt.Portrait="{Binding CardId}" c:CardPreview.CardId="{Binding CardId}" ToolTip="{Binding Tooltip}" />
-            </DataTemplate>
-
             <ItemsPanelTemplate x:Key="RowPanel">
                 <StackPanel Orientation="Horizontal" />
             </ItemsPanelTemplate>
+
+            <i:BoardFit x:Key="BoardFit" />
+
+            <!-- The final board as its room shows it: whole minions, then "+N" naming the rest in its tooltip -->
+            <DataTemplate x:Key="BoardRow" DataType="{x:Type mt:LibraryBoardView}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ItemsControl ItemsSource="{Binding Shown}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource RowPanel}" Focusable="False"
+                                  VerticalAlignment="Center" />
+                    <Border Style="{StaticResource Pill}" Margin="4,0,0,0" VerticalAlignment="Center" ToolTip="{Binding MoreTip}" AutomationProperties.Name="{Binding MoreTip}"
+                            Visibility="{Binding More, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{Binding More}" FontSize="11" />
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
 
             <!-- The right end of a card: star and Share (or the "no replay" mark), delete on Imported -->
             <DataTemplate x:Key="CardActions" DataType="{x:Type mt:LibraryCard}">
@@ -122,7 +132,7 @@
                         <TextBlock Text="{Binding Rating}" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"
                                    Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Game.RatingChange}" />
                     </StackPanel>
-                    <TextBlock Text="{Binding When}" Style="{StaticResource Caption}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding When}" Style="{StaticResource Caption}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding When}" />
                 </StackPanel>
             </DataTemplate>
 
@@ -131,50 +141,72 @@
                         CommandParameter="{Binding}" ToolTip="{i:Loc Match.View.OpenTip}">
                     <Border x:Name="Plate" CornerRadius="8" Padding="12,10" Margin="0,0,0,6" Background="{StaticResource Row}">
                         <StackPanel>
-                            <!-- Battlegrounds: hero · name and caption · chips, board, hand · result · actions -->
+                            <!-- Both kinds share the outer columns (hero 56 · ... · result 150 · actions 98): the result, the date
+                                 and the buttons line up down the list. The result column fits the longest date and duration
+                                 ("Сегодня 12:49 · 27 мин", "04 нояб. 12:49 · 27 мин": about 131-140 px), the actions column three
+                                 buttons. A card is about 666 px wide at the minimum window (1040) and 886 at the default (1260):
+                                 window - nav 250 - page margins 80 - list card border 2 and padding 32 - list chrome 2 - scroll
+                                 bar 6 - item border 2; its row is 24 less (the plate's padding). -->
+                            <!-- Battlegrounds: hero · name and caption (120; the caption wraps to two lines, "Уровень 5 · 14 ходов")
+                                 · chips and the board · result · actions. The board shows the minions that fit whole and "+N" for
+                                 the rest: at 1040 its room is about 99 px (one minion and "+6"), at 1260 about 319 (five and "+2");
+                                 all seven (343) from a window of about 1285. -->
                             <Grid Visibility="{Binding IsBattlegrounds, Converter={StaticResource Vis}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="56" />
-                                    <ColumnDefinition Width="200" />
-                                    <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="120" />
-                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="98" />
                                 </Grid.ColumnDefinitions>
-                                <Border Width="44" Height="44" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding HeroCardId}"
+                                <Border Width="44" Height="44" Style="{StaticResource StatsPortrait}" HorizontalAlignment="Left" i:CardArt.Portrait="{Binding HeroCardId}"
                                         c:CardPreview.CardId="{Binding HeroCardId}" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding Caption}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Caption}" />
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
+                                    <TextBlock x:Name="BgCaption" Text="{Binding Caption}" Style="{StaticResource Caption}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                               MaxHeight="32" LineStackingStrategy="BlockLineHeight" LineHeight="16" ToolTip="{Binding Caption}" />
                                 </StackPanel>
-                                <WrapPanel Grid.Column="2" VerticalAlignment="Center">
-                                    <StackPanel Width="76" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <ItemsControl ItemsSource="{Binding Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
-                                        <TextBlock Text="{Binding ChipsMore}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                    <Border Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
-                                    <ItemsControl Width="196" ItemsSource="{Binding Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource RowPanel}"
-                                                  Focusable="False" VerticalAlignment="Center" />
-                                    <Border Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
-                                    <StackPanel Width="96" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
-                                        <Border Style="{StaticResource Pill}" ToolTip="{Binding HandMoreTip}" VerticalAlignment="Center"
-                                                Visibility="{Binding HandMore, Converter={StaticResource Vis}}">
-                                            <TextBlock Text="{Binding HandMore}" FontSize="11" />
+                                <Grid Grid.Column="2" VerticalAlignment="Center" ClipToBounds="True" Margin="0,0,8,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="11" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ItemsControl ItemsSource="{Binding Summary.Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
+                                        <Border Style="{StaticResource Pill}" ToolTip="{Binding Summary.ChipsMoreTip}" AutomationProperties.Name="{Binding Summary.ChipsMoreTip}"
+                                                VerticalAlignment="Center" Visibility="{Binding Summary.ChipsMore, Converter={StaticResource Vis}}">
+                                            <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="11" />
                                         </Border>
                                     </StackPanel>
-                                </WrapPanel>
+                                    <Border Grid.Column="1" Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
+                                    <!-- An empty border measures the board's room; the board itself never widens it -->
+                                    <Border x:Name="BoardRoom" Grid.Column="2" />
+                                    <ContentControl Grid.Column="2" ContentTemplate="{StaticResource BoardRow}" Focusable="False" IsTabStop="False">
+                                        <ContentControl.Content>
+                                            <MultiBinding Converter="{StaticResource BoardFit}">
+                                                <Binding ElementName="BoardRoom" Path="ActualWidth" />
+                                                <Binding Path="Summary" />
+                                            </MultiBinding>
+                                        </ContentControl.Content>
+                                    </ContentControl>
+                                </Grid>
                                 <ContentPresenter Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
-                                <ContentPresenter Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" />
+                                <ContentPresenter Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" HorizontalAlignment="Right" />
                             </Grid>
 
-                            <!-- Constructed, Arena and the rest: heroes · deck and caption · opponent · result · actions -->
+                            <!-- Constructed, Arena and the rest: heroes · deck and caption · opponent · result · actions. The caption
+                                 takes the room; the opponent ("vs Охотник на демонов" and the archetype) up to 120 with a tooltip.
+                                 The longest caption ("Паладин · Рейтинговая · Стандартный · 12 ходов · Платина 4", about 366 px)
+                                 fits at 1260 (about 414 px); at 1040 (about 194) it trims from the end, the rank first, whole in
+                                 the tooltip. -->
                             <Grid Visibility="{Binding IsConstructed, Converter={StaticResource Vis}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="56" />
-                                    <ColumnDefinition Width="2*" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="120" />
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="98" />
                                 </Grid.ColumnDefinitions>
                                 <Grid Width="48" Height="44" HorizontalAlignment="Left">
                                     <Border Width="40" Height="40" Style="{StaticResource StatsPortrait}" VerticalAlignment="Top" i:CardArt.Portrait="{Binding HeroCardId}" />
@@ -183,15 +215,15 @@
                                             ToolTip="{Binding Opponent}" Visibility="{Binding OpponentHeroCardId, Converter={StaticResource Vis}}" />
                                 </Grid>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
                                     <TextBlock Text="{Binding Caption}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Caption}" />
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Opponent}" FontSize="13" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding OpponentArchetype}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
+                                <StackPanel Grid.Column="2" MaxWidth="120" VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="{Binding Opponent}" FontSize="13" TextTrimming="CharacterEllipsis" ToolTip="{Binding Opponent}" />
+                                    <TextBlock Text="{Binding OpponentArchetype}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding OpponentArchetype}" />
                                 </StackPanel>
                                 <ContentPresenter Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
-                                <ContentPresenter Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" />
+                                <ContentPresenter Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" HorizontalAlignment="Right" />
                             </Grid>
 
                             <!-- The question before a delete, inside the card -->
@@ -310,7 +342,7 @@
                 </StackPanel>
                 <ListBox x:Name="List" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}" SelectedItem="{Binding SelectedCard, Mode=OneWay}"
                          SelectionChanged="OnSelectionChanged" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.ScrollUnit="Pixel" HorizontalContentAlignment="Stretch">
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" HorizontalContentAlignment="Stretch">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
                             <Setter Property="Foreground" Value="{StaticResource Text}" />

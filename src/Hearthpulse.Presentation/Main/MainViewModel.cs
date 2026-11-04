@@ -242,7 +242,8 @@ public sealed partial class MainViewModel : Observable
 
     // ---- history-derived ------------------------------------------------------------------
     private IReadOnlyList<GameRow> _recent = Array.Empty<GameRow>();
-    private IReadOnlyList<GameRow> _historyRows = Array.Empty<GameRow>();
+    private IReadOnlyList<GameRecord> _historyGames = [];
+    private IReadOnlyList<GameRow>? _historyRows;
 
     // Refreshes run off the UI thread; only the newest one may apply its result.
     private int _refreshRequest;
@@ -276,7 +277,19 @@ public sealed partial class MainViewModel : Observable
         }
     }
 
-    public IReadOnlyList<GameRow> HistoryRows { get => _historyRows; private set => Set(ref _historyRows, value); }
+    /// <summary>
+    /// History's games for the current filter as rows. No view binds them (History shows <see cref="Library"/>'s cards):
+    /// they are built on first read, not for each of up to 300 games on every refresh and filter change.
+    /// </summary>
+    public IReadOnlyList<GameRow> HistoryRows => _historyRows ??= _historyGames.Select(Row).ToList();
+
+    /// <summary>The games behind <see cref="HistoryRows"/>; a new list drops the rows built from the old one.</summary>
+    private void SetHistoryGames(IReadOnlyList<GameRecord> games)
+    {
+        _historyGames = games;
+        _historyRows = null;
+        Raise(nameof(HistoryRows));
+    }
     public IReadOnlyList<StatTile> OverviewTiles { get => _overviewTiles; private set => Set(ref _overviewTiles, value); }
     public IReadOnlyList<RatingPoint> RatingPoints { get => _ratingPoints; private set => Set(ref _ratingPoints, value); }
     public IReadOnlyList<PlacementBar> Placements { get => _placements; private set => Set(ref _placements, value); }
@@ -433,7 +446,7 @@ public sealed partial class MainViewModel : Observable
 
         var filter = HistoryFilter;
         var games = (filter == "All" ? recent : recent.Where(g => FilterMatch(g, filter))).Take(300).ToList();
-        HistoryRows = games.Select(Row).ToList();
+        SetHistoryGames(games);
         ShowLibrary(games);
     }
 

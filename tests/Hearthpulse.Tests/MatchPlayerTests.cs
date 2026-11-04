@@ -312,7 +312,7 @@ public sealed class MatchPlayerTests : IDisposable
     public void Battlegrounds_leaderboard_and_the_events_of_a_combat_come_from_the_contract()
     {
         var fighting = MatchViewModel.Leader(new MatchBgLeaderRow("TB_BaconShop_HERO_08", "Hagatha", 3, 20, 5, 4, false, true, false));
-        Assert.Equal(("3", "20 + 5", "4", false), (fighting.Place, fighting.Health, fighting.Tier, fighting.Local));
+        Assert.Equal(("3", "20", "5", "4", false), (fighting.Place, fighting.Health, fighting.Armor, fighting.Tier, fighting.Local));
         Assert.Equal("Hagatha · Your opponent in this combat", fighting.Tooltip);
         var dead = MatchViewModel.Leader(new MatchBgLeaderRow("TB_BaconShop_HERO_01", "Bartendotron", 8, 0, 0, 3, false, false, true));
         Assert.Equal(("0", "Bartendotron · Out", true), (dead.Health, dead.Tooltip, dead.Dead));
@@ -456,6 +456,106 @@ public sealed class MatchPlayerTests : IDisposable
         model.Clear();
         Assert.Null(model.BattlegroundsStep);
         Assert.All(lists.Concat(heroLists.OfType<object>()), list => Assert.Empty((System.Collections.IEnumerable)list));
+    }
+
+    /// <summary>
+    /// The parts made from the step (the result colours, "This turn"/"This combat") are raised only when they change, not
+    /// on every step of the same tavern or combat.
+    /// </summary>
+    [Fact]
+    public void A_battlegrounds_step_raises_its_derived_parts_only_when_they_change()
+    {
+        var model = Model(out _);
+        model.Show(BattlegroundsPage("bg-5th", Bg.Game5th()));
+        var raised = new List<string?>();
+        model.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        var quiet = 0;
+        for (var frame = 1; frame <= model.FrameMax; frame++)
+        {
+            var before = model.BattlegroundsStep!;
+            raised.Clear();
+            model.GoFrame.Execute(frame);
+            var step = model.BattlegroundsStep!;
+            Assert.Equal(before.ResultKey != step.ResultKey, raised.Contains(nameof(MatchViewModel.BattlegroundsWon)));
+            Assert.Equal(before.InCombat != step.InCombat, raised.Contains(nameof(MatchViewModel.ActionsTitle)));
+            quiet += before.InCombat == step.InCombat ? 1 : 0;
+        }
+
+        Assert.True(quiet > 0, "the fixture has steps in the same phase");
+    }
+
+    /// <summary>
+    /// A choice equal by value to the one on screen (the same options, the same pick) keeps its row: a new list each step
+    /// built the choice's panel again.
+    /// </summary>
+    [Fact]
+    public void A_choice_shown_again_keeps_its_row()
+    {
+        MatchChoiceView Heroes(bool picked) => new("Choose", [new MatchCardView("H1", "One", false) { Picked = picked }, new MatchCardView("H2", "Two", false)]) { IsHero = true };
+        var list = new Hearthpulse.UI.Infrastructure.SyncList<MatchChoiceView>();
+        list.Sync([Heroes(false)]);
+        var row = list[0];
+
+        Assert.False(list.Sync([Heroes(false)]));
+        Assert.Same(row, list[0]);
+        Assert.True(list.Sync([Heroes(true)]));
+        Assert.NotEqual(Heroes(true), Heroes(true) with { IsHero = false });
+        Assert.Equal(Heroes(true).GetHashCode(), Heroes(true).GetHashCode());
+    }
+
+    /// <summary>
+    /// The hero choice comes before any table: no Bob's offer and no "No minions"; its options go on top. Later choices
+    /// (Discover) stay under the step bar, and "No minions" shows under an empty board once there is a tavern.
+    /// </summary>
+    [Fact]
+    public void The_hero_choice_step_has_no_table_yet()
+    {
+        var heroes = new MatchChoiceView("Choose", [new MatchCardView("H1", "One", false)]) { IsHero = true };
+        var start = new MatchBgStepView(0, 9, 0, MatchPhase.Start, MatchStepKind.Choice, "Start", string.Empty, string.Empty) { Choices = [heroes] };
+        Assert.True(start.BeforeTavern && start.ChoicesOnTop);
+        Assert.False(start.ShowShop || start.ShowEmptyBoard || start.ChoicesBelow);
+
+        var discover = new MatchChoiceView("Discover", [new MatchCardView("M1", "Minion", false)]);
+        var shop = start with { Phase = MatchPhase.Shop, Turn = 1, Choices = [discover] };
+        Assert.True(shop.ShowShop && shop.ShowEmptyBoard && shop.ChoicesBelow);
+        Assert.False(shop.BeforeTavern || shop.ChoicesOnTop);
+        Assert.False((shop with { Board = [new MatchBgCardView("M1", "Minion")] }).ShowEmptyBoard);
+        Assert.False((shop with { Phase = MatchPhase.Combat }).ShowShop);
+        Assert.False((shop with { Phase = MatchPhase.End }).ShowShop);
+    }
+
+    /// <summary>
+    /// Constructed heroes show health and armor apart as on the Battlegrounds table (heart, shield), the same tooltip; an
+    /// option of a choice is named "Picked: ..." for a screen reader when it is the pick.
+    /// </summary>
+    [Fact]
+    public void Constructed_health_and_armor_show_apart_and_the_pick_is_named()
+    {
+        var side = new MatchSideView("You", true, "HERO_01", "Garrosh", 24, 5, null, null, [], [], [], "3/5", "20");
+        Assert.Equal(("24", "5", Loc.F("Match.Player.HealthArmorTip", 24, 5)), (side.HealthText, side.ArmorText, side.HealthTip));
+        var bare = side with { Armor = 0 };
+        Assert.Equal(("24", string.Empty, Loc.F("Match.Player.HealthTip", 24)), (bare.HealthText, bare.ArmorText, bare.HealthTip));
+
+        var picked = new MatchCardView("TB_BaconShop_HERO_08", "Hagatha", false) { Picked = true };
+        Assert.Equal(Loc.F("Match.Player.HeroPicked", "Hagatha"), picked.ChoiceName);
+        Assert.Equal("Hagatha", (picked with { Picked = false, Dimmed = true }).ChoiceName);
+    }
+
+    /// <summary>Health and armor are two values with a tooltip in words, on the hero line and the leaderboard; no tier 0.</summary>
+    [Fact]
+    public void Health_and_armor_show_apart_with_a_tooltip()
+    {
+        var hero = new MatchBgHeroView("H1", "One", 30, 15, 1);
+        Assert.Equal(("30", "15"), (hero.HealthText, hero.ArmorText));
+        Assert.Equal(Loc.F("Match.Player.HealthArmorTip", 30, 15), hero.HealthTip);
+        var bare = hero with { Armor = 0 };
+        Assert.Equal(("30", string.Empty, Loc.F("Match.Player.HealthTip", 30)), (bare.HealthText, bare.ArmorText, bare.HealthTip));
+
+        var line = MatchViewModel.Leader(new MatchBgLeaderRow("H1", "One", 1, 30, 15, 0, true, false, false));
+        Assert.Equal(("30", "15", string.Empty), (line.Health, line.Armor, line.Tier));
+        Assert.Equal(hero.HealthTip, line.HealthTip);
+        var tiered = MatchViewModel.Leader(new MatchBgLeaderRow("H1", "One", 1, 30, 0, 3, true, false, false));
+        Assert.Equal(("3", string.Empty), (tiered.Tier, tiered.Armor));
     }
 
     /// <summary>The choices shown are the page's: same titles, same cards in the same order.</summary>

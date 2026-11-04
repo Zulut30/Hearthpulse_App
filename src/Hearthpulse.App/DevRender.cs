@@ -53,9 +53,9 @@ public partial class App
         _mainViewModel.Busy = string.Empty;
         try
         {
-            if (RenderOnlyBrawl)
+            if (RenderOnlyGroups.Length > 0)
             {
-                await RenderBrawlAsync(folder);
+                await RenderOnlyAsync(folder);
                 Quit();
                 return;
             }

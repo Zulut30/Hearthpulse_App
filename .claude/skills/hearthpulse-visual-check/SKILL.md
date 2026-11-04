@@ -47,11 +47,13 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
   renders only those main-window pages (`Overview`, `Battlegrounds`, `Standard`, `Wild`, `History`, `Settings`) and
   stops, in both UIs. The wrapper `render.py` would then report the mandatory scenes as missing, so run the built exe or
   `dotnet run` directly (the same goes for `HEARTHPULSE_RENDER_ONLY` below).
-  Another filter: `HEARTHPULSE_RENDER_ONLY=brawl` renders only the Brawl page
-  (`main-brawl`, Avalonia also `main-brawl-compact`); `HEARTHPULSE_RENDER_ONLY=overlay` renders only the overlay
-  (the Battlegrounds moments `overlay-pick/-trinket/-discover/-game/-bg-counters`, `overlay-constructed` with its
-  previews, `overlay-layout`); more groups can be added the same way.
-  Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
+  Scene filter: `HEARTHPULSE_RENDER_ONLY=<group>[,<group>]` renders only those groups: `brawl` (`main-brawl`, Avalonia
+  also `main-brawl-compact`), `history` (`main-history`, `main-match-bg-table`: the first step of the newest Battlegrounds
+  replay), `historylist` (`main-history` alone), `ctmatch` (WPF only: `main-match-table`, the newest Constructed
+  replay's table two thirds in), `overlay` (the Battlegrounds moments `overlay-pick/-trinket/-discover/-game/-bg-counters`,
+  `overlay-constructed` with its previews, `overlay-layout`). New groups go into `RenderOnlyAsync`
+  (`DevRender.Brawl.cs`, `OffscreenRenderer.Brawl.cs`). With a group, `HEARTHPULSE_RENDER_WIDTH=<px>` sets the main
+  window's width (e.g. 1040, the minimum). Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
   honoured only while rendering, WPF only (the Avalonia app has themes, but its renderer stays Tavern).
 - Data: main pages from `history.db`; overlay moments replayed from the **kept Hearthstone logs**
   (`<install>/Logs`, resolved from the configured install); counters fall back to a synthetic scene; meta and card pool come

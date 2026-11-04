@@ -110,9 +110,9 @@ public sealed partial class MainViewModel
     /// </summary>
     public GameRow? HistoryRowFor(string key)
     {
-        if (HistoryRows.FirstOrDefault(r => r.Key == key) is { } shown)
+        if (_historyGames.FirstOrDefault(g => g.Key == key) is { } listed)
         {
-            return shown;
+            return _historyRows?.FirstOrDefault(r => r.Key == key) ?? Row(listed);
         }
 
         if (_history.Game(key) is not { } game)
@@ -120,9 +120,8 @@ public sealed partial class MainViewModel
             return null;
         }
 
-        var row = Row(game);
-        HistoryRows = [row, .. HistoryRows];
-        return row;
+        SetHistoryGames([game, .. _historyGames]);
+        return Row(game);
     }
 
     internal void MergeDecks(DeckSuggestionRow? pair)

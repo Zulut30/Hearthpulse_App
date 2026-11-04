@@ -9,5 +9,11 @@
   "Brawl.Mine": "Ваши игры в этой Потасовке",
   "Brawl.Mine.Note": "Потасовка, в которую вы играли последней: игры с {0:d MMMM}.",
   "Brawl.Mine.Empty": "Игр в Потасовке пока нет. Сыграйте её — здесь появятся ваши классы, счёт и винрейт.",
-  "Brawl.Mine.EmptyOld": "Игры Потасовки, записанные до этой версии Hearthpulse, сюда не входят: в них нет номера Потасовки."
+  "Brawl.Mine.EmptyOld": "Игры Потасовки, записанные до этой версии Hearthpulse, сюда не входят: в них нет номера Потасовки.",
+  "Brawl.Article.Title": "Статья о Потасовке",
+  "Brawl.Article.Meta": "{0:d MMMM} · {1}",
+  "Brawl.Article.Read": "Читать статью",
+  "Brawl.Article.ReadTip": "Откроется в браузере: hs-manacost.ru",
+  "Brawl.Article.Decks": "Подборка колод: {0}",
+  "Brawl.Article.InRussian": "Статья на русском"
 }

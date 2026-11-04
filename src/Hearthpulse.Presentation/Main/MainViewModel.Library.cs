@@ -74,7 +74,7 @@ public sealed partial class MainViewModel
         }
     }
 
-    /// <summary>The headers of the Recent cards' files, off the UI thread: final board, hand and chips, whether a file is left, the stars.</summary>
+    /// <summary>The headers of the Recent cards' files, off the UI thread: final board and chips, whether a file is left, the stars.</summary>
     private async Task FillRecentAsync(int load, IReadOnlyList<LibraryCard> cards)
     {
         var files = LibraryFiles;
@@ -195,7 +195,11 @@ public sealed partial class MainViewModel
             {
                 HeroCardId = g.HeroCardId,
                 Title = _cards.NameOf(g.HeroCardId),
-                Caption = $"{Mode(g.Mode)} · {Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)}",
+                // The hero portrait and the board already say "Battlegrounds": only Duos (and any other mode) names itself,
+                // so the tier and the turns fit the caption.
+                Caption = g.Mode == "Battlegrounds" ? Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)
+                    : $"{Mode(g.Mode)} · {Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)}",
+                ModeText = Mode(g.Mode),
                 Result = g.IsAbandoned ? ResultText(g.Result) : Ordinal(g.Placement),
                 ResultKey = resultKey,
                 Rating = rating,
@@ -212,14 +216,16 @@ public sealed partial class MainViewModel
         {
             HeroCardId = g.HeroCardId,
             Title = deck ?? (playerClass.Length > 0 ? playerClass : Mode(g.Mode)),
+            // The rank goes last: a narrow row trims it first (it is in the tooltip and on the match page), not the turns.
             Caption = string.Join(" · ", new[]
             {
                 deck is null ? null : playerClass,
                 Mode(g.Mode),
                 format,
-                RankInfo.Localize(g.Rank),
                 g.Turns > 0 ? Loc.P("Main.Game.Turns", g.Turns) : null,
+                RankInfo.Localize(g.Rank),
             }.Where(x => !string.IsNullOrEmpty(x))),
+            ModeText = Mode(g.Mode),
             OpponentHeroCardId = g.OpponentHeroCardId,
             Opponent = g.OpponentClass is { Length: > 0 } opponent ? Loc.F("Main.Game.Vs", OverlayViewModel.ClassName(opponent)) : string.Empty,
             OpponentArchetype = g.OpponentArchetype is { Length: > 0 } archetype ? ArchetypeNames.Display(archetype) ?? archetype : string.Empty,
@@ -235,7 +241,7 @@ public sealed partial class MainViewModel
     private static string SortKeyOf(GameRecord g, string? fileName) =>
         g.StartedAt != DateTime.MinValue ? g.StartedAt.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) : fileName ?? string.Empty;
 
-    /// <summary>A Battlegrounds card's parts from its replay's summary: hero powers and trinkets, the final board, the hand.</summary>
+    /// <summary>A Battlegrounds card's parts from its replay's summary: hero powers and trinkets, the final board.</summary>
     private void ApplySummary(LibraryCard card, ReplaySummary summary)
     {
         if (!card.IsBattlegrounds)
@@ -253,8 +259,7 @@ public sealed partial class MainViewModel
                     .Concat(m.Golden ? [Loc.T("Match.Round.Golden")] : [])
                     .Concat(m.Keywords.Select(Keyword)));
                 return new LibraryMinion(m.CardId, stats, m.Golden, m.Keywords.Contains("TAUNT"), m.Keywords.Contains("DIVINE_SHIELD"), tip);
-            }).ToList(),
-            summary.FinalHand.Select(id => new LibraryChip(id, cards.NameOf(id))).ToList());
+            }).ToList());
     }
 
     /// <summary>A keyword as the match page names it; Venomous has its own Battlegrounds string.</summary>

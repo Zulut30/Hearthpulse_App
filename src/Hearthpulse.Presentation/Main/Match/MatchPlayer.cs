@@ -50,7 +50,14 @@ public sealed record MatchTimelineSegment(double Start, double End, int FirstFra
 public sealed record MatchTimelineTick(double At, int Frame, MatchTimelineLook Look, string Tooltip);
 
 /// <summary>A leaderboard row of the Battlegrounds table: hero names only, never the players'.</summary>
-public sealed record MatchLeaderLine(string HeroCardId, string Name, string Place, string Health, string Tier, bool Local, bool Fighting, bool Dead, string Tooltip);
+public sealed record MatchLeaderLine(string HeroCardId, string Name, string Place, string Health, string Tier, bool Local, bool Fighting, bool Dead, string Tooltip)
+{
+    /// <summary>The armor after the health, next to a shield ("" without armor).</summary>
+    public string Armor { get; init; } = string.Empty;
+
+    /// <summary>"Health 30, armor 15" on the health's tooltip.</summary>
+    public string HealthTip { get; init; } = string.Empty;
+}
 
 /// <summary>
 /// The player bar of the match page: playback (a step a second, x2, x4), event and turn jumps, the whole-game timeline,
@@ -151,11 +158,23 @@ public sealed partial class MatchViewModel
         get => _battlegroundsStep;
         private set
         {
-            if (Set(ref _battlegroundsStep, BattlegroundsInPlace(value)))
+            var result = _battlegroundsStep?.ResultKey;
+            var combat = _battlegroundsStep?.InCombat;
+            if (!Set(ref _battlegroundsStep, BattlegroundsInPlace(value)))
+            {
+                return;
+            }
+
+            // The parts made from the step change far less often than the step: a step in the same stretch raises none.
+            if (_battlegroundsStep?.ResultKey != result)
             {
                 Raise(nameof(BattlegroundsWon));
                 Raise(nameof(BattlegroundsLost));
                 Raise(nameof(BattlegroundsCombatOver));
+            }
+
+            if (_battlegroundsStep?.InCombat != combat)
+            {
                 Raise(nameof(ActionsTitle));
                 Raise(nameof(ActionsIcon));
             }
@@ -412,14 +431,19 @@ public sealed partial class MatchViewModel
         return list;
     }
 
-    /// <summary>A leaderboard row as shown: health with armor, the state in the tooltip.</summary>
+    /// <summary>A leaderboard row as shown: health and armor apart, the state in the tooltip.</summary>
     public static MatchLeaderLine Leader(MatchBgLeaderRow row)
     {
         var state = row.Dead ? Loc.T("Match.Player.LeaderDead") : row.Fighting ? Loc.T("Match.Player.LeaderFighting") : null;
         return new MatchLeaderLine(row.HeroCardId, row.Name, row.Place.ToString(CultureInfo.CurrentCulture),
-            row.Armor > 0 ? $"{row.Health} + {row.Armor}" : row.Health.ToString(CultureInfo.CurrentCulture),
-            row.Tier.ToString(CultureInfo.CurrentCulture), row.Local, row.Fighting, row.Dead,
-            state is null ? row.Name : $"{row.Name} · {state}");
+            row.Health.ToString(CultureInfo.CurrentCulture),
+            row.Tier > 0 ? row.Tier.ToString(CultureInfo.CurrentCulture) : string.Empty, row.Local, row.Fighting, row.Dead,
+            state is null ? row.Name : $"{row.Name} · {state}")
+        {
+            // Before the first tavern there is no tier yet: its plate stays empty instead of showing 0.
+            Armor = row.Armor > 0 ? row.Armor.ToString(CultureInfo.CurrentCulture) : string.Empty,
+            HealthTip = MatchBgHeroView.HealthTipOf(row.Health, row.Armor),
+        };
     }
 
     /// <summary>"This turn" / "This combat": the events of a stretch, the latest one up to <paramref name="frame"/> marked.</summary>

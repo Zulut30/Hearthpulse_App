@@ -155,6 +155,8 @@ public static class CardArt
 
         try
         {
+            // LoadAsync already runs on the thread pool (GetAsync starts it with Task.Run): the file check that
+            // EnsureArtAsync makes is off the UI thread.
             if (Http is { } http)
             {
                 await Files.EnsureArtAsync(http, url, file, kind == ArtKind.Card ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);

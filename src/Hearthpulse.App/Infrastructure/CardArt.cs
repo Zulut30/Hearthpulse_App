@@ -28,10 +28,23 @@ public static class CardArt
     /// <summary>How many finished load tasks are remembered; they only keep the image reachable.</summary>
     private const int MaxPendingTasks = 2000;
 
+    /// <summary>How long art with no file is not asked for again, and how many such cards are remembered.</summary>
+    private const long AbsentRetryMs = 10_000;
+
+    private const int MaxAbsent = 4096;
+
     private static readonly SizedCache<ImageSource> Memory = new(MaxCachedBytes, PixelBytes);
     private static readonly ConcurrentDictionary<string, Task<ImageSource?>> Pending = new();
     private static readonly ConcurrentDictionary<string, bool> Unreadable = new();
     private static readonly CardImageFiles Files = new(downloads: 6);
+
+    /// <summary>
+    /// Art with no file and no download (offline, no client yet, a failed fetch): for <see cref="AbsentRetryMs"/> it is
+    /// answered "none" at once instead of asking the disk again off the UI thread, so the match player does not repeat
+    /// that check for every card without art on every step. A key leaves when its art loads; all leave when a download
+    /// client is set.
+    /// </summary>
+    internal static ArtMisses Absent { get; } = new(AbsentRetryMs, MaxAbsent, static () => Environment.TickCount64);
 
     /// <summary>
     /// How many images are decoded at the same time. Decoding is the expensive part, and a burst (the comp panel
@@ -46,7 +59,16 @@ public static class CardArt
     /// </summary>
     private static readonly ArrayPool<byte> PixelBuffers = ArrayPool<byte>.Create(256 * 1024, 4);
 
-    public static HttpClient? Http { get; set; }
+    /// <summary>The download client; setting it lets art that was missing without one be fetched at once.</summary>
+    public static HttpClient? Http
+    {
+        get;
+        set
+        {
+            field = value;
+            Absent.Clear();
+        }
+    }
 
     public static string Locale { get; set; } = "enUS";
 
@@ -146,6 +168,11 @@ public static class CardArt
     public static Task<ImageSource?> GetAsync(ArtKind kind, string cardId)
     {
         var key = Key(kind, cardId);
+        if (Absent.Skips(key))
+        {
+            return Task.FromResult<ImageSource?>(null);
+        }
+
         TrimPending();
         return Pending.GetOrAdd(key, static (_, art) => LoadAsync(art.kind, art.cardId), (kind, cardId));
     }
@@ -173,7 +200,11 @@ public static class CardArt
     }
 
     /// <summary>Caches the image; the least recently used ones go when the cache is full.</summary>
-    private static void Remember(string key, ImageSource image) => Memory.Set(key, image);
+    private static void Remember(string key, ImageSource image)
+    {
+        Memory.Set(key, image);
+        Absent.Found(key);
+    }
 
     /// <summary>Decoded size of an image; a cropped bitmap keeps its whole source alive.</summary>
     internal static long PixelBytes(ImageSource image) => image switch
@@ -194,7 +225,9 @@ public static class CardArt
 
         try
         {
-            if (Http is { } http)
+            // LoadAsync starts on the caller's thread (the UI thread for a template's art): the disk is asked off it, so a
+            // list of 300 games does not wait on 300 file checks before its first frame.
+            if (Http is { } http && !await Task.Run(() => File.Exists(file)).ConfigureAwait(false))
             {
                 await Files.EnsureArtAsync(http, url, file, kind == ArtKind.Card ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
             }
@@ -223,6 +256,10 @@ public static class CardArt
         if (image is not null)
         {
             Remember(Key(kind, cardId), image);
+        }
+        else
+        {
+            Absent.Miss(Key(kind, cardId));
         }
 
         // Only loads in flight stay here. A finished task would keep its image alive after the memory cache dropped

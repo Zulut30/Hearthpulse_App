@@ -2,6 +2,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Hearthpulse.UI.Main.Match;
 
 namespace Hearthpulse.UI.Infrastructure;
 
@@ -15,6 +16,36 @@ public static class ThemeBrushes
 }
 
 /// <summary>True when the value is truthy: true, non-zero, non-empty, non-null. Parameter "!" inverts.</summary>
+/// <summary>
+/// A local image file to a bitmap decoded to <see cref="Width"/> pixels wide; null for no file or one that cannot be
+/// read. Used for the Brawl article's cover, which <c>ManacostArticles</c> downloads into the API cache folder.
+/// </summary>
+public sealed class LocalImage : IValueConverter
+{
+    private const int Width = 640;
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not string { Length: > 0 } path || !File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(path);
+            return Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, Width);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        {
+            Hearthpulse.Core.Diag.Info("cover image unreadable: " + ex.Message);
+            return null;
+        }
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 public sealed class Truthy : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
@@ -59,4 +90,14 @@ public sealed class LeftMargin : IValueConverter
         new Thickness(value is IConvertible c ? c.ToDouble(CultureInfo.InvariantCulture) : 0, 0, 0, 0);
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
+/// <summary>
+/// A History card's final board for the width of its room: [room width, <see cref="LibrarySummary"/>] to the
+/// <see cref="LibraryBoardView"/> of whole minions and "+N" (<see cref="LibrarySummary.BoardAt"/>).
+/// </summary>
+public sealed class BoardFit : IMultiValueConverter
+{
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture) =>
+        values.Count == 2 && values[1] is LibrarySummary summary ? summary.BoardAt(values[0] is double width ? width : double.NaN) : null;
 }

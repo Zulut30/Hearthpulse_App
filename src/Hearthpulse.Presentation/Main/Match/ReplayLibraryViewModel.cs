@@ -14,11 +14,73 @@ namespace Hearthpulse.App.Main.Match;
 namespace Hearthpulse.UI.Main.Match;
 #endif
 
-/// <summary>A hero power, trinket or hand card of a library card: the card (full card on hover) and its name.</summary>
+/// <summary>A hero power or trinket of a library card: the card (full card on hover) and its name.</summary>
 public sealed record LibraryChip(string CardId, string Tooltip);
 
 /// <summary>A minion of a Battlegrounds card's final board: stats under its portrait, golden, taunt, divine shield.</summary>
 public sealed record LibraryMinion(string CardId, string Stats, bool Golden, bool Taunt, bool DivineShield, string Tooltip);
+
+/// <summary>
+/// The final board as one width shows it: the minions that fit whole and "+N" for the rest, its tooltip naming them.
+/// </summary>
+public sealed record LibraryBoardView(IReadOnlyList<LibraryMinion> Shown, string More, string MoreTip);
+
+/// <summary>
+/// The parts of a Battlegrounds card read from its replay's header: up to 3 chips (hero powers, trinkets) and "+N" with
+/// the rest in its tooltip, and the final board, which shows as many minions as its room fits (<see cref="BoardAt"/>).
+/// One object, so a card that gets its header tells the view once instead of once per part.
+/// </summary>
+public sealed record LibrarySummary(
+    IReadOnlyList<LibraryChip> Chips,
+    string ChipsMore,
+    string ChipsMoreTip,
+    IReadOnlyList<LibraryMinion> Board)
+{
+    /// <summary>Chips shown before the rest goes into "+N".</summary>
+    public const int Shown = 3;
+
+    /// <summary>A minion of the board in the views: 48 wide and 1 apart.</summary>
+    public const double MinionRoom = 49;
+
+    /// <summary>The board's "+N" pill ("+6" at 11 px with the pill's padding) and the gap before it.</summary>
+    public const double MoreRoom = 36;
+
+    public static LibrarySummary Empty { get; } = new([], string.Empty, string.Empty, []);
+
+    /// <summary>The board cut after each count of minions shown (0..all): one list per count, kept for every resize.</summary>
+    private IReadOnlyList<LibraryBoardView> Boards { get; init; } = [new([], string.Empty, string.Empty)];
+
+    public static LibrarySummary Of(IReadOnlyList<LibraryChip> chips, IReadOnlyList<LibraryMinion> board) => new(
+        chips.Take(Shown).ToList(),
+        More(chips.Count),
+        string.Join(", ", chips.Skip(Shown).Select(c => c.Tooltip)),
+        board)
+    {
+        Boards = Enumerable.Range(0, board.Count + 1).Select(shown => new LibraryBoardView(
+            board.Take(shown).ToList(),
+            shown < board.Count ? $"+{board.Count - shown}" : string.Empty,
+            string.Join('\n', board.Skip(shown).Select(m => m.Tooltip)))).ToList(),
+    };
+
+    /// <summary>
+    /// How many minions of <paramref name="count"/> fit whole in <paramref name="width"/>: all when they do, else as many
+    /// as leave room for the "+N" pill. Never a minion cut at the edge.
+    /// </summary>
+    public static int BoardFits(double width, int count)
+    {
+        if (count <= 0 || double.IsNaN(width) || count * MinionRoom <= width)
+        {
+            return Math.Max(0, count);
+        }
+
+        return Math.Clamp((int)Math.Floor((width - MoreRoom) / MinionRoom), 0, count);
+    }
+
+    /// <summary>The board as <paramref name="width"/> shows it; the same object for every width that fits as many.</summary>
+    public LibraryBoardView BoardAt(double width) => Boards[Math.Min(BoardFits(width, Board.Count), Boards.Count - 1)];
+
+    private static string More(int count) => count > Shown ? $"+{count - Shown}" : string.Empty;
+}
 
 /// <summary>What a library card is doing with the site (plan 2.2).</summary>
 public enum SiteWork
@@ -30,17 +92,12 @@ public enum SiteWork
 
 /// <summary>
 /// One game of the replay library (<c>docs/replay-library.md</c>): the History row (Recent) or the file's summary
-/// (Saved, Imported). The final board, hand and chips come from the replay's header and may arrive after the card is
+/// (Saved, Imported). The final board and the chips come from the replay's header and may arrive after the card is
 /// shown; the star and the confirmation change in place.
 /// </summary>
 public sealed class LibraryCard : Observable
 {
-    private IReadOnlyList<LibraryChip> _chips = [];
-    private string _chipsMore = string.Empty;
-    private IReadOnlyList<LibraryMinion> _board = [];
-    private IReadOnlyList<LibraryChip> _hand = [];
-    private string _handMore = string.Empty;
-    private string _handMoreTip = string.Empty;
+    private LibrarySummary _summary = LibrarySummary.Empty;
     private bool _starred;
     private bool _hasReplay;
     private string _confirmText = string.Empty;
@@ -73,6 +130,9 @@ public sealed class LibraryCard : Observable
 
     public string Caption { get; init; } = string.Empty;
 
+    /// <summary>The mode's name ("Battlegrounds"), which a plain Battlegrounds caption leaves out: the search still finds it.</summary>
+    internal string ModeText { get; init; } = string.Empty;
+
     /// <summary>Constructed: the opponent's hero portrait overlapping ours ("" when unknown).</summary>
     public string OpponentHeroCardId { get; init; } = string.Empty;
 
@@ -96,17 +156,14 @@ public sealed class LibraryCard : Observable
     /// <summary>Newest first: the start time (yyyyMMddHHmmss), else the file name.</summary>
     internal string SortKey { get; init; } = string.Empty;
 
-    public IReadOnlyList<LibraryChip> Chips { get => _chips; private set => Set(ref _chips, value); }
+    /// <summary>The views bind its parts (<c>Summary.Board</c>, ...): one notification when the header arrives.</summary>
+    public LibrarySummary Summary { get => _summary; private set => Set(ref _summary, value); }
 
-    public string ChipsMore { get => _chipsMore; private set => Set(ref _chipsMore, value); }
+    public IReadOnlyList<LibraryChip> Chips => _summary.Chips;
 
-    public IReadOnlyList<LibraryMinion> Board { get => _board; private set => Set(ref _board, value); }
+    public string ChipsMore => _summary.ChipsMore;
 
-    public IReadOnlyList<LibraryChip> Hand { get => _hand; private set => Set(ref _hand, value); }
-
-    public string HandMore { get => _handMore; private set => Set(ref _handMore, value); }
-
-    public string HandMoreTip { get => _handMoreTip; private set => Set(ref _handMoreTip, value); }
+    public IReadOnlyList<LibraryMinion> Board => _summary.Board;
 
     /// <summary>A replay file is there (or its starred copy): star and Share show, else the "no replay" mark.</summary>
     public bool HasReplay
@@ -219,16 +276,9 @@ public sealed class LibraryCard : Observable
     /// <summary>What "Delete" in the confirmation does.</summary>
     internal Action? PendingConfirm { get; set; }
 
-    /// <summary>Sets the parts read from the replay's header: chips (up to 3, then "+N"), the final board, the hand (up to 3).</summary>
-    internal void SetSummary(IReadOnlyList<LibraryChip> chips, IReadOnlyList<LibraryMinion> board, IReadOnlyList<LibraryChip> hand)
-    {
-        Chips = chips.Take(3).ToList();
-        ChipsMore = chips.Count > 3 ? $"+{chips.Count - 3}" : string.Empty;
-        Board = board;
-        Hand = hand.Take(3).ToList();
-        HandMore = hand.Count > 3 ? $"+{hand.Count - 3}" : string.Empty;
-        HandMoreTip = string.Join(", ", hand.Skip(3).Select(c => c.Tooltip));
-    }
+    /// <summary>Sets the parts read from the replay's header: chips (up to 3, then "+N") and the final board.</summary>
+    internal void SetSummary(IReadOnlyList<LibraryChip> chips, IReadOnlyList<LibraryMinion> board) =>
+        Summary = LibrarySummary.Of(chips, board);
 }
 
 /// <summary>
@@ -684,7 +734,7 @@ public sealed class ReplayLibraryViewModel : Observable
         }
 
         var text = search.Trim();
-        return text.Length == 0 || new[] { card.Title, card.Caption, card.Opponent, card.OpponentArchetype, card.Result, card.When }
+        return text.Length == 0 || new[] { card.Title, card.Caption, card.ModeText, card.Opponent, card.OpponentArchetype, card.Result, card.When }
             .Any(field => field.Contains(text, StringComparison.CurrentCultureIgnoreCase));
     }
 

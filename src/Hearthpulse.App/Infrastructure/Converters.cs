@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
+using Hearthpulse.App.Main.Match;
 
 namespace Hearthpulse.App.Infrastructure;
 
@@ -41,4 +42,16 @@ public sealed class FractionWidth : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => DisplayRules.FractionWidth(value, parameter);
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
+/// <summary>
+/// A History card's final board for the width of its room: [room width, <see cref="LibrarySummary"/>] to the
+/// <see cref="LibraryBoardView"/> of whole minions and "+N" (<see cref="LibrarySummary.BoardAt"/>).
+/// </summary>
+public sealed class BoardFit : IMultiValueConverter
+{
+    public object? Convert(object[] values, Type targetType, object? parameter, CultureInfo culture) =>
+        values.Length == 2 && values[1] is LibrarySummary summary ? summary.BoardAt(values[0] is double width ? width : double.NaN) : null;
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }

@@ -1,0 +1,30 @@
+{
+ "media_details": {
+  "sizes": {
+   "medium": {
+    "file": "zombeast-brawl-cover-300x152.jpg",
+    "width": 300,
+    "height": 152,
+    "filesize": 11891,
+    "mime_type": "image/jpeg",
+    "source_url": "https://hs-manacost.ru/wp-content/uploads/2025/10/zombeast-brawl-cover-300x152.jpg"
+   },
+   "medium_large": {
+    "file": "zombeast-brawl-cover-768x390.jpg",
+    "width": 768,
+    "height": 390,
+    "filesize": 53555,
+    "mime_type": "image/jpeg",
+    "source_url": "https://hs-manacost.ru/wp-content/uploads/2025/10/zombeast-brawl-cover-768x390.jpg"
+   },
+   "full": {
+    "file": "zombeast-brawl-cover.jpg",
+    "width": 1176,
+    "height": 597,
+    "mime_type": "image/jpeg",
+    "source_url": "https://hs-manacost.ru/wp-content/uploads/2025/10/zombeast-brawl-cover.jpg"
+   }
+  }
+ },
+ "source_url": "https://hs-manacost.ru/wp-content/uploads/2025/10/zombeast-brawl-cover.jpg"
+}

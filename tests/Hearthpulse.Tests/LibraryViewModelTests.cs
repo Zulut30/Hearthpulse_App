@@ -89,7 +89,7 @@ public sealed class LibraryViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task Recent_cards_come_from_history_with_the_board_and_hand_from_the_replay_header()
+    public async Task Recent_cards_come_from_history_with_the_board_from_the_replay_header()
     {
         var vm = await Open();
 
@@ -104,8 +104,6 @@ public sealed class LibraryViewModelTests : IDisposable
         var minion = Assert.Single(bg.Board);
         Assert.Equal("5/7", minion.Stats);
         Assert.True(minion.Golden && minion.Taunt && minion.DivineShield);
-        Assert.Equal(3, bg.Hand.Count);
-        Assert.Equal("+1", bg.HandMore);
         Assert.Equal("+32", bg.Rating);
         Assert.Contains(Loc.F("Library.Minutes", 18), bg.When, StringComparison.Ordinal);
 
@@ -116,6 +114,112 @@ public sealed class LibraryViewModelTests : IDisposable
         Assert.Equal("HERO_01", ranked.OpponentHeroCardId);
         Assert.DoesNotContain("Rival", ranked.Opponent + ranked.Caption + ranked.Title, StringComparison.Ordinal);
         Assert.Equal(Loc.F("Main.Game.Vs", Hearthpulse.UI.Overlay.OverlayViewModel.ClassName("WARRIOR")), ranked.Opponent);
+    }
+
+    /// <summary>
+    /// A plain Battlegrounds card's caption is the tier and the turns (the mode word went: it cut the turns off), and
+    /// the search still finds the card by its mode.
+    /// </summary>
+    [Fact]
+    public async Task A_battlegrounds_caption_leaves_out_the_mode_and_the_search_still_finds_it()
+    {
+        var vm = await Open();
+        var bg = vm.Library.Cards.Single(c => c.IsBattlegrounds);
+
+        Assert.Equal(Loc.P("Main.Game.BgDetail", 14, 6), bg.Caption);
+        vm.Library.Search = Loc.T("Main.Mode.Battlegrounds");
+        Assert.Same(bg, Assert.Single(vm.Library.Cards));
+    }
+
+    /// <summary>
+    /// A Constructed caption ends with the rank, so a narrow row trims the rank before the turns; the search still finds
+    /// the card by its rank.
+    /// </summary>
+    [Fact]
+    public async Task A_constructed_caption_puts_the_turns_before_the_rank()
+    {
+        var start = new DateTime(2026, 10, 28, 15, 0, 0);
+        _history.Add(new GameRecord
+        {
+            Key = "20261028150000|me#1|GT_RANKED",
+            StartedAt = start,
+            EndedAt = start.AddMinutes(9),
+            Mode = "Ranked",
+            PlayerName = "Me#1234",
+            HeroCardId = "HERO_04",
+            PlayerClass = "PALADIN",
+            Rank = "Platinum 4",
+            Result = "Loss",
+            Turns = 12,
+        });
+        var vm = await Open();
+        var card = vm.Library.Cards.Single(c => c.HistoryKey == "20261028150000|me#1|GT_RANKED");
+
+        var turns = Loc.P("Main.Game.Turns", 12);
+        var rank = Hearthpulse.Core.Memory.RankInfo.Localize("Platinum 4")!;
+        Assert.EndsWith($"{turns} · {rank}", card.Caption, StringComparison.Ordinal);
+        vm.Library.Search = rank;
+        Assert.Same(card, Assert.Single(vm.Library.Cards));
+    }
+
+    /// <summary>
+    /// The header's parts reach the view in one notification (the summary), not one per part; chips past 3 go into "+N"
+    /// with the rest in its tooltip.
+    /// </summary>
+    [Fact]
+    public void A_card_gets_its_summary_in_one_notification()
+    {
+        var card = new LibraryCard(ReplayShelf.Recent, "a.hpr", "key", battlegrounds: true);
+        var raised = new List<string?>();
+        card.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        LibraryChip Chip(string id) => new(id, "Name " + id);
+
+        card.SetSummary([Chip("a"), Chip("b"), Chip("c"), Chip("d"), Chip("e")], [new LibraryMinion("m", "136/63", false, false, false, "tip")]);
+
+        Assert.Equal([nameof(LibraryCard.Summary)], raised);
+        Assert.Equal(3, card.Summary.Chips.Count);
+        Assert.Equal(("+2", "Name d, Name e"), (card.Summary.ChipsMore, card.Summary.ChipsMoreTip));
+        Assert.Equal("136/63", Assert.Single(card.Board).Stats);
+    }
+
+    /// <summary>
+    /// The final board never cuts a minion at the edge. Its room is the row less 543 px: at the default window (1260)
+    /// about 319 (WPF) to 329 (Avalonia), five whole minions and "+2"; at the minimum (1040) about 99 to 109, one and
+    /// "+6" whose tooltip names the rest, one per line; all seven take 343.
+    /// </summary>
+    [Fact]
+    public void A_board_that_does_not_fit_shows_whole_minions_and_plus_n_for_the_rest()
+    {
+        var board = Enumerable.Range(1, 7).Select(i => new LibraryMinion("m" + i, $"{i}/{i}", false, false, false, $"Minion {i} · {i}/{i}")).ToList();
+        var summary = LibrarySummary.Of([], board);
+
+        var wide = summary.BoardAt(343);
+        Assert.Equal(7, wide.Shown.Count);
+        Assert.Equal((string.Empty, string.Empty), (wide.More, wide.MoreTip));
+
+        foreach (var room in new[] { 319.0, 329 })
+        {
+            var fitted = summary.BoardAt(room);
+            Assert.Equal(5, fitted.Shown.Count);
+            Assert.Equal("+2", fitted.More);
+        }
+
+        var narrow = summary.BoardAt(99);
+        Assert.Equal(["m1"], narrow.Shown.Select(m => m.CardId));
+        Assert.Equal("+6", narrow.More);
+        Assert.Equal(string.Join("\n", board.Skip(1).Select(m => m.Tooltip)), narrow.MoreTip);
+        Assert.Same(narrow, summary.BoardAt(109));
+        // Whole minions and the pill always fit the room they were given.
+        foreach (var width in new[] { 0.0, 20, 60, 135, 200, 314, 315, 400 })
+        {
+            var shown = LibrarySummary.BoardFits(width, board.Count);
+            var used = (shown * LibrarySummary.MinionRoom) + (shown < board.Count ? LibrarySummary.MoreRoom : 0);
+            Assert.True(shown == 0 || used <= width, $"{width}: {shown} shown take {used}");
+        }
+
+        // A resize that fits as many minions keeps the same object: the view does not rebuild the board.
+        Assert.Same(narrow, summary.BoardAt(130));
+        Assert.Empty(LibrarySummary.Empty.BoardAt(300).Shown);
     }
 
     [Fact]
