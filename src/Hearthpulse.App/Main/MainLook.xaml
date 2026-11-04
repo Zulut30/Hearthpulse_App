@@ -9,10 +9,9 @@
         <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
     <Style x:Key="PageRule" TargetType="c:Wave">
-        <Setter Property="Pulse" Value="True" />
         <Setter Property="Width" Value="168" />
         <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="Margin" Value="2,0,0,24" />
+        <Setter Property="Margin" Value="2,0,0,22" />
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
@@ -33,36 +32,36 @@
     <!-- Settings cards: one muted line under the card's Ornament heading says what the card is for -->
     <Style x:Key="CardNote" TargetType="TextBlock" BasedOn="{StaticResource Caption}">
         <Setter Property="TextWrapping" Value="Wrap" />
-        <Setter Property="Margin" Value="0,-8,0,16" />
+        <Setter Property="Margin" Value="0,-6,0,18" />
     </Style>
     <!-- A setting's name on the left of a slider or a choice: the same size as a switch's text -->
     <Style x:Key="SettingLabel" TargetType="TextBlock" BasedOn="{StaticResource Base}">
-        <Setter Property="FontSize" Value="{StaticResource FontSizeLead}" />
+        <Setter Property="FontSize" Value="13.5" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="0,0,16,0" />
         <Setter Property="Background" Value="Transparent" />
     </Style>
     <!-- A group of rows inside a settings card: a small muted heading with space above it -->
     <Style x:Key="SettingGroup" TargetType="TextBlock" BasedOn="{StaticResource Label}">
-        <Setter Property="Margin" Value="0,12,0,12" />
+        <Setter Property="Margin" Value="0,10,0,10" />
     </Style>
 
-    <!-- An empty list: the section's glyph in ember light over one short line, centred. Tag = glyph, Content = text. -->
+    <!-- An empty list: the section's glyph in a cookie over one short line, centred. Tag = glyph, Content = text. -->
     <Style x:Key="EmptyState" TargetType="ContentControl">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="Margin" Value="0,16,0,8" />
+        <Setter Property="Margin" Value="0,14,0,8" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContentControl">
                     <StackPanel>
-                        <Grid Width="112" Height="56" HorizontalAlignment="Center">
-                            <Ellipse Fill="{StaticResource EmberGlow}" />
-                            <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeHeadline}"
+                        <Grid Width="48" Height="48" HorizontalAlignment="Center">
+                            <c:Scallop Fill="{StaticResource AccentContainer}" Lobes="9" Depth="0.12" />
+                            <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource Icon}" FontSize="22"
                                        Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Grid>
-                        <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeBody}"
-                                   TextAlignment="Center" TextWrapping="Wrap" MaxWidth="440" Margin="0,8,0,0" />
+                        <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" Style="{StaticResource Caption}" TextAlignment="Center"
+                                   TextWrapping="Wrap" MaxWidth="440" Margin="0,10,0,0" />
                     </StackPanel>
                 </ControlTemplate>
             </Setter.Value>

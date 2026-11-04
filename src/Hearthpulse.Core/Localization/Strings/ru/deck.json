@@ -42,7 +42,7 @@
 
   "Deck.Matchups.Title": "Матчапы",
   "Deck.Matchups.Hint": "Нажмите на матчап, чтобы ниже остались только его игры. Архетип виден, когда его выдали карты соперника.",
-  "Deck.Matchups.Empty": "Сыграйте этой колодой — здесь появятся классы соперников и ваши победы против каждого.",
+  "Deck.Matchups.Empty": "Соперники пока не записаны.",
 
   "Deck.Versions.Title": "Версии",
   "Deck.Versions.MainChip": "Основная версия",
@@ -126,7 +126,7 @@
 
   "Deck.Recent.Title": "Последние игры",
   "Deck.Recent.ShowInHistory": "Показать в истории",
-  "Deck.Recent.Empty": "Против этого соперника игр пока нет.",
+  "Deck.Recent.Empty": "В этом матчапе нет игр.",
   "Deck.Game.Vs": "против {0}",
   "Deck.Game.UnknownOpponent": "Неизвестный соперник",
   "Deck.Game.Turns": "{0} ход|{0} хода|{0} ходов",

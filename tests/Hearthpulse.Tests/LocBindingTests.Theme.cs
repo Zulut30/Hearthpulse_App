@@ -54,7 +54,7 @@ public sealed partial class LocBindingTests
             // The picker tile is drawn in the theme's colours and keeps the preset's key for the command.
             var tile = ThemeChoice.From(frost, selected: true);
             Assert.Equal("Frost", tile.Key);
-            Assert.Equal(Color.FromUInt32(ThemePalette.Map(0xFFF5AE4C, frost)), ((ISolidColorBrush)tile.Accent).Color);
+            Assert.Equal(Color.FromUInt32(ThemePalette.Map(0xFFE9B949, frost)), ((ISolidColorBrush)tile.Accent).Color);
             Assert.NotNull(tile.Motif);
         }
         finally

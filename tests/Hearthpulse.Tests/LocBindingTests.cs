@@ -87,23 +87,22 @@ public sealed partial class LocBindingTests
             window.Content = view;
             Dispatcher.UIThread.RunJobs();
 
-            // Main/MainLook.axaml is included: the pulse rule under each page title takes its size and beat from there.
+            // Main/MainLook.axaml is included: the gold rule under each page title takes its size from there.
             var all = view.GetLogicalDescendants().OfType<Hearthpulse.UI.Controls.Wave>().Where(w => w.Classes.Contains("pageRule")).ToList();
             var rules = all.Where(w => w.FindLogicalAncestorOfType<Hearthpulse.UI.Main.Match.MatchView>() is null).ToList();
             Assert.Equal(7, rules.Count);
             // The match page (inside History) has its own rule under the game's title.
             Assert.Single(all.Except(rules));
             Assert.All(all, r => Assert.Equal(168, r.Width));
-            Assert.All(all, r => Assert.True(r.Pulse));
 
-            // An empty list shows its glyph in ember light over the localized line, not the content's type name.
+            // An empty list shows its glyph in a cookie over the localized line, not the content's type name.
             var empty = view.GetLogicalDescendants().OfType<ContentControl>().Single(c => c.Classes.Contains("emptyState") && Equals(c.Tag, "\U000F02DA"));
             empty.ApplyTemplate();
             Dispatcher.UIThread.RunJobs();
             var texts = empty.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToArray();
             Assert.Contains(Loc.T("Main.Home.NoGames"), texts);
             Assert.Contains("\U000F02DA", texts);
-            Assert.Single(empty.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>());
+            Assert.Single(empty.GetVisualDescendants().OfType<Hearthpulse.UI.Controls.Scallop>());
         }
         finally
         {

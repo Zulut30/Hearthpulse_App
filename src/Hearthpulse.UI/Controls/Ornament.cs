@@ -7,8 +7,8 @@ using Hearthpulse.UI.Infrastructure;
 namespace Hearthpulse.UI.Controls;
 
 /// <summary>
-/// Section heading: an optional glyph in a flame-tinted drop (the mark of the Hearth look) and a bold title. The centered
-/// variant has a fading hairline on both sides.
+/// Section heading: an optional gold icon inside a bronze-edged cookie shape, a bold title and a gold rule (diamond plus
+/// fading hairline) that fills the rest of the width.
 /// </summary>
 public sealed class Ornament : Control
 {
@@ -32,12 +32,12 @@ public sealed class Ornament : Control
 
     public bool Centered { get => GetValue(CenteredProperty); set => SetValue(CenteredProperty, value); }
 
-    /// <summary>Material Design Icons glyph shown in a drop before the title (empty for none).</summary>
+    /// <summary>Material Design Icons glyph shown in a cookie before the title (empty for none).</summary>
     public string Icon { get => GetValue(IconProperty); set => SetValue(IconProperty, value); }
 
     private bool Large => Size >= 13;
 
-    private double IconSize => Math.Round(Size * 2);
+    private double IconSize => Math.Round(Size * 2.3);
 
     /// <summary>"BATTLEGROUNDS RATING" reads as "Battlegrounds rating"; mixed-case text is kept.</summary>
     private static string SentenceCase(string text)
@@ -80,14 +80,14 @@ public sealed class Ornament : Control
             var left = (w - text.Width) / 2;
             context.DrawText(text, new Point(left, mid - (text.Height / 2)));
 
-            // Mirror the left rule so both lines start at the title and fade outwards.
+            // Mirror the left rule so both diamonds sit next to the title and the lines fade outwards.
             var leftEnd = left - 10;
             using (context.PushTransform(Matrix.CreateScale(-1, 1) * Matrix.CreateTranslation(leftEnd, 0)))
             {
-                Wave.Hairline(context, trim, 0, leftEnd, mid);
+                Wave.Draw(context, trim, gold, 0, leftEnd, mid);
             }
 
-            Wave.Hairline(context, trim, left + text.Width + 10, w, mid);
+            Wave.Draw(context, trim, gold, left + text.Width + 10, w, mid);
             return;
         }
 
@@ -97,7 +97,7 @@ public sealed class Ornament : Control
             var d = IconSize;
             using (context.PushTransform(Matrix.CreateTranslation(0, mid - (d / 2))))
             {
-                context.DrawGeometry(ThemeBrushes.Get("FlameSoft"), new Pen(ThemeBrushes.Get("FlameLine"), 1), DropShape(d));
+                context.DrawGeometry(ThemeBrushes.Get("Surface3"), new Pen(trim, 1), Scallop.Build(d, d, 9, 0.09, 0));
             }
 
             var glyph = new FormattedText(Icon, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
@@ -107,26 +107,6 @@ public sealed class Ornament : Control
         }
 
         context.DrawText(text, new Point(x, mid - (text.Height / 2)));
-    }
-
-    /// <summary>A circle of diameter <paramref name="d"/> with its bottom-left corner drawn in: a drop, like the flame's tip.</summary>
-    private static StreamGeometry DropShape(double d)
-    {
-        var r = d / 2;
-        var s = d * 0.18;
-        var drop = new StreamGeometry();
-        using (var ctx = drop.Open())
-        {
-            ctx.BeginFigure(new Point(r, 0.5), true);
-            ctx.ArcTo(new Point(d - 0.5, r), new Size(r - 0.5, r - 0.5), 0, false, SweepDirection.Clockwise);
-            ctx.ArcTo(new Point(r, d - 0.5), new Size(r - 0.5, r - 0.5), 0, false, SweepDirection.Clockwise);
-            ctx.LineTo(new Point(s, d - 0.5));
-            ctx.ArcTo(new Point(0.5, d - s), new Size(s - 0.5, s - 0.5), 0, false, SweepDirection.Clockwise);
-            ctx.LineTo(new Point(0.5, r));
-            ctx.ArcTo(new Point(r, 0.5), new Size(r - 0.5, r - 0.5), 0, false, SweepDirection.Clockwise);
-            ctx.EndFigure(true);
-        }
-
-        return drop;
+        Wave.Draw(context, trim, gold, x + text.Width + 12, w, mid + 1);
     }
 }

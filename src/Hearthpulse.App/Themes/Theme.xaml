@@ -13,8 +13,8 @@
     <Color x:Key="TextColor">#F4E7C9</Color>
     <Color x:Key="MutedColor">#CDB894</Color>
     <Color x:Key="FaintColor">#8F7A5C</Color>
-    <Color x:Key="AccentColor">#F5AE4C</Color>
-    <Color x:Key="AccentDeepColor">#D9822F</Color>
+    <Color x:Key="AccentColor">#E9B949</Color>
+    <Color x:Key="AccentDeepColor">#C48E2C</Color>
     <Color x:Key="AccentContainerColor">#5A3D17</Color>
     <Color x:Key="SecondaryContainerColor">#3F2C19</Color>
     <Color x:Key="PositiveColor">#8CCF63</Color>
@@ -33,8 +33,8 @@
     <SolidColorBrush x:Key="Faint" Color="{StaticResource FaintColor}" />
     <SolidColorBrush x:Key="Accent" Color="{StaticResource AccentColor}" />
     <SolidColorBrush x:Key="AccentDeep" Color="{StaticResource AccentDeepColor}" />
-    <SolidColorBrush x:Key="AccentSoft" Color="#1FF5AE4C" />
-    <SolidColorBrush x:Key="AccentLine" Color="#99F5AE4C" />
+    <SolidColorBrush x:Key="AccentSoft" Color="#1FE9B949" />
+    <SolidColorBrush x:Key="AccentLine" Color="#99E9B949" />
     <SolidColorBrush x:Key="AccentContainer" Color="{StaticResource AccentContainerColor}" />
     <SolidColorBrush x:Key="OnAccentContainer" Color="#FBE3A6" />
     <SolidColorBrush x:Key="SecondaryContainer" Color="{StaticResource SecondaryContainerColor}" />
@@ -47,14 +47,14 @@
     <SolidColorBrush x:Key="Info" Color="{StaticResource InfoColor}" />
     <SolidColorBrush x:Key="Hover" Color="#12F4E7C9" />
     <SolidColorBrush x:Key="Pressed" Color="#1FF4E7C9" />
-    <SolidColorBrush x:Key="Decor" Color="#0EF5AE4C" />
-    <SolidColorBrush x:Key="DecorStrong" Color="#16F5AE4C" />
+    <SolidColorBrush x:Key="Decor" Color="#0EE9B949" />
+    <SolidColorBrush x:Key="DecorStrong" Color="#16E9B949" />
     <SolidColorBrush x:Key="OverlayPanel" Color="#F0201510" />
     <LinearGradientBrush x:Key="OverlayPanelSolid" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#FA2C1F14" Offset="0" />
         <GradientStop Color="#FA1C130C" Offset="1" />
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="OverlayBorder" Color="#40F5AE4C" />
+    <SolidColorBrush x:Key="OverlayBorder" Color="#40E9B949" />
     <SolidColorBrush x:Key="Row" Color="#2E1F13" />
     <LinearGradientBrush x:Key="TileFade" StartPoint="0,0" EndPoint="1,0">
         <GradientStop Color="#FF2E1F13" Offset="0" />
@@ -72,39 +72,22 @@
     </LinearGradientBrush>
     <SolidColorBrush x:Key="SelectedEdge" Color="#A27839" />
     <LinearGradientBrush x:Key="PrimaryFill" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#FFE27A" Offset="0" />
-        <GradientStop Color="#F6A93B" Offset="0.5" />
-        <GradientStop Color="#EC7232" Offset="1" />
+        <GradientStop Color="#FFE79E" Offset="0" />
+        <GradientStop Color="#EFC253" Offset="0.45" />
+        <GradientStop Color="#C88F2E" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="PrimaryFillHover" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#FFEDA8" Offset="0" />
-        <GradientStop Color="#F9B957" Offset="0.5" />
-        <GradientStop Color="#EE7A3A" Offset="1" />
+        <GradientStop Color="#FFF0C2" Offset="0" />
+        <GradientStop Color="#F6CD66" Offset="0.45" />
+        <GradientStop Color="#D69C3C" Offset="1" />
     </LinearGradientBrush>
     <SolidColorBrush x:Key="PanelEdge" Color="{StaticResource BorderColor}" />
 
-    <!-- ===== Hearth (docs/design-identity.md): the logo's flame is the one accent - primary action, selection, the pulse
-         rule under titles, section marks; ember light from below on plates ===== -->
-    <LinearGradientBrush x:Key="Flame" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#FFE27A" Offset="0" />
-        <GradientStop Color="#F6A93B" Offset="0.5" />
-        <GradientStop Color="#EC7232" Offset="1" />
-    </LinearGradientBrush>
-    <LinearGradientBrush x:Key="FlameRule" StartPoint="0,0" EndPoint="1,0">
-        <GradientStop Color="#FFD45E" Offset="0" />
-        <GradientStop Color="#F08A32" Offset="1" />
-    </LinearGradientBrush>
-    <SolidColorBrush x:Key="FlameSoft" Color="#33F08A32" />
-    <SolidColorBrush x:Key="FlameLine" Color="#73F08A32" />
-    <RadialGradientBrush x:Key="EmberGlow">
-        <GradientStop Color="#40F08A32" Offset="0" />
-        <GradientStop Color="#00F08A32" Offset="1" />
-    </RadialGradientBrush>
     <!-- ===== Gilded Tavern: light falls from above, so every plate is lit on top and trimmed in gold ===== -->
     <LinearGradientBrush x:Key="GildedText" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#FFF9EC" Offset="0" />
-        <GradientStop Color="#F4E7C9" Offset="0.6" />
-        <GradientStop Color="#E9D3A6" Offset="1" />
+        <GradientStop Color="#FFF6D8" Offset="0" />
+        <GradientStop Color="#F3CF72" Offset="0.55" />
+        <GradientStop Color="#D29A35" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="StatText" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#FFFAEE" Offset="0" />
@@ -121,14 +104,14 @@
     </LinearGradientBrush>
     <!-- Plates are lit on top: a lighter band fades into the body, and the rim catches the accent -->
     <LinearGradientBrush x:Key="CardFill" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#2A1D13" Offset="0" />
-        <GradientStop Color="#2C1E13" Offset="0.6" />
-        <GradientStop Color="#362315" Offset="1" />
+        <GradientStop Color="#352516" Offset="0" />
+        <GradientStop Color="#2C1F13" Offset="0.45" />
+        <GradientStop Color="#23180F" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="CardEdge" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#3D2A19" Offset="0" />
-        <GradientStop Color="#3D2A19" Offset="0.55" />
-        <GradientStop Color="#8A5328" Offset="1" />
+        <GradientStop Color="#8A6436" Offset="0" />
+        <GradientStop Color="#4A331D" Offset="0.3" />
+        <GradientStop Color="#2E1F13" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="GhostFill" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#47321C" Offset="0" />
@@ -138,38 +121,38 @@
         <GradientStop Color="#86603A" Offset="0" />
         <GradientStop Color="#4E3720" Offset="1" />
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="PrimaryEdge" Color="#B5541D" />
+    <SolidColorBrush x:Key="PrimaryEdge" Color="#8A5E22" />
     <LinearGradientBrush x:Key="BestEdge" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#FFF0C2" Offset="0" />
-        <GradientStop Color="#F5AE4C" Offset="0.45" />
+        <GradientStop Color="#E9B949" Offset="0.45" />
         <GradientStop Color="#A87526" Offset="1" />
     </LinearGradientBrush>
     <!-- A soft gold light behind the recommended option; a gradient, not a bitmap effect, so the overlay stays cheap -->
     <RadialGradientBrush x:Key="BestHalo">
-        <GradientStop Color="#4DF5AE4C" Offset="0.6" />
-        <GradientStop Color="#00F5AE4C" Offset="1" />
+        <GradientStop Color="#4DE9B949" Offset="0.6" />
+        <GradientStop Color="#00E9B949" Offset="1" />
     </RadialGradientBrush>
     <SolidColorBrush x:Key="Sheen" Color="#80FFF4D6" />
     <SolidColorBrush x:Key="GrooveFill" Color="#1A110B" />
     <SolidColorBrush x:Key="GrooveEdge" Color="#36261A" />
     <LinearGradientBrush x:Key="NavSelectedFill" StartPoint="0,0" EndPoint="1,0">
-        <GradientStop Color="#42F5AE4C" Offset="0" />
-        <GradientStop Color="#14F5AE4C" Offset="0.55" />
-        <GradientStop Color="#06F5AE4C" Offset="1" />
+        <GradientStop Color="#42E9B949" Offset="0" />
+        <GradientStop Color="#14E9B949" Offset="0.55" />
+        <GradientStop Color="#06E9B949" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="NavSelectedEdge" StartPoint="0,0" EndPoint="1,0">
-        <GradientStop Color="#AAF5AE4C" Offset="0" />
-        <GradientStop Color="#40F5AE4C" Offset="0.5" />
-        <GradientStop Color="#14F5AE4C" Offset="1" />
+        <GradientStop Color="#AAE9B949" Offset="0" />
+        <GradientStop Color="#40E9B949" Offset="0.5" />
+        <GradientStop Color="#14E9B949" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="OverlayCardFill" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#F22E2015" Offset="0" />
         <GradientStop Color="#F01B120B" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="OverlayEdge" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#A6F5AE4C" Offset="0" />
-        <GradientStop Color="#45F5AE4C" Offset="0.35" />
-        <GradientStop Color="#2AF5AE4C" Offset="1" />
+        <GradientStop Color="#A6E9B949" Offset="0" />
+        <GradientStop Color="#45E9B949" Offset="0.35" />
+        <GradientStop Color="#2AE9B949" Offset="1" />
     </LinearGradientBrush>
 
     <!-- ===== Character of the theme: a second accent, soft glows and a backdrop motif ===== -->
@@ -181,9 +164,9 @@
     <SolidColorBrush x:Key="Accent2Line" Color="#994FC2A8" />
     <!-- Halos are gradients, not bitmap effects: free to draw on the overlay -->
     <RadialGradientBrush x:Key="Glow">
-        <GradientStop Color="#3DF5AE4C" Offset="0" />
-        <GradientStop Color="#14F5AE4C" Offset="0.55" />
-        <GradientStop Color="#00F5AE4C" Offset="1" />
+        <GradientStop Color="#3DE9B949" Offset="0" />
+        <GradientStop Color="#14E9B949" Offset="0.55" />
+        <GradientStop Color="#00E9B949" Offset="1" />
     </RadialGradientBrush>
     <RadialGradientBrush x:Key="Accent2Glow">
         <GradientStop Color="#334FC2A8" Offset="0" />
@@ -200,7 +183,7 @@
     <!-- Backdrop motifs: original line art in a 1000x1000 box, one per preset (Motif<Name> is stroked,
          Motif<Name>Alt is filled with the second accent). ThemeEngine points every use of MotifTavern at the
          theme's own motif. Generated by tools/themes/motifs.py. -->
-    <SolidColorBrush x:Key="MotifInk" Color="#17F5AE4C" />
+    <SolidColorBrush x:Key="MotifInk" Color="#17E9B949" />
     <SolidColorBrush x:Key="MotifInk2" Color="#244FC2A8" />
     <!-- motifs:begin -->
     <Geometry x:Key="MotifTavern">M30,500 A470,470 0 1 0 970,500 A470,470 0 1 0 30,500 Z M52,500 A448,448 0 1 0 948,500 A448,448 0 1 0 52,500 Z M200,500 A300,300 0 1 0 800,500 A300,300 0 1 0 200,500 Z M382,500 A118,118 0 1 0 618,500 A118,118 0 1 0 382,500 Z M632,500 L788,500 M622,550.5 L698.6,582.3 M593.3,593.3 L703.6,703.6 M550.5,622 L582.3,698.6 M500,632 L500,788 M449.5,622 L417.7,698.6 M406.7,593.3 L296.4,703.6 M378,550.5 L301.4,582.3 M368,500 L212,500 M378,449.5 L301.4,417.7 M406.7,406.7 L296.4,296.4 M449.5,378 L417.7,301.4 M500,368 L500,212 M550.5,378 L582.3,301.4 M593.3,406.7 L703.6,296.4 M622,449.5 L698.6,417.7 M804,500 Q867.4,441.8 940,500 Q867.4,558.2 804,500 Z M793.8,621.7 Q838.6,606.8 862.2,650 Q814.9,663.9 793.8,621.7 Z M715,715 Q801,718.7 811.1,811.1 Q718.7,801 715,715 Z M621.7,793.8 Q663.9,814.9 650,862.2 Q606.8,838.6 621.7,793.8 Z M500,804 Q558.2,867.4 500,940 Q441.8,867.4 500,804 Z M378.3,793.8 Q393.2,838.6 350,862.2 Q336.1,814.9 378.3,793.8 Z M285,715 Q281.3,801 188.9,811.1 Q199,718.7 285,715 Z M206.2,621.7 Q185.1,663.9 137.8,650 Q161.4,606.8 206.2,621.7 Z M196,500 Q132.6,558.2 60,500 Q132.6,441.8 196,500 Z M206.2,378.3 Q161.4,393.2 137.8,350 Q185.1,336.1 206.2,378.3 Z M285,285 Q199,281.3 188.9,188.9 Q281.3,199 285,285 Z M378.3,206.2 Q336.1,185.1 350,137.8 Q393.2,161.4 378.3,206.2 Z M500,196 Q441.8,132.6 500,60 Q558.2,132.6 500,196 Z M621.7,206.2 Q606.8,161.4 650,137.8 Q663.9,185.1 621.7,206.2 Z M715,285 Q718.7,199 811.1,188.9 Q801,281.3 715,285 Z M793.8,378.3 Q814.9,336.1 862.2,350 Q838.6,393.2 793.8,378.3 Z</Geometry>
@@ -1213,11 +1196,11 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
                     <!-- Slim at rest, full width under the mouse -->
-                    <Border x:Name="T" CornerRadius="4" Margin="1" Background="#3DF5AE4C" />
+                    <Border x:Name="T" CornerRadius="4" Margin="1" Background="#3DE9B949" />
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="T" Property="Margin" Value="0" />
-                            <Setter TargetName="T" Property="Background" Value="#80F5AE4C" />
+                            <Setter TargetName="T" Property="Background" Value="#80E9B949" />
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
                             <Setter TargetName="T" Property="Margin" Value="0" />
