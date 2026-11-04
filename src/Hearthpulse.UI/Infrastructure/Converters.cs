@@ -17,8 +17,8 @@ public static class ThemeBrushes
 
 /// <summary>True when the value is truthy: true, non-zero, non-empty, non-null. Parameter "!" inverts.</summary>
 /// <summary>
-/// A local image file (a cover the host downloaded into the cache) to a bitmap decoded to <see cref="Width"/> pixels;
-/// null for no file or one that cannot be read.
+/// A local image file to a bitmap decoded to <see cref="Width"/> pixels wide; null for no file or one that cannot be
+/// read. Used for the Brawl article's cover, which <c>ManacostArticles</c> downloads into the API cache folder.
 /// </summary>
 public sealed class LocalImage : IValueConverter
 {

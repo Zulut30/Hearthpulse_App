@@ -10,8 +10,10 @@ using Hearthpulse.Core.Replay;
 namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
-/// The WPF History row: the Battlegrounds board shows the minions that fit whole in its room and "+N" for the rest,
-/// at the minimum window (1040: a row about 678 px wide) and the default one (1260: about 898 px).
+/// The WPF History row: the Battlegrounds board shows the minions that fit whole in its room and "+N" for the rest. A
+/// card is the window less 374 px (nav 250, page margins 80, the list card's border and padding 34, list chrome 2,
+/// scroll bar 6, item border 2): 666 at the minimum window (1040: one minion and "+6"), 886 at the default (1260: five
+/// and "+2"); all seven from a card of 910 (a window of about 1285). The caption wraps to two lines, not trimmed at one.
 /// </summary>
 public sealed class LibraryRowXamlTests
 {
@@ -48,13 +50,13 @@ public sealed class LibraryRowXamlTests
         var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Tavern", 0, 0, 1)));
         var view = new ReplayLibraryView();
-        var card = new LibraryCard(ReplayShelf.Recent, "a.hpr", "key", battlegrounds: true) { Title = "Hero", Caption = "Tier 5 · 14 turns", When = "Today 12:49 · 27 min" };
-        card.SetSummary([new LibraryChip("TB_BaconShop_HP_061", "Power")],
+        var card = new LibraryCard(ReplayShelf.Recent, "a.hpr", "key", battlegrounds: true) { Title = "Hero", Caption = "Уровень 5 · 14 ходов", When = "Today 12:49 · 27 min" };
+        card.SetSummary([Chip("A"), Chip("B"), Chip("C"), Chip("D"), Chip("E")],
             Enumerable.Range(1, 7).Select(i => new LibraryMinion("BG21_00" + i, "136/63", false, false, false, "Minion " + i)).ToList());
         var row = (FrameworkElement)((DataTemplate)view.Resources["LibraryCard"]).LoadContent();
         row.DataContext = card;
-        // The card's own 12 px padding on each side comes on top of the row's room.
-        foreach (var (width, shown, more) in new[] { (702.0, 2, "+5"), (922.0, 7, string.Empty) })
+        // The width is the card's: its own 12 px padding on each side comes off the row's room.
+        foreach (var (width, shown, more) in new[] { (666.0, 1, "+6"), (886.0, 5, "+2"), (914.0, 7, string.Empty) })
         {
             Layout(row, width);
             var minions = Descendants(row).OfType<StackPanel>().Where(p => p.DataContext is LibraryMinion && Shown(p, row)).ToList();
@@ -63,9 +65,19 @@ public sealed class LibraryRowXamlTests
             Assert.Equal(more.Length > 0, Shown(pill, row));
             if (more.Length > 0)
             {
+                var rest = string.Join("\n", Enumerable.Range(shown + 1, 7 - shown).Select(i => "Minion " + i));
                 Assert.Equal(more, Descendants(pill).OfType<TextBlock>().Single().Text);
-                Assert.Equal("Minion 3\nMinion 4\nMinion 5\nMinion 6\nMinion 7", pill.ToolTip);
+                Assert.Equal(rest, pill.ToolTip);
+                Assert.Equal(rest, System.Windows.Automation.AutomationProperties.GetName(pill));
             }
+
+            // The Russian caption does not fit 108 px on one line: it takes two, whole.
+            var caption = Descendants(row).OfType<TextBlock>().Single(t => t.Name == "BgCaption");
+            Assert.Equal(32, caption.ActualHeight, 0.5);
+
+            // The chips' "+N" is named for screen readers as its tooltip names the rest.
+            var chipsMore = Descendants(row).OfType<Border>().Single(b => Equals(b.ToolTip, "D, E"));
+            Assert.Equal("D, E", System.Windows.Automation.AutomationProperties.GetName(chipsMore));
 
             // Whole minions only: the last one ends inside the board's room.
             var room = Descendants(row).OfType<Border>().Single(b => b.Name == "BoardRoom");
@@ -74,6 +86,8 @@ public sealed class LibraryRowXamlTests
             Assert.True(end <= room.ActualWidth + 0.5, $"{width}: the last minion ends at {end}, the room is {room.ActualWidth}");
         }
     }
+
+    private static LibraryChip Chip(string name) => new("TB_BaconShop_HP_061", name);
 
     private static bool Shown(DependencyObject element, DependencyObject root)
     {

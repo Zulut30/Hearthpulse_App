@@ -35,6 +35,15 @@ public sealed class ManacostArticlesTests : IDisposable
     {
         public List<string> Asked { get; } = [];
 
+        /// <summary>The posts answer instead of the fixture (a maintenance page, an empty list).</summary>
+        public string? Posts { get; init; }
+
+        /// <summary>The cover's size in bytes.</summary>
+        public int CoverBytes { get; init; } = 4;
+
+        /// <summary>Where the request ended after redirects (null: where it was sent).</summary>
+        public Uri? LandedOn { get; init; }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var url = request.RequestUri!.AbsoluteUri;
@@ -44,17 +53,18 @@ public sealed class ManacostArticlesTests : IDisposable
                 throw new HttpRequestException("offline");
             }
 
+            var landed = new HttpRequestMessage(HttpMethod.Get, LandedOn ?? request.RequestUri);
             if (url.EndsWith(".jpg", StringComparison.Ordinal))
             {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([0xFF, 0xD8, 0xFF, 0xD9]) });
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(new byte[CoverBytes]), RequestMessage = landed });
             }
 
-            var body = url.Contains("/posts?", StringComparison.Ordinal) ? Fixture("posts.json")
+            var body = url.Contains("/posts?", StringComparison.Ordinal) ? Posts ?? Fixture("posts.json")
                 : url.Contains("/media/319837", StringComparison.Ordinal) ? Fixture("media-319837.json")
                 : null;
             return Task.FromResult(body is null
-                ? new HttpResponseMessage(HttpStatusCode.NotFound)
-                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") });
+                ? new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = landed }
+                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json"), RequestMessage = landed });
         }
     }
 
@@ -120,8 +130,85 @@ public sealed class ManacostArticlesTests : IDisposable
     }
 
     [Theory]
+    [InlineData("<html><body>Технические работы</body></html>")]
+    [InlineData("[]")]
+    public async Task A_maintenance_page_or_an_empty_list_keeps_the_cache(string answer)
+    {
+        Assert.NotNull((await Articles(new Site()).LoadAsync()).Main);
+        var file = Path.Combine(_dir, ManacostArticles.CacheName);
+        var before = File.ReadAllText(file);
+        File.SetLastWriteTimeUtc(file, Now - ManacostArticles.MaxAge - TimeSpan.FromMinutes(1));
+
+        var site = new Site { Posts = answer };
+        Assert.NotNull((await Articles(site).LoadAsync()).Main);
+        Assert.Single(site.Asked);
+        Assert.Equal(before, File.ReadAllText(file));
+    }
+
+    [Fact]
+    public async Task A_redirect_off_the_site_is_not_read()
+    {
+        var site = new Site { LandedOn = new Uri("https://evil.example/posts") };
+        Assert.Same(BrawlArticles.Empty, await Articles(site).LoadAsync());
+    }
+
+    [Fact]
+    public async Task A_cover_over_a_megabyte_is_not_kept_and_is_asked_for_again_sooner()
+    {
+        var big = new Site { CoverBytes = ManacostArticles.MaxCover + 1 };
+        var main = (await Articles(big).LoadAsync()).Main;
+        Assert.NotNull(main);
+        Assert.Null(main.CoverFile);
+        Assert.Empty(Directory.EnumerateFiles(_dir, "manacost-cover-*"));
+
+        // The list is fresh for less than the usual 6 hours while the cover is missing.
+        var file = Path.Combine(_dir, ManacostArticles.CacheName);
+        File.SetLastWriteTimeUtc(file, Now - ManacostArticles.CoverRetry - TimeSpan.FromMinutes(1));
+        var again = new Site();
+        Assert.NotNull((await Articles(again).LoadAsync()).Main?.CoverFile);
+        Assert.NotEmpty(again.Asked);
+    }
+
+    [Fact]
+    public async Task A_link_changed_in_the_cache_is_dropped()
+    {
+        Assert.NotNull((await Articles(new Site()).LoadAsync()).Main);
+        var file = Path.Combine(_dir, ManacostArticles.CacheName);
+        File.WriteAllText(file, File.ReadAllText(file).Replace("https://hs-manacost.ru/", "https://evil.example/", StringComparison.Ordinal));
+        File.SetLastWriteTimeUtc(file, Now);
+
+        Assert.Same(BrawlArticles.Empty, await Articles(new Site(online: false)).LoadAsync());
+    }
+
+    [Fact]
+    public void Scripts_and_handlers_never_reach_the_text_and_emoji_are_not_split()
+    {
+        using var doc = JsonDocument.Parse("""
+            [{"id":3,"date":"2026-11-01T11:00:00","link":"https://hs-manacost.ru/a/",
+              "title":{"rendered":"Потасовка недели: &amp;lt;b&amp;gt; <script>alert(1)</script>"},
+              "excerpt":{"rendered":"<img src=x onerror=alert(1)>Текст<script type=\"text/javascript\">steal()</script> дальше"},"featured_media":0}]
+            """);
+        var post = Assert.Single(ManacostArticles.ParsePosts(doc.RootElement)).Article;
+        // Decoded once: "&amp;lt;" stays the text "&lt;", never a tag.
+        Assert.Equal("Потасовка недели: &lt;b&gt;", post.Title);
+        Assert.Equal("Текст дальше", post.Excerpt);
+        Assert.DoesNotContain("alert", post.Title + post.Excerpt, StringComparison.Ordinal);
+
+        var emoji = string.Concat(Enumerable.Repeat("а", ManacostArticles.MaxExcerpt - 2)) + "😀😀😀";
+        using var longDoc = JsonDocument.Parse(JsonSerializer.Serialize(new[]
+        {
+            new { id = 4, date = "2026-11-01T11:00:00", link = "https://hs-manacost.ru/b/", title = new { rendered = "Потасовка недели: x" }, excerpt = new { rendered = emoji }, featured_media = 0 },
+        }));
+        var cut = Assert.Single(ManacostArticles.ParsePosts(longDoc.RootElement)).Article.Excerpt;
+        Assert.EndsWith("…", cut, StringComparison.Ordinal);
+        Assert.False(char.IsHighSurrogate(cut[^2]));
+    }
+
+    [Theory]
     [InlineData("https://hs-manacost.ru/pot/", true)]
     [InlineData("https://www.hs-manacost.ru/pot/", true)]
+    [InlineData("https://cdn.hs-manacost.ru/pot/", false)]
+    [InlineData("https://hs-manacost.ru:8443/pot/", false)]
     [InlineData("http://hs-manacost.ru/pot/", false)]
     [InlineData("https://hs-manacost.ru.evil.example/", false)]
     [InlineData("https://evil.example/hs-manacost.ru", false)]

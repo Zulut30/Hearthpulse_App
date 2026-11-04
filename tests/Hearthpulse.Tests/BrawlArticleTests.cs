@@ -11,6 +11,7 @@ namespace Hearthpulse.Tests;
 /// and teaser of the week's post, the deck collection line, the "in Russian" note in English, and links opened only
 /// on hs-manacost.ru.
 /// </summary>
+[Collection(nameof(GlobalLanguage))]
 public sealed class BrawlArticleTests
 {
     private static readonly ManacostArticle Week = new(
@@ -36,6 +37,17 @@ public sealed class BrawlArticleTests
         Assert.True(vm.BrawlArticleHasExcerpt);
         Assert.False(vm.BrawlArticleHasCover);
         Assert.True(vm.BrawlArticleInRussianNote);
+        // In Russian the note is hidden (this class is in the language collection: no other test runs meanwhile).
+        Loc.Instance.SetLanguage(Loc.Russian);
+        try
+        {
+            Assert.False(vm.BrawlArticleInRussianNote);
+        }
+        finally
+        {
+            Loc.Instance.SetLanguage(Loc.English);
+        }
+
         Assert.True(vm.BrawlDecksShown);
         Assert.Equal(Loc.F("Brawl.Article.Decks", decks.Title), vm.BrawlDecksTitle);
 

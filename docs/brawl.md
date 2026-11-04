@@ -57,7 +57,8 @@ none and the scenario id names nothing), in-game hints on the overlay.
 
 ## The week's article (hs-manacost.ru)
 
-The right column starts with "More about the Brawl on hs-manacost.ru" (package B2): the site is the owner's
+The right column starts with "About this Brawl" ("Статья о Потасовке"; the site is in the line under the title, so the
+heading fits a compact window) (package B2): the site is the owner's
 (Manacost). `Core/Api/ManacostArticles.cs` reads its WordPress REST: posts of category "Потасовка" (id 1036,
 `wp-json/wp/v2/posts?categories=1036&per_page=10&_fields=id,date,link,title,excerpt,featured_media`), then the media
 of the chosen post (`wp-json/wp/v2/media/{id}`, the `medium_large` size, never the original), downloaded into the API
@@ -70,6 +71,9 @@ cache folder (at most 1 MB) so the views show a local file.
 - Plain text: tags out, HTML entities decoded, the teaser cut to 220 characters; an empty teaser is left out.
 - Cache `manacost-brawl.json`, fresh for 6 hours; offline the cached list stands in; 10 s per request; nothing current:
   no card.
-- Links and covers only over https on `hs-manacost.ru` (or a subdomain), checked when parsed, when read from the cache
-  and again before the browser opens them (`MainViewModel.OpenOnSite`).
+- Links and covers only over https on `hs-manacost.ru` or `www.hs-manacost.ru` (no other subdomain, no other port),
+  checked when parsed, after redirects, when read from the cache and again before the browser opens them
+  (`MainViewModel.OpenOnSite`). Script and style blocks are dropped with the tags; entities are decoded once.
+- An answer that is not a list of posts (a maintenance page, `[]`) keeps the cache. A cover that did not come down is
+  asked for again after 20 minutes instead of 6 hours; covers of posts no longer listed are deleted.
 - The articles are Russian: an English interface shows "The article is in Russian" on the card.

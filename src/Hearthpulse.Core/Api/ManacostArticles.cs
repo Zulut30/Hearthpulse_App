@@ -41,6 +41,9 @@ public sealed partial class ManacostArticles(HttpClient http, string? cacheDirec
     /// <summary>How long the cached list is fresh.</summary>
     public static readonly TimeSpan MaxAge = TimeSpan.FromHours(6);
 
+    /// <summary>How long a list whose week's cover could not be downloaded is kept before asking again.</summary>
+    public static readonly TimeSpan CoverRetry = TimeSpan.FromMinutes(20);
+
     /// <summary>A week's article older than this is not this week's.</summary>
     public static readonly TimeSpan MaxCurrent = TimeSpan.FromDays(14);
 
@@ -68,6 +71,10 @@ public sealed partial class ManacostArticles(HttpClient http, string? cacheDirec
     [GeneratedRegex("<[^>]*>", RegexOptions.CultureInvariant)]
     private static partial Regex Tags { get; }
 
+    /// <summary>Script and style blocks go whole: their text is not the post's.</summary>
+    [GeneratedRegex(@"<(script|style)\b[^>]*>.*?</\1\s*>", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex Blocks { get; }
+
     [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
     private static partial Regex Spaces { get; }
 
@@ -82,15 +89,19 @@ public sealed partial class ManacostArticles(HttpClient http, string? cacheDirec
             var file = Path.Combine(_cacheDirectory, CacheName);
             var info = new FileInfo(file);
             var cached = info.Exists ? ReadCache(file) : null;
-            if (cached is not null && Clock() - info.LastWriteTimeUtc <= MaxAge)
+            // A week's post whose cover did not come down is asked for again sooner.
+            var fresh = cached is not null && Select(cached, null, Clock()).Main is { Cover: not null, CoverFile: null } ? CoverRetry : MaxAge;
+            if (cached is not null && Clock() - info.LastWriteTimeUtc <= fresh)
             {
                 return Select(cached, brawlName, Clock());
             }
 
-            if (await FetchAsync(cancellationToken).ConfigureAwait(false) is { } fetched)
+            // An answer that is not a list of posts (a maintenance page, an empty list) keeps the cache as it is.
+            if (await FetchAsync(cancellationToken).ConfigureAwait(false) is { Count: > 0 } fetched)
             {
                 Directory.CreateDirectory(_cacheDirectory);
                 await HearthpulseData.WriteCacheAsync(file, JsonSerializer.Serialize(fetched, Json), cancellationToken).ConfigureAwait(false);
+                DropOldCovers(fetched);
                 return Select(fetched, brawlName, Clock());
             }
 
@@ -111,8 +122,23 @@ public sealed partial class ManacostArticles(HttpClient http, string? cacheDirec
             return null;
         }
 
-        using var doc = JsonDocument.Parse(posts);
-        var list = ParsePosts(doc.RootElement);
+        List<(ManacostArticle Article, int Media)> list;
+        try
+        {
+            using var doc = JsonDocument.Parse(posts);
+            list = ParsePosts(doc.RootElement);
+        }
+        catch (JsonException ex)
+        {
+            Diag.Info("hs-manacost.ru: the posts answer is not JSON (" + ex.Message + ")");
+            return null;
+        }
+
+        if (list.Count == 0)
+        {
+            return null;
+        }
+
         var chosen = Select(list.Select(p => p.Article).ToList(), null, Clock());
         var result = new List<ManacostArticle>(list.Count);
         foreach (var (article, media) in list)
@@ -121,8 +147,17 @@ public sealed partial class ManacostArticles(HttpClient http, string? cacheDirec
             if (media > 0 && ReferenceEquals(article, chosen.Main)
                 && await GetAsync(string.Format(CultureInfo.InvariantCulture, MediaUrl, media), cancellationToken).ConfigureAwait(false) is { } answer)
             {
-                using var mediaDoc = JsonDocument.Parse(answer);
-                var cover = ParseCover(mediaDoc.RootElement);
+                Uri? cover;
+                try
+                {
+                    using var mediaDoc = JsonDocument.Parse(answer);
+                    cover = ParseCover(mediaDoc.RootElement);
+                }
+                catch (JsonException)
+                {
+                    cover = null;
+                }
+
                 withCover = article with { Cover = cover, CoverFile = cover is null ? null : await DownloadCoverAsync(cover, media, cancellationToken).ConfigureAwait(false) };
             }
 
@@ -152,7 +187,8 @@ public sealed partial class ManacostArticles(HttpClient http, string? cacheDirec
         try
         {
             using var response = await http.GetAsync(cover, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > MaxCover)
+            // A redirect must not leave the site either.
+            if (!response.IsSuccessStatusCode || response.Content.Headers.ContentLength > MaxCover || OnSite(response.RequestMessage?.RequestUri?.AbsoluteUri) is null)
             {
                 return null;
             }
@@ -200,6 +236,12 @@ public sealed partial class ManacostArticles(HttpClient http, string? cacheDirec
                 return null;
             }
 
+            if (OnSite(response.RequestMessage?.RequestUri?.AbsoluteUri) is null)
+            {
+                Diag.Info("hs-manacost.ru: redirected off the site, not read: " + url);
+                return null;
+            }
+
             return await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is HttpRequestException || (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested))
@@ -221,14 +263,14 @@ public sealed partial class ManacostArticles(HttpClient http, string? cacheDirec
         foreach (var post in root.EnumerateArray())
         {
             if (post.ValueKind != JsonValueKind.Object
-                || Rendered(post, "title") is not { Length: > 0 } title
+                || Rendered(post, "title") is not { } html || Plain(html) is not { Length: > 0 } title
                 || OnSite(Text(post, "link")) is not { } link
                 || !DateTime.TryParse(Text(post, "date"), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var date))
             {
                 continue;
             }
 
-            var media = post.TryGetProperty("featured_media", out var m) && m.ValueKind == JsonValueKind.Number ? m.GetInt32() : 0;
+            var media = post.TryGetProperty("featured_media", out var m) && m.ValueKind == JsonValueKind.Number && m.TryGetInt32(out var id) ? id : 0;
             result.Add((new ManacostArticle(title, Cut(Rendered(post, "excerpt") ?? string.Empty), date.ToUniversalTime(), link, null), media));
         }
 
@@ -282,33 +324,66 @@ public sealed partial class ManacostArticles(HttpClient http, string? cacheDirec
         return main is null && decks is null ? BrawlArticles.Empty : new BrawlArticles(main, decks);
     }
 
-    /// <summary>A link on the site over https (the site or a subdomain), else null.</summary>
+    /// <summary>A link on the site over https (<c>hs-manacost.ru</c> or <c>www.hs-manacost.ru</c>, no other subdomain), else null.</summary>
     public static Uri? OnSite(string? url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
-        && (uri.Host.Equals(Host, StringComparison.OrdinalIgnoreCase) || uri.Host.EndsWith("." + Host, StringComparison.OrdinalIgnoreCase))
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps && uri.IsDefaultPort
+        && (uri.Host.Equals(Host, StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("www." + Host, StringComparison.OrdinalIgnoreCase))
             ? uri
             : null;
 
-    /// <summary>HTML to one line of plain text: tags out, entities decoded, spaces collapsed.</summary>
-    internal static string Plain(string html) => Spaces.Replace(WebUtility.HtmlDecode(Tags.Replace(html, " ")), " ").Trim();
+    /// <summary>HTML to one line of plain text: script and style blocks and tags out, entities decoded once, spaces collapsed.</summary>
+    internal static string Plain(string html) => Spaces.Replace(WebUtility.HtmlDecode(Tags.Replace(Blocks.Replace(html, " "), " ")), " ").Trim();
 
     private static string Cut(string html)
     {
-        var text = Plain(html).Replace("[…]", "…", StringComparison.Ordinal).Replace("[&hellip;]", "…", StringComparison.Ordinal);
-        return text.Length <= MaxExcerpt ? text : string.Concat(text.AsSpan(0, MaxExcerpt - 1).TrimEnd(), "…");
+        var text = Plain(html).Replace("[…]", "…", StringComparison.Ordinal);
+        if (text.Length <= MaxExcerpt)
+        {
+            return text;
+        }
+
+        // Never between the two halves of a surrogate pair (an emoji).
+        var length = MaxExcerpt - 1;
+        if (char.IsHighSurrogate(text[length - 1]))
+        {
+            length--;
+        }
+
+        return string.Concat(text.AsSpan(0, length).TrimEnd(), "…");
+    }
+
+    /// <summary>Covers of posts no longer in the list are deleted from the cache folder.</summary>
+    private void DropOldCovers(List<ManacostArticle> kept)
+    {
+        var keep = kept.Select(a => a.CoverFile).OfType<string>().Select(Path.GetFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in Directory.EnumerateFiles(_cacheDirectory, "manacost-cover-*"))
+        {
+            if (!keep.Contains(Path.GetFileName(file)))
+            {
+                try
+                {
+                    File.Delete(file);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Diag.Info("hs-manacost.ru: an old cover stays: " + ex.Message);
+                }
+            }
+        }
     }
 
     private static int SharedWords(string title, string name)
     {
-        static HashSet<string> Words(string s) => Plain(s).ToLowerInvariant()
+        static HashSet<string> Words(string s) => s.ToLowerInvariant()
             .Split([' ', ',', '.', ':', '!', '?', '«', '»', '"', '-', '—'], StringSplitOptions.RemoveEmptyEntries)
             .Where(w => w.Length >= 4).ToHashSet(StringComparer.Ordinal);
         var words = Words(name);
         return Words(title).Count(words.Contains);
     }
 
+    /// <summary>The raw HTML of <c>name.rendered</c> (made plain text once, by the caller).</summary>
     private static string? Rendered(JsonElement post, string name) =>
-        post.TryGetProperty(name, out var e) && e.ValueKind == JsonValueKind.Object && Text(e, "rendered") is { } html ? Plain(html) : null;
+        post.TryGetProperty(name, out var e) && e.ValueKind == JsonValueKind.Object ? Text(e, "rendered") : null;
 
     private static string? Text(JsonElement e, string name) =>
         e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;

@@ -12,16 +12,18 @@ namespace Hearthpulse.Tests;
 public sealed partial class LocBindingTests
 {
     /// <summary>
-    /// A board of seven in a row as wide as the minimum window's (1040: about 678 px) shows two whole minions and "+5"
-    /// naming the rest; as wide as the default window's (1260: about 898 px) all seven and no "+N".
+    /// A board of seven in a card as wide as at the minimum window (1040: the window less nav 250, page margins 80 and the
+    /// list card's border and padding 34, about 676 px; the scroll bar overlays) shows one whole minion and "+6" naming
+    /// the rest; at the default window (1260: about 896) five and "+2"; all seven from a card of 910 (a window of about
+    /// 1275). The caption may wrap to two lines; both "+N" pills are named for screen readers.
     /// </summary>
     [Fact]
     public void History_battlegrounds_row_shows_whole_minions_and_plus_n() => Headless.Run(() =>
     {
         var theme = Theme();
         var view = new ReplayLibraryView();
-        var card = new LibraryCard(ReplayShelf.Recent, "a.hpr", "key", battlegrounds: true) { Title = "Hero", Caption = "Tier 5 · 14 turns", When = "Today 12:49 · 27 min" };
-        card.SetSummary([new LibraryChip("TB_BaconShop_HP_061", "Power")],
+        var card = new LibraryCard(ReplayShelf.Recent, "a.hpr", "key", battlegrounds: true) { Title = "Hero", Caption = "Уровень 5 · 14 ходов", When = "Today 12:49 · 27 min" };
+        card.SetSummary(new[] { "A", "B", "C", "D", "E" }.Select(n => new LibraryChip("TB_BaconShop_HP_061", n)).ToList(),
             Enumerable.Range(1, 7).Select(i => new LibraryMinion("BG21_00" + i, "136/63", false, false, false, "Minion " + i)).ToList());
         var row = Assert.IsAssignableFrom<IDataTemplate>(view.Resources["LibraryCard"]).Build(card)!;
         row.DataContext = card;
@@ -29,7 +31,14 @@ public sealed partial class LocBindingTests
         try
         {
             window.Show();
-            foreach (var (width, shown, more) in new[] { (702.0, 2, "+5"), (922.0, 7, string.Empty) })
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            var caption = row.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "BgCaption");
+            Assert.Equal((Avalonia.Media.TextWrapping.Wrap, 2, Avalonia.Media.TextTrimming.CharacterEllipsis), (caption.TextWrapping, caption.MaxLines, caption.TextTrimming));
+            var chipsMore = row.GetVisualDescendants().OfType<Border>().Single(b => Equals(ToolTip.GetTip(b), "D, E"));
+            Assert.Equal("D, E", Avalonia.Automation.AutomationProperties.GetName(chipsMore));
+
+            foreach (var (width, shown, more) in new[] { (676.0, 1, "+6"), (896.0, 5, "+2"), (914.0, 7, string.Empty) })
             {
                 window.Width = width;
                 Dispatcher.UIThread.RunJobs();
@@ -44,8 +53,10 @@ public sealed partial class LocBindingTests
                 Assert.Equal(more.Length > 0, pill.IsEffectivelyVisible);
                 if (more.Length > 0)
                 {
+                    var rest = string.Join("\n", Enumerable.Range(shown + 1, 7 - shown).Select(i => "Minion " + i));
                     Assert.Equal(more, pill.GetVisualDescendants().OfType<TextBlock>().Single().Text);
-                    Assert.Equal("Minion 3\nMinion 4\nMinion 5\nMinion 6\nMinion 7", ToolTip.GetTip(pill));
+                    Assert.Equal(rest, ToolTip.GetTip(pill));
+                    Assert.Equal(rest, Avalonia.Automation.AutomationProperties.GetName(pill));
                 }
 
                 // Whole minions only: the last one ends inside the board's room.

@@ -144,10 +144,13 @@
                             <!-- Both kinds share the outer columns (hero 56 · ... · result 150 · actions 98): the result, the date
                                  and the buttons line up down the list. The result column fits the longest date and duration
                                  ("Сегодня 12:49 · 27 мин", "04 нояб. 12:49 · 27 мин": about 131-140 px), the actions column three
-                                 buttons. A row has about 678 px at the minimum window (1040) and 898 at the default (1260). -->
-                            <!-- Battlegrounds: hero · name and caption (120) · chips and the board · result · actions. The board
-                                 shows the minions that fit whole and "+N" for the rest: at 1040 its room is about 135 px (two
-                                 minions and "+5"), at 1260 about 355 (all seven, 315). -->
+                                 buttons. A card is about 666 px wide at the minimum window (1040) and 886 at the default (1260):
+                                 window - nav 250 - page margins 80 - list card border 2 and padding 32 - list chrome 2 - scroll
+                                 bar 6 - item border 2; its row is 24 less (the plate's padding). -->
+                            <!-- Battlegrounds: hero · name and caption (120; the caption wraps to two lines, "Уровень 5 · 14 ходов")
+                                 · chips and the board · result · actions. The board shows the minions that fit whole and "+N" for
+                                 the rest: at 1040 its room is about 99 px (one minion and "+6"), at 1260 about 319 (five and "+2");
+                                 all seven (343) from a window of about 1285. -->
                             <Grid Visibility="{Binding IsBattlegrounds, Converter={StaticResource Vis}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="56" />
@@ -160,7 +163,8 @@
                                         c:CardPreview.CardId="{Binding HeroCardId}" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
-                                    <TextBlock Text="{Binding Caption}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Caption}" />
+                                    <TextBlock x:Name="BgCaption" Text="{Binding Caption}" Style="{StaticResource Caption}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                               MaxHeight="32" LineStackingStrategy="BlockLineHeight" LineHeight="16" ToolTip="{Binding Caption}" />
                                 </StackPanel>
                                 <Grid Grid.Column="2" VerticalAlignment="Center" ClipToBounds="True" Margin="0,0,8,0">
                                     <Grid.ColumnDefinitions>
@@ -170,8 +174,8 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <ItemsControl ItemsSource="{Binding Summary.Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
-                                        <Border Style="{StaticResource Pill}" ToolTip="{Binding Summary.ChipsMoreTip}" VerticalAlignment="Center"
-                                                Visibility="{Binding Summary.ChipsMore, Converter={StaticResource Vis}}">
+                                        <Border Style="{StaticResource Pill}" ToolTip="{Binding Summary.ChipsMoreTip}" AutomationProperties.Name="{Binding Summary.ChipsMoreTip}"
+                                                VerticalAlignment="Center" Visibility="{Binding Summary.ChipsMore, Converter={StaticResource Vis}}">
                                             <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="11" />
                                         </Border>
                                     </StackPanel>
@@ -193,8 +197,9 @@
 
                             <!-- Constructed, Arena and the rest: heroes · deck and caption · opponent · result · actions. The caption
                                  takes the room; the opponent ("vs Охотник на демонов" and the archetype) up to 120 with a tooltip.
-                                 The longest caption ("Паладин · Рейтинговая · Стандартный · Платина 4 · 12 ходов", about 366 px)
-                                 fits at 1260 (about 450 px); at 1040 (about 230) it trims, whole in the tooltip. -->
+                                 The longest caption ("Паладин · Рейтинговая · Стандартный · 12 ходов · Платина 4", about 366 px)
+                                 fits at 1260 (about 414 px); at 1040 (about 194) it trims from the end, the rank first, whole in
+                                 the tooltip. -->
                             <Grid Visibility="{Binding IsConstructed, Converter={StaticResource Vis}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="56" />

@@ -31,7 +31,7 @@ internal static partial class OffscreenRenderer
             await RenderBrawlPageAsync(main, view, host, folder);
         }
 
-        if (RenderOnly("history"))
+        if (RenderOnly("history") || RenderOnly("historylist"))
         {
             if (RenderWidth is { } width)
             {
@@ -40,7 +40,7 @@ internal static partial class OffscreenRenderer
 
             view.ShowPage("History");
             await Save(main, Path.Combine(folder, "main-history.png"));
-            if (host.History.Recent(400).FirstOrDefault(g => g.Replay is not null && g.IsBattlegrounds) is { } battlegrounds
+            if (RenderOnly("history") && host.History.Recent(400).FirstOrDefault(g => g.Replay is not null && g.IsBattlegrounds) is { } battlegrounds
                 && await host.Main.OpenMatchPageAsync(battlegrounds.Key))
             {
                 view.ShowPage("History");

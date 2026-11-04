@@ -44,7 +44,8 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
 - Language: the data copy's `settings.json` decides (`"Language": "ru"` or `"en"`; `"auto"` = the machine's). Render
   each language from its own copy (`--data %TEMP%\hpd-ru`, `--data %TEMP%\hpd-en`); see `docs/localization.md`.
 - No other arguments exist (no size). Scene filter: `HEARTHPULSE_RENDER_ONLY=<group>[,<group>]` renders only those groups:
-  `brawl` (`main-brawl`, Avalonia also `main-brawl-compact`), `history` (`main-history`, `main-match-bg-table`: the first step of the newest Battlegrounds replay). New groups go
+  `brawl` (`main-brawl`, Avalonia also `main-brawl-compact`), `history` (`main-history`, `main-match-bg-table`: the first step of the newest Battlegrounds replay), `historylist` (`main-history` alone), `ctmatch` (WPF
+  only: `main-match-table`, the newest Constructed replay's table two thirds in). New groups go
   into `RenderOnlyAsync` (`DevRender.Brawl.cs`, `OffscreenRenderer.Brawl.cs`). With a group,
   `HEARTHPULSE_RENDER_WIDTH=<px>` sets the main window's width (e.g. 1040, the minimum). Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
   honoured only while rendering, WPF only (the Avalonia app has themes, but its renderer stays Tavern).

@@ -24,7 +24,8 @@ Your rating and the lobby tribes are read from game memory on Windows only; on M
 those values stay empty.
 
 Community stats: Hearthpulse data (api.kolodahearthstone.com). Russian archetype names: the Hearthpulse archetype
-dictionary (api.blizzcore.ru). Card data and art: HearthstoneJSON.
+dictionary (api.blizzcore.ru). Card data and art: HearthstoneJSON. The Brawl page's article: hs-manacost.ru (its
+"Потасовка" posts and cover pictures, opened in the browser).
 Not affiliated with Blizzard Entertainment.
 
 CRASH REPORTS

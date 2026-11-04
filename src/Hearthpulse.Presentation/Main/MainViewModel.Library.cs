@@ -216,13 +216,14 @@ public sealed partial class MainViewModel
         {
             HeroCardId = g.HeroCardId,
             Title = deck ?? (playerClass.Length > 0 ? playerClass : Mode(g.Mode)),
+            // The rank goes last: a narrow row trims it first (it is in the tooltip and on the match page), not the turns.
             Caption = string.Join(" · ", new[]
             {
                 deck is null ? null : playerClass,
                 Mode(g.Mode),
                 format,
-                RankInfo.Localize(g.Rank),
                 g.Turns > 0 ? Loc.P("Main.Game.Turns", g.Turns) : null,
+                RankInfo.Localize(g.Rank),
             }.Where(x => !string.IsNullOrEmpty(x))),
             ModeText = Mode(g.Mode),
             OpponentHeroCardId = g.OpponentHeroCardId,

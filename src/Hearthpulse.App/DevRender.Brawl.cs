@@ -28,7 +28,12 @@ public partial class App
             await RenderBrawlAsync(folder);
         }
 
-        if (RenderOnly("history"))
+        if (RenderOnly("ctmatch"))
+        {
+            await RenderConstructedTableOnlyAsync(folder);
+        }
+
+        if (RenderOnly("history") || RenderOnly("historylist"))
         {
             if (RenderWidth is { } width)
             {
@@ -39,7 +44,7 @@ public partial class App
             await Task.Delay(2500);
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, "main-history.png"));
-            if (_history.Recent(400).FirstOrDefault(g => g.Replay is not null && g.IsBattlegrounds) is { } battlegrounds
+            if (RenderOnly("history") && _history.Recent(400).FirstOrDefault(g => g.Replay is not null && g.IsBattlegrounds) is { } battlegrounds
                 && await _mainViewModel.OpenMatchPageAsync(battlegrounds.Key))
             {
                 // The first step (the hero choice) on the Battlegrounds table card: below the fold of the page.
@@ -52,6 +57,25 @@ public partial class App
 
                 _mainViewModel.MatchPage.Back.Execute(null);
             }
+        }
+    }
+
+    /// <summary><c>ctmatch</c>: the newest Constructed replay's table card two thirds in (the hero lines' health and armor).</summary>
+    private async Task RenderConstructedTableOnlyAsync(string folder)
+    {
+        if (_history.Recent(400).FirstOrDefault(g => g.Replay is not null && !g.IsBattlegrounds) is { } game
+            && await _mainViewModel.OpenMatchPageAsync(game.Key))
+        {
+            var page = _mainViewModel.MatchPage;
+            page.Frame = page.FrameMax * 2 / 3;
+            await Task.Delay(2500);
+            _main.UpdateLayout();
+            if (Named<System.Windows.Controls.Border>(_main, "TableCard") is { } table)
+            {
+                SaveCard(table, Path.Combine(folder, "main-match-table.png"));
+            }
+
+            page.Back.Execute(null);
         }
     }
 
