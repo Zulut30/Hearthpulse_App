@@ -1,6 +1,6 @@
 ---
 name: hearthpulse-data-sources
-description: Use when Hearthpulse code talks to anything outside the machine or borrows from another project - the Hearthpulse data API api.kolodahearthstone.com (HSGuru/HSReplay meta, mulligan, card pool, HearthpulseData cache), the hearthpulse.net account (device flow client manacost-tracker, /me, entitlements/paywall, tracker/events/batch game upload), HearthstoneJSON cards and art, hsbg.cards, Firestone BG stats, GitHub updates - and the licence rules for HDT, Firestone, HdtArenaHelper, bgtracker, tavern-ledger and upstream HeartLens. Triggers - "API", "endpoint", "кэш", "войти через сайт", "подписка", "paywall", "upload games", "можно ли взять код из ...", "attribution".
+description: Use when Hearthpulse code talks to anything outside the machine or borrows from another project - the Hearthpulse data API api.kolodahearthstone.com (HSGuru/HSReplay meta, mulligan, card pool, HearthpulseData cache), the hearthpulse.net account (device flow client manacost-tracker, /me, entitlements/paywall, tracker/events/batch game upload), HearthstoneJSON cards and art, hsbg.cards, Firestone BG stats, hs-manacost.ru Brawl articles (the owner's WordPress), GitHub updates - and the licence rules for HDT, Firestone, HdtArenaHelper, bgtracker, tavern-ledger and upstream HeartLens. Triggers - "API", "endpoint", "кэш", "войти через сайт", "подписка", "paywall", "upload games", "можно ли взять код из ...", "attribution".
 ---
 
 # External data and what we may borrow

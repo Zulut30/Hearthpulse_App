@@ -15,6 +15,36 @@ public static class ThemeBrushes
 }
 
 /// <summary>True when the value is truthy: true, non-zero, non-empty, non-null. Parameter "!" inverts.</summary>
+/// <summary>
+/// A local image file (a cover the host downloaded into the cache) to a bitmap decoded to <see cref="Width"/> pixels;
+/// null for no file or one that cannot be read.
+/// </summary>
+public sealed class LocalImage : IValueConverter
+{
+    private const int Width = 640;
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not string { Length: > 0 } path || !File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(path);
+            return Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, Width);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        {
+            Hearthpulse.Core.Diag.Info("cover image unreadable: " + ex.Message);
+            return null;
+        }
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 public sealed class Truthy : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>

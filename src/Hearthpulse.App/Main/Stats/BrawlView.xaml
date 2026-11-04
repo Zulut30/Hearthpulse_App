@@ -37,7 +37,30 @@
                            Visibility="{Binding BrawlSource, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
-        <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">
+        <StackPanel Grid.Column="2" VerticalAlignment="Top">
+            <!-- The week's article of hs-manacost.ru (the owner's site, docs/brawl.md): shown while one is current -->
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16" Visibility="{Binding BrawlArticleShown, Converter={StaticResource Vis}}">
+                <StackPanel>
+                    <c:Ornament Text="{i:Loc Brawl.Article.Title}" Icon="&#xF0219;" Size="13" Margin="0,0,0,10" />
+                    <Border CornerRadius="8" ClipToBounds="True" Height="150" Margin="0,0,0,10" Background="{StaticResource Surface3}"
+                            Visibility="{Binding BrawlArticleHasCover, Converter={StaticResource Vis}}">
+                        <Image Source="{Binding BrawlArticleCover, TargetNullValue={x:Null}}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />
+                    </Border>
+                    <TextBlock Text="{Binding BrawlArticleTitle}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding BrawlArticleMeta}" Style="{StaticResource Caption}" Margin="0,2,0,0" />
+                    <TextBlock Text="{Binding BrawlArticleExcerpt}" Style="{StaticResource Caption}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="40"
+                               Margin="0,6,0,0" Visibility="{Binding BrawlArticleHasExcerpt, Converter={StaticResource Vis}}" />
+                    <TextBlock Text="{i:Loc Brawl.Article.InRussian}" Style="{StaticResource Caption}" FontStyle="Italic" Margin="0,6,0,0"
+                               Visibility="{Binding BrawlArticleInRussianNote, Converter={StaticResource Vis}}" />
+                    <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Brawl.Article.Read}" Command="{Binding OpenBrawlArticle}"
+                            ToolTip="{i:Loc Brawl.Article.ReadTip}" HorizontalAlignment="Left" Margin="0,12,0,0" />
+                    <Button Style="{StaticResource GhostButton}" Command="{Binding OpenBrawlDecks}" ToolTip="{i:Loc Brawl.Article.ReadTip}" HorizontalAlignment="Left"
+                            Margin="0,8,0,0" Visibility="{Binding BrawlDecksShown, Converter={StaticResource Vis}}">
+                        <TextBlock Text="{Binding BrawlDecksTitle}" TextWrapping="Wrap" />
+                    </Button>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Card}">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Brawl.Mine}" Icon="&#xF0004;" Size="13" Margin="0,0,0,10" />
                 <TextBlock Text="{Binding BrawlMineNote}" Style="{StaticResource CardNote}" Visibility="{Binding BrawlMineNote, Converter={StaticResource Vis}}" />
@@ -49,5 +72,6 @@
                            Visibility="{Binding BrawlMineOld, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
+        </StackPanel>
     </Grid>
 </UserControl>

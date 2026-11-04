@@ -54,3 +54,22 @@ numbers are never limited, the own table is a plain count).
 
 Brawl decks (`v1/hsguru/brawl/decks`), archetypes inside a class, rank or coin filters, the Brawl's name (the log has
 none and the scenario id names nothing), in-game hints on the overlay.
+
+## The week's article (hs-manacost.ru)
+
+The right column starts with "More about the Brawl on hs-manacost.ru" (package B2): the site is the owner's
+(Manacost). `Core/Api/ManacostArticles.cs` reads its WordPress REST: posts of category "Потасовка" (id 1036,
+`wp-json/wp/v2/posts?categories=1036&per_page=10&_fields=id,date,link,title,excerpt,featured_media`), then the media
+of the chosen post (`wp-json/wp/v2/media/{id}`, the `medium_large` size, never the original), downloaded into the API
+cache folder (at most 1 MB) so the views show a local file.
+
+- The week's article: the newest post whose title starts with "Потасовка недели" (with a Brawl name, the one sharing
+  most words with it; the API gives no name today). Older than 14 days: not this week's, the card hides.
+- A second line: the newest deck collection ("колод" in the title), at most 10 days old and not older than the week's
+  post.
+- Plain text: tags out, HTML entities decoded, the teaser cut to 220 characters; an empty teaser is left out.
+- Cache `manacost-brawl.json`, fresh for 6 hours; offline the cached list stands in; 10 s per request; nothing current:
+  no card.
+- Links and covers only over https on `hs-manacost.ru` (or a subdomain), checked when parsed, when read from the cache
+  and again before the browser opens them (`MainViewModel.OpenOnSite`).
+- The articles are Russian: an English interface shows "The article is in Russian" on the card.

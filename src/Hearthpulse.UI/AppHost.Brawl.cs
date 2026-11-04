@@ -20,5 +20,8 @@ public sealed partial class AppHost
             Diag.Error("Brawl stats unavailable", ex);
             Main.BrawlMetaUnavailable();
         }
+
+        // The week's article of hs-manacost.ru (the owner's site): never throws, nothing current hides the card.
+        Main.SetBrawlArticles(await new ManacostArticles(Http).LoadAsync());
     }
 }
