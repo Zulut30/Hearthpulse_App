@@ -20,7 +20,7 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). PNG proof
 | Role | WPF `src/Hearthpulse.App/Main/` | Avalonia `src/Hearthpulse.UI/Main/` |
 |---|---|---|
 | Sidebar + pages | `MainWindow.xaml` (Window 1260x840, min 1040x660) | `MainView.axaml` (UserControl; window in `src/Hearthpulse.Desktop/MainWindow.axaml`) |
-| Page and tab controls | `Pages/{Overview,Battlegrounds,Constructed,History}Page`, `SettingsTabs/<Tab>Settings` | same names, `.axaml` |
+| Page and tab controls | `Pages/{Overview,Battlegrounds,History}Page`, `Pages/ConstructedPageView`, `SettingsTabs/<Tab>Settings` | same names, `.axaml` |
 | Shared keys of pages | `MainPages.xaml` (merges `MainLook.xaml`) | `MainPages.axaml` |
 | Navigation code | `MainWindow.xaml.cs`: `ShowPage`, `CurrentPage`, `OnNavigate`, `PlacePill`, `Reveal`, `ShowConstructedTab`, tab handlers `OnBgTab`/`OnCtTab` | `MainView.axaml.cs`: `ShowPage`, `UpdatePages`, `UpdateTabs`, `ApplyWidth` (compact), `ApplyChoice` |
 | Platform VM partials | Small `MainViewModel*.cs` adapters; `.Constructed` is the WPF clipboard copy of a deck code, `.Theme` is WPF-only | Small `MainViewModel*.cs` adapters for framework/established platform differences |
