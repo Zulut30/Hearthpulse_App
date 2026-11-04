@@ -304,8 +304,10 @@ public sealed partial class BattlegroundsReplayRecorder
 
         if (_combat && blockType == "ATTACK" && source is { CardType: "HERO" } hero && _shown.TryGetValue(hero.Id, out var attacker))
         {
-            var defender = attacker.Side == 'L' ? _opponentHero : game.LocalHero;
-            _heroAttack = new HeroAttack(attacker.Side == 'L', defender, Durability(defender), depth);
+            // Our Duos partner's hero attacking wins the fight for our team too.
+            var ours = attacker.Side is 'L' or 'P';
+            var defender = ours ? _opponentHero : game.LocalHero;
+            _heroAttack = new HeroAttack(ours, defender, Durability(defender), depth);
         }
 
         if (depth > _base)

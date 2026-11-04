@@ -67,6 +67,12 @@ internal static partial class OffscreenRenderer
         var view = new MainView { DataContext = host.Main };
         var main = new Window { Width = 1260, Height = 840, Content = view, Background = ThemeBrushes.Get("Bg") };
         main.Show();
+        if (RenderOnlyBrawl)
+        {
+            await RenderBrawlPageAsync(main, view, host, folder);
+            return;
+        }
+
         foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" })
         {
             view.ShowPage(page);
@@ -89,6 +95,7 @@ internal static partial class OffscreenRenderer
         await RenderDeckPageAsync(main, view, host, folder);
         await RenderMatchPageAsync(main, view, host, folder);
         await RenderArenaPageAsync(main, view, host, folder);
+        await RenderBrawlPageAsync(main, view, host, folder);
         await RenderLadderPageAsync(main, view, host, folder);
         await RenderStreamAsync(main, view, host, settings, folder);
 

@@ -330,6 +330,8 @@
                              ToolTip.Tip="{i:Loc Main.Nav.WildTipShort}" />
                 <RadioButton Name="NavArena" Classes="nav" Content="{i:Loc Main.Mode.Arena}" Tag="&#xF0538;" GroupName="Nav"
                              ToolTip.Tip="{i:Loc Main.Nav.ArenaTip}" />
+                <RadioButton Name="NavBrawl" Classes="nav" Content="{i:Loc Main.Mode.Brawl}" Tag="&#xF1116;" GroupName="Nav"
+                             ToolTip.Tip="{i:Loc Brawl.NavTip}" />
 
                 <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
                     <TextBlock Text="{i:Loc Main.Nav.Library}" Classes="label" />
@@ -686,6 +688,15 @@
                         <TextBlock Text="{i:Loc Main.Mode.Arena}" Classes="display pageTitle" />
                         <c:Wave Classes="pageRule" />
                         <s:ArenaStatsView Name="ArenaStats" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Tavern Brawl ===== -->
+                <ScrollViewer Name="PageBrawl" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
+                    <StackPanel>
+                        <TextBlock Text="{i:Loc Main.Mode.Brawl}" Classes="display pageTitle" />
+                        <c:Wave Classes="pageRule" />
+                        <s:BrawlView />
                     </StackPanel>
                 </ScrollViewer>
 

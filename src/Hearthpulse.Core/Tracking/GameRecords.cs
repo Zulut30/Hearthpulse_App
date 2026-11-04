@@ -149,6 +149,7 @@ public static class GameRecords
             RankStarLevel = rankInfo is { StarLevel: > 0 } ? rankInfo.StarLevel : null,
             RankLegend = rankInfo is { LegendRank: > 0 } ? rankInfo.LegendRank : null,
             WentFirst = WentFirst(game),
+            ScenarioId = game.ScenarioId > 0 ? game.ScenarioId : null,
             DeckId = deck is { DeckId: > 0 } && DeckFits(deck, playerClass, cards) ? deck.DeckId : null,
             Mulligan = GameCards.MulliganJson(mulligan),
             CardsDrawn = mulligan is null ? null : GameCards.TurnsJson(cardFacts!.Drawn(game)),

@@ -346,6 +346,7 @@ public sealed partial class MainViewModel
         RebuildBattlegroundsStats();
         RebuildConstructedStats();
         RebuildArenaStats();
+        RebuildBrawlStats();
         RebuildDecks();
     }
 
