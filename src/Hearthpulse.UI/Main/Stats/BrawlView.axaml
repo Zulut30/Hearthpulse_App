@@ -41,15 +41,15 @@
             <!-- The week's article of hs-manacost.ru (the owner's site, docs/brawl.md): shown while one is current -->
             <Border Classes="card" Margin="0,0,0,16" IsVisible="{Binding BrawlArticleShown}">
                 <StackPanel>
-                    <c:Ornament Text="{i:Loc Brawl.Article.Title}" Icon="&#xF0219;" Size="13" Margin="0,0,0,10" />
-                    <Border CornerRadius="8" ClipToBounds="True" Height="150" Margin="0,0,0,10" Background="{StaticResource Surface3}" IsVisible="{Binding BrawlArticleHasCover}">
+                    <c:Ornament Text="{i:Loc Brawl.Article.Title}" Icon="&#xF0219;" Size="13" Margin="0,0,0,8" />
+                    <Border CornerRadius="8" ClipToBounds="True" Height="150" Margin="0,0,0,8" Background="{StaticResource Surface3}" IsVisible="{Binding BrawlArticleHasCover}">
                         <Image Source="{Binding BrawlArticleCover, Converter={StaticResource LocalImage}}" Stretch="UniformToFill" />
                     </Border>
-                    <TextBlock Text="{Binding BrawlArticleTitle}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding BrawlArticleTitle}" FontSize="{StaticResource FontSizeTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding BrawlArticleMeta}" Classes="caption" Margin="0,2,0,0" />
                     <TextBlock Text="{Binding BrawlArticleExcerpt}" Classes="caption" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2"
-                               Margin="0,6,0,0" IsVisible="{Binding BrawlArticleHasExcerpt}" />
-                    <TextBlock Text="{i:Loc Brawl.Article.InRussian}" Classes="caption" FontStyle="Italic" Margin="0,6,0,0" IsVisible="{Binding BrawlArticleInRussianNote}" />
+                               Margin="0,4,0,0" IsVisible="{Binding BrawlArticleHasExcerpt}" />
+                    <TextBlock Text="{i:Loc Brawl.Article.InRussian}" Classes="caption" FontStyle="Italic" Margin="0,4,0,0" IsVisible="{Binding BrawlArticleInRussianNote}" />
                     <Button Classes="ghost primary" Content="{i:Loc Brawl.Article.Read}" Command="{Binding OpenBrawlArticle}" ToolTip.Tip="{i:Loc Brawl.Article.ReadTip}"
                             HorizontalAlignment="Left" Margin="0,12,0,0" />
                     <Button Classes="ghost" Command="{Binding OpenBrawlDecks}" ToolTip.Tip="{i:Loc Brawl.Article.ReadTip}" HorizontalAlignment="Left" Margin="0,8,0,0"

@@ -17,7 +17,7 @@
 
             <!-- A hero power or trinket: a round portrait, the full card on hover -->
             <DataTemplate x:Key="Chip" x:DataType="mt:LibraryChip">
-                <Border Width="22" Height="22" Margin="0,0,3,0" CornerRadius="11" ClipToBounds="True" Background="{StaticResource Surface4}"
+                <Border Width="22" Height="22" Margin="0,0,2,0" CornerRadius="11" ClipToBounds="True" Background="{StaticResource Surface4}"
                         BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" i:CardArt.Portrait="{Binding CardId}" c:CardPreview.CardId="{Binding CardId}"
                         ToolTip.Tip="{Binding Tooltip}" />
             </DataTemplate>
@@ -32,7 +32,7 @@
                         <Border Classes="oval" Classes.taunt="{Binding Taunt}" Classes.golden="{Binding Golden}" Width="26" Height="32" CornerRadius="13"
                                 ClipToBounds="True" Background="{StaticResource Surface4}" i:CardArt.Portrait="{Binding CardId}" />
                     </Panel>
-                    <TextBlock Classes="stats" Text="{Binding Stats}" FontFamily="{StaticResource DisplayFont}" FontSize="9" FontWeight="SemiBold"
+                    <TextBlock Classes="stats" Text="{Binding Stats}" FontFamily="{StaticResource DisplayFont}" FontSize="{StaticResource FontSizeMicro}" FontWeight="SemiBold"
                                HorizontalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" Foreground="{StaticResource Muted}" />
                 </StackPanel>
             </DataTemplate>
@@ -49,7 +49,7 @@
                     <ItemsControl ItemsSource="{Binding Shown}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource RowPanel}" VerticalAlignment="Center" />
                     <Border Classes="pill" Margin="4,0,0,0" VerticalAlignment="Center" ToolTip.Tip="{Binding MoreTip}" AutomationProperties.Name="{Binding MoreTip}"
                             IsVisible="{Binding More, Converter={StaticResource Truthy}}">
-                        <TextBlock Text="{Binding More}" FontSize="11" />
+                        <TextBlock Text="{Binding More}" FontSize="{StaticResource FontSizeSmall}" />
                     </Border>
                 </StackPanel>
             </DataTemplate>
@@ -67,7 +67,7 @@
                     <Button Classes="icon cardIcon" Content="{Binding SiteGlyph}" ToolTip.Tip="{Binding SiteTip}" AutomationProperties.Name="{Binding SiteTip}"
                             IsVisible="{Binding CanUpload}"
                             Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).SiteAction}" CommandParameter="{Binding}" />
-                    <TextBlock Text="&#xF1036;" Classes="icon" FontSize="16" Foreground="{StaticResource Faint}" Margin="7,0" VerticalAlignment="Center"
+                    <TextBlock Text="&#xF1036;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Faint}" Margin="8,0" VerticalAlignment="Center"
                                ToolTip.Tip="{i:Loc Library.NoReplay}" IsVisible="{Binding NoReplay}" />
                     <Button Classes="icon cardIcon delete" Content="&#xF09E7;" ToolTip.Tip="{i:Loc Library.Delete}" AutomationProperties.Name="{i:Loc Library.Delete}"
                             IsVisible="{Binding CanDelete}"
@@ -79,20 +79,20 @@
             <DataTemplate x:Key="CardResult" x:DataType="mt:LibraryCard">
                 <StackPanel VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
-                        <Border CornerRadius="6" Padding="10,3" Background="{StaticResource Surface3}">
-                            <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                        <Border CornerRadius="4" Padding="8,2" Background="{StaticResource Surface3}">
+                            <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
                         </Border>
                         <TextBlock Text="{Binding Rating}" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"
                                    Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip.Tip="{i:Loc Main.Game.RatingChange}" />
                     </StackPanel>
-                    <TextBlock Text="{Binding When}" Classes="caption" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding When}" />
+                    <TextBlock Text="{Binding When}" Classes="caption" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding When}" />
                 </StackPanel>
             </DataTemplate>
 
             <DataTemplate x:Key="LibraryCard" x:DataType="mt:LibraryCard">
                 <Button Classes="bare libraryCard" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="{i:Loc Match.View.OpenTip}"
                         Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Open}" CommandParameter="{Binding}">
-                    <Border Classes="plate" CornerRadius="8" Padding="12,10" Margin="0,0,0,6">
+                    <Border Classes="plate" CornerRadius="8" Padding="12,8" Margin="0,0,0,4">
                         <StackPanel>
                             <!-- Both kinds share the outer columns (hero 56 · ... · result 150 · actions 98): the result, the date
                                  and the buttons line up down the list. The result column fits the longest date and duration
@@ -108,7 +108,7 @@
                                 <Border Width="44" Height="44" CornerRadius="22" ClipToBounds="True" Background="{StaticResource Surface4}" HorizontalAlignment="Left"
                                         i:CardArt.Portrait="{Binding HeroCardId}" c:CardPreview.CardId="{Binding HeroCardId}" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
                                     <TextBlock Name="BgCaption" Text="{Binding Caption}" Classes="caption" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
                                                ToolTip.Tip="{Binding Caption}" />
                                 </StackPanel>
@@ -118,10 +118,10 @@
                                         <Border Classes="pill" ToolTip.Tip="{Binding Summary.ChipsMoreTip}" AutomationProperties.Name="{Binding Summary.ChipsMoreTip}"
                                                 VerticalAlignment="Center"
                                                 IsVisible="{Binding Summary.ChipsMore, Converter={StaticResource Truthy}}">
-                                            <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="11" />
+                                            <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="{StaticResource FontSizeSmall}" />
                                         </Border>
                                     </StackPanel>
-                                    <Border Grid.Column="1" Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
+                                    <Border Grid.Column="1" Width="1" Height="28" Margin="4,0" Background="{StaticResource Border}" />
                                     <!-- An empty border measures the board's room; the board itself never widens it -->
                                     <Border x:Name="BoardRoom" Grid.Column="2" />
                                     <ContentControl Grid.Column="2" ContentTemplate="{StaticResource BoardRow}" Focusable="False">
@@ -151,11 +151,11 @@
                                             ToolTip.Tip="{Binding Opponent}" IsVisible="{Binding OpponentHeroCardId, Converter={StaticResource Truthy}}" />
                                 </Panel>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
                                     <TextBlock Text="{Binding Caption}" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Caption}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Classes="wide" MaxWidth="120" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Opponent}" FontSize="13" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Opponent}" />
+                                    <TextBlock Text="{Binding Opponent}" FontSize="{StaticResource FontSizeBody}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Opponent}" />
                                     <TextBlock Text="{Binding OpponentArchetype}" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding OpponentArchetype}" />
                                 </StackPanel>
                                 <ContentControl Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
@@ -166,11 +166,11 @@
                             <Border Margin="0,8,0,0" CornerRadius="8" Padding="12,8" Background="{StaticResource NegativeSoft}" BorderBrush="{StaticResource Negative}"
                                     BorderThickness="1" IsVisible="{Binding Confirming}">
                                 <DockPanel>
-                                    <Button DockPanel.Dock="Right" Classes="ghost" Padding="12,5" Margin="8,0,0,0" Content="{i:Loc Library.ConfirmNo}"
+                                    <Button DockPanel.Dock="Right" Classes="ghost" Padding="12,4" Margin="8,0,0,0" Content="{i:Loc Library.ConfirmNo}"
                                             Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Cancel}" CommandParameter="{Binding}" />
-                                    <Button DockPanel.Dock="Right" Classes="ghost" Padding="12,5" Foreground="{StaticResource Negative}" Content="{i:Loc Library.ConfirmYes}"
+                                    <Button DockPanel.Dock="Right" Classes="ghost" Padding="12,4" Foreground="{StaticResource Negative}" Content="{i:Loc Library.ConfirmYes}"
                                             Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Confirm}" CommandParameter="{Binding}" />
-                                    <TextBlock Text="&#xF05D6;" Classes="icon" FontSize="16" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xF05D6;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
                                     <TextBlock Text="{Binding ConfirmText}" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
                                 </DockPanel>
                             </Border>
@@ -215,7 +215,7 @@
         <Style Selector="Button.cardIcon">
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="30" />
-            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}" />
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Foreground" Value="{StaticResource Faint}" />
         </Style>
@@ -243,25 +243,25 @@
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,Auto,Auto,*">
-        <WrapPanel Margin="0,0,0,10">
+        <WrapPanel Margin="0,0,0,8">
             <Border Classes="segmentBar" Margin="0,0,12,0">
                 <StackPanel Orientation="Horizontal">
                     <RadioButton Classes="segment" GroupName="Library" IsChecked="{Binding IsRecent, Mode=OneWay}" Command="{Binding SetTab}" CommandParameter="Recent">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Library.Tab.Recent}" />
-                            <TextBlock Text="{Binding RecentCount}" FontSize="11.5" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
+                            <TextBlock Text="{Binding RecentCount}" FontSize="{StaticResource FontSizeLabel}" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
                         </StackPanel>
                     </RadioButton>
                     <RadioButton Classes="segment" GroupName="Library" IsChecked="{Binding IsSaved, Mode=OneWay}" Command="{Binding SetTab}" CommandParameter="Saved">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Library.Tab.Saved}" />
-                            <TextBlock Text="{Binding SavedCount}" FontSize="11.5" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
+                            <TextBlock Text="{Binding SavedCount}" FontSize="{StaticResource FontSizeLabel}" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
                         </StackPanel>
                     </RadioButton>
                     <RadioButton Classes="segment" GroupName="Library" IsChecked="{Binding IsImported, Mode=OneWay}" Command="{Binding SetTab}" CommandParameter="Imported">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{i:Loc Library.Tab.Imported}" />
-                            <TextBlock Text="{Binding ImportedCount}" FontSize="11.5" Margin="5,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
+                            <TextBlock Text="{Binding ImportedCount}" FontSize="{StaticResource FontSizeLabel}" Margin="4,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Faint}" />
                         </StackPanel>
                     </RadioButton>
                 </StackPanel>
@@ -269,17 +269,17 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Classes="icon" Content="&#xF0DCF;" Margin="0,0,8,0" ToolTip.Tip="{i:Loc Library.OpenFolder}" AutomationProperties.Name="{i:Loc Library.OpenFolder}"
                         Command="{Binding OpenFolder}" IsVisible="{Binding ShowFolder}" />
-                <Button Classes="ghost" Padding="12,7" IsEnabled="{Binding CanImport}" ToolTip.Tip="{i:Loc Library.ImportTip}" Command="{Binding Import}">
+                <Button Classes="ghost" Padding="12,8" IsEnabled="{Binding CanImport}" ToolTip.Tip="{i:Loc Library.ImportTip}" Command="{Binding Import}">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xF02FA;" Classes="icon" FontSize="16" Foreground="{StaticResource OnSecondaryContainer}" VerticalAlignment="Center" />
-                        <TextBlock Text="{i:Loc Library.Import}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xF02FA;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource OnSecondaryContainer}" VerticalAlignment="Center" />
+                        <TextBlock Text="{i:Loc Library.Import}" Margin="4,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
             </StackPanel>
         </WrapPanel>
 
         <!-- Search (up to 420 wide, on the left) and the result filter (on the right); both apply to every tab -->
-        <Grid Grid.Row="1" Classes="searchRow" RowDefinitions="Auto,Auto" Margin="0,0,0,10">
+        <Grid Grid.Row="1" Classes="searchRow" RowDefinitions="Auto,Auto" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1000*" MaxWidth="420" />
                 <ColumnDefinition Width="*" MinWidth="12" />
@@ -288,10 +288,10 @@
             <TextBox Name="SearchBox" Classes="search" Text="{Binding Search}" PlaceholderText="{i:Loc Library.Search.Placeholder}" VerticalAlignment="Center"
                      ToolTip.Tip="{i:Loc Library.Search.Tip}" AutomationProperties.Name="{i:Loc Library.Search.Name}">
                 <TextBox.InnerLeftContent>
-                    <TextBlock Text="&#xF0349;" Classes="icon" FontSize="16" Foreground="{StaticResource Faint}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Text="&#xF0349;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Faint}" Margin="8,0,0,0" VerticalAlignment="Center" />
                 </TextBox.InnerLeftContent>
                 <TextBox.InnerRightContent>
-                    <Button Classes="icon" Content="&#xF0156;" Width="26" Height="26" FontSize="14" Focusable="False" Margin="0,0,4,0" VerticalAlignment="Center"
+                    <Button Classes="icon" Content="&#xF0156;" Width="26" Height="26" FontSize="{StaticResource FontSizeLead}" Focusable="False" Margin="0,0,4,0" VerticalAlignment="Center"
                             Click="OnClearSearchText" ToolTip.Tip="{i:Loc Library.Search.ClearTip}" AutomationProperties.Name="{i:Loc Library.Search.ClearTip}"
                             IsVisible="{Binding Search, Converter={StaticResource Truthy}}" />
                 </TextBox.InnerRightContent>
@@ -310,10 +310,10 @@
         </Grid>
 
         <!-- Status of the last action; it goes at the next tab, filter, opened match or action -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="2,0,0,10" IsVisible="{Binding Status, Converter={StaticResource Truthy}}">
-            <TextBlock Text="{Binding StatusGlyph}" Classes="icon" FontSize="14" VerticalAlignment="Center"
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="2,0,0,8" IsVisible="{Binding Status, Converter={StaticResource Truthy}}">
+            <TextBlock Text="{Binding StatusGlyph}" Classes="icon" FontSize="{StaticResource FontSizeLead}" VerticalAlignment="Center"
                        Foreground="{Binding StatusKey, Converter={StaticResource KeyBrush}}" />
-            <TextBlock Text="{Binding Status}" Classes="caption" Margin="6,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Status}" Classes="caption" Margin="4,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
             <Button Classes="bare" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding OpenStatusFolder}" IsVisible="{Binding HasStatusFolder}">
                 <TextBlock Text="{i:Loc Library.OpenFolder}" Classes="caption" Foreground="{StaticResource Accent}" TextDecorations="Underline" />
             </Button>
@@ -324,7 +324,7 @@
                 <StackPanel IsVisible="{Binding IsEmpty}">
                     <ContentControl Classes="emptyState" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}" />
                     <!-- Nothing passes the search: one click back to every game of the tab -->
-                    <Button Classes="ghost" Padding="12,6" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
+                    <Button Classes="ghost" Padding="12,4" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
                             Click="OnClearSearch" IsVisible="{Binding IsSearchEmpty}" />
                 </StackPanel>
                 <ListBox Name="List" Classes="plain history" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}"
