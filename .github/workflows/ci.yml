@@ -94,7 +94,8 @@ jobs:
       # Code coverage (coverlet, cobertura XML) is collected on Windows only, where every suite runs.
       - name: WPF and Avalonia presentation contracts
         if: steps.code.outputs.run == 'true'
-        run: dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-build -c Release --collect:"XPlat Code Coverage" --logger "trx;LogFileName=presentation.trx" --results-directory TestResults/presentation
+        timeout-minutes: 10
+        run: dotnet test tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj --no-build -c Release --collect:"XPlat Code Coverage" --logger "trx;LogFileName=presentation.trx" --results-directory TestResults/presentation --blame-hang-timeout 5m --blame-hang-dump-type none
       - name: Test results
         if: always() && steps.code.outputs.run == 'true'
         uses: actions/upload-artifact@v4
@@ -156,11 +157,13 @@ jobs:
         run: dotnet build tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-restore -c Release
       - name: Tests
         if: steps.code.outputs.run == 'true'
+        timeout-minutes: 12
         env:
           FILTER: ${{ matrix.filter }}
-        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "$env:FILTER" --collect:"XPlat Code Coverage" --logger "trx;LogFileName=tests.trx" --results-directory TestResults/tests
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "$env:FILTER" --collect:"XPlat Code Coverage" --logger "trx;LogFileName=tests.trx" --results-directory TestResults/tests --blame-hang-timeout 5m --blame-hang-dump-type none
       - name: Timing tests (without coverage)
         if: steps.code.outputs.run == 'true' && matrix.timing
+        timeout-minutes: 5
         run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj --no-build -c Release --filter "Category=Timing" --logger "trx;LogFileName=timing.trx" --results-directory TestResults/timing
       - name: Test results
         if: always() && steps.code.outputs.run == 'true'
@@ -218,6 +221,8 @@ jobs:
 
   # Linux and macOS: the tests, then the self-contained app as the installers ship it (native SQLite, Skia, HarfBuzz for
   # the runtime identifier), started for real with an empty data folder: windows, tray, overlay platform, card data.
+  # A hung test fails its step with the test's name (--blame-hang) instead of running into the job limit. A macOS job that
+  # ends cancelled with no steps never got a runner (GitHub's macOS arm64 capacity): re-run it, the code is not at fault.
   linux:
     name: Linux (cross-platform app, tests and a real start)
     runs-on: ubuntu-latest
@@ -240,7 +245,8 @@ jobs:
         run: dotnet publish src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj -c Release -r linux-x64 --self-contained -o publish
       - name: Tests
         if: steps.code.outputs.run == 'true'
-        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj -c Release
+        timeout-minutes: 10
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj -c Release --blame-hang-timeout 5m --blame-hang-dump-type none
       - name: Start the app
         if: steps.code.outputs.run == 'true'
         shell: bash
@@ -276,7 +282,8 @@ jobs:
         run: dotnet publish src/Hearthpulse.Desktop/Hearthpulse.Desktop.csproj -c Release -r osx-arm64 --self-contained -o publish
       - name: Tests
         if: steps.code.outputs.run == 'true'
-        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj -c Release
+        timeout-minutes: 10
+        run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj -c Release --blame-hang-timeout 5m --blame-hang-dump-type none
       - name: Start the app
         if: steps.code.outputs.run == 'true'
         shell: bash
