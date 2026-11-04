@@ -60,6 +60,30 @@ public sealed class PanelArming
     }
 
     /// <summary>
+    /// One overlay tick: finds the topmost panel under the pointer (later panels draw over earlier ones; none in layout
+    /// mode, or with the pointer outside, <paramref name="under"/> null) and arms it as <see cref="Apply"/> does.
+    /// </summary>
+    /// <param name="under">Whether the pointer is on a shown panel, its tag strip included while the tag is up.</param>
+    public (bool Armed, bool Dragging) Tick<TPanel>(IReadOnlyList<TPanel> panels, Func<TPanel, bool>? under, bool editing, bool controlDown, bool unlocked, DateTime now)
+        where TPanel : class, IArmablePanel
+    {
+        ArgumentNullException.ThrowIfNull(panels);
+        TPanel? over = null;
+        if (under is not null && !editing)
+        {
+            for (var i = panels.Count - 1; i >= 0 && over is null; i--)
+            {
+                if (under(panels[i]))
+                {
+                    over = panels[i];
+                }
+            }
+        }
+
+        return Apply(panels, over, editing, controlDown, unlocked, now);
+    }
+
+    /// <summary>
     /// One tick for every panel of an overlay: arms <paramref name="over"/> (the topmost shown panel under the pointer,
     /// found by the overlay; null over empty space and in layout mode) or offers its lock button as <see cref="Update"/>
     /// decides, takes both from the other panels, and keeps a panel being dragged armed until its button comes up (not in

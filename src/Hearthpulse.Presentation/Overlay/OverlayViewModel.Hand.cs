@@ -36,7 +36,7 @@ public sealed partial class OverlayViewModel
         var hand = view is { Turn: > 0 } ? view.OpponentHand : [];
         ShowHandMarks = settings.ShowOpponentTracker && hand.Count > 0;
         // The fan is measured in units of a 1080-high window; the overlay scale makes the surface smaller or larger than that.
-        var scale = Math.Clamp(settings.OverlayScale, 0.6, 1.6);
+        var scale = SurfaceScale(settings);
         var key = $"{scale}|" + string.Join('|', hand.Select(h => $"{h.EntityId}:{h.Turn}:{h.CardId}:{h.CreatedById}:{h.Origin}"));
         if (key == _handMarksKey)
         {

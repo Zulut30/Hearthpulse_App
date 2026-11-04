@@ -1,5 +1,4 @@
 using System.IO;
-using Hearthpulse.Core;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Tracking;
 

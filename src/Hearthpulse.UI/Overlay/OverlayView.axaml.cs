@@ -3,7 +3,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -149,30 +148,21 @@ public partial class OverlayView : UserControl
     /// </returns>
     public bool UpdateDragArm(Point? pointer, bool controlDown, DateTime now)
     {
-        var editing = _viewModel?.LayoutEditing == true;
-        MovablePanel? over = null;
-        if (pointer is { } p && !editing)
-        {
-            // Later panels draw over earlier ones.
-            for (var i = _panels.Count - 1; i >= 0 && over is null; i--)
-            {
-                var panel = _panels[i];
-                if (panel is not { Shown: true, IsVisible: true, Bounds.Width: > 0 })
-                {
-                    continue;
-                }
+        var (armed, dragging) = _arming.Tick(_panels, pointer is { } p ? panel => IsUnder(panel, p) : null,
+            _viewModel?.LayoutEditing == true, controlDown, _viewModel?.PanelsUnlocked == true, now);
+        return armed || dragging;
+    }
 
-                // A panel with its tag up also owns the strip above it where the tag and buttons show.
-                var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.Bounds.Size);
-                if (this.TranslatePoint(p, panel) is { } local && area.Contains(local))
-                {
-                    over = panel;
-                }
-            }
+    /// <summary>Whether the pointer (view coordinates) is on a shown panel, or on its tag strip while the tag is up.</summary>
+    private bool IsUnder(MovablePanel panel, Point pointer)
+    {
+        if (panel is not { Shown: true, IsVisible: true, Bounds.Width: > 0 })
+        {
+            return false;
         }
 
-        var (armed, dragging) = _arming.Apply(_panels, over, editing, controlDown, _viewModel?.PanelsUnlocked == true, now);
-        return armed || dragging;
+        var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.Bounds.Size);
+        return this.TranslatePoint(pointer, panel) is { } local && area.Contains(local);
     }
 
     /// <summary>The lock button on a panel's tag: the panels unlock (or lock again), and the setting is saved.</summary>

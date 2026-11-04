@@ -4,7 +4,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Api;
-using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Hearthstone;
 using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Power;

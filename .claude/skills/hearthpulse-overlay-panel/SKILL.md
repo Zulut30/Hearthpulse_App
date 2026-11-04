@@ -21,7 +21,7 @@ Look and tokens: [hearthpulse-design](../hearthpulse-design/SKILL.md). Data into
 | Role | WPF `src/Hearthpulse.App/Overlay/` | Avalonia `src/Hearthpulse.UI/Overlay/` |
 |---|---|---|
 | Surface with all panels | `OverlayWindow.xaml` (+ `.xaml.cs`: layout, click-through, `RenderToFileAsync`) | `OverlayView.axaml` (+ `.axaml.cs`: layout, `IsInteractiveAt`) |
-| Panel host control | `MovablePanel.cs` | `MovablePanel.cs` (also defines `OverlayHit`) |
+| Panel host control | `MovablePanel.cs` (placement math shared: `Presentation/Overlay/PanelLayout.cs`, `PanelSnap.cs`, arming `PanelArming.cs`) | `MovablePanel.cs` (also defines `OverlayHit`) |
 | Platform VM adapter | `OverlayViewModel.Platform.cs` (framework values/timer), `.Focus.cs` (WPF feature) | `OverlayViewModel.Platform.cs` |
 | Platform records | `OverlayModels.Platform.cs` (`HandMark`, WPF-only members) | `OverlayModels.Platform.cs` (`HandMark`) |
 | Extracted panels | `MulliganPanel`, `OpponentHandPanel`, `CardPoolPanel`, `CardPoolBrowser` (`.xaml`) | same (`.axaml`) |

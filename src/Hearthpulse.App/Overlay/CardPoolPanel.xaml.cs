@@ -52,13 +52,28 @@ public partial class CardPoolPanel : UserControl
         Loaded += (_, _) =>
         {
             // The game window was resized: the surface (and the card's spot on it) changes, the panel does not.
-            if (Anchored && Parent is FrameworkElement layer)
+            if (Anchored && _layer is null && Parent is FrameworkElement layer)
             {
-                layer.SizeChanged += (_, _) => Place();
+                _layer = layer;
+                layer.SizeChanged += OnLayerSizeChanged;
+            }
+        };
+        // A theme change rebuilds the overlay: the old layer must not keep this panel (and place it) after that.
+        Unloaded += (_, _) =>
+        {
+            if (_layer is not null)
+            {
+                _layer.SizeChanged -= OnLayerSizeChanged;
+                _layer = null;
             }
         };
         DataContextChanged += (_, _) => Subscribe();
     }
+
+    // The layer an anchored panel follows while it is loaded.
+    private FrameworkElement? _layer;
+
+    private void OnLayerSizeChanged(object sender, SizeChangedEventArgs e) => Place();
 
     /// <summary>The panel is the popup next to its card (in a Canvas over the surface), not the movable panel's content.</summary>
     public bool Anchored { get; set; }

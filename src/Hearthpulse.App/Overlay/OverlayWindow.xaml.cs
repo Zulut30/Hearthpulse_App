@@ -332,32 +332,21 @@ public partial class OverlayWindow : Window
     /// comes up. Every change is one line in the log (<see cref="PanelArming"/>).
     /// </summary>
     /// <returns>Whether a panel under the mouse is armed, so the overlay must take the mouse.</returns>
-    internal bool UpdateDragArm(Point? point, bool controlDown, DateTime now)
-    {
-        var editing = ViewModel.LayoutEditing;
-        MovablePanel? over = null;
-        if (point is { } p && !editing)
-        {
-            // Later panels draw over earlier ones. The tick runs only while the overlay shows, so the panel's own
-            // visibility is the one that counts (IsVisible also needs a window on screen).
-            for (var i = _panels.Count - 1; i >= 0 && over is null; i--)
-            {
-                var panel = _panels[i];
-                if (panel is not { Shown: true, Visibility: Visibility.Visible, ActualWidth: > 0 })
-                {
-                    continue;
-                }
+    internal bool UpdateDragArm(Point? point, bool controlDown, DateTime now) =>
+        _arming.Tick(_panels, point is { } p ? panel => IsUnder(panel, p) : null, ViewModel.LayoutEditing, controlDown, ViewModel.PanelsUnlocked, now).Armed;
 
-                // A panel with its tag up also owns the strip above it where the tag and buttons show.
-                var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.RenderSize);
-                if (area.Contains(Root.TranslatePoint(p, panel)))
-                {
-                    over = panel;
-                }
-            }
+    /// <summary>Whether the mouse (window units) is on a shown panel, or on its tag strip while the tag is up.</summary>
+    private bool IsUnder(MovablePanel panel, Point point)
+    {
+        // The tick runs only while the overlay shows, so the panel's own visibility is the one that counts (IsVisible
+        // also needs a window on screen).
+        if (panel is not { Shown: true, Visibility: Visibility.Visible, ActualWidth: > 0 })
+        {
+            return false;
         }
 
-        return _arming.Apply(_panels, over, editing, controlDown, ViewModel.PanelsUnlocked, now).Armed;
+        var area = panel.IsDragArmed || panel.OffersLock ? panel.ArmedArea() : new Rect(panel.RenderSize);
+        return area.Contains(Root.TranslatePoint(point, panel));
     }
 
     /// <summary>The lock button on a panel's tag: the panels unlock (or lock again), and the setting is saved.</summary>
