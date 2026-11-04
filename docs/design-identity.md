@@ -25,6 +25,10 @@ themes keep working through `ThemePalette`.
 - **Pulse as the signature.** A heartbeat line in the flame gradient under page titles (replacing the diamond rule) and
   as the "tracking" indicator in the live bar.
 - **Section mark: a drop.** Section headings carry the glyph in a small flame-tinted drop instead of the scallop cookie.
+- **Less clutter, more air** (the owner's words: remove the junk, make it faster). One main action per surface; the
+  rest goes to a "…" menu or shows on hover. Captions that repeat a heading or a nearby number go; an empty plate is
+  not drawn, an empty area gets one line saying what will appear. Decoration (nav group diamonds, art behind titles,
+  scallop cookies) is removed, not recoloured. No bitmap effects and no animation over 0.25 s.
 - **Plain words.** Every empty state says what will appear and what to do; labels avoid tracker jargon.
 - **Rhythm.** Spacing 4/8/12/16/24/32, radii 4/8/12/16, one type ramp (D1 tokens).
 
