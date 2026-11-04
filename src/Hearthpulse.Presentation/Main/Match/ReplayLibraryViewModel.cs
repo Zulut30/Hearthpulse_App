@@ -14,39 +14,70 @@ namespace Hearthpulse.App.Main.Match;
 namespace Hearthpulse.UI.Main.Match;
 #endif
 
-/// <summary>A hero power, trinket or hand card of a library card: the card (full card on hover) and its name.</summary>
+/// <summary>A hero power or trinket of a library card: the card (full card on hover) and its name.</summary>
 public sealed record LibraryChip(string CardId, string Tooltip);
 
 /// <summary>A minion of a Battlegrounds card's final board: stats under its portrait, golden, taunt, divine shield.</summary>
 public sealed record LibraryMinion(string CardId, string Stats, bool Golden, bool Taunt, bool DivineShield, string Tooltip);
 
 /// <summary>
+/// The final board as one width shows it: the minions that fit whole and "+N" for the rest, its tooltip naming them.
+/// </summary>
+public sealed record LibraryBoardView(IReadOnlyList<LibraryMinion> Shown, string More, string MoreTip);
+
+/// <summary>
 /// The parts of a Battlegrounds card read from its replay's header: up to 3 chips (hero powers, trinkets) and "+N" with
-/// the rest in its tooltip, the final board, up to 3 hand cards and "+N". One object, so a card that gets its header
-/// tells the view once instead of once per part.
+/// the rest in its tooltip, and the final board, which shows as many minions as its room fits (<see cref="BoardAt"/>).
+/// One object, so a card that gets its header tells the view once instead of once per part.
 /// </summary>
 public sealed record LibrarySummary(
     IReadOnlyList<LibraryChip> Chips,
     string ChipsMore,
     string ChipsMoreTip,
-    IReadOnlyList<LibraryMinion> Board,
-    IReadOnlyList<LibraryChip> Hand,
-    string HandMore,
-    string HandMoreTip)
+    IReadOnlyList<LibraryMinion> Board)
 {
-    /// <summary>Chips and hand cards shown before the rest goes into "+N".</summary>
+    /// <summary>Chips shown before the rest goes into "+N".</summary>
     public const int Shown = 3;
 
-    public static LibrarySummary Empty { get; } = new([], string.Empty, string.Empty, [], [], string.Empty, string.Empty);
+    /// <summary>A minion of the board in the views: 48 wide and 1 apart.</summary>
+    public const double MinionRoom = 49;
 
-    public static LibrarySummary Of(IReadOnlyList<LibraryChip> chips, IReadOnlyList<LibraryMinion> board, IReadOnlyList<LibraryChip> hand) => new(
+    /// <summary>The board's "+N" pill ("+6" at 11 px with the pill's padding) and the gap before it.</summary>
+    public const double MoreRoom = 36;
+
+    public static LibrarySummary Empty { get; } = new([], string.Empty, string.Empty, []);
+
+    /// <summary>The board cut after each count of minions shown (0..all): one list per count, kept for every resize.</summary>
+    private IReadOnlyList<LibraryBoardView> Boards { get; init; } = [new([], string.Empty, string.Empty)];
+
+    public static LibrarySummary Of(IReadOnlyList<LibraryChip> chips, IReadOnlyList<LibraryMinion> board) => new(
         chips.Take(Shown).ToList(),
         More(chips.Count),
         string.Join(", ", chips.Skip(Shown).Select(c => c.Tooltip)),
-        board,
-        hand.Take(Shown).ToList(),
-        More(hand.Count),
-        string.Join(", ", hand.Skip(Shown).Select(c => c.Tooltip)));
+        board)
+    {
+        Boards = Enumerable.Range(0, board.Count + 1).Select(shown => new LibraryBoardView(
+            board.Take(shown).ToList(),
+            shown < board.Count ? $"+{board.Count - shown}" : string.Empty,
+            string.Join('\n', board.Skip(shown).Select(m => m.Tooltip)))).ToList(),
+    };
+
+    /// <summary>
+    /// How many minions of <paramref name="count"/> fit whole in <paramref name="width"/>: all when they do, else as many
+    /// as leave room for the "+N" pill. Never a minion cut at the edge.
+    /// </summary>
+    public static int BoardFits(double width, int count)
+    {
+        if (count <= 0 || double.IsNaN(width) || count * MinionRoom <= width)
+        {
+            return Math.Max(0, count);
+        }
+
+        return Math.Clamp((int)Math.Floor((width - MoreRoom) / MinionRoom), 0, count);
+    }
+
+    /// <summary>The board as <paramref name="width"/> shows it; the same object for every width that fits as many.</summary>
+    public LibraryBoardView BoardAt(double width) => Boards[Math.Min(BoardFits(width, Board.Count), Boards.Count - 1)];
 
     private static string More(int count) => count > Shown ? $"+{count - Shown}" : string.Empty;
 }
@@ -61,7 +92,7 @@ public enum SiteWork
 
 /// <summary>
 /// One game of the replay library (<c>docs/replay-library.md</c>): the History row (Recent) or the file's summary
-/// (Saved, Imported). The final board, hand and chips come from the replay's header and may arrive after the card is
+/// (Saved, Imported). The final board and the chips come from the replay's header and may arrive after the card is
 /// shown; the star and the confirmation change in place.
 /// </summary>
 public sealed class LibraryCard : Observable
@@ -133,12 +164,6 @@ public sealed class LibraryCard : Observable
     public string ChipsMore => _summary.ChipsMore;
 
     public IReadOnlyList<LibraryMinion> Board => _summary.Board;
-
-    public IReadOnlyList<LibraryChip> Hand => _summary.Hand;
-
-    public string HandMore => _summary.HandMore;
-
-    public string HandMoreTip => _summary.HandMoreTip;
 
     /// <summary>A replay file is there (or its starred copy): star and Share show, else the "no replay" mark.</summary>
     public bool HasReplay
@@ -251,9 +276,9 @@ public sealed class LibraryCard : Observable
     /// <summary>What "Delete" in the confirmation does.</summary>
     internal Action? PendingConfirm { get; set; }
 
-    /// <summary>Sets the parts read from the replay's header: chips (up to 3, then "+N"), the final board, the hand (up to 3).</summary>
-    internal void SetSummary(IReadOnlyList<LibraryChip> chips, IReadOnlyList<LibraryMinion> board, IReadOnlyList<LibraryChip> hand) =>
-        Summary = LibrarySummary.Of(chips, board, hand);
+    /// <summary>Sets the parts read from the replay's header: chips (up to 3, then "+N") and the final board.</summary>
+    internal void SetSummary(IReadOnlyList<LibraryChip> chips, IReadOnlyList<LibraryMinion> board) =>
+        Summary = LibrarySummary.Of(chips, board);
 }
 
 /// <summary>

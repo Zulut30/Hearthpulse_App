@@ -74,7 +74,7 @@ public sealed partial class MainViewModel
         }
     }
 
-    /// <summary>The headers of the Recent cards' files, off the UI thread: final board, hand and chips, whether a file is left, the stars.</summary>
+    /// <summary>The headers of the Recent cards' files, off the UI thread: final board and chips, whether a file is left, the stars.</summary>
     private async Task FillRecentAsync(int load, IReadOnlyList<LibraryCard> cards)
     {
         var files = LibraryFiles;
@@ -240,7 +240,7 @@ public sealed partial class MainViewModel
     private static string SortKeyOf(GameRecord g, string? fileName) =>
         g.StartedAt != DateTime.MinValue ? g.StartedAt.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) : fileName ?? string.Empty;
 
-    /// <summary>A Battlegrounds card's parts from its replay's summary: hero powers and trinkets, the final board, the hand.</summary>
+    /// <summary>A Battlegrounds card's parts from its replay's summary: hero powers and trinkets, the final board.</summary>
     private void ApplySummary(LibraryCard card, ReplaySummary summary)
     {
         if (!card.IsBattlegrounds)
@@ -258,8 +258,7 @@ public sealed partial class MainViewModel
                     .Concat(m.Golden ? [Loc.T("Match.Round.Golden")] : [])
                     .Concat(m.Keywords.Select(Keyword)));
                 return new LibraryMinion(m.CardId, stats, m.Golden, m.Keywords.Contains("TAUNT"), m.Keywords.Contains("DIVINE_SHIELD"), tip);
-            }).ToList(),
-            summary.FinalHand.Select(id => new LibraryChip(id, cards.NameOf(id))).ToList());
+            }).ToList());
     }
 
     /// <summary>A keyword as the match page names it; Venomous has its own Battlegrounds string.</summary>

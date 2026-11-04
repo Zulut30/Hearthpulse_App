@@ -524,6 +524,23 @@ public sealed class MatchPlayerTests : IDisposable
         Assert.False((shop with { Phase = MatchPhase.End }).ShowShop);
     }
 
+    /// <summary>
+    /// Constructed heroes show health and armor apart as on the Battlegrounds table (heart, shield), the same tooltip; an
+    /// option of a choice is named "Picked: ..." for a screen reader when it is the pick.
+    /// </summary>
+    [Fact]
+    public void Constructed_health_and_armor_show_apart_and_the_pick_is_named()
+    {
+        var side = new MatchSideView("You", true, "HERO_01", "Garrosh", 24, 5, null, null, [], [], [], "3/5", "20");
+        Assert.Equal(("24", "5", Loc.F("Match.Player.HealthArmorTip", 24, 5)), (side.HealthText, side.ArmorText, side.HealthTip));
+        var bare = side with { Armor = 0 };
+        Assert.Equal(("24", string.Empty, Loc.F("Match.Player.HealthTip", 24)), (bare.HealthText, bare.ArmorText, bare.HealthTip));
+
+        var picked = new MatchCardView("TB_BaconShop_HERO_08", "Hagatha", false) { Picked = true };
+        Assert.Equal(Loc.F("Match.Player.HeroPicked", "Hagatha"), picked.ChoiceName);
+        Assert.Equal("Hagatha", (picked with { Picked = false, Dimmed = true }).ChoiceName);
+    }
+
     /// <summary>Health and armor are two values with a tooltip in words, on the hero line and the leaderboard; no tier 0.</summary>
     [Fact]
     public void Health_and_armor_show_apart_with_a_tooltip()

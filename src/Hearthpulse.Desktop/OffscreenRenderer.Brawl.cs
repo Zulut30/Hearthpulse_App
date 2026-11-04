@@ -18,6 +18,11 @@ internal static partial class OffscreenRenderer
 
     private static bool RenderOnly(string group) => RenderOnlyGroups.Contains(group, StringComparer.OrdinalIgnoreCase);
 
+    /// <summary><c>HEARTHPULSE_RENDER_WIDTH=1040</c>: the main window's width for the groups, else as it is.</summary>
+    private static double? RenderWidth =>
+        double.TryParse(Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_WIDTH"), System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture, out var width) && width >= 800 ? width : null;
+
     /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>history</c> (History and a Battlegrounds match).</summary>
     private static async Task RenderOnlyAsync(Window main, MainView view, AppHost host, string folder)
     {
@@ -28,6 +33,11 @@ internal static partial class OffscreenRenderer
 
         if (RenderOnly("history"))
         {
+            if (RenderWidth is { } width)
+            {
+                main.Width = width;
+            }
+
             view.ShowPage("History");
             await Save(main, Path.Combine(folder, "main-history.png"));
             if (host.History.Recent(400).FirstOrDefault(g => g.Replay is not null && g.IsBattlegrounds) is { } battlegrounds

@@ -120,7 +120,7 @@
                  name under it; the picked one ringed in the accent, the others dimmed. No card frame, no cost. -->
             <DataTemplate x:Key="HeroChoiceCard" x:DataType="r:MatchCardView">
                 <StackPanel Classes="heroChoice" Classes.dimmed="{Binding Dimmed}" Classes.picked="{Binding Picked}" Width="124" Margin="2,0" Background="Transparent"
-                            ToolTip.Tip="{Binding Name}" c:CardPreview.CardId="{Binding CardId}">
+                            ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding ChoiceName}" c:CardPreview.CardId="{Binding CardId}">
                     <Panel Width="72" Height="72" HorizontalAlignment="Center">
                         <Ellipse StrokeThickness="3" Stroke="{StaticResource Accent}" IsVisible="{Binding Picked}" />
                         <Border Margin="5" CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
@@ -194,9 +194,18 @@
                             <Ellipse Classes="ring aim" Margin="-4" StrokeThickness="2" StrokeDashArray="3,2" />
                             <Border CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="2" ClipToBounds="True"
                                     i:CardArt.Portrait="{Binding HeroCardId}" />
-                            <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="6,1"
-                                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-10,-4">
-                                <TextBlock Text="{Binding HealthText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" />
+                            <!-- Health by a heart and armor by a shield, apart (as on the Battlegrounds table): "30 + 5" read as a sum -->
+                            <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="5,1,6,1"
+                                    HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-40,0,-40,-8" ToolTip.Tip="{Binding HealthTip}"
+                                    AutomationProperties.Name="{Binding HealthTip}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xF02D1;" Classes="icon" FontSize="11" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
+                                    <TextBlock Text="{Binding HealthText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xF0498;" Classes="icon" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="6,0,2,0"
+                                               IsVisible="{Binding ArmorText, Converter={StaticResource Truthy}}" />
+                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"
+                                               IsVisible="{Binding ArmorText, Converter={StaticResource Truthy}}" />
+                                </StackPanel>
                             </Border>
                             <Border Classes="badge attacker" Margin="-8,-6,0,0" HorizontalAlignment="Left" ToolTip.Tip="{i:Loc Match.Mark.Attacker}" AutomationProperties.Name="{i:Loc Match.Mark.Attacker}">
                                 <TextBlock Text="&#xF04E5;" Classes="icon" />
@@ -487,7 +496,8 @@
                             </Border>
                         </Panel>
                         <!-- Health, then armor by a shield; the tooltip says both in words -->
-                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding HealthTip}">
+                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding HealthTip}"
+                                    AutomationProperties.Name="{Binding HealthTip}">
                             <TextBlock Text="{Binding Health}" FontFamily="{DynamicResource DisplayFont}" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center" />
                             <TextBlock Text="&#xF0498;" Classes="icon" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="5,0,2,0"
                                        IsVisible="{Binding Armor, Converter={StaticResource Truthy}}" />

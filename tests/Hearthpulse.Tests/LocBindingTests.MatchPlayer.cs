@@ -302,6 +302,9 @@ public sealed partial class LocBindingTests
             Assert.Contains("24", rowTexts);
             Assert.Contains("3", rowTexts);
             Assert.DoesNotContain("24 + 3", rowTexts);
+            // The leaderboard health is named in words for a screen reader, as its tooltip says it.
+            Assert.Contains(row.GetVisualDescendants().OfType<StackPanel>(),
+                p => Avalonia.Automation.AutomationProperties.GetName(p) == MatchViewModel.Leader(step.Leaderboard[0]).HealthTip && Equals(ToolTip.GetTip(p), Avalonia.Automation.AutomationProperties.GetName(p)));
             Assert.Contains("leader", row.Classes);
             Assert.DoesNotContain("fighting", row.Classes);
 
@@ -329,6 +332,9 @@ public sealed partial class LocBindingTests
             Assert.Equal(2, picks.Count);
             Assert.Single(picks, s => s.Classes.Contains("picked"));
             Assert.Single(picks, s => s.Classes.Contains("dimmed"));
+            // The pick is named as picked for a screen reader, the other option by its name.
+            Assert.Equal(Loc.F("Match.Player.HeroPicked", "Hagatha"), Avalonia.Automation.AutomationProperties.GetName(picks.Single(s => s.Classes.Contains("picked"))));
+            Assert.Equal("Bartendotron", Avalonia.Automation.AutomationProperties.GetName(picks.Single(s => s.Classes.Contains("dimmed"))));
             Assert.Contains("Hagatha", shownTexts);
             Assert.DoesNotContain(table.GetVisualDescendants().OfType<Image>(), i => i.IsEffectivelyVisible && i.DataContext is MatchCardView);
         }
@@ -371,6 +377,15 @@ public sealed partial class LocBindingTests
             Assert.True(Shown<Border>(target, "badge hit") && Shown<Border>(target, "frame hit"));
             Assert.False(Shown<Avalonia.Controls.Shapes.Ellipse>(target, "halo") || Shown<Avalonia.Controls.Shapes.Rectangle>(target, "aim"));
             Assert.Contains("−4", target.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text));
+
+            // The heroes' health by a heart and armor by a shield, as on the Battlegrounds table: never "30 + 5", the
+            // badge's tooltip and screen-reader name in words.
+            foreach (var side in new[] { step.Top, step.Bottom })
+            {
+                Assert.Contains(view.GetVisualDescendants().OfType<Border>(),
+                    b => b.IsEffectivelyVisible && Equals(ToolTip.GetTip(b), side.HealthTip) && Avalonia.Automation.AutomationProperties.GetName(b) == side.HealthTip);
+                Assert.DoesNotContain(view.GetVisualDescendants().OfType<TextBlock>(), t => t.IsEffectivelyVisible && t.Text == $"{side.Health} + {side.Armor}");
+            }
 
             var layer = view.GetVisualDescendants().OfType<MatchArrowLayer>().Single();
             Assert.False(layer.IsHitTestVisible);

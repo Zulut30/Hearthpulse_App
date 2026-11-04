@@ -2,6 +2,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
+using Hearthpulse.UI.Main.Match;
 
 namespace Hearthpulse.UI.Infrastructure;
 
@@ -89,4 +90,14 @@ public sealed class LeftMargin : IValueConverter
         new Thickness(value is IConvertible c ? c.ToDouble(CultureInfo.InvariantCulture) : 0, 0, 0, 0);
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
+/// <summary>
+/// A History card's final board for the width of its room: [room width, <see cref="LibrarySummary"/>] to the
+/// <see cref="LibraryBoardView"/> of whole minions and "+N" (<see cref="LibrarySummary.BoardAt"/>).
+/// </summary>
+public sealed class BoardFit : IMultiValueConverter
+{
+    public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture) =>
+        values.Count == 2 && values[1] is LibrarySummary summary ? summary.BoardAt(values[0] is double width ? width : double.NaN) : null;
 }

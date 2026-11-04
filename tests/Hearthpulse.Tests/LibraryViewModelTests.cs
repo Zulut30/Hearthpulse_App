@@ -89,7 +89,7 @@ public sealed class LibraryViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task Recent_cards_come_from_history_with_the_board_and_hand_from_the_replay_header()
+    public async Task Recent_cards_come_from_history_with_the_board_from_the_replay_header()
     {
         var vm = await Open();
 
@@ -104,8 +104,6 @@ public sealed class LibraryViewModelTests : IDisposable
         var minion = Assert.Single(bg.Board);
         Assert.Equal("5/7", minion.Stats);
         Assert.True(minion.Golden && minion.Taunt && minion.DivineShield);
-        Assert.Equal(3, bg.Hand.Count);
-        Assert.Equal("+1", bg.HandMore);
         Assert.Equal("+32", bg.Rating);
         Assert.Contains(Loc.F("Library.Minutes", 18), bg.When, StringComparison.Ordinal);
 
@@ -134,8 +132,8 @@ public sealed class LibraryViewModelTests : IDisposable
     }
 
     /// <summary>
-    /// The header's parts reach the view in one notification (the summary), not one per part; chips and hand past 3
-    /// go into "+N" with the rest in its tooltip.
+    /// The header's parts reach the view in one notification (the summary), not one per part; chips past 3 go into "+N"
+    /// with the rest in its tooltip.
     /// </summary>
     [Fact]
     public void A_card_gets_its_summary_in_one_notification()
@@ -145,13 +143,43 @@ public sealed class LibraryViewModelTests : IDisposable
         card.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
         LibraryChip Chip(string id) => new(id, "Name " + id);
 
-        card.SetSummary([Chip("a"), Chip("b"), Chip("c"), Chip("d"), Chip("e")], [new LibraryMinion("m", "136/63", false, false, false, "tip")], [Chip("h")]);
+        card.SetSummary([Chip("a"), Chip("b"), Chip("c"), Chip("d"), Chip("e")], [new LibraryMinion("m", "136/63", false, false, false, "tip")]);
 
         Assert.Equal([nameof(LibraryCard.Summary)], raised);
         Assert.Equal(3, card.Summary.Chips.Count);
         Assert.Equal(("+2", "Name d, Name e"), (card.Summary.ChipsMore, card.Summary.ChipsMoreTip));
-        Assert.Equal((1, string.Empty), (card.Summary.Hand.Count, card.Summary.HandMore));
         Assert.Equal("136/63", Assert.Single(card.Board).Stats);
+    }
+
+    /// <summary>
+    /// The final board never cuts a minion at the edge: all seven at the default window (1260: about 355 px of room), at
+    /// the minimum window (1040: about 135 px) two whole minions and "+5" whose tooltip names the rest, one per line.
+    /// </summary>
+    [Fact]
+    public void A_board_that_does_not_fit_shows_whole_minions_and_plus_n_for_the_rest()
+    {
+        var board = Enumerable.Range(1, 7).Select(i => new LibraryMinion("m" + i, $"{i}/{i}", false, false, false, $"Minion {i} · {i}/{i}")).ToList();
+        var summary = LibrarySummary.Of([], board);
+
+        var wide = summary.BoardAt(355);
+        Assert.Equal(7, wide.Shown.Count);
+        Assert.Equal((string.Empty, string.Empty), (wide.More, wide.MoreTip));
+
+        var narrow = summary.BoardAt(135);
+        Assert.Equal(["m1", "m2"], narrow.Shown.Select(m => m.CardId));
+        Assert.Equal("+5", narrow.More);
+        Assert.Equal(string.Join("\n", board.Skip(2).Select(m => m.Tooltip)), narrow.MoreTip);
+        // Whole minions and the pill always fit the room they were given.
+        foreach (var width in new[] { 0.0, 20, 60, 135, 200, 314, 315, 400 })
+        {
+            var shown = LibrarySummary.BoardFits(width, board.Count);
+            var used = (shown * LibrarySummary.MinionRoom) + (shown < board.Count ? LibrarySummary.MoreRoom : 0);
+            Assert.True(shown == 0 || used <= width, $"{width}: {shown} shown take {used}");
+        }
+
+        // A resize that fits as many minions keeps the same object: the view does not rebuild the board.
+        Assert.Same(narrow, summary.BoardAt(140));
+        Assert.Empty(LibrarySummary.Empty.BoardAt(300).Shown);
     }
 
     [Fact]

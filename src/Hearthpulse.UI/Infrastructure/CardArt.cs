@@ -181,9 +181,8 @@ public static class CardArt
 
         try
         {
-            // LoadAsync starts on the caller's thread (the UI thread for a template's art): the disk is asked off it, so a
-            // list of 300 games does not wait on 300 file checks before its first frame.
-            if (!await Task.Run(() => File.Exists(file)).ConfigureAwait(false) && Http is { } http)
+            // LoadAsync already runs on the thread pool (GetAsync starts it with Task.Run): the file check is off the UI thread.
+            if (!File.Exists(file) && Http is { } http)
             {
                 await Downloads.WaitAsync().ConfigureAwait(false);
                 try

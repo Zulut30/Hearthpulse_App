@@ -46,10 +46,23 @@ public static class CardArt
     /// <summary>How many finished load tasks are remembered; they only keep the image reachable.</summary>
     private const int MaxPendingTasks = 2000;
 
+    /// <summary>How long art with no file is not asked for again, and how many such cards are remembered.</summary>
+    private const long AbsentRetryMs = 60_000;
+
+    private const int MaxAbsent = 4096;
+
     private static readonly SizedCache<ImageSource> Memory = new(MaxCachedBytes, PixelBytes);
     private static readonly ConcurrentDictionary<string, Task<ImageSource?>> Pending = new();
     private static readonly ConcurrentDictionary<string, bool> Unreadable = new();
     private static readonly SemaphoreSlim Downloads = new(6);
+
+    /// <summary>
+    /// Art with no file and no download (offline, no client, a failed fetch), until the time it may be asked for again
+    /// (<see cref="Environment.TickCount64"/>). The file check runs off the UI thread, so a miss no longer finishes at once:
+    /// without this every step of the match player asked the disk again for every card shown without art, a thread-pool
+    /// hop each (Ranked playback at x4 went from 62 to about 100 ms of CPU a second).
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, long> Absent = new();
 
     /// <summary>
     /// How many images are decoded at the same time. Decoding is the expensive part, and a burst (the comp panel
@@ -164,6 +177,16 @@ public static class CardArt
     public static Task<ImageSource?> GetAsync(ArtKind kind, string cardId)
     {
         var key = Key(kind, cardId);
+        if (Absent.TryGetValue(key, out var retryAt))
+        {
+            if (Environment.TickCount64 < retryAt)
+            {
+                return Task.FromResult<ImageSource?>(null);
+            }
+
+            Absent.TryRemove(key, out _);
+        }
+
         TrimPending();
         return Pending.GetOrAdd(key, static (_, art) => LoadAsync(art.kind, art.cardId), (kind, cardId));
     }
@@ -267,6 +290,15 @@ public static class CardArt
         if (image is not null)
         {
             Remember(Key(kind, cardId), image);
+        }
+        else
+        {
+            if (Absent.Count >= MaxAbsent)
+            {
+                Absent.Clear();
+            }
+
+            Absent[Key(kind, cardId)] = Environment.TickCount64 + AbsentRetryMs;
         }
 
         // Only loads in flight stay here. A finished task would keep its image alive after the memory cache dropped

@@ -24,6 +24,15 @@ public sealed class Ornament : Control
     /// <summary>The tooltip is the cut title, set here (not from XAML).</summary>
     private bool _ownTip;
 
+    // The whole title and what it was made from; the title cut to _cutWidth (null until a narrow width asks for it).
+    private FormattedText? _full;
+    private string _fullText = string.Empty;
+    private Typeface _fullFace;
+    private double _fullSize;
+    private IBrush? _fullBrush;
+    private FormattedText? _cut;
+    private double _cutWidth;
+
     static Ornament()
     {
         AffectsRender<Ornament>(TextProperty, SizeProperty, CenteredProperty, IconProperty);
@@ -58,10 +67,29 @@ public sealed class Ornament : Control
     private FontFamily Font(string key) =>
         this.TryFindResource(key, ActualThemeVariant, out var value) && value is FontFamily family ? family : FontFamily.Default;
 
-    private FormattedText Format() =>
-        new(SentenceCase(Text ?? string.Empty), CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-            new Typeface(Font(Large ? "DisplayFont" : "UiFont"), FontStyle.Normal, FontWeight.Bold),
-            Large ? Size + 3 : Size + 0.5, ThemeBrushes.Get(Large ? "Text" : "Muted"));
+    /// <summary>
+    /// The whole title, built again only when its text, typeface, size or brush (a theme change) differs: measure,
+    /// arrange and render ask for it on every layout pass.
+    /// </summary>
+    private FormattedText Format()
+    {
+        var text = Text ?? string.Empty;
+        var face = new Typeface(Font(Large ? "DisplayFont" : "UiFont"), FontStyle.Normal, FontWeight.Bold);
+        var size = Large ? Size + 3 : Size + 0.5;
+        var brush = ThemeBrushes.Get(Large ? "Text" : "Muted");
+        if (_full is null || !string.Equals(text, _fullText, StringComparison.Ordinal) || face != _fullFace || !size.Equals(_fullSize)
+            || !ReferenceEquals(brush, _fullBrush))
+        {
+            (_fullText, _fullFace, _fullSize, _fullBrush) = (text, face, size, brush);
+            _full = New();
+            _cut = null;
+        }
+
+        return _full;
+    }
+
+    private FormattedText New() =>
+        new(SentenceCase(_fullText), CultureInfo.CurrentCulture, FlowDirection.LeftToRight, _fullFace, _fullSize, _fullBrush);
 
     protected override Size MeasureOverride(Size availableSize)
     {
@@ -75,14 +103,21 @@ public sealed class Ornament : Control
     private FormattedText Format(double width)
     {
         var text = Format();
-        if (width > 0 && text.Width > width)
+        if (!(width > 0 && text.Width > width))
         {
-            text.MaxTextWidth = width;
-            text.MaxLineCount = 1;
-            text.Trimming = TextTrimming.CharacterEllipsis;
+            return text;
         }
 
-        return text;
+        if (_cut is null || !width.Equals(_cutWidth))
+        {
+            _cut = New();
+            _cut.MaxTextWidth = width;
+            _cut.MaxLineCount = 1;
+            _cut.Trimming = TextTrimming.CharacterEllipsis;
+            _cutWidth = width;
+        }
+
+        return _cut;
     }
 
     /// <summary>The room the title has: the width less the icon, and the rule's diamonds when centered.</summary>

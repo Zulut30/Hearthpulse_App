@@ -15,6 +15,11 @@ public partial class App
 
     private static bool RenderOnly(string group) => RenderOnlyGroups.Contains(group, StringComparer.OrdinalIgnoreCase);
 
+    /// <summary><c>HEARTHPULSE_RENDER_WIDTH=1040</c>: the main window's width for the groups (the minimum is 1040), else as it is.</summary>
+    private static double? RenderWidth =>
+        double.TryParse(Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_WIDTH"), System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture, out var width) && width >= 800 ? width : null;
+
     /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>history</c> (History and a Battlegrounds match).</summary>
     private async Task RenderOnlyAsync(string folder)
     {
@@ -25,6 +30,11 @@ public partial class App
 
         if (RenderOnly("history"))
         {
+            if (RenderWidth is { } width)
+            {
+                _main.Width = width;
+            }
+
             _main.ShowPage("History");
             await Task.Delay(2500);
             _main.UpdateLayout();

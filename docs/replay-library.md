@@ -23,7 +23,7 @@ work folders a broken Power.log import left in `<data>/cache/import` after an ho
   name. A History game whose file the trim deleted opens from its Saved copy. Taking the star off deletes the copy;
   when it is the last copy of the replay the card asks first. Imported games can be starred too (the copy outlives the
   500 limit).
-- **Recent** cards are History's rows (the History filter applies); the final board, hand, hero powers and trinkets
+- **Recent** cards are History's rows (the History filter applies); the final board, hero powers and trinkets
   come from the file's header (`ReplayStore.ReadHeader`: the first two lines only, off the UI thread, kept per file). A
   file of format 3 or older shows what the row has. A game without a file shows the "no replay" mark instead of the
   star and Share.
@@ -99,7 +99,7 @@ tab or mode keeps its own text. A card chosen for the player (an import, a game 
 that would hide it. The search and the result are not kept between runs. Avalonia compact: the box takes the whole
 width, the result filter goes under it. Battlegrounds card: hero, name and
 mode · turns · tier, hero powers and trinkets (up to 3, "+N"), the final board as small ovals with stats (golden,
-taunt, divine shield), the hand (up to 3, "+N"), place and rating change, when · how long, star, Share, delete
+taunt, divine shield; the minions that fit whole, "+N" naming the rest), place and rating change, when · how long, star, Share, delete
 (Imported). Constructed card: our hero with the opponent's portrait over its corner, deck (else class) and class ·
 mode · format · rank · turns, "vs class" and the archetype, result, rating change, when · how long. Delete and the
 last copy's unstar ask inside the card. Avalonia compact hides the opponent column. Hover on a portrait shows the

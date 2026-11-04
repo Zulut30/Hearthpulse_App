@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -110,6 +111,13 @@ public sealed class MatchXamlLoadTests
         Assert.True(((FrameworkElement)view.FindName("FeedCard")).ActualHeight >= 420);
         var counters = Descendants(view).OfType<StackPanel>().Select(p => p.ToolTip as string).ToList();
         Assert.Contains(model.Step!.Bottom.HandTip, counters);
+
+        // The heroes' health by a heart and armor by a shield (never "30 + 5"), the badge named in words.
+        foreach (var side in new[] { model.Step.Top, model.Step.Bottom })
+        {
+            Assert.Contains(Descendants(view).OfType<Border>(), b => Equals(b.ToolTip, side.HealthTip) && AutomationProperties.GetName(b) == side.HealthTip);
+            Assert.DoesNotContain(Descendants(view).OfType<TextBlock>(), t => t.Text == $"{side.Health} + {side.Armor}");
+        }
 
         // Plan R1: the "Turn" list over the timeline shows the stretch on screen; a bookmark adds its mark under them.
         var turns = (ComboBox)view.FindName("TurnBox");
@@ -247,6 +255,9 @@ public sealed class MatchXamlLoadTests
         Assert.DoesNotContain(Loc.T("Match.Player.Table.BobOffer"), startTexts);
         Assert.Equal(2, Descendants(card).OfType<TextBlock>().Count(t => t.Name == "NameText" && Shown(t)));
         Assert.Single(Descendants(card).OfType<System.Windows.Shapes.Ellipse>(), e => e.Name == "Ring" && Shown(e));
+        // The pick is named as picked for a screen reader, the other option by its name.
+        var names = Descendants(card).OfType<StackPanel>().Where(p => p.Name == "Root" && Shown(p)).Select(AutomationProperties.GetName).ToList();
+        Assert.Equal([Loc.F("Match.Player.HeroPicked", "Hagatha"), "Bartendotron"], names);
 
         var row = (FrameworkElement)((DataTemplate)view.Resources["LeaderRow"]).LoadContent();
         row.DataContext = Hearthpulse.App.Main.Match.MatchViewModel.Leader(tavern.Leaderboard[0]);
@@ -256,6 +267,8 @@ public sealed class MatchXamlLoadTests
         Assert.Contains(Descendants(row).OfType<TextBlock>(), t => t.Text == "24");
         Assert.Contains(Descendants(row).OfType<TextBlock>(), t => t.Text == "3");
         Assert.DoesNotContain(Descendants(row).OfType<TextBlock>(), t => t.Text == "24 + 3");
+        var tip = Loc.F("Match.Player.HealthArmorTip", 24, 3);
+        Assert.Contains(Descendants(row).OfType<StackPanel>(), p => Equals(p.ToolTip, tip) && AutomationProperties.GetName(p) == tip);
     }
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
