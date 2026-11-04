@@ -8,7 +8,8 @@ namespace Hearthpulse.UI.Controls;
 
 /// <summary>
 /// Section heading: an optional gold icon inside a bronze-edged cookie shape, a bold title and a gold rule (diamond plus
-/// fading hairline) that fills the rest of the width.
+/// fading hairline) that fills the rest of the width. A title longer than the width (compact) ends in an ellipsis, with
+/// the whole title as the tooltip.
 /// </summary>
 public sealed class Ornament : Control
 {
@@ -19,6 +20,9 @@ public sealed class Ornament : Control
     public static readonly StyledProperty<bool> CenteredProperty = AvaloniaProperty.Register<Ornament, bool>(nameof(Centered));
 
     public static readonly StyledProperty<string> IconProperty = AvaloniaProperty.Register<Ornament, string>(nameof(Icon), string.Empty);
+
+    /// <summary>The tooltip is the cut title, set here (not from XAML).</summary>
+    private bool _ownTip;
 
     static Ornament()
     {
@@ -67,10 +71,45 @@ public sealed class Ornament : Control
         return new Size(width, Math.Max(Math.Ceiling(text.Height) + 4, Icon.Length > 0 ? IconSize : 0));
     }
 
-    public override void Render(DrawingContext context)
+    /// <summary>The title cut to <paramref name="width"/> with an ellipsis (one line) when it is wider.</summary>
+    private FormattedText Format(double width)
     {
         var text = Format();
+        if (width > 0 && text.Width > width)
+        {
+            text.MaxTextWidth = width;
+            text.MaxLineCount = 1;
+            text.Trimming = TextTrimming.CharacterEllipsis;
+        }
+
+        return text;
+    }
+
+    /// <summary>The room the title has: the width less the icon, and the rule's diamonds when centered.</summary>
+    private double TitleRoom(double width) => Centered ? width - 40 : width - (Icon.Length > 0 ? IconSize + 10 : 0) - 12;
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        // The tooltip says the whole title only while it is cut; a tooltip set from XAML is left alone.
+        var cut = Format().Width > TitleRoom(finalSize.Width);
+        if (cut && (_ownTip || ToolTip.GetTip(this) is null))
+        {
+            ToolTip.SetTip(this, SentenceCase(Text ?? string.Empty));
+            _ownTip = true;
+        }
+        else if (!cut && _ownTip)
+        {
+            ToolTip.SetTip(this, null);
+            _ownTip = false;
+        }
+
+        return base.ArrangeOverride(finalSize);
+    }
+
+    public override void Render(DrawingContext context)
+    {
         var w = Bounds.Width;
+        var text = Format(TitleRoom(w));
         var mid = Bounds.Height / 2;
         var trim = ThemeBrushes.Get("GoldTrim");
         var gold = ThemeBrushes.Get("Accent");

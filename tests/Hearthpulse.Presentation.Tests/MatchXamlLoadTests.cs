@@ -220,11 +220,42 @@ public sealed class MatchXamlLoadTests
         Assert.Contains("Partner hero", shownTexts);
         Assert.DoesNotContain("Hagatha", shownTexts);
 
+        // The hero choice before the first tavern: hero portraits with names on top, no Bob's offer, no "No minions".
+        var start = tavern with
+        {
+            Index = 0,
+            Phase = MatchPhase.Start,
+            Kind = MatchStepKind.Choice,
+            Title = "Start",
+            Board = [],
+            Shop = [],
+            Gold = string.Empty,
+            Choices =
+            [
+                new MatchChoiceView("Choose your hero",
+                [
+                    new MatchCardView("TB_BaconShop_HERO_08", "Hagatha", false) { Picked = true },
+                    new MatchCardView("TB_BaconShop_HERO_01", "Bartendotron", false) { Dimmed = true },
+                ]) { IsHero = true },
+            ],
+        };
+        card.DataContext = start;
+        Layout(view);
+        var startTexts = Descendants(card).OfType<TextBlock>().Where(Shown).Select(t => t.Text).ToList();
+        Assert.DoesNotContain(Loc.T("Match.Player.Table.EmptyBoard"), startTexts);
+        Assert.DoesNotContain(Loc.T("Match.Player.Table.EmptyShop"), startTexts);
+        Assert.DoesNotContain(Loc.T("Match.Player.Table.BobOffer"), startTexts);
+        Assert.Equal(2, Descendants(card).OfType<TextBlock>().Count(t => t.Name == "NameText" && Shown(t)));
+        Assert.Single(Descendants(card).OfType<System.Windows.Shapes.Ellipse>(), e => e.Name == "Ring" && Shown(e));
+
         var row = (FrameworkElement)((DataTemplate)view.Resources["LeaderRow"]).LoadContent();
         row.DataContext = Hearthpulse.App.Main.Match.MatchViewModel.Leader(tavern.Leaderboard[0]);
         Layout(row);
         Assert.True(row.DesiredSize.Height > 0);
-        Assert.Contains(Descendants(row).OfType<TextBlock>(), t => t.Text == "24 + 3");
+        // Health and armor apart (the armor by a shield), never "24 + 3"
+        Assert.Contains(Descendants(row).OfType<TextBlock>(), t => t.Text == "24");
+        Assert.Contains(Descendants(row).OfType<TextBlock>(), t => t.Text == "3");
+        Assert.DoesNotContain(Descendants(row).OfType<TextBlock>(), t => t.Text == "24 + 3");
     }
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root)

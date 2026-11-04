@@ -2,15 +2,48 @@ using System.IO;
 
 namespace Hearthpulse.App;
 
-/// <summary><c>--render-ui</c>: the Tavern Brawl page (docs/brawl.md).</summary>
+/// <summary><c>--render-ui</c>: the Tavern Brawl page (docs/brawl.md) and the render groups that run alone.</summary>
 public partial class App
 {
     /// <summary>
-    /// <c>HEARTHPULSE_RENDER_ONLY=brawl</c>: only the Brawl page, not the whole set (a check of one page stays a frame or
-    /// two instead of a hundred).
+    /// <c>HEARTHPULSE_RENDER_ONLY=brawl,history</c>: only those groups, not the whole set (a check of one page stays a
+    /// frame or two instead of a hundred). Empty: everything.
     /// </summary>
-    private static bool RenderOnlyBrawl =>
-        string.Equals(Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_ONLY"), "brawl", StringComparison.OrdinalIgnoreCase);
+    private static string[] RenderOnlyGroups =>
+        (Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_ONLY") ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static bool RenderOnly(string group) => RenderOnlyGroups.Contains(group, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>history</c> (History and a Battlegrounds match).</summary>
+    private async Task RenderOnlyAsync(string folder)
+    {
+        if (RenderOnly("brawl"))
+        {
+            await RenderBrawlAsync(folder);
+        }
+
+        if (RenderOnly("history"))
+        {
+            _main.ShowPage("History");
+            await Task.Delay(2500);
+            _main.UpdateLayout();
+            Save(_main, Path.Combine(folder, "main-history.png"));
+            if (_history.Recent(400).FirstOrDefault(g => g.Replay is not null && g.IsBattlegrounds) is { } battlegrounds
+                && await _mainViewModel.OpenMatchPageAsync(battlegrounds.Key))
+            {
+                // The first step (the hero choice) on the Battlegrounds table card: below the fold of the page.
+                await Task.Delay(2500);
+                _main.UpdateLayout();
+                if (Named<System.Windows.Controls.Border>(_main, "BattlegroundsStepCard") is { } table)
+                {
+                    SaveCard(table, Path.Combine(folder, "main-match-bg-table.png"));
+                }
+
+                _mainViewModel.MatchPage.Back.Execute(null);
+            }
+        }
+    }
 
     /// <summary><c>main-brawl.png</c>: this week's classes (the API or its cache) and the data copy's Brawl games.</summary>
     private async Task RenderBrawlAsync(string folder)

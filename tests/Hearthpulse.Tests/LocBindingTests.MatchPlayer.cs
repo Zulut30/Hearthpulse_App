@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Replay;
 using Hearthpulse.UI.Main;
 using Hearthpulse.UI.Main.Match;
@@ -280,7 +281,12 @@ public sealed partial class LocBindingTests
             Assert.Single(portraits, p => p.Classes.Contains("theirs"));
             var texts = table.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
             Assert.Contains("Turn 5 · combat", texts);
-            Assert.Contains("24 + 3", texts);
+            // Health and armor apart (a heart, a shield), never "24 + 3"; the badge's tooltip says both in words.
+            Assert.Contains("24", texts);
+            Assert.Contains("3", texts);
+            Assert.DoesNotContain("24 + 3", texts);
+            Assert.Contains(table.GetVisualDescendants().OfType<Border>(), b => Equals(ToolTip.GetTip(b), step.Hero.HealthTip));
+            Assert.Equal(Loc.F("Match.Player.HealthArmorTip", 24, 3), step.Hero.HealthTip);
             Assert.Contains("Bartendotron", texts);
             var bar = table.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("bgStep"));
             Assert.Contains("combat", bar.Classes);
@@ -292,9 +298,39 @@ public sealed partial class LocBindingTests
             window.Content = row;
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
-            Assert.Contains("24 + 3", row.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text));
+            var rowTexts = row.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToList();
+            Assert.Contains("24", rowTexts);
+            Assert.Contains("3", rowTexts);
+            Assert.DoesNotContain("24 + 3", rowTexts);
             Assert.Contains("leader", row.Classes);
             Assert.DoesNotContain("fighting", row.Classes);
+
+            // The hero choice before the first tavern: round hero portraits with names, no card renders, no Bob's offer
+            // and no "No minions" under the empty board.
+            window.Content = view;
+            var heroes = new MatchChoiceView("Choose your hero",
+            [
+                new MatchCardView("TB_BaconShop_HERO_08", "Hagatha", false) { Picked = true },
+                new MatchCardView("TB_BaconShop_HERO_01", "Bartendotron", false) { Dimmed = true },
+            ]) { IsHero = true };
+            var choice = new MatchBgStepView(0, 40, 0, MatchPhase.Start, MatchStepKind.Choice, "Start", "You picked Hagatha", string.Empty)
+            {
+                Hero = new MatchBgHeroView("TB_BaconShop_HERO_08", "Hagatha", 30, 0, 1),
+                Choices = [heroes],
+            };
+            view.FindControl<StackPanel>("BattlegroundsStepCard")!.DataContext = choice;
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            var shownTexts = table.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToList();
+            Assert.DoesNotContain(Loc.T("Match.Player.Table.EmptyBoard"), shownTexts);
+            Assert.DoesNotContain(Loc.T("Match.Player.Table.EmptyShop"), shownTexts);
+            Assert.DoesNotContain(Loc.T("Match.Player.Table.BobOffer"), shownTexts);
+            var picks = table.GetVisualDescendants().OfType<StackPanel>().Where(s => s.Classes.Contains("heroChoice") && s.IsEffectivelyVisible).ToList();
+            Assert.Equal(2, picks.Count);
+            Assert.Single(picks, s => s.Classes.Contains("picked"));
+            Assert.Single(picks, s => s.Classes.Contains("dimmed"));
+            Assert.Contains("Hagatha", shownTexts);
+            Assert.DoesNotContain(table.GetVisualDescendants().OfType<Image>(), i => i.IsEffectivelyVisible && i.DataContext is MatchCardView);
         }
         finally
         {

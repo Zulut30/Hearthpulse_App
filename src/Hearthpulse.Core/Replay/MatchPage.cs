@@ -161,8 +161,20 @@ public sealed record MatchStepView(int Index, int Count, string Turn, string Act
     public IReadOnlyList<MatchChoiceView> Choices { get; init; } = [];
 }
 
-/// <summary>A row of cards offered at a choice ("Your mulligan", "Discover from ..."), each marked picked or not.</summary>
-public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> Cards);
+/// <summary>
+/// A row of cards offered at a choice ("Your mulligan", "Discover from ..."), each marked picked or not. Equal by value,
+/// cards included: the player's list keeps the row of a choice shown again on the next step instead of building it anew.
+/// </summary>
+public sealed record MatchChoiceView(string Title, IReadOnlyList<MatchCardView> Cards)
+{
+    /// <summary>The Battlegrounds hero choice: the views show the options as round hero portraits, not as cards.</summary>
+    public bool IsHero { get; init; }
+
+    public bool Equals(MatchChoiceView? other) =>
+        other is not null && (ReferenceEquals(this, other) || (Title == other.Title && IsHero == other.IsHero && Cards.SequenceEqual(other.Cards)));
+
+    public override int GetHashCode() => HashCode.Combine(Title, IsHero, Cards.Count);
+}
 
 /// <summary>A turn chip in the turn strip.</summary>
 public sealed record MatchTurnChip(int Number, string Label, string Tooltip, bool Local, bool Mulligan, int FirstFrame, int LastFrame);

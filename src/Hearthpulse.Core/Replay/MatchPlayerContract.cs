@@ -1,4 +1,5 @@
 using System.Globalization;
+using Hearthpulse.Core.Localization;
 
 namespace Hearthpulse.Core.Replay;
 
@@ -112,7 +113,18 @@ public sealed record MatchBgHeroView(string HeroCardId, string Name, int Health,
     /// <summary>Trinkets, the quest and its reward, in the order the game shows them.</summary>
     public IReadOnlyList<MatchBgCardView> Trinkets { get; init; } = [];
 
-    public string HealthText => Armor > 0 ? $"{Health} + {Armor}" : Health.ToString(CultureInfo.CurrentCulture);
+    /// <summary>The health on the portrait's badge, next to a heart; the armor has its own value next to a shield.</summary>
+    public string HealthText => Health.ToString(CultureInfo.CurrentCulture);
+
+    /// <summary>The armor next to the shield ("" without armor: the shield is not shown).</summary>
+    public string ArmorText => Armor > 0 ? Armor.ToString(CultureInfo.CurrentCulture) : string.Empty;
+
+    /// <summary>"Health 30, armor 15" on the badge's tooltip and as its screen-reader name.</summary>
+    public string HealthTip => HealthTipOf(Health, Armor);
+
+    /// <summary>The badge's tooltip, shared by the hero line and the leaderboard.</summary>
+    public static string HealthTipOf(int health, int armor) =>
+        armor > 0 ? Loc.F("Match.Player.HealthArmorTip", health, armor) : Loc.F("Match.Player.HealthTip", health);
 }
 
 /// <summary>A row of the leaderboard at a step, as the game showed it.</summary>
@@ -159,4 +171,19 @@ public sealed record MatchBgStepView(int Index, int Count, int Turn, MatchPhase 
     public string? ResultKey { get; init; }
 
     public bool InCombat => Phase == MatchPhase.Combat;
+
+    /// <summary>The steps before the first tavern (the hero choice): no table yet, so no Bob's offer and no "No minions".</summary>
+    public bool BeforeTavern => Phase == MatchPhase.Start;
+
+    /// <summary>Bob's offer shows in the tavern only: not before the first one (the hero choice), in combat or at the end.</summary>
+    public bool ShowShop => Phase == MatchPhase.Shop;
+
+    /// <summary>Before the first tavern the step's choice takes the top of the table (where Bob's offer goes later).</summary>
+    public bool ChoicesOnTop => BeforeTavern && Choices.Count > 0;
+
+    /// <summary>A choice of a later step (Discover, trinket, quest) shows under the step bar.</summary>
+    public bool ChoicesBelow => !BeforeTavern && Choices.Count > 0;
+
+    /// <summary>"No minions" under an empty board, once there is a table.</summary>
+    public bool ShowEmptyBoard => !BeforeTavern && Board.Count == 0;
 }

@@ -145,6 +145,9 @@ public sealed class SortHeader : Border
         _arrow.Margin = right ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0);
         // The arrow docks on the side away from the numbers' edge; the text takes the rest and wraps in a narrow column.
         DockPanel.SetDock(_arrow, right ? Dock.Left : Dock.Right);
+        // A head wider than its text (a fixed column width) keeps the arrow next to its own text, as in WPF, not at the
+        // column's far edge: the panel takes its content's width on the numbers' side.
+        _panel.HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left;
         Cursor = Sort is null ? null : new Cursor(StandardCursorType.Hand);
         AutomationProperties.SetName(this, Text);
     }

@@ -23,6 +23,8 @@
   "Match.Player.Table.EmptyBoard": "No minions",
   "Match.Player.Table.EmptyShop": "Nothing on offer",
   "Match.Player.Table.Partner": "Partner",
+  "Match.Player.HealthTip": "Health {0}",
+  "Match.Player.HealthArmorTip": "Health {0}, armor {1}",
   "Match.Timeline.More": "and {0} more",
   "Match.Timeline.LegendConstructed": "Timeline: segments are turns (yours have a bar on top, M is the mulligan), ticks are events. Click or drag to go there.",
   "Match.Timeline.LegendBattlegrounds": "Timeline: numbered segments are the tavern, crossed swords are combats (green won, red lost), ticks are events. Click or drag to go there.",

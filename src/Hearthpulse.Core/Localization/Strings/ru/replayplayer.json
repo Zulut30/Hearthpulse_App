@@ -23,6 +23,8 @@
   "Match.Player.Table.EmptyBoard": "Нет существ",
   "Match.Player.Table.EmptyShop": "Боб ничего не предлагает",
   "Match.Player.Table.Partner": "Напарник",
+  "Match.Player.HealthTip": "Здоровье {0}",
+  "Match.Player.HealthArmorTip": "Здоровье {0}, броня {1}",
   "Match.Timeline.More": "и ещё {0}",
   "Match.Timeline.LegendConstructed": "Таймлайн: отрезки — ходы (с полосой сверху — ваши, М — муллиган), штрихи — события. Клик или перетаскивание — переход.",
   "Match.Timeline.LegendBattlegrounds": "Таймлайн: отрезки с номером — таверна, со скрещёнными мечами — бои (зелёный — победа, красный — поражение), штрихи — события. Клик или перетаскивание — переход.",

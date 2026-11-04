@@ -23,16 +23,17 @@
             </DataTemplate>
 
             <!-- A minion of the final board: a small oval (golden: accent rim, taunt: thick rim, divine shield: outer
-                 ring) and its stats under it -->
+                 ring) and its stats under it. 36 wide and 1 apart: "136/63" fits in tabular digits; longer stats trim, the
+                 tooltip has them whole. -->
             <DataTemplate x:Key="Minion" x:DataType="mt:LibraryMinion">
-                <StackPanel Width="28" ToolTip.Tip="{Binding Tooltip}" c:CardPreview.CardId="{Binding CardId}">
+                <StackPanel Width="44" Margin="0,0,1,0" Background="Transparent" ToolTip.Tip="{Binding Tooltip}" c:CardPreview.CardId="{Binding CardId}">
                     <Panel Width="28" Height="34" HorizontalAlignment="Center">
                         <Border CornerRadius="14" BorderBrush="{StaticResource Info}" BorderThickness="1.5" IsVisible="{Binding DivineShield}" />
                         <Border Classes="oval" Classes.taunt="{Binding Taunt}" Classes.golden="{Binding Golden}" Width="26" Height="32" CornerRadius="13"
                                 ClipToBounds="True" Background="{StaticResource Surface4}" i:CardArt.Portrait="{Binding CardId}" />
                     </Panel>
-                    <TextBlock Text="{Binding Stats}" FontFamily="{StaticResource DisplayFont}" FontSize="10" HorizontalAlignment="Center"
-                               Foreground="{StaticResource Muted}" />
+                    <TextBlock Classes="stats" Text="{Binding Stats}" FontFamily="{StaticResource DisplayFont}" FontSize="10" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" TextAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" Foreground="{StaticResource Muted}" />
                 </StackPanel>
             </DataTemplate>
 
@@ -78,7 +79,7 @@
                         <TextBlock Text="{Binding Rating}" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"
                                    Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip.Tip="{i:Loc Main.Game.RatingChange}" />
                     </StackPanel>
-                    <TextBlock Text="{Binding When}" Classes="caption" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding When}" Classes="caption" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding When}" />
                 </StackPanel>
             </DataTemplate>
 
@@ -87,37 +88,43 @@
                         Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Open}" CommandParameter="{Binding}">
                     <Border Classes="plate" CornerRadius="8" Padding="12,10" Margin="0,0,0,6">
                         <StackPanel>
-                            <!-- Battlegrounds: hero · name and caption · chips, board, hand · result · actions -->
-                            <Grid ColumnDefinitions="56,200,*,120,Auto" IsVisible="{Binding IsBattlegrounds}">
+                            <!-- Both kinds share the outer columns (hero 56 · ... · result 170 · actions 98): the result, the date
+                                 and the buttons line up down the list. The result column fits the longest date and duration,
+                                 the actions column three buttons. -->
+                            <!-- Battlegrounds: hero · name and caption · chips, board, hand in one row · result · actions; at a
+                                 narrow width the row clips at its end, compact drops the hand -->
+                            <Grid IsVisible="{Binding IsBattlegrounds}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56" />
+                                    <ColumnDefinition Width="*" MinWidth="140" />
+                                    <ColumnDefinition Width="3*" MaxWidth="484" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="98" />
+                                </Grid.ColumnDefinitions>
                                 <Border Width="44" Height="44" CornerRadius="22" ClipToBounds="True" Background="{StaticResource Surface4}" HorizontalAlignment="Left"
                                         i:CardArt.Portrait="{Binding HeroCardId}" c:CardPreview.CardId="{Binding HeroCardId}" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
                                     <TextBlock Text="{Binding Caption}" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Caption}" />
                                 </StackPanel>
-                                <WrapPanel Grid.Column="2" VerticalAlignment="Center">
-                                    <StackPanel Width="76" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <ItemsControl ItemsSource="{Binding Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" />
-                                        <TextBlock Text="{Binding ChipsMore}" Classes="caption" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                    <Border Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
-                                    <ItemsControl Width="196" ItemsSource="{Binding Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource RowPanel}"
-                                                  VerticalAlignment="Center" />
-                                    <Border Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
-                                    <StackPanel Width="96" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource HandCard}" ItemsPanel="{StaticResource RowPanel}" />
-                                        <Border Classes="pill" ToolTip.Tip="{Binding HandMoreTip}" VerticalAlignment="Center"
-                                                IsVisible="{Binding HandMore, Converter={StaticResource Truthy}}">
-                                            <TextBlock Text="{Binding HandMore}" FontSize="11" />
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ClipToBounds="True" Margin="0,0,8,0">
+                                    <StackPanel Width="100" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ItemsControl ItemsSource="{Binding Summary.Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" />
+                                        <Border Classes="pill" ToolTip.Tip="{Binding Summary.ChipsMoreTip}" VerticalAlignment="Center"
+                                                IsVisible="{Binding Summary.ChipsMore, Converter={StaticResource Truthy}}">
+                                            <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="11" />
                                         </Border>
                                     </StackPanel>
-                                </WrapPanel>
+                                    <Border Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
+                                    <ItemsControl Width="315" ItemsSource="{Binding Summary.Board}" ItemTemplate="{StaticResource Minion}" ItemsPanel="{StaticResource RowPanel}"
+                                                  VerticalAlignment="Center" />
+                                </StackPanel>
                                 <ContentControl Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
-                                <ContentControl Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" />
+                                <ContentControl Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" HorizontalAlignment="Right" />
                             </Grid>
 
                             <!-- Constructed, Arena and the rest: heroes · deck and caption · opponent · result · actions -->
-                            <Grid ColumnDefinitions="56,2*,*,120,Auto" IsVisible="{Binding IsConstructed}">
+                            <Grid ColumnDefinitions="56,5*,2*,150,98" IsVisible="{Binding IsConstructed}">
                                 <Panel Width="48" Height="44" HorizontalAlignment="Left">
                                     <Border Width="40" Height="40" CornerRadius="20" ClipToBounds="True" Background="{StaticResource Surface4}" HorizontalAlignment="Left"
                                             VerticalAlignment="Top" i:CardArt.Portrait="{Binding HeroCardId}" />
@@ -126,15 +133,15 @@
                                             ToolTip.Tip="{Binding Opponent}" IsVisible="{Binding OpponentHeroCardId, Converter={StaticResource Truthy}}" />
                                 </Panel>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}" />
                                     <TextBlock Text="{Binding Caption}" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Caption}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Classes="wide" VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="{Binding Opponent}" FontSize="13" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding OpponentArchetype}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding OpponentArchetype}" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding OpponentArchetype}" />
                                 </StackPanel>
                                 <ContentControl Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
-                                <ContentControl Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" />
+                                <ContentControl Grid.Column="4" Content="{Binding}" ContentTemplate="{StaticResource CardActions}" HorizontalAlignment="Right" />
                             </Grid>
 
                             <!-- The question before a delete, inside the card -->
@@ -168,6 +175,13 @@
         <Style Selector="Button.libraryCard:pointerover Border.plate">
             <Setter Property="Background" Value="{StaticResource Hover}" />
         </Style>
+        <Style Selector="TextBlock.stats">
+            <Setter Property="FontFeatures">
+                <FontFeatureCollection>
+                    <FontFeature Tag="tnum" Value="1" />
+                </FontFeatureCollection>
+            </Setter>
+        </Style>
         <Style Selector="Border.oval">
             <Setter Property="BorderBrush" Value="{StaticResource Border}" />
             <Setter Property="BorderThickness" Value="1" />
@@ -193,8 +207,12 @@
         <Style Selector="Button.cardIcon.delete:pointerover">
             <Setter Property="Foreground" Value="{StaticResource Negative}" />
         </Style>
-        <!-- Compact (< 900): the opponent column goes (the opponent stays as the small portrait with its tooltip) -->
+        <!-- Compact (< 900): the opponent column goes (the opponent stays as the small portrait with its tooltip), and the
+             Battlegrounds hand -->
         <Style Selector="m|MainView.compact StackPanel.wide">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="m|MainView.compact Border.wide">
             <Setter Property="IsVisible" Value="False" />
         </Style>
         <!-- Compact: the search box takes the whole width, the result filter goes under it -->

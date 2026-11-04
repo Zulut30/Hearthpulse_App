@@ -195,7 +195,11 @@ public sealed partial class MainViewModel
             {
                 HeroCardId = g.HeroCardId,
                 Title = _cards.NameOf(g.HeroCardId),
-                Caption = $"{Mode(g.Mode)} · {Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)}",
+                // The hero portrait and the board already say "Battlegrounds": only Duos (and any other mode) names itself,
+                // so the tier and the turns fit the caption.
+                Caption = g.Mode == "Battlegrounds" ? Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)
+                    : $"{Mode(g.Mode)} · {Loc.P("Main.Game.BgDetail", g.Turns, g.TavernTier)}",
+                ModeText = Mode(g.Mode),
                 Result = g.IsAbandoned ? ResultText(g.Result) : Ordinal(g.Placement),
                 ResultKey = resultKey,
                 Rating = rating,
@@ -220,6 +224,7 @@ public sealed partial class MainViewModel
                 RankInfo.Localize(g.Rank),
                 g.Turns > 0 ? Loc.P("Main.Game.Turns", g.Turns) : null,
             }.Where(x => !string.IsNullOrEmpty(x))),
+            ModeText = Mode(g.Mode),
             OpponentHeroCardId = g.OpponentHeroCardId,
             Opponent = g.OpponentClass is { Length: > 0 } opponent ? Loc.F("Main.Game.Vs", OverlayViewModel.ClassName(opponent)) : string.Empty,
             OpponentArchetype = g.OpponentArchetype is { Length: > 0 } archetype ? ArchetypeNames.Display(archetype) ?? archetype : string.Empty,

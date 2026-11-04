@@ -118,6 +118,42 @@ public sealed class LibraryViewModelTests : IDisposable
         Assert.Equal(Loc.F("Main.Game.Vs", Hearthpulse.UI.Overlay.OverlayViewModel.ClassName("WARRIOR")), ranked.Opponent);
     }
 
+    /// <summary>
+    /// A plain Battlegrounds card's caption is the tier and the turns (the mode word went: it cut the turns off), and
+    /// the search still finds the card by its mode.
+    /// </summary>
+    [Fact]
+    public async Task A_battlegrounds_caption_leaves_out_the_mode_and_the_search_still_finds_it()
+    {
+        var vm = await Open();
+        var bg = vm.Library.Cards.Single(c => c.IsBattlegrounds);
+
+        Assert.Equal(Loc.P("Main.Game.BgDetail", 14, 6), bg.Caption);
+        vm.Library.Search = Loc.T("Main.Mode.Battlegrounds");
+        Assert.Same(bg, Assert.Single(vm.Library.Cards));
+    }
+
+    /// <summary>
+    /// The header's parts reach the view in one notification (the summary), not one per part; chips and hand past 3
+    /// go into "+N" with the rest in its tooltip.
+    /// </summary>
+    [Fact]
+    public void A_card_gets_its_summary_in_one_notification()
+    {
+        var card = new LibraryCard(ReplayShelf.Recent, "a.hpr", "key", battlegrounds: true);
+        var raised = new List<string?>();
+        card.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        LibraryChip Chip(string id) => new(id, "Name " + id);
+
+        card.SetSummary([Chip("a"), Chip("b"), Chip("c"), Chip("d"), Chip("e")], [new LibraryMinion("m", "136/63", false, false, false, "tip")], [Chip("h")]);
+
+        Assert.Equal([nameof(LibraryCard.Summary)], raised);
+        Assert.Equal(3, card.Summary.Chips.Count);
+        Assert.Equal(("+2", "Name d, Name e"), (card.Summary.ChipsMore, card.Summary.ChipsMoreTip));
+        Assert.Equal((1, string.Empty), (card.Summary.Hand.Count, card.Summary.HandMore));
+        Assert.Equal("136/63", Assert.Single(card.Board).Stats);
+    }
+
     [Fact]
     public async Task The_star_copies_into_saved_and_the_last_copy_asks_before_it_goes()
     {

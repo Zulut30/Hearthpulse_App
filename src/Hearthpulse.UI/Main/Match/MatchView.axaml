@@ -116,17 +116,32 @@
                 </StackPanel>
             </DataTemplate>
 
-            <!-- A choice row: its title, then the offered cards -->
+            <!-- A Battlegrounds hero offered at the start: a round portrait (as the hero line and the leaderboard) with the
+                 name under it; the picked one ringed in the accent, the others dimmed. No card frame, no cost. -->
+            <DataTemplate x:Key="HeroChoiceCard" x:DataType="r:MatchCardView">
+                <StackPanel Classes="heroChoice" Classes.dimmed="{Binding Dimmed}" Classes.picked="{Binding Picked}" Width="124" Margin="2,0" Background="Transparent"
+                            ToolTip.Tip="{Binding Name}" c:CardPreview.CardId="{Binding CardId}">
+                    <Panel Width="72" Height="72" HorizontalAlignment="Center">
+                        <Ellipse StrokeThickness="3" Stroke="{StaticResource Accent}" IsVisible="{Binding Picked}" />
+                        <Border Margin="5" CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
+                                ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
+                    </Panel>
+                    <TextBlock Classes="heroName" Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2" Margin="0,4,0,0" />
+                </StackPanel>
+            </DataTemplate>
+
+            <ItemsPanelTemplate x:Key="ChoicePanel">
+                <WrapPanel HorizontalAlignment="Center" />
+            </ItemsPanelTemplate>
+
+            <!-- A choice row: its title, then the offered cards (the hero choice: hero portraits; a hidden list builds no
+                 items, it is never measured) -->
             <DataTemplate x:Key="ChoiceRow" x:DataType="r:MatchChoiceView">
                 <StackPanel Margin="0,4,0,6">
                     <TextBlock Text="{Binding Title}" Classes="label" HorizontalAlignment="Center" Margin="0,0,0,4" />
-                    <ItemsControl ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource ChoiceCard}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel HorizontalAlignment="Center" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource ChoiceCard}" ItemsPanel="{StaticResource ChoicePanel}" IsVisible="{Binding !IsHero}" />
+                    <ItemsControl ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource HeroChoiceCard}" ItemsPanel="{StaticResource ChoicePanel}" IsVisible="{Binding IsHero}" />
                 </StackPanel>
             </DataTemplate>
 
@@ -415,9 +430,18 @@
                         <Panel Width="62" Height="62" ToolTip.Tip="{Binding Name}">
                             <Border Classes="portrait" Classes.theirs="{Binding $parent[ContentControl].Tag, Converter={StaticResource Truthy}}" CornerRadius="31"
                                     Background="{StaticResource Surface4}" BorderThickness="2" ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
-                            <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="6,1"
-                                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-10,-4">
-                                <TextBlock Text="{Binding HealthText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" />
+                            <!-- Health by a heart and armor by a shield, apart: "30 + 15" read as a sum -->
+                            <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="5,1,6,1"
+                                    HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-40,0,-40,-8" ToolTip.Tip="{Binding HealthTip}"
+                                    AutomationProperties.Name="{Binding HealthTip}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xF02D1;" Classes="icon" FontSize="11" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
+                                    <TextBlock Text="{Binding HealthText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xF0498;" Classes="icon" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="6,0,2,0"
+                                               IsVisible="{Binding ArmorText, Converter={StaticResource Truthy}}" />
+                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"
+                                               IsVisible="{Binding ArmorText, Converter={StaticResource Truthy}}" />
+                                </StackPanel>
                             </Border>
                         </Panel>
                         <ItemsControl ItemsSource="{Binding HeroPowers}" ItemTemplate="{StaticResource BgChip}" ItemsPanel="{StaticResource RowPanel}" Margin="10,0,0,0"
@@ -456,10 +480,20 @@
                         <Border Grid.Column="1" Width="26" Height="26" CornerRadius="13" Margin="6,0,8,0" Background="{StaticResource Surface4}" ClipToBounds="True"
                                 i:CardArt.Portrait="{Binding HeroCardId}" />
                         <TextBlock Grid.Column="2" Classes.you="{Binding Local}" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                        <Border Grid.Column="3" Width="20" Height="20" CornerRadius="4" Background="{StaticResource Surface3}" Margin="8,0">
-                            <TextBlock Text="{Binding Tier}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <TextBlock Grid.Column="4" Text="{Binding Health}" FontFamily="{DynamicResource DisplayFont}" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center" />
+                        <!-- The tier plate stays empty space before the first tavern (no tier 0) -->
+                        <Panel Grid.Column="3" Width="20" Height="20" Margin="8,0">
+                            <Border CornerRadius="4" Background="{StaticResource Surface3}" IsVisible="{Binding Tier, Converter={StaticResource Truthy}}">
+                                <TextBlock Text="{Binding Tier}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Panel>
+                        <!-- Health, then armor by a shield; the tooltip says both in words -->
+                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding HealthTip}">
+                            <TextBlock Text="{Binding Health}" FontFamily="{DynamicResource DisplayFont}" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xF0498;" Classes="icon" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="5,0,2,0"
+                                       IsVisible="{Binding Armor, Converter={StaticResource Truthy}}" />
+                            <TextBlock Text="{Binding Armor}" FontFamily="{DynamicResource DisplayFont}" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource Muted}"
+                                       VerticalAlignment="Center" IsVisible="{Binding Armor, Converter={StaticResource Truthy}}" />
+                        </StackPanel>
                     </Grid>
                 </Border>
             </DataTemplate>
@@ -553,6 +587,9 @@
         </Style>
         <Style Selector="StackPanel.dimmed">
             <Setter Property="Opacity" Value="0.45" />
+        </Style>
+        <Style Selector="StackPanel.heroChoice.picked TextBlock.heroName">
+            <Setter Property="Foreground" Value="{StaticResource Accent}" />
         </Style>
         <Style Selector="TextBlock.caption.revealed">
             <Setter Property="Foreground" Value="{StaticResource Accent}" />
@@ -1144,9 +1181,11 @@
                 <Grid x:Name="BattlegroundsTable" ColumnDefinitions="*,16,300" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowBattlegroundsTable}">
                     <Border Classes="card table" Padding="18,14" VerticalAlignment="Top">
                         <StackPanel x:Name="BattlegroundsStepCard" DataContext="{Binding BattlegroundsStep}" x:DataType="r:MatchBgStepView">
-                            <!-- Top: Bob's offer in the tavern, the combat opponent in combat; one height, so the step bar stays put -->
+                            <!-- Top: Bob's offer in the tavern, the combat opponent in combat, the hero choice before the first
+                                 tavern (no Bob yet); one height, so the step bar stays put -->
                             <Panel MinHeight="168">
-                                <StackPanel IsVisible="{Binding !InCombat}">
+                                <ItemsControl ItemsSource="{Binding Choices}" ItemTemplate="{StaticResource ChoiceRow}" VerticalAlignment="Center" IsVisible="{Binding ChoicesOnTop}" />
+                                <StackPanel IsVisible="{Binding ShowShop}">
                                     <StackPanel Orientation="Horizontal" Height="28">
                                         <TextBlock Text="{i:Loc Match.Player.Table.BobOffer}" Classes="label" VerticalAlignment="Center" />
                                         <Border Classes="pill" Background="{StaticResource Surface3}" BorderBrush="{StaticResource Info}" BorderThickness="1" Margin="10,0,0,0"
@@ -1191,14 +1230,14 @@
                                     <TextBlock Text="{Binding Action}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding Action}" />
                                 </DockPanel>
                             </Border>
-                            <!-- The step's choice: hero, Discover, trinket, quest -->
-                            <ItemsControl ItemsSource="{Binding Choices}" ItemTemplate="{StaticResource ChoiceRow}" Margin="0,0,0,6" IsVisible="{Binding Choices.Count}" />
+                            <!-- The step's choice in the game: Discover, trinket, quest (the hero choice is on top) -->
+                            <ItemsControl ItemsSource="{Binding Choices}" ItemTemplate="{StaticResource ChoiceRow}" Margin="0,0,0,6" IsVisible="{Binding ChoicesBelow}" />
                             <!-- Bottom: our board, hero and hand; in a Duos combat our partner's board and hero while their table fights -->
                             <StackPanel IsVisible="{Binding !PartnerFighting}">
                                 <Panel MinHeight="96">
                                     <ItemsControl ItemsSource="{Binding Board}" ItemTemplate="{StaticResource BgBoardMinion}" ItemsPanel="{StaticResource CardRow}" />
                                     <TextBlock Text="{i:Loc Match.Player.Table.EmptyBoard}" Classes="caption" Foreground="{StaticResource Faint}" HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" IsVisible="{Binding !Board.Count}" />
+                                               VerticalAlignment="Center" IsVisible="{Binding ShowEmptyBoard}" />
                                 </Panel>
                                 <ContentControl Content="{Binding Hero}" ContentTemplate="{StaticResource BgHeroLine}" IsVisible="{Binding Hero, Converter={StaticResource Truthy}}" />
                             </StackPanel>
