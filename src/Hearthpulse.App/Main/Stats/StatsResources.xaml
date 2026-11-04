@@ -30,8 +30,8 @@
          The plate's padding hangs past the column edge, so the number keeps the numbers' right edge. -->
     <Style x:Key="MarkCell" TargetType="Border">
         <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="8,1" />
-        <Setter Property="Margin" Value="0,0,-8,0" />
+        <Setter Property="Padding" Value="4,1" />
+        <Setter Property="Margin" Value="0,0,-4,0" />
         <Setter Property="HorizontalAlignment" Value="Right" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Style.Triggers>
@@ -49,8 +49,8 @@
     <!-- A win rate (WinFraction, WinSign) on a 0–100 % bar in its colour, with a tick at 50 % -->
     <DataTemplate x:Key="WinScaleBar">
         <Grid Width="64" Height="11" VerticalAlignment="Center">
-            <Border Height="7" CornerRadius="4" Background="{StaticResource Surface3}" />
-            <Border Height="7" HorizontalAlignment="Left" CornerRadius="4" Background="{Binding WinSign, Converter={StaticResource SignBrush}}"
+            <Border Height="7" CornerRadius="2" Background="{StaticResource Surface3}" />
+            <Border Height="7" HorizontalAlignment="Left" CornerRadius="2" Background="{Binding WinSign, Converter={StaticResource SignBrush}}"
                     Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=64}" />
             <Border Width="1" HorizontalAlignment="Center" Background="{StaticResource Text}" Opacity="0.45" />
         </Grid>
@@ -58,8 +58,8 @@
 
     <Style x:Key="StatsRow" TargetType="Border">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="Margin" Value="-12,0,-12,2" />
+        <Setter Property="Padding" Value="8,8" />
+        <Setter Property="Margin" Value="-8,0,-8,2" />
         <Setter Property="Background" Value="Transparent" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -83,11 +83,11 @@
     <!-- A KPI card: label, a short gold rule, big value (green or red with its sign), caption. The page's tile look
          (Main/MainLook TileCard), tighter. Placed in a row with 12 between cards. -->
     <DataTemplate x:Key="StatsTile" DataType="{x:Type m:StatTile}">
-        <Border Style="{DynamicResource TileCard}" Padding="16,16,16,16" Margin="0,0,12,12" ToolTip="{Binding Detail}">
+        <Border Style="{DynamicResource TileCard}" Padding="16,12,16,12" Margin="0,0,12,12" ToolTip="{Binding Detail}">
             <StackPanel>
                 <TextBlock Text="{Binding Label}" Style="{StaticResource Label}" TextTrimming="CharacterEllipsis" />
-                <Border Width="22" Height="2" CornerRadius="1" Background="{StaticResource AccentLine}" HorizontalAlignment="Left" Margin="0,8,0,0" />
-                <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" FontSize="{StaticResource FontSizeHeadline}" Margin="0,8,0,2" TextTrimming="CharacterEllipsis" />
+                <Border Width="22" Height="2" CornerRadius="1" Background="{StaticResource AccentLine}" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                <TextBlock x:Name="Value" Text="{Binding Value}" Style="{StaticResource Stat}" FontSize="{StaticResource FontSizeHeadline}" Margin="0,4,0,2" TextTrimming="CharacterEllipsis" />
                 <TextBlock Text="{Binding Detail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </Border>
@@ -111,12 +111,12 @@
          (none: plain heads); a hairline under them. Sits first in a panel of the head and the rows: it stays in view. -->
     <Style x:Key="StatsTableHead" TargetType="ContentControl">
         <Setter Property="Focusable" Value="False" />
-        <Setter Property="Margin" Value="-12,0,-12,4" />
+        <Setter Property="Margin" Value="-8,0,-8,4" />
         <Setter Property="c:StickyHeader.IsEnabled" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContentControl">
-                    <Border Background="{TemplateBinding Background}" BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="12,0,12,8">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="10,0,10,6">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -148,8 +148,8 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ProgressBar">
                     <Grid>
-                        <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="4" />
-                        <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="4" />
+                        <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="5" />
+                        <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="5" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>
@@ -198,7 +198,7 @@
                     <ColumnDefinition Width="64" />
                     <ColumnDefinition Width="132" />
                 </Grid.ColumnDefinitions>
-                <Border Width="30" Height="30" Margin="0,0,12,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding CardId}"
+                <Border Width="30" Height="30" Margin="0,0,8,0" Style="{StaticResource StatsPortrait}" i:CardArt.Portrait="{Binding CardId}"
                         Visibility="{Binding CardId, Converter={StaticResource Vis}}" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -221,7 +221,7 @@
 
     <!-- Hover card of the Battlegrounds rating chart -->
     <DataTemplate x:Key="BgHoverCard" DataType="{x:Type m:BgGamePoint}">
-        <Border Width="316" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="12" Padding="16,12">
+        <Border Width="316" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,12">
             <StackPanel>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -248,7 +248,7 @@
                     <TextBlock Text="{Binding Delta}" FontWeight="Bold" FontSize="{StaticResource FontSizeBody}" Margin="8,0,0,0" VerticalAlignment="Center"
                                Foreground="{Binding DeltaValue, Converter={StaticResource SignBrush}}" />
                 </StackPanel>
-                <TextBlock Text="{i:Loc Stats.Bg.FinalBoard}" Style="{StaticResource Label}" Margin="0,12,0,8" />
+                <TextBlock Text="{i:Loc Stats.Bg.FinalBoard}" Style="{StaticResource Label}" Margin="0,12,0,4" />
                 <ItemsControl ItemsSource="{Binding Board}" Visibility="{Binding Board, Converter={StaticResource Vis}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -260,9 +260,9 @@
                             <StackPanel Margin="1,0" ToolTip="{Binding Name}">
                                 <Border x:Name="Ring" Width="36" Height="36" CornerRadius="18" BorderThickness="1.5" BorderBrush="{StaticResource Border}"
                                         Background="{StaticResource Surface4}" HorizontalAlignment="Center">
-                                    <Border CornerRadius="16" i:CardArt.Portrait="{Binding CardId}" />
+                                    <Border CornerRadius="17" i:CardArt.Portrait="{Binding CardId}" />
                                 </Border>
-                                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Margin="0,4,0,0">
+                                <TextBlock HorizontalAlignment="Center" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" Margin="0,2,0,0">
                                     <Run Text="{Binding Attack, Mode=OneWay}" /><Run Text="/" Foreground="{StaticResource Faint}" /><Run Text="{Binding Health, Mode=OneWay}" />
                                 </TextBlock>
                             </StackPanel>
@@ -283,7 +283,7 @@
 
     <!-- Hover card of the rank chart -->
     <DataTemplate x:Key="CtHoverCard" DataType="{x:Type m:CtGamePoint}">
-        <Border Width="270" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="12" Padding="16,12">
+        <Border Width="270" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1" CornerRadius="8" Padding="12,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />

@@ -14,7 +14,7 @@
             </ResourceDictionary.MergedDictionaries>
             <!-- The rewards editor of a run: five whole numbers, Enter saves, Esc cancels (docs/arena-rewards.md) -->
             <DataTemplate x:Key="ArenaRewardsEditor" x:DataType="m:ArenaRewardsEdit">
-                <StackPanel Margin="0,12,0,0" AutomationProperties.Name="{Binding Name}">
+                <StackPanel Margin="0,8,0,0" AutomationProperties.Name="{Binding Name}">
                     <StackPanel.KeyBindings>
                         <KeyBinding Gesture="Escape" Command="{Binding Cancel}" />
                     </StackPanel.KeyBindings>
@@ -24,7 +24,7 @@
                                 <TextBlock Text="&#xF0B38;" Classes="icon" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
                                 <TextBlock Text="{i:Loc Stats.Arena.Rewards.Gold}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
-                            <TextBox Text="{Binding Gold}" Padding="8,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                            <TextBox Text="{Binding Gold}" Padding="4,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
                                      AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Gold}" Loaded="FocusOnLoad">
                                 <TextBox.KeyBindings>
                                     <KeyBinding Gesture="Enter" Command="{Binding Save}" />
@@ -36,7 +36,7 @@
                                 <TextBlock Text="&#xF01C8;" Classes="icon" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
                                 <TextBlock Text="{i:Loc Stats.Arena.Rewards.Dust}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
-                            <TextBox Text="{Binding Dust}" Padding="8,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                            <TextBox Text="{Binding Dust}" Padding="4,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
                                      AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Dust}">
                                 <TextBox.KeyBindings>
                                     <KeyBinding Gesture="Enter" Command="{Binding Save}" />
@@ -48,7 +48,7 @@
                                 <TextBlock Text="&#xF03D7;" Classes="icon" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
                                 <TextBlock Text="{i:Loc Stats.Arena.Rewards.Packs}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
-                            <TextBox Text="{Binding Packs}" Padding="8,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                            <TextBox Text="{Binding Packs}" Padding="4,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
                                      AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Packs}">
                                 <TextBox.KeyBindings>
                                     <KeyBinding Gesture="Enter" Command="{Binding Save}" />
@@ -60,7 +60,7 @@
                                 <TextBlock Text="&#xF0516;" Classes="icon" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
                                 <TextBlock Text="{i:Loc Stats.Arena.Rewards.Tickets}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
-                            <TextBox Text="{Binding Tickets}" Padding="8,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                            <TextBox Text="{Binding Tickets}" Padding="4,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
                                      AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Tickets}">
                                 <TextBox.KeyBindings>
                                     <KeyBinding Gesture="Enter" Command="{Binding Save}" />
@@ -72,7 +72,7 @@
                                 <TextBlock Text="&#xF06C7;" Classes="icon" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="0,0,4,0" VerticalAlignment="Center" />
                                 <TextBlock Text="{i:Loc Stats.Arena.Rewards.Cards}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
-                            <TextBox Text="{Binding Cards}" Padding="8,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
+                            <TextBox Text="{Binding Cards}" Padding="4,4" TextAlignment="Right" MaxLength="5" PlaceholderText="0"
                                      AutomationProperties.Name="{i:Loc Stats.Arena.Rewards.Cards}">
                                 <TextBox.KeyBindings>
                                     <KeyBinding Gesture="Enter" Command="{Binding Save}" />
@@ -83,11 +83,11 @@
                     <TextBlock Text="{Binding Error}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Negative}" TextWrapping="Wrap" Margin="0,0,0,4"
                                IsVisible="{Binding Error, Converter={StaticResource Truthy}}" />
                     <DockPanel Margin="0,4,0,2">
-                        <Button DockPanel.Dock="Right" Classes="ghost" Content="{i:Loc Stats.Arena.Rewards.Clear}" Command="{Binding Clear}" Padding="12,8"
+                        <Button DockPanel.Dock="Right" Classes="ghost" Content="{i:Loc Stats.Arena.Rewards.Clear}" Command="{Binding Clear}" Padding="8,4"
                                 ToolTip.Tip="{i:Loc Stats.Arena.Rewards.ClearTip}" IsVisible="{Binding CanClear}" />
                         <StackPanel Orientation="Horizontal">
-                            <Button Classes="ghost primary" Content="{i:Loc Stats.Arena.Rewards.Save}" Command="{Binding Save}" IsEnabled="{Binding CanSave}" Padding="12,8" />
-                            <Button Classes="ghost" Content="{i:Loc Stats.Arena.Rewards.Cancel}" Command="{Binding Cancel}" Padding="12,8" Margin="8,0,0,0" />
+                            <Button Classes="ghost primary" Content="{i:Loc Stats.Arena.Rewards.Save}" Command="{Binding Save}" IsEnabled="{Binding CanSave}" Padding="12,4" />
+                            <Button Classes="ghost" Content="{i:Loc Stats.Arena.Rewards.Cancel}" Command="{Binding Cancel}" Padding="8,4" Margin="4,0,0,0" />
                         </StackPanel>
                     </DockPanel>
                 </StackPanel>
@@ -107,8 +107,8 @@
         <!-- The rewards chip of a run (a copy of the deck page's diffChip) -->
         <Style Selector="Border.rewardsChip">
             <Setter Property="Background" Value="{StaticResource Surface4}" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="8,4,8,4" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,2,4,2" />
             <Setter Property="MinHeight" Value="24" />
         </Style>
         <Style Selector="Border.rewardsChip TextBlock">
@@ -126,7 +126,7 @@
         </Style>
     </UserControl.Styles>
     <StackPanel>
-        <Grid Classes="statsHead" Margin="0,0,0,16" RowDefinitions="Auto,Auto">
+        <Grid Classes="statsHead" Margin="0,0,0,12" RowDefinitions="Auto,Auto">
             <c:Ornament Text="{i:Loc Stats.Title}" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
             <Border HorizontalAlignment="Right" Classes="segmentBar statsFilter statsBar" ToolTip.Tip="{i:Loc Stats.Period.Tip}">
                 <StackPanel Orientation="Horizontal">
@@ -150,11 +150,11 @@
             </Grid.ColumnDefinitions>
             <Border Classes="card statsLeft" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="{i:Loc Stats.Arena.Runs}" Icon="&#xF0538;" Size="13" Margin="0,0,0,12" />
+                    <c:Ornament Text="{i:Loc Stats.Arena.Runs}" Icon="&#xF0538;" Size="13" Margin="0,0,0,8" />
                     <ItemsControl ItemsSource="{Binding ArenaRuns}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="m:ArenaRunRow">
-                                <Border Classes="row" Classes.editing="{Binding Editing}" Padding="12,8" Margin="-12,0,-12,2">
+                                <Border Classes="row" Classes.editing="{Binding Editing}" Padding="8,8" Margin="-8,0,-8,2">
                                     <Grid RowDefinitions="Auto,Auto,Auto">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
@@ -171,14 +171,14 @@
                                                        IsVisible="{Binding DeckScore, Converter={StaticResource Truthy}}" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ToolTip.Tip="{i:Loc Stats.Arena.RecordTip}">
-                                            <Border Classes="wide" Width="90" Height="7" CornerRadius="4" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,12,0">
-                                                <Border HorizontalAlignment="Left" CornerRadius="4" Background="{StaticResource Accent}"
+                                            <Border Classes="wide" Width="90" Height="7" CornerRadius="2" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                <Border HorizontalAlignment="Left" CornerRadius="2" Background="{StaticResource Accent}"
                                                         Width="{Binding WinFraction, Converter={StaticResource Fraction}, ConverterParameter=90}" />
                                             </Border>
                                             <TextBlock Text="{Binding Record}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeTitle}" MinWidth="44" TextAlignment="Right" />
                                         </StackPanel>
                                         <!-- The run's rewards (entered by the player), or "+ Add rewards"; hidden while its editor is open -->
-                                        <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,8,0,0" Classes="bare rewardsToggle" HorizontalAlignment="Left"
+                                        <Button Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Classes="bare rewardsToggle" HorizontalAlignment="Left"
                                                 Command="{Binding EditRewards}" CommandParameter="{Binding Key}" ToolTip.Tip="{Binding RewardsTip}" Loaded="ChipLoaded"
                                                 AutomationProperties.Name="{Binding RewardsTip}" IsVisible="{Binding !Editing}">
                                             <Border Classes="rewardsChip">
@@ -193,7 +193,7 @@
                                                             <DataTemplate x:DataType="m:ArenaRewardPart">
                                                                 <StackPanel Orientation="Horizontal" Margin="0,0,8,0">
                                                                     <TextBlock Text="{Binding Glyph}" Classes="icon" FontSize="{StaticResource FontSizeBody}" VerticalAlignment="Center" />
-                                                                    <TextBlock Text="{Binding Amount}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Margin="4,0,0,0" VerticalAlignment="Center" />
+                                                                    <TextBlock Text="{Binding Amount}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" Margin="2,0,0,0" VerticalAlignment="Center" />
                                                                 </StackPanel>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
@@ -220,7 +220,7 @@
             <StackPanel Classes="statsRight">
                 <Border Classes="card" Margin="0,0,0,16">
                     <StackPanel>
-                        <c:Ornament Text="{i:Loc Stats.Arena.Classes}" Icon="&#xF0004;" Size="13" Margin="0,0,0,12" />
+                        <c:Ornament Text="{i:Loc Stats.Arena.Classes}" Icon="&#xF0004;" Size="13" Margin="0,0,0,8" />
                         <ContentControl Content="{i:Loc Stats.Table.Class}" Tag="{Binding ArenaClassesSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding ArenaClasses, Converter={StaticResource Truthy}}" />
                         <ItemsControl ItemsSource="{Binding ArenaClasses}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                         <ContentControl Classes="emptyState" Tag="&#xF0004;" Content="{i:Loc Stats.Arena.NoRuns}"
@@ -229,7 +229,7 @@
                 </Border>
                 <Border Classes="card">
                     <StackPanel>
-                        <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,12" />
+                        <c:Ornament Text="{i:Loc Stats.OpponentClasses}" Icon="&#xF04E5;" Size="13" Margin="0,0,0,8" />
                         <ContentControl Content="{i:Loc Stats.Table.Opponent}" Tag="{Binding ArenaOpponentsSort}" c:StickyHeader.IsEnabled="True" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding ArenaOpponents, Converter={StaticResource Truthy}}" />
                         <ItemsControl ItemsSource="{Binding ArenaOpponents}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                         <ContentControl Classes="emptyState" Tag="&#xF04E5;" Content="{i:Loc Stats.NoMatchups}"
@@ -248,10 +248,10 @@
             </Grid.ColumnDefinitions>
             <Border Classes="card statsLeft" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="{i:Loc Arena.Page.DeckTitle}" Icon="&#xF0D8F;" Size="13" Margin="0,0,0,12" />
+                    <c:Ornament Text="{i:Loc Arena.Page.DeckTitle}" Icon="&#xF0D8F;" Size="13" Margin="0,0,0,8" />
                     <StackPanel IsVisible="{Binding HasArenaDeck}">
                         <TextBlock Text="{Binding ArenaDeckTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                        <StackPanel Margin="0,12,0,0">
+                        <StackPanel Margin="0,8,0,0">
                             <Grid ColumnDefinitions="Auto,*">
                                 <Panel Width="46" Height="46" VerticalAlignment="Center">
                                     <c:Scallop Fill="{Binding ArenaDeckTier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
@@ -271,13 +271,13 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="m:ArenaCurveColumn">
-                                        <StackPanel Margin="4,0" VerticalAlignment="Bottom" ToolTip.Tip="{Binding Count}">
+                                        <StackPanel Margin="2,0" VerticalAlignment="Bottom" ToolTip.Tip="{Binding Count}">
                                             <TextBlock Text="{Binding Count}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,2" />
                                             <Panel Height="46">
-                                                <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="4,4,1,1" Background="{StaticResource Accent}" />
+                                                <Border Height="{Binding Height}" VerticalAlignment="Bottom" CornerRadius="2,2,1,1" Background="{StaticResource Accent}" />
                                             </Panel>
-                                            <Border Height="1" Background="{StaticResource Outline}" Margin="-4,0" />
-                                            <TextBlock Text="{Binding Label}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                                            <Border Height="1" Background="{StaticResource Outline}" Margin="-2,0" />
+                                            <TextBlock Text="{Binding Label}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" HorizontalAlignment="Center" Margin="0,2,0,0" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -285,11 +285,11 @@
                         </StackPanel>
                         <Grid Margin="0,16,0,0" ColumnDefinitions="*,16,*">
                             <StackPanel>
-                                <TextBlock Text="{i:Loc Arena.Page.Best}" Classes="label" Margin="0,0,0,8" />
+                                <TextBlock Text="{i:Loc Arena.Page.Best}" Classes="label" Margin="0,0,0,4" />
                                 <ItemsControl ItemsSource="{Binding ArenaDeckBest}" ItemTemplate="{StaticResource ArenaCardLineTemplate}" />
                             </StackPanel>
                             <StackPanel Grid.Column="2">
-                                <TextBlock Text="{i:Loc Arena.Page.Weakest}" Classes="label" Margin="0,0,0,8" />
+                                <TextBlock Text="{i:Loc Arena.Page.Weakest}" Classes="label" Margin="0,0,0,4" />
                                 <ItemsControl ItemsSource="{Binding ArenaDeckWeakest}" ItemTemplate="{StaticResource ArenaCardLineTemplate}" />
                             </StackPanel>
                         </Grid>
@@ -299,12 +299,12 @@
             </Border>
             <Border Classes="card statsRight" VerticalAlignment="Top">
                 <StackPanel>
-                    <c:Ornament Text="{i:Loc Arena.Page.Community}" Icon="&#xF0127;" Size="13" Margin="0,0,0,12" />
+                    <c:Ornament Text="{i:Loc Arena.Page.Community}" Icon="&#xF0127;" Size="13" Margin="0,0,0,8" />
                     <ContentControl Content="{i:Loc Stats.Table.Class}" ContentTemplate="{StaticResource StatsTableHead}" IsVisible="{Binding ArenaCommunity, Converter={StaticResource Truthy}}" />
                     <ItemsControl ItemsSource="{Binding ArenaCommunity}" ItemTemplate="{StaticResource StatGroupRowTemplate}" />
                     <ContentControl Classes="emptyState" Tag="&#xF051F;" Content="{i:Loc Arena.Page.CommunityLoading}" IsVisible="{Binding ArenaCommunityLoading}" />
                     <ContentControl Classes="emptyState" Tag="&#xF002A;" Content="{i:Loc Arena.Page.CommunityEmpty}" IsVisible="{Binding ArenaCommunityUnavailable}" />
-                    <TextBlock Text="{Binding ArenaCommunitySource}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Margin="0,12,0,0" />
+                    <TextBlock Text="{Binding ArenaCommunitySource}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" Margin="0,8,0,0" />
                 </StackPanel>
             </Border>
         </Grid>

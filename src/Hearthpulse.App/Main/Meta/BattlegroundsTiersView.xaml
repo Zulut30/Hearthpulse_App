@@ -90,7 +90,7 @@
                                 <ItemsControl ItemsSource="{Binding Rows}" ItemsPanel="{StaticResource PageRows}" Focusable="False">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type m:MetaHeroRow}">
-                                            <Border Style="{StaticResource RowBorder}" Padding="12,8">
+                                            <Border Style="{StaticResource RowBorder}" Padding="8,4">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="40" />
@@ -114,8 +114,8 @@
                                                     </Border>
                                                     <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding AveragePlace}" Width="44" FontWeight="Bold" />
-                                                        <Border Width="128" Height="8" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                                            <Border HorizontalAlignment="Left" CornerRadius="4" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                                                        <Border Width="128" Height="8" CornerRadius="2" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                            <Border HorizontalAlignment="Left" CornerRadius="2" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
                                                                     Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=128}" />
                                                         </Border>
                                                     </StackPanel>
@@ -146,7 +146,7 @@
                 <ItemsControl ItemsSource="{Binding CompTiers}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type m:MetaCompRow}">
-                            <Border Style="{StaticResource RowBorder}" Padding="12,12">
+                            <Border Style="{StaticResource RowBorder}" Padding="8,8">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="40" />
@@ -172,8 +172,8 @@
                                     </Border>
                                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,4,0,0" ToolTip="{i:Loc Main.Bg.AvgPlacementTip}">
                                         <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
-                                        <Border Width="164" Height="8" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                            <Border HorizontalAlignment="Left" CornerRadius="4" Background="{StaticResource Accent}"
+                                        <Border Width="164" Height="8" CornerRadius="2" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                            <Border HorizontalAlignment="Left" CornerRadius="2" Background="{StaticResource Accent}"
                                                     Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
                                         </Border>
                                     </StackPanel>
@@ -227,7 +227,7 @@
                                 <ItemsControl ItemsSource="{Binding Rows}" ItemsPanel="{StaticResource PageRows}" Focusable="False">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type m:MetaTrinketRow}">
-                                            <Border Style="{StaticResource RowBorder}" Padding="12,8">
+                                            <Border Style="{StaticResource RowBorder}" Padding="8,8">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="40" />
@@ -245,8 +245,8 @@
                                                     </Border>
                                                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
-                                                        <Border Width="164" Height="8" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                                            <Border HorizontalAlignment="Left" CornerRadius="4" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
+                                                        <Border Width="164" Height="8" CornerRadius="2" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                                            <Border HorizontalAlignment="Left" CornerRadius="2" Background="{Binding Tier, Converter={StaticResource KeyBrush}}"
                                                                     Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
                                                         </Border>
                                                     </StackPanel>
@@ -287,7 +287,7 @@
                 <ItemsControl ItemsSource="{Binding CardTiers}" ItemsPanel="{StaticResource PageRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type m:MetaCardRow}">
-                            <Border Style="{StaticResource RowBorder}" Padding="12,8">
+                            <Border Style="{StaticResource RowBorder}" Padding="8,4">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="40" />
@@ -297,7 +297,7 @@
                                         <ColumnDefinition Width="100" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding Rank}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
-                                    <Border Grid.Column="1" Width="54" Height="38" CornerRadius="8" c:RoundClip.Radius="6" Background="{StaticResource Surface3}" HorizontalAlignment="Left">
+                                    <Border Grid.Column="1" Width="54" Height="38" CornerRadius="4" c:RoundClip.Radius="4" Background="{StaticResource Surface3}" HorizontalAlignment="Left">
                                         <Image i:CardArt.Tile="{Binding CardId}" Stretch="UniformToFill" />
                                     </Border>
                                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,12,0">
@@ -306,8 +306,8 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" ToolTip="{i:Loc Main.Bg.AvgPlacementTip}">
                                         <TextBlock Text="{Binding Placement}" Width="44" FontWeight="Bold" />
-                                        <Border Width="164" Height="8" CornerRadius="4" Background="{StaticResource Surface3}" VerticalAlignment="Center">
-                                            <Border HorizontalAlignment="Left" CornerRadius="4" Background="{StaticResource Accent}"
+                                        <Border Width="164" Height="8" CornerRadius="2" Background="{StaticResource Surface3}" VerticalAlignment="Center">
+                                            <Border HorizontalAlignment="Left" CornerRadius="2" Background="{StaticResource Accent}"
                                                     Width="{Binding BarFraction, Converter={StaticResource Fraction}, ConverterParameter=164}" />
                                         </Border>
                                     </StackPanel>
@@ -347,7 +347,7 @@
                 <ItemsControl ItemsSource="{Binding MyHeroes}" ItemsPanel="{StaticResource PageRows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type m:HeroRow}">
-                            <Border Style="{StaticResource RowBorder}" Padding="12,8">
+                            <Border Style="{StaticResource RowBorder}" Padding="8,4">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="50" />

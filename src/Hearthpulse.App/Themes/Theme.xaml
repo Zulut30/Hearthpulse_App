@@ -162,6 +162,7 @@
     <SolidColorBrush x:Key="Accent2" Color="{StaticResource Accent2Color}" />
     <SolidColorBrush x:Key="Accent2Soft" Color="#1F4FC2A8" />
     <SolidColorBrush x:Key="Accent2Line" Color="#994FC2A8" />
+    <SolidColorBrush x:Key="ScrollThumbFill" Color="#3DE9B949" />
     <!-- Halos are gradients, not bitmap effects: free to draw on the overlay -->
     <RadialGradientBrush x:Key="Glow">
         <GradientStop Color="#3DE9B949" Offset="0" />
@@ -302,8 +303,8 @@
         <GradientStop Color="{StaticResource AccentColor}" Offset="1" />
     </LinearGradientBrush>
 
-    <!-- ===== Scale (D1, docs/design-identity.md): type ramp, corner radii, padding of plates and pages.
-         Spacing literals stay on 0/1/2/4/8/12/16/24/32 (and multiples of 4 from 40); DesignTokenTests counts the rest. ===== -->
+    <!-- ===== Scale (D1, hearthpulse-design): type ramp, corner radii, padding of plates. Spacing literals stay on
+         0/1/2/4/8/12/16/24/32 (and multiples of 4 from 40); DesignTokenTests counts the rest. ===== -->
     <sys:Double x:Key="FontSizeMicro">10</sys:Double>
     <sys:Double x:Key="FontSizeSmall">11</sys:Double>
     <sys:Double x:Key="FontSizeLabel">12</sys:Double>
@@ -318,11 +319,8 @@
     <CornerRadius x:Key="RadiusSmall">4</CornerRadius>
     <CornerRadius x:Key="RadiusMedium">8</CornerRadius>
     <CornerRadius x:Key="RadiusLarge">12</CornerRadius>
-    <CornerRadius x:Key="RadiusXLarge">16</CornerRadius>
     <CornerRadius x:Key="RadiusPill">999</CornerRadius>
     <Thickness x:Key="CardPadding">24</Thickness>
-    <Thickness x:Key="TilePadding">16,12</Thickness>
-    <Thickness x:Key="PagePadding">40,0,40,120</Thickness>
     <!-- ===== Type: Montserrat for display (OFL), Segoe UI Variable for text, Material Design Icons ===== -->
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">pack://application:,,,/Assets/Fonts/#Montserrat</FontFamily>
@@ -396,7 +394,7 @@
         <Setter Property="Control.Template">
             <Setter.Value>
                 <ControlTemplate>
-                    <Border CornerRadius="8" BorderBrush="{StaticResource Accent}" BorderThickness="1" SnapsToDevicePixels="True" />
+                    <Border CornerRadius="6" BorderBrush="{StaticResource Accent}" BorderThickness="1" SnapsToDevicePixels="True" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -405,7 +403,7 @@
         <Setter Property="Control.Template">
             <Setter.Value>
                 <ControlTemplate>
-                    <Border CornerRadius="8" Margin="12,2" BorderBrush="{StaticResource Accent}" BorderThickness="1" SnapsToDevicePixels="True" />
+                    <Border CornerRadius="8" Margin="10,2" BorderBrush="{StaticResource Accent}" BorderThickness="1" SnapsToDevicePixels="True" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -415,7 +413,7 @@
         <Setter Property="Control.Template">
             <Setter.Value>
                 <ControlTemplate>
-                    <Border CornerRadius="8" Margin="0,0,0,4" BorderBrush="{StaticResource Accent}" BorderThickness="1" SnapsToDevicePixels="True" />
+                    <Border CornerRadius="8" Margin="0,0,0,3" BorderBrush="{StaticResource Accent}" BorderThickness="1" SnapsToDevicePixels="True" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -433,7 +431,7 @@
         <Setter Property="Control.Template">
             <Setter.Value>
                 <ControlTemplate>
-                    <Border Width="54" Height="34" Margin="0,0,-4,0" HorizontalAlignment="Right" VerticalAlignment="Center" CornerRadius="17"
+                    <Border Width="54" Height="34" Margin="0,0,-3,0" HorizontalAlignment="Right" VerticalAlignment="Center" CornerRadius="17"
                             BorderBrush="{StaticResource Accent}" BorderThickness="1" SnapsToDevicePixels="True" />
                 </ControlTemplate>
             </Setter.Value>
@@ -453,13 +451,13 @@
         <Setter Property="Background" Value="{StaticResource OverlayCardFill}" />
         <Setter Property="BorderBrush" Value="{StaticResource OverlayEdge}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
     </Style>
     <Style x:Key="Pill" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource Surface4}" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusSmall}" />
         <Setter Property="Padding" Value="8,2" />
     </Style>
 
@@ -547,7 +545,7 @@
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" SnapsToDevicePixels="True" />
                         <Border x:Name="Lift" Background="{StaticResource PrimaryFillHover}" CornerRadius="8" Opacity="0" />
                         <!-- Polished metal: a bright rim along the top edge -->
-                        <Border CornerRadius="8" Margin="1" BorderBrush="{StaticResource Sheen}" BorderThickness="0,1,0,0" SnapsToDevicePixels="True" />
+                        <Border CornerRadius="7" Margin="1" BorderBrush="{StaticResource Sheen}" BorderThickness="0,1,0,0" SnapsToDevicePixels="True" />
                         <Border x:Name="State" Background="Transparent" CornerRadius="8" />
                         <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
@@ -668,7 +666,7 @@
         <Setter Property="Foreground" Value="{StaticResource Text}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Padding" Value="12,8" />
-        <Setter Property="Margin" Value="0,0,0,4" />
+        <Setter Property="Margin" Value="0,0,0,2" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRow}" />
@@ -714,7 +712,7 @@
          The page sets ContentTemplate. -->
     <Style x:Key="ThemeSwatch" TargetType="Button">
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Margin" Value="0,0,12,12" />
+        <Setter Property="Margin" Value="0,0,8,8" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="Template">
             <Setter.Value>
@@ -756,7 +754,7 @@
         <Setter Property="Width" Value="26" />
         <Setter Property="Height" Value="26" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
-        <Setter Property="Margin" Value="0,0,8,0" />
+        <Setter Property="Margin" Value="0,0,4,0" />
         <Setter Property="Background" Value="{StaticResource Surface3}" />
         <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
     </Style>
@@ -791,10 +789,10 @@
                 <!-- The selected look is the sliding pill behind the sidebar (MainWindow.NavPill) -->
                 <ControlTemplate TargetType="RadioButton">
                     <Grid Background="Transparent">
-                        <Border x:Name="Bd" CornerRadius="8" Margin="12,2" Background="Transparent" SnapsToDevicePixels="True" />
-                        <Border x:Name="HoverLayer" CornerRadius="8" Margin="12,2" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
+                        <Border x:Name="Bd" CornerRadius="8" Margin="10,2" Background="Transparent" SnapsToDevicePixels="True" />
+                        <Border x:Name="HoverLayer" CornerRadius="8" Margin="10,2" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
                         <!-- Glyph and label share one column grid, so every item's text starts at the same x whatever its glyph -->
-                        <Grid x:Name="Face" Margin="24,0,0,0" VerticalAlignment="Center" RenderTransformOrigin="0,0.5">
+                        <Grid x:Name="Face" Margin="26,0,0,0" VerticalAlignment="Center" RenderTransformOrigin="0,0.5">
                             <Grid.RenderTransform>
                                 <ScaleTransform />
                             </Grid.RenderTransform>
@@ -802,10 +800,10 @@
                                 <ColumnDefinition Width="24" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="Glyph" Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSubhead}"
+                            <TextBlock x:Name="Glyph" Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="20"
                                        Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" />
                             <!-- The lit glyph fades in over the plain one when the item becomes the open page -->
-                            <TextBlock x:Name="GlyphLit" Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSubhead}"
+                            <TextBlock x:Name="GlyphLit" Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="20"
                                        Foreground="{StaticResource Accent}" HorizontalAlignment="Center" Opacity="0" />
                             <ContentPresenter Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" />
                         </Grid>
@@ -881,16 +879,16 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Grid>
-                        <Border x:Name="HoverLayer" CornerRadius="8" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
+                        <Border x:Name="HoverLayer" CornerRadius="6" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
                         <Grid x:Name="Sel" Opacity="0">
-                            <Border CornerRadius="8" Background="{StaticResource SelectedFill}" BorderBrush="{StaticResource SelectedEdge}" BorderThickness="1"
+                            <Border CornerRadius="6" Background="{StaticResource SelectedFill}" BorderBrush="{StaticResource SelectedEdge}" BorderThickness="1"
                                     SnapsToDevicePixels="True" />
-                            <Border Height="1" Margin="8,1,8,0" VerticalAlignment="Top" Background="{StaticResource EdgeLight}" SnapsToDevicePixels="True" />
+                            <Border Height="1" Margin="6,1,6,0" VerticalAlignment="Top" Background="{StaticResource EdgeLight}" SnapsToDevicePixels="True" />
                         </Grid>
-                        <Border x:Name="Bd" CornerRadius="8" Padding="12,4" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                        <Border x:Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
                                 SnapsToDevicePixels="True">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="Check" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeLead}" Margin="0,0,4,0"
+                                <TextBlock x:Name="Check" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,5,0"
                                            Foreground="{StaticResource Accent}" Visibility="Collapsed" />
                                 <ContentPresenter VerticalAlignment="Center" />
                             </StackPanel>
@@ -946,21 +944,21 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Grid>
-                        <Border x:Name="HoverLayer" CornerRadius="8" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
+                        <Border x:Name="HoverLayer" CornerRadius="6" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
                         <Grid x:Name="Sel" Opacity="0">
-                            <Border CornerRadius="8" Background="{StaticResource SelectedFill}" BorderBrush="{StaticResource SelectedEdge}" BorderThickness="1"
+                            <Border CornerRadius="6" Background="{StaticResource SelectedFill}" BorderBrush="{StaticResource SelectedEdge}" BorderThickness="1"
                                     SnapsToDevicePixels="True" />
-                            <Border Height="1" Margin="8,1,8,0" VerticalAlignment="Top" Background="{StaticResource EdgeLight}" SnapsToDevicePixels="True" />
+                            <Border Height="1" Margin="6,1,6,0" VerticalAlignment="Top" Background="{StaticResource EdgeLight}" SnapsToDevicePixels="True" />
                         </Grid>
-                        <Border x:Name="Bd" CornerRadius="8" Padding="12,4" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                        <Border x:Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
                                 SnapsToDevicePixels="True">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="Check" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeLead}" Margin="0,0,4,0"
+                                <TextBlock x:Name="Check" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,5,0"
                                            Foreground="{StaticResource Accent}" Visibility="Collapsed" />
                                 <ContentPresenter VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>
-                        <Border x:Name="Underline" Height="2" CornerRadius="1" Margin="8,0" VerticalAlignment="Bottom" Background="{StaticResource Accent}"
+                        <Border x:Name="Underline" Height="2" CornerRadius="1" Margin="6,0" VerticalAlignment="Bottom" Background="{StaticResource Accent}"
                                 SnapsToDevicePixels="True" RenderTransformOrigin="0.5,0.5">
                             <Border.RenderTransform>
                                 <ScaleTransform ScaleX="0" />
@@ -1038,8 +1036,8 @@
                         </Grid.ColumnDefinitions>
                         <ContentPresenter VerticalAlignment="Center" Margin="0,0,16,0" />
                         <Grid Grid.Column="1" Width="48" Height="28">
-                            <Border x:Name="Track" CornerRadius="16" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
-                            <Border x:Name="OnFill" CornerRadius="16" Background="{StaticResource PrimaryFill}" Opacity="0" />
+                            <Border x:Name="Track" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
+                            <Border x:Name="OnFill" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource PrimaryFill}" Opacity="0" />
                             <Grid x:Name="Thumb" Width="24" Height="24" HorizontalAlignment="Left" Margin="2,0,0,0" RenderTransformOrigin="0.5,0.5">
                                 <Grid.RenderTransform>
                                     <TransformGroup>
@@ -1047,10 +1045,10 @@
                                         <TranslateTransform X="0" />
                                     </TransformGroup>
                                 </Grid.RenderTransform>
-                                <Ellipse x:Name="Halo" Margin="-8" Fill="{StaticResource Hover}" Opacity="0" />
+                                <Ellipse x:Name="Halo" Margin="-9" Fill="{StaticResource Hover}" Opacity="0" />
                                 <Ellipse x:Name="KnobOff" Fill="{StaticResource Muted}" />
                                 <Ellipse x:Name="KnobOn" Fill="{StaticResource OnAccent}" Opacity="0" />
-                                <TextBlock x:Name="Tick" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource Accent}"
+                                <TextBlock x:Name="Tick" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="17" Foreground="{StaticResource Accent}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" />
                             </Grid>
                         </Grid>
@@ -1118,7 +1116,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
                     <Grid Width="20" Height="28" Background="Transparent">
-                        <Ellipse x:Name="Halo" Width="34" Height="34" Margin="-8,-4" Fill="{StaticResource Hover}" Opacity="0" IsHitTestVisible="False" />
+                        <Ellipse x:Name="Halo" Width="34" Height="34" Margin="-7,-3" Fill="{StaticResource Hover}" Opacity="0" IsHitTestVisible="False" />
                         <Ellipse x:Name="Handle" Width="18" Height="18" Fill="{StaticResource Accent}" />
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -1159,14 +1157,14 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Slider">
                     <Grid Height="28">
-                        <Border Height="4" CornerRadius="2" Margin="12,0" Background="{StaticResource GrooveFill}" />
+                        <Border Height="4" CornerRadius="2" Margin="10,0" Background="{StaticResource GrooveFill}" />
                         <Track x:Name="PART_Track">
                             <Track.DecreaseRepeatButton>
                                 <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
                                     <RepeatButton.Template>
                                         <ControlTemplate TargetType="RepeatButton">
                                             <!-- Half the handle's width past the button: the fill ends under the handle's centre -->
-                                            <Border Height="4" CornerRadius="2" Background="{StaticResource PrimaryFill}" Margin="12,0,-12,0" />
+                                            <Border Height="4" CornerRadius="2" Background="{StaticResource PrimaryFill}" Margin="10,0,-10,0" />
                                         </ControlTemplate>
                                     </RepeatButton.Template>
                                 </RepeatButton>
@@ -1196,7 +1194,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
                     <!-- Slim at rest, full width under the mouse -->
-                    <Border x:Name="T" CornerRadius="4" Margin="1" Background="#3DE9B949" />
+                    <Border x:Name="T" CornerRadius="3" Margin="1" Background="{StaticResource ScrollThumbFill}" />
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="T" Property="Margin" Value="0" />
@@ -1324,7 +1322,7 @@
         <Setter Property="BorderBrush" Value="{StaticResource GhostEdge}" />
         <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
-        <Setter Property="Padding" Value="12,8,40,8" />
+        <Setter Property="Padding" Value="12,8,32,8" />
         <Setter Property="MinHeight" Value="36" />
         <Setter Property="MaxDropDownHeight" Value="320" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
@@ -1342,11 +1340,11 @@
                                           ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" />
                         <TextBlock x:Name="Placeholder" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed"
                                    Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Foreground="{StaticResource Faint}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock x:Name="Chevron" Text="&#xF0140;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource Muted}"
-                                   HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" IsHitTestVisible="False" />
+                        <TextBlock x:Name="Chevron" Text="&#xF0140;" Style="{StaticResource Icon}" FontSize="18" Foreground="{StaticResource Muted}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False" />
                         <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" VerticalOffset="4" AllowsTransparency="True"
                                Focusable="False" PopupAnimation="None">
-                            <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="12" Padding="4"
+                            <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="10" Padding="4"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <ScrollViewer CanContentScroll="True" VerticalScrollBarVisibility="Auto">
                                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
@@ -1379,14 +1377,14 @@
     </Style>
     <Style TargetType="ComboBoxItem">
         <Setter Property="Foreground" Value="{StaticResource Text}" />
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Padding" Value="8,8" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
-                    <Border x:Name="Bd" CornerRadius="8" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" Margin="0,1">
+                    <Border x:Name="Bd" CornerRadius="6" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" Margin="0,1">
                         <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -1417,7 +1415,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
-                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="12" Padding="4" MinWidth="160">
+                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="10" Padding="4" MinWidth="160">
                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
                     </Border>
                 </ControlTemplate>
@@ -1426,17 +1424,17 @@
     </Style>
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{StaticResource Text}" />
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Padding" Value="8,4" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="MenuItem">
-                    <Border x:Name="Bd" CornerRadius="8" Background="Transparent" Padding="{TemplateBinding Padding}" Margin="0,1">
+                    <Border x:Name="Bd" CornerRadius="6" Background="Transparent" Padding="{TemplateBinding Padding}" Margin="0,1">
                         <DockPanel>
                             <ContentPresenter x:Name="IconSite" DockPanel.Dock="Left" Width="26" ContentSource="Icon" VerticalAlignment="Center" HorizontalAlignment="Left"
                                               TextElement.Foreground="{StaticResource Accent}" />
-                            <TextBlock DockPanel.Dock="Right" Text="{TemplateBinding InputGestureText}" Foreground="{StaticResource Muted}" Margin="16,0,0,0"
+                            <TextBlock DockPanel.Dock="Right" Text="{TemplateBinding InputGestureText}" Foreground="{StaticResource Muted}" Margin="18,0,0,0"
                                        VerticalAlignment="Center" />
                             <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
                         </DockPanel>
@@ -1473,7 +1471,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
-                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="8" Padding="12,8">
+                    <Border Background="{StaticResource CardFill}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" CornerRadius="8" Padding="12,7">
                         <!-- Plain-text tips wrap at a readable width (the Avalonia theme caps ToolTip at 320) -->
                         <ContentPresenter>
                             <ContentPresenter.Resources>

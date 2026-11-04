@@ -42,7 +42,7 @@
         <StackPanel>
             <!-- Home: what was found, the offer -->
             <StackPanel Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}, ConverterParameter=!}">
-                <c:Ornament Text="{Binding HomeTitle}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,16" />
+                <c:Ornament Text="{Binding HomeTitle}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,12" />
                 <ItemsControl ItemsSource="{Binding HomeFoundLines}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -50,15 +50,15 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="{i:Loc Migration.What}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,16" />
+                <TextBlock Text="{i:Loc Migration.What}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,12" />
             </StackPanel>
 
             <!-- Settings: every source, found or not -->
             <StackPanel Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}}">
-                <c:Ornament Text="{i:Loc Migration.Settings.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,16" />
+                <c:Ornament Text="{i:Loc Migration.Settings.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,12" />
                 <!-- The window's own CardNote, found once the card is in it: the settings page's notes are one style -->
                 <TextBlock Text="{i:Loc Migration.Settings.Note}" Style="{DynamicResource CardNote}" />
-                <TextBlock Text="{i:Loc Migration.NotAffiliated}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap" Margin="0,-8,0,16" />
+                <TextBlock Text="{i:Loc Migration.NotAffiliated}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap" Margin="0,-4,0,12" />
                 <Grid Margin="0,0,0,12" Visibility="{Binding IsScanning, Converter={StaticResource Vis}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="28" />
@@ -87,7 +87,7 @@
             </Grid>
 
             <!-- Found, but the cards or the game's logs are still loading: Transfer waits -->
-            <TextBlock Text="{i:Loc Migration.Waiting}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,12"
+            <TextBlock Text="{i:Loc Migration.Waiting}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,8"
                        Visibility="{Binding Waiting, Converter={StaticResource Vis}}" />
 
             <!-- Buttons: the home offer (Transfer / Not now, then Hide), or Transfer and the folder choice in Settings; they
@@ -108,8 +108,8 @@
             </WrapPanel>
 
             <!-- The last transfer: done, or why it stopped -->
-            <StackPanel Margin="0,12,0,0" Visibility="{Binding HasResult, Converter={StaticResource Vis}}">
-                <TextBlock Text="{Binding ResultWhen}" Style="{StaticResource Caption}" Margin="0,0,0,8"
+            <StackPanel Margin="0,8,0,0" Visibility="{Binding HasResult, Converter={StaticResource Vis}}">
+                <TextBlock Text="{Binding ResultWhen}" Style="{StaticResource Caption}" Margin="0,0,0,4"
                            Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}}" />
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -129,7 +129,7 @@
                     </StackPanel>
                 </Grid>
             </StackPanel>
-            <Grid Margin="0,12,0,0" Visibility="{Binding HasError, Converter={StaticResource Vis}}">
+            <Grid Margin="0,8,0,0" Visibility="{Binding HasError, Converter={StaticResource Vis}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="28" />
                     <ColumnDefinition Width="*" />

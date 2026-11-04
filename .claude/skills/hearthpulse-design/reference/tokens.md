@@ -112,8 +112,8 @@ TextBlock style, so icon glyph TextBlocks inside templates are not restyled.
 | WPF key | Avalonia selector | Shape |
 |---|---|---|
 | `Card` (Border) | `Border.card` | `RadiusLarge` 12, `CardPadding` 24, 1px edge, `CardFill`/`CardEdge` |
-| `OverlayCard` | `Border.overlayCard` | r8, 1px edge, `OverlayCardFill`/`OverlayEdge` |
-| `Pill` | `Border.pill` | Surface4, r8, padding 8,2 |
+| `OverlayCard` | `Border.overlayCard` | `RadiusMedium` 8, 1px edge, `OverlayCardFill`/`OverlayEdge` |
+| `Pill` | `Border.pill` | Surface4, `RadiusSmall` 4, padding 8,2 |
 | `SegmentBar` | `Border.segmentBar` | r8, padding 4, `GrooveFill`/`GrooveEdge` |
 | `GhostButton` | `Button.ghost` | padding 18,9, SemiBold 13, template r8, OnSecondaryContainer text |
 | `PrimaryButton` (BasedOn GhostButton) | `Button.ghost.primary` (use both classes) | PrimaryFill gold, OnAccent text, Bold, top sheen |

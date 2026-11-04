@@ -55,8 +55,8 @@
     <!-- List rows: no rules, a soft highlight on hover -->
     <Style x:Key="RowBorder" TargetType="Border">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="Margin" Value="-12,0,-12,2" />
+        <Setter Property="Padding" Value="8,8" />
+        <Setter Property="Margin" Value="-8,0,-8,2" />
         <Setter Property="Background" Value="Transparent" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -68,15 +68,15 @@
     <Style x:Key="TierBadge" TargetType="Border">
         <Setter Property="Width" Value="30" />
         <Setter Property="Height" Value="26" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="4" />
         <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
 
     <!-- A tier's head: the big letter on its colour, "Tier S" and its bound; the tier colour runs down the left edge -->
     <Style x:Key="TierHead" TargetType="Border">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="Margin" Value="-12,12,-12,8" />
+        <Setter Property="Padding" Value="8,8" />
+        <Setter Property="Margin" Value="-8,8,-8,4" />
         <Setter Property="BorderThickness" Value="3,0,0,0" />
         <Setter Property="Background" Value="{StaticResource Surface2}" />
     </Style>
@@ -110,10 +110,10 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Grid Margin="-12,0,-12,4">
+                    <Grid Margin="-10,0,-10,3">
                         <Border x:Name="Bd" CornerRadius="8" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" />
                         <Border x:Name="State" CornerRadius="8" Background="{StaticResource Hover}" Opacity="0" />
-                        <ContentPresenter Margin="12,8" />
+                        <ContentPresenter Margin="10,6" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">

@@ -7,8 +7,10 @@ namespace Hearthpulse.Tests;
 /// <summary>
 /// D1 design scale (docs/design-identity.md): text sizes come from the FontSize* ramp tokens, corner radii and
 /// spacing sit on the scale. Both theme files define the same tokens with the same values. The markup of both UIs is
-/// scanned and what is still off the scale is counted per UI; the counts may only go down (a ratchet like the
-/// coverage one). <c>tools/design/migrate_tokens.py</c> moves a file onto the scale with the same rules.
+/// scanned and what is still off the scale is counted per UI; the counts may not grow (a ratchet like the coverage
+/// one; branches that lower them independently do not break each other). Control templates are skipped: their geometry
+/// (tracks, knobs, underlines) is drawn to its own size. <c>tools/design/migrate_tokens.py</c> moves a file onto the
+/// scale with the same rules.
 /// </summary>
 public sealed class DesignTokenTests
 {
@@ -20,13 +22,13 @@ public sealed class DesignTokenTests
     private static readonly double[] Radii = [0, 1, 2, 4, 8, 12, 16, 999];
 
     /// <summary>
-    /// What is left off the scale per UI: literal FontSize values, off-scale CornerRadius values, off-scale
-    /// Margin/Padding values. Lower these when a migration removes literals; never raise them.
+    /// What is left off the scale per UI: literal FontSize values, off-scale CornerRadius / RoundClip.Radius values,
+    /// off-scale Margin/Padding values. Lower these when a migration removes literals; never raise them.
     /// </summary>
     private static readonly Dictionary<string, (int Font, int Radius, int Space)> Baseline = new(StringComparer.Ordinal)
     {
-        ["wpf"] = (397, 85, 631),
-        ["avalonia"] = (408, 86, 627),
+        ["wpf"] = (368, 65, 608),
+        ["avalonia"] = (393, 69, 618),
     };
 
     private static readonly string[] TokenElements = ["Double", "CornerRadius", "Thickness"];
@@ -59,8 +61,6 @@ public sealed class DesignTokenTests
         Assert.True(font <= limit.Font && radius <= limit.Radius && space <= limit.Space,
             $"{ui}: off-scale literals grew to FontSize {font}, CornerRadius {radius}, Margin/Padding {space} (limit {limit}). " +
             "Use the FontSize* / Radius* tokens and the 4/8/12/16/24/32 spacing scale, or run tools/design/migrate_tokens.py.");
-        Assert.True(font == limit.Font && radius == limit.Radius && space == limit.Space,
-            $"{ui}: off-scale literals went down to ({font}, {radius}, {space}); lower the baseline in DesignTokenTests to lock it in.");
     }
 
     [Fact]
@@ -74,9 +74,13 @@ public sealed class DesignTokenTests
               <Border CornerRadius="6" Padding="10,3" />
               <Setter Property="FontSize" Value="12.5" />
               <Setter Property="CornerRadius" Value="8" />
+              <Panel Width="36" Height="36"><Border Margin="1.5" CornerRadius="17" /></Panel>
+              <Border Width="36" Height="36" CornerRadius="18" BorderThickness="1.5"><Border CornerRadius="17" /></Border>
+              <Border CornerRadius="5" RoundClip.Radius="5" />
+              <ControlTemplate><Border CornerRadius="14" Margin="10,3" /><TextBlock FontSize="17" /></ControlTemplate>
             </Grid>
             """);
-        Assert.Equal((2, 1, 3), Count([doc]));
+        Assert.Equal((2, 3, 4), Count([doc]));
     }
 
     private static (int Font, int Radius, int Space) Count(string folder)
@@ -93,7 +97,7 @@ public sealed class DesignTokenTests
     private static (int Font, int Radius, int Space) Count(IEnumerable<XElement> roots)
     {
         int font = 0, radius = 0, space = 0;
-        foreach (var e in roots.SelectMany(r => r.DescendantsAndSelf()))
+        foreach (var e in roots.SelectMany(r => r.DescendantsAndSelf()).Where(e => !e.Ancestors().Any(a => a.Name.LocalName == "ControlTemplate")))
         {
             var setter = e.Name.LocalName == "Setter" ? (string?)e.Attribute("Property") : null;
             foreach (var a in e.Attributes())
@@ -109,7 +113,7 @@ public sealed class DesignTokenTests
                     case "FontSize":
                         font++;
                         break;
-                    case "CornerRadius" when setter is not null || !FullyRounded(e, a.Value):
+                    case "CornerRadius" or "RoundClip.Radius" when setter is not null || !FullyRounded(e, a.Value):
                         radius += Numbers(a.Value).Count(v => !Radii.Contains(v));
                         break;
                     case "Margin" or "Padding":
@@ -128,12 +132,29 @@ public sealed class DesignTokenTests
         return Spaces.Contains(a) || (a >= 40 && a % 4 == 0);
     }
 
-    /// <summary>A pill or a circle: its radius follows the element's size, not the scale.</summary>
+    /// <summary>
+    /// A pill or a circle: the radius reaches half of the element's smaller side, or of its parent's less the element's
+    /// margin and border when the element has no size of its own.
+    /// </summary>
     private static bool FullyRounded(XElement e, string value)
     {
-        var sizes = new[] { "Width", "Height" }.Select(n => (string?)e.Attribute(n)).OfType<string>().SelectMany(Numbers).ToList();
         var r = Numbers(value).ToList();
-        return sizes.Count > 0 && r.Count == 1 && 2 * r[0] >= sizes.Min();
+        var own = Size(e);
+        if (own is null && e.Ancestors().FirstOrDefault(a => !a.Name.LocalName.Contains('.', StringComparison.Ordinal)) is { } parent && Size(parent) is { } outer)
+        {
+            var m = Numbers((string?)e.Attribute("Margin") ?? "0").ToList();
+            var (l, t, rt, b) = m.Count switch { 1 => (m[0], m[0], m[0], m[0]), 2 => (m[0], m[1], m[0], m[1]), 4 => (m[0], m[1], m[2], m[3]), _ => (0d, 0d, 0d, 0d) };
+            var border = Numbers((string?)parent.Attribute("BorderThickness") ?? "0").DefaultIfEmpty(0).Max();
+            own = outer - Math.Max(l + rt, t + b) - (2 * border);
+        }
+
+        return own is not null && r.Count == 1 && 2 * r[0] >= own;
+    }
+
+    private static double? Size(XElement e)
+    {
+        var sizes = new[] { "Width", "Height" }.Select(n => (string?)e.Attribute(n)).OfType<string>().SelectMany(Numbers).ToList();
+        return sizes.Count > 0 ? sizes.Min() : null;
     }
 
     private static IEnumerable<double> Numbers(string value) =>

@@ -9,7 +9,7 @@
         <ResourceDictionary Source="StatsResources.xaml" />
     </UserControl.Resources>
     <StackPanel>
-        <Grid Margin="0,0,0,16">
+        <Grid Margin="0,0,0,12">
             <c:Ornament Text="{i:Loc Stats.Title}" Icon="&#xF0128;" Size="15" HorizontalAlignment="Left" VerticalAlignment="Center" />
             <Border HorizontalAlignment="Right" Style="{StaticResource SegmentBar}" ToolTip="{i:Loc Stats.Period.Tip}">
                 <StackPanel Orientation="Horizontal">
@@ -24,7 +24,7 @@
 
         <!-- Highest MMR, average placement, games, time played; the combat simulator's accuracy -->
         <ItemsControl ItemsSource="{Binding BgStatTiles}" Style="{StaticResource StatsTiles}" ItemsPanel="{StaticResource StatsTilesPanel}" />
-        <TextBlock Text="{Binding BgSimAccuracy}" ToolTip="{i:Loc Stats.Bg.SimAccuracyTip}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Margin="2,0,0,16"
+        <TextBlock Text="{Binding BgSimAccuracy}" ToolTip="{i:Loc Stats.Bg.SimAccuracyTip}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Margin="2,0,0,12"
                    TextWrapping="Wrap" Visibility="{Binding BgSimAccuracy, Converter={StaticResource Vis}}" />
 
         <!-- Rating over time beside where you finish -->
@@ -36,7 +36,7 @@
             </Grid.ColumnDefinitions>
             <Border Style="{StaticResource Card}">
                 <DockPanel>
-                    <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <c:Ornament Text="{i:Loc Stats.Bg.RatingTitle}" Icon="&#xF012A;" Size="13" HorizontalAlignment="Left" />
                     </Grid>
                     <!-- No games in the period: one line instead of a tall empty chart, so the tier lists stay in view -->
@@ -48,7 +48,7 @@
             </Border>
             <Border Grid.Column="2" Style="{StaticResource Card}">
                 <StackPanel ToolTip="{i:Loc Stats.Bg.PlacementsTip}">
-                    <c:Ornament Text="{i:Loc Stats.Bg.PlacesTitle}" Icon="&#xF0128;" Size="13" Margin="0,0,0,16" />
+                    <c:Ornament Text="{i:Loc Stats.Bg.PlacesTitle}" Icon="&#xF0128;" Size="13" Margin="0,0,0,12" />
                     <ItemsControl ItemsSource="{Binding BgPlaces}" ItemTemplate="{StaticResource BgPlaceRowTemplate}" />
                     <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF0128;" Content="{i:Loc Stats.Bg.PlacesEmpty}"
                                     Visibility="{Binding BgPlaces, Converter={StaticResource Vis}, ConverterParameter=!}" />
@@ -59,7 +59,7 @@
         <Border Style="{StaticResource Card}" Margin="0,0,0,24">
             <StackPanel>
                 <c:Ornament Text="{i:Loc Stats.Bg.HeroPerf}" Icon="&#xF01A5;" Size="13" HorizontalAlignment="Left" />
-                <Grid Margin="0,12,0,16">
+                <Grid Margin="0,8,0,12">
                     <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
                         <TextBlock Text="{i:Loc Stats.Bg.MinGames}" Style="{StaticResource Label}" VerticalAlignment="Center" Margin="0,0,8,0" />
                         <Border Style="{StaticResource SegmentBar}" Margin="0,0,16,0">
@@ -83,7 +83,7 @@
                 </Grid>
 
                 <!-- Column heads only over rows: an empty period shows the one line below instead -->
-                <Grid Margin="0,0,0,8" Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}}">
+                <Grid Margin="0,0,0,4" Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="54" />
                         <ColumnDefinition Width="*" MinWidth="100" />
@@ -137,7 +137,7 @@
                                     <StackPanel Grid.Column="5" HorizontalAlignment="Right" VerticalAlignment="Center">
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                             <Border Width="56" Height="6" CornerRadius="3" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                <Border HorizontalAlignment="Left" CornerRadius="4" Background="{StaticResource Accent}"
+                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
                                                         Width="{Binding AverageFraction, Converter={StaticResource Fraction}, ConverterParameter=56}" />
                                             </Border>
                                             <TextBlock Text="{Binding AveragePlace}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}" />
@@ -147,7 +147,7 @@
                                     <StackPanel Grid.Column="6" HorizontalAlignment="Right" VerticalAlignment="Center">
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                             <Border Width="48" Height="6" CornerRadius="3" Background="{StaticResource AccentContainer}" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                <Border HorizontalAlignment="Left" CornerRadius="4" Background="{StaticResource Accent}"
+                                                <Border HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource Accent}"
                                                         Width="{Binding PickFraction, Converter={StaticResource Fraction}, ConverterParameter=48}" />
                                             </Border>
                                             <TextBlock Text="{Binding PickRate}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}" />
@@ -161,7 +161,7 @@
                 </ItemsControl>
                 <ContentControl Style="{DynamicResource EmptyState}" Tag="&#xF01A5;" Content="{i:Loc Stats.Bg.NoHeroes}"
                                 Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}, ConverterParameter=!}" />
-                <TextBlock Text="{Binding BgStatsNote}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="0,12,0,0"
+                <TextBlock Text="{Binding BgStatsNote}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}" Margin="0,8,0,0"
                            TextWrapping="Wrap" Visibility="{Binding BgHeroPerf, Converter={StaticResource Vis}}" />
             </StackPanel>
         </Border>
