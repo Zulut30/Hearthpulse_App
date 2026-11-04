@@ -26,23 +26,13 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      # CI runs the same suite on every push to main; when it has already passed on this commit, it is not run again.
-      - name: CI already passed on this commit?
-        id: ci
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          n=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&status=success" --jq '.total_count' || echo 0)
-          echo "CI successful runs on $GITHUB_SHA: $n"
-          if [ "${n:-0}" -gt 0 ]; then echo "passed=true" >> "$GITHUB_OUTPUT"; fi
+      # Always, even when CI passed on this commit: a documentation-only push skips CI's .NET steps, so its green CI says
+      # nothing about the code. Beside the installer builds, not on their critical path.
       - uses: actions/checkout@v4
-        if: steps.ci.outputs.passed != 'true'
       - uses: actions/setup-dotnet@v4
-        if: steps.ci.outputs.passed != 'true'
         with:
           dotnet-version: 10.0.x
       - name: Tests
-        if: steps.ci.outputs.passed != 'true'
         run: dotnet test tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj
 
   # Every installer family on its own runner at the same time (they used to run one after another in one job).
@@ -74,15 +64,10 @@ jobs:
             apt: rpm
             appimage: true
             build: installer/linux/build.sh "$V" arm64
-          # One runner per architecture: built one after the other they were the longest job of the release.
-          - name: macOS arm64 installers
-            id: macos-arm64
+          - name: macOS installers
+            id: macos
             os: macos-latest
-            build: installer/macos/build.sh "$V" arm64
-          - name: macOS x64 installers
-            id: macos-x64
-            os: macos-latest
-            build: installer/macos/build.sh "$V" x64
+            build: installer/macos/build.sh "$V" arm64 x64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

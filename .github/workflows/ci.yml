@@ -10,11 +10,14 @@ on:
 
 permissions:
   contents: read
+  # code-changed.sh asks whether CI passed on the commit before a documentation-only push.
+  actions: read
 
 # A newer run on a branch or pull request cancels the older one. Every push to main runs to the end: the coverage ratchet
-# compares the floors with the pushed range's previous commit, so a cancelled run would leave a range unchecked.
+# compares the floors with the pushed range's previous commit, so a cancelled run would leave a range unchecked (and a
+# manual run of the same commit has a group of its own).
 concurrency:
-  group: ci-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  group: ci-${{ github.ref == 'refs/heads/main' && format('{0}-{1}', github.event_name, github.sha) || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -60,6 +63,7 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/ci/code-changed.sh
       # C: on the hosted Windows runners is slow and scanned by Defender on every write: the SQLite-heavy tests took
       # 1.5-2.5 min there against 15 s on Linux. Temp files and NuGet packages go to D: and are left out of scanning.
@@ -135,6 +139,7 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/ci/code-changed.sh
       - name: Fast temp and package folders
         if: steps.code.outputs.run == 'true'
@@ -234,6 +239,7 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/ci/code-changed.sh
       - uses: actions/setup-dotnet@v4
         if: steps.code.outputs.run == 'true'
@@ -272,6 +278,7 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: bash .github/ci/code-changed.sh
       - uses: actions/setup-dotnet@v4
         if: steps.code.outputs.run == 'true'
