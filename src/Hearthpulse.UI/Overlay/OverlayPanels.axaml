@@ -1,0 +1,377 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:o="using:Hearthpulse.UI.Overlay"
+                    xmlns:c="using:Hearthpulse.UI.Controls"
+                    xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- The overlay's converters, row and badge templates and row panels. The view includes it; a panel control
+         (Overlay/*Panel) that needs these keys includes it too. Same keys as the WPF OverlayPanels.xaml. -->
+    <i:Truthy x:Key="Truthy" />
+    <i:KeyBrush x:Key="KeyBrush" />
+    <i:SignBrush x:Key="SignBrush" />
+    <i:FractionWidth x:Key="Fraction" />
+    <i:LeftMargin x:Key="LeftMargin" />
+
+    <!-- Opponent's played card: hover shows the whole card beside the panel, as in the deck tracker (the full name too) -->
+    <DataTemplate x:Key="PlayedTemplate" x:DataType="o:PlayedTile">
+        <Grid Classes="cardRow short" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
+            <c:ManaCost Classes="cost short" Text="{Binding Cost}" HorizontalAlignment="Left" />
+            <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+                <Panel>
+                    <Image Classes="tileArt" i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                    <Rectangle Classes="tileFade" Fill="{StaticResource TileFade}" />
+                    <DockPanel Margin="8,0,3,0">
+                        <!-- Copies and turn on a dark plate, like the deck's copy count, so they stay readable over bright art -->
+                        <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" Height="16" Padding="4,0"
+                                Margin="4,0,0,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
+                                           VerticalAlignment="Center" IsVisible="{Binding Count, Converter={StaticResource Truthy}}" />
+                                <TextBlock Text="{Binding Turn}" FontSize="10" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="{Binding Name}" FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <Border Classes="rowSheen" />
+                </Panel>
+            </Border>
+        </Grid>
+    </DataTemplate>
+
+    <!-- Opponent's hand row: hover shows the card once revealed, else the card that created it -->
+    <DataTemplate x:Key="HandTemplate" x:DataType="o:HandTile">
+        <Grid Classes="cardRow short" Margin="0,0,0,2" ColumnDefinitions="22,64,*" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding PreviewCardId}">
+            <Border Background="{StaticResource Surface3}" CornerRadius="5">
+                <TextBlock Text="{Binding Slot}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Grid.Column="1" Text="{Binding Turn}" FontSize="11" Foreground="{StaticResource Muted}" Margin="6,0,2,0" VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Column="2" Classes="handDetail" Classes.known="{Binding Highlight}" Classes.unknown="{Binding Unknown}" Text="{Binding Detail}" FontSize="11.5"
+                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        </Grid>
+    </DataTemplate>
+
+    <!-- Counter tooltip strip: card art behind the name, count on the right; a part of a goal gets a done mark -->
+    <DataTemplate x:Key="CounterCardTemplate" x:DataType="o:CounterTipCard">
+        <Grid Classes="counterCard" Classes.pending="{Binding !Done}" Height="22" Margin="0,0,0,2">
+            <Border Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+                <Panel>
+                    <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
+                    <Rectangle Fill="{StaticResource TileFade}" />
+                    <DockPanel Margin="7,0,7,0">
+                        <TextBlock DockPanel.Dock="Left" Classes="icon partMark" Classes.done="{Binding Done}" FontSize="12" Margin="0,0,6,0"
+                                   VerticalAlignment="Center" IsVisible="{Binding IsPart}" />
+                        <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" MinWidth="20" Height="16" Padding="4,0"
+                                Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding Count, Converter={StaticResource Truthy}}">
+                            <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                </Panel>
+            </Border>
+        </Grid>
+    </DataTemplate>
+
+    <!-- What a counter's tooltip and its opened row list: the goal's parts, what was counted, the cards that need it -->
+    <DataTemplate x:Key="CounterCardsTemplate" x:DataType="o:CounterChip">
+        <StackPanel>
+            <ItemsControl ItemsSource="{Binding Details}" Margin="0,0,0,2" IsVisible="{Binding Details, Converter={StaticResource Truthy}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{Binding}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel IsVisible="{Binding Parts, Converter={StaticResource Truthy}}">
+                <TextBlock Text="{i:Loc Overlay.Counter.Goal}" Classes="counterSection" />
+                <ItemsControl ItemsSource="{Binding Parts}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+            </StackPanel>
+            <StackPanel IsVisible="{Binding Counted, Converter={StaticResource Truthy}}">
+                <TextBlock Text="{i:Loc Overlay.Counter.Counted}" Classes="counterSection" />
+                <ItemsControl ItemsSource="{Binding Counted}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+                <TextBlock Text="{Binding MoreCounted}" FontSize="11" Foreground="{StaticResource Muted}" IsVisible="{Binding MoreCounted, Converter={StaticResource Truthy}}" />
+            </StackPanel>
+            <StackPanel IsVisible="{Binding Related, Converter={StaticResource Truthy}}">
+                <TextBlock Text="{i:Loc Overlay.Counter.NeededFor}" Classes="counterSection" />
+                <ItemsControl ItemsSource="{Binding Related}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+                <TextBlock Text="{Binding MoreRelated}" FontSize="11" Foreground="{StaticResource Muted}" IsVisible="{Binding MoreRelated, Converter={StaticResource Truthy}}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- The opened Battlegrounds chip: its cards only, under the details the row already shows -->
+    <DataTemplate x:Key="BgCounterCardsTemplate" x:DataType="o:CounterChip">
+        <StackPanel>
+            <StackPanel IsVisible="{Binding Counted, Converter={StaticResource Truthy}}">
+                <TextBlock Text="{i:Loc Overlay.Counter.Counted}" Classes="counterSection" />
+                <ItemsControl ItemsSource="{Binding Counted}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+            </StackPanel>
+            <StackPanel IsVisible="{Binding Related, Converter={StaticResource Truthy}}">
+                <TextBlock Text="{i:Loc Overlay.Counter.NeededFor}" Classes="counterSection" />
+                <ItemsControl ItemsSource="{Binding Related}" ItemTemplate="{StaticResource CounterCardTemplate}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Counter tooltip: title and value, what the counter is, then its cards -->
+    <DataTemplate x:Key="CounterTipTemplate" x:DataType="o:CounterChip">
+        <StackPanel Width="232" Margin="0,2,0,2">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" Classes="number" FontSize="14" Foreground="{StaticResource Accent}"
+                           Margin="8,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Title}" FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,2" />
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterCardsTemplate}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- Counter row: card art, title with its progress under it, value right-aligned, and on hover a cross in its own
+         column that hides the counter (not over the art: a click there opens the cards); hover shows the cards, a click
+         opens them under the row -->
+    <DataTemplate x:Key="CounterTemplate" x:DataType="o:CounterChip">
+        <Border Classes="counterChip" Classes.open="{Binding Expanded}" CornerRadius="5" Padding="3,1,4,1" Cursor="Hand" Background="Transparent"
+                ToolTip.Placement="Right" ToolTip.HorizontalOffset="8" ToolTip.ShowDelay="250" ToolTip.ServiceEnabled="{Binding !Expanded}">
+            <ToolTip.Tip>
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterTipTemplate}" />
+            </ToolTip.Tip>
+            <StackPanel>
+                <Panel Height="24">
+                    <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                            Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).ToggleCounter}" CommandParameter="{Binding Id}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" MinWidth="28" SharedSizeGroup="CounterValue" />
+                                <ColumnDefinition Width="22" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="20" Height="20" CornerRadius="10" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding IconCardId}" />
+                            <Ellipse Width="20" Height="20" Stroke="{StaticResource OverlayBorder}" StrokeThickness="1" />
+                            <StackPanel Grid.Column="1" Margin="7,0,8,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                <ItemsControl ItemsSource="{Binding Segments}" Margin="0,3,-2,0" IsVisible="{Binding Segments, Converter={StaticResource Truthy}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Rows="1" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:Boolean">
+                                            <Border Classes="counterSegment" Classes.lit="{Binding}" Height="3" CornerRadius="1.5" Margin="0,0,2,0" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ProgressBar Classes="counterBar" Minimum="0" Maximum="1" Value="{Binding Progress}" Margin="0,3,0,0" IsVisible="{Binding HasBar}" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="{Binding Value}" Classes="number" FontSize="14" TextAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+                    <Button Classes="icon hideCounter" Content="&#xF0156;" FontSize="11" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Focusable="False" ToolTip.Tip="{i:Loc Overlay.Counter.HideTip}"
+                            Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).HideCounter}" CommandParameter="{Binding Id}" />
+                </Panel>
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterCardsTemplate}" Margin="27,0,0,6" IsVisible="{Binding Expanded}" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <!-- Battlegrounds counter chip: art, title over value; a click opens its details under the row, the cross hides it -->
+    <DataTemplate x:Key="BgCounterTemplate" x:DataType="o:CounterChip">
+        <Border Classes="bgCounterChip" Classes.open="{Binding Expanded}" BorderThickness="1" CornerRadius="8" Padding="5,4,6,4" Margin="0,0,6,6"
+                Cursor="Hand" ToolTip.ShowDelay="250">
+            <ToolTip.Tip>
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterTipTemplate}" />
+            </ToolTip.Tip>
+            <Grid ColumnDefinitions="Auto,Auto">
+                <Button Background="Transparent" BorderThickness="0" Padding="0" Focusable="False"
+                        Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).ToggleBgCounter}" CommandParameter="{Binding Id}">
+                    <Grid ColumnDefinitions="Auto,Auto">
+                        <Border Width="26" Height="26" CornerRadius="13" Background="{StaticResource Surface3}" VerticalAlignment="Center" i:CardArt.Portrait="{Binding IconCardId}" />
+                        <StackPanel Grid.Column="1" Margin="7,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" FontSize="10.5" Foreground="{StaticResource Muted}" MaxWidth="112" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Value}" Classes="number" FontSize="15" />
+                            <Border Height="2" CornerRadius="1" Background="{StaticResource Surface4}" Width="56" HorizontalAlignment="Left" Margin="0,2,0,0"
+                                    IsVisible="{Binding HasProgress}">
+                                <Border HorizontalAlignment="Left" CornerRadius="1" Background="{StaticResource Accent}"
+                                        Width="{Binding Progress, Converter={StaticResource Fraction}, ConverterParameter=56}" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+                <Button Grid.Column="1" Classes="icon hideCounter" Content="&#xF0156;" FontSize="10" Width="18" Height="18" Margin="4,0,0,0" VerticalAlignment="Top"
+                        Focusable="False" ToolTip.Tip="{i:Loc Overlay.BgCounter.HideTip}"
+                        Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).HideBgCounter}" CommandParameter="{Binding Id}" />
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="TierTemplate" x:DataType="o:TierButton">
+        <Button Classes="bare tierChip" Classes.current="{Binding IsCurrent}" Classes.selected="{Binding IsSelected}"
+                Command="{Binding $parent[o:OverlayView].((o:OverlayViewModel)DataContext).SelectTier}" CommandParameter="{Binding Tier}"
+                Margin="0,0,3,0" Focusable="False" ToolTip.Tip="{i:Loc Overlay.Bar.TierTip}">
+            <Border Name="Chip" Width="24" Height="24" CornerRadius="12" BorderThickness="1.5">
+                <TextBlock Name="Num" Text="{Binding Tier}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+        </Button>
+    </DataTemplate>
+
+    <DataTemplate x:Key="CombatTemplate" x:DataType="o:CombatDot">
+        <Border Width="8" Height="8" CornerRadius="4" Margin="0,0,4,0" Background="{Binding Result, Converter={StaticResource KeyBrush}}" ToolTip.Tip="{Binding Tooltip}" />
+    </DataTemplate>
+
+    <!-- Hero pick: compact badge centred above each hero portrait (slot = HDT hero pitch, 340 units) -->
+    <DataTemplate x:Key="HeroPickTemplate" x:DataType="o:HeroPickCard">
+        <Panel Width="340" Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
+            <Border Classes="overlayCard pickCard" Background="{StaticResource OverlayPanelSolid}" HorizontalAlignment="Center"
+                    Width="232" Padding="10,8" Margin="0,8,0,0">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Panel Width="44" Height="44" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding TierTip}" o:OverlayHit.Interactive="True">
+                        <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
+                        <TextBlock Text="{Binding Tier}" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Panel>
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Place}" Classes="number" FontSize="18" />
+                            <TextBlock Text="{Binding Delta}" FontSize="10.5" FontWeight="SemiBold" Margin="5,0,0,3" VerticalAlignment="Bottom"
+                                       Foreground="{Binding DeltaValue, Converter={StaticResource SignBrush}}" />
+                            <TextBlock Text="{Binding PlaceNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,3" VerticalAlignment="Bottom" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding PickRate}" FontSize="11" Foreground="{StaticResource Muted}" />
+                            <TextBlock Text="{Binding Personal}" FontSize="11" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"
+                                       IsVisible="{Binding Personal, Converter={StaticResource Truthy}}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Classes="bestTag" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{StaticResource Accent}" CornerRadius="5" Padding="8,1">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xF0AE2;" Classes="icon" FontSize="10" Foreground="{StaticResource OnAccent}" Margin="0,0,4,0" />
+                    <TextBlock Text="{i:Loc Overlay.Badge.BestPick}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                </StackPanel>
+            </Border>
+        </Panel>
+    </DataTemplate>
+
+    <!-- Trinket pick: compact badge above each offered trinket (slot = HDT trinket pitch, 277 units) -->
+    <DataTemplate x:Key="TrinketBadgeTemplate" x:DataType="o:TrinketBadge">
+        <Panel Width="277" Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
+            <Border Classes="overlayCard pickCard" Background="{StaticResource OverlayPanelSolid}" HorizontalAlignment="Center"
+                    Width="196" Padding="9,7" Margin="0,8,0,0">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Panel Width="40" Height="40" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding TierTip}" o:OverlayHit.Interactive="True">
+                        <c:Scallop Fill="{Binding Tier, Converter={StaticResource KeyBrush}}" Lobes="9" Depth="0.1" />
+                        <TextBlock Text="{Binding Tier}" FontFamily="{DynamicResource DisplayFont}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Panel>
+                    <StackPanel Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Place}" Classes="number" FontSize="16" />
+                            <TextBlock Text="{i:Loc Overlay.Badge.AvgPlace}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="6,0,0,2" VerticalAlignment="Bottom" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding PickRate}" FontSize="11" Foreground="{StaticResource Muted}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Classes="bestTag" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{StaticResource Accent}" CornerRadius="5" Padding="8,1">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xF0AE2;" Classes="icon" FontSize="10" Foreground="{StaticResource OnAccent}" Margin="0,0,4,0" />
+                    <TextBlock Text="{i:Loc Overlay.Badge.BestPick}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                </StackPanel>
+            </Border>
+        </Panel>
+    </DataTemplate>
+
+    <!-- Tavern: buy hint pinned above one shop minion: reasons, plus how players who bought it placed -->
+    <DataTemplate x:Key="ShopBadgeTemplate" x:DataType="o:ShopBadge">
+        <Border Classes="shopBadge" Classes.best="{Binding Best}" Classes.dataOnly="{Binding !Label.Length}" Width="126" MinHeight="26" CornerRadius="6" Padding="8,3" BorderThickness="1"
+                HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="{Binding Left, Converter={StaticResource LeftMargin}}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Name="Buy" Text="{i:Loc Overlay.Badge.Buy}" FontSize="11" FontWeight="Bold" Margin="0,0,5,0" />
+                    <TextBlock Name="Lbl" Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="100"
+                               IsVisible="{Binding Label, Converter={StaticResource Truthy}}" />
+                </StackPanel>
+                <TextBlock Name="Data" Text="{Binding Placement}" HorizontalAlignment="Center"
+                           IsVisible="{Binding Placement, Converter={StaticResource Truthy}}" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <!-- Discover-style choice (hero power, spell, triple reward, Dark Gift…): one badge above each option (slot = 340 units) -->
+    <DataTemplate x:Key="DiscoverBadgeTemplate" x:DataType="o:DiscoverBadge">
+        <Panel Width="340" Classes="pick discover" Classes.best="{Binding Best}">
+            <Border Classes="overlayCard pickCard" Background="{StaticResource OverlayPanelSolid}" HorizontalAlignment="Center"
+                    MinWidth="150" MaxWidth="236" Padding="9,7,12,7" Margin="0,9,0,0">
+                <Grid ColumnDefinitions="Auto,*">
+                    <Panel VerticalAlignment="Center">
+                        <!-- "Mark the best": rank among the options (Rank is 0 otherwise) -->
+                        <Panel Width="32" Height="32" Margin="0,0,9,0" IsVisible="{Binding Rank, Converter={StaticResource Truthy}}">
+                            <c:Scallop Name="Cookie" Lobes="8" Depth="0.1" />
+                            <TextBlock Name="RankText" FontFamily="{DynamicResource DisplayFont}" FontSize="14" FontWeight="Bold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"><Run Text="#" FontSize="10" /><Run Text="{Binding Rank, Mode=OneWay}" /></TextBlock>
+                        </Panel>
+                        <!-- Otherwise no ranking: the option's tavern tier, drawn like the top bar's tier chips -->
+                        <Panel IsVisible="{Binding Rank, Converter={StaticResource Truthy}, ConverterParameter=!}">
+                            <Border Width="28" Height="28" CornerRadius="14" Margin="0,0,9,0" Background="{StaticResource Surface3}"
+                                    IsVisible="{Binding Tier, Converter={StaticResource Truthy}}" ToolTip.Tip="{i:Loc Overlay.Common.TavernTier}">
+                                <TextBlock Text="{Binding Tier}" FontSize="12.5" FontWeight="SemiBold" Foreground="{StaticResource Text}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Panel>
+                    </Panel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Placement}" Classes="number" FontSize="16" />
+                            <TextBlock Text="{Binding PlacementNote}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="5,0,0,2" VerticalAlignment="Bottom" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Label}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   IsVisible="{Binding Label, Converter={StaticResource Truthy}}" />
+                        <TextBlock Text="{Binding Gift}" FontSize="10.5" Foreground="{StaticResource Accent}" TextTrimming="CharacterEllipsis"
+                                   IsVisible="{Binding Gift, Converter={StaticResource Truthy}}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Classes="bestTag" HorizontalAlignment="Center" VerticalAlignment="Top" Background="{StaticResource Accent}" CornerRadius="5" Padding="8,1">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xF0AE2;" Classes="icon" FontSize="10" Foreground="{StaticResource OnAccent}" Margin="0,0,4,0" />
+                    <TextBlock Text="{i:Loc Overlay.Badge.BestPick}" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                </StackPanel>
+            </Border>
+        </Panel>
+    </DataTemplate>
+
+    <!-- Tier list card: every card the same size; hover opens one large render right against it (CardPreview) -->
+    <DataTemplate x:Key="BrowserCardTemplate" x:DataType="o:BrowserCard">
+        <Panel Width="84" Height="116" Margin="1" Background="Transparent"
+               c:CardPreview.CardId="{Binding CardId}" c:CardPreview.Battlegrounds="True" c:CardPreview.Placement="Adjacent">
+            <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="84" Height="116" Stretch="Uniform" />
+        </Panel>
+    </DataTemplate>
+
+    <!-- Opponent's minion in the leaderboard popup: a mini card with its attack and health on it, as on the board -->
+    <DataTemplate x:Key="LobbyMinionTemplate" x:DataType="o:LobbyMinion">
+        <Panel Width="60" Height="84" Margin="1,0">
+            <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="60" Height="84" Stretch="Uniform" />
+            <Border BorderBrush="{StaticResource TierS}" BorderThickness="2" CornerRadius="6" IsVisible="{Binding Golden}" />
+            <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="1,0,0,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
+                    Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource TierS}" BorderThickness="1">
+                <TextBlock Text="{Binding Attack}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TierS}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
+                    Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource Negative}" BorderThickness="1">
+                <TextBlock Text="{Binding Health}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Negative}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+        </Panel>
+    </DataTemplate>
+
+    <ItemsPanelTemplate x:Key="HRow">
+        <StackPanel Orientation="Horizontal" />
+    </ItemsPanelTemplate>
+    <ItemsPanelTemplate x:Key="WrapRow">
+        <WrapPanel />
+    </ItemsPanelTemplate>
+</ResourceDictionary>

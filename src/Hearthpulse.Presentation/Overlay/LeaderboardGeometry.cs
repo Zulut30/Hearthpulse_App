@@ -42,4 +42,54 @@ public static class LeaderboardGeometry
 
         return (top + (slot * index), slot);
     }
+
+    /// <summary>
+    /// Whether overlay <paramref name="x"/> is in the left part of the surface where Hearthstone draws the leaderboard,
+    /// so the game is worth asking which hero is under the mouse. Generous: the hero is read from the game precisely
+    /// because the tile boxes may not be lined up.
+    /// </summary>
+    public static bool Near(double x, double surfaceWidth, double surfaceHeight, AppSettings settings) =>
+        x >= 0 && x <= Left(surfaceWidth, surfaceHeight) + Math.Max(settings.LeaderboardWidth * surfaceHeight * 2, surfaceHeight * 0.2);
+
+    /// <summary>Leaderboard place (1..8) under the overlay point (<paramref name="x"/>, <paramref name="y"/>), or 0.</summary>
+    public static int SlotAt(double x, double y, double surfaceWidth, double surfaceHeight, AppSettings settings, bool duos)
+    {
+        var left = Left(surfaceWidth, surfaceHeight);
+        if (x < left - 8 || x > left + (settings.LeaderboardWidth * surfaceHeight))
+        {
+            return 0;
+        }
+
+        for (var i = 0; i < 8; i++)
+        {
+            var (top, height) = Tile(i, surfaceHeight, settings, duos);
+            if (y >= top && y < top + height)
+            {
+                return i + 1;
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>Top of the opponent-board popup for the pointer at overlay <paramref name="y"/>: a little above it, on the surface.</summary>
+    public static double PopupTop(double y, double surfaceHeight) => Math.Clamp(y - 40, 8, Math.Max(8, surfaceHeight - 240));
+
+    /// <summary>Top of the popup shown for place <paramref name="slot"/> (1..8) without a pointer (off-screen renders).</summary>
+    public static double SlotPopupTop(int slot, double surfaceHeight, AppSettings settings, bool duos) =>
+        Math.Max(8, Tile(slot - 1, surfaceHeight, settings, duos).Top - 20);
+
+    /// <summary>
+    /// The calibration guides (Settings: "Show leaderboard guides"): one frame per tile, a pixel inside it top and
+    /// bottom so neighbouring frames do not touch.
+    /// </summary>
+    public static IEnumerable<(double Left, double Top, double Width, double Height)> Guides(double surfaceWidth, double surfaceHeight, AppSettings settings, bool duos)
+    {
+        var left = Left(surfaceWidth, surfaceHeight);
+        for (var i = 0; i < 8; i++)
+        {
+            var (top, height) = Tile(i, surfaceHeight, settings, duos);
+            yield return (left, top + 1, settings.LeaderboardWidth * surfaceHeight, Math.Max(4, height - 2));
+        }
+    }
 }

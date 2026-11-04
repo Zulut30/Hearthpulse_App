@@ -123,8 +123,8 @@ public sealed class UxRound2MarkupTests
     [Fact]
     public void Compact_rows_keep_text_size_and_one_gem_size_in_both_uis()
     {
-        // WPF: the row templates' triggers on the panel's compact flag (the deck's rows live in their own panel control).
-        var setters = new[] { "src/Hearthpulse.App/Overlay/OverlayWindow.xaml", "src/Hearthpulse.App/Overlay/DeckPanel.xaml" }.SelectMany(f => Markup(f).Descendants())
+        // WPF: the row templates' triggers (Overlay/OverlayPanels.xaml) on the panel's compact flag (the deck's rows live in their own panel control).
+        var setters = new[] { "src/Hearthpulse.App/Overlay/OverlayPanels.xaml", "src/Hearthpulse.App/Overlay/DeckPanel.xaml" }.SelectMany(f => Markup(f).Descendants())
             .Where(e => e.Name.LocalName == "Trigger" && (string?)e.Attribute("Property") == "o:MovablePanel.Compact")
             .SelectMany(t => t.Elements().Where(e => e.Name.LocalName == "Setter")).ToList();
         Assert.NotEmpty(setters);
@@ -297,9 +297,9 @@ public sealed class UxRound2MarkupTests
         // The strips without a header (the Battlegrounds bar's turn, the session, the turn timers) label their figures alike.
         foreach (var (file, text) in new[]
                  {
-                     (WpfOverlay, "{i:Loc Overlay.Bar.Turn}"), (WpfOverlay, "{i:Loc Overlay.Session.Title}"),
+                     ("src/Hearthpulse.App/Overlay/BattlegroundsBarPanel.xaml", "{i:Loc Overlay.Bar.Turn}"), (WpfOverlay, "{i:Loc Overlay.Session.Title}"),
                      ("src/Hearthpulse.App/Overlay/TurnTimerPanel.xaml", "{Binding Label}"),
-                     (AvaOverlay, "{i:Loc Overlay.Bar.Turn}"), (AvaOverlay, "{i:Loc Overlay.Session.Title}"),
+                     ("src/Hearthpulse.UI/Overlay/BattlegroundsBarPanel.axaml", "{i:Loc Overlay.Bar.Turn}"), (AvaOverlay, "{i:Loc Overlay.Session.Title}"),
                      ("src/Hearthpulse.UI/Overlay/TurnTimerPanel.axaml", "{Binding Label}"),
                  })
         {

@@ -76,7 +76,7 @@ public sealed partial class LocBindingTests
         try
         {
             var view = new Hearthpulse.UI.Overlay.OverlayView { DataContext = new Hearthpulse.UI.Overlay.OverlayViewModel() };
-            var template = Assert.IsAssignableFrom<IDataTemplate>(view.Resources["CounterTemplate"]);
+            var template = Assert.IsAssignableFrom<IDataTemplate>(view.FindResource("CounterTemplate"));
             var row = template.Build(null)!;
             var hide = Assert.Single(row.GetLogicalDescendants().OfType<Button>(), b => b.Classes.Contains("hideCounter"));
             Assert.Equal(Avalonia.Layout.HorizontalAlignment.Right, hide.HorizontalAlignment);

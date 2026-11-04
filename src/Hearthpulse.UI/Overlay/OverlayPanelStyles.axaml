@@ -1,0 +1,434 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:o="using:Hearthpulse.UI.Overlay"
+        xmlns:c="using:Hearthpulse.UI.Controls"
+        xmlns:i="using:Hearthpulse.UI.Infrastructure">
+    <!-- The overlay's chip, badge, counter and panel host styles (in WPF they live with the templates in
+         OverlayPanels.xaml). The view includes them after OverlayLook.axaml. -->
+    <!-- Tribe chips on the tavern bar: each filters the tier list; the chosen one is filled -->
+    <Style Selector="Button.tribeChip Border#Chip">
+        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.tribeChip TextBlock#Name">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="Button.tribeChip:pointerover Border#Chip">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+    </Style>
+    <Style Selector="Button.tribeChip:pointerover TextBlock#Name">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="Button.tribeChip.selected Border#Chip">
+        <Setter Property="Background" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Button.tribeChip.selected TextBlock#Name">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+    </Style>
+    <Style Selector="Border.divider">
+        <Setter Property="Width" Value="1" />
+        <Setter Property="Margin" Value="12,2" />
+        <Setter Property="Background" Value="{StaticResource OverlayBorder}" />
+    </Style>
+    <Style Selector="TextBlock.sectionLabel">
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+    <Style Selector="TextBlock.handDetail">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="TextBlock.handDetail.known">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="TextBlock.handDetail.unknown">
+        <Setter Property="Foreground" Value="{StaticResource Faint}" />
+    </Style>
+
+    <!-- Tier chips -->
+    <Style Selector="Button.tierChip Border#Chip">
+        <Setter Property="Background" Value="{StaticResource Surface3}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.tierChip TextBlock#Num">
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <Style Selector="Button.tierChip:pointerover Border#Chip">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+    </Style>
+    <Style Selector="Button.tierChip:pointerover TextBlock#Num">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="Button.tierChip.current Border#Chip">
+        <Setter Property="Background" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Button.tierChip.current TextBlock#Num">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+    </Style>
+    <Style Selector="Button.tierChip.selected Border#Chip">
+        <Setter Property="BorderBrush" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="Button.tierChip.selected TextBlock#Num">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+
+    <!-- Pick badges: hero, trinket, discover. Only "Mark the best" (Grid#Surface.marking) singles one out:
+         BEST PICK tag, gold edge, gold rank cookie, other options dimmed. "Stats only" draws every option alike. -->
+    <Style Selector="Panel.pick Border.bestTag">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Grid.marking Panel.pick.best Border.bestTag">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Grid.marking Panel.pick.best Border.pickCard">
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+        <Setter Property="BorderThickness" Value="1.5" />
+    </Style>
+    <Style Selector="Panel.pick.noData Border.pickCard">
+        <Setter Property="Opacity" Value="0.7" />
+    </Style>
+    <Style Selector="Grid.marking Panel.discover Border.pickCard">
+        <Setter Property="Opacity" Value="0.85" />
+    </Style>
+    <Style Selector="Grid.marking Panel.discover.best Border.pickCard">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Panel.discover TextBlock#RankText">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <!-- Fill set by style (not on the element) so the best option's gold fill below can apply -->
+    <Style Selector="Panel.discover c|Scallop#Cookie">
+        <Setter Property="Fill" Value="{StaticResource Surface4}" />
+    </Style>
+    <Style Selector="Grid.marking Panel.discover.best c|Scallop#Cookie">
+        <Setter Property="Fill" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Grid.marking Panel.discover.best TextBlock#RankText">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+    </Style>
+
+    <!-- Shop badges: neutral; gold with BUY only for the best buy in "Mark the best" -->
+    <Style Selector="Border.shopBadge">
+        <Setter Property="Background" Value="{StaticResource OverlayPanelSolid}" />
+        <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+    </Style>
+    <Style Selector="Border.shopBadge TextBlock#Buy">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.shopBadge TextBlock#Lbl">
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="Border.shopBadge TextBlock#Data">
+        <Setter Property="FontSize" Value="9.5" />
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+    <!-- A badge with no tags (stats only) shows its placement at a readable size -->
+    <Style Selector="Border.shopBadge.dataOnly TextBlock#Data">
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="Grid.marking Border.shopBadge.best">
+        <Setter Property="Background" Value="{StaticResource Accent}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Grid.marking Border.shopBadge.best TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+    </Style>
+    <Style Selector="Grid.marking Border.shopBadge.best TextBlock#Buy">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <!-- Session place chips -->
+    <Style Selector="Border.placeChip">
+        <Setter Property="Background" Value="{StaticResource NegativeSoft}" />
+    </Style>
+    <Style Selector="Border.placeChip TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Negative}" />
+    </Style>
+    <Style Selector="Border.placeChip.top">
+        <Setter Property="Background" Value="{StaticResource PositiveSoft}" />
+    </Style>
+    <Style Selector="Border.placeChip.top TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Positive}" />
+    </Style>
+
+    <!-- Movable panel host: frame, label and placeholder in layout mode -->
+    <Style Selector="Border.counterChip:pointerover, Border.counterChip.open">
+        <Setter Property="Background" Value="{StaticResource Hover}" />
+    </Style>
+    <Style Selector="Border.counterSegment">
+        <Setter Property="Background" Value="{StaticResource Surface4}" />
+    </Style>
+    <Style Selector="Border.counterSegment.lit">
+        <Setter Property="Background" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="ProgressBar.counterBar">
+        <Setter Property="Height" Value="3" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="CornerRadius" Value="1.5" />
+        <Setter Property="Background" Value="{StaticResource Surface4}" />
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="TextBlock.counterSection">
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        <Setter Property="Margin" Value="0,6,0,4" />
+    </Style>
+    <Style Selector="TextBlock.partMark">
+        <Setter Property="Text" Value="&#xF0766;" />
+        <Setter Property="Foreground" Value="{StaticResource Faint}" />
+    </Style>
+    <Style Selector="TextBlock.partMark.done">
+        <Setter Property="Text" Value="&#xF05E0;" />
+        <Setter Property="Foreground" Value="{StaticResource Positive}" />
+    </Style>
+    <Style Selector="Grid.counterCard.pending">
+        <Setter Property="Opacity" Value="0.6" />
+    </Style>
+    <Style Selector="Button.hideCounter">
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Border.counterChip:pointerover Button.hideCounter">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Border.bgCounterChip">
+        <Setter Property="Background" Value="{StaticResource Surface2}" />
+        <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
+    </Style>
+    <!-- Raised plate on hover (the Hover wash would make the chip see-through against the panel) -->
+    <Style Selector="Border.bgCounterChip:pointerover">
+        <Setter Property="Background" Value="{StaticResource Surface3}" />
+    </Style>
+    <Style Selector="Border.bgCounterChip.open">
+        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+    </Style>
+    <Style Selector="Border.bgCounterChip:pointerover Button.hideCounter">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="TextBlock.good">
+        <Setter Property="Foreground" Value="{StaticResource Positive}" />
+    </Style>
+    <Style Selector="TextBlock.bad">
+        <Setter Property="Foreground" Value="{StaticResource Negative}" />
+    </Style>
+    <Style Selector="o|MovablePanel" x:DataType="o:OverlayViewModel">
+        <Setter Property="IsEditing" Value="{Binding LayoutEditing}" />
+        <Setter Property="IsUnlocked" Value="{Binding PanelsUnlocked}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <LayoutTransformControl Name="PART_Scaler" ClipToBounds="False">
+                        <Panel>
+                            <!-- Placeholder: its own dashed frame, so a wide pick row frames only its label, not the whole card row -->
+                            <Panel Name="Placeholder" IsVisible="False" HorizontalAlignment="{TemplateBinding PlaceholderAlignment}">
+                                <Border MinWidth="200" MinHeight="36" Background="{StaticResource OverlayPlaceholder}" CornerRadius="8"
+                                        BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16,8">
+                                        <TextBlock Text="{TemplateBinding Title}" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                        <TextBlock Name="HintText" Text="{TemplateBinding Hint}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" IsVisible="False" />
+                                        <TextBlock Text="{TemplateBinding ScaleText}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" HorizontalAlignment="Center"
+                                                   IsVisible="{TemplateBinding ScaleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                    </StackPanel>
+                                </Border>
+                                <Rectangle Margin="-4" RadiusX="12" RadiusY="12" Stroke="{StaticResource Accent}" StrokeThickness="1.5" StrokeDashArray="4,3" IsHitTestVisible="False" />
+                            </Panel>
+                            <!-- The player's opacity fades the content only; the frame and tag stay readable -->
+                            <ContentPresenter Name="Body" Content="{TemplateBinding Content}" Opacity="{TemplateBinding PanelOpacity}" />
+                            <!-- Takes the drag over the panel's gaps; its alpha survives the overlay's opacity down to 0.3 (1/255 rounded
+                                 to 0 at 50 % in the WPF overlay's window and let the click into the game) -->
+                            <Border Name="Shield" Background="#04000000" IsVisible="False" />
+                        </Panel>
+                    </LayoutTransformControl>
+                    <!-- Layout-mode frame and name tag sit outside the scaler so they are never clipped. -->
+                    <Rectangle Name="Frame" IsVisible="False" Margin="-4" RadiusX="12" RadiusY="12" Stroke="{StaticResource Accent}"
+                               StrokeThickness="1.5" StrokeDashArray="4,3" IsHitTestVisible="False" />
+                    <!-- Name tag and, under the pointer, the panel's buttons. The strip reaches down to the panel so the pointer
+                         can travel from the panel to the buttons without leaving it. -->
+                    <!-- The strip keeps the tag out of the panel's size: wider than the panel, it widened and moved it when armed -->
+                    <o:PanelTagStrip>
+                        <Panel Name="PART_Chrome" IsVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-4,-26,0,0" Height="26">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                                <!-- The panels' lock, first so it stays under the pointer when the tag and tools appear beside it; on a
+                                     locked panel the only part that takes the mouse -->
+                                <Button Name="PART_Lock" Classes="lockButton" IsVisible="False" Margin="0,0,4,0" o:OverlayHit.Interactive="True"
+                                        ToolTip.Tip="{i:Loc Overlay.Lock.UnlockTip}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Name="UnlockIcon" Text="&#xF033F;" Classes="icon" FontSize="11" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center" />
+                                        <TextBlock Name="LockIcon" Text="&#xF033E;" Classes="icon" FontSize="11" Foreground="{StaticResource OnAccent}" VerticalAlignment="Center"
+                                                   IsVisible="False" />
+                                        <TextBlock Name="UnlockLabel" Text="{i:Loc Overlay.Lock.Unlock}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}"
+                                                   Margin="4,0,0,0" VerticalAlignment="Center" />
+                                        <TextBlock Name="LockLabel" Text="{i:Loc Overlay.Lock.Lock}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}"
+                                                   Margin="4,0,0,0" VerticalAlignment="Center" IsVisible="False" />
+                                    </StackPanel>
+                                </Button>
+                                <Border Name="Tag" Height="18" Background="{StaticResource Accent}" CornerRadius="5" Padding="7,0" IsHitTestVisible="False">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{TemplateBinding Title}" FontSize="10.5" FontWeight="Bold" Foreground="{StaticResource OnAccent}" />
+                                        <!-- The size and opacity the player gave it, so two panels can be given the same -->
+                                        <TextBlock Text="{TemplateBinding ScaleText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="6,0,0,0"
+                                                   IsVisible="{TemplateBinding ScaleText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                        <StackPanel Orientation="Horizontal" Margin="6,0,0,0"
+                                                    IsVisible="{TemplateBinding OpacityText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                            <TextBlock Text="&#xF05CC;" Classes="icon" FontSize="10.5" Foreground="{StaticResource OnAccent}" />
+                                            <TextBlock Text="{TemplateBinding OpacityText}" FontSize="10.5" Foreground="{StaticResource OnAccent}" />
+                                        </StackPanel>
+                                        <!-- Ctrl held during a game: what the mouse does now -->
+                                        <TextBlock Name="ArmedHint" Text="{i:Loc Overlay.Move.Hint}" FontSize="10.5" Foreground="{StaticResource OnAccent}" Margin="8,0,0,0"
+                                                   IsVisible="False" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Name="Tools" IsVisible="False" Height="18" Background="{StaticResource Accent}" CornerRadius="5" Padding="2,0" Margin="4,0,0,0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Name="PART_Smaller" Classes="icon tagButton" Content="&#xF0374;" ToolTip.Tip="{i:Loc Overlay.Layout.Smaller}" />
+                                        <Button Name="PART_Larger" Classes="icon tagButton" Content="&#xF0415;" ToolTip.Tip="{i:Loc Overlay.Layout.Larger}" />
+                                        <Button Name="PART_Fade" Classes="icon tagButton" Content="&#xF05CC;" ToolTip.Tip="{i:Loc Overlay.Layout.Fade}" />
+                                        <Button Name="PART_Compact" Classes="icon tagButton" Content="&#xF0451;" ToolTip.Tip="{i:Loc Overlay.Layout.Compact}"
+                                                IsVisible="{TemplateBinding CanCompact}" />
+                                        <Button Name="PART_Reset" Classes="icon tagButton" Content="&#xF099B;" ToolTip.Tip="{i:Loc Overlay.Layout.ResetPanel}" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Panel>
+                    </o:PanelTagStrip>
+                    <!-- Corner marker: dragged, it resizes the panel like the wheel (layout mode, or Ctrl held during a game) -->
+                    <Border Name="PART_Grip" IsVisible="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-6,-6"
+                            Width="14" Height="14" CornerRadius="4" Background="{StaticResource Accent}" Cursor="BottomRightCorner"
+                            ToolTip.Tip="{i:Loc Overlay.Move.Grip}">
+                        <TextBlock Text="&#xF045D;" Classes="icon" FontSize="11" Foreground="{StaticResource OnAccent}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="o|MovablePanel.editing /template/ Border#Shield">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.editing /template/ Rectangle#Frame">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.editing /template/ Panel#PART_Chrome">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <!-- Layout mode: the buttons show over the panel the pointer is on, so they never pile up over the neighbours -->
+    <Style Selector="o|MovablePanel.editing:pointerover /template/ Border#Tools">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.editing:pointerover /template/ Panel#PART_Chrome">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.icon.tagButton">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+    </Style>
+    <Style Selector="Button.icon.tagButton:pointerover">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+    </Style>
+    <Style Selector="Button.icon.tagButton:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+    </Style>
+    <!-- Ctrl over a panel during a game: the same frame and tag, and the shield takes the whole panel for the drag -->
+    <Style Selector="o|MovablePanel.armed /template/ Border#Shield">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.armed /template/ Rectangle#Frame">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.armed /template/ Panel#PART_Chrome">
+        <Setter Property="IsVisible" Value="True" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="o|MovablePanel.armed /template/ Border#Tools">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.armed /template/ TextBlock#ArmedHint">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.placeholder /template/ Panel#Placeholder">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.placeholder /template/ ContentPresenter#Body">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <!-- Most panels show during matches and need no note; menu and draft panels name their scene in Hint -->
+    <Style Selector="o|MovablePanel.hinted /template/ TextBlock#HintText">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <!-- A placeholder already carries the title; the tag would only repeat it and pile up over its neighbours. Only the
+         placeholder itself takes the mouse, so a wide row's empty width never hides its neighbours. -->
+    <Style Selector="o|MovablePanel.editing.placeholder /template/ Border#Tag">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="o|MovablePanel.editing.placeholder /template/ Border#Shield">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="o|MovablePanel.editing.placeholder /template/ Rectangle#Frame">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <!-- The corner marker: on every panel in layout mode and on the armed one during a game; a placeholder's size
+         changes with the wheel only (in a wide row its corner is not where the label shows) -->
+    <Style Selector="o|MovablePanel.editing /template/ Border#PART_Grip">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.armed /template/ Border#PART_Grip">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.editing.placeholder /template/ Border#PART_Grip">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <!-- The panels' lock on a name tag: "Unlock panels" / "Lock panels", an icon and a word on the accent plate. Under
+         the pointer the primary button's hover fill: the tag buttons' dark shade left the word at 1.3:1 -->
+    <Style Selector="Button.lockButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{StaticResource Accent}" CornerRadius="5" Height="18">
+                    <Border Name="Plate" CornerRadius="5" Background="Transparent" Padding="6,0,7,0">
+                        <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" />
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.lockButton:pointerover /template/ Border#Plate">
+        <Setter Property="Background" Value="{StaticResource PrimaryFillHover}" />
+    </Style>
+    <!-- Panels unlocked: every free panel shows its frame, and the one under the pointer arms as with Ctrl -->
+    <Style Selector="o|MovablePanel.free /template/ Rectangle#Frame">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <!-- The pointer rests on the panel, or arms it: the lock button on the tag -->
+    <Style Selector="o|MovablePanel.offers /template/ Panel#PART_Chrome">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.offers /template/ Button#PART_Lock">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <!-- Resting on a locked panel: the button alone, without the name tag, so the panel does not look armed -->
+    <Style Selector="o|MovablePanel.offers:not(.armed) /template/ Border#Tag">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="o|MovablePanel.unlocked /template/ Button#PART_Lock">
+        <Setter Property="ToolTip.Tip" Value="{i:Loc Overlay.Lock.LockTip}" />
+    </Style>
+    <Style Selector="o|MovablePanel.unlocked /template/ TextBlock#UnlockIcon">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="o|MovablePanel.unlocked /template/ TextBlock#UnlockLabel">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="o|MovablePanel.unlocked /template/ TextBlock#LockIcon">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="o|MovablePanel.unlocked /template/ TextBlock#LockLabel">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+</Styles>
