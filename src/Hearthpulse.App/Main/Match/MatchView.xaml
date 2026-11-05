@@ -904,7 +904,7 @@
                     <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Padding="12,5" Margin="8,0,0,0" Content="{i:Loc Library.ConfirmNo}"
                             Command="{Binding CancelHeader}" />
                     <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Padding="12,5" Foreground="{StaticResource Negative}"
-                            Content="{i:Loc Library.ConfirmYes}" Command="{Binding ConfirmHeader}" />
+                            Content="{Binding HeaderCard.ConfirmLabel}" Command="{Binding ConfirmHeader}" />
                     <TextBlock Text="&#xF05D6;" Style="{StaticResource Icon}" FontSize="16" Foreground="{StaticResource Negative}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding HeaderCard.ConfirmText}" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
                 </DockPanel>
