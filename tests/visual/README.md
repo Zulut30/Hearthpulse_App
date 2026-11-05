@@ -18,8 +18,11 @@ pixels changed or its size did. The app version under the sidebar is masked (`MA
 - Renders run isolated (`HEARTHPULSE_ISOLATED=1`): no network, no Hearthstone install found, and a text font every
   system has (WPF: Segoe UI, not Segoe UI Variable; Avalonia: the bundled Inter). So no frame depends on the servers,
   the PC's game and its logs, or its fonts.
-- **Baselines are taken on the CI runner** (job "Visual baselines", Windows, at 96 DPI). Text antialiasing still
-  differs between PCs, so a render on another PC is compared, not committed.
+- The WPF main window is laid out at 1260 x 840 for its frames whatever the screen (the runner's is 1024 x 768, and
+  Windows keeps a window within the screen); every frame is drawn at 96 DPI.
+- **Baselines are taken on the CI runner** (job "Visual baselines", Windows). Two runs there match exactly; another PC
+  still differs a little (text antialiasing, the system's number formats: "100%" there, "100 %" on a Russian Windows
+  11), so a render on another PC is compared, never committed.
 
 ## A wanted change
 
