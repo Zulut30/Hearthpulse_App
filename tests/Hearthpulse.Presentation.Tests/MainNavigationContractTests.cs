@@ -76,7 +76,7 @@ public sealed class MainNavigationContractTests
     }
 
     [Fact]
-    public void The_wpf_window_opens_every_page_and_reads_it_back() => OnSta(() =>
+    public void The_wpf_window_opens_every_page_and_reads_it_back() => WpfThread.RunFresh(() =>
     {
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = OffScreen(new WpfWindow(model));
@@ -128,7 +128,7 @@ public sealed class MainNavigationContractTests
     /// ring (R13). The Avalonia twin is in LocBindingTests.Keyboard.
     /// </summary>
     [Fact]
-    public void The_wpf_sidebar_names_its_shortcuts_and_game_rows_show_focus() => OnSta(() =>
+    public void The_wpf_sidebar_names_its_shortcuts_and_game_rows_show_focus() => WpfThread.RunFresh(() =>
     {
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = OffScreen(new WpfWindow(model));
@@ -157,7 +157,7 @@ public sealed class MainNavigationContractTests
     /// Left goes back and Esc returns to the game; Delete asks first. The Avalonia twin is in LocBindingTests.Keyboard.
     /// </summary>
     [Fact]
-    public void The_wpf_history_is_one_tab_stop_with_arrows_between_games_and_into_their_buttons() => OnSta(() =>
+    public void The_wpf_history_is_one_tab_stop_with_arrows_between_games_and_into_their_buttons() => WpfThread.RunFresh(() =>
     {
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = OffScreen(new WpfWindow(model));
@@ -240,37 +240,6 @@ public sealed class MainNavigationContractTests
             RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent,
         });
         Pump();
-    }
-
-    private static void OnSta(Action body)
-    {
-        Loc.Instance.SetLanguage(Loc.English);
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-                app.Resources.MergedDictionaries.Clear();
-                app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1)));
-                body();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("Navigation check failed: " + failure.Message, failure);
-        }
     }
 
     private static WpfWindow OffScreen(WpfWindow window)

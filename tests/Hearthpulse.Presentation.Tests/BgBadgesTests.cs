@@ -342,7 +342,7 @@ public sealed class BgBadgesTests
 
     /// <summary>The WPF badge layer with data: on the tiles, tier and main tribe shown, the dead faded, the mouse never taken.</summary>
     [Fact]
-    public void Wpf_badges_stand_on_the_tiles_and_bind_tier_and_tribe() => OnSta(() =>
+    public void Wpf_badges_stand_on_the_tiles_and_bind_tier_and_tribe() => WpfThread.RunThemed(() =>
     {
         Loc.Instance.SetLanguage(Loc.English);
         var model = new WpfOverlay();
@@ -409,39 +409,6 @@ public sealed class BgBadgesTests
             {
                 yield return nested;
             }
-        }
-    }
-
-    private static void OnSta(Action test)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-                if (app.Resources.MergedDictionaries.Count == 0)
-                {
-                    app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Tavern", 0, 0, 1)));
-                }
-
-                test();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException(failure.Message, failure);
         }
     }
 

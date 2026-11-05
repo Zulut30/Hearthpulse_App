@@ -68,7 +68,7 @@ public sealed class OverlayMoveResizeTests
     }
 
     [Fact]
-    public void Wpf_panel_shows_its_corner_marker_and_move_hint_and_ends_a_drag_that_lost_the_mouse() => Sta(WpfPanel);
+    public void Wpf_panel_shows_its_corner_marker_and_move_hint_and_ends_a_drag_that_lost_the_mouse() => WpfThread.Run(WpfPanel);
 
     private static void WpfPanel()
     {
@@ -193,33 +193,6 @@ public sealed class OverlayMoveResizeTests
         var frame = new DispatcherFrame();
         _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
-    }
-
-    private static void Sta(Action body)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                body();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("WPF overlay check failed", failure);
-        }
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
