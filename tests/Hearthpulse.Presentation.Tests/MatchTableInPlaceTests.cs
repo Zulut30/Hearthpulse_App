@@ -23,7 +23,7 @@ public sealed class MatchTableInPlaceTests
     /// BattlegroundsReplayTests.Game5th as ReplayRecorder writes it (format 4): won on turn 1, lost on turn 2: its events,
     /// then the rounds and lobby.
     /// </summary>
-    private const string Game5th = """
+    internal const string Game5th = """
         HPR4
         {"kind":"battlegrounds","truncated":false,"events":64}
         E 1 L PLAY 0 TB_BaconShop_HERO_50 HERO HEALTH=30

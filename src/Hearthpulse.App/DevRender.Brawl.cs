@@ -67,7 +67,7 @@ public partial class App
             Save(_main, Path.Combine(folder, $"main-settings-account-{state}.png"));
         }
 
-        if (RenderOnly("ctmatch"))
+        if (RenderOnly("ctmatch") || RenderOnly("steppng"))
         {
             await RenderConstructedTableOnlyAsync(folder);
         }
@@ -112,6 +112,12 @@ public partial class App
             if (Named<System.Windows.Controls.Border>(_main, "TableCard") is { } table)
             {
                 SaveCard(table, Path.Combine(folder, "main-match-table.png"));
+            }
+
+            if (RenderOnlyGroups.Contains("steppng", StringComparer.OrdinalIgnoreCase) && Named<System.Windows.Controls.Border>(_main, "TableCard") is { } exported)
+            {
+                // "Save the step as PNG" (plan R4): the picture the header's camera button writes.
+                await File.WriteAllBytesAsync(Path.Combine(folder, "main-match-step-export.png"), Hearthpulse.App.Main.Match.MatchView.Encode(exported));
             }
 
             page.Back.Execute(null);

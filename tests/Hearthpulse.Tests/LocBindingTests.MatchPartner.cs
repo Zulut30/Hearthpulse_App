@@ -55,6 +55,10 @@ public sealed partial class LocBindingTests
         {
             var table = view.FindControl<Grid>("BattlegroundsTable")!;
             Assert.True(model.ShowBattlegroundsTable && table.IsVisible);
+            // "Save the step as PNG" (plan R4): the header's button shows with the table, and draws its card.
+            var export = Assert.Single(view.GetVisualDescendants().OfType<Button>(), b => Avalonia.Automation.AutomationProperties.GetName(b) == Loc.T("Match.Export.Tip"));
+            Assert.True(export.IsEffectivelyVisible);
+            Assert.True(view.FindControl<Border>("BattlegroundsCard")!.IsEffectivelyVisible);
             var partnerPanel = view.FindControl<StackPanel>("BattlegroundsPartner")!;
             var caption = Loc.T("Match.Player.Table.Partner");
             IReadOnlyList<MatchBgCardView>? partnerBoard = null;

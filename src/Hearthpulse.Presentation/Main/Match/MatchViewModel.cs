@@ -501,6 +501,7 @@ public sealed partial class MatchViewModel : Observable
         Raise(nameof(ShowReplay));
         Raise(nameof(ShowConstructedTable));
         Raise(nameof(ShowBattlegroundsTable));
+        Raise(nameof(CanExportStep));
         Raise(nameof(ShowBattlegroundsOldNote));
         Raise(nameof(ShowSide));
         Raise(nameof(ShowDecks));

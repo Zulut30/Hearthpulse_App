@@ -67,6 +67,21 @@ internal static partial class OffscreenRenderer
             await Save(main, Path.Combine(folder, $"main-settings-account-{state}.png"));
         }
 
+        if (RenderOnly("steppng") && host.History.Recent(400).FirstOrDefault(g => g.Replay is not null && g.IsBattlegrounds) is { } stepGame
+            && await host.Main.OpenMatchPageAsync(stepGame.Key))
+        {
+            // "Save the step as PNG" (plan R4): the header with its camera button, then the picture the button writes.
+            view.ShowPage("History");
+            host.Main.MatchPage.Frame = host.Main.MatchPage.FrameMax / 2;
+            await Save(main, Path.Combine(folder, "main-match-header.png"));
+            if (view.GetVisualDescendants().OfType<Border>().FirstOrDefault(c => c.Name == "BattlegroundsCard") is { } card)
+            {
+                await File.WriteAllBytesAsync(Path.Combine(folder, "main-match-step-export-bg.png"), Hearthpulse.UI.Main.Match.MatchView.Encode(card));
+            }
+
+            host.Main.MatchPage.Back.Execute(null);
+        }
+
         if (RenderOnly("history") || RenderOnly("historylist"))
         {
             if (RenderWidth is { } width)

@@ -222,8 +222,14 @@ public sealed partial class LocBindingTests
         private static readonly BlockingCollection<Action> Work = new();
         private static readonly Thread UiThread = Start();
 
-        /// <summary>Starts the headless thread without waiting for it (the module initializer calls this).</summary>
-        public static void Warm() => _ = UiThread;
+        /// <summary>
+        /// Avalonia's UI dispatcher belongs to the first thread that asks for it. View models post account and upload
+        /// events to it from pool threads; were that first, the headless platform could not start on its own thread
+        /// later and the test host would crash. So the headless thread starts as the module loads and takes it first
+        /// (not waited for: the module is still loading). Here, not in TestDataFolder: the Windows suite links that file.
+        /// </summary>
+        [ModuleInitializer]
+        internal static void Warm() => _ = UiThread;
 
         public static void Run(Action body)
         {

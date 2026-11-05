@@ -241,14 +241,17 @@ public sealed class DuosReplayTests
     /// A partner minion in their tavern (never on our screen), then the combat: their table comes in, their minion attacks,
     /// the fight ends as usual.
     /// </summary>
-    private static ReplayRecorder DuosGame() => Run([.. DuosSetup(),
+    private static ReplayRecorder DuosGame() => Run(DuosBodies());
+
+    /// <summary>The lines of <see cref="DuosGame"/> (the golden Duos replay ends the game after them).</summary>
+    internal static string[] DuosBodies() => [.. DuosSetup(),
         .. Entity(95, "BGS_100", Partner, "PLAY", "MINION", "ATK=3", "HEALTH=3", "ZONE_POSITION=1"),
         .. CombatSetup(),
         .. Entity(120, "BG25_011", Partner, "PLAY", "MINION", "ATK=4", "HEALTH=4", "ZONE_POSITION=1"),
         .. Entity(121, "TB_BaconShop_HERO_08", Partner, "PLAY", "HERO", "PLAYER_ID=5", "HEALTH=30"),
         Start("ATTACK", 120), Game("PROPOSED_DEFENDER", 111), Tag(111, "DAMAGE", 1), Tag(120, "DAMAGE", 1), End,
         .. Fight(win: true),
-        ]);
+        ];
 
     [Fact]
     public void The_partners_table_is_written_in_combat_and_leaves_with_it()

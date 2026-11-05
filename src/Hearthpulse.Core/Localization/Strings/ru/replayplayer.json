@@ -42,5 +42,11 @@
   "Match.Player.BookmarkTurn": "Шаг {0} · ход {1}",
   "Match.Player.BookmarkMulligan": "Шаг {0} · муллиган",
   "Match.Player.BookmarkStep": "Шаг {0}",
-  "Match.Player.BookmarkFailed": "Не удалось сохранить закладку. Попробуйте ещё раз."
+  "Match.Player.BookmarkFailed": "Не удалось сохранить закладку. Попробуйте ещё раз.",
+  "Match.Export.Tip": "Сохранить шаг как PNG",
+  "Match.Export.Title": "Сохранить шаг картинкой",
+  "Match.Export.Filter": "Картинка PNG",
+  "Match.Export.FileName": "Hearthpulse {0}",
+  "Match.Export.Saved": "Сохранено: {0}",
+  "Match.Export.Failed": "Не удалось сохранить картинку. Выберите другую папку и попробуйте ещё раз."
 }
