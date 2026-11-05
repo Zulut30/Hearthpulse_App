@@ -262,6 +262,8 @@
             <SolidColorBrush x:Key="Sheen" Color="#80FFF4D6" />
             <SolidColorBrush x:Key="GrooveFill" Color="#1A110B" />
             <SolidColorBrush x:Key="GrooveEdge" Color="#36261A" />
+            <!-- A segmented group's band: a soft shade behind its tabs, no edge, so the gold choice reads over a page hero too -->
+            <SolidColorBrush x:Key="SegmentBand" Color="#8C140D08" />
             <LinearGradientBrush x:Key="NavSelectedFill" StartPoint="0%,0%" EndPoint="100%,0%">
                 <GradientStop Color="#42E9B949" Offset="0" />
                 <GradientStop Color="#14E9B949" Offset="0.55" />
@@ -563,12 +565,13 @@
         <Setter Property="CornerRadius" Value="{StaticResource RadiusSmall}" />
         <Setter Property="Padding" Value="8,2" />
     </Style>
+    <!-- A segmented group: a thin common line under its tabs (see RadioButton.segment) -->
     <Style Selector="Border.segmentBar">
-        <Setter Property="Background" Value="{StaticResource GrooveFill}" />
-        <Setter Property="BorderBrush" Value="{StaticResource GrooveEdge}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="4" />
+        <Setter Property="Background" Value="{StaticResource SegmentBand}" />
+        <Setter Property="CornerRadius" Value="8,8,0,0" />
+        <Setter Property="BorderBrush" Value="{StaticResource Outline}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="0" />
     </Style>
 
     <!-- ===== Buttons: framed rectangles, gold for the primary action. States fade in (0.12 s) and a press
@@ -838,7 +841,9 @@
         <Setter Property="Foreground" Value="{StaticResource Text}" />
     </Style>
 
-    <!-- ===== Chips / segmented filter ===== -->
+    <!-- ===== Segmented choices: underline tabs (owner, 2026-11-05). No frame, no check mark: the group sits on a thin
+         common line on a soft band (Border.segmentBar), the choices in muted text; the chosen one is gold with a 2 px gold line over that
+         line. Hover lights the text and a soft tint; the width never changes. Same as the WPF Segment. ===== -->
     <Style Selector="RadioButton.segment">
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
@@ -852,20 +857,22 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <Panel>
-                    <Border Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+                    <Border Name="Bd" CornerRadius="6,6,0,0" Padding="12,6,12,8" Background="Transparent">
                         <Border.Transitions>
                             <Transitions>
                                 <BrushTransition Property="Background" Duration="0:0:0.12" />
                             </Transitions>
                         </Border.Transitions>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Name="Check" Text="&#xF012C;" FontFamily="{DynamicResource IconFont}" FontSize="14" FontWeight="Normal"
-                                       Margin="0,0,5,0" VerticalAlignment="Center" Foreground="{StaticResource Accent}" IsVisible="False" />
-                            <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" />
-                        </StackPanel>
+                        <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" />
                     </Border>
-                    <!-- The selected chip is a raised plate: a lit hairline on its top edge -->
-                    <Border Name="Edge" Height="1" Margin="6,1,6,0" VerticalAlignment="Top" Background="{StaticResource EdgeLight}" IsVisible="False" />
+                    <Border Name="Underline" Height="2" CornerRadius="1" Margin="4,0,4,-1" VerticalAlignment="Bottom" Background="{StaticResource Accent}"
+                            RenderTransform="scaleX(0)">
+                        <Border.Transitions>
+                            <Transitions>
+                                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Border.Transitions>
+                    </Border>
                 </Panel>
             </ControlTemplate>
         </Setter>
@@ -879,15 +886,8 @@
     <Style Selector="RadioButton.segment:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{StaticResource Pressed}" />
     </Style>
-    <Style Selector="RadioButton.segment:checked /template/ Border#Bd">
-        <Setter Property="Background" Value="{StaticResource SelectedFill}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
-    </Style>
-    <Style Selector="RadioButton.segment:checked /template/ TextBlock#Check">
-        <Setter Property="IsVisible" Value="True" />
-    </Style>
-    <Style Selector="RadioButton.segment:checked /template/ Border#Edge">
-        <Setter Property="IsVisible" Value="True" />
+    <Style Selector="RadioButton.segment:checked /template/ Border#Underline">
+        <Setter Property="RenderTransform" Value="scaleX(1)" />
     </Style>
     <Style Selector="RadioButton.segment:checked">
         <Setter Property="Foreground" Value="{StaticResource Accent}" />

@@ -211,7 +211,6 @@ public partial class MainWindow : Window
         {
             case nameof(MainViewModel.HearthstoneRunning):
             case nameof(MainViewModel.MemoryAttached):
-            case nameof(MainViewModel.InGame):
                 SyncStatus();
                 break;
             case nameof(MainViewModel.DeckOpen):
@@ -249,11 +248,8 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SyncStatus()
-    {
+    private void SyncStatus() =>
         StatusDot.Fill = (Brush)FindResource(_viewModel.MemoryAttached ? "Positive" : _viewModel.HearthstoneRunning ? "Accent" : "Faint");
-        LivePulse.Fill = (Brush)FindResource(_viewModel.InGame ? "AccentContainer" : "Surface4");
-    }
 
     /// <summary>True while the Standard or Wild page (or a deck page standing in for it) is open.</summary>
     private bool ConstructedShown => NavStandard.IsChecked == true || NavWild.IsChecked == true;
@@ -570,22 +566,16 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>The live bar's ⋯: every overlay panel with its state, opened above the bar.</summary>
+    /// <summary>The overlay card's ⋯: every overlay panel with its state, opened beside the sidebar.</summary>
     private void OnPanelsMenu(object sender, RoutedEventArgs e)
     {
         if (sender is Button { ContextMenu: { } menu } button)
         {
             menu.PlacementTarget = button;
-            menu.Placement = PlacementMode.Top;
+            menu.Placement = PlacementMode.Right;
             menu.IsOpen = true;
         }
     }
-
-    /// <summary>A narrow bar gives the panel buttons' room to the status text; the ⋯ menu still has every panel.</summary>
-    private void OnLiveBarSizeChanged(object sender, SizeChangedEventArgs e) =>
-        QuickPanels.Visibility = e.NewSize.Width < LiveBarNarrowWidth ? Visibility.Collapsed : Visibility.Visible;
-
-    private const double LiveBarNarrowWidth = 780;
 
     private void OnOpenData(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo("explorer.exe", $"\"{_viewModel.DataFolder}\"") { UseShellExecute = true })?.Dispose();

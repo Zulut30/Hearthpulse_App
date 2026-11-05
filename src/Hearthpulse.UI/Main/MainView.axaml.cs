@@ -439,9 +439,6 @@ public partial class MainView : UserControl
                 // One chip, as in WPF: gold while Hearthstone runs, green once its memory is read.
                 StatusDot.Fill = ThemeBrushes.Get(_viewModel.MemoryAttached ? "Positive" : _viewModel.HearthstoneRunning ? "Accent" : "Faint");
                 break;
-            case nameof(MainViewModel.InGame):
-                LivePulse.Fill = ThemeBrushes.Get(_viewModel.InGame ? "AccentContainer" : "Surface4");
-                break;
             case nameof(MainViewModel.DeckOpen):
                 // A deck opened from the Overview's deck banners goes to its format's page, where the deck page lives.
                 if (_viewModel.DeckOpen && !ConstructedShown)

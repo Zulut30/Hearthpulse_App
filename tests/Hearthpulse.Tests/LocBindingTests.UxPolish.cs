@@ -282,6 +282,29 @@ public sealed partial class LocBindingTests
         Assert.Equal(model.LiveDetail, ToolTip.GetTip(line));
     }));
 
+    /// <summary>
+    /// No bar floats over the pages (the owner's pick B, 2026-11-05): the status card under the logo and the overlay card
+    /// at the sidebar's foot; compact keeps the dot, the switch, the ⋯ menu and streamer mode, one under the other.
+    /// </summary>
+    [Fact]
+    public void Status_and_overlay_cards_live_in_the_sidebar_and_shrink_in_compact() => Headless.Run(() => WithMainView((view, model) =>
+    {
+        Assert.Null(view.FindControl<Border>("LiveBar"));
+        var sidebar = view.FindControl<RadioButton>("NavSettings")!.FindLogicalAncestorOfType<DockPanel>();
+        string[] names = ["StatusCard", "StatusDot", "LiveDetailLine", "OverlayCard", "OverlaySwitch", "QuickPanels", "PanelsMenuButton", "ArrangeButton", "StreamerModeButton"];
+        Assert.All(names, n => Assert.Same(sidebar, view.FindControl<Control>(n)!.FindLogicalAncestorOfType<DockPanel>()));
+        var status = view.FindControl<Border>("StatusCard")!;
+        Assert.Equal(model.LiveTitle, Avalonia.Automation.AutomationProperties.GetName(status));
+        Assert.Equal(model.LiveDetail, Avalonia.Automation.AutomationProperties.GetHelpText(status));
+
+        view.Classes.Add("compact");
+        Dispatcher.UIThread.RunJobs();
+        Assert.All(["StatusDot", "OverlaySwitch", "PanelsMenuButton", "StreamerModeButton"], n => Assert.True(view.FindControl<Control>(n)!.IsVisible, n));
+        Assert.All(["QuickPanels", "ArrangeButton"], n => Assert.False(view.FindControl<Control>(n)!.IsVisible, n));
+        Assert.False(((Control)view.FindControl<TextBlock>("LiveDetailLine")!.Parent!).IsVisible);
+        Assert.Equal(Avalonia.Layout.Orientation.Vertical, ((WrapPanel)view.FindControl<Button>("PanelsMenuButton")!.Parent!).Orientation);
+    }));
+
     /// <summary>The turn timer's detail ("of 1:15", "last turn") reads Muted; a burning rope still turns it red.</summary>
     [Theory]
     [InlineData(false, "Muted")]

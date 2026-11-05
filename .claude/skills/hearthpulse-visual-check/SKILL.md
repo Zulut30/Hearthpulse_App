@@ -149,9 +149,9 @@ Open the PNGs with the Read tool (they are images). For each one touched by the 
 
 - **Clipping**: text cut at the right edge or ellipsized where it should wrap; numbers like "1,204" or long card
   names - check both English and Russian UI text, plus card/hero/deck names in the card locale. Cyrillic text can
-  be longer; also check tooltips leaving the 1920x1080 surface and the bottom 120 px reserved for the floating live bar.
+  be longer; also check tooltips leaving the 1920x1080 surface and the sidebar's status card (two lines at most).
 - **Overlap**: panels on top of each other in `overlay-layout.png` - fine only between panels that never show in the
-  same mode (e.g. `card-pool` vs `bgbar`); text over art; the live bar covering content.
+  same mode (e.g. `card-pool` vs `bgbar`); text over art.
 - **Contrast**: parchment `Text` on wood surfaces; `Muted` for secondary text (`Faint` only for separators, glyphs and disabled things); semantic colours
   (`Positive`/`Negative`/`Tier*`/`Rarity*`) still distinct.
 - **Spacing**: the same margins as neighbouring cards (24 between cards, page margin 40), aligned baselines in rows,

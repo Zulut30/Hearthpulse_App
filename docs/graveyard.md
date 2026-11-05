@@ -17,5 +17,5 @@ opponent's above the player's, as on the board. Setting "Graveyard" in Settings 
   full and "+N more" under each: its top is then at y ≈ 570, so it never takes the button's click (render scene
   `overlay-graveyard.png` is that long game). The player can move it.
 - A card missing from the card data shows as "Unknown card", never its id.
-- Live bar: the "⋯" menu has "Graveyard" next to "Opponent's Secrets" (the same setting).
+- The sidebar's overlay card: the "⋯" menu has "Graveyard" next to "Opponent's Secrets" (the same setting).
 - Render scene: `overlay-graveyard.png` (`GraveyardView.Sample`).
