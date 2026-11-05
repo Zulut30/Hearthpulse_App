@@ -110,7 +110,7 @@
 
     <!-- Shop badges: neutral; gold with BUY only for the best buy in "Mark the best" -->
     <Style Selector="Border.shopBadge">
-        <Setter Property="Background" Value="{StaticResource OverlayPanelSolid}" />
+        <Setter Property="Background" Value="{DynamicResource OverlayPanelSolid}" />
         <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
     </Style>
     <Style Selector="Border.shopBadge TextBlock#Buy">
@@ -332,7 +332,7 @@
         <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
     </Style>
     <Style Selector="Button.icon.tagButton:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+        <Setter Property="Background" Value="{DynamicResource OverlayBadgeShade}" />
     </Style>
     <!-- Ctrl over a panel during a game: the same frame and tag, and the shield takes the whole panel for the drag -->
     <Style Selector="o|MovablePanel.armed /template/ Border#Shield">

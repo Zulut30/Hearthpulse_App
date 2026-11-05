@@ -63,7 +63,7 @@
 
     <!-- Not interactive: clicks reach the board and the Discover options under it; hover and right-click are polled.
          The opacity carries the short fade-in when the panel appears or its pool changes. -->
-    <Border x:Name="Card" Style="{StaticResource OverlayCard}" Width="300" Background="{StaticResource OverlayPanelSolid}">
+    <Border x:Name="Card" Style="{StaticResource OverlayCard}" Width="300" Background="{DynamicResource OverlayPanelSolid}">
         <StackPanel>
             <!-- ===== Summary: pool size, the generator card, classes · format, sections ===== -->
             <Border Style="{StaticResource OverlayHeader}">

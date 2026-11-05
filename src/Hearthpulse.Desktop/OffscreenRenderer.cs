@@ -66,16 +66,17 @@ internal static partial class OffscreenRenderer
         var view = new MainView { DataContext = host.Main };
         var main = new Window { Width = 1260, Height = 840, Content = view, Background = ThemeBrushes.Get("Bg") };
         main.Show();
-        if (RenderOnlyGroups.Length > 0)
-        {
-            await RenderOnlyAsync(main, view, host, folder);
-            return;
-        }
-
+        // Before the groups: "overlay" is a single word, which the groups would take for one of theirs.
         if (RenderOnlyOverlay)
         {
             main.Close();
             await RenderOverlayCheckAsync(host, settings, folder);
+            return;
+        }
+
+        if (RenderOnlyGroups.Length > 0)
+        {
+            await RenderOnlyAsync(main, view, host, folder);
             return;
         }
 

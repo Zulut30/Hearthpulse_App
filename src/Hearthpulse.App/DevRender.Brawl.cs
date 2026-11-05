@@ -28,6 +28,16 @@ public partial class App
             await RenderBrawlAsync(folder);
         }
 
+        if (RenderOnly("overlay"))
+        {
+            await RenderOverlayCheckAsync(folder);
+        }
+
+        if (RenderOnly("overlay-opacity"))
+        {
+            await RenderOpacityCheckAsync(folder);
+        }
+
         if (RenderOnly("ctmatch"))
         {
             await RenderConstructedTableOnlyAsync(folder);

@@ -35,14 +35,14 @@
                 <Grid Classes="bgBadge" Classes.dead="{Binding Dead}" Height="24" ColumnDefinitions="20,40,Auto" VerticalAlignment="Center">
                     <Panel Name="Tier" Width="20" Height="24">
                         <Path Data="M0.5,0.5 H19.5 V11 C19.5,17 15.5,21.5 10,23.5 C4.5,21.5 0.5,17 0.5,11 Z" Stretch="None"
-                              Fill="{StaticResource OverlayBadgeShade}" Stroke="{StaticResource AccentDeep}" StrokeThickness="1" />
+                              Fill="{DynamicResource OverlayBadgeShade}" Stroke="{StaticResource AccentDeep}" StrokeThickness="1" />
                         <!-- Raised: the shield's point puts its visual centre above the middle -->
                         <TextBlock Text="{Binding Tier}" FontFamily="{DynamicResource DisplayFont}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource Text}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3" />
                     </Panel>
                     <!-- Empty until a board was seen: an opponent's only after a fight with them -->
                     <Border Name="Tribe" Grid.Column="1" Height="18" CornerRadius="9" Padding="0,0,6,0" Margin="4,0,0,0" HorizontalAlignment="Left"
-                            Background="{StaticResource OverlayBadgeShade}" IsVisible="{Binding Tribe, Converter={StaticResource Truthy}}">
+                            Background="{DynamicResource OverlayBadgeShade}" IsVisible="{Binding Tribe, Converter={StaticResource Truthy}}">
                         <StackPanel Orientation="Horizontal">
                             <Border Width="18" Height="18" CornerRadius="9" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource AccentDeep}" BorderThickness="1">
                                 <TextBlock Text="{Binding Tribe.Glyph}" Classes="icon" FontSize="11" Foreground="{StaticResource Accent}"

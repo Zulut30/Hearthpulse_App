@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Hearthpulse.Core;
@@ -26,6 +27,7 @@ public partial class OverlayView : UserControl
     private readonly DispatcherTimer _toastTimer;
     private OverlayViewModel? _viewModel;
     private Size _layoutSize;
+    private double _backdropOpacity = -1;
     private double _scale = 1;
     private string _guideKey = string.Empty;
 
@@ -101,10 +103,45 @@ public partial class OverlayView : UserControl
             ApplyLayout();
         }
 
-        Surface.Opacity = OverlayViewModel.SurfaceOpacity(Settings);
+        FadeBackdrops(OverlayViewModel.SurfaceOpacity(Settings));
         UpdateGuides();
         _viewModel?.ArrangeLeaderboard(Surface.Width, Surface.Height, Settings);
     }
+
+    /// <summary>
+    /// The opacity setting fades only the panels' backgrounds (R06): faded copies of the theme's backdrop brushes go into
+    /// this view's resources, and the overlay's markup takes them as dynamic resources. Text stays opaque.
+    /// </summary>
+    private void FadeBackdrops(double opacity)
+    {
+        if (opacity.Equals(_backdropOpacity))
+        {
+            return;
+        }
+
+        _backdropOpacity = opacity;
+        foreach (var key in OverlayViewModel.BackdropBrushes)
+        {
+            if (Application.Current is { } app && app.TryGetResource(key, ActualThemeVariant, out var value) && Faded(value as IBrush, opacity) is { } faded)
+            {
+                Resources[key] = faded;
+            }
+        }
+    }
+
+    private static IBrush? Faded(IBrush? brush, double opacity) => brush switch
+    {
+        ISolidColorBrush solid => new ImmutableSolidColorBrush(solid.Color, solid.Opacity * opacity),
+        LinearGradientBrush gradient => new LinearGradientBrush
+        {
+            StartPoint = gradient.StartPoint,
+            EndPoint = gradient.EndPoint,
+            SpreadMethod = gradient.SpreadMethod,
+            GradientStops = [.. gradient.GradientStops.Select(s => new GradientStop(s.Color, s.Offset))],
+            Opacity = gradient.Opacity * opacity,
+        },
+        _ => null,
+    };
 
     /// <summary>Hides the card hover preview (the overlay went click-through, so no pointer-exit will come).</summary>
     public void HidePreview() => PreviewHost.Hide();

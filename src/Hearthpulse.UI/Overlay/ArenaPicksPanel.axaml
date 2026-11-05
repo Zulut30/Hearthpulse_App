@@ -15,7 +15,7 @@
 
     <UserControl.Styles>
         <Style Selector="Border.arenaBadge">
-            <Setter Property="Background" Value="{StaticResource OverlayPanelSolid}" />
+            <Setter Property="Background" Value="{DynamicResource OverlayPanelSolid}" />
             <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
             <Setter Property="BorderThickness" Value="1.5" />
             <Setter Property="CornerRadius" Value="14" />

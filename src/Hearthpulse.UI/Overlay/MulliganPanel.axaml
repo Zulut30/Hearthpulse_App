@@ -16,7 +16,7 @@
 
     <UserControl.Styles>
         <Style Selector="Border.bar">
-            <Setter Property="Background" Value="{StaticResource OverlayPanelSolid}" />
+            <Setter Property="Background" Value="{DynamicResource OverlayPanelSolid}" />
             <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
             <Setter Property="BorderThickness" Value="1.5" />
             <Setter Property="CornerRadius" Value="10" />
@@ -168,7 +168,7 @@
                                     <!-- Gauge (replace on the left, keep on the right, the fill grows from the middle) and the edge -->
                                     <Grid ColumnDefinitions="Auto,*" Margin="0,4,0,0" Height="20">
                                         <Panel Width="78" Height="8" VerticalAlignment="Center">
-                                            <Border Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
+                                            <Border Background="{DynamicResource OverlayBadgeShade}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="4" />
                                             <Grid ColumnDefinitions="*,*" Margin="1">
                                                 <Border Classes="fill" Classes.bad="{Binding Bad}" Classes.soft="{Binding Soft}" HorizontalAlignment="Right" Width="{Binding FillLeft}" CornerRadius="3,0,0,3" />
                                                 <Border Grid.Column="1" Classes="fill" Classes.good="{Binding Good}" Classes.soft="{Binding Soft}" HorizontalAlignment="Left" Width="{Binding FillRight}" CornerRadius="0,3,3,0" />

@@ -21,7 +21,7 @@
                     <Rectangle Classes="tileFade" Fill="{StaticResource TileFade}" />
                     <DockPanel Margin="8,0,3,0">
                         <!-- Copies and turn on a dark plate, like the deck's copy count, so they stay readable over bright art -->
-                        <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" Height="16" Padding="4,0"
+                        <Border DockPanel.Dock="Right" Background="{DynamicResource OverlayBadgeShade}" CornerRadius="4" Height="16" Padding="4,0"
                                 Margin="4,0,0,0" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}" Margin="0,0,4,0"
@@ -60,7 +60,7 @@
                     <DockPanel Margin="7,0,7,0">
                         <TextBlock DockPanel.Dock="Left" Classes="icon partMark" Classes.done="{Binding Done}" FontSize="12" Margin="0,0,6,0"
                                    VerticalAlignment="Center" IsVisible="{Binding IsPart}" />
-                        <Border DockPanel.Dock="Right" Background="{StaticResource OverlayBadgeShade}" CornerRadius="4" MinWidth="20" Height="16" Padding="4,0"
+                        <Border DockPanel.Dock="Right" Background="{DynamicResource OverlayBadgeShade}" CornerRadius="4" MinWidth="20" Height="16" Padding="4,0"
                                 Margin="6,0,0,0" VerticalAlignment="Center" IsVisible="{Binding Count, Converter={StaticResource Truthy}}">
                             <TextBlock Text="{Binding Count}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -224,7 +224,7 @@
     <!-- Hero pick: compact badge centred above each hero portrait (slot = HDT hero pitch, 340 units) -->
     <DataTemplate x:Key="HeroPickTemplate" x:DataType="o:HeroPickCard">
         <Panel Width="340" Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
-            <Border Classes="overlayCard pickCard" Background="{StaticResource OverlayPanelSolid}" HorizontalAlignment="Center"
+            <Border Classes="overlayCard pickCard" Background="{DynamicResource OverlayPanelSolid}" HorizontalAlignment="Center"
                     Width="232" Padding="10,8" Margin="0,8,0,0">
                 <Grid ColumnDefinitions="Auto,*">
                     <Panel Width="44" Height="44" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding TierTip}" o:OverlayHit.Interactive="True">
@@ -259,7 +259,7 @@
     <!-- Trinket pick: compact badge above each offered trinket (slot = HDT trinket pitch, 277 units) -->
     <DataTemplate x:Key="TrinketBadgeTemplate" x:DataType="o:TrinketBadge">
         <Panel Width="277" Classes="pick" Classes.best="{Binding Recommended}" Classes.noData="{Binding !HasMeta}">
-            <Border Classes="overlayCard pickCard" Background="{StaticResource OverlayPanelSolid}" HorizontalAlignment="Center"
+            <Border Classes="overlayCard pickCard" Background="{DynamicResource OverlayPanelSolid}" HorizontalAlignment="Center"
                     Width="196" Padding="9,7" Margin="0,8,0,0">
                 <Grid ColumnDefinitions="Auto,*">
                     <Panel Width="40" Height="40" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding TierTip}" o:OverlayHit.Interactive="True">
@@ -304,7 +304,7 @@
     <!-- Discover-style choice (hero power, spell, triple reward, Dark Gift…): one badge above each option (slot = 340 units) -->
     <DataTemplate x:Key="DiscoverBadgeTemplate" x:DataType="o:DiscoverBadge">
         <Panel Width="340" Classes="pick discover" Classes.best="{Binding Best}">
-            <Border Classes="overlayCard pickCard" Background="{StaticResource OverlayPanelSolid}" HorizontalAlignment="Center"
+            <Border Classes="overlayCard pickCard" Background="{DynamicResource OverlayPanelSolid}" HorizontalAlignment="Center"
                     MinWidth="150" MaxWidth="236" Padding="9,7,12,7" Margin="0,9,0,0">
                 <Grid ColumnDefinitions="Auto,*">
                     <Panel VerticalAlignment="Center">
@@ -358,11 +358,11 @@
             <Image i:CardArt.BattlegroundsCard="{Binding CardId}" Width="60" Height="84" Stretch="Uniform" />
             <Border BorderBrush="{StaticResource TierS}" BorderThickness="2" CornerRadius="6" IsVisible="{Binding Golden}" />
             <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="1,0,0,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
-                    Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource TierS}" BorderThickness="1">
+                    Background="{DynamicResource OverlayBadgeShade}" BorderBrush="{StaticResource TierS}" BorderThickness="1">
                 <TextBlock Text="{Binding Attack}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TierS}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,1" MinWidth="20" Height="20" CornerRadius="10" Padding="3,0"
-                    Background="{StaticResource OverlayBadgeShade}" BorderBrush="{StaticResource Negative}" BorderThickness="1">
+                    Background="{DynamicResource OverlayBadgeShade}" BorderBrush="{StaticResource Negative}" BorderThickness="1">
                 <TextBlock Text="{Binding Health}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Negative}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
         </Panel>

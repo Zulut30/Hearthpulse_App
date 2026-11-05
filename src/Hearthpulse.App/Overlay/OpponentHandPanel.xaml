@@ -31,7 +31,7 @@
                             <Ellipse x:Name="Ring" Stroke="{StaticResource Accent}" StrokeThickness="1.25" />
                             <!-- Created by this card: the portrait is the creator's, marked with the same glyph as created deck cards -->
                             <Border Width="11" Height="11" CornerRadius="5.5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-4,-3"
-                                    Background="{StaticResource OverlayBadgeShade}" Visibility="{Binding Created, Converter={StaticResource Vis}}">
+                                    Background="{DynamicResource OverlayBadgeShade}" Visibility="{Binding Created, Converter={StaticResource Vis}}">
                                 <TextBlock Text="&#xF0674;" Style="{StaticResource Icon}" FontSize="8" Foreground="{StaticResource Info}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>

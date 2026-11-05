@@ -1,6 +1,7 @@
 using System.IO;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.Tracking;
+using Hearthpulse.Core.Tracking.Counters;
 
 namespace Hearthpulse.App;
 
@@ -8,12 +9,27 @@ namespace Hearthpulse.App;
 public partial class App
 {
     /// <summary>
-    /// <c>HEARTHPULSE_RENDER_ONLY=overlay</c>: only the overlay - the Battlegrounds moments of the newest kept log, the
-    /// Constructed panels and layout mode - not the main window or the other overlay scenes.
+    /// Render group <c>overlay-opacity</c>: one frame, <c>overlay-opacity.png</c> - the Constructed panels and counters
+    /// with the data copy's theme and panel background opacity (R06: text stays opaque at any setting).
     /// </summary>
-    private static bool RenderOnlyOverlay =>
-        string.Equals(Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_ONLY"), "overlay", StringComparison.OrdinalIgnoreCase);
+    private async Task RenderOpacityCheckAsync(string folder)
+    {
+        var snapshot = LiveSnapshot.Empty with
+        {
+            Scene = "GAMEPLAY",
+            HearthstoneRunning = true,
+            InGame = true,
+            GameType = "GT_RANKED",
+            Constructed = CounterScene.Synthetic(_cards),
+        };
+        _overlayViewModel.Update(snapshot, _cards, _settings, null, null);
+        await _overlay.RenderToFileAsync(Path.Combine(folder, "overlay-opacity.png"), 1920, 1080, 0);
+    }
 
+    /// <summary>
+    /// Render group <c>overlay</c>: only the overlay - the Battlegrounds moments of the newest kept log, the Constructed
+    /// panels and layout mode - not the main window or the other overlay scenes.
+    /// </summary>
     private async Task RenderOverlayCheckAsync(string folder)
     {
         await RenderBattlegroundsMomentsAsync(folder);

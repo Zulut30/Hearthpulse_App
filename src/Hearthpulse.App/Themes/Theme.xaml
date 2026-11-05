@@ -448,7 +448,7 @@
         <Setter Property="SnapsToDevicePixels" Value="True" />
     </Style>
     <Style x:Key="OverlayCard" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource OverlayCardFill}" />
+        <Setter Property="Background" Value="{DynamicResource OverlayCardFill}" />
         <Setter Property="BorderBrush" Value="{StaticResource OverlayEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />

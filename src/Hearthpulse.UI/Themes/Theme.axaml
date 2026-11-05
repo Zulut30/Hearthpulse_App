@@ -452,7 +452,7 @@
         <Setter Property="Padding" Value="{StaticResource CardPadding}" />
     </Style>
     <Style Selector="Border.overlayCard">
-        <Setter Property="Background" Value="{StaticResource OverlayCardFill}" />
+        <Setter Property="Background" Value="{DynamicResource OverlayCardFill}" />
         <Setter Property="BorderBrush" Value="{StaticResource OverlayEdge}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />

@@ -51,7 +51,8 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
   also `main-brawl-compact`), `history` (`main-history`, `main-match-bg-table`: the first step of the newest Battlegrounds
   replay), `historylist` (`main-history` alone), `ctmatch` (WPF only: `main-match-table`, the newest Constructed
   replay's table two thirds in), `overlay` (the Battlegrounds moments `overlay-pick/-trinket/-discover/-game/-bg-counters`,
-  `overlay-constructed` with its previews, `overlay-layout`). New groups go into `RenderOnlyAsync`
+  `overlay-constructed` with its previews, `overlay-layout`), `overlay-opacity` (WPF only: one frame,
+  `overlay-opacity`, the Constructed panels and counters at the data copy's `OverlayOpacity`). New groups go into `RenderOnlyAsync`
   (`DevRender.Brawl.cs`, `OffscreenRenderer.Brawl.cs`). With a group, `HEARTHPULSE_RENDER_WIDTH=<px>` sets the main
   window's width (e.g. 1040, the minimum). Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
   honoured only while rendering, WPF only (the Avalonia app has themes, but its renderer stays Tavern).

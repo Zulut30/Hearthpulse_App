@@ -19,8 +19,17 @@ public sealed partial class OverlayViewModel
     /// <summary>The overlay's scale (Settings: overlay size), kept to 0.6-1.6 whatever the settings file says.</summary>
     public static double SurfaceScale(AppSettings settings) => Math.Clamp(settings.OverlayScale, 0.6, 1.6);
 
-    /// <summary>The overlay's opacity (Settings: overlay opacity), kept to 0.3-1 so it never vanishes.</summary>
+    /// <summary>
+    /// The opacity of the panels' backgrounds (Settings: panel background opacity), kept to 0.3-1 so a panel never
+    /// vanishes. Text, numbers and icons stay opaque (R06): only <see cref="BackdropBrushes"/> fade.
+    /// </summary>
     public static double SurfaceOpacity(AppSettings settings) => Math.Clamp(settings.OverlayOpacity, 0.3, 1);
+
+    /// <summary>
+    /// The theme brushes behind the overlay's text: panel and card fills and badge shades. The overlay puts faded copies
+    /// of them in its own resources, which the overlay's markup takes as dynamic resources.
+    /// </summary>
+    public static IReadOnlyList<string> BackdropBrushes { get; } = ["OverlayCardFill", "OverlayPanelSolid", "OverlayBadgeShade"];
 
     /// <summary>
     /// Whether this change just showed the toast or the move tip, so the view starts their <see cref="ToastTime"/>

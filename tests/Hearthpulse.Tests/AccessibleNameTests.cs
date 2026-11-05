@@ -59,17 +59,33 @@ public sealed partial class AccessibleNameTests
     }
 
     /// <summary>
-    /// R06: the overlay's opacity fades the text with the panels (40 % gives about 2.6:1 over a bright table), so the
-    /// slider's tip says so and names the 70 % below which text is hard to read.
+    /// R06 (owner, 2026-11-05): the opacity setting fades only the panels' backgrounds, so its label and tip say so, and
+    /// the overlay's markup takes the backdrop brushes as dynamic resources the overlay can fade (a static one would keep
+    /// the theme's opaque brush).
     /// </summary>
     [Theory]
-    [InlineData("en", "Text fades")]
-    [InlineData("ru", "Текст тоже бледнеет")]
-    public void The_opacity_tip_says_text_fades_too(string language, string fades)
+    [InlineData("en", "background", "Text, numbers and icons")]
+    [InlineData("ru", "фона панелей", "Текст, числа и значки")]
+    public void The_opacity_setting_names_the_backgrounds_and_keeps_text_solid(string language, string label, string tip)
     {
-        var tip = Hearthpulse.Core.Localization.Loc.Table(language)["Settings.Overlay.OpacityTip"];
-        Assert.Contains(fades, tip, StringComparison.Ordinal);
-        Assert.Contains("70 %", tip, StringComparison.Ordinal);
+        var table = Hearthpulse.Core.Localization.Loc.Table(language);
+        Assert.Contains(label, table["Settings.Overlay.Opacity"], StringComparison.Ordinal);
+        Assert.Contains(tip, table["Settings.Overlay.OpacityTip"], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("src/Hearthpulse.App/Overlay")]
+    [InlineData("src/Hearthpulse.UI/Overlay")]
+    public void Overlay_backdrops_are_dynamic_resources(string folder)
+    {
+        var root = Path.Combine(RepoRoot(), folder);
+        var keys = string.Join('|', Hearthpulse.UI.Overlay.OverlayViewModel.BackdropBrushes);
+        var found = Directory.EnumerateFiles(root, "*.*xaml")
+            .SelectMany(f => File.ReadLines(f).Select((line, i) => (f, i, line)))
+            .Where(l => Regex.IsMatch(l.line, @"\{StaticResource (" + keys + @")\}"))
+            .Select(l => $"{Path.GetFileName(l.f)}:{l.i + 1}")
+            .ToList();
+        Assert.True(found.Count == 0, "Backdrop brushes taken as static resources fade nothing:\n" + string.Join('\n', found));
     }
 
     private static IEnumerable<XElement> Unnamed(XElement root) =>
