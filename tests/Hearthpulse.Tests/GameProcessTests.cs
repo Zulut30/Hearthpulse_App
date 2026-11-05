@@ -98,8 +98,8 @@ public sealed class GameProcessTests
     }
 
     /// <summary>
-    /// Waits until the system lists the stand-in under its name: on Linux a process just started may still show the
-    /// parent's name for a moment. The bound only ends a hang.
+    /// Waits until the system lists the stand-in under its name, so a failure below is the lookup's, not the stand-in's.
+    /// The bound only ends a hang.
     /// </summary>
     private static void Listed(Process process)
     {
@@ -116,23 +116,35 @@ public sealed class GameProcessTests
             return found;
         }
 
-        Assert.True(SpinWait.SpinUntil(Found, TimeSpan.FromSeconds(10)), $"{name} ({process.Id}) is not listed by its name");
+        Assert.True(SpinWait.SpinUntil(Found, TimeSpan.FromSeconds(10)), $"{name} ({process.Id}, exited: {process.HasExited}) is not listed by its name");
     }
 
-    /// <summary>A sleeping copy of a system program under a name of its own; <paramref name="copy"/> starts that copy again.</summary>
+    /// <summary>
+    /// A sleeping process under a name of its own: a copy of ping (sleep on macOS), or on Linux a shell script, as a
+    /// copied sleep there may be a multi-call binary that quits under a name it does not know. <paramref name="copy"/>
+    /// starts the same file again.
+    /// </summary>
     private static Process StartStandIn(string? copy = null)
     {
         var windows = OperatingSystem.IsWindows();
         if (copy is null)
         {
-            var source = windows ? Path.Combine(Environment.SystemDirectory, "PING.EXE") : "/bin/sleep";
             // A short name: Linux keeps 15 characters of a process's name.
             copy = Path.Combine(TestDataFolder.Scratch("hpgame"), "hpg" + Guid.NewGuid().ToString("N")[..8] + (windows ? ".exe" : string.Empty));
             Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
-            File.Copy(source, copy);
+            if (OperatingSystem.IsLinux())
+            {
+                // The script's name is the process's; a short sleep in a loop goes soon after the script is killed.
+                File.WriteAllText(copy, "#!/bin/sh\nwhile :; do sleep 1; done\n");
+                File.SetUnixFileMode(copy, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
+            else
+            {
+                File.Copy(windows ? Path.Combine(Environment.SystemDirectory, "PING.EXE") : "/bin/sleep", copy);
+            }
         }
 
-        var info = new ProcessStartInfo(copy, windows ? "-n 120 127.0.0.1" : "120")
+        var info = new ProcessStartInfo(copy, windows ? "-n 120 127.0.0.1" : OperatingSystem.IsLinux() ? string.Empty : "120")
         {
             CreateNoWindow = true,
             UseShellExecute = false,
