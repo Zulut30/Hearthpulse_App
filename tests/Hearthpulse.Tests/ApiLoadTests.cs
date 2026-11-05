@@ -328,6 +328,8 @@ public sealed class ApiLoadTests : IDisposable
         var priestList = HearthpulseData.ParseArchetypeDecks(FixtureServer.Json("56-decks.json"))[0].Cards;
         var deck = new DeckDefinition("Quest", 1, string.Empty, "Standard", [], priestList);
         var other = deck with { Cards = new Dictionary<int, int>(priestList) { [1] = 1 } };
+        // No answer before both decks were asked for: the first lookup could otherwise land before the second began.
+        server.Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var source = new MulliganGuideSource(Data(server));
         var changed = 0;
         var landed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -339,6 +341,7 @@ public sealed class ApiLoadTests : IDisposable
 
         Assert.Null(source.For("PRIEST", deck, "FT_STANDARD", CardDb.Empty));
         Assert.Null(source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty));
+        server.Hold.SetResult();
 
         // Only the second deck's lookup may land. The bound only ends a hang: under a full parallel run at low priority
         // the lookup's pool thread can start late (as DiscoverPicksTests found on CI).
@@ -503,6 +506,9 @@ public sealed class ApiLoadTests : IDisposable
 
         public List<string> Requests { get; } = [];
 
+        /// <summary>While set and not completed, every answer waits for it.</summary>
+        public TaskCompletionSource? Hold { get; set; }
+
         public static System.Text.Json.JsonElement Json(string name)
         {
             using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Mulligan", name)));
@@ -538,7 +544,7 @@ public sealed class ApiLoadTests : IDisposable
         /// <summary>Later routes win, so a test can override a fixture.</summary>
         public void Route(string fragment, string body) => _routes.Insert(0, (fragment, body));
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var path = request.RequestUri!.PathAndQuery.TrimStart('/');
             lock (Requests)
@@ -546,8 +552,13 @@ public sealed class ApiLoadTests : IDisposable
                 Requests.Add(path);
             }
 
+            if (Hold is { } hold)
+            {
+                await hold.Task.WaitAsync(cancellationToken);
+            }
+
             var route = _routes.FirstOrDefault(r => path.Contains(r.Fragment, StringComparison.Ordinal));
-            return Task.FromResult(route.Body is null
+            return (route.Body is null
                 ? new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent("{\"detail\": \"Not Found\"}", Encoding.UTF8, "application/json") }
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(route.Body, Encoding.UTF8, "application/json") });
         }
