@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Data;
@@ -94,13 +95,16 @@ public sealed class LongReplayTests(ITestOutputHelper output) : IDisposable
         var game = MatchTimelineTests.Game(null) with { Turns = 0 };
         game = game with { Replay = store.Save(game.Key, text) };
 
-        var before = GC.GetTotalMemory(forceFullCollection: true);
+        WarmUp(store);
+        var before = LiveBytes();
         var clock = Stopwatch.StartNew();
         var page = MatchPage.Load(game, store, CardDb.Empty, null);
         var load = clock.Elapsed;
+        var pageHeld = LiveBytes() - before;
         var model = new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(_folder, "history.db")), new AppSettings(), TestDataFolder.App));
         model.Show(page);
-        var held = GC.GetTotalMemory(forceFullCollection: true) - before;
+        var held = LiveBytes() - before;
+        output.WriteLine($"page {pageHeld / 1024 / 1024} MB, with the match view {held / 1024 / 1024} MB");
 
         // Every step one by one (the playback, the arrows), then jumps across the game (the timeline, the "Turn" list).
         var steps = new List<double>(page.FrameCount);
@@ -132,6 +136,35 @@ public sealed class LongReplayTests(ITestOutputHelper output) : IDisposable
         Assert.True(median < 5, $"step median {median} ms");
         Assert.True(steps[steps.Count * 99 / 100] < 50, $"step p99 {steps[steps.Count * 99 / 100]} ms");
         GC.KeepAlive(model);
+    }
+
+    /// <summary>
+    /// The live managed bytes after a blocking, compacting collection of every generation and the large object heap
+    /// (the long replay's strings live there), finalizers run in between: what is held, not what waits to be swept.
+    /// </summary>
+    private static long LiveBytes()
+    {
+        for (var i = 0; i < 2; i++)
+        {
+            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+            GC.WaitForPendingFinalizers();
+        }
+
+        return GC.GetTotalMemory(forceFullCollection: false);
+    }
+
+    /// <summary>
+    /// A short game opened once in a match view before measuring, so what the first match view of the process builds for
+    /// good (static tables, caches) is not counted as the long replay's.
+    /// </summary>
+    private void WarmUp(ReplayStore store)
+    {
+        var warm = MatchTimelineTests.Game(null) with { Key = "20261105110000|warm-up|GT_RANKED", Turns = 0 };
+        warm = warm with { Replay = store.Save(warm.Key, ReplayFile.Write(new ReplayHeader(), Events(200))) };
+        var model = new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(_folder, "warm.db")), new AppSettings(), TestDataFolder.App));
+        model.Show(MatchPage.Load(warm, store, CardDb.Empty, null));
+        model.GoFrame.Execute(model.FrameMax);
     }
 
     /// <summary>
@@ -200,13 +233,14 @@ public sealed class LongReplayTests(ITestOutputHelper output) : IDisposable
         var game = MatchTimelineTests.Game(null) with { Key = "20261105120000|long-bg|GT_BATTLEGROUNDS", Mode = "Battlegrounds", GameType = "GT_BATTLEGROUNDS", Placement = 1 };
         game = game with { Replay = store.Save(game.Key, text) };
 
-        var before = GC.GetTotalMemory(forceFullCollection: true);
+        WarmUp(store);
+        var before = LiveBytes();
         var clock = Stopwatch.StartNew();
         var page = MatchPage.Load(game, store, CardDb.Empty, null);
         var load = clock.Elapsed;
         var model = new MatchViewModel(new MainViewModel(new HistoryStore(Path.Combine(_folder, "bg-history.db")), new AppSettings(), TestDataFolder.App));
         model.Show(page);
-        var held = GC.GetTotalMemory(forceFullCollection: true) - before;
+        var held = LiveBytes() - before;
         Assert.True(model.ShowBattlegroundsTable);
 
         var steps = new List<double>();
