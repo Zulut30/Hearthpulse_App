@@ -399,26 +399,24 @@ public static class LogConfig
     }
 
     /// <summary>Required sections missing from the client's log.config (empty when its location is unknown).</summary>
-    public static IReadOnlyList<string> MissingSections(string? installDir)
-    {
-        if (HearthstoneInstall.LogConfigPathFor(installDir) is not { } path)
-        {
-            return Array.Empty<string>();
-        }
+    public static IReadOnlyList<string> MissingSections(string? installDir) =>
+        HearthstoneInstall.LogConfigPathFor(installDir) is { } path ? MissingSectionsIn(path) : Array.Empty<string>();
 
+    /// <summary>Required sections missing from the log.config at <paramref name="path"/> (all of them when it does not exist).</summary>
+    internal static IReadOnlyList<string> MissingSectionsIn(string path)
+    {
         var sections = Read(path);
         return Required.Where(r => !sections.TryGetValue(r.Section, out var values) || !IsSatisfied(values, r.Verbose))
             .Select(r => r.Section).ToList();
     }
 
     /// <summary>Adds or fixes required sections; other sections are preserved. Returns true if the file changed.</summary>
-    public static bool Ensure(string? installDir)
-    {
-        if (HearthstoneInstall.LogConfigPathFor(installDir) is not { } path)
-        {
-            return false;
-        }
+    public static bool Ensure(string? installDir) =>
+        HearthstoneInstall.LogConfigPathFor(installDir) is { } path && EnsureIn(path);
 
+    /// <summary>The same on the log.config at <paramref name="path"/> (created with its folder when missing).</summary>
+    internal static bool EnsureIn(string path)
+    {
         var sections = Read(path);
         var changed = false;
         foreach (var (section, verbose) in Required)
