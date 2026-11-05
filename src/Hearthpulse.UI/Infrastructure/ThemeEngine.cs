@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Hearthpulse.Core;
 
@@ -121,9 +122,13 @@ public static class ThemeEngine
     /// <summary>One theme colour as a brush, for previews.</summary>
     public static IBrush Brush(uint argb, ThemeSpec theme) => new ImmutableSolidColorBrush(ToColor(ThemePalette.Map(argb, theme)));
 
-    /// <summary>A theme's backdrop line art (<c>Motif&lt;Name&gt;</c>), or null outside the app.</summary>
+    /// <summary>
+    /// A theme's backdrop line art (<c>Motif&lt;Name&gt;</c>), or null outside the app or off its UI thread (the app's
+    /// properties belong to that thread: a test's headless app may live on a thread of its own).
+    /// </summary>
     public static Geometry? Motif(string name) =>
-        Application.Current is { } app && app.TryGetResource("Motif" + name, app.ActualThemeVariant, out var value) ? value as Geometry : null;
+        Application.Current is { } app && Dispatcher.UIThread.CheckAccess()
+            && app.TryGetResource("Motif" + name, app.ActualThemeVariant, out var value) ? value as Geometry : null;
 
     /// <summary>
     /// The theme's own dictionary: a StyleInclude of Theme.axaml (tests), or the Styles the XAML compiler puts in its place
