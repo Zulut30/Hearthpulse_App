@@ -111,6 +111,7 @@ public sealed class LibraryCard : Observable
     private bool _starred;
     private bool _hasReplay;
     private string _confirmText = string.Empty;
+    private string _confirmLabel = string.Empty;
 
     public LibraryCard(ReplayShelf shelf, string? fileName, string? historyKey, bool battlegrounds)
     {
@@ -283,7 +284,14 @@ public sealed class LibraryCard : Observable
 
     public bool Confirming => _confirmText.Length > 0;
 
-    /// <summary>What "Delete" in the confirmation does.</summary>
+    /// <summary>The confirm button's word for the question asked: "Delete", "Upload", "Remove from site".</summary>
+    public string ConfirmLabel
+    {
+        get => _confirmLabel;
+        internal set => Set(ref _confirmLabel, value);
+    }
+
+    /// <summary>What the confirm button does.</summary>
     internal Action? PendingConfirm { get; set; }
 
     /// <summary>Sets the parts read from the replay's header: chips (up to 3, then "+N") and the final board.</summary>
@@ -366,11 +374,11 @@ public sealed class ReplayLibraryViewModel : Observable
                 ClearStatus();
                 if (card.OnSite)
                 {
-                    Ask(card, Loc.T("Library.Site.ConfirmRemove"), () => _owner.RemoveLibraryCardFromSite(card, name));
+                    Ask(card, Loc.T("Library.Site.ConfirmRemove"), Loc.T("Library.Site.ConfirmRemoveYes"), () => _owner.RemoveLibraryCardFromSite(card, name));
                 }
                 else
                 {
-                    Ask(card, Loc.F("Library.Site.ConfirmUpload", ReplayUpload.KeepDays), () => _owner.UploadLibraryCard(card, name));
+                    Ask(card, Loc.F("Library.Site.ConfirmUpload", ReplayUpload.KeepDays), Loc.T("Library.Site.ConfirmUploadYes"), () => _owner.UploadLibraryCard(card, name));
                 }
             }
         });
@@ -389,7 +397,7 @@ public sealed class ReplayLibraryViewModel : Observable
             if (p is LibraryCard { FileName: { } name, CanDelete: true } card)
             {
                 ClearStatus();
-                Ask(card, Loc.T("Library.ConfirmDelete"), () => _owner.DeleteImported(card, name));
+                Ask(card, Loc.T("Library.ConfirmDelete"), Loc.T("Library.ConfirmYes"), () => _owner.DeleteImported(card, name));
             }
         });
         Confirm = new RelayCommand(p =>
@@ -851,9 +859,11 @@ public sealed class ReplayLibraryViewModel : Observable
         Raise(nameof(EmptyGlyph));
     }
 
-    internal static void Ask(LibraryCard card, string question, Action action)
+    /// <summary>Asks <paramref name="question"/> in the card; its confirm button reads <paramref name="confirm"/> and does <paramref name="action"/>.</summary>
+    internal static void Ask(LibraryCard card, string question, string confirm, Action action)
     {
         card.PendingConfirm = action;
+        card.ConfirmLabel = confirm;
         card.ConfirmText = question;
     }
 

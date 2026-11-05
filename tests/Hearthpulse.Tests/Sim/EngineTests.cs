@@ -283,6 +283,16 @@ public sealed class EngineTests
         Assert.Equal(1.0, odds.Win + odds.Tie + odds.Loss, 6);
     }
 
+    /// <summary>T6 (a mutation survivor): a spent budget stops at the minimum exactly, not one check later.</summary>
+    [Fact]
+    public void A_spent_time_budget_stops_exactly_at_the_minimum_runs()
+    {
+        var odds = CombatSimulator.Run(Side(Minion(3, 3), Minion(2, 4)), Side(Minion(3, 3), Minion(2, 4)), null,
+            new SimOptions { Runs = 4000, TimeBudget = TimeSpan.Zero, MinRuns = 300 });
+
+        Assert.Equal(300, odds.Runs);
+    }
+
     // ------------------------------------------------------------------------------------------- test-only effects
 
     [CardEffect("DR")]

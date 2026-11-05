@@ -1,0 +1,74 @@
+# Mutation tests (Stryker.NET) of the code that guards what leaves the machine or what the player is told: the replay
+# share and import sanitizers, the crash report scrubber, the Battlegrounds combat simulator and the likely deck.
+# Started by hand only (Actions → Mutation tests → Run workflow): a full run takes long, and never on the owner's PC.
+# Targets and their files: tests/mutation/*.json; what a run found: docs/mutation-testing.md.
+name: Mutation tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which target to mutate
+        type: choice
+        default: all
+        options: [all, replay-share, replay-sanitize, crash-report, likely-deck, combat-simulator]
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+jobs:
+  targets:
+    name: Targets
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.pick.outputs.list }}
+    steps:
+      - id: pick
+        shell: bash
+        env:
+          TARGET: ${{ inputs.target || 'all' }}
+        run: |
+          if [ "$TARGET" = all ]; then
+            echo 'list=["replay-share","replay-sanitize","crash-report","likely-deck","combat-simulator"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "list=[\"$TARGET\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  mutate:
+    name: Stryker ${{ matrix.target }}
+    needs: targets
+    # Stryker builds the whole solution, the WPF app included: Windows only.
+    runs-on: windows-latest
+    # The simulator target runs only its own test classes (tests/mutation/combat-simulator.json): all of them took hours.
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.targets.outputs.list) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore Stryker
+        run: dotnet tool restore --add-source https://api.nuget.org/v3/index.json
+      # Mutants that do not compile are dropped by Stryker; warnings of mutated code must not fail its build.
+      - name: Mutate
+        shell: bash
+        run: dotnet dotnet-stryker -f tests/mutation/${{ matrix.target }}.json -O "$RUNNER_TEMP/stryker"
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          report=$(find "$RUNNER_TEMP/stryker" -name '*.md' -path '*reports*' | head -1)
+          [ -n "$report" ] && cat "$report" >> "$GITHUB_STEP_SUMMARY" || echo "no report" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-${{ matrix.target }}
+          path: ${{ runner.temp }}/stryker/**/reports/
+          if-no-files-found: warn

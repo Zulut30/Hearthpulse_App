@@ -172,7 +172,7 @@
                                 <DockPanel>
                                     <!-- Yes, then No: Right from the game reaches them in the order they read (the list keeps one Tab stop) -->
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                        <Button Classes="ghost" Padding="12,4" Foreground="{StaticResource Negative}" Content="{i:Loc Library.ConfirmYes}"
+                                        <Button Classes="ghost" Padding="12,4" Foreground="{StaticResource Negative}" Content="{Binding ConfirmLabel}"
                                                 Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Confirm}" CommandParameter="{Binding}" />
                                         <Button Classes="ghost" Padding="12,4" Margin="8,0,0,0" Content="{i:Loc Library.ConfirmNo}"
                                                 Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Cancel}" CommandParameter="{Binding}" />

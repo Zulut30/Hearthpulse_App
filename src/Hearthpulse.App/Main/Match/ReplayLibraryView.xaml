@@ -237,7 +237,7 @@
                                     <!-- Yes, then No: Right from the game reaches them in the order they read (the list keeps one Tab stop) -->
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                         <Button Style="{StaticResource GhostButton}" Padding="12,4" Foreground="{StaticResource Negative}" IsTabStop="False"
-                                                Content="{i:Loc Library.ConfirmYes}"
+                                                Content="{Binding ConfirmLabel}"
                                                 Command="{Binding DataContext.Confirm, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                                         <Button Style="{StaticResource GhostButton}" Padding="12,4" Margin="8,0,0,0" IsTabStop="False" Content="{i:Loc Library.ConfirmNo}"
                                                 Command="{Binding DataContext.Cancel, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />

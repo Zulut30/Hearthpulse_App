@@ -316,7 +316,7 @@ public sealed partial class MainViewModel
         }
         else if (LibraryFiles.IsLastCopy(name))
         {
-            ReplayLibraryViewModel.Ask(card, Loc.T("Library.Star.ConfirmLast"), () => Unstar(card, name));
+            ReplayLibraryViewModel.Ask(card, Loc.T("Library.Star.ConfirmLast"), Loc.T("Library.ConfirmYes"), () => Unstar(card, name));
         }
         else
         {

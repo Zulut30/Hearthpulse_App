@@ -114,6 +114,7 @@ public sealed class ReplayUploadTests : IDisposable
     [InlineData(413, "TOO_LARGE")]
     [InlineData(429, "RATE_LIMITED")]
     [InlineData(400, "REFUSED")]
+    [InlineData(404, "NOT_AVAILABLE")]
     [InlineData(500, "SERVER_ERROR")]
     [InlineData(0, "OFFLINE")]
     public async Task Upload_answers_map_to_the_card_s_error_texts(int status, string? error)
@@ -217,6 +218,69 @@ public sealed class ReplayUploadTests : IDisposable
         }
 
         Assert.True(card.OnSite);
+    }
+
+    /// <summary>
+    /// The owner's bug: the site has no replay route yet (404). The card says that uploads are not on yet, not that the
+    /// site failed, and the log keeps the answer.
+    /// </summary>
+    [Fact]
+    public async Task An_upload_the_site_does_not_take_yet_says_so_and_is_logged()
+    {
+        var site = new FakeReplaySite { UploadStatus = 404 };
+        var (vm, uploads, name) = await LibraryAsync(site);
+        var card = new LibraryCard(ReplayShelf.Recent, name, null, battlegrounds: false) { HasReplay = true };
+
+        vm.UploadLibraryCard(card, name);
+        await vm.LibraryIdleAsync();
+
+        Assert.False(card.OnSite);
+        Assert.Null(uploads.Get(ReplayUploads.KeyOf(ReplayShelf.Recent, name)));
+        Assert.Equal(Loc.T("Library.Site.Error.NOT_AVAILABLE"), vm.Library.Status);
+        Assert.NotEqual(Loc.T("Library.Site.Error.SERVER_ERROR"), vm.Library.Status);
+        Assert.Contains("replay upload answered 404", TestDataFolder.ReadLog(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The owner's bug: the question in the card is answered with the action it asks about - "Upload", "Remove from
+    /// site" or "Delete" - not always "Delete".
+    /// </summary>
+    [Fact]
+    public async Task The_confirm_button_names_the_action_it_confirms()
+    {
+        var site = new FakeReplaySite();
+        var (vm, _, name) = await LibraryAsync(site);
+        var card = new LibraryCard(ReplayShelf.Recent, name, null, battlegrounds: false) { HasReplay = true };
+
+        vm.Library.SiteAction.Execute(card);
+        Assert.Equal(Loc.F("Library.Site.ConfirmUpload", ReplayUpload.KeepDays), card.ConfirmText);
+        Assert.Equal(Loc.T("Library.Site.ConfirmUploadYes"), card.ConfirmLabel);
+        vm.Library.Confirm.Execute(card);
+        await vm.LibraryIdleAsync();
+        Assert.True(card.OnSite);
+
+        vm.Library.SiteAction.Execute(card);
+        Assert.Equal(Loc.T("Library.Site.ConfirmRemoveYes"), card.ConfirmLabel);
+        vm.Library.Cancel.Execute(card);
+
+        var imported = new LibraryCard(ReplayShelf.Imported, "game.hpr", null, battlegrounds: false) { HasReplay = true };
+        vm.Library.Delete.Execute(imported);
+        Assert.Equal(Loc.T("Library.ConfirmYes"), imported.ConfirmLabel);
+        Assert.NotEqual(Loc.T("Library.ConfirmYes"), Loc.T("Library.Site.ConfirmUploadYes"));
+    }
+
+    /// <summary>All four places with the question (the library card and the match header, in both UIs) show its label.</summary>
+    [Theory]
+    [InlineData("src/Hearthpulse.App/Main/Match/ReplayLibraryView.xaml", "{Binding ConfirmLabel}")]
+    [InlineData("src/Hearthpulse.App/Main/Match/MatchView.xaml", "{Binding HeaderCard.ConfirmLabel}")]
+    [InlineData("src/Hearthpulse.UI/Main/Match/ReplayLibraryView.axaml", "{Binding ConfirmLabel}")]
+    [InlineData("src/Hearthpulse.UI/Main/Match/MatchView.axaml", "{Binding HeaderCard.ConfirmLabel}")]
+    public void Every_view_of_the_question_binds_its_confirm_label(string view, string binding)
+    {
+        var markup = File.ReadAllText(Path.Combine(RepoFiles.Root, view));
+
+        Assert.Contains($"Content=\"{binding}\"", markup, StringComparison.Ordinal);
+        Assert.DoesNotContain("Library.ConfirmYes", markup, StringComparison.Ordinal);
     }
 
     [Fact]

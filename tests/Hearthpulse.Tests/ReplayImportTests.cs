@@ -285,6 +285,69 @@ public sealed class ReplayImportTests : IDisposable
         Assert.Equal(ReplayImportError.Damaged, Refusal(text));
     }
 
+    /// <summary>
+    /// T6 (mutation survivors): a bad card id on a board, in the lobby or in the final board, or a round result outside
+    /// Win/Loss/Tie, refuses the whole file, wherever it sits.
+    /// </summary>
+    public static TheoryData<string> BadBattlegrounds => new() { "board", "opponent board", "lobby", "result", "final board" };
+
+    [Theory]
+    [MemberData(nameof(BadBattlegrounds))]
+    public void A_bad_minion_hero_or_result_in_battlegrounds_data_refuses_the_file(string where)
+    {
+        ReplayMinion[] bad = [new("BG_GOOD_1", 2, 3, false), new("../x", 1, 1, false)];
+        var round = new BattlegroundsRound
+        {
+            Turn = 1,
+            Board = where == "board" ? bad : [],
+            OpponentBoard = where == "opponent board" ? bad : [],
+            Result = where == "result" ? "Pwned" : "Win",
+        };
+        var data = new BattlegroundsReplayData
+        {
+            Rounds = [round],
+            Lobby = [new("BG_HERO_1", 1, true), new(where == "lobby" ? "C:\\x" : "BG_HERO_2", 2, false)],
+        };
+        var summary = new ReplaySummary
+        {
+            Mode = "Battlegrounds",
+            FinalBoard = where == "final board" ? [new("../x", 1, 1, false, [])] : [new("BG_GOOD_1", 1, 1, false, [])],
+        };
+
+        Assert.Equal(ReplayImportError.Damaged, Refusal(ReplayFile.WriteBattlegrounds(new ReplayHeader { Summary = summary }, data, ["T 1 30"])));
+    }
+
+    /// <summary>The control of the theory above: the same pieces, all good, pass.</summary>
+    [Fact]
+    public void Good_minions_heroes_and_results_in_battlegrounds_data_pass()
+    {
+        ReplayMinion[] good = [new("BG_GOOD_1", 2, 3, false)];
+        var data = new BattlegroundsReplayData
+        {
+            Rounds = [new BattlegroundsRound { Turn = 1, Board = good, OpponentBoard = good, Result = "Win" }],
+            Lobby = [new("BG_HERO_1", 1, true), new("BG_HERO_2", 2, false)],
+        };
+        var summary = new ReplaySummary { Mode = "Battlegrounds", FinalBoard = [new("BG_GOOD_1", 1, 1, false, [])] };
+
+        var clean = ReplayFile.Read(Clean(ReplayFile.WriteBattlegrounds(new ReplayHeader { Summary = summary }, data, ["T 1 30"])))!.Value;
+
+        Assert.Equal("BG_GOOD_1", Assert.Single(clean.Header.Summary!.FinalBoard).CardId);
+    }
+
+    /// <summary>T6: summary words that are not plain words, and a result outside the known ones, are not kept.</summary>
+    [Fact]
+    public void Summary_words_that_are_not_words_are_dropped()
+    {
+        var text = ReplayFile.WriteBattlegrounds(new ReplayHeader
+        {
+            Summary = new ReplaySummary { Mode = "Battlegrounds", GameType = "GT x; see evil.example", PlayerClass = "<b>MAGE</b>", Result = "Pwned" },
+        }, new BattlegroundsReplayData(), ["T 1 30"]);
+
+        var summary = ReplayFile.Read(Clean(text))!.Value.Header.Summary!;
+
+        Assert.Equal((string.Empty, string.Empty, "Unknown"), (summary.GameType, summary.PlayerClass, summary.Result));
+    }
+
     [Fact]
     public void A_bad_card_id_in_the_rounds_refuses_the_file()
     {
