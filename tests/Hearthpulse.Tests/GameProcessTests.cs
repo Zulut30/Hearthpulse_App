@@ -44,4 +44,62 @@ public sealed class GameProcessTests
             GameProcess.Forget();
         }
     }
+
+    /// <summary>
+    /// T3: the held game is the one asked about until it exits; then it is looked for again at once, not after the gap.
+    /// A copy of ping (sleep elsewhere) under a name of its own stands in for the game, so no other process matches.
+    /// </summary>
+    [Fact]
+    public void The_held_game_answers_while_it_runs_and_its_exit_is_seen_at_once()
+    {
+        var names = GameProcess.Names;
+        var probe = GameProcess.MayBeRunning;
+        using var game = StartStandIn();
+        try
+        {
+            GameProcess.Forget();
+            GameProcess.MayBeRunning = () => true;
+            GameProcess.Names = [game.ProcessName];
+
+            Assert.True(GameProcess.IsRunning());
+            Assert.Equal(game.StartTime, GameProcess.StartTime());
+            // A console process has no main window, and no other process of that name has one.
+            Assert.Equal(IntPtr.Zero, GameProcess.MainWindow());
+
+            // From here no Unity window "appears": only the held process's own exit can make the lookup look again.
+            GameProcess.MayBeRunning = () => false;
+            game.Kill();
+            game.WaitForExit();
+            Assert.False(GameProcess.IsRunning());
+            Assert.Null(GameProcess.StartTime());
+            Assert.Equal(IntPtr.Zero, GameProcess.MainWindow());
+        }
+        finally
+        {
+            if (!game.HasExited)
+            {
+                game.Kill();
+            }
+
+            GameProcess.Names = names;
+            GameProcess.MayBeRunning = probe;
+            GameProcess.Forget();
+        }
+    }
+
+    private static Process StartStandIn()
+    {
+        var windows = OperatingSystem.IsWindows();
+        var source = windows ? Path.Combine(Environment.SystemDirectory, "PING.EXE") : "/bin/sleep";
+        var copy = TestDataFolder.Scratch("hpgame") + (windows ? ".exe" : string.Empty);
+        Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
+        File.Copy(source, copy);
+        var info = new ProcessStartInfo(copy, windows ? "-n 120 127.0.0.1" : "120")
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+        };
+        return Process.Start(info)!;
+    }
 }
