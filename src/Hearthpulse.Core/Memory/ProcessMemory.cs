@@ -145,10 +145,6 @@ public sealed class ProcessMemory : IDisposable
 
     public bool ReadBool(ulong address) => ReadByte(address) != 0;
 
-    public float ReadSingle(ulong address) => BitConverter.Int32BitsToSingle(ReadInt32(address));
-
-    public double ReadDouble(ulong address) => BitConverter.Int64BitsToDouble(ReadInt64(address));
-
     /// <summary>Reads a NUL-terminated ASCII/UTF-8 string (Mono metadata names).</summary>
     public string? ReadCString(ulong address, int maxLength = 512)
     {

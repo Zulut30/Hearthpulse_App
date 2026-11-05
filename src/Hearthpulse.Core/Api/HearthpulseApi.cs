@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 
 namespace Hearthpulse.Core.Api;
@@ -56,24 +55,13 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
         : Environment.GetEnvironmentVariable("HEARTHPULSE_API") is { Length: > 0 } custom ? custom
         : DefaultBaseUrl));
 
-    public Task<ApiResult> GetAsync(string path, string? bearer = null, CancellationToken cancellationToken = default) =>
-        SendAsync(HttpMethod.Get, path, null, bearer, cancellationToken);
-
-    public Task<ApiResult> PostAsync(string path, object body, string? bearer = null, CancellationToken cancellationToken = default) =>
-        SendAsync(HttpMethod.Post, path, body, bearer, cancellationToken);
-
-    private async Task<ApiResult> SendAsync(HttpMethod method, string path, object? body, string? bearer, CancellationToken cancellationToken)
+    public async Task<ApiResult> GetAsync(string path, string? bearer = null, CancellationToken cancellationToken = default)
     {
-        using var request = new HttpRequestMessage(method, new Uri(BaseUri, path));
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(BaseUri, path));
         request.Headers.Accept.ParseAdd("application/json");
         if (bearer is not null)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
-        }
-
-        if (body is not null)
-        {
-            request.Content = new StringContent(JsonSerializer.Serialize(body, Json.Options), Encoding.UTF8, "application/json");
         }
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
