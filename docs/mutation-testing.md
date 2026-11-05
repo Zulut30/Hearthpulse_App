@@ -1,6 +1,7 @@
 # Mutation testing
 
-Stryker.NET (`dotnet-stryker` 5.0.0, a local tool in `dotnet-tools.json`) changes one operator, condition, string or
+Stryker.NET (`dotnet-stryker` 5.0.0, a local tool in `dotnet-tools.json`; Apache-2.0 per the package's LICENSE, a dev
+tool that is not part of any build, listed in `THIRD-PARTY-NOTICES.txt`) changes one operator, condition, string or
 call at a time in the code below and runs the tests that cover it: a change no test notices (a **survivor**) marks a
 behaviour nothing checks. It runs by hand only, in CI: Actions → Mutation tests → Run workflow
 (`.github/workflows/mutation.yml`, Windows, since Stryker builds the whole solution with the WPF app). A full run takes
@@ -44,7 +45,7 @@ of writing and cleaning up (`IOException`), `replay-sanitize`'s the summary rebu
 | CrashReport: the OS user name matched case-sensitively | A user name in another case reaches the report | `CrashReportTests.The_os_user_name_goes_only_as_a_whole_word_and_keeps_the_frame` |
 | CrashReport: the marks `<email>`, `<ip>`, `<number>`, the length limit, five exceptions, empty frames | A report that is unreadable or longer than it should be | `CrashReportTests.Emails_addresses_and_long_numbers_leave_their_own_marks`, `A_message_is_cut_only_past_its_limit`, `A_report_keeps_five_exceptions_and_no_empty_frames` |
 | ReplayShare: `All` → `Any` in the mode check | A mode like `../Duos` in the shared file's name | `ReplayShareTests.A_mode_that_is_not_one_word_of_letters_names_no_file` |
-| ReplayImport: a bad card id on a board, in the lobby or the final board; a round result outside the four words | A foreign file brings paths or text into the library | `ReplayImportTests.A_bad_minion_hero_or_result_in_battlegrounds_data_refuses_the_file` |
+| ReplayImport: a bad card id on a board, in the lobby or the final board; a round result outside Win/Loss/Tie | A foreign file brings paths or text into the library | `ReplayImportTests.A_bad_minion_hero_or_result_in_battlegrounds_data_refuses_the_file` |
 | ReplayImport: `GameType`, `PlayerClass`, `Result` kept unchecked | The same, through the summary | `ReplayImportTests.Summary_words_that_are_not_words_are_dropped` |
 | LikelyDeck: names and costs of rows, unknown cards, copies of a card and its reprint summed, zero plays, the core fallback | A wrong list shown to the player | `OpponentDeckTests.Rows_name_and_cost_the_cards_and_played_copies_add_up_across_reprints`, `A_list_of_unknown_cards_falls_back_to_the_core_and_without_one_there_is_none` |
 

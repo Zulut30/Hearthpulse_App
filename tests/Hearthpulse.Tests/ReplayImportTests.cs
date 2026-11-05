@@ -287,7 +287,7 @@ public sealed class ReplayImportTests : IDisposable
 
     /// <summary>
     /// T6 (mutation survivors): a bad card id on a board, in the lobby or in the final board, or a round result outside
-    /// the four words, refuses the whole file, wherever it sits.
+    /// Win/Loss/Tie, refuses the whole file, wherever it sits.
     /// </summary>
     public static TheoryData<string> BadBattlegrounds => new() { "board", "opponent board", "lobby", "result", "final board" };
 
@@ -315,10 +315,23 @@ public sealed class ReplayImportTests : IDisposable
         };
 
         Assert.Equal(ReplayImportError.Damaged, Refusal(ReplayFile.WriteBattlegrounds(new ReplayHeader { Summary = summary }, data, ["T 1 30"])));
-        // The same file without the bad piece passes.
-        Assert.NotNull(ReplayImport.Sanitize(ReplayFile.WriteBattlegrounds(new ReplayHeader { Summary = summary with { FinalBoard = [] } },
-            new BattlegroundsReplayData { Rounds = [new BattlegroundsRound { Turn = 1, Result = "Win" }], Lobby = [new("BG_HERO_1", 1, true)] }, ["T 1 30"]),
-            CardDb.Empty, out _));
+    }
+
+    /// <summary>The control of the theory above: the same pieces, all good, pass.</summary>
+    [Fact]
+    public void Good_minions_heroes_and_results_in_battlegrounds_data_pass()
+    {
+        ReplayMinion[] good = [new("BG_GOOD_1", 2, 3, false)];
+        var data = new BattlegroundsReplayData
+        {
+            Rounds = [new BattlegroundsRound { Turn = 1, Board = good, OpponentBoard = good, Result = "Win" }],
+            Lobby = [new("BG_HERO_1", 1, true), new("BG_HERO_2", 2, false)],
+        };
+        var summary = new ReplaySummary { Mode = "Battlegrounds", FinalBoard = [new("BG_GOOD_1", 1, 1, false, [])] };
+
+        var clean = ReplayFile.Read(Clean(ReplayFile.WriteBattlegrounds(new ReplayHeader { Summary = summary }, data, ["T 1 30"])))!.Value;
+
+        Assert.Equal("BG_GOOD_1", Assert.Single(clean.Header.Summary!.FinalBoard).CardId);
     }
 
     /// <summary>T6: summary words that are not plain words, and a result outside the known ones, are not kept.</summary>

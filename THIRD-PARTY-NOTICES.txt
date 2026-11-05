@@ -90,6 +90,11 @@ CsCheck (property-based tests)
   Licence: Apache-2.0
   https://github.com/AnthonyLloyd/CsCheck
 
+Stryker.NET (dotnet-stryker, mutation tests; a dev tool run by hand in CI, not part of any build)
+  Richard Werkman, Rouke Broersma and contributors
+  Licence: Apache-2.0 (LICENSE in the dotnet-stryker 5.0.0 package)
+  https://github.com/stryker-mutator/stryker-net
+
 Card data and card images are loaded at run time from HearthstoneJSON (https://hearthstonejson.com).
 Card names, texts and art are (c) Blizzard Entertainment, Inc.
 The mana gem picture (Assets/mana-gem.png) is cut from a HearthstoneJSON card render and is (c) Blizzard
