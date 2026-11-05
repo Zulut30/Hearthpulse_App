@@ -30,7 +30,6 @@ public sealed partial class MatchPage
         var f = replay.Frames[Math.Clamp(frame, 0, replay.Frames.Count - 1)];
         var combat = f.Phase == MatchPhase.Combat;
         var opponent = Of(f, 'O', "PLAY", "HERO").LastOrDefault();
-        var partner = combat ? Of(f, 'P', "PLAY", "HERO").LastOrDefault() : null;
         var board = Of(f, 'L', "PLAY", "MINION").Select(c => CardView(f, c)).ToList();
         if (f is { Kind: MatchStepKind.Sell, Actor: { } sold } && f.Cards.All(c => c.Id != sold.Id))
         {
@@ -45,7 +44,6 @@ public sealed partial class MatchPage
             Opponent = combat && opponent is not null ? HeroView(f, opponent, f.Leaderboard.FirstOrDefault(l => l.HeroCardId == opponent.CardId)?.Tier ?? 0) : null,
             Board = board,
             OpponentBoard = combat ? Of(f, 'O', "PLAY", "MINION").Select(c => CardView(f, c)).ToList() : [],
-            Partner = partner is not null ? HeroView(f, partner, f.Leaderboard.FirstOrDefault(l => l.HeroCardId == partner.CardId)?.Tier ?? 0) : null,
             PartnerBoard = combat ? Of(f, 'P', "PLAY", "MINION").Select(c => CardView(f, c)).ToList() : [],
             Shop = shop,
             Hand = Of(f, 'L', "HAND").Select(c => CardView(f, c)).ToList(),

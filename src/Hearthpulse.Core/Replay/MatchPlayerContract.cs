@@ -143,14 +143,12 @@ public sealed record MatchBgStepView(int Index, int Count, int Turn, MatchPhase 
     /// <summary>The combat opponent's board as fought (combat steps only).</summary>
     public IReadOnlyList<MatchBgCardView> OpponentBoard { get; init; } = [];
 
-    /// <summary>Duos: our partner's hero while their table is on the screen in combat (version 5 files), else null.</summary>
-    public MatchBgHeroView? Partner { get; init; }
 
     /// <summary>Duos: our partner's board as it fought (combat steps only; empty while ours is on the table).</summary>
     public IReadOnlyList<MatchBgCardView> PartnerBoard { get; init; } = [];
 
     /// <summary>Our partner's table is the one fighting for our team now: the player shows it in place of ours.</summary>
-    public bool PartnerFighting => PartnerBoard.Count > 0 || Partner is not null;
+    public bool PartnerFighting => PartnerBoard.Count > 0;
 
     /// <summary>Bob's offer (recruit steps only).</summary>
     public IReadOnlyList<MatchBgCardView> Shop { get; init; } = [];

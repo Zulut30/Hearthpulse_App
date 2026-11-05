@@ -119,7 +119,7 @@ public sealed partial class BattlegroundsReplayRecorder
     private int _localHeroAtStart;
     private Entity? _opponentHero;
 
-    /// <summary>Duos: our hero and our team when the combat started (<see cref="PartnerOnTable"/>).</summary>
+    /// <summary>Duos: our hero and our team as noted outside combat (<see cref="NoteOwnHero"/>, <see cref="PartnerOnTable"/>).</summary>
     private int _ownHeroId;
 
     private int _ownTeam;
@@ -307,11 +307,12 @@ public sealed partial class BattlegroundsReplayRecorder
             TopLevel(game);
         }
 
-        if (_combat && blockType == "ATTACK" && source is { CardType: "HERO" } hero && _shown.TryGetValue(hero.Id, out var attacker))
+        // A hero attack while our partner's table fights is not ours to count (their hero, their damage).
+        if (_combat && blockType == "ATTACK" && source is { CardType: "HERO" } hero && _shown.TryGetValue(hero.Id, out var attacker)
+            && !PartnerOnTable(game))
         {
-            // Our Duos partner's hero attacking wins the fight for our team too.
-            var ours = attacker.Side is 'L' or 'P';
-            var defender = ours ? _opponentHero : game.LocalHero;
+            var ours = attacker.Side == 'L';
+            var defender = ours ? _opponentHero : OwnHero(game);
             _heroAttack = new HeroAttack(ours, defender, Durability(defender), depth);
         }
 

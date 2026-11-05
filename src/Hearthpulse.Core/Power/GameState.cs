@@ -98,9 +98,11 @@ public sealed class GameState
             }
 
             // Should the Duos partner be a player of the game: the opponent is the first player not on our team. When every
-            // other player shares our team (Bob's dummy player given our team id), the first player but us, as before.
+            // other player shares our team (Bob's dummy player given our team id): Bob's dummy, else the first player but
+            // us and our partner, else the first but us.
             var team = TeamOf(LocalPlayerId);
             PlayerSlot? first = null;
+            PlayerSlot? dummy = null;
             foreach (var player in Players.Values)
             {
                 if (player.PlayerId == LocalPlayerId)
@@ -110,6 +112,25 @@ public sealed class GameState
 
                 first ??= player;
                 if (team == 0 || TeamOf(player.PlayerId) != team)
+                {
+                    return player;
+                }
+
+                if (dummy is null && (Entities.GetValueOrDefault(player.EntityId)?.Has(GameTag.BaconDummyPlayer) ?? false))
+                {
+                    dummy = player;
+                }
+            }
+
+            if (dummy is not null)
+            {
+                return dummy;
+            }
+
+            var partner = PartnerPlayerId;
+            foreach (var player in Players.Values)
+            {
+                if (player.PlayerId != LocalPlayerId && player.PlayerId != partner)
                 {
                     return player;
                 }

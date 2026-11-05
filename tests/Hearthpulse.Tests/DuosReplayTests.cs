@@ -75,6 +75,107 @@ public sealed class DuosReplayTests
         Assert.All(steps.Where(s => s.PartnerBoard.Count == 0), s => Assert.False(s.PartnerFighting));
     }
 
+    /// <summary>
+    /// The partner fights and Bob's hero hits the partner's hero (our player's hero entity then): the fight ends, and only
+    /// afterwards our hero entity is ours again.
+    /// </summary>
+    private static ReplayRecorder HdtPartnerHit() => Run([.. HdtSetup(),
+        .. Entity(121, "TB_BaconShop_HERO_08", Bob, "PLAY", "HERO", "PLAYER_ID=5", "HEALTH=30", "BACON_DUO_TEAM_ID=1", "PLAYER_LEADERBOARD_PLACE=3"),
+        .. CombatSetup(),
+        Player("HERO_ENTITY", 121),
+        .. Entity(120, "BG25_011", Me, "PLAY", "MINION", "ATK=4", "HEALTH=4", "ZONE_POSITION=1"),
+        Start("TRIGGER", 46), Start("ATTACK", 110), Tag(121, "DAMAGE", 5), End, End,
+        Tag(111, "ZONE", "REMOVEDFROMGAME"), Tag(112, "ZONE", "REMOVEDFROMGAME"), Tag(110, "ZONE", "REMOVEDFROMGAME"),
+        Game("BOARD_VISUAL_STATE", 1),
+        Tag(30, "ZONE", "PLAY"),
+        Game("TURN", 3),
+        Game("STEP", "MAIN_READY"),
+        Game("BACON_IN_COMBAT_PHASE", 0),
+        Player("HERO_ENTITY", 10),
+        ]);
+
+    [Fact]
+    public void A_hit_on_the_partners_hero_is_not_our_loss_and_their_row_is_not_ours()
+    {
+        // Review M2: our hero is the one noted in the tavern, not our player's hero entity during the partner's fight.
+        var events = HdtPartnerHit().Events;
+        Assert.Contains("f TIE 0 0", events);
+        Assert.DoesNotContain(events, e => e.StartsWith("L ", StringComparison.Ordinal) && e.Split(' ') is [_, _, "L", "TB_BaconShop_HERO_08", ..]);
+        Assert.Contains(events, e => e.StartsWith("L ", StringComparison.Ordinal) && e.Split(' ') is [_, _, "L", "TB_BaconShop_HERO_50", ..]);
+    }
+
+    [Fact]
+    public void A_partner_minion_stays_theirs_after_our_hero_entity_turns_back()
+    {
+        // Review m5: our hero entity is ours again before the fight ends; their minion moves: still P, never on our board.
+        var events = Run([.. HdtSetup(),
+            .. Entity(121, "TB_BaconShop_HERO_08", Bob, "PLAY", "HERO", "PLAYER_ID=5", "HEALTH=30", "BACON_DUO_TEAM_ID=1"),
+            .. CombatSetup(),
+            Player("HERO_ENTITY", 121),
+            .. Entity(120, "BG25_011", Me, "PLAY", "MINION", "ATK=4", "HEALTH=4", "ZONE_POSITION=1"),
+            Player("HERO_ENTITY", 10),
+            Tag(120, "ZONE_POSITION", 2), Tag(120, "ATK", 6),
+            .. Fight(win: true),
+            ]).Events;
+        var minion = IdOf(events, "BG25_011");
+        Assert.DoesNotContain(events, e => e.StartsWith($"E {minion} L ", StringComparison.Ordinal));
+        Assert.Contains(events, e => e == $"V {minion} ATK 6" || e.StartsWith($"E {minion} P PLAY 2", StringComparison.Ordinal) || e == $"Z {minion} 2");
+    }
+
+    [Theory]
+    [InlineData("BACON_DUO_TEAM_ID=2")]
+    [InlineData("HEALTH=30")]
+    public void A_hero_of_another_team_or_without_one_is_no_partner(string tag)
+    {
+        // Review M1 negatives: our hero entity points at a hero not of our team (or with no team tag): their minions are not P.
+        var events = Run([.. HdtSetup(),
+            .. Entity(121, "TB_BaconShop_HERO_08", Bob, "PLAY", "HERO", "PLAYER_ID=5", tag),
+            .. CombatSetup(),
+            Player("HERO_ENTITY", 121),
+            .. Entity(120, "BG25_011", Me, "PLAY", "MINION", "ATK=4", "HEALTH=4", "ZONE_POSITION=2"),
+            Player("HERO_ENTITY", 10),
+            .. Fight(win: true),
+            ]).Events;
+        Assert.DoesNotContain(events, e => e.Contains(" P PLAY ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_partners_hero_outside_a_fight_turns_nothing_into_theirs()
+    {
+        // Review M1 negative: in the tavern our hero entity pointing at the partner's hero is no partner's fight.
+        var events = Run([.. HdtSetup(),
+            .. Entity(121, "TB_BaconShop_HERO_08", Bob, "PLAY", "HERO", "PLAYER_ID=5", "BACON_DUO_TEAM_ID=1"),
+            Player("HERO_ENTITY", 121),
+            .. Entity(120, "BG25_011", Me, "PLAY", "MINION", "ATK=4", "HEALTH=4", "ZONE_POSITION=2"),
+            Player("HERO_ENTITY", 10),
+            .. CombatSetup(),
+            .. Fight(win: true),
+            ]).Events;
+        Assert.DoesNotContain(events, e => e.Contains(" P PLAY ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_share_copy_of_an_hdt_game_goes_as_version_4_without_the_partner()
+    {
+        var text = HdtGame().Battlegrounds.Text(new ReplayHeader { Summary = new ReplaySummary { Mode = "Duos" } }, new BattlegroundsReplayData());
+        var shared = ReplayUpload.Prepare(text, CardDb.Empty);
+        Assert.NotNull(shared);
+        Assert.StartsWith("HPR4\n", shared, StringComparison.Ordinal);
+        Assert.DoesNotContain(" P PLAY ", shared, StringComparison.Ordinal);
+        Assert.Equal(ReplayImportError.None, ReplayImport.Sanitize(shared!, CardDb.Empty, out var error) is null ? ReplayImportError.Damaged : error);
+    }
+
+    [Fact]
+    public void A_partner_player_and_bobs_dummy_on_our_team_keep_bob_the_opponent()
+    {
+        // Review m7: every other player shares our team: Bob's dummy is the opponent, the partner player the partner.
+        var lines = DuosSetup().ToList();
+        lines.Insert(lines.IndexOf("DebugPrintPower() -         tag=BACON_DUMMY_PLAYER value=1") + 1, "DebugPrintPower() -         tag=BACON_DUO_TEAM_ID value=1");
+        var game = Play([.. lines, .. CombatSetup()]).Game;
+        Assert.Equal(Bob, game.OpponentPlayerId);
+        Assert.Equal(Partner, game.PartnerPlayerId);
+    }
+
     [Fact]
     public void Two_players_without_a_team_and_bobs_dummy_on_our_team_fall_back_to_the_first_player_but_us()
     {

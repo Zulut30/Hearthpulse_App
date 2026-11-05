@@ -107,7 +107,14 @@ public sealed partial class BattlegroundsReplayRecorder
             // team, our player's HERO_ENTITY points at the partner's hero and the partner's minions come in under our
             // controller. A minion first shown then is the partner's (P); one of ours already shown stays ours; nothing
             // else of theirs (hero, hero power, trinkets) is written.
-            if (PartnerOnTable(game) && !(_shown.TryGetValue(entity.Id, out var seen) && seen.Side == 'L'))
+            var seen = _shown.TryGetValue(entity.Id, out var shownNow) ? shownNow.Side : '\0';
+            // A minion shown as the partner's stays theirs until the fight ends, whatever our hero entity does meanwhile.
+            if (_combat && seen == 'P')
+            {
+                return zone == "PLAY" && type == "MINION" ? 'P' : '\0';
+            }
+
+            if (PartnerOnTable(game) && seen != 'L')
             {
                 return zone == "PLAY" && type == "MINION" ? 'P' : '\0';
             }
@@ -146,6 +153,25 @@ public sealed partial class BattlegroundsReplayRecorder
     private bool PartnerOnTable(GameState game) =>
         _combat && _ownHeroId != 0 && _ownTeam > 0
         && game.LocalHero is { } hero && hero.Id != _ownHeroId && hero.GetInt(GameTag.BaconDuoTeamId) == _ownTeam;
+
+    /// <summary>
+    /// Our own hero: the one noted outside combat (<see cref="NoteOwnHero"/>), so a partner's fight, where our player's
+    /// hero entity is theirs, never makes their hero ours; before any note, the player's hero.
+    /// </summary>
+    private Entity? OwnHero(GameState game) =>
+        _ownHeroId != 0 && game.Entities.GetValueOrDefault(_ownHeroId) is { } own ? own : game.LocalHero;
+
+    /// <summary>Outside combat only: our player's hero and Duos team now (the tavern is always ours).</summary>
+    private void NoteOwnHero(GameState game)
+    {
+        if (_combat || game.LocalHero is not { } hero)
+        {
+            return;
+        }
+
+        _ownHeroId = hero.Id;
+        _ownTeam = game.TeamOf(game.LocalPlayerId);
+    }
 
     private void Remove(Shown shown, int entityId, bool died)
     {
@@ -204,7 +230,7 @@ public sealed partial class BattlegroundsReplayRecorder
     /// <summary>The rows that differ from the ones written.</summary>
     private List<(int Slot, string Line)> LeaderLines(GameState game)
     {
-        var local = game.LocalHero;
+        var local = OwnHero(game);
         var rows = new SortedDictionary<int, Entity>();
         foreach (var id in _heroes)
         {
