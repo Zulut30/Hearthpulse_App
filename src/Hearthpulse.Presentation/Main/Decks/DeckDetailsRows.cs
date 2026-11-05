@@ -85,7 +85,6 @@ public sealed record DeckCardStatRow(
     string Name,
     int Cost,
     string Copies,
-    bool InMain,
     bool FewMulligan,
     bool FewDrawn,
     string Offered,

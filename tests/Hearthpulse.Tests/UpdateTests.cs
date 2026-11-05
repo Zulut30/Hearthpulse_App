@@ -193,7 +193,7 @@ public sealed class UpdateTests
     {
         var payload = System.Text.Encoding.UTF8.GetBytes("the published setup");
         var sha = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(payload));
-        var info = new UpdateInfo("99.0.2", "hp-test-recheck.bin", "https://example.invalid/r.bin", "https://example.invalid/page", sha);
+        var info = new UpdateInfo("99.0.2", "hp-test-recheck.bin", "https://example.invalid/r.bin", sha);
         using (var http = new HttpClient(new Counting(payload)))
         {
             Assert.NotNull(await UpdateService.DownloadAsync(http, info));
@@ -208,7 +208,7 @@ public sealed class UpdateTests
     [Fact]
     public async Task An_unverified_copy_left_by_an_older_build_is_removed()
     {
-        var info = new UpdateInfo("99.0.3", "hp-test-unverified.bin", "https://example.invalid/u.bin", "https://example.invalid/page");
+        var info = new UpdateInfo("99.0.3", "hp-test-unverified.bin", "https://example.invalid/u.bin");
         Directory.CreateDirectory(Path.GetDirectoryName(UpdateService.StagedPath(info))!);
         File.WriteAllText(UpdateService.StagedPath(info), "downloaded without a check");
         using var http = new HttpClient(new Counting([1]));
@@ -246,7 +246,7 @@ public sealed class UpdateTests
     {
         var payload = System.Text.Encoding.UTF8.GetBytes("the published setup");
         var sha = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(payload));
-        var good = new UpdateInfo("99.0.1", "hp-test-good.bin", "https://example.invalid/good.bin", "https://example.invalid/page", sha);
+        var good = new UpdateInfo("99.0.1", "hp-test-good.bin", "https://example.invalid/good.bin", sha);
         using (var http = new HttpClient(new Counting(payload)))
         {
             var staged = await UpdateService.DownloadAsync(http, good);
@@ -276,7 +276,7 @@ public sealed class UpdateTests
     [Fact]
     public void The_staged_file_waits_in_the_data_folder()
     {
-        var info = new UpdateInfo("99.0.0", "Hearthpulse-Setup-99.0.0-win-x64.exe", "https://example.invalid/setup.exe", "https://example.invalid/page");
+        var info = new UpdateInfo("99.0.0", "Hearthpulse-Setup-99.0.0-win-x64.exe", "https://example.invalid/setup.exe");
         var staged = UpdateService.StagedPath(info);
         Assert.StartsWith(AppPaths.Root, staged);
         Assert.EndsWith(info.AssetName, staged);

@@ -149,7 +149,7 @@ public sealed record ReplayFrame(int Index, int Turn, ReplayPlayer? Active, bool
 }
 
 /// <summary>One game turn (or the mulligan, <see cref="Turn"/> 0) and its frames.</summary>
-public sealed record ReplayTurn(int Turn, ReplayPlayer? Player, int FirstFrame, int LastFrame, int StartSeconds)
+public sealed record ReplayTurn(int Turn, ReplayPlayer? Player, int FirstFrame, int LastFrame)
 {
     public int PlayerTurn => (Turn + 1) / 2;
 
@@ -286,7 +286,7 @@ public sealed class MatchReplay
             if (!_mulliganDone && _frames.Count > 0)
             {
                 // Over before MAIN_READY (conceded in the mulligan): the mulligan is still the game's turn 0.
-                _turns.Add(new ReplayTurn(0, null, 0, _frames.Count - 1, 0) { Seconds = _turnSeconds });
+                _turns.Add(new ReplayTurn(0, null, 0, _frames.Count - 1) { Seconds = _turnSeconds });
             }
 
             CloseTurn(null);
@@ -385,7 +385,7 @@ public sealed class MatchReplay
                     _opponentFinal = OpponentHandEntities();
                     Step(new ReplayAction(ReplayActionKind.TurnStart, _active));
                     // The mulligan is turn 0 of the turn list.
-                    _turns.Add(new ReplayTurn(0, null, 0, Math.Max(0, _frames.Count - 1), 0) { Seconds = _turnSeconds });
+                    _turns.Add(new ReplayTurn(0, null, 0, Math.Max(0, _frames.Count - 1)) { Seconds = _turnSeconds });
                     _mulliganDone = true;
                     _turnStartFrame = _frames.Count;
                     break;
@@ -563,7 +563,7 @@ public sealed class MatchReplay
                 return;
             }
 
-            _turns.Add(new ReplayTurn(_turn, _active, _turnStartFrame, _frames.Count - 1, _turnSeconds)
+            _turns.Add(new ReplayTurn(_turn, _active, _turnStartFrame, _frames.Count - 1)
             {
                 Seconds = nextStart is { } next ? Math.Max(0, next - _turnSeconds) : null,
             });

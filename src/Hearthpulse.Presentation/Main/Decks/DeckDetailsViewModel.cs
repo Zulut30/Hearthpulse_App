@@ -509,7 +509,6 @@ public sealed class DeckDetailsViewModel : Observable
                     card?.Name ?? c.CardId,
                     card?.Cost ?? 0,
                     c.Copies > 0 ? $"×{c.Copies}" : Loc.T("Deck.Mulligan.OtherVersion"),
-                    c.Copies > 0,
                     c.Offered < DeckDetails.SmallSample,
                     c.WhenDrawn.Games < DeckDetails.SmallSample,
                     c.Offered.ToString(CultureInfo.CurrentCulture),
