@@ -237,12 +237,20 @@ public static class UpdateService
         TimeSpan firstWait, UpdateTarget target, string appDirectory, Func<string, bool> exists)
     {
         await Task.Delay(firstWait).ConfigureAwait(false);
+        if (target == UpdateTarget.WindowsInstalled)
+        {
+            DeltaUpdate.CleanUp(appDirectory, CurrentVersion);
+        }
+
         while (true)
         {
             try
             {
-                var check = await CheckForUpdateAsync(http, target, CancellationToken.None).ConfigureAwait(false);
-                var info = check.Update;
+                // A delta that could not put its old files back left a folder of two versions: the full setup of the
+                // newest release repairs it, even when that is the version this copy reports.
+                var repair = target == UpdateTarget.WindowsInstalled && DeltaUpdate.IsBroken(appDirectory);
+                var check = await CheckForUpdateAsync(http, target, CancellationToken.None, repair).ConfigureAwait(false);
+                var info = repair && check.Update is { } broken ? broken with { Delta = null } : check.Update;
                 if (info is not null && (notifyOnly || !InstallsItself(target, appDirectory, exists)))
                 {
                     available(info);
@@ -287,7 +295,8 @@ public static class UpdateService
         CheckForUpdateAsync(http, DetectTarget(), cancellationToken);
 
     /// <summary><see cref="CheckForUpdateAsync(HttpClient, CancellationToken)"/> for a given kind of copy (the update loop, tests).</summary>
-    internal static async Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, UpdateTarget target, CancellationToken cancellationToken)
+    /// <param name="repair">Offer the newest release even when it is not newer (a folder a failed delta left half-updated).</param>
+    internal static async Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, UpdateTarget target, CancellationToken cancellationToken, bool repair = false)
     {
         try
         {
@@ -333,7 +342,7 @@ public static class UpdateService
                 return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, Loc.F("Core.Update.NoFileYet", tag));
             }
 
-            if (info is null || !IsNewer(info.Version))
+            if (info is null || (!IsNewer(info.Version) && !repair))
             {
                 return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, Loc.F("Core.Update.UpToDate", CurrentVersion));
             }

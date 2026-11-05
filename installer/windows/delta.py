@@ -18,6 +18,15 @@ import zipfile
 
 # The same rule as DeltaUpdate.IsSafePath: the updater refuses any other path, so the release must not produce one.
 SAFE = re.compile(r"^[A-Za-z0-9._+ -]+(/[A-Za-z0-9._+ -]+)*$")
+DEVICES = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
+
+
+def safe(rel):
+    """A path the updater takes: relative, no "."/".."/"...", no trailing dot or space, no Windows device name."""
+    if not rel or len(rel) > 200 or not SAFE.match(rel):
+        return False
+    return all(part and part.strip() == part and not part.endswith(".") and part.split(".")[0].upper() not in DEVICES
+               for part in rel.split("/"))
 
 
 def sha256(path):
@@ -35,7 +44,7 @@ def manifest(app_dir, version, out):
         for name in sorted(names):
             full = os.path.join(base, name)
             rel = os.path.relpath(full, app_dir).replace(os.sep, "/")
-            if not SAFE.match(rel) or any(part in (".", "..") for part in rel.split("/")):
+            if not safe(rel):
                 sys.exit(f"{rel}: the updater cannot take this file name")
             files.append({"path": rel, "size": os.path.getsize(full), "sha256": sha256(full)})
     with open(out, "w", encoding="utf-8") as f:
@@ -48,6 +57,9 @@ def delta(previous_path, current_path, app_dir, out):
         previous = json.load(f)
     with open(current_path, encoding="utf-8") as f:
         current = json.load(f)
+    bad = [e["path"] for e in previous["files"] + current["files"] if not safe(e["path"])]
+    if bad:
+        sys.exit(f"the updater cannot take these file names: {bad}")
     old = {e["path"].lower(): e for e in previous["files"]}
     carried = [e for e in current["files"] if old.get(e["path"].lower(), {}).get("sha256") != e["sha256"]]
     plan = {"from": previous["version"], "to": current["version"], "base": previous["files"], "target": current["files"]}

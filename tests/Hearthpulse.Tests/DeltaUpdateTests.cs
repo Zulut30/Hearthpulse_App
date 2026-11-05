@@ -62,6 +62,12 @@ public sealed class DeltaUpdateTests : IDisposable
     [InlineData("amp&.dll")]
     [InlineData("dir/")]
     [InlineData("")]
+    [InlineData("CON")]
+    [InlineData("nul.txt")]
+    [InlineData("ru/COM1.dll")]
+    [InlineData("a.")]
+    [InlineData("...")]
+    [InlineData("trailing ")]
     public void A_plan_with_a_path_outside_the_app_folder_or_unquotable_is_refused(string path)
     {
         Assert.False(DeltaUpdate.IsSafePath(path));
@@ -205,8 +211,14 @@ public sealed class DeltaUpdateTests : IDisposable
         var script = DeltaUpdate.BuildApplyScript(7, @"C:\data\updates\delta-1.1.0\files", @"C:\Apps\Hearth 100%", Plan("1.0.0", "1.1.0"),
             null, @"Software\Test", @"C:\data\updates\delta-1.1.0.failed", null);
         Assert.Contains("PID eq 7", script);
-        Assert.Contains(@"copy /Y ""C:\data\updates\delta-1.1.0\files\ru\new.dll"" ""C:\Apps\Hearth 100%%.update-new\ru\new.dll"" >nul || goto abort", script);
-        Assert.Contains(@"move /Y ""C:\Apps\Hearth 100%%\gone.txt"" ""C:\Apps\Hearth 100%%.update-old\gone.txt"" >nul || goto rollback", script);
+        // Each step: the command, up to 5 tries a second apart, then where a failure goes.
+        Assert.Contains("copy /Y \"C:\\data\\updates\\delta-1.1.0\\files\\ru\\new.dll\" \"C:\\Apps\\Hearth 100%%.update-new\\ru\\new.dll\" >nul 2>nul && goto s2ok\r\n"
+            + "set /a TRY+=1\r\nif %TRY% lss 5 ( ping -n 2 127.0.0.1 >nul & goto s2 )\r\ngoto abort\r\n:s2ok", script);
+        Assert.Contains("move /Y \"C:\\Apps\\Hearth 100%%\\gone.txt\" \"C:\\Apps\\Hearth 100%%.update-old\\gone.txt\" >nul 2>nul && goto s4ok\r\n"
+            + "set /a TRY+=1\r\nif %TRY% lss 5 ( ping -n 2 127.0.0.1 >nul & goto s4 )\r\ngoto rollback", script);
+        Assert.Contains("set \"KEEP_BACKUP=1\"", script);
+        Assert.Contains("if defined KEEP_BACKUP goto broken", script);
+        Assert.DoesNotContain("start \"\"", script[script.IndexOf(":broken", StringComparison.Ordinal)..]);
         Assert.Contains(@"reg add ""HKCU\Software\Test"" /v DisplayVersion /t REG_SZ /d ""1.1.0"" /f", script);
         Assert.Contains(@">>""C:\Apps\Hearth 100%%\uninstall-extra.txt"" echo ru\new.dll", script);
         Assert.Contains(@">>""C:\Apps\Hearth 100%%\uninstall-extra.txt"" echo ru\", script);
@@ -222,7 +234,7 @@ public sealed class DeltaUpdateTests : IDisposable
         var mark = Path.Combine(_root, "failed");
         try
         {
-            Run(DeltaUpdate.BuildApplyScript(ExitedPid(), staged, app, plan, null, key, mark, null));
+            Run(DeltaUpdate.BuildApplyScript(ExitedPid(), staged, app, plan, null, key, mark, null, tries: 2));
 
             Assert.Equal("new a", File.ReadAllText(Path.Combine(app, "a.dll")));
             Assert.Equal("same", File.ReadAllText(Path.Combine(app, "keep.dll")));
@@ -251,7 +263,7 @@ public sealed class DeltaUpdateTests : IDisposable
             // a.dll goes to the backup first; holding gone.txt open makes the next rename fail, after a.dll has moved.
             using (new FileStream(Path.Combine(app, "gone.txt"), FileMode.Open, FileAccess.Read, FileShare.None))
             {
-                Run(DeltaUpdate.BuildApplyScript(ExitedPid(), staged, app, plan, null, key, mark, null));
+                Run(DeltaUpdate.BuildApplyScript(ExitedPid(), staged, app, plan, null, key, mark, null, tries: 2));
             }
 
             Assert.Equal("old a", File.ReadAllText(Path.Combine(app, "a.dll")));
@@ -267,6 +279,138 @@ public sealed class DeltaUpdateTests : IDisposable
         {
             DeleteKey(key);
         }
+    }
+
+    [WindowsFact]
+    public void A_replaced_file_held_open_stops_the_swap_before_anything_moves()
+    {
+        var (app, staged, plan) = OnDisk();
+        var mark = Path.Combine(_root, "failed");
+        using (new FileStream(Path.Combine(app, "a.dll"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Run(DeltaUpdate.BuildApplyScript(ExitedPid(), staged, app, plan, null, @"Software\Hearthpulse.Tests\none", mark, null, tries: 2));
+        }
+
+        Assert.Equal("old a", File.ReadAllText(Path.Combine(app, "a.dll")));
+        Assert.Equal("removed in the new version", File.ReadAllText(Path.Combine(app, "gone.txt")));
+        Assert.False(File.Exists(Path.Combine(app, "ru", "new.dll")));
+        Assert.False(DeltaUpdate.IsBroken(app));
+        Assert.True(File.Exists(mark));
+    }
+
+    [WindowsFact]
+    public void A_copy_that_fails_as_on_a_full_disk_touches_nothing()
+    {
+        var (app, staged, plan) = OnDisk();
+        var mark = Path.Combine(_root, "failed");
+        File.Delete(Path.Combine(staged, "ru", "new.dll"));
+        Run(DeltaUpdate.BuildApplyScript(ExitedPid(), staged, app, plan, null, @"Software\Hearthpulse.Tests\none", mark, null, tries: 2));
+
+        Assert.Equal(OldFiles.Keys.Order(), Directory.GetFiles(app).Select(p => Path.GetFileName(p)).Order());
+        Assert.Equal("old a", File.ReadAllText(Path.Combine(app, "a.dll")));
+        Assert.False(Directory.Exists(app + ".update-new"));
+        Assert.False(Directory.Exists(app + ".update-old"));
+        Assert.True(File.Exists(mark));
+    }
+
+    [WindowsFact]
+    public void An_old_file_that_cannot_go_back_keeps_the_backup_and_does_not_start_the_app()
+    {
+        var (app, staged, plan) = OnDisk();
+        var mark = Path.Combine(_root, "failed");
+        var started = Path.Combine(_root, "started.txt");
+        var relaunch = Path.Combine(_root, "relaunch.cmd");
+        File.WriteAllText(relaunch, $"@echo started> \"{started}\"\r\n");
+        // No new file may be created in the app folder: a.dll can leave it for the backup but cannot come back.
+        Icacls(app, "/deny", "*S-1-1-0:(WD)");
+        try
+        {
+            using (new FileStream(Path.Combine(app, "gone.txt"), FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                Run(DeltaUpdate.BuildApplyScript(ExitedPid(), staged, app, plan, relaunch, @"Software\Hearthpulse.Tests\none", mark, null, tries: 2));
+            }
+        }
+        finally
+        {
+            Icacls(app, "/remove:d", "*S-1-1-0");
+        }
+
+        Assert.True(DeltaUpdate.IsBroken(app));
+        Assert.Equal("old a", File.ReadAllText(Path.Combine(app + ".update-old", "a.dll")));
+        Assert.Contains("backup kept", File.ReadAllText(mark));
+        Thread.Sleep(500);
+        Assert.False(File.Exists(started));
+    }
+
+    [Fact]
+    public async Task An_unexpected_failure_while_preparing_leaves_the_update_to_the_setup()
+    {
+        var (app, info, _) = Setup("2.0.7");
+        using var http = new HttpClient(new Throwing());
+        Assert.False(await DeltaUpdate.PrepareAsync(http, info, app, "1.0.0"));
+        Assert.False(Directory.Exists(DeltaUpdate.StagingDirectory(info)));
+    }
+
+    [Fact]
+    public void A_plan_this_process_did_not_prepare_is_not_installed_and_not_marked()
+    {
+        var info = new UpdateInfo("2.0.8", "setup.exe", "https://example.invalid/s.exe", Sha("s"), new DeltaAsset("d.zip", "https://example.invalid/d.zip", Sha("d")));
+        Directory.CreateDirectory(DeltaUpdate.StagingDirectory(info));
+        File.WriteAllText(Path.Combine(DeltaUpdate.StagingDirectory(info), "delta.json"), "{}");
+        Assert.Null(DeltaUpdate.StagedPlan(info, _root, "1.0.0"));
+        Assert.False(File.Exists(DeltaUpdate.FailedMark(info)));
+    }
+
+    [Fact]
+    public async Task A_half_updated_folder_is_repaired_with_the_full_setup_of_the_same_version()
+    {
+        var (app, info, server) = Setup(UpdateService.CurrentVersion, installed: UpdateService.CurrentVersion);
+        Directory.CreateDirectory(app + ".update-old");
+        using var http = new HttpClient(server);
+        Assert.Equal("staged", await Watch(http, app));
+        Assert.Equal(1, server.SetupRequests);
+        Assert.Equal(0, server.Requests);
+        Assert.True(File.Exists(UpdateService.StagedPath(info)));
+    }
+
+    [Fact]
+    public void Leftovers_of_installed_versions_are_removed_after_a_start_unless_the_folder_is_half_updated()
+    {
+        var app = Write(Path.Combine(_root, "clean-app"), OldFiles);
+        var delta = Path.Combine(Core.AppPaths.Root, "updates", "delta");
+        Directory.CreateDirectory(Path.Combine(delta, "50.0.0"));
+        File.WriteAllText(Path.Combine(delta, "49.0.0.failed"), "x");
+        File.WriteAllText(Path.Combine(delta, "51.0.0.failed"), "x");
+        File.WriteAllText(Path.Combine(delta, "Hearthpulse-Delta-1.0.0-60.0.0-win-x64.zip.part"), "x");
+        Directory.CreateDirectory(app + ".update-new");
+        Directory.CreateDirectory(app + ".update-old");
+
+        DeltaUpdate.CleanUp(app, "50.0.0");
+        Assert.True(Directory.Exists(Path.Combine(delta, "50.0.0")));
+        Assert.True(Directory.Exists(app + ".update-new"));
+
+        Directory.Delete(app + ".update-old");
+        DeltaUpdate.CleanUp(app, "50.0.0");
+        Assert.False(Directory.Exists(Path.Combine(delta, "50.0.0")));
+        Assert.False(File.Exists(Path.Combine(delta, "49.0.0.failed")));
+        Assert.True(File.Exists(Path.Combine(delta, "51.0.0.failed")));
+        Assert.False(File.Exists(Path.Combine(delta, "Hearthpulse-Delta-1.0.0-60.0.0-win-x64.zip.part")));
+        Assert.False(Directory.Exists(app + ".update-new"));
+        File.Delete(Path.Combine(delta, "51.0.0.failed"));
+    }
+
+    private static void Icacls(string path, string action, string what)
+    {
+        using var process = Process.Start(new ProcessStartInfo("icacls", $"\"{path}\" {action} {what}") { CreateNoWindow = true, UseShellExecute = false, RedirectStandardOutput = true })!;
+        process.StandardOutput.ReadToEnd();
+        Assert.True(process.WaitForExit(30_000));
+        Assert.Equal(0, process.ExitCode);
+    }
+
+    private sealed class Throwing : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("something nobody expected");
     }
 
     private async Task<string> Watch(HttpClient http, string app)

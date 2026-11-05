@@ -81,11 +81,15 @@ test the updater on a build made with `-p:Version=...`, never on a plain `dotnet
   SHA-256 (`Hearthpulse-Files-V-win-x64.json`, `installer/windows/delta.py manifest`) and the files changed since the
   previous release P (`Hearthpulse-Delta-P-V-win-x64.zip`: `delta.json` with both file lists + `files/...`), only
   when P published a manifest (0.14.0 did not: 0.15.0 ships without a delta). The updater takes the delta only when the
-  running version is exactly P and every local file matches P's list; it checks the zip's digest, then every unpacked
-  file, stages under `<data>/updates/delta/V/`, and at exit a helper copies the files next to the app folder, swaps
-  by renames with a backup (`<app>.update-old`), rolls back on any failure (then `<data>/updates/delta/V.failed`
-  makes the next try take the full setup), updates `DisplayVersion` and appends added files to
-  `uninstall-extra.txt`, which the NSIS uninstaller reads. Any failure before that falls back to the full setup.
+  running version is exactly P and every local file matches P's list; it checks the zip's digest (which also covers
+  `delta.json`, the source of both lists), each entry's size, then every unpacked file, stages under
+  `<data>/updates/delta/V/`, and at exit (plan hash kept in memory, staged hashes, installed sizes) a helper copies
+  the files next to the app folder and swaps by renames with a backup (`<app>.update-old`), every step tried 5 times.
+  A failure rolls back (then `<data>/updates/delta/V.failed` makes the next try take the full setup); an old file
+  that cannot go back keeps the backup and does not start the app, and the next start reinstalls the newest release
+  with the full setup (`DeltaUpdate.IsBroken`), which removes the backup. Success updates `DisplayVersion` and appends
+  added files to `uninstall-extra.txt`, which the NSIS uninstaller reads. Any failure before that falls back to the
+  full setup. Paths: `DeltaUpdate.IsSafePath` = `delta.py safe()` (no dots/spaces at the end, no device names).
   Trial run of the whole path: `-f publish=false -f simulate_previous=true -f version=0.0.1` (a stand-in 0.0.0
   manifest). Tests: `DeltaUpdateTests.cs` (the helper is run for real on Windows, rollback included).
 - Tests: `tests/Hearthpulse.Tests/UpdateTests.cs`, including

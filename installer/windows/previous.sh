@@ -23,8 +23,12 @@ print(".".join(map(str, max(older))) if older else "")
 ' "$VERSION")"
 [ -n "$PREV" ] || exit 0
 
+# A release without the manifest is the expected case (0.14.0): no delta. Any other failure (network, rights) stops
+# the build instead of quietly publishing a release without the delta it should have.
+NAME="Hearthpulse-Files-$PREV-win-x64.json"
+ASSETS="$(gh release view "v$PREV" -R "$GITHUB_REPOSITORY" --json assets -q '.assets[].name')"
+grep -qxF "$NAME" <<< "$ASSETS" || exit 0
 mkdir -p "$OUT"
-if gh release download "v$PREV" -R "$GITHUB_REPOSITORY" -p "Hearthpulse-Files-$PREV-win-x64.json" -D "$OUT" --clobber >/dev/null 2>&1 \
-   && [ -s "$OUT/Hearthpulse-Files-$PREV-win-x64.json" ]; then
-  echo "$PREV"
-fi
+gh release download "v$PREV" -R "$GITHUB_REPOSITORY" -p "$NAME" -D "$OUT" --clobber >&2
+[ -s "$OUT/$NAME" ] || { echo "$NAME of v$PREV downloaded empty" >&2; exit 1; }
+echo "$PREV"

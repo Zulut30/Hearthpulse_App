@@ -49,6 +49,9 @@ public static class DeltaUpdate
     public const string UninstallExtraFile = "uninstall-extra.txt";
 
     private const string PlanEntry = "delta.json";
+
+    /// <summary>SHA-256 of each plan this process prepared, by version (see <see cref="StagedPlan"/>).</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> PreparedPlans = new(StringComparer.Ordinal);
     private const string FilesPrefix = "files/";
 
     /// <summary>The delta package from <paramref name="from"/> to <paramref name="to"/>, as the release publishes it.</summary>
@@ -145,17 +148,71 @@ public static class DeltaUpdate
             }
         }
 
-        return path.Split('/').All(part => part.Length > 0 && part != "." && part != ".." && part.Trim() == part);
+        // No "." or ".." (nor "..."), no trailing dot or space, no device names (CON, NUL, COM1.txt...): Windows would
+        // read them differently. installer/windows/delta.py applies the same rule, so a release cannot publish one.
+        return path.Split('/').All(part => part.Length > 0 && part.Trim() == part && !part.EndsWith('.') && !IsDeviceName(part));
+
+        static bool IsDeviceName(string part)
+        {
+            var stem = part.Split('.')[0].ToUpperInvariant();
+            return stem is "CON" or "PRN" or "AUX" or "NUL"
+                || (stem.Length == 4 && (stem.StartsWith("COM", StringComparison.Ordinal) || stem.StartsWith("LPT", StringComparison.Ordinal)) && stem[3] is >= '1' and <= '9');
+        }
     }
 
-    /// <summary>True when every file of <paramref name="files"/> is in <paramref name="directory"/> with its size and SHA-256.</summary>
-    public static bool FilesMatch(IEnumerable<DeltaFile> files, string directory)
+    /// <summary>
+    /// A delta install that could not put every old file back left its backup next to the app folder: the folder mixes
+    /// two versions, and the update loop installs the newest release with the full setup even when it is not newer.
+    /// </summary>
+    public static bool IsBroken(string appDirectory) => Directory.Exists(appDirectory.TrimEnd('\\', '/') + ".update-old");
+
+    /// <summary>
+    /// After a start: drops what an earlier delta left that is no longer needed - the copy folder next to the app, and
+    /// staged files, packages and failure marks of versions up to the running one. Nothing while <see cref="IsBroken"/>:
+    /// the backup and the mark wait for the full setup (which removes the backup itself).
+    /// </summary>
+    public static void CleanUp(string appDirectory, string runningVersion)
+    {
+        if (IsBroken(appDirectory))
+        {
+            return;
+        }
+
+        DeleteDirectory(appDirectory.TrimEnd('\\', '/') + ".update-new");
+        var root = Path.Combine(AppPaths.Root, "updates", "delta");
+        if (!Directory.Exists(root))
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var path in Directory.EnumerateFileSystemEntries(root))
+            {
+                // A package left by a crash is never needed (a new check downloads it again); the rest by version.
+                var name = Path.GetFileName(path);
+                var version = name.EndsWith(".failed", StringComparison.Ordinal) ? name[..^7] : name;
+                if (name.StartsWith("Hearthpulse-Delta-", StringComparison.Ordinal) || UpdateService.CompareVersions(version, runningVersion) <= 0)
+                {
+                    DeleteDirectory(path);
+                    TryDelete(path);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diag.Error("Old delta updates could not be removed", ex);
+        }
+    }
+
+    /// <summary>True when every file of <paramref name="files"/> is in <paramref name="directory"/> with its size and SHA-256 (or only its size).</summary>
+    public static bool FilesMatch(IEnumerable<DeltaFile> files, string directory, bool sizesOnly = false)
     {
         foreach (var file in files)
         {
             var path = Path.Combine(directory, OsPath(file.Path));
             var info = new FileInfo(path);
-            if (!info.Exists || info.Length != file.Size || Sha256(path) != file.Sha256)
+            if (!info.Exists || info.Length != file.Size || (!sizesOnly && Sha256(path) != file.Sha256))
             {
                 return false;
             }
@@ -191,7 +248,8 @@ public static class DeltaUpdate
 
             var archive = await ZipFile.OpenReadAsync(zip, cancellationToken).ConfigureAwait(false);
             await using var archiveScope = archive.ConfigureAwait(false);
-            var plan = ReadPlan(ReadEntry(archive, PlanEntry));
+            var planJson = ReadEntry(archive, PlanEntry);
+            var plan = ReadPlan(planJson);
             if (plan is null || plan.From != installedVersion || plan.To != info.Version)
             {
                 Diag.Info($"Delta update {info.Version}: the package is not from {installedVersion} to {info.Version}.");
@@ -210,7 +268,7 @@ public static class DeltaUpdate
             foreach (var file in plan.Carried)
             {
                 var entry = archive.GetEntry(FilesPrefix + file.Path);
-                if (entry is null)
+                if (entry is null || entry.Length != file.Size)
                 {
                     Diag.Info($"Delta update {info.Version}: the package lacks {file.Path}.");
                     DeleteDirectory(staging);
@@ -229,12 +287,16 @@ public static class DeltaUpdate
                 return false;
             }
 
-            await File.WriteAllTextAsync(Path.Combine(staging, PlanEntry), ReadEntry(archive, PlanEntry), cancellationToken).ConfigureAwait(false);
+            // The plan is kept with its SHA-256 here, in memory: the copy on disk is trusted at install time only if
+            // it is still the one this process checked (the package itself was checked against its published digest).
+            await File.WriteAllTextAsync(Path.Combine(staging, PlanEntry), planJson, cancellationToken).ConfigureAwait(false);
+            PreparedPlans[info.Version] = Sha256Text(planJson!);
             Diag.Info($"Delta update {info.Version} ready: {plan.Replaced.Count} files replaced, {plan.Added.Count} added, {plan.Removed.Count} removed.");
             return true;
         }
-        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or IOException or UnauthorizedAccessException or InvalidDataException)
+        catch (Exception ex)
         {
+            // Whatever went wrong (a full disk, a bad archive, an unexpected exception): nothing staged, the setup updates.
             Diag.Error("Delta update failed", ex);
             DeleteDirectory(staging);
             return false;
@@ -246,26 +308,34 @@ public static class DeltaUpdate
         }
     }
 
-    /// <summary>The staged plan, when the staged files and the installed ones still match it (checked again before installing).</summary>
+    /// <summary>
+    /// The staged plan, checked again right before installing: the plan is the one this process prepared (its SHA-256
+    /// was kept in memory), the staged files still have their hashes, and the installed files their sizes (their
+    /// hashes were checked when the delta was prepared; at exit the whole folder is not read again). Null with nothing
+    /// staged by this process; null and marked failed when anything changed.
+    /// </summary>
     public static DeltaPlan? StagedPlan(UpdateInfo info, string appDirectory, string installedVersion)
     {
         var staging = StagingDirectory(info);
+        var planPath = Path.Combine(staging, PlanEntry);
+        if (!PreparedPlans.TryGetValue(info.Version, out var planHash) || !File.Exists(planPath))
+        {
+            return null;
+        }
+
         try
         {
-            var planPath = Path.Combine(staging, PlanEntry);
-            if (!File.Exists(planPath))
-            {
-                return null;
-            }
-
-            var plan = ReadPlan(File.ReadAllText(planPath));
+            var json = File.ReadAllText(planPath);
+            var plan = Sha256Text(json) == planHash ? ReadPlan(json) : null;
             if (plan is not null && plan.From == installedVersion && plan.To == info.Version
-                && FilesMatch(plan.Carried, Path.Combine(staging, "files")) && FilesMatch(plan.Base, appDirectory))
+                && FilesMatch(plan.Carried, Path.Combine(staging, "files"))
+                && FilesMatch(plan.Base, appDirectory, sizesOnly: true)
+                && !plan.Added.Any(f => File.Exists(Path.Combine(appDirectory, OsPath(f.Path)))))
             {
                 return plan;
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex)
         {
             Diag.Error("Delta update could not be checked", ex);
         }
@@ -327,12 +397,16 @@ public static class DeltaUpdate
 
     /// <summary>
     /// The delta helper: waits for the app to exit, copies the new files next to the app folder (nothing is touched if
-    /// that fails), then swaps by renames, keeping every old file in a backup folder; any failed rename puts the old
-    /// files back, records <paramref name="failedMark"/> (the next try takes the full setup) and starts the old app
-    /// again. On success it updates the version in Apps &amp; features and lists the added files for the uninstaller.
+    /// that fails), then swaps by renames, keeping every old file in a backup folder. Every copy and rename is tried
+    /// <paramref name="tries"/> times a second apart (an antivirus or the search indexer may hold a file for a moment).
+    /// A rename that still fails puts the old files back, records <paramref name="failedMark"/> (the next try takes the
+    /// full setup) and starts the old app again; when an old file cannot be put back either, the backup is kept, the app
+    /// is not started (its folder is a mix of two versions) and the next start repairs it with the full setup
+    /// (<see cref="IsBroken"/>). On success it updates the version in Apps &amp; features and lists the added files for
+    /// the uninstaller.
     /// </summary>
     public static string BuildApplyScript(int pid, string stagedFiles, string appDirectory, DeltaPlan plan, string? relaunchExe,
-        string uninstallKey, string failedMark, string? cleanupDir)
+        string uninstallKey, string failedMark, string? cleanupDir, int tries = 5)
     {
         static string Cmd(string path) => path.Replace("%", "%%", StringComparison.Ordinal);
         static string Win(string path) => path.Replace('/', '\\');
@@ -364,9 +438,10 @@ public static class DeltaUpdate
         }
 
         lines.Add($"mkdir \"{fresh}\" 2>nul");
+        var step = 0;
         foreach (var file in plan.Carried)
         {
-            lines.Add($"copy /Y \"{staged}\\{Win(file.Path)}\" \"{fresh}\\{Win(file.Path)}\" >nul || goto abort");
+            Retry($"copy /Y \"{staged}\\{Win(file.Path)}\" \"{fresh}\\{Win(file.Path)}\"", "goto abort");
         }
 
         // 2. Swap: old files into the backup, new files into place.
@@ -378,7 +453,7 @@ public static class DeltaUpdate
 
         foreach (var file in plan.Replaced.Concat(plan.Removed))
         {
-            lines.Add($"move /Y \"{app}\\{Win(file.Path)}\" \"{backup}\\{Win(file.Path)}\" >nul || goto rollback");
+            Retry($"move /Y \"{app}\\{Win(file.Path)}\" \"{backup}\\{Win(file.Path)}\"", "goto rollback");
         }
 
         foreach (var dir in Folders(plan.Added))
@@ -388,7 +463,7 @@ public static class DeltaUpdate
 
         foreach (var file in plan.Carried)
         {
-            lines.Add($"move /Y \"{fresh}\\{Win(file.Path)}\" \"{app}\\{Win(file.Path)}\" >nul || goto rollback");
+            Retry($"move /Y \"{fresh}\\{Win(file.Path)}\" \"{app}\\{Win(file.Path)}\"", "goto rollback");
         }
 
         // 3. Done: the version Apps & features shows, the uninstaller's list, clean-up.
@@ -422,10 +497,12 @@ public static class DeltaUpdate
 
         foreach (var file in plan.Replaced.Concat(plan.Removed))
         {
-            lines.Add($"if exist \"{backup}\\{Win(file.Path)}\" move /Y \"{backup}\\{Win(file.Path)}\" \"{app}\\{Win(file.Path)}\" >nul || set \"KEEP_BACKUP=1\"");
+            Retry($"move /Y \"{backup}\\{Win(file.Path)}\" \"{app}\\{Win(file.Path)}\"", "set \"KEEP_BACKUP=1\"",
+                skipUnless: $"{backup}\\{Win(file.Path)}");
         }
 
-        lines.Add($"if not defined KEEP_BACKUP rmdir /S /Q \"{backup}\"");
+        lines.Add("if defined KEEP_BACKUP goto broken");
+        lines.Add($"rmdir /S /Q \"{backup}\"");
         lines.Add(":abort");
         lines.Add($"if exist \"{fresh}\" rmdir /S /Q \"{fresh}\"");
         lines.Add($">\"{Cmd(failedMark)}\" echo delta failed");
@@ -435,8 +512,31 @@ public static class DeltaUpdate
             lines.Add($"start \"\" \"{Cmd(relaunchExe)}\"");
         }
 
-        lines.Add("del \"%~f0\"");
+        lines.Add("del \"%~f0\" & exit /b");
+
+        // An old file could not be put back: the folder mixes two versions. Keep the backup, do not start the app.
+        lines.Add(":broken");
+        lines.Add($">\"{Cmd(failedMark)}\" echo delta failed, backup kept");
+        lines.Add("del \"%~f0\" & exit /b");
         return string.Join("\r\n", lines) + "\r\n";
+
+        // One command with retries; onFail runs after the last failed try. skipUnless: nothing to do when it is missing.
+        void Retry(string command, string onFail, string? skipUnless = null)
+        {
+            var label = "s" + (++step).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            lines.Add("set \"TRY=0\"");
+            if (skipUnless is not null)
+            {
+                lines.Add($"if not exist \"{skipUnless}\" goto {label}ok");
+            }
+
+            lines.Add($":{label}");
+            lines.Add($"{command} >nul 2>nul && goto {label}ok");
+            lines.Add("set /a TRY+=1");
+            lines.Add($"if %TRY% lss {tries} ( ping -n 2 127.0.0.1 >nul & goto {label} )");
+            lines.Add(onFail);
+            lines.Add($":{label}ok");
+        }
 
         static IEnumerable<string> Folders(IEnumerable<DeltaFile> files)
         {
@@ -493,6 +593,8 @@ public static class DeltaUpdate
         using var reader = new StreamReader(entry.Open(), Encoding.UTF8);
         return reader.ReadToEnd();
     }
+
+    private static string Sha256Text(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
 
     private static string Sha256(string path)
     {

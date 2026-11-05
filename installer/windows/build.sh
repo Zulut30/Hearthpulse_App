@@ -63,6 +63,8 @@ if [ -n "$PREV" ]; then
 else
   echo "no previous release with a manifest: only the full setup"
 fi
+# For the release job's check (not a release file): which delta this build made, empty for none.
+printf '%s\n' "$PREV" > "$DIST/work/delta-previous.txt"
 
 # The setup (about a minute of LZMA) and the portable zip read the same published folder: built at the same time.
 echo "== Packing the portable Windows app"

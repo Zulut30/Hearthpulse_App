@@ -131,6 +131,7 @@ jobs:
             dist/*.dmg
             dist/*.pkg
             dist/*.json
+            dist/work/delta-previous.txt
 
   release:
     name: Publish the release
@@ -155,13 +156,14 @@ jobs:
       - name: Check every installer was built
         env:
           V: ${{ steps.v.outputs.version }}
-          GH_TOKEN: ${{ github.token }}
-          SIMULATE_PREVIOUS: ${{ inputs.simulate_previous }}
         run: |
           # Delta updates: this version's manifest always; the delta package exactly when the previous release has a
           # manifest (none for 0.14.0 and older). 23 files without a delta, 24 with one, SHA256SUMS.txt included.
+          # The Windows job found the previous release once (installer/windows/previous.sh) and says which.
+          test -f dist/work/delta-previous.txt || { echo "::error::the Windows job did not say which delta it made"; exit 1; }
+          prev="$(cat dist/work/delta-previous.txt)"
+          rm -rf dist/work
           test -s "dist/Hearthpulse-Files-$V-win-x64.json" || { echo "::error::the manifest was not built"; exit 1; }
-          prev="$(installer/windows/previous.sh "$V" "$RUNNER_TEMP/previous")"
           deltas=$(find dist -maxdepth 1 -name 'Hearthpulse-Delta-*-win-x64.zip' | wc -l)
           if [ -n "$prev" ]; then
             test -s "dist/Hearthpulse-Delta-$prev-$V-win-x64.zip" && [ "$deltas" -eq 1 ] || { echo "::error::expected exactly the delta $prev -> $V"; exit 1; }

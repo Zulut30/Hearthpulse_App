@@ -179,6 +179,10 @@ Section "$(SecAppName)" SecApp
   Delete "$INSTDIR\Hearthpulse.pdb"
   Delete "$INSTDIR\Hearthpulse.Core.pdb"
   File /r "${SOURCE_DIR}\*.*"
+  ; Every file is this version's now: a backup or copy a failed delta update left next to the folder (DeltaUpdate.cs)
+  ; is no longer needed.
+  RMDir /r "$INSTDIR.update-old"
+  RMDir /r "$INSTDIR.update-new"
   WriteUninstaller "$INSTDIR\${UNINSTALLER}"
 
   ; Apps & features entry.
