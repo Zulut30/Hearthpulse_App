@@ -8,7 +8,8 @@ button (Recent, Saved): an imported replay is someone else's game. The site part
 ## What is uploaded
 
 `ReplayUpload.Prepare`: the Share copy (`ReplayImport.Sanitize`, date only: no names, BattleTag, ranks, rating, time of
-day) **without the post-game part of a Constructed game** (`N`/`K`: opponent cards the log revealed, which the player may
+day), **a Duos game's partner minions (`P`) dropped and the file sent as `HPR4`** until the site reads format 5,
+**without the post-game part of a Constructed game** (`N`/`K`: opponent cards the log revealed, which the player may
 never have seen on screen). A public page shows the game as the player saw it; the full post-game reveal stays on the
 player's own match page. Gzip, base64, `POST {site}/api/v1/tracker/replays` `{"v":1,"hpr":"..."}` with the account's
 sign-in (`tracker.write`, `AccountService.UploadReplayAsync`). The answer is `{id, url, deleteToken}`; the link goes to

@@ -27,13 +27,18 @@ public sealed partial class MainViewModel
     public void AttachUploader(ProfileUploader uploader)
     {
         _uploader = uploader;
-        uploader.StatusChanged += () => DispatchToUi(() => Raise(nameof(UploadStatus)));
+        uploader.StatusChanged += () => DispatchToUi(() =>
+        {
+            Raise(nameof(UploadStatus));
+            RaiseAccountCenter();
+        });
         Raise(nameof(UploadStatus));
     }
 
     /// <summary>
     /// Send finished games to the hearthpulse.net profile (<see cref="Core.AppSettings.UploadGamesToProfile"/>): on by
-    /// default while signed in, the switch turns it off.
+    /// default while signed in, the switch turns it off. Turning it off while games wait asks first
+    /// (<see cref="UploadOffConfirmText"/>): those games would not be sent.
     /// </summary>
     public bool UploadGames
     {
@@ -45,13 +50,34 @@ public sealed partial class MainViewModel
                 return;
             }
 
-            Settings.UploadGamesToProfile = value;
-            Raise();
-            Raise(nameof(UploadStatus));
-            ShowUploadMessage(() => string.Empty);
-            UploadSettingChanged?.Invoke();
-            _uploader?.Kick();
+            if (!value && _uploader?.PendingCount is int pending && pending > 0)
+            {
+                // The switch stays on until the player answers the question under it.
+                SetUploadOffPending(pending);
+                Raise();
+                return;
+            }
+
+            ApplyUploadGames(value);
         }
+    }
+
+    private void ApplyUploadGames(bool value)
+    {
+        Settings.UploadGamesToProfile = value;
+        if (!value)
+        {
+            // Sending is off: its last failure is no longer news and must not keep the connection at "no connection".
+            _account?.Activity.ClearFailure(SiteService.Games);
+        }
+
+        SetUploadOffPending(0);
+        Raise(nameof(UploadGames));
+        Raise(nameof(UploadStatus));
+        RaiseAccountCenter();
+        ShowUploadMessage(() => string.Empty);
+        UploadSettingChanged?.Invoke();
+        _uploader?.Kick();
     }
 
     /// <summary>The site's privacy policy.</summary>

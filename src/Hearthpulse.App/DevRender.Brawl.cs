@@ -18,7 +18,16 @@ public partial class App
     /// <summary><c>HEARTHPULSE_RENDER_WIDTH=1040</c>: the main window's width for the groups (the minimum is 1040), else as it is.</summary>
     private static double? RenderWidth =>
         double.TryParse(Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_WIDTH"), System.Globalization.NumberStyles.Number,
-            System.Globalization.CultureInfo.InvariantCulture, out var width) && width >= 800 ? width : null;
+            System.Globalization.CultureInfo.InvariantCulture, out var width) && width >= 400 ? width : null;
+
+    /// <summary><c>HEARTHPULSE_RENDER_ACCOUNT</c>: the sample account's state in the <c>account</c> group (connected, offline, ended).</summary>
+    private static string RenderAccountState =>
+        Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_ACCOUNT")?.Trim().ToLowerInvariant() switch
+        {
+            "offline" => "offline",
+            "ended" => "ended",
+            _ => "connected",
+        };
 
     /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>history</c> (History and a Battlegrounds match).</summary>
     private async Task RenderOnlyAsync(string folder)
@@ -26,6 +35,24 @@ public partial class App
         if (RenderOnly("brawl"))
         {
             await RenderBrawlAsync(folder);
+        }
+
+        if (RenderOnly("account"))
+        {
+            // The account center (Settings → Hearthpulse account) and the connection light, signed in as the in-memory
+            // sample "Render" (no network, no real token); HEARTHPULSE_RENDER_ACCOUNT=connected|offline|ended.
+            var state = RenderAccountState;
+            await _mainViewModel.ShowRenderAccountAsync(state);
+            if (RenderWidth is { } accountWidth)
+            {
+                _main.Width = accountWidth;
+            }
+
+            _main.ShowPage("Settings");
+            _main.ShowSettingsTab("Account");
+            await Task.Delay(2500);
+            _main.UpdateLayout();
+            Save(_main, Path.Combine(folder, $"main-settings-account-{state}.png"));
         }
 
         if (RenderOnly("ctmatch"))

@@ -1,3 +1,5 @@
+using Hearthpulse.Core;
+
 #if HEARTHPULSE_WPF
 namespace Hearthpulse.App.Main;
 #else
@@ -23,6 +25,8 @@ public sealed partial class MainViewModel
             Settings.SendCrashReports = value;
             Raise();
             CrashReportsChanged?.Invoke();
+            Raise(nameof(AccountCrashText));
+            RefreshAccountCountsAsync().Forget("Account center counts");
         }
     }
 

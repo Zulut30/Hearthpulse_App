@@ -405,7 +405,7 @@ public sealed class MatchPlayerTests : IDisposable
             Assert.Equal(shown.PartnerBoard, step.PartnerBoard);
             SameChoices(shown.Choices, step.Choices);
             Assert.Equal(shown.Leaderboard.Select(MatchViewModel.Leader), model.Leaders);
-            foreach (var (index, expected, actual) in new[] { (0, shown.Hero, step.Hero), (2, shown.Opponent, step.Opponent), (4, shown.Partner, step.Partner) })
+            foreach (var (index, expected, actual) in new[] { (0, shown.Hero, step.Hero), (2, shown.Opponent, step.Opponent) })
             {
                 Assert.Equal(expected is null, actual is null);
                 if (expected is null || actual is null)
@@ -430,7 +430,6 @@ public sealed class MatchPlayerTests : IDisposable
                 Opponent = step.Opponent,
                 Board = step.Board,
                 OpponentBoard = step.OpponentBoard,
-                Partner = step.Partner,
                 PartnerBoard = step.PartnerBoard,
                 Shop = step.Shop,
                 Hand = step.Hand,

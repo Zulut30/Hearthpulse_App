@@ -222,6 +222,9 @@ public sealed partial class LocBindingTests
         private static readonly BlockingCollection<Action> Work = new();
         private static readonly Thread UiThread = Start();
 
+        /// <summary>Starts the headless thread without waiting for it (the module initializer calls this).</summary>
+        public static void Warm() => _ = UiThread;
+
         public static void Run(Action body)
         {
             _ = UiThread;

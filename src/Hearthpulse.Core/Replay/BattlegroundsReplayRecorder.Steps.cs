@@ -111,6 +111,7 @@ public sealed partial class BattlegroundsReplayRecorder
         _tavernTurn = game.BattlegroundsTurn;
         EndStep(game);
         Marker(string.Create(CultureInfo.InvariantCulture, $"T {game.BattlegroundsTurn} {Seconds(game)}"));
+        NoteOwnHero(game);
     }
 
     private void BeginCombat(GameState game)
@@ -123,9 +124,12 @@ public sealed partial class BattlegroundsReplayRecorder
         EndStep(game);
         WriteOpenChoice(game);
         Marker(string.Create(CultureInfo.InvariantCulture, $"F {game.BattlegroundsTurn} {Seconds(game)}"));
+        // Our hero as the tavern left it, noted before the fight starts; a recording that starts mid-combat notes it at
+        // the next tavern.
+        NoteOwnHero(game);
         _combat = true;
         _combatSteps = 0;
-        _localHeroAtStart = Durability(game.LocalHero);
+        _localHeroAtStart = Durability(OwnHero(game));
         _opponentHero = null;
         _heroAttack = null;
         _fightResult = null;
@@ -152,7 +156,7 @@ public sealed partial class BattlegroundsReplayRecorder
 
         EndStep(game);
         // Without a hero attack nobody was left standing (a tie), unless our hero lost health some other way.
-        var taken = _fightResult is null ? Math.Max(0, _localHeroAtStart - Durability(game.LocalHero)) : _taken;
+        var taken = _fightResult is null ? Math.Max(0, _localHeroAtStart - Durability(OwnHero(game))) : _taken;
         var result = _fightResult ?? (taken > 0 ? "LOSS" : "TIE");
         if (_combatSteps == 0)
         {
