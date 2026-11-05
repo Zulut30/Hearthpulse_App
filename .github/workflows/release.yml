@@ -11,6 +11,10 @@ on:
         description: Version to build and publish (for example 0.2.0)
         required: true
         default: "0.14.0"
+      publish:
+        description: Publish the GitHub Release (off - a trial run - builds and checks every installer, publishes nothing)
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -152,6 +156,7 @@ jobs:
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
+        if: github.event_name == 'push' || inputs.publish
         with:
           tag_name: v${{ steps.v.outputs.version }}
           name: Hearthpulse ${{ steps.v.outputs.version }}

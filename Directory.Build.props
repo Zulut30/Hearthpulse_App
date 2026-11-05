@@ -23,6 +23,13 @@
     <RunAnalyzers>false</RunAnalyzers>
   </PropertyGroup>
 
+  <!-- WPF compiles the app twice: a throwaway temporary assembly (the *_wpftmp project) so XAML can see the app's own
+       types, then the real one. Analyzers on the first would only repeat what the second reports, at about a second
+       per XAML edit. The real compile keeps every analyzer, in strict mode too. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('_wpftmp'))">
+    <RunAnalyzers>false</RunAnalyzers>
+  </PropertyGroup>
+
   <!-- Code analyzers for every project (build-time only: PrivateAssets keeps them out of the published apps). Which rules
        are warnings and why the rest are off: .editorconfig; tests/* and tools/* get the soft set there (ADR 0003). -->
   <ItemGroup>

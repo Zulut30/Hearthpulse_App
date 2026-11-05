@@ -41,13 +41,9 @@ with open(out, "w", encoding="utf-8") as f:
 print(f"uninstall list: {len(files)} files, {len(dirs)} folders")
 PY
 
-echo "== Building the setup wizard"
-SETUP="$DIST/Hearthpulse-Setup-$VERSION-win-x64.exe"
-makensis -V2 -DVERSION="$VERSION" -DSOURCE_DIR="$WORK/app" -DOUT_FILE="$SETUP" \
-  -DUNINSTALL_LIST="$WORK/uninstall-files.nsh" "$ROOT/installer/windows/hearthpulse.nsi"
-echo "wrote $SETUP"
-
+# The setup (about a minute of LZMA) and the portable zip read the same published folder: built at the same time.
 echo "== Packing the portable Windows app"
+(
 rm -rf "$WORK/portable"
 mkdir -p "$WORK/portable"
 cp -r "$WORK/app" "$WORK/portable/Hearthpulse"
@@ -57,6 +53,15 @@ PORTABLE="$DIST/Hearthpulse-Portable-$VERSION-win-x64.zip"
 rm -f "$PORTABLE"
 (cd "$WORK/portable" && zip -qr -9 "$PORTABLE" Hearthpulse)
 echo "wrote $PORTABLE"
+) &
+PORTABLE_PID=$!
+
+echo "== Building the setup wizard"
+SETUP="$DIST/Hearthpulse-Setup-$VERSION-win-x64.exe"
+makensis -V2 -DVERSION="$VERSION" -DSOURCE_DIR="$WORK/app" -DOUT_FILE="$SETUP" \
+  -DUNINSTALL_LIST="$WORK/uninstall-files.nsh" "$ROOT/installer/windows/hearthpulse.nsi"
+echo "wrote $SETUP"
+wait "$PORTABLE_PID" || { echo "the portable zip was not built" >&2; exit 1; }
 fi
 
 if [ "$PART" != app ]; then

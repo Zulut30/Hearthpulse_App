@@ -140,7 +140,10 @@ LangString NeedsWin11Arm ${LANG_ITALIAN} "Sui PC con processore ARM, Hearthpulse
   DetailPrint "$(ClosingApp)"
   nsExec::Exec '"$SYSDIR\taskkill.exe" /F /IM "${APP_EXE}"'
   Pop $0
-  Sleep 800
+  ; Only when a copy was running (0); 128 means none was, as when an update installs after the app has closed.
+  ${If} $0 == 0
+    Sleep 800
+  ${EndIf}
 !macroend
 
 Function .onInit

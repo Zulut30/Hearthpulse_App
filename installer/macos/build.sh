@@ -18,6 +18,7 @@ DIST="$ROOT/dist"
 mkdir -p "$DIST"
 ON_MAC=0
 [ "$(uname -s)" = "Darwin" ] && ON_MAC=1
+PIDS=()
 
 for ARCH in "${ARCHS[@]}"; do
   WORK="$DIST/work/macos-$ARCH"
@@ -38,6 +39,9 @@ for ARCH in "${ARCHS[@]}"; do
     codesign --force --deep --sign - "$APP"
   fi
 
+  # This architecture's packages are built while the next one publishes (one after another, the packages of both took
+  # about 70 s); each architecture has its own work folder. All are waited for after the loop.
+  (
   # ---- .zip with install / uninstall scripts (built anywhere) --------------------------------
   echo "== Building .zip"
   PKG="$WORK/Hearthpulse"
@@ -77,7 +81,7 @@ for ARCH in "${ARCHS[@]}"; do
   echo "wrote $PZIP"
 
   if [ "$ON_MAC" -eq 0 ]; then
-    continue
+    exit 0
   fi
 
   # ---- .dmg ----------------------------------------------------------------------------------
@@ -89,7 +93,10 @@ for ARCH in "${ARCHS[@]}"; do
   cp "$HERE/Uninstall Hearthpulse.command" "$HERE/README.txt" "$DMGROOT/"
   DMG="$DIST/Hearthpulse-$VERSION-macOS-$ARCH.dmg"
   rm -f "$DMG"
-  hdiutil create -volname "Hearthpulse" -srcfolder "$DMGROOT" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null
+  # hdiutil now and then answers "Resource busy" on hosted runners (more likely with the other architecture's image
+  # being made at the same time): one more try.
+  hdiutil create -volname "Hearthpulse" -srcfolder "$DMGROOT" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null \
+    || { sleep 5; hdiutil create -volname "Hearthpulse" -srcfolder "$DMGROOT" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null; }
   echo "wrote $DMG"
 
   # ---- .pkg setup wizard -----------------------------------------------------------------------
@@ -157,4 +164,9 @@ XML
   OUT_PKG="$DIST/Hearthpulse-$VERSION-macOS-$ARCH.pkg"
   productbuild --distribution "$WORK/distribution.xml" --resources "$WORK/resources" --package-path "$WORK" "$OUT_PKG" >/dev/null
   echo "wrote $OUT_PKG"
+  ) & PIDS+=("$!")
 done
+
+FAILED=0
+for pid in "${PIDS[@]}"; do wait "$pid" || FAILED=1; done
+[ "$FAILED" -eq 0 ] || { echo "a macOS package was not built" >&2; exit 1; }

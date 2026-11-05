@@ -12,7 +12,9 @@ prepared on a branch.
 ## How a release is built
 
 `.github/workflows/release.yml` runs on a pushed tag `v*` or by hand (`workflow_dispatch`, input `version`).
-The version must match `^\d+\.\d+\.\d+$` (a leading `v` is stripped).
+The version must match `^\d+\.\d+\.\d+$` (a leading `v` is stripped). A trial run of a branch builds and checks every
+installer without creating a release: `gh workflow run release.yml --ref <branch> -f version=0.0.0 -f publish=false`.
+Each build job makes its packages in parallel from one publish (`installer/*/build.sh` wait for all of them).
 
 | Job | Runner | Does |
 |---|---|---|
