@@ -32,7 +32,11 @@ public sealed record GameRow(
     string Detail,
     string Rating,
     int RatingValue,
-    string Key = "");
+    string Key = "")
+{
+    /// <summary>The mode and the game's details on one line: "Battlegrounds · Tier 5 · 11 turns".</summary>
+    public string Summary => Detail.Length > 0 ? Mode + " · " + Detail : Mode;
+}
 
 public sealed partial record PlacementBar(int Place, int Count, double Fraction, string Share, bool Top);
 
@@ -376,7 +380,8 @@ public sealed partial class MainViewModel : Observable
         ShowDiscord(s);
         HearthstoneRunning = s.HearthstoneRunning;
         MemoryAttached = s.MemoryAttached;
-        MemoryStatus = s.MemoryStatus;
+        // The pill says where the connection is in the interface's language; the memory reader's own words go to the log.
+        MemoryStatus = Loc.T(s.MemoryAttached ? "Main.Status.Attached" : s.HearthstoneRunning ? "Main.Live.HsRunning" : "Main.Live.WaitingHs");
         InGame = s.InGame;
         SetupWarning = s.LogConfigMissing.Count > 0
             ? Loc.F("Main.Setup.LoggingEnabled", string.Join(", ", s.LogConfigMissing))

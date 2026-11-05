@@ -285,9 +285,8 @@
     <!-- The hero's art dissolves towards the text on the left (an opacity mask: only the alpha counts) -->
     <LinearGradientBrush x:Key="PageHeroFade" StartPoint="0,0" EndPoint="1,0">
         <GradientStop Color="#00000000" Offset="0" />
-        <GradientStop Color="#00000000" Offset="0.3" />
-        <GradientStop Color="#B3000000" Offset="0.55" />
-        <GradientStop Color="#FF000000" Offset="0.8" />
+        <GradientStop Color="#B3000000" Offset="0.3" />
+        <GradientStop Color="#FF000000" Offset="0.6" />
     </LinearGradientBrush>
     <!-- ...and towards its bottom, so the square art never ends in an edge on a taller plate -->
     <LinearGradientBrush x:Key="PageHeroFloor" StartPoint="0,0" EndPoint="0,1">
@@ -1120,7 +1119,8 @@
         <Setter Property="Padding" Value="4" />
     </Style>
 
-    <!-- ===== Switch: the track stays rounded, gold when on ===== -->
+    <!-- ===== Switch: a slim pill track (radius half its height: WPF draws a larger one as an oval), a round knob that slides;
+         gold with a dark knob when on, dark with a muted knob when off. No tick: the side says it. ===== -->
     <Style x:Key="Switch" TargetType="CheckBox">
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingSwitch}" />
@@ -1136,21 +1136,19 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <ContentPresenter VerticalAlignment="Center" Margin="0,0,16,0" />
-                        <Grid Grid.Column="1" Width="48" Height="28">
-                            <Border x:Name="Track" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
-                            <Border x:Name="OnFill" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource PrimaryFill}" Opacity="0" />
-                            <Grid x:Name="Thumb" Width="24" Height="24" HorizontalAlignment="Left" Margin="2,0,0,0" RenderTransformOrigin="0.5,0.5">
+                        <Grid Grid.Column="1" Width="42" Height="24">
+                            <Border x:Name="Track" CornerRadius="{StaticResource RadiusLarge}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="1" />
+                            <Border x:Name="OnFill" CornerRadius="{StaticResource RadiusLarge}" Background="{StaticResource PrimaryFill}" Opacity="0" />
+                            <Grid x:Name="Thumb" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0,0,0" RenderTransformOrigin="0.5,0.5">
                                 <Grid.RenderTransform>
                                     <TransformGroup>
-                                        <ScaleTransform ScaleX="0.67" ScaleY="0.67" />
+                                        <ScaleTransform ScaleX="1" ScaleY="1" />
                                         <TranslateTransform X="0" />
                                     </TransformGroup>
                                 </Grid.RenderTransform>
-                                <Ellipse x:Name="Halo" Margin="-9" Fill="{StaticResource Hover}" Opacity="0" />
+                                <Ellipse x:Name="Halo" Margin="-8" Fill="{StaticResource Hover}" Opacity="0" />
                                 <Ellipse x:Name="KnobOff" Fill="{StaticResource Muted}" />
                                 <Ellipse x:Name="KnobOn" Fill="{StaticResource OnAccent}" Opacity="0" />
-                                <TextBlock x:Name="Tick" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="17" Foreground="{StaticResource Accent}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" />
                             </Grid>
                         </Grid>
                     </Grid>
@@ -1180,12 +1178,9 @@
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(TranslateTransform.X)" To="20" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)" To="0.83" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)" To="0.83" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(TranslateTransform.X)" To="16" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="OnFill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="KnobOn" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Tick" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.160" BeginTime="0:0:0.060"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.EnterActions>
@@ -1193,11 +1188,8 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(TranslateTransform.X)" To="0" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)" To="0.67" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)" To="0.67" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="OnFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="KnobOn" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Tick" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.100"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>

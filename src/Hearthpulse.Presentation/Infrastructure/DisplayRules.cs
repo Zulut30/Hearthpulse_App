@@ -50,9 +50,20 @@ internal static class DisplayRules
     public static string EdgeKey(string? rarity) =>
         BrushKey(rarity) is var key && key.StartsWith("Rarity", StringComparison.Ordinal) ? key + "Edge" : "OverlayBorder";
 
-    /// <summary><see cref="EdgeKey"/> when the converter parameter is "edge", else <see cref="BrushKey"/>.</summary>
-    public static string BrushKey(string? value, object? parameter) =>
-        parameter as string == "edge" ? EdgeKey(value) : BrushKey(value);
+    /// <summary>
+    /// The soft fill under a result in its colour (a game row's result pill): PositiveSoft / NegativeSoft, the groove
+    /// for anything else.
+    /// </summary>
+    public static string SoftKey(string? value) =>
+        BrushKey(value) is "Positive" or "Negative" ? BrushKey(value) + "Soft" : "GrooveFill";
+
+    /// <summary><see cref="EdgeKey"/> when the converter parameter is "edge", <see cref="SoftKey"/> for "soft", else <see cref="BrushKey"/>.</summary>
+    public static string BrushKey(string? value, object? parameter) => (parameter as string) switch
+    {
+        "edge" => EdgeKey(value),
+        "soft" => SoftKey(value),
+        _ => BrushKey(value),
+    };
 
     /// <summary>
     /// The brush key of a placement or a signed number. A numeric <paramref name="parameter"/> is the top-N cutoff for

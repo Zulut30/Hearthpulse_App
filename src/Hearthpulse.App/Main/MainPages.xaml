@@ -61,47 +61,32 @@
         </DataTemplate.Triggers>
     </DataTemplate>
 
-    <!-- A recent game (V3): the result's colour as a bar on the left, the hero in a gold ring, and its art fading in at the
-         right under the result and the rating, each on a dark pill so they read over the art -->
+    <!-- A recent game: the hero in a gold ring, its name over the mode and one line of details, the date, the result on a
+         pill in its own colour and the rating change. Fixed columns, so Battlegrounds and Constructed rows line up. -->
     <DataTemplate x:Key="GameRowTemplate" DataType="{x:Type m:GameRow}">
         <Border Style="{StaticResource RowBorder}">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="50" />
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="3*" />
-                    <ColumnDefinition Width="110" />
-                    <ColumnDefinition Width="92" />
-                    <ColumnDefinition Width="64" />
+                    <ColumnDefinition Width="52" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="120" />
+                    <ColumnDefinition Width="112" />
+                    <ColumnDefinition Width="56" />
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="3" Grid.ColumnSpan="3" Width="170" Margin="0,-8,-10,-8" HorizontalAlignment="Right" CornerRadius="0,8,8,0"
-                        i:CardArt.Portrait="{Binding HeroCardId}" IsHitTestVisible="False">
-                    <Border.OpacityMask>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#00000000" Offset="0" />
-                            <GradientStop Color="#B3000000" Offset="0.6" />
-                            <GradientStop Color="#B3000000" Offset="1" />
-                        </LinearGradientBrush>
-                    </Border.OpacityMask>
-                </Border>
-                <Border Width="3" Margin="-8,2,0,2" HorizontalAlignment="Left" CornerRadius="1" Background="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
-                <Border Width="38" Height="38" CornerRadius="19" Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1.5"
+                <Border Width="40" Height="40" CornerRadius="20" Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1.5"
                         HorizontalAlignment="Left" i:CardArt.Portrait="{Binding HeroCardId}" />
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,12,0">
-                    <TextBlock Text="{Binding Hero}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Mode}" Style="{StaticResource Caption}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,16,0">
+                    <TextBlock Text="{Binding Hero}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Hero}" />
+                    <TextBlock Text="{Binding Summary}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Summary}" />
                 </StackPanel>
-                <TextBlock Grid.Column="2" Text="{Binding Detail}" Style="{StaticResource Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                           Margin="0,0,16,0" ToolTip="{Binding Detail}" />
-                <TextBlock Grid.Column="3" Text="{Binding When}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
-                <Border Grid.Column="4" CornerRadius="{StaticResource RadiusPill}" Padding="10,2" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{StaticResource OverlayBadgeShade}">
-                    <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                <TextBlock Grid.Column="2" Text="{Binding When}" Style="{StaticResource Caption}" VerticalAlignment="Center" />
+                <Border Grid.Column="3" CornerRadius="{StaticResource RadiusLarge}" Padding="12,4" HorizontalAlignment="Left" VerticalAlignment="Center" BorderThickness="1"
+                        Background="{Binding ResultKey, Converter={StaticResource KeyBrush}, ConverterParameter=soft}"
+                        BorderBrush="{Binding ResultKey, Converter={StaticResource KeyBrush}}">
+                    <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
                 </Border>
-                <Border Grid.Column="5" CornerRadius="{StaticResource RadiusPill}" Padding="8,2" HorizontalAlignment="Right" VerticalAlignment="Center" Background="{StaticResource OverlayBadgeShade}"
-                        Visibility="{Binding Rating, Converter={StaticResource Vis}}">
-                    <TextBlock Text="{Binding Rating}" FontWeight="SemiBold" Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}"
-                               ToolTip="{i:Loc Main.Game.RatingChange}" />
-                </Border>
+                <TextBlock Grid.Column="4" Text="{Binding Rating}" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"
+                           Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Game.RatingChange}" />
             </Grid>
         </Border>
     </DataTemplate>

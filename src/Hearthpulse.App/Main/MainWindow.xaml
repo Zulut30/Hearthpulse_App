@@ -134,13 +134,13 @@
                         </Grid.CacheMode>
                         <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageStone}" />
                         <Grid Visibility="{Binding PageHero, Converter={StaticResource Vis}}">
-                            <!-- The hero's colours light the whole page; the art itself is square, top right, 0.8 of the plate wide and
-                                 at most 940 (the columns), so at the narrowest window it still clears the titles on the left -->
+                            <!-- The hero's colours light the whole page; the art itself is square, top right, half the plate wide and
+                                 at most 512, its own size (HearthstoneJSON's largest art): never stretched (the columns), so at the narrowest window it still clears the titles on the left -->
                             <Border Style="{StaticResource PageLayer}" i:CardArt.Glow="{Binding PageHero}" Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="4*" MaxWidth="940" />
+                                    <ColumnDefinition Width="*" MaxWidth="512" />
                                 </Grid.ColumnDefinitions>
                                 <Border x:Name="PageHeroArt" Grid.Column="1" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" VerticalAlignment="Top"
                                         Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
@@ -214,7 +214,7 @@
                             </Button.Template>
                         </Button>
                         <Border Style="{StaticResource Pill}" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
-                                CornerRadius="999" Padding="12,5" WindowChrome.IsHitTestVisibleInChrome="True"
+                                CornerRadius="{StaticResource RadiusLarge}" Padding="12,5" WindowChrome.IsHitTestVisibleInChrome="True"
                                 ToolTip="{i:Loc Main.Status.Tip}">
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" />

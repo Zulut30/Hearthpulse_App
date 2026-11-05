@@ -29,7 +29,7 @@ public partial class App
             _ => "connected",
         };
 
-    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>setup</c> (the setup wizard on each step), <c>history</c> (History and a Battlegrounds match).</summary>
+    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>pages</c> (Home and Battlegrounds at a width), <c>setup</c> (the setup wizard on each step), <c>history</c> (History and a Battlegrounds match).</summary>
     private async Task RenderOnlyAsync(string folder)
     {
         if (RenderOnly("brawl"))
@@ -80,6 +80,22 @@ public partial class App
             await Task.Delay(2500);
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, $"main-settings-account-{state}.png"));
+        }
+
+        if (RenderOnly("pages"))
+        {
+            // Home and Battlegrounds as the whole window at HEARTHPULSE_RENDER_WIDTH (1080 high from 1600 wide): the page
+            // hero and its art at a wide window.
+            var width = RenderWidth ?? 1260;
+            _main.Width = width;
+            _main.Height = width >= 1600 ? 1080 : 840;
+            foreach (var page in new[] { "Overview", "Battlegrounds" })
+            {
+                _main.ShowPage(page);
+                await Task.Delay(2500);
+                _main.UpdateLayout();
+                Save(_main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}-{width:0}.png"));
+            }
         }
 
         if (RenderOnly("setup"))

@@ -4,6 +4,7 @@ using Hearthpulse.App.Infrastructure;
 using Hearthpulse.UI.Infrastructure;
 #endif
 using System.IO;
+using System.Globalization;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Accounts;
 using Hearthpulse.Core.Localization;
@@ -18,8 +19,23 @@ namespace Hearthpulse.UI.Main.Match;
 /// <summary>A hero power or trinket of a library card: the card (full card on hover) and its name.</summary>
 public sealed record LibraryChip(string CardId, string Tooltip);
 
-/// <summary>A minion of a Battlegrounds card's final board: stats under its portrait, golden, taunt, divine shield.</summary>
-public sealed record LibraryMinion(string CardId, string Stats, bool Golden, bool Taunt, bool DivineShield, string Tooltip);
+/// <summary>A minion of a Battlegrounds card's final board: attack and health badges under its portrait, golden, taunt, divine shield.</summary>
+public sealed record LibraryMinion(string CardId, string Stats, bool Golden, bool Taunt, bool DivineShield, string Tooltip, int AttackValue = 0, int HealthValue = 0)
+{
+    /// <summary>The attack badge: the number, shortened from 1000 ("1,4k") so the board never cuts it.</summary>
+    public string Attack => Short(AttackValue);
+
+    /// <summary>The health badge, shortened like <see cref="Attack"/>.</summary>
+    public string Health => Short(HealthValue);
+
+    /// <summary>Up to 999 as it is, then thousands with one decimal ("1,4k") and from 10 000 whole ("12k").</summary>
+    internal static string Short(int value) => value switch
+    {
+        < 1000 => value.ToString(CultureInfo.CurrentCulture),
+        < 10000 => (value / 1000.0).ToString("0.#", CultureInfo.CurrentCulture) + "k",
+        _ => (value / 1000).ToString(CultureInfo.CurrentCulture) + "k",
+    };
+}
 
 /// <summary>
 /// The final board as one width shows it: the minions that fit whole and "+N" for the rest, its tooltip naming them.
@@ -40,8 +56,8 @@ public sealed record LibrarySummary(
     /// <summary>Chips shown before the rest goes into "+N".</summary>
     public const int Shown = 3;
 
-    /// <summary>A minion of the board in the views: 48 wide and 1 apart.</summary>
-    public const double MinionRoom = 49;
+    /// <summary>A minion of the board in the views: 52 wide (its portrait over its attack and health badges) and 1 apart.</summary>
+    public const double MinionRoom = 53;
 
     /// <summary>The board's "+N" pill ("+6" at 11 px with the pill's padding) and the gap before it.</summary>
     public const double MoreRoom = 36;

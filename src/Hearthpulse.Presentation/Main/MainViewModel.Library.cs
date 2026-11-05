@@ -258,7 +258,7 @@ public sealed partial class MainViewModel
                 var tip = string.Join(" · ", new[] { cards.NameOf(m.CardId), stats }
                     .Concat(m.Golden ? [Loc.T("Match.Round.Golden")] : [])
                     .Concat(m.Keywords.Select(Keyword)));
-                return new LibraryMinion(m.CardId, stats, m.Golden, m.Keywords.Contains("TAUNT"), m.Keywords.Contains("DIVINE_SHIELD"), tip);
+                return new LibraryMinion(m.CardId, stats, m.Golden, m.Keywords.Contains("TAUNT"), m.Keywords.Contains("DIVINE_SHIELD"), tip, m.Attack, m.Health);
             }).ToList());
     }
 

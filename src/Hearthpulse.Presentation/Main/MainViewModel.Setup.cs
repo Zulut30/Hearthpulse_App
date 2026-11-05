@@ -286,11 +286,12 @@ public sealed partial class MainViewModel
         }
         finally
         {
+            // The markers first: whoever waits for the fix to end (SetupCanFixLogs) reads them right away
             _setupLogsFixing = false;
+            RefreshSetupSteps();
             Raise(nameof(SetupLogsOk));
             Raise(nameof(SetupLogsStatus));
             Raise(nameof(SetupCanFixLogs));
-            RefreshSetupSteps();
         }
     }
 

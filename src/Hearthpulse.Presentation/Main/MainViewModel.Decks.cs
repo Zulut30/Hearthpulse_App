@@ -346,7 +346,7 @@ public sealed partial class MainViewModel
                     DeckMeta(f.Main.DeckCode, f.PlayerClass, f.Format),
                     f.Versions.Count > 1 ? Loc.P("Deck.VersionCount", f.Versions.Count) : string.Empty))
                 .ToList();
-            HomeDecks = HomeDeck.Latest(data.Families, ClassHero);
+            HomeDecks = HomeDeck.Latest(data.Families, ClassHero, _cards);
             DeckSuggestions = data.ShownSuggestions.Select(s => new DeckSuggestionRow(
                     s.First.Key,
                     s.Second.Key,

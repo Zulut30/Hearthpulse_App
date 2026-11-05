@@ -419,11 +419,26 @@ public sealed partial class DeckPageTests
         };
         var families = DeckFamilies.Build(DeckFamilies.Versions(games), []);
 
-        var home = Hearthpulse.UI.Main.HomeDeck.Latest(families, c => "HERO_" + c);
+        var home = Hearthpulse.UI.Main.HomeDeck.Latest(families, c => "HERO_" + c, Cards);
 
         Assert.Equal(new[] { "Newest", "New", "Middle" }, home.Select(d => d.Name));
         Assert.Equal(new[] { "HERO_PALADIN", "HERO_MAGE", "HERO_PRIEST" }, home.Select(d => d.HeroCardId));
         Assert.EndsWith(Hearthpulse.Core.Localization.Loc.P("Stats.Games", 1), home[0].Line, StringComparison.Ordinal);
+        // Each banner shows its own key card (the decks share these test cards), never stretched hero art
+        Assert.Equal(home.Count, home.Select(d => d.ArtCardId).Distinct().Count());
+        Assert.All(home, d => Assert.Equal(8, d.Curve.Count));
+    }
+
+    [Fact]
+    public void A_deck_curve_counts_copies_per_cost_with_seven_and_up_together()
+    {
+        var curve = Hearthpulse.UI.Main.HomeDeck.CurveOf([(1, 2), (2, 2), (2, 2), (7, 1), (9, 1)]);
+
+        Assert.Equal(8, curve.Count);
+        Assert.Equal(2, curve[0].Height);
+        Assert.Equal(Hearthpulse.UI.Main.HomeDeck.CurveHeight, curve[2].Height);
+        Assert.Equal(Hearthpulse.UI.Main.HomeDeck.CurveHeight / 2, curve[1].Height);
+        Assert.Equal(Hearthpulse.UI.Main.HomeDeck.CurveHeight / 2, curve[7].Height);
     }
     private static (int, int)[] Deck(int first, params int[] swaps) =>
         Enumerable.Range(first, 15).Select(d => swaps.Contains(d) ? (d + 500, 2) : (d, 2)).ToArray();

@@ -51,8 +51,9 @@ public sealed partial class LocBindingTests
 
             var texts = button.GetVisualDescendants().OfType<TextBlock>().Select(block => block.Text).ToArray();
             Assert.Contains(game.Hero, texts);
-            Assert.Contains(game.Mode, texts);
-            Assert.Contains(game.Detail, texts);
+            // The mode and the details on one line under the hero
+            Assert.Contains(game.Summary, texts);
+            Assert.Equal("Ranked · Against Warrior", game.Summary);
             Assert.Contains(game.Result, texts);
             Assert.Contains(game.Rating, texts);
             Assert.DoesNotContain(game.ToString(), texts);

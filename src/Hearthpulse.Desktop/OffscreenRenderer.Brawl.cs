@@ -72,6 +72,20 @@ internal static partial class OffscreenRenderer
             await Save(main, Path.Combine(folder, $"main-settings-account-{state}.png"));
         }
 
+        if (RenderOnly("pages"))
+        {
+            // Home and Battlegrounds as the whole window at HEARTHPULSE_RENDER_WIDTH (1080 high from 1600 wide): the page
+            // hero and its art at a wide window.
+            var width = RenderWidth ?? 1260;
+            main.Width = width;
+            main.Height = width >= 1600 ? 1080 : 840;
+            foreach (var page in new[] { "Overview", "Battlegrounds" })
+            {
+                view.ShowPage(page);
+                await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}-{width:0}.png"));
+            }
+        }
+
         if (RenderOnly("setup"))
         {
             // The setup wizard (D4) on each step, over Home; Start closes it (in the data copy) for the groups after it.

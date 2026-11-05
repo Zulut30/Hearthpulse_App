@@ -192,16 +192,39 @@
                             <DataTemplate DataType="{x:Type m:HomeDeck}">
                                 <Button Style="{StaticResource BareRow}" Margin="0,0,12,0" ToolTip="{i:Loc Main.Home.OpenDeckTip}" AutomationProperties.Name="{Binding Name}"
                                         Command="{Binding DataContext.OpenDeck, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}">
-                                    <Border Height="96" CornerRadius="8" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" Background="{StaticResource Surface3}">
+                                    <!-- The key card's art in a square at its own proportions (256 px art in 104): never stretched -->
+                                    <Border Height="104" CornerRadius="{StaticResource RadiusLarge}" BorderBrush="{StaticResource CardEdge}" BorderThickness="1"
+                                            Background="{StaticResource CardFill}">
                                         <Grid>
-                                            <Border CornerRadius="8" i:CardArt.Portrait="{Binding HeroCardId}" />
-                                            <Border VerticalAlignment="Bottom" CornerRadius="0,0,8,8" Padding="12,8" Background="{StaticResource OverlayBadgeShade}">
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}"
-                                                               TextTrimming="CharacterEllipsis" />
-                                                    <TextBlock Text="{Binding Line}" Style="{StaticResource Caption}" />
-                                                </StackPanel>
-                                            </Border>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="102" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border CornerRadius="12,0,0,12" Background="{StaticResource Surface3}" i:CardArt.Portrait="{Binding ArtCardId}" />
+                                            <StackPanel Grid.Column="1" Margin="12,8,12,8">
+                                                <DockPanel>
+                                                    <Border DockPanel.Dock="Left" Width="24" Height="24" CornerRadius="{StaticResource RadiusLarge}" Margin="0,0,8,0"
+                                                            BorderBrush="{StaticResource AccentLine}" BorderThickness="1" Background="{StaticResource Surface3}"
+                                                            i:CardArt.Portrait="{Binding HeroCardId}" />
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center" ToolTip="{Binding Name}" />
+                                                </DockPanel>
+                                                <TextBlock Text="{Binding Line}" Style="{StaticResource Caption}" Margin="0,4,0,8" />
+                                                <!-- The mana curve, 0 to 7+ -->
+                                                <ItemsControl ItemsSource="{Binding Curve}" Height="24" HorizontalAlignment="Left" Focusable="False">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type m:HomeDeckBar}">
+                                                            <Border Width="8" Height="{Binding Height}" Margin="0,0,4,0" VerticalAlignment="Bottom" CornerRadius="{StaticResource RadiusSmall}"
+                                                                    Background="{StaticResource Accent}" ToolTip="{Binding Tip}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
                                         </Grid>
                                     </Border>
                                 </Button>

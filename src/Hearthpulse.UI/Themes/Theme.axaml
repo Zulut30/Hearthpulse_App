@@ -399,9 +399,8 @@
             <!-- The hero's art dissolves towards the text on the left (an opacity mask: only the alpha counts) -->
             <LinearGradientBrush x:Key="PageHeroFade" StartPoint="0%,0%" EndPoint="100%,0%">
                 <GradientStop Color="#00000000" Offset="0" />
-                <GradientStop Color="#00000000" Offset="0.3" />
-                <GradientStop Color="#B3000000" Offset="0.55" />
-                <GradientStop Color="#FF000000" Offset="0.8" />
+                <GradientStop Color="#B3000000" Offset="0.3" />
+                <GradientStop Color="#FF000000" Offset="0.6" />
             </LinearGradientBrush>
             <!-- ...and towards its bottom, so the square art never ends in an edge on a taller plate -->
             <LinearGradientBrush x:Key="PageHeroFloor" StartPoint="0%,0%" EndPoint="0%,100%">
@@ -904,25 +903,24 @@
             <ControlTemplate>
                 <Grid ColumnDefinitions="*,Auto" Background="Transparent">
                     <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" Margin="0,0,16,0" />
-                    <!-- Same as the WPF switch: a Surface4 track with a Muted rim, gold when on; the knob slides and grows -->
-                    <Panel Grid.Column="1" Width="48" Height="28">
-                        <Border Name="Track" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
-                        <Border Name="OnFill" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource PrimaryFill}" Opacity="0">
+                    <!-- Same as the WPF switch: a slim pill track, gold with a dark knob when on, dark with a muted knob when off;
+                         a round knob that slides, no tick -->
+                    <Panel Grid.Column="1" Width="42" Height="24">
+                        <Border Name="Track" CornerRadius="{StaticResource RadiusLarge}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="1" />
+                        <Border Name="OnFill" CornerRadius="{StaticResource RadiusLarge}" Background="{StaticResource PrimaryFill}" Opacity="0">
                             <Border.Transitions>
                                 <Transitions>
                                     <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut" />
                                 </Transitions>
                             </Border.Transitions>
                         </Border>
-                        <Panel Name="Thumb" Width="24" Height="24" HorizontalAlignment="Left" Margin="2,0" RenderTransform="translate(0px,0px) scale(0.67)">
+                        <Panel Name="Thumb" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0" RenderTransform="translate(0px,0px)">
                             <Panel.Transitions>
                                 <Transitions>
                                     <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22" Easing="CubicEaseOut" />
                                 </Transitions>
                             </Panel.Transitions>
                             <Ellipse Name="Knob" Fill="{StaticResource Muted}" />
-                            <TextBlock Name="Tick" Text="&#xF012C;" FontFamily="{DynamicResource IconFont}" FontSize="17" FontWeight="Normal"
-                                       Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="False" />
                         </Panel>
                     </Panel>
                 </Grid>
@@ -942,10 +940,7 @@
         <Setter Property="Fill" Value="{StaticResource OnAccent}" />
     </Style>
     <Style Selector="CheckBox.switch:checked /template/ Panel#Thumb">
-        <Setter Property="RenderTransform" Value="translate(20px,0px) scale(0.83)" />
-    </Style>
-    <Style Selector="CheckBox.switch:checked /template/ TextBlock#Tick">
-        <Setter Property="IsVisible" Value="True" />
+        <Setter Property="RenderTransform" Value="translate(16px,0px)" />
     </Style>
     <Style Selector="CheckBox.switch:disabled">
         <Setter Property="Opacity" Value="0.45" />
