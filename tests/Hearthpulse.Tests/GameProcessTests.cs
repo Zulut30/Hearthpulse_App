@@ -102,7 +102,8 @@ public sealed class GameProcessTests
         if (copy is null)
         {
             var source = windows ? Path.Combine(Environment.SystemDirectory, "PING.EXE") : "/bin/sleep";
-            copy = TestDataFolder.Scratch("hpgame") + (windows ? ".exe" : string.Empty);
+            // A short name: Linux keeps 15 characters of a process's name.
+            copy = Path.Combine(TestDataFolder.Scratch("hpgame"), "hpg" + Guid.NewGuid().ToString("N")[..8] + (windows ? ".exe" : string.Empty));
             Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
             File.Copy(source, copy);
         }

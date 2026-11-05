@@ -31,7 +31,9 @@ internal static class TestDataFolder
         // events to it from pool threads; were that first, the headless platform could not start on its own thread
         // later and the test host would crash. So the headless thread is started here and takes it first (not waited
         // for: the module is still loading).
+#if !PRESENTATION_TESTS
         LocBindingTests.Headless.Warm();
+#endif
     }
 
     /// <summary>

@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- TestDataFolder.cs is linked from Hearthpulse.Tests: this suite has no Avalonia headless thread to warm. -->
+    <DefineConstants>$(DefineConstants);PRESENTATION_TESTS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
