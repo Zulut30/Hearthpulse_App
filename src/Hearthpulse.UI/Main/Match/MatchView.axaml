@@ -1260,7 +1260,6 @@
                                     <TextBlock Text="{i:Loc Match.Player.Table.EmptyBoard}" Classes="caption" Foreground="{StaticResource Faint}" HorizontalAlignment="Center"
                                                VerticalAlignment="Center" IsVisible="{Binding !PartnerBoard.Count}" />
                                 </Panel>
-                                <ContentControl Content="{Binding Partner}" ContentTemplate="{StaticResource BgHeroLine}" IsVisible="{Binding Partner, Converter={StaticResource Truthy}}" />
                             </StackPanel>
                             <ItemsControl ItemsSource="{Binding Hand}" ItemTemplate="{StaticResource BgHandCard}" ItemsPanel="{StaticResource CardRow}" MinHeight="100" />
                         </StackPanel>

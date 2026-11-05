@@ -32,6 +32,7 @@ public sealed partial class MainViewModel
     {
         _account = account;
         account.Changed += () => DispatchToUi(RaiseAccount);
+        AttachAccountCenter(account);
         RaiseAccount();
     }
 
@@ -179,5 +180,6 @@ public sealed partial class MainViewModel
         Raise(nameof(AccountName));
         Raise(nameof(AccountSubscription));
         Raise(nameof(AccountHasSubscription));
+        RaiseAccountCenter();
     }
 }

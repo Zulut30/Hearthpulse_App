@@ -293,6 +293,21 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,22,0">
                     <Button Classes="ghost primary" Content="{i:Loc Main.Update.Ready}" Command="{Binding InstallUpdate}" IsVisible="{Binding UpdateReady}"
                             VerticalAlignment="Center" Margin="0,0,8,0" ToolTip.Tip="{Binding UpdateText}" />
+                    <!-- The site connection (account center): hidden while signed out; a click opens Settings, Account -->
+                    <Button Name="AccountLinkButton" Classes="bare" Click="OnOpenAccountCenter" VerticalAlignment="Center" Margin="0,0,8,0"
+                            IsVisible="{Binding AccountLinkVisible}" ToolTip.Tip="{Binding AccountLinkTip}" AutomationProperties.Name="{Binding AccountLinkTip}">
+                        <Border Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
+                                CornerRadius="{StaticResource RadiusPill}" Padding="12,5">
+                            <StackPanel Orientation="Horizontal">
+                                <Panel Width="8" Height="8" VerticalAlignment="Center">
+                                    <Ellipse Fill="{StaticResource Positive}" IsVisible="{Binding AccountLinkOk}" />
+                                    <Ellipse Fill="{StaticResource InfoCaution}" IsVisible="{Binding AccountLinkWarn}" />
+                                    <Ellipse Fill="{StaticResource Negative}" IsVisible="{Binding AccountLinkBad}" />
+                                </Panel>
+                                <TextBlock Text="{Binding AccountLinkShort}" FontSize="{StaticResource FontSizeLabel}" Margin="8,0,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </Button>
                     <Border Classes="pill" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
                             CornerRadius="999" Padding="12,5" ToolTip.Tip="{i:Loc Main.Status.Tip}">
                         <StackPanel Orientation="Horizontal">

@@ -603,6 +603,13 @@ public partial class MainView : UserControl
 
     private void OnOpenOverlayTab(object? sender, RoutedEventArgs e) => ShowSettingsTab("Overlay");
 
+    /// <summary>The top bar's account indicator: Settings, Account (the account center).</summary>
+    private void OnOpenAccountCenter(object? sender, RoutedEventArgs e)
+    {
+        ShowPage("Settings");
+        ShowSettingsTab("Account");
+    }
+
     private bool _syncingSettings;
 
     /// <summary>

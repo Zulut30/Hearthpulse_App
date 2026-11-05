@@ -101,6 +101,10 @@
                     <Button Style="{StaticResource CardIcon}" Content="&#xF0497;" ToolTip="{i:Loc Library.Share}" AutomationProperties.Name="{i:Loc Library.Share}"
                             Command="{Binding DataContext.Share, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                             Visibility="{Binding HasReplay, Converter={StaticResource Vis}}" />
+                    <!-- An uploaded replay's page on the site: its own action, apart from the cloud (which deletes) -->
+                    <Button Style="{StaticResource CardIcon}" Content="&#xF03CC;" ToolTip="{i:Loc Account.Library.Open}" AutomationProperties.Name="{i:Loc Account.Library.Open}"
+                            Command="{Binding DataContext.OpenOnSite, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            Visibility="{Binding OnSite, Converter={StaticResource Vis}}" />
                     <!-- Plan 2.2: upload to the site / delete from it, after the confirmation in the card -->
                     <Button Style="{StaticResource CardIcon}" Content="{Binding SiteGlyph}" ToolTip="{Binding SiteTip}" AutomationProperties.Name="{Binding SiteTip}"
                             Command="{Binding DataContext.SiteAction, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"

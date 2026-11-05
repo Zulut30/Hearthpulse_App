@@ -27,6 +27,11 @@ internal static class TestDataFolder
         // Always overridden, also when the developer's shell already sets it: tests never write to a real folder.
         Environment.SetEnvironmentVariable("HEARTHPULSE_DATA", Path);
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Delete();
+        // Avalonia's UI dispatcher belongs to the first thread that asks for it. View models post account and upload
+        // events to it from pool threads; were that first, the headless platform could not start on its own thread
+        // later and the test host would crash. So the headless thread is started here and takes it first (not waited
+        // for: the module is still loading).
+        LocBindingTests.Headless.Warm();
     }
 
     /// <summary>

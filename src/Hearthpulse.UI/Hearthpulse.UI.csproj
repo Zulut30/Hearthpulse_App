@@ -26,6 +26,8 @@
     <!-- The shared presentation's layout modules (ChartGeometry, CardPreviewLayout, ...) are internal; the tests read them. -->
     <InternalsVisibleTo Include="Hearthpulse.Tests" />
     <InternalsVisibleTo Include="Hearthpulse.Presentation.Tests" />
+    <!-- The host (Hearthpulse.Desktop, assembly Hearthpulse): its render scenes (OffscreenRenderer.*.cs, render-ui mode) drive render-only seams such as the sample account. -->
+    <InternalsVisibleTo Include="Hearthpulse" />
   </ItemGroup>
 
   <ItemGroup>

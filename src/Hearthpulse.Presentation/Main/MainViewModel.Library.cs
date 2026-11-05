@@ -451,6 +451,7 @@ public sealed partial class MainViewModel
             await Task.Run(() => uploads.Set(ReplayUploads.KeyOf(shelf, name), result), CancellationToken.None).ConfigureAwait(true);
             card.SiteUrl = result.Url;
             Library.Uploaded(result.Url);
+            await RefreshAccountCountsAsync().ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested)
         {
@@ -504,6 +505,7 @@ public sealed partial class MainViewModel
             await Task.Run(() => uploads.Set(key, null)).ConfigureAwait(true);
             card.SiteUrl = string.Empty;
             Library.Succeeded(Loc.T(error is null ? "Library.Site.Removed" : "Library.Site.Gone"));
+            await RefreshAccountCountsAsync().ConfigureAwait(true);
         }
         finally
         {

@@ -63,6 +63,10 @@
                     <Button Classes="icon cardIcon" Content="&#xF0497;" ToolTip.Tip="{i:Loc Library.Share}" AutomationProperties.Name="{i:Loc Library.Share}"
                             IsVisible="{Binding HasReplay}"
                             Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).Share}" CommandParameter="{Binding}" />
+                    <!-- An uploaded replay's page on the site: its own action, apart from the cloud (which deletes) -->
+                    <Button Classes="icon cardIcon" Content="&#xF03CC;" ToolTip.Tip="{i:Loc Account.Library.Open}" AutomationProperties.Name="{i:Loc Account.Library.Open}"
+                            IsVisible="{Binding OnSite}"
+                            Command="{Binding $parent[mt:ReplayLibraryView].((mt:ReplayLibraryViewModel)DataContext).OpenOnSite}" CommandParameter="{Binding}" />
                     <!-- Plan 2.2: upload to the site / delete from it, after the confirmation in the card -->
                     <Button Classes="icon cardIcon" Content="{Binding SiteGlyph}" ToolTip.Tip="{Binding SiteTip}" AutomationProperties.Name="{Binding SiteTip}"
                             IsVisible="{Binding CanUpload}"

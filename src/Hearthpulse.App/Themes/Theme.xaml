@@ -45,6 +45,8 @@
     <SolidColorBrush x:Key="Negative" Color="{StaticResource NegativeColor}" />
     <SolidColorBrush x:Key="NegativeSoft" Color="#24EC6A52" />
     <SolidColorBrush x:Key="Info" Color="{StaticResource InfoColor}" />
+    <!-- A meaning colour (never recoloured): "no connection, retrying" in the account indicator -->
+    <SolidColorBrush x:Key="InfoCaution" Color="#F2B544" />
     <SolidColorBrush x:Key="Hover" Color="#12F4E7C9" />
     <SolidColorBrush x:Key="Pressed" Color="#1FF4E7C9" />
     <SolidColorBrush x:Key="Decor" Color="#0EE9B949" />

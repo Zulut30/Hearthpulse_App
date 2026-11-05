@@ -320,13 +320,48 @@ public sealed class AccountClient(HttpClient http, string? baseUrl = null)
         }
 
         doc?.Dispose();
-        throw new AccountException(code is { Length: > 0 } ? code.ToUpperInvariant() : status switch
+        throw new AccountException(FailureCode(status, code), detail ?? $"HTTP {status.ToString(CultureInfo.InvariantCulture)}");
+    }
+
+    /// <summary>
+    /// The code of a failed answer: a 5xx is the site failing for now (<c>SERVER_ERROR</c>, or its
+    /// <c>TEMPORARILY_UNAVAILABLE</c>) whatever code its body names, so it never reads as a refusal that ends the
+    /// sign-in; otherwise the body's code, else the status decides.
+    /// </summary>
+    internal static string FailureCode(int status, string? code)
+    {
+        var named = code is { Length: > 0 } ? code.ToUpperInvariant() : null;
+        if (status >= 500)
+        {
+            return named == "TEMPORARILY_UNAVAILABLE" ? named : "SERVER_ERROR";
+        }
+
+        return named ?? status switch
         {
             404 => "NOT_AVAILABLE",
             429 => "RATE_LIMITED",
-            >= 500 => "SERVER_ERROR",
             _ => "BAD_RESPONSE",
-        }, detail ?? $"HTTP {status.ToString(CultureInfo.InvariantCulture)}");
+        };
+    }
+
+    /// <summary>The error code an API answer's body names (<c>{"error": "x"}</c> or <c>{"error": {"code": "x"}}</c>); null when none.</summary>
+    internal static string? ErrorCodeOf(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("error", out var error))
+            {
+                return null;
+            }
+
+            var code = error.ValueKind == JsonValueKind.String ? error.GetString() : Text(error, "code");
+            return code is { Length: > 0 } ? code.ToUpperInvariant() : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>The site's API address as a new client would use it (<c>HEARTHPULSE_SITE_API</c> or hearthpulse.net).</summary>
