@@ -278,7 +278,7 @@
                 <GradientStop Color="#99C48E2C" Offset="1" />
             </LinearGradientBrush>
             <!-- Overlay panel header rule: a gold hairline that fades out at both ends (V3 "gold frame") -->
-            <LinearGradientBrush x:Key="OverlayHeaderRule" StartPoint="0,0" EndPoint="1,0">
+            <LinearGradientBrush x:Key="OverlayHeaderRule" StartPoint="0%,0%" EndPoint="100%,0%">
                 <GradientStop Color="#00E9B949" Offset="0" />
                 <GradientStop Color="#B3E9B949" Offset="0.5" />
                 <GradientStop Color="#00E9B949" Offset="1" />
