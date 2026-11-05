@@ -1,4 +1,7 @@
 using System.IO;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Hearthpulse.Core.Hosting;
 using Hearthpulse.Core.Tracking;
 
@@ -24,7 +27,7 @@ public partial class App
             _main.ShowPage(page);
             await Task.Delay(2500);
             _main.UpdateLayout();
-            Save(_main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
+            SaveAtDefaultSize(Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
         }
 
         foreach (var (moment, snapshot) in VisualBaseline.Moments)
@@ -37,5 +40,33 @@ public partial class App
         }
 
         _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
+    }
+
+    /// <summary>
+    /// The main window as it is at its default size (1260 x 840), whatever the screen: Windows keeps a window within the
+    /// screen, and the CI runner's is 1024 x 768. Its template is laid out at that size for the frame, over the window's
+    /// background.
+    /// </summary>
+    private void SaveAtDefaultSize(string path)
+    {
+        const int width = 1260, height = 840;
+        // The window's template (its border around the content), as the window draws it.
+        var root = (FrameworkElement)VisualTreeHelper.GetChild(_main, 0);
+        root.Measure(new Size(width, height));
+        root.Arrange(new Rect(0, 0, width, height));
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            dc.DrawRectangle(_main.Background, null, new Rect(0, 0, width, height));
+            dc.DrawRectangle(new VisualBrush(root) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top },
+                null, new Rect(0, 0, width, height));
+        }
+
+        var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(path);
+        encoder.Save(stream);
     }
 }
