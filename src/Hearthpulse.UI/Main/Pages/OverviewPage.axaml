@@ -134,7 +134,7 @@
                         <c:Ornament Text="{i:Loc Main.Home.RecentGames}" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
                         <Button Content="{i:Loc Main.Home.ViewAll}" Classes="ghost" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
                     </Grid>
-                    <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
+                    <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" ClipToBounds="False" />
                     <ContentControl Classes="emptyState" Tag="&#xF02DA;" Content="{i:Loc Main.Home.NoGames}"
                                     IsVisible="{Binding Recent, Converter={StaticResource Truthy}, ConverterParameter=!}" />
                 </StackPanel>

@@ -24,10 +24,10 @@
     <!-- A recent game (V3): the result's colour as a bar on the left, the hero in a gold ring, and its art fading in at the
          right under the result and the rating, each on a dark pill so they read over the art -->
     <DataTemplate x:Key="GameRowTemplate" x:DataType="m:GameRow">
-        <Border Classes="row">
-            <Grid ColumnDefinitions="50,2*,3*,110,92,64">
-                <Border Grid.Column="3" Grid.ColumnSpan="3" Width="170" Margin="0,-8,-8,-8" HorizontalAlignment="Right" CornerRadius="0,8,8,0" ClipToBounds="True"
-                        i:CardArt.Portrait="{Binding HeroCardId}" IsHitTestVisible="False">
+        <!-- The bar and the art sit in the row's own padding: Avalonia drops a child drawn wholly outside its parent -->
+        <Border Classes="row" Padding="0">
+            <Panel>
+                <Border Width="170" HorizontalAlignment="Right" CornerRadius="0,8,8,0" ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" IsHitTestVisible="False">
                     <Border.OpacityMask>
                         <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
                             <GradientStop Color="#00000000" Offset="0" />
@@ -36,32 +36,34 @@
                         </LinearGradientBrush>
                     </Border.OpacityMask>
                 </Border>
-                <Border Width="3" Margin="-8,2,0,2" HorizontalAlignment="Left" CornerRadius="2" Background="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
-                <Border Width="38" Height="38" CornerRadius="19" Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1.5"
-                        HorizontalAlignment="Left" ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,12,0">
-                    <TextBlock Text="{Binding Hero}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Mode}" Classes="caption" />
-                </StackPanel>
-                <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
-                           Margin="0,0,16,0" ToolTip.Tip="{Binding Detail}" />
-                <TextBlock Grid.Column="3" Text="{Binding When}" Classes="caption" VerticalAlignment="Center" />
-                <Border Grid.Column="4" CornerRadius="{StaticResource RadiusPill}" Padding="10,2" HorizontalAlignment="Left" VerticalAlignment="Center"
-                        Background="{StaticResource OverlayBadgeShade}">
-                    <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
-                </Border>
-                <Border Grid.Column="5" CornerRadius="{StaticResource RadiusPill}" Padding="8,2" HorizontalAlignment="Right" VerticalAlignment="Center"
-                        Background="{StaticResource OverlayBadgeShade}" IsVisible="{Binding Rating, Converter={StaticResource Truthy}}">
-                    <TextBlock Text="{Binding Rating}" FontWeight="SemiBold" Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}"
-                               ToolTip.Tip="{i:Loc Main.Game.RatingChange}" />
-                </Border>
-            </Grid>
+                <Rectangle Width="3" Margin="2,8,0,8" HorizontalAlignment="Left" RadiusX="1" RadiusY="1" Fill="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                <Grid ColumnDefinitions="50,2*,3*,110,92,64" Margin="8">
+                    <Border Width="38" Height="38" CornerRadius="19" Background="{StaticResource Surface3}" BorderBrush="{StaticResource AccentLine}" BorderThickness="1.5"
+                            HorizontalAlignment="Left" ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,12,0">
+                        <TextBlock Text="{Binding Hero}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Mode}" Classes="caption" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="caption" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Margin="0,0,16,0" ToolTip.Tip="{Binding Detail}" />
+                    <TextBlock Grid.Column="3" Text="{Binding When}" Classes="caption" VerticalAlignment="Center" />
+                    <Border Grid.Column="4" CornerRadius="{StaticResource RadiusPill}" Padding="10,2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                            Background="{StaticResource OverlayBadgeShade}">
+                        <TextBlock Text="{Binding Result}" FontWeight="Bold" FontSize="12.5" Foreground="{Binding ResultKey, Converter={StaticResource KeyBrush}}" />
+                    </Border>
+                    <Border Grid.Column="5" CornerRadius="{StaticResource RadiusPill}" Padding="8,2" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Background="{StaticResource OverlayBadgeShade}" IsVisible="{Binding Rating, Converter={StaticResource Truthy}}">
+                        <TextBlock Text="{Binding Rating}" FontWeight="SemiBold" Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}"
+                                   ToolTip.Tip="{i:Loc Main.Game.RatingChange}" />
+                    </Border>
+                </Grid>
+            </Panel>
         </Border>
     </DataTemplate>
 
     <!-- A game row that opens the match page (History, recent games) -->
     <DataTemplate x:Key="OpenGameRow" x:DataType="m:GameRow">
-        <Button Classes="bare" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="{i:Loc Match.View.OpenTip}"
+        <Button Classes="bare" ClipToBounds="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ToolTip.Tip="{i:Loc Match.View.OpenTip}"
                 Command="{Binding $parent[m:MainView].((m:MainViewModel)DataContext).OpenMatch}" CommandParameter="{Binding}"
                 Content="{Binding}" ContentTemplate="{StaticResource GameRowTemplate}" />
     </DataTemplate>
