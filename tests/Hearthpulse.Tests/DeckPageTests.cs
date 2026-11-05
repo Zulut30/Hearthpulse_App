@@ -406,6 +406,25 @@ public sealed partial class DeckPageTests
     }
 
     /// <summary>A 30-card list: 15 cards of two copies, ids from <paramref name="first"/>.</summary>
+    /// <summary>The home page's deck banners: the three decks played last, newest first, each over its class hero.</summary>
+    [Fact]
+    public void Home_shows_the_three_decks_played_last()
+    {
+        var games = new[]
+        {
+            Game("a", "Old", Code(Deck(1000)), "Win", 0, 1),
+            Game("b", "Middle", Code(Deck(2000)), "Loss", 60, 2, playerClass: "PRIEST"),
+            Game("c", "New", Code(Deck(3000)), "Win", 120, 3, playerClass: "MAGE"),
+            Game("d", "Newest", Code(Deck(4000)), "Win", 180, 4, playerClass: "PALADIN"),
+        };
+        var families = DeckFamilies.Build(DeckFamilies.Versions(games), []);
+
+        var home = Hearthpulse.UI.Main.HomeDeck.Latest(families, c => "HERO_" + c);
+
+        Assert.Equal(new[] { "Newest", "New", "Middle" }, home.Select(d => d.Name));
+        Assert.Equal(new[] { "HERO_PALADIN", "HERO_MAGE", "HERO_PRIEST" }, home.Select(d => d.HeroCardId));
+        Assert.EndsWith(Hearthpulse.Core.Localization.Loc.P("Stats.Games", 1), home[0].Line, StringComparison.Ordinal);
+    }
     private static (int, int)[] Deck(int first, params int[] swaps) =>
         Enumerable.Range(first, 15).Select(d => swaps.Contains(d) ? (d + 500, 2) : (d, 2)).ToArray();
 

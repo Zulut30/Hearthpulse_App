@@ -23,12 +23,22 @@ internal static partial class OffscreenRenderer
         double.TryParse(Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_WIDTH"), System.Globalization.NumberStyles.Number,
             System.Globalization.CultureInfo.InvariantCulture, out var width) && width >= 800 ? width : null;
 
-    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>history</c> (History and a Battlegrounds match).</summary>
+    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>history</c> (History and a Battlegrounds match).</summary>
     private static async Task RenderOnlyAsync(Window main, MainView view, AppHost host, string folder)
     {
         if (RenderOnly("brawl"))
         {
             await RenderBrawlPageAsync(main, view, host, folder);
+        }
+
+        if (RenderOnly("home"))
+        {
+            // The whole home page: the recent games and the deck banners sit below the fold, so a tall frame.
+            view.ShowPage("Overview");
+            var height = main.Height;
+            main.Height = 2400;
+            await Save(main, Path.Combine(folder, "main-overview-full.png"));
+            main.Height = height;
         }
 
         if (RenderOnly("history") || RenderOnly("historylist"))

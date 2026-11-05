@@ -8,8 +8,8 @@ header without a plate over a gold hairline, card rows as capsules with the gem 
 
 | Done (both UIs) | Not yet |
 |---|---|
-| Overlay panel frame and header; every overlay card list (deck, played, pool, graveyard, likely deck, archetype, Secrets, Arena deck) as capsules | Home: art strips in recent games and deck banners (in progress) |
-| Main window: deck page card list as capsules, brighter `CardEdge` on every card | Other main-window lists (match page, meta decks, Arena page) |
+| Overlay panel frame and header; every overlay card list (deck, played, pool, graveyard, likely deck, archetype, Secrets, Arena deck) as capsules | Hero backdrops behind the pages, material and own icons (directions-v3, waiting for the owner) |
+| Main window: deck page card list as capsules, brighter `CardEdge` on every card; home: recent games with the hero's art and result pills, deck banners | Other main-window lists (match page, meta decks, Arena page) |
 | Section headings without a trailing rule in both UIs | First-run wizard (D4), overlay frame unification (D5), the UX round in seven themes (D3) |
 
 Task card with the render audit, all mockups and their sources:

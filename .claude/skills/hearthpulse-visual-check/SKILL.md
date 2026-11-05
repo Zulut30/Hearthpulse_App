@@ -48,7 +48,7 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
   stops, in both UIs. The wrapper `render.py` would then report the mandatory scenes as missing, so run the built exe or
   `dotnet run` directly (the same goes for `HEARTHPULSE_RENDER_ONLY` below).
   Scene filter: `HEARTHPULSE_RENDER_ONLY=<group>[,<group>]` renders only those groups: `brawl` (`main-brawl`, Avalonia
-  also `main-brawl-compact`), `history` (`main-history`, `main-match-bg-table`: the first step of the newest Battlegrounds
+  also `main-brawl-compact`), `home` (`main-overview-full`, the whole home page), `history` (`main-history`, `main-match-bg-table`: the first step of the newest Battlegrounds
   replay), `historylist` (`main-history` alone), `ctmatch` (WPF only: `main-match-table`, the newest Constructed
   replay's table two thirds in), `overlay` (the Battlegrounds moments `overlay-pick/-trinket/-discover/-game/-bg-counters`,
   `overlay-constructed` with its previews, `overlay-layout`). New groups go into `RenderOnlyAsync`

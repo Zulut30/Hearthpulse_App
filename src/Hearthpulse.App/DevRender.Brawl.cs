@@ -20,12 +20,24 @@ public partial class App
         double.TryParse(Environment.GetEnvironmentVariable("HEARTHPULSE_RENDER_WIDTH"), System.Globalization.NumberStyles.Number,
             System.Globalization.CultureInfo.InvariantCulture, out var width) && width >= 800 ? width : null;
 
-    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>history</c> (History and a Battlegrounds match).</summary>
+    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>history</c> (History and a Battlegrounds match).</summary>
     private async Task RenderOnlyAsync(string folder)
     {
         if (RenderOnly("brawl"))
         {
             await RenderBrawlAsync(folder);
+        }
+
+        if (RenderOnly("home"))
+        {
+            // The whole home page: the recent games and the deck banners sit below the fold.
+            _main.ShowPage("Overview");
+            await Task.Delay(2500);
+            _main.UpdateLayout();
+            if (_main.PageOverview.Content is System.Windows.Controls.ScrollViewer { Content: System.Windows.FrameworkElement content })
+            {
+                SaveFull(content, Path.Combine(folder, "main-overview-full.png"));
+            }
         }
 
         if (RenderOnly("ctmatch"))

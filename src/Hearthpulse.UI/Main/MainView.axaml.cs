@@ -425,6 +425,12 @@ public partial class MainView : UserControl
                 LivePulse.Fill = ThemeBrushes.Get(_viewModel.InGame ? "AccentContainer" : "Surface4");
                 break;
             case nameof(MainViewModel.DeckOpen):
+                // A deck opened from the Overview's deck banners goes to its format's page, where the deck page lives.
+                if (_viewModel.DeckOpen && !ConstructedShown)
+                {
+                    ShowPage(ConstructedPage.PageOf(_viewModel.ConstructedFormat));
+                }
+
                 UpdatePages(_page);
                 PageDeck.Offset = default;
                 break;
