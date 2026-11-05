@@ -95,4 +95,13 @@ public sealed class ReplayShareTests : IDisposable
         Assert.Matches("^hearthpulse-replay-202610(30|31)-duos\\.hpr$", Path.GetFileName(path));
         Assert.DoesNotContain("7040", Read(path), StringComparison.Ordinal);
     }
+
+    /// <summary>T6 (a mutation survivor): a mode of anything but letters never reaches the file name, whole or in part.</summary>
+    [Theory]
+    [InlineData("../Duos")]
+    [InlineData("Duos 2")]
+    [InlineData("Ranked\\x")]
+    public void A_mode_that_is_not_one_word_of_letters_names_no_file(string mode) =>
+        Assert.Equal("hearthpulse-replay-20261030-game.hpr", ReplayShare.FileName(
+            new ReplayHeader { Summary = new ReplaySummary { Mode = mode, StartedAt = new DateTime(2026, 10, 30, 12, 0, 0) } }));
 }

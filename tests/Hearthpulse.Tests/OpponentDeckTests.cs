@@ -212,6 +212,42 @@ public sealed class OpponentDeckTests
         Assert.Empty(view.OffList);
     }
 
+    /// <summary>
+    /// T6 (mutation survivors): rows carry the card's name and cost, an unknown card its id and cost 0; a card played
+    /// under its id and a reprint's adds up; a card with no copies played is no mark and no off-list card.
+    /// </summary>
+    [Fact]
+    public void Rows_name_and_cost_the_cards_and_played_copies_add_up_across_reprints()
+    {
+        var view = LikelyDeck.Build(Meta(), Odds("Quest Priest"), "PRIEST",
+            new Dictionary<string, int> { ["P_A"] = 1, ["CORE_P_A"] = 1, ["P_B"] = 0, ["N_T"] = 0, ["XX_404"] = 1 }, Cards)!;
+
+        Assert.Equal([("P_A", "Alpha", 1, 2), ("P_B", "Bravo", 2, 0), ("P_C", "Charlie", 3, 0)],
+            view.Rows.Select(r => (r.CardId, r.Name, r.Cost, r.Played)));
+        Assert.Equal([("XX_404", "XX_404", 0, string.Empty)], view.OffList.Select(r => (r.CardId, r.Name, r.Cost, r.Rarity)));
+    }
+
+    /// <summary>
+    /// T6: a most played list of cards the card data does not know falls back to the core cards; with no core cards
+    /// either there is no list at all.
+    /// </summary>
+    [Fact]
+    public void A_list_of_unknown_cards_falls_back_to_the_core_and_without_one_there_is_none()
+    {
+        var newer = CardDb.Parse("enUS", new MemoryStream("""
+            [{"id":"HERO_09","dbfId":813,"name":"Anduin","type":"HERO","cardClass":"PRIEST"},
+             {"id":"NEW_1","dbfId":9001,"name":"New","type":"SPELL","cost":1,"cardClass":"PRIEST"}]
+            """u8.ToArray()));
+        var unknownList = new MetaDeck(DeckString.Encode(new Dictionary<string, int> { ["NEW_1"] = 2 }, "PRIEST", "FT_STANDARD", newer)!, 2, "x", "PRIEST", 500, 250, 0.5, DateTime.UtcNow);
+        var withCore = Archetype(2, "Control Priest", 1000, "P_D", "P_D", "P_E");
+        var meta = new ConstructedMeta("standard", "legend", "past_week", DateTime.UtcNow, 3000, [withCore], [unknownList]);
+
+        var list = LikelyDeck.ListOf(meta, withCore, Cards)!.Value;
+        Assert.Equal([("P_D", 1), ("P_E", 1)], list.Cards);
+        Assert.Equal(0, list.Games);
+        Assert.Null(LikelyDeck.ListOf(meta, Archetype(2, "Control Priest", 1000), Cards));
+    }
+
     /// <summary>A game at turn 0 (starting decks), the opponent a Priest, then turn 5 and <paramref name="lines"/>.</summary>
     private static ConstructedView Live(string gameType, string[] lines)
     {

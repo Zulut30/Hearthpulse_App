@@ -50,8 +50,10 @@ properties) in contract tests rather than forcing the two UIs to have identical 
   solution build; artifacts `coverage-windows-*`) and the `coverage` job runs `tools/coverage/coverage_ratchet.py`:
   line coverage per module (`src/` folder, every report merged, shared Presentation counted once) into the job
   summary, and a red job when a module falls more than 0.5 pp under its floor in `tools/coverage/baseline.json`.
+  Mutation tests (Stryker, by hand in CI only): `docs/mutation-testing.md`.
   Quick local check of a change before a commit (touched projects and test classes, Idle priority):
-  `powershell -File tools/dev/check.ps1`. Same check locally:
+  `powershell -File tools/dev/check.ps1`; `-Full` builds everything and runs both suites at once (each test process
+  has a data folder of its own). Same check locally:
   `python tools/coverage/coverage_ratchet.py <dir>/tests <dir>/presentation`. When a change raises a module (the
   table says "raise the floor"), raise its floor in `baseline.json` in the same commit; floors only go up.
   Instrumentation makes hot code ~15x slower: a test that asserts on wall-clock time gets
