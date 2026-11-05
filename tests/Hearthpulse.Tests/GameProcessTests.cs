@@ -60,6 +60,7 @@ public sealed class GameProcessTests
             GameProcess.Forget();
             GameProcess.MayBeRunning = () => true;
             GameProcess.Names = [game.ProcessName];
+            Listed(game);
 
             Assert.True(GameProcess.IsRunning());
             Assert.Equal(game.StartTime, GameProcess.StartTime());
@@ -76,6 +77,7 @@ public sealed class GameProcessTests
 
             // The game starts again: its window is up, and the new process is found on the first look.
             using var again = StartStandIn(game.StartInfo.FileName);
+            Listed(again);
             GameProcess.MayBeRunning = () => true;
             Assert.True(GameProcess.IsRunning());
             Assert.Equal(again.StartTime, GameProcess.StartTime());
@@ -93,6 +95,28 @@ public sealed class GameProcessTests
             GameProcess.MayBeRunning = probe;
             GameProcess.Forget();
         }
+    }
+
+    /// <summary>
+    /// Waits until the system lists the stand-in under its name: on Linux a process just started may still show the
+    /// parent's name for a moment. The bound only ends a hang.
+    /// </summary>
+    private static void Listed(Process process)
+    {
+        var name = Path.GetFileNameWithoutExtension(process.StartInfo.FileName);
+        bool Found()
+        {
+            var all = Process.GetProcessesByName(name);
+            var found = all.Any(p => p.Id == process.Id);
+            foreach (var p in all)
+            {
+                p.Dispose();
+            }
+
+            return found;
+        }
+
+        Assert.True(SpinWait.SpinUntil(Found, TimeSpan.FromSeconds(10)), $"{name} ({process.Id}) is not listed by its name");
     }
 
     /// <summary>A sleeping copy of a system program under a name of its own; <paramref name="copy"/> starts that copy again.</summary>
