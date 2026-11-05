@@ -27,7 +27,9 @@ public enum UpdateTarget
 
 /// <summary>A newer release than the running one, together with the file this platform needs.</summary>
 /// <param name="Sha256">The file's SHA-256 as GitHub publishes it (lower-case hex), or null when the release has none.</param>
-public sealed record UpdateInfo(string Version, string AssetName, string DownloadUrl, string? Sha256 = null);
+/// <param name="Delta">The installed Windows app only: the release's package of the files changed since the running
+/// version, when the release has one with a published SHA-256 (<see cref="DeltaUpdate"/>).</param>
+public sealed record UpdateInfo(string Version, string AssetName, string DownloadUrl, string? Sha256 = null, DeltaAsset? Delta = null);
 
 /// <summary>What an update check found.</summary>
 public enum UpdateCheckOutcome
@@ -56,6 +58,9 @@ public static class UpdateService
     public const string RepoOwner = "Zulut30";
 
     public const string RepoName = "Hearthpulse_App";
+
+    /// <summary>The Apps &amp; features entry the setup writes under HKCU (installer/windows/hearthpulse.nsi).</summary>
+    public const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Hearthpulse";
 
     /// <summary>Where the newest published release is described. Drafts and pre-releases are never returned.</summary>
     public static string LatestApi => $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases/latest";
@@ -151,7 +156,11 @@ public static class UpdateService
     /// Reads the newest release reply and picks the file this platform needs. Null-tolerant on purpose: the GitHub
     /// payload carries nulls (a release with no assets, an asset with no name) that must not throw.
     /// </summary>
-    public static UpdateInfo? ParseLatest(string? json, UpdateTarget target, string architecture, string linuxFlavor = "")
+    public static UpdateInfo? ParseLatest(string? json, UpdateTarget target, string architecture, string linuxFlavor = "") =>
+        ParseLatest(json, target, architecture, linuxFlavor, CurrentVersion);
+
+    /// <summary><see cref="ParseLatest(string?, UpdateTarget, string, string)"/> for a given installed version (tests).</summary>
+    internal static UpdateInfo? ParseLatest(string? json, UpdateTarget target, string architecture, string linuxFlavor, string installedVersion)
     {
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -174,22 +183,33 @@ public static class UpdateService
             }
 
             var wanted = AssetName(version, target, architecture, linuxFlavor);
+            var deltaName = target == UpdateTarget.WindowsInstalled ? DeltaUpdate.AssetName(installedVersion, version) : null;
+            UpdateInfo? found = null;
+            DeltaAsset? delta = null;
             foreach (var asset in assets.EnumerateArray())
             {
-                if (asset.ValueKind == JsonValueKind.Object
-                    && GetString(asset, "name") == wanted
-                    && GetString(asset, "browser_download_url") is { Length: > 0 } url)
+                if (asset.ValueKind != JsonValueKind.Object || GetString(asset, "browser_download_url") is not { Length: > 0 } url)
                 {
-                    // GitHub publishes "sha256:<hex>" for every release file; the download is checked against it.
-                    var digest = GetString(asset, "digest");
-                    var sha256 = digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) && digest.Length == 71
-                        ? digest[7..].ToLowerInvariant()
-                        : null;
-                    return new UpdateInfo(version, wanted, url, sha256);
+                    continue;
+                }
+
+                // GitHub publishes "sha256:<hex>" for every release file; the download is checked against it.
+                var digest = GetString(asset, "digest");
+                var sha256 = digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) && digest.Length == 71
+                    ? digest[7..].ToLowerInvariant()
+                    : null;
+                var name = GetString(asset, "name");
+                if (name == wanted)
+                {
+                    found = new UpdateInfo(version, wanted, url, sha256);
+                }
+                else if (name == deltaName && sha256 is not null)
+                {
+                    delta = new DeltaAsset(name, url, sha256);
                 }
             }
 
-            return null;
+            return found is null ? null : found with { Delta = delta };
         }
         catch (JsonException)
         {
@@ -221,11 +241,19 @@ public static class UpdateService
         {
             try
             {
-                var check = await CheckForUpdateAsync(http).ConfigureAwait(false);
+                var check = await CheckForUpdateAsync(http, target, CancellationToken.None).ConfigureAwait(false);
                 var info = check.Update;
                 if (info is not null && (notifyOnly || !InstallsItself(target, appDirectory, exists)))
                 {
                     available(info);
+                    return;
+                }
+
+                // The delta first (a few MB); when it does not fit this copy or fails, the full setup as before.
+                if (info is { Sha256: not null, Delta: not null } && target == UpdateTarget.WindowsInstalled
+                    && await DeltaUpdate.PrepareAsync(http, info, appDirectory, CurrentVersion).ConfigureAwait(false))
+                {
+                    staged(info);
                     return;
                 }
 
@@ -255,7 +283,11 @@ public static class UpdateService
     /// Asks GitHub for the newest release. Never throws: a failed request or an answer other than 200 is written to the
     /// log and comes back as <see cref="UpdateCheckOutcome.Failed"/>, not as "no update".
     /// </summary>
-    public static async Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, CancellationToken cancellationToken = default)
+    public static Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, CancellationToken cancellationToken = default) =>
+        CheckForUpdateAsync(http, DetectTarget(), cancellationToken);
+
+    /// <summary><see cref="CheckForUpdateAsync(HttpClient, CancellationToken)"/> for a given kind of copy (the update loop, tests).</summary>
+    internal static async Task<UpdateCheck> CheckForUpdateAsync(HttpClient http, UpdateTarget target, CancellationToken cancellationToken)
     {
         try
         {
@@ -293,11 +325,11 @@ public static class UpdateService
             }
 
             var json = await response.Content.ReadAsStringAsync(cts.Token).ConfigureAwait(false);
-            var info = ParseLatest(json, DetectTarget(), RuntimeArchitecture(), LinuxFlavor());
+            var info = ParseLatest(json, target, RuntimeArchitecture(), LinuxFlavor());
             if (info is null && LatestTag(json) is { } tag && IsNewer(tag))
             {
                 // Released, but the file for this platform is not uploaded yet (or was not built): not "up to date".
-                Diag.Info($"Update check: {tag} has no {AssetName(tag, DetectTarget(), RuntimeArchitecture(), LinuxFlavor())} yet.");
+                Diag.Info($"Update check: {tag} has no {AssetName(tag, target, RuntimeArchitecture(), LinuxFlavor())} yet.");
                 return new UpdateCheck(UpdateCheckOutcome.UpToDate, null, Loc.F("Core.Update.NoFileYet", tag));
             }
 
@@ -434,13 +466,18 @@ public static class UpdateService
             return false;
         }
 
+        var targetDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (info.Delta is not null && DeltaUpdate.Apply(info, targetDir, relaunch))
+        {
+            return true;
+        }
+
         var staged = StagedPath(info);
         if (!File.Exists(staged) || !StagedFileMatches(info))
         {
             return false;
         }
 
-        var targetDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var installer = DetectTarget() == UpdateTarget.WindowsInstalled || staged.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
         string? extractDir = null;
         string? payloadDir = null;
