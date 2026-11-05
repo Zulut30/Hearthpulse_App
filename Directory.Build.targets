@@ -52,6 +52,9 @@
     </ItemGroup>
   </Target>
 
+  <!-- Two hooks, so the restore never depends on Pass2: after MarkupCompilePass2 (which also fires when its condition
+       skips it), and in any case before CoreCompile. MSBuild runs a target once per build: whichever comes first
+       restores, the other finds the list empty and is skipped. -->
   <Target Name="HearthpulseMarkupRestoresReferences" AfterTargets="MarkupCompilePass2" BeforeTargets="CoreCompile" Condition="'@(_HearthpulseImplementationReference)' != ''">
     <ItemGroup>
       <ReferencePath Remove="@(_HearthpulseImplementationReference->'%(ReferenceAssembly)')" />

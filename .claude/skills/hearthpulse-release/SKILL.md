@@ -19,8 +19,8 @@ Each build job makes its packages in parallel from one publish (`installer/*/bui
 | Job | Runner | Does |
 |---|---|---|
 | `tests` | ubuntu-latest | `dotnet test tests/Hearthpulse.Tests` on every release (a docs-only push skips CI's .NET steps); runs beside the builds, `release` waits for it |
-| `build` (matrix, all in parallel) | ubuntu-latest / macos-latest | `installer/windows/build.sh V app` (NSIS `Hearthpulse-Setup-V-win-x64.exe` and `Hearthpulse-Portable-V-win-x64.zip` from WPF); `installer/windows/build.sh V preview` (`Hearthpulse-Preview-V-win-x64.zip` from Avalonia); `installer/linux/build.sh V x64` and `V arm64` (deb/rpm, `Hearthpulse-V-linux-{x64,arm64}.tar.gz`, `Hearthpulse-Portable-V-linux-{x64,arm64}.tar.gz`, AppImage); `installer/macos/build.sh V arm64 x64` on macOS -> `Hearthpulse-V-macOS-{arm64,x64}.{pkg,dmg,zip}` plus `Hearthpulse-Portable-V-macOS-{arm64,x64}.zip` (ad-hoc signed, not notarized) |
-| `release` | ubuntu | merges artifacts into `dist/`, checks every expected installer is there, `sha256sum * > SHA256SUMS.txt`, publishes with `softprops/action-gh-release@v2`: tag `vV`, name "Hearthpulse V", `body_path: installer/RELEASE_NOTES.md`, `fail_on_unmatched_files: true` |
+| `build` (matrix, all in parallel) | ubuntu-latest / macos-latest | `installer/windows/build.sh V app` (NSIS `Hearthpulse-Setup-V-win-x64.exe` and `Hearthpulse-Portable-V-win-x64.zip` from WPF); `installer/windows/build.sh V preview` (`Hearthpulse-Preview-V-win-x64.zip` from Avalonia); `installer/linux/build.sh V x64` and `V arm64` (deb/rpm, `Hearthpulse-V-linux-{x64,arm64}.tar.gz`, `Hearthpulse-Portable-V-linux-{x64,arm64}.tar.gz`, AppImage); `installer/macos/build.sh V arm64 x64` on macOS -> `Hearthpulse-V-macOS-{arm64,x64}.{pkg,dmg,zip}` plus `Hearthpulse-Portable-V-macOS-{arm64,x64}.zip` (ad-hoc signed, not notarized); the Windows app job also writes `Hearthpulse-Files-V-win-x64.json` and, when the previous release has such a manifest, `Hearthpulse-Delta-P-V-win-x64.zip` (see Delta updates) |
+| `release` | ubuntu | merges artifacts into `dist/`, checks every expected installer is there (and the manifest; the delta exactly when `installer/windows/previous.sh` finds a previous manifest), `sha256sum * > SHA256SUMS.txt`, checks the file count (23 without a delta, 24 with one), publishes with `softprops/action-gh-release@v2`: tag `vV`, name "Hearthpulse V", `body_path: installer/RELEASE_NOTES.md`, `fail_on_unmatched_files: true` |
 
 It publishes into the repository the workflow runs in. Verify `git remote -v` and the intended GitHub repository
 before publishing: the updater is configured for `Zulut30/Hearthpulse_App`. CI (`ci.yml`) is separate: build + tests
@@ -77,6 +77,21 @@ test the updater on a build made with `-p:Version=...`, never on a plain `dotnet
 - Real portable packages contain `portable.txt` and use `AppPaths.IsPortable`: the hosts notify about updates but
   do not download/apply them automatically. This is distinct from the `WindowsPortable` updater target, whose
   asset is the Avalonia preview zip; do not conflate the two.
+- **Delta updates** (`DeltaUpdate.cs`, installed Windows app only): the release publishes every file's size and
+  SHA-256 (`Hearthpulse-Files-V-win-x64.json`, `installer/windows/delta.py manifest`) and the files changed since the
+  previous release P (`Hearthpulse-Delta-P-V-win-x64.zip`: `delta.json` with both file lists + `files/...`), only
+  when P published a manifest (0.14.0 did not: 0.15.0 ships without a delta). The updater takes the delta only when the
+  running version is exactly P and every local file matches P's list; it checks the zip's digest (which also covers
+  `delta.json`, the source of both lists), each entry's size, then every unpacked file, stages under
+  `<data>/updates/delta/V/`, and at exit (plan hash kept in memory, staged hashes, installed sizes) a helper copies
+  the files next to the app folder and swaps by renames with a backup (`<app>.update-old`), every step tried 5 times.
+  A failure rolls back (then `<data>/updates/delta/V.failed` makes the next try take the full setup); an old file
+  that cannot go back keeps the backup and does not start the app, and the next start reinstalls the newest release
+  with the full setup (`DeltaUpdate.IsBroken`), which removes the backup. Success updates `DisplayVersion` and appends
+  added files to `uninstall-extra.txt`, which the NSIS uninstaller reads. Any failure before that falls back to the
+  full setup. Paths: `DeltaUpdate.IsSafePath` = `delta.py safe()` (no dots/spaces at the end, no device names).
+  Trial run of the whole path: `-f publish=false -f simulate_previous=true -f version=0.0.1` (a stand-in 0.0.0
+  manifest). Tests: `DeltaUpdateTests.cs` (the helper is run for real on Windows, rollback included).
 - Tests: `tests/Hearthpulse.Tests/UpdateTests.cs`, including
   `A_release_without_a_checksum_is_offered_but_never_downloaded` and
   `A_download_is_kept_only_when_it_matches_the_published_checksum` (plus versions, assets, offline and scripts).
@@ -96,6 +111,10 @@ test the updater on a build made with `-p:Version=...`, never on a plain `dotnet
 6. Renders of both UIs look right on the release commit ([hearthpulse-visual-check](../hearthpulse-visual-check/SKILL.md)).
 7. Optional local installer smoke test (Windows needs Git Bash + NSIS; off Windows the WPF publish needs
    `-p:EnableWindowsTargeting=true`, which `build.sh` passes): `installer/windows/build.sh X.Y.Z`.
+7a. Updater check in Windows Sandbox (never on the owner's own install): install 0.14.0's setup, let it update to the
+   new version (the full setup path), check Apps & features shows the new version, then on the next release update
+   from that version (the delta path: `hearthpulse.log` says "Delta update ... ready", the folder has no
+   `.update-old`/`.update-new` left), and uninstall: the app folder must be empty, including files a delta added.
 8. Asset names unchanged (or `UpdateService.AssetName` updated in the same release and old clients considered).
 9. Ask the user: tag `vX.Y.Z` and push, or run the workflow by hand. After it finishes: the release has all files +
-   `SHA256SUMS.txt`, assets show a `digest`, and an older build offers the update.
+   `SHA256SUMS.txt` (23, or 24 with a delta), assets show a `digest`, and an older build offers the update.
