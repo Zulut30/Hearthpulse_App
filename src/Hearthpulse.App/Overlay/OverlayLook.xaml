@@ -20,9 +20,8 @@
         <Setter Property="Margin" Value="0,0,7,0" />
     </Style>
     <Style x:Key="OverlayHeaderTitle" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeLead}" />
-        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{StaticResource Accent}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="VerticalAlignment" Value="Center" />
@@ -56,33 +55,17 @@
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
-    <!-- Card rows: a gold hairline along the top edge lifts the row off the panel -->
-    <Style x:Key="OverlayRowSheen" TargetType="Border">
-        <Setter Property="Height" Value="1" />
-        <Setter Property="VerticalAlignment" Value="Top" />
-        <Setter Property="Margin" Value="4,0" />
-        <Setter Property="Background" Value="{StaticResource OverlayBorder}" />
-        <Setter Property="IsHitTestVisible" Value="False" />
-    </Style>
-
-    <!-- Rarity colour along the left edge of a card row (the brush comes from the row) -->
-    <Style x:Key="OverlayRarityStrip" TargetType="Border">
-        <Setter Property="Width" Value="3" />
-        <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="IsHitTestVisible" Value="False" />
-    </Style>
-
     <!-- Card row as a capsule (V3): the plate, the art and the flash are clipped to it (RoundClip 12 on a 24 row) -->
     <Style x:Key="OverlayCapsule" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource Row}" />
         <Setter Property="CornerRadius" Value="12" />
     </Style>
 
-    <!-- Rarity-lit edge around a capsule row (the brush comes from the row); no rarity, no edge -->
+    <!-- Rarity-lit edge around a capsule row: KeyBrush with "edge" gives the rarity colour at 85 % alpha (a card
+         without a rarity gets the faint gold edge) -->
     <Style x:Key="OverlayRarityEdge" TargetType="Border">
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="12" />
-        <Setter Property="Opacity" Value="0.85" />
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 

@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Hearthpulse.App.Infrastructure;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
@@ -249,6 +250,38 @@ public sealed partial class UxPolishContractTests
         Assert.Equal(18, gem.Height);
         Assert.Equal(18, Descendants<Grid>(row).First(g => g.Name == "RowRoot").ActualHeight, 0.5);
         Assert.Equal(Visibility.Collapsed, Descendants<Image>(row).First(i => i.Name == "Art").Visibility);
+        window.Close();
+    });
+
+    /// <summary>
+    /// The V3 deck row: a legendary name in the legendary colour, a drawn-out row faint even when legendary (the Empty
+    /// trigger comes after the Legendary one), the rarity-lit edge in the rarity's own edge brush.
+    /// </summary>
+    [Fact]
+    public void Deck_row_colours_legendary_drawn_out_and_edge() => Sta(() =>
+    {
+        var window = OpenOverlay(new WpfOverlay());
+        var template = (DataTemplate)new Hearthpulse.App.Overlay.DeckPanel().FindResource("DeckTileTemplate");
+        var root = (Panel)window.Content;
+        ContentPresenter Row(bool empty, string rarity)
+        {
+            var row = new ContentPresenter { Content = new DeckTile("EX1_383", "Tirion", 8, "★", true, empty, rarity, string.Empty, false), ContentTemplate = template };
+            root.Children.Add(row);
+            row.Measure(new Size(240, 30));
+            row.Arrange(new Rect(0, 0, 240, 30));
+            row.UpdateLayout();
+            return row;
+        }
+
+        Color Res(string key) => ((SolidColorBrush)Application.Current.FindResource(key)).Color;
+        Color Name(ContentPresenter row) => ((SolidColorBrush)Descendants<TextBlock>(row).First(t => t.Name == "CardName").Foreground).Color;
+        Color Edge(ContentPresenter row) => ((SolidColorBrush)Descendants<Border>(row).First(b => b.Name == "Edge").BorderBrush).Color;
+
+        var legendary = Row(empty: false, "LEGENDARY");
+        Assert.Equal(Res("RarityLegendary"), Name(legendary));
+        Assert.Equal(Res("RarityLegendaryEdge"), Edge(legendary));
+        Assert.Equal(Res("Faint"), Name(Row(empty: true, "LEGENDARY")));
+        Assert.Equal(Res("RarityRareEdge"), Edge(Row(empty: false, "RARE")));
         window.Close();
     });
 }

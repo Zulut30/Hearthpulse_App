@@ -233,9 +233,9 @@
                 <GradientStop Color="#23180F" Offset="1" />
             </LinearGradientBrush>
             <LinearGradientBrush x:Key="CardEdge" StartPoint="0%,0%" EndPoint="0%,100%">
-                <GradientStop Color="#8A6436" Offset="0" />
-                <GradientStop Color="#4A331D" Offset="0.3" />
-                <GradientStop Color="#2E1F13" Offset="1" />
+                <GradientStop Color="#C9963F" Offset="0" />
+                <GradientStop Color="#7A5A2E" Offset="0.35" />
+                <GradientStop Color="#4A331D" Offset="1" />
             </LinearGradientBrush>
             <LinearGradientBrush x:Key="GhostFill" StartPoint="0%,0%" EndPoint="0%,100%">
                 <GradientStop Color="#47321C" Offset="0" />
@@ -376,6 +376,11 @@
             <SolidColorBrush x:Key="RarityRare" Color="#5B9BFF" />
             <SolidColorBrush x:Key="RarityEpic" Color="#B98AF5" />
             <SolidColorBrush x:Key="RarityLegendary" Color="#FFB547" />
+            <!-- Rarity-lit edge of a card row (V3): the rarity colours at 85 % alpha, so the edge needs no Opacity layer -->
+            <SolidColorBrush x:Key="RarityCommonEdge" Color="#D9D8CDB8" />
+            <SolidColorBrush x:Key="RarityRareEdge" Color="#D95B9BFF" />
+            <SolidColorBrush x:Key="RarityEpicEdge" Color="#D9B98AF5" />
+            <SolidColorBrush x:Key="RarityLegendaryEdge" Color="#D9FFB547" />
 
             <SolidColorBrush x:Key="TierS" Color="#FFC857" />
             <SolidColorBrush x:Key="TierA" Color="#8CCF63" />

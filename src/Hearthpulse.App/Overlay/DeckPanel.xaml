@@ -49,7 +49,7 @@
                             <Border x:Name="Flash" Style="{StaticResource OverlayRowFlash}" />
                         </Grid>
                     </Border>
-                    <Border x:Name="Edge" Style="{StaticResource OverlayRarityEdge}" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                    <Border x:Name="Edge" Style="{StaticResource OverlayRarityEdge}" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
                     <TextBlock Grid.Column="1" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
                                VerticalAlignment="Center"
                                Visibility="{Binding DataContext.ShowChance, RelativeSource={RelativeSource AncestorType=o:DeckPanel}, Converter={StaticResource Vis}}" />

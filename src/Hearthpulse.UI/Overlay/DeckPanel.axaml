@@ -37,7 +37,7 @@
                         <Border Classes="rowFlash" />
                     </Panel>
                 </Border>
-                <Border Classes="rarityEdge" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                <Border Classes="rarityEdge" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
                 <TextBlock Grid.Column="1" Text="{Binding Chance}" Width="31" TextAlignment="Right" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}"
                            VerticalAlignment="Center"
                            IsVisible="{Binding $parent[ItemsControl].((o:OverlayViewModel)DataContext).ShowChance, FallbackValue=True}" />

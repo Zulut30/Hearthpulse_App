@@ -44,6 +44,17 @@ internal static class DisplayRules
     };
 
     /// <summary>
+    /// The brush key of a card row's rarity-lit edge (V3): the rarity colour with its own alpha, so the edge needs no
+    /// Opacity layer; a card without a rarity gets the panel's faint gold edge.
+    /// </summary>
+    public static string EdgeKey(string? rarity) =>
+        BrushKey(rarity) is var key && key.StartsWith("Rarity", StringComparison.Ordinal) ? key + "Edge" : "OverlayBorder";
+
+    /// <summary><see cref="EdgeKey"/> when the converter parameter is "edge", else <see cref="BrushKey"/>.</summary>
+    public static string BrushKey(string? value, object? parameter) =>
+        parameter as string == "edge" ? EdgeKey(value) : BrushKey(value);
+
+    /// <summary>
     /// The brush key of a placement or a signed number. A numeric <paramref name="parameter"/> is the top-N cutoff for
     /// placements (1..N positive, above it negative, 0 muted); "text" gives zero the normal text colour instead of muted.
     /// </summary>

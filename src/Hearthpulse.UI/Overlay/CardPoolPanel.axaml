@@ -16,23 +16,22 @@
         <!-- A tracker row: cost gem, the whole name over a strip of art, rarity strip, "×2" when it counts twice. -->
         <DataTemplate x:Key="ListRowTemplate" x:DataType="o:PoolListRow">
             <!-- The full card on hover: the panel lets clicks through, so the pointer update finds the row under it -->
-            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
-                <c:ManaCost Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+            <Grid Height="22" Margin="0,0,0,2" Background="Transparent" c:CardPreview.CardId="{Binding CardId}">
+                <Border Classes="capsule">
                     <Panel>
                         <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                         <Rectangle Fill="{StaticResource TileFade}" />
-                        <Border Classes="rarityStrip" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                        <DockPanel Margin="9,0,3,0">
+                        <DockPanel Margin="1,0,3,0">
+                            <c:ManaCost Text="{Binding Cost}" Width="21" Height="21" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,4,0" />
                             <Border Classes="countBadge" DockPanel.Dock="Right" Height="16" IsVisible="{Binding CountText, Converter={StaticResource Truthy}}">
                                 <TextBlock Text="{Binding CountText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </DockPanel>
-                        <Border Classes="rowSheen" />
                     </Panel>
                 </Border>
+                <Border Classes="rarityEdge" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
             </Grid>
         </DataTemplate>
     </UserControl.Resources>
@@ -194,23 +193,22 @@
                 <ItemsControl ItemsSource="{Binding CardPoolTopCards}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="o:PoolTopRow">
-                            <Grid Height="22" Margin="0,0,0,2" ColumnDefinitions="25,*">
-                                <c:ManaCost Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+                            <Grid Height="22" Margin="0,0,0,2">
+                                <Border Classes="capsule">
                                     <Panel>
                                         <Image i:CardArt.Tile="{Binding CardId}" Width="112" HorizontalAlignment="Right" Stretch="UniformToFill" />
                                         <Rectangle Fill="{StaticResource TileFade}" />
-                                        <Border Classes="rarityStrip" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                                        <DockPanel Margin="9,0,3,0">
+                                        <DockPanel Margin="1,0,3,0">
+                                            <c:ManaCost Text="{Binding Cost}" Width="21" Height="21" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,4,0" />
                                             <Border Classes="countBadge" DockPanel.Dock="Right" Height="16">
                                                 <TextBlock Text="{Binding ShareText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                         </DockPanel>
-                                        <Border Classes="rowSheen" />
                                     </Panel>
                                 </Border>
+                                <Border Classes="rarityEdge" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

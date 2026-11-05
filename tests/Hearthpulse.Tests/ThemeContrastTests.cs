@@ -23,6 +23,8 @@ public sealed class ThemeContrastTests
         ("OnSecondaryContainer", ["SecondaryContainer", "GhostFill"], 4.5),
         ("OnAccentContainer", ["AccentContainer"], 4.5),
         ("Faint", ["Bg", "Surface", "Surface2", "CardFill"], 3.0),
+        // V3 card rows: a legendary name (and its star) in the rarity colour on the row's plate
+        ("RarityLegendary", ["Row", "OverlayBadgeShade"], 4.5),
     ];
 
     public static TheoryData<string> Presets() => new(ThemePalette.Presets.Select(p => p.Name));

@@ -50,7 +50,7 @@
                             </DockPanel>
                         </Panel>
                     </Border>
-                    <Border CornerRadius="15" BorderThickness="1" Opacity="0.85" IsHitTestVisible="False" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
+                    <Border CornerRadius="15" BorderThickness="1" IsHitTestVisible="False" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
                 </Grid>
             </DataTemplate>
 
