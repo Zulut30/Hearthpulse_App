@@ -20,11 +20,7 @@ public static class Tokens
     public const string DesertedGolemId = "BG29_864t";
     public const string CThunId = "BGFYM_000";
     public const string YShaarjId = "BGFYM_011";
-    public const string FishOfNZothId = "TB_BaconShop_HP_105t";
-    public const string SneedsShredderId = "BG21_HERO_030t";
     public const string AmalgamId = "TB_BaconShop_HP_033t";
-    public const string OzumatsTentacleId = "BG23_HERO_201pt";
-    public const string OnyxianWhelpId = "BG22_HERO_305t";
 
     /// <summary>2/2 Beast (golden 4/4). Buzzing Vermin, Forest Rover, Turquoise Skitterer, Ravaging Scorpid.</summary>
     public static SimMinion Beetle(bool golden = false) => Make(BeetleId, 2, 2, Tribe.Beast, golden);
@@ -59,17 +55,8 @@ public static class Tokens
     /// <summary>2/1 Beast pool minion with a deathrattle (golden 4/2). Hoarding Hyena.</summary>
     public static SimMinion TastyLobster(bool golden = false) => Make(TastyLobsterId, 2, 1, Tribe.Beast, golden, mechanics: CardMechanic.Deathrattle);
 
-    /// <summary>5/5 with no type (golden 10/10); summoners usually overwrite its stats. Jailbird Juggernaut, Golemancy.</summary>
-    public static SimMinion DesertedGolem(bool golden = false) => Make(DesertedGolemId, 5, 5, Tribe.None, golden);
-
     /// <summary>2/2 Venomous with every type (golden 4/4). The Curator.</summary>
     public static SimMinion Amalgam(bool golden = false) => Make(AmalgamId, 2, 2, Tribe.All, golden, Keyword.Venomous);
-
-    /// <summary>X/X Beast with Taunt (base 2/2). Ozumat's hero power.</summary>
-    public static SimMinion OzumatsTentacle(bool golden = false) => Make(OzumatsTentacleId, 2, 2, Tribe.Beast, golden, Keyword.Taunt);
-
-    /// <summary>1/1 Dragon (golden 2/2) that attacks immediately. Onyxia's hero power.</summary>
-    public static SimMinion OnyxianWhelp(bool golden = false) => Make(OnyxianWhelpId, 1, 1, Tribe.Dragon, golden);
 
     /// <summary>A token with printed stats; golden doubles them.</summary>
     public static SimMinion Make(string cardId, int attack, int health, Tribe tribes, bool golden = false, Keyword keywords = Keyword.None,
