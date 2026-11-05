@@ -1109,15 +1109,15 @@
                         <!-- Turn ‹ event ‹ step ‹ play › step › event › turn; speed, position; side (Constructed) and the keys. Wraps at phone width. -->
                         <WrapPanel Margin="0,12,0,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4">
-                                <Button Classes="icon" Focusable="False" Content="&#xF04AE;" Command="{Binding PreviousTurn}" ToolTip.Tip="{i:Loc Match.Player.PreviousTurn}" />
-                                <Button Classes="icon" Focusable="False" Content="&#xF0141;" Command="{Binding PreviousEvent}" ToolTip.Tip="{i:Loc Match.Player.PreviousEvent}" Margin="4,0,0,0" />
-                                <Button Classes="icon" Focusable="False" Content="&#xF04D5;" Command="{Binding Previous}" ToolTip.Tip="{i:Loc Match.Player.PreviousStep}" Margin="4,0,0,0" />
-                                <Button Classes="ghost primary" Focusable="False" Width="44" Height="32" Padding="0" Margin="12,0" Command="{Binding TogglePlay}" ToolTip.Tip="{Binding PlayTip}">
+                                <Button Classes="icon" Focusable="False" Content="&#xF04AE;" Command="{Binding PreviousTurn}" ToolTip.Tip="{i:Loc Match.Player.PreviousTurn}" AutomationProperties.Name="{i:Loc Match.Player.PreviousTurn}" />
+                                <Button Classes="icon" Focusable="False" Content="&#xF0141;" Command="{Binding PreviousEvent}" ToolTip.Tip="{i:Loc Match.Player.PreviousEvent}" AutomationProperties.Name="{i:Loc Match.Player.PreviousEvent}" Margin="4,0,0,0" />
+                                <Button Classes="icon" Focusable="False" Content="&#xF04D5;" Command="{Binding Previous}" ToolTip.Tip="{i:Loc Match.Player.PreviousStep}" AutomationProperties.Name="{i:Loc Match.Player.PreviousStep}" Margin="4,0,0,0" />
+                                <Button Classes="ghost primary" Focusable="False" Width="44" Height="32" Padding="0" Margin="12,0" Command="{Binding TogglePlay}" ToolTip.Tip="{Binding PlayTip}" AutomationProperties.Name="{Binding PlayTip}">
                                     <TextBlock Text="{Binding PlayGlyph}" Classes="icon" FontSize="18" Foreground="{StaticResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Button>
-                                <Button Classes="icon" Focusable="False" Content="&#xF04D7;" Command="{Binding Next}" ToolTip.Tip="{i:Loc Match.Player.NextStep}" />
-                                <Button Classes="icon" Focusable="False" Content="&#xF0142;" Command="{Binding NextEvent}" ToolTip.Tip="{i:Loc Match.Player.NextEvent}" Margin="4,0,0,0" />
-                                <Button Classes="icon" Focusable="False" Content="&#xF04AD;" Command="{Binding NextTurn}" ToolTip.Tip="{i:Loc Match.Player.NextTurn}" Margin="4,0,0,0" />
+                                <Button Classes="icon" Focusable="False" Content="&#xF04D7;" Command="{Binding Next}" ToolTip.Tip="{i:Loc Match.Player.NextStep}" AutomationProperties.Name="{i:Loc Match.Player.NextStep}" />
+                                <Button Classes="icon" Focusable="False" Content="&#xF0142;" Command="{Binding NextEvent}" ToolTip.Tip="{i:Loc Match.Player.NextEvent}" AutomationProperties.Name="{i:Loc Match.Player.NextEvent}" Margin="4,0,0,0" />
+                                <Button Classes="icon" Focusable="False" Content="&#xF04AD;" Command="{Binding NextTurn}" ToolTip.Tip="{i:Loc Match.Player.NextTurn}" AutomationProperties.Name="{i:Loc Match.Player.NextTurn}" Margin="4,0,0,0" />
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4">
                                 <Button Classes="ghost" Focusable="False" Padding="10,4" MinWidth="44" Margin="12,0,0,0" VerticalAlignment="Center" Command="{Binding CycleSpeed}"
@@ -1133,7 +1133,7 @@
                                         <RadioButton Classes="segment" Content="{i:Loc Match.View.TheirSide}" GroupName="MatchSide" IsChecked="{Binding BottomOpponent}" />
                                     </StackPanel>
                                 </Border>
-                                <Button Classes="icon" Focusable="False" Content="&#xF0625;" VerticalAlignment="Center" ToolTip.Tip="{Binding HelpText}" ToolTip.ShowDelay="200" />
+                                <Button Classes="icon" Focusable="False" Content="&#xF0625;" VerticalAlignment="Center" ToolTip.Tip="{Binding HelpText}" AutomationProperties.Name="{i:Loc Match.Player.HelpName}" ToolTip.ShowDelay="200" />
                             </StackPanel>
                         </WrapPanel>
                     </StackPanel>

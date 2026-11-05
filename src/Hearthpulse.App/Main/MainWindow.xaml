@@ -56,9 +56,9 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top">
                     <StackPanel Orientation="Horizontal" Margin="18,14,0,0">
-                        <Button Style="{StaticResource CloseCaptionButton}" Content="&#xF0156;" Click="OnClose" ToolTip="{i:Loc Main.Window.Close}" />
-                        <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xF05AF;" Click="OnMaximize" ToolTip="{i:Loc Main.Window.Maximize}" />
-                        <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" />
+                        <Button Style="{StaticResource CloseCaptionButton}" Content="&#xF0156;" Click="OnClose" ToolTip="{i:Loc Main.Window.Close}" AutomationProperties.Name="{i:Loc Main.Window.CloseName}" />
+                        <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xF05AF;" Click="OnMaximize" ToolTip="{i:Loc Main.Window.Maximize}" AutomationProperties.Name="{i:Loc Main.Window.Maximize}" />
+                        <Button Style="{StaticResource CaptionButton}" Content="&#xF0374;" Click="OnMinimize" ToolTip="{i:Loc Main.Window.Minimize}" AutomationProperties.Name="{i:Loc Main.Window.Minimize}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="24,22,0,18">
                         <Image Source="{StaticResource HearthpulseLogo}" Width="42" Height="42" />

@@ -62,7 +62,7 @@
             <Border Classes="overlayHeader" Padding="14,8,8,7">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0156;" VerticalAlignment="Top" Focusable="False"
-                            Command="{Binding CloseCardPoolBrowser}" ToolTip.Tip="{i:Loc Pool.CloseEsc}" />
+                            Command="{Binding CloseCardPoolBrowser}" ToolTip.Tip="{i:Loc Pool.CloseEsc}" AutomationProperties.Name="{i:Loc Pool.CloseEsc}" />
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding CardPoolBrowserTitle}" Classes="headerTitle" TextTrimming="None" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding CardPoolDescription}" Classes="headerNote" TextTrimming="None" TextWrapping="Wrap" />

@@ -65,7 +65,7 @@
             <Border Style="{StaticResource OverlayHeader}" Padding="14,8,8,7">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0156;" VerticalAlignment="Top" Focusable="False"
-                            Command="{Binding CloseCardPoolBrowser}" ToolTip="{i:Loc Pool.CloseEsc}" />
+                            Command="{Binding CloseCardPoolBrowser}" ToolTip="{i:Loc Pool.CloseEsc}" AutomationProperties.Name="{i:Loc Pool.CloseEsc}" />
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="{Binding CardPoolBrowserTitle}" Style="{StaticResource OverlayHeaderTitle}" TextTrimming="None" TextWrapping="Wrap" />
                         <TextBlock Text="{Binding CardPoolDescription}" Style="{StaticResource OverlayHeaderNote}" TextTrimming="None" TextWrapping="Wrap" />

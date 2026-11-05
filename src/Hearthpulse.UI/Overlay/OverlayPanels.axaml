@@ -169,7 +169,7 @@
                         </Grid>
                     </Button>
                     <Button Classes="icon hideCounter" Content="&#xF0156;" FontSize="11" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Center"
-                            Focusable="False" ToolTip.Tip="{i:Loc Overlay.Counter.HideTip}"
+                            Focusable="False" ToolTip.Tip="{i:Loc Overlay.Counter.HideTip}" AutomationProperties.Name="{i:Loc Overlay.Counter.HideName}"
                             Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).HideCounter}" CommandParameter="{Binding Id}" />
                 </Panel>
                 <ContentControl Content="{Binding}" ContentTemplate="{StaticResource CounterCardsTemplate}" Margin="27,0,0,6" IsVisible="{Binding Expanded}" />
@@ -201,7 +201,7 @@
                     </Grid>
                 </Button>
                 <Button Grid.Column="1" Classes="icon hideCounter" Content="&#xF0156;" FontSize="10" Width="18" Height="18" Margin="4,0,0,0" VerticalAlignment="Top"
-                        Focusable="False" ToolTip.Tip="{i:Loc Overlay.BgCounter.HideTip}"
+                        Focusable="False" ToolTip.Tip="{i:Loc Overlay.BgCounter.HideTip}" AutomationProperties.Name="{i:Loc Overlay.Counter.HideName}"
                         Command="{Binding $parent[UserControl].((o:OverlayViewModel)DataContext).HideBgCounter}" CommandParameter="{Binding Id}" />
             </Grid>
         </Border>

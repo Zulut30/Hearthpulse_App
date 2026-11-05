@@ -77,7 +77,7 @@
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
                     <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0143;" Width="24" Height="24" Command="{Binding CloseBrowser}"
-                            ToolTip="{i:Loc Overlay.Browser.Collapse}" Focusable="False" />
+                            ToolTip="{i:Loc Overlay.Browser.Collapse}" AutomationProperties.Name="{i:Loc Overlay.Browser.Collapse}" Focusable="False" />
                     <TextBlock VerticalAlignment="Center">
                         <Run Text="{Binding BrowserTitle, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" /><Run Text="  ·  " FontSize="11" Foreground="{StaticResource Faint}" /><Run Text="{Binding BrowserScope, Mode=OneWay}" FontSize="11.5" Foreground="{StaticResource Muted}" />
                     </TextBlock>

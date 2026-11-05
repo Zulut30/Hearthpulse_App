@@ -236,7 +236,7 @@
                     </Grid>
                     <Ellipse Width="20" Height="20" Stroke="{StaticResource OverlayBorder}" StrokeThickness="1" />
                     <Button x:Name="HideButton" Grid.Column="3" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="11" Width="20" Height="20"
-                            HorizontalAlignment="Right" Visibility="Hidden" ToolTip="{i:Loc Overlay.Counter.HideTip}"
+                            HorizontalAlignment="Right" Visibility="Hidden" ToolTip="{i:Loc Overlay.Counter.HideTip}" AutomationProperties.Name="{i:Loc Overlay.Counter.HideName}"
                             CommandParameter="{Binding Id}" Command="{Binding DataContext.HideCounter, RelativeSource={RelativeSource AncestorType=Window}}" />
                     <StackPanel Grid.Column="1" Margin="7,0,8,0" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Title}" FontSize="12" TextTrimming="CharacterEllipsis" />
@@ -302,7 +302,7 @@
                     </Border>
                 </StackPanel>
                 <Button x:Name="HideButton" Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xF0156;" FontSize="10" Width="18" Height="18"
-                        Margin="4,0,0,0" VerticalAlignment="Top" Visibility="Hidden" ToolTip="{i:Loc Overlay.BgCounter.HideTip}"
+                        Margin="4,0,0,0" VerticalAlignment="Top" Visibility="Hidden" ToolTip="{i:Loc Overlay.BgCounter.HideTip}" AutomationProperties.Name="{i:Loc Overlay.Counter.HideName}"
                         CommandParameter="{Binding Id}" Command="{Binding DataContext.HideBgCounter, RelativeSource={RelativeSource AncestorType=Window}}" />
             </Grid>
         </Border>
@@ -725,11 +725,11 @@
                                     </Border>
                                     <Border x:Name="Tools" Visibility="Collapsed" Background="{StaticResource Accent}" CornerRadius="5" Padding="2,0" Height="19" Margin="4,0,0,0">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button x:Name="PART_Smaller" Style="{StaticResource TagButton}" Content="&#xF0374;" ToolTip="{i:Loc Overlay.Layout.Smaller}" />
-                                            <Button x:Name="PART_Larger" Style="{StaticResource TagButton}" Content="&#xF0415;" ToolTip="{i:Loc Overlay.Layout.Larger}" />
-                                            <Button x:Name="PART_Fade" Style="{StaticResource TagButton}" Content="&#xF05CC;" ToolTip="{i:Loc Overlay.Layout.Fade}" />
-                                            <Button x:Name="PART_Compact" Style="{StaticResource TagButton}" Content="&#xF0451;" ToolTip="{i:Loc Overlay.Layout.Compact}" Visibility="Collapsed" />
-                                            <Button x:Name="PART_Reset" Style="{StaticResource TagButton}" Content="&#xF099B;" ToolTip="{i:Loc Overlay.Layout.ResetPanel}" />
+                                            <Button x:Name="PART_Smaller" Style="{StaticResource TagButton}" Content="&#xF0374;" ToolTip="{i:Loc Overlay.Layout.Smaller}" AutomationProperties.Name="{i:Loc Overlay.Layout.Smaller}" />
+                                            <Button x:Name="PART_Larger" Style="{StaticResource TagButton}" Content="&#xF0415;" ToolTip="{i:Loc Overlay.Layout.Larger}" AutomationProperties.Name="{i:Loc Overlay.Layout.Larger}" />
+                                            <Button x:Name="PART_Fade" Style="{StaticResource TagButton}" Content="&#xF05CC;" ToolTip="{i:Loc Overlay.Layout.Fade}" AutomationProperties.Name="{i:Loc Overlay.Layout.FadeName}" />
+                                            <Button x:Name="PART_Compact" Style="{StaticResource TagButton}" Content="&#xF0451;" ToolTip="{i:Loc Overlay.Layout.Compact}" AutomationProperties.Name="{i:Loc Overlay.Layout.CompactName}" Visibility="Collapsed" />
+                                            <Button x:Name="PART_Reset" Style="{StaticResource TagButton}" Content="&#xF099B;" ToolTip="{i:Loc Overlay.Layout.ResetPanel}" AutomationProperties.Name="{i:Loc Overlay.Layout.ResetPanelName}" />
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>

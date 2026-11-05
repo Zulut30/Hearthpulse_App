@@ -11,6 +11,7 @@
   "Match.Player.SpeedTip": "Speed: a step a second, ×2 or ×4 (+ / −)",
   "Match.Player.Position": "Step {0} of {1} · turn {2}",
   "Match.Player.Help": "Keys:\nSpace — pause / play\n← → — event\nCtrl+← → — turn\nEnter, Backspace — step\nG — list of turns\nM — mulligan\nB — bookmark this step\nShift+B — list of bookmarks\n[ ] — previous / next bookmark\n+ − — speed\nEsc — back to History",
+  "Match.Player.HelpName": "Keyboard shortcuts",
   "Match.Player.Truncated": "The replay is incomplete: the game went over the recording limit.",
   "Match.Player.BgOldFile": "Step-by-step replays exist for games played after the update; this one has rounds and the lobby.",
   "Match.Player.ThisCombat": "This combat",

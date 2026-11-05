@@ -23,7 +23,7 @@
                 <StackPanel>
                     <DockPanel>
                         <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0156;" Width="22" Height="22" FontSize="14" Margin="0,-5,-6,-3"
-                                VerticalAlignment="Top" Focusable="False" Command="{Binding DismissArchetype}" ToolTip="{i:Loc Widgets.Archetype.Hide}"
+                                VerticalAlignment="Top" Focusable="False" Command="{Binding DismissArchetype}" ToolTip="{i:Loc Widgets.Archetype.Hide}" AutomationProperties.Name="{i:Loc Widgets.Archetype.Hide}"
                                 o:OverlayHit.Interactive="True" />
                         <!-- How many cards the guess rests on, and the data source, in the tooltip rather than a footnote. In the label's
                              line, so the archetype's name below keeps the header's width -->
