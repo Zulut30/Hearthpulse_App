@@ -38,7 +38,6 @@
   "Stats.Hours": "{0}h {1:00}m",
   "Stats.Minutes": "{0}m",
 
-  "Stats.Bg.Placements": "Placements",
   "Stats.Bg.PlacementsTip": "Share of your games per final place; the line is your average",
   "Stats.Bg.PlacesTitle": "Where you finish",
   "Stats.Bg.PlacesEmpty": "Places show after your first game in this time frame.",
