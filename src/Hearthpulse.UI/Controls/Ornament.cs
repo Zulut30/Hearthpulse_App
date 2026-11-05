@@ -7,9 +7,9 @@ using Hearthpulse.UI.Infrastructure;
 namespace Hearthpulse.UI.Controls;
 
 /// <summary>
-/// Section heading: an optional gold icon inside a bronze-edged cookie shape, a bold title and a gold rule (diamond plus
-/// fading hairline) that fills the rest of the width. A title longer than the width (compact) ends in an ellipsis, with
-/// the whole title as the tooltip.
+/// Section heading: an optional gold icon inside a bronze-edged cookie shape and a bold title, as in WPF; the centered
+/// variant keeps the gold rules on both sides. A title longer than the width (compact) ends in an ellipsis, with the
+/// whole title as the tooltip.
 /// </summary>
 public sealed class Ornament : Control
 {
@@ -121,7 +121,7 @@ public sealed class Ornament : Control
     }
 
     /// <summary>The room the title has: the width less the icon, and the rule's diamonds when centered.</summary>
-    private double TitleRoom(double width) => Centered ? width - 40 : width - (Icon.Length > 0 ? IconSize + 10 : 0) - 12;
+    private double TitleRoom(double width) => Centered ? width - 40 : width - (Icon.Length > 0 ? IconSize + 10 : 0);
 
     protected override Size ArrangeOverride(Size finalSize)
     {
@@ -181,6 +181,5 @@ public sealed class Ornament : Control
         }
 
         context.DrawText(text, new Point(x, mid - (text.Height / 2)));
-        Wave.Draw(context, trim, gold, x + text.Width + 12, w, mid + 1);
     }
 }

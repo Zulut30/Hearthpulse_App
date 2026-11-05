@@ -2,10 +2,17 @@
 
 Status (2026-11-05): **V3 "Gold frame" chosen**, with the game's own mana gem (`Assets/mana-gem.png`, the `ManaCost`
 control; the owner's decision of 2026-10-27, `LEGAL-HeartLens-claude-mana-assets.md`) in place of the drawn crystal
-of the mockups. Direction A "Hearth" was rejected earlier and reverted. V3 lands in parts: first the overlay panel frame
-and the deck rows (overlay and main window). The language: a thin bright gold panel edge, a header without a plate over a
-gold hairline, card rows as capsules with the gem in the left end and a rarity-lit edge, counts on dark pills, legendary
-names in their rarity colour. Task card with the render audit, all mockups and their sources:
+of the mockups. Direction A "Hearth" was rejected earlier and reverted. The language: a thin bright gold panel edge, a
+header without a plate over a gold hairline, card rows as capsules with the gem in the left end and a rarity-lit edge
+(`Rarity*Edge` brushes through `KeyBrush` "edge"), counts on dark pills, legendary names in their rarity colour.
+
+| Done (both UIs) | Not yet |
+|---|---|
+| Overlay panel frame and header; every overlay card list (deck, played, pool, graveyard, likely deck, archetype, Secrets, Arena deck) as capsules | Home: art strips in recent games and deck banners (in progress) |
+| Main window: deck page card list as capsules, brighter `CardEdge` on every card | Other main-window lists (match page, meta decks, Arena page) |
+| Section headings without a trailing rule in both UIs | First-run wizard (D4), overlay frame unification (D5), the UX round in seven themes (D3) |
+
+Task card with the render audit, all mockups and their sources:
 `../reference/tasks/TASK-2026-11-04-design-identity/` (`directions/` for A-C, `directions-v2/` for V1-V3).
 Token and style mechanics stay in the `hearthpulse-design` skill.
 

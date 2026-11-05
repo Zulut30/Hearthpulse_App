@@ -46,7 +46,7 @@
                     <DataTrigger Binding="{Binding Done}" Value="True">
                         <Setter TargetName="Art" Property="Opacity" Value="0.22" />
                         <Setter TargetName="Gem" Property="Opacity" Value="0.45" />
-                        <Setter TargetName="Strip" Property="Opacity" Value="0.35" />
+                        <Setter TargetName="Strip" Property="Opacity" Value="0.3" />
                         <Setter TargetName="Copies" Property="Opacity" Value="0.55" />
                         <Setter TargetName="CardName" Property="Foreground" Value="{StaticResource Faint}" />
                     </DataTrigger>
