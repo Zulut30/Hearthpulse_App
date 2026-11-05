@@ -34,8 +34,8 @@ BASELINES = ROOT / "tests/visual/baselines"
 PROJECTS = {"wpf": "src/Hearthpulse.App", "ava": "src/Hearthpulse.Desktop"}
 NUGET = "https://api.nuget.org/v3/index.json"
 
-THRESHOLD = 24  # per-channel difference that counts as a change (as png_diff: ignores antialiasing noise)
-MAX_CHANGED = 0.002  # share of changed pixels a frame may have and still pass
+THRESHOLD = 8  # per-channel difference that counts as a change: renders on the same runner differ by less
+MAX_CHANGED = 0.0002  # share of changed pixels a frame may have and still pass (0.02 %)
 
 PAGES = ["main-overview", "main-battlegrounds", "main-standard", "main-history", "main-settings"]
 SCREENS = ["overlay-layout-16x9", "overlay-layout-16x10", "overlay-layout-4x3"]

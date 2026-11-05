@@ -52,9 +52,9 @@ class VisualBaselineTests(unittest.TestCase):
     def test_noise_passes_masked_boxes_are_left_out_and_a_size_change_is_a_full_change(self):
         before = Image.new("RGB", (100, 10), (0, 0, 0))
         after = before.copy()
-        after.putpixel((0, 0), (24, 24, 24))
+        after.putpixel((0, 0), (8, 8, 8))
         self.assertEqual(0, visual.difference(before, after)[0])
-        after.putpixel((1, 0), (0, 0, 25))
+        after.putpixel((1, 0), (0, 0, 9))
         self.assertAlmostEqual(0.001, visual.difference(before, after)[0])
         self.assertEqual(0, visual.difference(before, after, [(0, 0, 2, 1)])[0])
         self.assertEqual((1.0, None), visual.difference(before, Image.new("RGB", (100, 11))))

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using Hearthpulse.App.Infrastructure;
 
 namespace Hearthpulse.App.Controls;
 
@@ -10,7 +11,7 @@ namespace Hearthpulse.App.Controls;
 /// </summary>
 public sealed class Ornament : FrameworkElement
 {
-    private static readonly FontFamily FallbackFont = new("Segoe UI Variable Text, Segoe UI");
+    private static readonly FontFamily FallbackFont = TextFont.Family;
 
     public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
         nameof(Text), typeof(string), typeof(Ornament),

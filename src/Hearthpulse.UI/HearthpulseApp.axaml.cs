@@ -11,8 +11,9 @@ public class HearthpulseApp : Application
     {
         AvaloniaXamlLoader.Load(this);
 
-        // Windows keeps its native UI font; everywhere else the bundled Inter gives the same look on every system.
-        if (OperatingSystem.IsWindows())
+        // Windows keeps its native UI font; everywhere else the bundled Inter gives the same look on every system, and so
+        // does an isolated run (visual baselines) on Windows too.
+        if (OperatingSystem.IsWindows() && !Hearthpulse.Core.Isolation.On)
         {
             Resources["UiFont"] = new FontFamily("Segoe UI Variable Text, Segoe UI");
         }

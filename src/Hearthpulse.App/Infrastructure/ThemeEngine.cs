@@ -40,7 +40,10 @@ public static partial class ThemeEngine
     public static void Apply(Application app, ThemeSpec theme)
     {
         // With Windows' animation setting off, the theme is rebuilt with every control animation made instant.
-        var dictionary = ThemePalette.IsDefault(theme) && SystemParameters.ClientAreaAnimation ? new ResourceDictionary { Source = BuiltIn } : Build(theme);
+        // An isolated run builds the theme from its source too: its text font is the one every Windows has (TextFont).
+        var dictionary = ThemePalette.IsDefault(theme) && SystemParameters.ClientAreaAnimation && !Isolation.On
+            ? new ResourceDictionary { Source = BuiltIn }
+            : Build(theme);
         Freeze(dictionary);
         var merged = app.Resources.MergedDictionaries;
         merged.Clear();
@@ -62,7 +65,8 @@ public static partial class ThemeEngine
             }
         }
 
-        var xaml = LocalNamespace().Replace(string.Join('\n', lines), "clr-namespace:$1;assembly=Hearthpulse\"");
+        var xaml = LocalNamespace().Replace(string.Join('\n', lines), "clr-namespace:$1;assembly=Hearthpulse\"")
+            .Replace(TextFont.Families, TextFont.Name, StringComparison.Ordinal);
         xaml = MotifUse().Replace(xaml, m => "{StaticResource Motif" + theme.Motif + m.Groups[1].Value + "}");
         if (!SystemParameters.ClientAreaAnimation)
         {

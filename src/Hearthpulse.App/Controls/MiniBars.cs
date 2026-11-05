@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using Hearthpulse.App.Infrastructure;
 
 namespace Hearthpulse.App.Controls;
 
@@ -86,7 +87,7 @@ public sealed class MiniBars : FrameworkElement
             if (ShowLabels)
             {
                 var label = new FormattedText((i + 1).ToString(CultureInfo.CurrentCulture), CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-                    new Typeface(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal),
+                    new Typeface(TextFont.Family, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal),
                     10.5, Brush("Muted"), dpi);
                 dc.DrawText(label, new Point(x + ((bw - label.Width) / 2), plot + 2));
             }
