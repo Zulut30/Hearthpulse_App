@@ -203,9 +203,26 @@ public sealed class MainNavigationContractTests
             ((UIElement)System.Windows.Input.Keyboard.FocusedElement).MoveFocus(new System.Windows.Input.TraversalRequest(System.Windows.Input.FocusNavigationDirection.Next));
             Assert.Equal("out", Stop());
 
+            // Delete asks first with the focus on "No"; Esc takes the question back.
             Assert.True(games[2].Focus());
             Key(System.Windows.Input.Key.Delete);
             Assert.True(cards[2].Confirming);
+            Assert.Equal(Loc.T("Library.ConfirmNo"), ((System.Windows.Controls.Button)System.Windows.Input.Keyboard.FocusedElement).Content);
+            Assert.Equal("2:game", Key(System.Windows.Input.Key.Escape));
+            Assert.False(cards[2].Confirming);
+
+            // S and O reach the game through the view's keys (no replay file here: the star says so).
+            var opened = new List<Uri>();
+            model.Library.OpenBrowser = url =>
+            {
+                opened.Add(url);
+                return true;
+            };
+            cards[2].SiteUrl = "https://hearthpulse.net/replay/abc";
+            Key(System.Windows.Input.Key.O);
+            Assert.Equal([new Uri("https://hearthpulse.net/replay/abc")], opened);
+            Key(System.Windows.Input.Key.S);
+            Assert.Equal(Loc.T("Library.Star.Failed"), model.Library.Status);
         }
         finally
         {

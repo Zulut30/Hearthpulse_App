@@ -30,7 +30,8 @@ public partial class ReplayLibraryView : UserControl
     /// <summary>
     /// The keyboard in the list (review m3). The list is one Tab stop and its items take no focus: Up and Down move from
     /// game to game (the next one scrolled into view), Right goes on to the game's own buttons, Left goes back, Esc returns
-    /// to the game; Enter opens it. S, Shift+S, Delete and O act on the game (<see cref="ReplayLibraryViewModel.HandleCardKey"/>).
+    /// to the game; Enter opens it. S, Shift+S, Delete and O act on the game (<see cref="ReplayLibraryViewModel.HandleCardKey"/>);
+    /// Delete's question takes the focus on "No", and Esc cancels it.
     /// </summary>
     private void OnListKey(object sender, KeyEventArgs e)
     {
@@ -56,6 +57,10 @@ public partial class ReplayLibraryView : UserControl
             case Key.Left when plain && at > 0:
                 buttons[at - 1].Focus();
                 break;
+            case Key.Escape when plain && card.Confirming:
+                model.Cancel.Execute(card);
+                buttons.FirstOrDefault()?.Focus();
+                break;
             case Key.Escape when plain && at > 0:
                 buttons[0].Focus();
                 break;
@@ -63,6 +68,16 @@ public partial class ReplayLibraryView : UserControl
                 if (!model.HandleCardKey(card, e.Key.ToString(), shift: !plain))
                 {
                     return;
+                }
+
+                if (card.Confirming)
+                {
+                    // The question shows in the card: focus goes to its "No", the safe answer.
+                    List.UpdateLayout();
+                    if (List.ItemContainerGenerator.ContainerFromItem(card) is DependencyObject asked)
+                    {
+                        Buttons(asked).LastOrDefault(b => b.IsVisible)?.Focus();
+                    }
                 }
 
                 break;

@@ -72,10 +72,35 @@ public sealed partial class LocBindingTests
             Assert.Equal("out", Press(PhysicalKey.Tab));
             Assert.EndsWith(":game", Press(PhysicalKey.Tab, RawInputModifiers.Shift), StringComparison.Ordinal);
 
-            // Delete on a game asks first, in the card.
+            // Delete on a game asks first, in the card, with the focus on "No"; Esc takes the question back.
             Assert.True(rows[1].Focus(NavigationMethod.Tab));
             Press(PhysicalKey.Delete);
             Assert.True(cards[1].Confirming);
+            Assert.Equal(Loc.T("Library.ConfirmNo"), (Focused(window) as Button)?.Content);
+            Assert.Equal("1:game", Press(PhysicalKey.Escape));
+            Assert.False(cards[1].Confirming);
+
+            // S, Shift+S and O reach the game through the view's keys (no replay files here: star and share say so).
+            var opened = new List<Uri>();
+            model.Library.OpenBrowser = url =>
+            {
+                opened.Add(url);
+                return true;
+            };
+            cards[1].SiteUrl = "https://hearthpulse.net/replay/abc";
+            Press(PhysicalKey.O);
+            Assert.Equal([new Uri("https://hearthpulse.net/replay/abc")], opened);
+            Press(PhysicalKey.S);
+            Assert.Equal(Loc.T("Library.Star.Failed"), model.Library.Status);
+            Press(PhysicalKey.S, RawInputModifiers.Shift);
+            var deadline = DateTime.UtcNow.AddMinutes(1);
+            while (model.Library.Status != Loc.T("Library.ShareFailed") && DateTime.UtcNow < deadline)
+            {
+                Thread.Sleep(20);
+                Dispatcher.UIThread.RunJobs();
+            }
+
+            Assert.Equal(Loc.T("Library.ShareFailed"), model.Library.Status);
         }
         finally
         {
