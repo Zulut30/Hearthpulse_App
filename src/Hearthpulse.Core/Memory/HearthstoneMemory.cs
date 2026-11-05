@@ -215,6 +215,30 @@ public sealed partial class HearthstoneMemory : IDisposable
         }
     }
 
+    /// <summary>
+    /// Reads from <paramref name="memory"/> instead of the running game: a recorded image (<see cref="MemoryImage"/>) for
+    /// the memory fixtures, or the recorder's wrapped game. False, with <see cref="Status"/> saying why, when its Mono
+    /// runtime cannot be found there.
+    /// </summary>
+    public bool AttachTo(ProcessMemory memory)
+    {
+        ArgumentNullException.ThrowIfNull(memory);
+        MonoRuntime? runtime;
+        string error;
+        using (ProcessMemory.Budget(AttachReadBudget, AttachTimeBudget))
+        {
+            runtime = MonoRuntime.Attach(memory, out error);
+        }
+
+        lock (_gate)
+        {
+            DetachLocked();
+            Status = runtime is null ? error : $"Attached · {runtime.ClassCount:N0} classes";
+            (_memory, _runtime) = runtime is null ? (null, null) : (memory, runtime);
+            return runtime is not null;
+        }
+    }
+
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposed on every failed path (including exceptions); on success it is returned to the caller, which owns it.")]
     private static (ProcessMemory? Memory, MonoRuntime? Runtime, string Status, bool Found) Attach()
     {
