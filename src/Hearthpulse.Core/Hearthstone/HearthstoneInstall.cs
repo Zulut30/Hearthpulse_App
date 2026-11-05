@@ -29,6 +29,11 @@ public static class HearthstoneInstall
 
     public static bool IsRunning()
     {
+        if (Isolation.On)
+        {
+            return false;
+        }
+
         try
         {
             return _lastRunning = GameProcess.IsRunning();
@@ -46,6 +51,11 @@ public static class HearthstoneInstall
         if (IsInstall(configured))
         {
             return configured;
+        }
+
+        if (Isolation.On)
+        {
+            return null;
         }
 
         if (FromRunningProcess() is { } running)

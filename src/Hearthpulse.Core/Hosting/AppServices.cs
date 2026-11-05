@@ -94,14 +94,17 @@ public sealed class AppServices
     /// The app's one HTTP client: compressed answers, connections renewed every 10 minutes (DNS changes), a 40-second
     /// limit, and the app's name and version as its user agent.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The SocketsHttpHandler is owned by the HttpClient (disposeHandler: true), which lives as long as the app.")]
-    public static HttpClient CreateHttp(string version)
+    public static HttpClient CreateHttp(string version) => CreateHttp(version, Isolation.On);
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The handler is owned by the HttpClient (disposeHandler: true), which lives as long as the app.")]
+    internal static HttpClient CreateHttp(string version, bool offline)
     {
-        var http = new HttpClient(new SocketsHttpHandler
+        HttpMessageHandler handler = offline ? new OfflineHandler() : new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
             PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-        })
+        };
+        var http = new HttpClient(handler)
         {
             Timeout = TimeSpan.FromSeconds(40),
         };
@@ -135,5 +138,12 @@ public sealed class AppServices
             Volatile.Write(ref _cardPoolRequested, 0);
             Diag.Error("Card pool catalog unavailable", ex);
         }
+    }
+
+    /// <summary>Fails every request (<see cref="Isolation"/>).</summary>
+    private sealed class OfflineHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromException<HttpResponseMessage>(new HttpRequestException("No network in an isolated run (HEARTHPULSE_ISOLATED)"));
     }
 }

@@ -52,10 +52,11 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
   replay), `historylist` (`main-history` alone), `ctmatch` (WPF only: `main-match-table`, the newest Constructed
   replay's table two thirds in), `overlay` (the Battlegrounds moments `overlay-pick/-trinket/-discover/-game/-bg-counters`,
   `overlay-constructed` with its previews, `overlay-layout`), `overlay-opacity` (WPF only: one frame,
-  `overlay-opacity`, the Constructed panels and counters at the data copy's `OverlayOpacity`). New groups go into `RenderOnlyAsync`
+  `overlay-opacity`, the Constructed panels and counters at the data copy's `OverlayOpacity`), `baseline` (the visual
+  baselines' frames, below). New groups go into `RenderOnlyAsync`
   (`DevRender.Brawl.cs`, `OffscreenRenderer.Brawl.cs`). With a group, `HEARTHPULSE_RENDER_WIDTH=<px>` sets the main
   window's width (e.g. 1040, the minimum). Theme: `HEARTHPULSE_THEME=<Tavern|Frost|Fel|Arcane|Ember|Tide|Shadow>`,
-  honoured only while rendering, WPF only (the Avalonia app has themes, but its renderer stays Tavern).
+  honoured only while rendering, in both UIs (without it the Avalonia renderer keeps the default colours).
 - Data: main pages from `history.db`; overlay moments replayed from the **kept Hearthstone logs**
   (`<install>/Logs`, resolved from the configured install); counters fall back to a synthetic scene; meta and card pool come
   from the network/cache.
@@ -126,6 +127,23 @@ unavailable log moment may be explicitly reported as skipped; do not turn a mand
 4. The same script on `<out>/wpf` vs `<out>/ava` is a quick **parity** check: expect differences from fonts,
    Avalonia's nav group markers and crop scale (WPF counter crops are 2x, `*-full` pages differ in size), not missing
    blocks.
+
+## Visual baselines (CI)
+
+`tools/visual/visual_check.py` keeps 28 frames under watch: both UIs, Tavern / Frost / Shadow, main pages and the
+overlay's layout mode on 16:9, 16:10 and 4:3 screens (render group `baseline`, `VisualBaseline` in Core). It renders on
+the fixture data folder `tests/visual/data`, isolated (`HEARTHPULSE_ISOLATED=1`: no network, no Hearthstone install),
+and compares with `tests/visual/baselines/<ui>/<theme>-<scene>.webp` (lossless WebP): over 0.2 % of pixels changed
+fails, the app version under the sidebar is masked. CI job "Visual baselines" runs it on Windows and uploads
+`visual-renders` (renders and diff sheets) on a failure.
+
+- A wanted change of those screens: take the artifact, Read its `diff/` sheets, then
+  `python -B -I tools/visual/visual_check.py update <artifact-dir>` (or `--scene Tavern-main-overview` for one) and
+  commit the baselines in the same change. Baselines come from the CI runner: WPF draws with the system's fonts, and
+  the Avalonia app with Segoe UI on Windows.
+- Screens in `PENDING` (being redesigned) are reported, never failed; take their baselines again when the redesign
+  lands and drop them from `PENDING`.
+- Locally: `render <out> --artifacts <short-dir>` then `compare <out>`; a local PC's fonts may differ from the runner's.
 
 ## What to look at in each PNG
 

@@ -30,14 +30,14 @@ internal static partial class OffscreenRenderer
         overlay.Close();
     }
 
-    /// <summary>The overlay at 1920 x 1080 over a stand-in for the game.</summary>
-    private static (Window Overlay, OverlayView View) OpenOverlay(AppHost host, AppSettings settings)
+    /// <summary>The overlay on a game screen of <paramref name="width"/> x <paramref name="height"/>, over a stand-in for the game.</summary>
+    private static (Window Overlay, OverlayView View) OpenOverlay(AppHost host, AppSettings settings, int width = 1920, int height = 1080)
     {
         var view = new OverlayView { DataContext = host.Overlay, Settings = settings };
         var overlay = new Window
         {
-            Width = 1920,
-            Height = 1080,
+            Width = width,
+            Height = height,
             Content = view,
             // Stand-in for the game behind the transparent overlay.
             Background = new RadialGradientBrush
@@ -48,7 +48,7 @@ internal static partial class OffscreenRenderer
             },
         };
         overlay.Show();
-        view.Fit(1920, 1080);
+        view.Fit(width, height);
         return (overlay, view);
     }
 

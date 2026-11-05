@@ -31,6 +31,11 @@ internal static partial class OffscreenRenderer
             await RenderBrawlPageAsync(main, view, host, folder);
         }
 
+        if (RenderOnly("baseline"))
+        {
+            await RenderBaselineAsync(main, view, host, folder);
+        }
+
         if (RenderOnly("history") || RenderOnly("historylist"))
         {
             if (RenderWidth is { } width)

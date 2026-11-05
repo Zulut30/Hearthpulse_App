@@ -57,6 +57,13 @@ internal static partial class OffscreenRenderer
         var settings = AppSettings.Load();
         // The default panel spots, not the layout saved in the copied data folder: renders compare across runs and PCs.
         settings.Panels.Clear();
+        // HEARTHPULSE_THEME=<preset>: a theme for this render (as the WPF renderer); without it the default colours.
+        if (Environment.GetEnvironmentVariable("HEARTHPULSE_THEME") is { Length: > 0 } theme)
+        {
+            settings.Theme = theme;
+            Console.WriteLine($"theme {theme}: " + (ThemeEngine.ApplySaved(Application.Current!, settings) ? "applied" : "not applied"));
+        }
+
         using var host = new AppHost(settings, rendering: true);
         await host.InitializeAsync(watchLogs: false);
         await host.LoadMetaAsync();

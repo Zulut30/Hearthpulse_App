@@ -38,6 +38,11 @@ public partial class App
             await RenderOpacityCheckAsync(folder);
         }
 
+        if (RenderOnly("baseline"))
+        {
+            await RenderBaselineAsync(folder);
+        }
+
         if (RenderOnly("ctmatch"))
         {
             await RenderConstructedTableOnlyAsync(folder);
