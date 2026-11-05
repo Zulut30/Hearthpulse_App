@@ -2,7 +2,11 @@ using System.Windows.Input;
 
 namespace Hearthpulse.App.Infrastructure;
 
-public sealed class RelayCommand(Action<object?> execute, Func<object?, bool>? canExecute = null) : ICommand
+/// <summary>
+/// A command that is always executable (no command in either UI is ever disabled through it, so it raises no
+/// CanExecuteChanged). It stays in each UI, as views and controls do; the Presentation README says why.
+/// </summary>
+public sealed class RelayCommand(Action<object?> execute) : ICommand
 {
     public RelayCommand(Action execute) : this(_ => execute())
     {
@@ -10,11 +14,11 @@ public sealed class RelayCommand(Action<object?> execute, Func<object?, bool>? c
 
     public event EventHandler? CanExecuteChanged
     {
-        add => CommandManager.RequerySuggested += value;
-        remove => CommandManager.RequerySuggested -= value;
+        add { }
+        remove { }
     }
 
-    public bool CanExecute(object? parameter) => canExecute?.Invoke(parameter) ?? true;
+    public bool CanExecute(object? parameter) => true;
 
     public void Execute(object? parameter) => execute(parameter);
 }

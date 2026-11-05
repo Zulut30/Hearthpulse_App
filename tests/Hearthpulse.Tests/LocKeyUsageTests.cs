@@ -30,12 +30,8 @@ public sealed class LocKeyUsageTests
     /// <summary>A dotted name as a whole: <c>Match.View.Next</c> must not count as used because <c>Match.View.NextTurn</c> is.</summary>
     private static readonly Regex DottedName = new(@"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_-]+)+", RegexOptions.CultureInvariant);
 
-    /// <summary>
-    /// Unused keys left for now, each with its reason. <c>Stats.Bg.Placements</c>: only its <c>…Tip</c> is shown; it sits in
-    /// <c>stats.json</c>, which TASK-2026-10-29-ux-round2 is editing. Delete the key from both languages and this entry once
-    /// that branch is merged.
-    /// </summary>
-    private static readonly string[] KnownUnused = ["Stats.Bg.Placements"];
+    /// <summary>Unused keys left for now, each with its reason in this comment (none at the moment).</summary>
+    private static readonly string[] KnownUnused = [];
 
     [Fact]
     public void Every_key_is_used_in_the_code()

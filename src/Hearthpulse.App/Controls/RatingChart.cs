@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using Hearthpulse.App.Infrastructure;
 using Hearthpulse.Core.Data;
 using Hearthpulse.Core.Localization;
 
@@ -44,7 +45,7 @@ public sealed class RatingChart : FrameworkElement
         var faint = (Brush)FindResource("Faint");
         var muted = (Brush)FindResource("Muted");
         var grid = new Pen((Brush)FindResource("Border"), 1) { DashStyle = new DashStyle([3, 4], 0) };
-        var typeface = new Typeface(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+        var typeface = new Typeface(TextFont.Family, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
 
         dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, w, h));
@@ -110,7 +111,7 @@ public sealed class RatingChart : FrameworkElement
 
         // The latest rating sits in a small gold tag above its point.
         var tag = new FormattedText(points[^1].Rating.ToString("N0", CultureInfo.CurrentCulture), CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight, new Typeface(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
+            FlowDirection.LeftToRight, new Typeface(TextFont.Family, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
             12, (Brush)FindResource("OnAccent"), dpi);
         var (bx, by, bw, bh) = ChartGeometry.Tag((last.X, last.Y), tag.Width, tag.Height, left, right, w);
         dc.DrawRoundedRectangle((Brush)FindResource("PrimaryFill"), null, new Rect(bx, by, bw, bh), 6, 6);

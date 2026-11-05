@@ -82,7 +82,7 @@ Mode labels for history: `GameRecords.ModeOf` (`src/Hearthpulse.Core/Tracking/Ga
 | Quests / quest rewards | Past-season mechanic: complete a quest for a reward card | card type `BATTLEGROUND_QUEST_REWARD` (treated as player-level card in the tracker); API `/api/v1/quests` |
 | Buddies | Past-season hero-specific minions | not modelled in Core; API hero items have a `buddy` field |
 | Timewarped | Timewarped Tavern cards | `BgCardSource.IsTimewarped` (excluded from the pool); `CombatRelevance`; API `/api/v1/timewarped-cards` |
-| Comps | Target board archetypes (from the stats pool; empty until it runs) | `MetaComp`, `CompAdvice`, `AppSettings.CompMode`/`ChosenCompId`/`CompFocus` |
+| Comps | Target board archetypes (from the stats pool; empty until it runs) | `MetaComp`, `CompAdvice`, `BattlegroundsAdvisor.CompMode`, `AppSettings.CompFocus` |
 | Rating (MMR) | BG rating, separate for Solo and Duos; placement 1-8 changes it | `BattlegroundsRating(Solo, Duos)` from memory; `RatingPoint` history; meta brackets top 100/50/25/10/1 % |
 | Leaderboard | Players by health; place 1-8 at the end | `PLAYER_LEADERBOARD_PLACE`; `BgOpponent` (health, armor, tier, triples, last board, last result) |
 | Next opponent | Who you fight next | `NEXT_OPPONENT_PLAYER_ID`; `BgOpponent.IsNextOpponent` |

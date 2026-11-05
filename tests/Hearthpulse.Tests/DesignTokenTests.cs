@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
 namespace Hearthpulse.Tests;
@@ -33,11 +32,8 @@ public sealed class DesignTokenTests
 
     private static readonly string[] TokenElements = ["Double", "CornerRadius", "Thickness"];
 
-    private static string RepoRoot([CallerFilePath] string source = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", ".."));
-
     private static Dictionary<string, string> Tokens(string relative) =>
-        XDocument.Load(Path.Combine(RepoRoot(), relative)).Root!.Descendants()
+        XDocument.Load(Path.Combine(RepoFiles.Root, relative)).Root!.Descendants()
             .Where(e => TokenElements.Contains(e.Name.LocalName) && e.Attribute(X + "Key") is not null)
             .ToDictionary(e => (string)e.Attribute(X + "Key")!, e => e.Value.Trim(), StringComparer.Ordinal);
 
@@ -85,7 +81,7 @@ public sealed class DesignTokenTests
 
     private static (int Font, int Radius, int Space) Count(string folder)
     {
-        var root = Path.Combine(RepoRoot(), folder);
+        var root = Path.Combine(RepoFiles.Root, folder);
         var files = Directory.EnumerateFiles(root, "*.*", SearchOption.AllDirectories)
             .Where(f => f.EndsWith(".xaml", StringComparison.Ordinal) || f.EndsWith(".axaml", StringComparison.Ordinal))
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)

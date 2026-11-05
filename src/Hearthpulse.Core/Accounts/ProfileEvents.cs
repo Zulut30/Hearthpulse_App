@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Hearthpulse.Core.Data;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Stats;
 
 namespace Hearthpulse.Core.Accounts;
@@ -352,9 +353,9 @@ public static partial class ProfileEvents
         }
 
         // The client counts Legend as 51 and beyond; the site wants exactly 51 with the Legend rank beside it.
-        var level = Math.Min(game.RankStarLevel.Value, 51);
+        var level = Math.Min(game.RankStarLevel.Value, RankInfo.LegendStarLevel);
         var rank = new JsonObject { ["starLevel"] = level };
-        if (level == 51 && game.RankLegend is >= 1 and <= 1_000_000)
+        if (level == RankInfo.LegendStarLevel && game.RankLegend is >= 1 and <= 1_000_000)
         {
             rank["legendRank"] = game.RankLegend;
         }

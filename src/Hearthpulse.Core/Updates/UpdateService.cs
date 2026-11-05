@@ -27,7 +27,7 @@ public enum UpdateTarget
 
 /// <summary>A newer release than the running one, together with the file this platform needs.</summary>
 /// <param name="Sha256">The file's SHA-256 as GitHub publishes it (lower-case hex), or null when the release has none.</param>
-public sealed record UpdateInfo(string Version, string AssetName, string DownloadUrl, string PageUrl, string? Sha256 = null);
+public sealed record UpdateInfo(string Version, string AssetName, string DownloadUrl, string? Sha256 = null);
 
 /// <summary>What an update check found.</summary>
 public enum UpdateCheckOutcome
@@ -185,7 +185,7 @@ public static class UpdateService
                     var sha256 = digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) && digest.Length == 71
                         ? digest[7..].ToLowerInvariant()
                         : null;
-                    return new UpdateInfo(version, wanted, url, GetString(root, "html_url"), sha256);
+                    return new UpdateInfo(version, wanted, url, sha256);
                 }
             }
 

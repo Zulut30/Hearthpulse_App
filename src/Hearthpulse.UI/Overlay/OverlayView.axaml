@@ -167,7 +167,7 @@
                     <StackPanel>
                         <ItemsControl ItemsSource="{Binding HeroPicks}" ItemTemplate="{StaticResource HeroPickTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
                         <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
-                        <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                        <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
                                 IsVisible="{Binding UsageNote, Converter={StaticResource Truthy}}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xF0341;" Classes="icon" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
@@ -182,7 +182,7 @@
                     <StackPanel>
                         <ItemsControl ItemsSource="{Binding TrinketPicks}" ItemTemplate="{StaticResource TrinketBadgeTemplate}" ItemsPanel="{StaticResource HRow}" HorizontalAlignment="Center" />
                         <!-- Plan 3.1: today's free games with the stats pool's numbers are used up -->
-                        <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                        <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
                                 IsVisible="{Binding UsageNote, Converter={StaticResource Truthy}}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xF0341;" Classes="icon" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
@@ -203,7 +203,7 @@
                             </ItemsControl.ItemsPanel>
                         </ItemsControl>
                         <!-- Plan 3.1: what is left today of the free games with the stats pool's numbers, or why they are missing -->
-                        <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                        <Border HorizontalAlignment="Center" Margin="0,6,0,0" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
                                 IsVisible="{Binding UsageNote, Converter={StaticResource Truthy}}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xF0341;" Classes="icon" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
@@ -221,7 +221,7 @@
                 <!-- ============ Battlegrounds: Discover pick hints (Dark Gift, triple reward…) ============ -->
                 <o:MovablePanel Id="choice-row" PlaceholderAlignment="Center" Title="{i:Loc Overlay.Panel.Choice}" MinWidth="1360" Shown="{Binding ShowDiscover}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="14,222,0,0">
                     <StackPanel>
-                        <Border HorizontalAlignment="Center" CornerRadius="6" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
+                        <Border HorizontalAlignment="Center" CornerRadius="6" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" Padding="11,2"
                                 IsVisible="{Binding DiscoverTitle, Converter={StaticResource Truthy}}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xF0674;" Classes="icon" FontSize="12" Foreground="{StaticResource Accent}" Margin="0,0,6,0" />
@@ -234,7 +234,7 @@
 
                 <!-- ============ Battlegrounds: leaderboard hover ============ -->
                 <Canvas Name="LobbyLayer" IsHitTestVisible="False">
-                    <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Padding="10,8"
+                    <Border Classes="overlayCard" Background="{DynamicResource OverlayPanelSolid}" Padding="10,8"
                             Canvas.Left="{Binding LobbyLeft}" Canvas.Top="{Binding LobbyTop}"
                             IsVisible="{Binding Lobby, Converter={StaticResource Truthy}}">
                         <StackPanel DataContext="{Binding Lobby}" x:DataType="o:LobbyPopup">
@@ -320,7 +320,7 @@
 
                 <!-- ============ Layout mode banner (centre band, clear of the default spots of the top-row panels) ============ -->
                 <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,400,0,0" Classes="overlayCard"
-                        Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,10" o:OverlayHit.Interactive="True"
+                        Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,10" o:OverlayHit.Interactive="True"
                         IsVisible="{Binding LayoutEditing}">
                     <StackPanel Orientation="Horizontal">
                         <StackPanel VerticalAlignment="Center">
@@ -337,7 +337,7 @@
 
                 <!-- ============ End of game toast ============ -->
                 <o:MovablePanel Id="toast" Title="{i:Loc Overlay.Panel.Toast}" Shown="{Binding ShowToast}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,120">
-                    <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Padding="0">
+                    <Border Classes="overlayCard" Background="{DynamicResource OverlayPanelSolid}" Padding="0">
                         <StackPanel Orientation="Horizontal">
                             <Border Width="4" CornerRadius="7,0,0,7" Background="{Binding ToastResult, Converter={StaticResource KeyBrush}}" />
                             <StackPanel Margin="16,11,22,12">
@@ -351,7 +351,7 @@
                 <!-- ============ One-time move tip, the first time the overlay shows over the game: top centre, never over
                      the hand, and never takes the pointer ============ -->
                 <Border Name="MoveTip" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0" Classes="overlayCard"
-                        Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,9" IsHitTestVisible="False"
+                        Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource Accent}" Padding="16,9" IsHitTestVisible="False"
                         IsVisible="{Binding ShowMoveTip}">
                     <StackPanel>
                         <TextBlock Text="{i:Loc Overlay.Move.TipTitle}" FontSize="14" FontWeight="SemiBold" />

@@ -15,7 +15,6 @@ public static class GameTag
     public const string HeroEntity = "HERO_ENTITY";
     public const string FirstPlayer = "FIRST_PLAYER";
     public const string Creator = "CREATOR";
-    public const string CreatorDbId = "CREATOR_DBID";
     public const string DisplayedCreator = "DISPLAYED_CREATOR";
     public const string Atk = "ATK";
     public const string Health = "HEALTH";

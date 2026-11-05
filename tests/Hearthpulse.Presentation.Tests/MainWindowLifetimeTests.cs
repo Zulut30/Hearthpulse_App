@@ -22,7 +22,7 @@ public sealed class MainWindowLifetimeTests
     private static HistoryStore History() => new(Path.Combine(AppPaths.Root, Guid.NewGuid().ToString("N") + ".db"));
 
     [Fact]
-    public void A_closed_wpf_main_window_is_collected_while_its_view_model_lives_on() => OnSta(() =>
+    public void A_closed_wpf_main_window_is_collected_while_its_view_model_lives_on() => WpfThread.RunFresh(() =>
     {
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var window = OpenAndClose(model);
@@ -33,7 +33,7 @@ public sealed class MainWindowLifetimeTests
 
     /// <summary>A window rebuilt from the last one's place (theme change, back from the tray) opens on the same page, tabs and bounds.</summary>
     [Fact]
-    public void A_rebuilt_wpf_main_window_opens_where_the_last_one_was() => OnSta(() =>
+    public void A_rebuilt_wpf_main_window_opens_where_the_last_one_was() => WpfThread.RunFresh(() =>
     {
         var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
         var first = OffScreen(new WpfWindow(model));
@@ -73,7 +73,7 @@ public sealed class MainWindowLifetimeTests
     /// overlay view model. Laid out off screen, never shown (shown, it would cover the screen).
     /// </summary>
     [Fact]
-    public void A_closed_wpf_overlay_window_is_collected_while_its_view_model_lives_on() => OnSta(() =>
+    public void A_closed_wpf_overlay_window_is_collected_while_its_view_model_lives_on() => WpfThread.RunFresh(() =>
     {
         var model = new OverlayViewModel();
         var window = BuildAndCloseOverlay(model);
@@ -125,37 +125,6 @@ public sealed class MainWindowLifetimeTests
         window.CloseForReal();
         Pump();
         return new WeakReference(window);
-    }
-
-    private static void OnSta(Action body)
-    {
-        Loc.Instance.SetLanguage(Loc.English);
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-                app.Resources.MergedDictionaries.Clear();
-                app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1)));
-                body();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("Window lifetime check failed", failure);
-        }
     }
 
     private static void Collect(WeakReference target)

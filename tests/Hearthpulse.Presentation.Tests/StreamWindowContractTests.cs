@@ -97,7 +97,7 @@ public sealed class StreamWindowContractTests
     }
 
     [Fact]
-    public void Wpf_stream_windows_and_the_stream_tab_load_with_the_theme() => OnSta(Check);
+    public void Wpf_stream_windows_and_the_stream_tab_load_with_the_theme() => WpfThread.Run(Check);
 
     private static void Check()
     {
@@ -175,33 +175,6 @@ public sealed class StreamWindowContractTests
         _ = Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
         root.UpdateLayout();
-    }
-
-    private static void OnSta(Action check)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                check();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("Stream window check failed", failure);
-        }
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject

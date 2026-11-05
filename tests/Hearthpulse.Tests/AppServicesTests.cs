@@ -25,6 +25,17 @@ public sealed class AppServicesTests
         Assert.Equal("Hearthpulse/1.2.3", http.DefaultRequestHeaders.UserAgent.ToString());
     }
 
+    /// <summary>HEARTHPULSE_ISOLATED (visual baselines): every request fails as a lost network would, and none is sent.</summary>
+    [Fact]
+    public async Task Offline_the_shared_client_fails_every_request_as_a_network_error()
+    {
+        using var http = AppServices.CreateHttp("1.2.3", offline: true);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => http.GetAsync(new Uri("https://api.example.test/v1/meta")));
+        Assert.Contains("HEARTHPULSE_ISOLATED", error.Message, StringComparison.Ordinal);
+        Assert.Equal("Hearthpulse/1.2.3", http.DefaultRequestHeaders.UserAgent.ToString());
+    }
+
     [Fact]
     public async Task With_the_card_pool_off_the_catalog_is_never_asked_for()
     {

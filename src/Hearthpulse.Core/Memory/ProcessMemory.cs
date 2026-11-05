@@ -5,22 +5,25 @@ using System.Text;
 
 namespace Hearthpulse.Core.Memory;
 
-/// <summary>Read-only handle to another process's address space.</summary>
+/// <summary>
+/// Read-only access to another process's address space (<see cref="Open"/>), or to a recorded image of it
+/// (<see cref="FromSource"/>): typed reads, strings, and a per-thread read budget.
+/// </summary>
 public sealed class ProcessMemory : IDisposable
 {
-    private const uint ProcessVmRead = 0x0010;
-    private const uint ProcessQueryLimitedInformation = 0x1000;
-    private const uint StillActive = 259;
+    private readonly IMemorySource _source;
 
-    private nint _handle;
-
-    private ProcessMemory(int processId, nint handle)
+    private ProcessMemory(IMemorySource source, int processId)
     {
+        _source = source;
         ProcessId = processId;
-        _handle = handle;
     }
 
+    /// <summary>The game's process id; 0 over a recorded image.</summary>
     public int ProcessId { get; }
+
+    /// <summary>Reads from <paramref name="source"/> (a <see cref="MemoryImage"/> in tests, a recording wrapper in the recorder).</summary>
+    public static ProcessMemory FromSource(IMemorySource source, int processId = 0) => new(source, processId);
 
     // A scan follows pointers it read a moment earlier. When the game frees an object mid-scan those pointers turn
     // into garbage, and a garbage length or link can keep a scan busy for minutes. Each scan therefore gets a read
@@ -68,46 +71,18 @@ public sealed class ProcessMemory : IDisposable
         public void Dispose() => (t_readsLeft, t_deadline, t_exhausted) = (_readsLeft, _deadline, _exhausted);
     }
 
-    public bool HasExited => !GetExitCodeProcess(_handle, out var code) || code != StillActive;
+    public bool HasExited => _source.HasExited;
 
-    public static ProcessMemory? Open(int processId)
-    {
-        var handle = OpenProcess(ProcessVmRead | ProcessQueryLimitedInformation, false, processId);
-        return handle == 0 ? null : new ProcessMemory(processId, handle);
-    }
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The process handle goes to the returned ProcessMemory, which disposes it.")]
+    public static ProcessMemory? Open(int processId) => GameProcessSource.Open(processId) is { } source ? new ProcessMemory(source, processId) : null;
 
-    public ulong FindModuleBase(string moduleName)
-    {
-        try
-        {
-            using var process = Process.GetProcessById(ProcessId);
-            foreach (ProcessModule module in process.Modules)
-            {
-                if (string.Equals(module.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return (ulong)module.BaseAddress;
-                }
-            }
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or ArgumentException)
-        {
-        }
+    /// <summary>Where the bytes come from: a recorder wraps the game's (Bench's <c>RecordingMemorySource</c>).</summary>
+    public IMemorySource Source => _source;
 
-        return 0;
-    }
+    public ulong FindModuleBase(string moduleName) => _source.FindModuleBase(moduleName);
 
-    public unsafe bool TryRead(ulong address, Span<byte> buffer)
-    {
-        if (address < 0x10000 || _handle == 0 || !TakeFromBudget())
-        {
-            return false;
-        }
-
-        fixed (byte* ptr = buffer)
-        {
-            return ReadProcessMemory(_handle, (nint)address, ptr, buffer.Length, out var read) && read == buffer.Length;
-        }
-    }
+    public bool TryRead(ulong address, Span<byte> buffer) =>
+        address >= 0x10000 && TakeFromBudget() && _source.TryRead(address, buffer);
 
     public byte[]? ReadBytes(ulong address, int count)
     {
@@ -144,10 +119,6 @@ public sealed class ProcessMemory : IDisposable
     }
 
     public bool ReadBool(ulong address) => ReadByte(address) != 0;
-
-    public float ReadSingle(ulong address) => BitConverter.Int32BitsToSingle(ReadInt32(address));
-
-    public double ReadDouble(ulong address) => BitConverter.Int64BitsToDouble(ReadInt64(address));
 
     /// <summary>Reads a NUL-terminated ASCII/UTF-8 string (Mono metadata names).</summary>
     public string? ReadCString(ulong address, int maxLength = 512)
@@ -220,24 +191,80 @@ public sealed class ProcessMemory : IDisposable
         return TryRead(address, b) ? b[0] : null;
     }
 
-    public void Dispose()
+    public void Dispose() => (_source as IDisposable)?.Dispose();
+
+    /// <summary>The running game, through a read-only process handle.</summary>
+    private sealed class GameProcessSource : IMemorySource, IDisposable
     {
-        if (_handle != 0)
+        private const uint ProcessVmRead = 0x0010;
+        private const uint ProcessQueryLimitedInformation = 0x1000;
+        private const uint StillActive = 259;
+
+        private readonly int _processId;
+        private nint _handle;
+
+        private GameProcessSource(int processId, nint handle) => (_processId, _handle) = (processId, handle);
+
+        public static GameProcessSource? Open(int processId)
         {
-            CloseHandle(_handle);
-            _handle = 0;
+            var handle = OpenProcess(ProcessVmRead | ProcessQueryLimitedInformation, false, processId);
+            return handle == 0 ? null : new GameProcessSource(processId, handle);
         }
+
+        public bool HasExited => !GetExitCodeProcess(_handle, out var code) || code != StillActive;
+
+        public ulong FindModuleBase(string moduleName)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(_processId);
+                foreach (ProcessModule module in process.Modules)
+                {
+                    if (string.Equals(module.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return (ulong)module.BaseAddress;
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or ArgumentException)
+            {
+            }
+
+            return 0;
+        }
+
+        public unsafe bool TryRead(ulong address, Span<byte> buffer)
+        {
+            if (_handle == 0)
+            {
+                return false;
+            }
+
+            fixed (byte* ptr = buffer)
+            {
+                return ReadProcessMemory(_handle, (nint)address, ptr, buffer.Length, out var read) && read == buffer.Length;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_handle != 0)
+            {
+                CloseHandle(_handle);
+                _handle = 0;
+            }
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern nint OpenProcess(uint access, bool inheritHandle, int processId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern unsafe bool ReadProcessMemory(nint process, nint baseAddress, byte* buffer, nint size, out nint read);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetExitCodeProcess(nint process, out uint exitCode);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CloseHandle(nint handle);
     }
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern nint OpenProcess(uint access, bool inheritHandle, int processId);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern unsafe bool ReadProcessMemory(nint process, nint baseAddress, byte* buffer, nint size, out nint read);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool GetExitCodeProcess(nint process, out uint exitCode);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool CloseHandle(nint handle);
 }

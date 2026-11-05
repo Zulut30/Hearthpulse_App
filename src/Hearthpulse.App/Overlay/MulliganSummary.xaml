@@ -10,7 +10,7 @@
         <i:VisibleWhen x:Key="Vis" />
     </UserControl.Resources>
 
-    <Border Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="12"
+    <Border Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}" BorderThickness="1" CornerRadius="12"
             HorizontalAlignment="Center" Padding="12,3,12,4" ToolTip="{Binding MulliganDetails}" o:OverlayHit.Interactive="True"
             ToolTipService.InitialShowDelay="200">
         <StackPanel Orientation="Horizontal">

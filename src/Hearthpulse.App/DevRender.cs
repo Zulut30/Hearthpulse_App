@@ -60,13 +60,6 @@ public partial class App
                 return;
             }
 
-            if (RenderOnlyOverlay)
-            {
-                await RenderOverlayCheckAsync(folder);
-                Quit();
-                return;
-            }
-
             var only = RenderPagesOnly();
             foreach (var page in new[] { "Overview", "Battlegrounds", "Standard", "Wild", "History", "Settings" }.Where(p => only?.Contains(p) != false))
             {

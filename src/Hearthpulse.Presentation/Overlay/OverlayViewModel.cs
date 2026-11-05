@@ -577,7 +577,7 @@ public sealed partial class OverlayViewModel : Observable
         // In place: a fight changes one or two rows, and the others keep their portraits.
         Replace(nameof(LobbyRows), rows, r => $"{r.Place}{r.HeroCardId}{r.Health}{r.Tier}{r.Triples}{r.Last}{r.Next}{r.Dead}{r.Tribe?.Key}{r.TribeCount}", () => Sync(ref _lobbyRows, nameof(LobbyRows), rows
             .Select(r => r with { HealthFraction = r.Dead ? 0 : Math.Clamp(r.Health / (double)top, 0.04, 1) })
-            .OrderBy(r => r.Place <= 0 ? 99 : r.Place)
+            .OrderBy(r => Places.SortKey(r.Place))
             .ToList()));
 
         var session = snapshot.Session;
@@ -851,7 +851,7 @@ public sealed partial class OverlayViewModel : Observable
             return OverlayFormat.Percent(value);
         }
 
-        if (value < 0.0005)
+        if (value < OverlayFormat.HalfStep)
         {
             return OverlayFormat.Below(0.001, 1);
         }

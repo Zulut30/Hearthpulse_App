@@ -127,12 +127,12 @@ public sealed class TurnClockTests(ITestOutputHelper output)
     {
         ReplayTurn[] turns =
         [
-            new(0, null, 0, 1, 0) { Seconds = 37 },
-            new(1, ReplayPlayer.Local, 2, 3, 0) { Seconds = 51 },
-            new(2, ReplayPlayer.Opponent, 4, 5, 51) { Seconds = 30 },
-            new(3, ReplayPlayer.Local, 6, 7, 81) { Seconds = 10 },
-            new(4, ReplayPlayer.Opponent, 8, 9, 91) { Seconds = 50 },
-            new(5, ReplayPlayer.Local, 10, 11, 141) { Seconds = 70 },
+            new(0, null, 0, 1) { Seconds = 37 },
+            new(1, ReplayPlayer.Local, 2, 3) { Seconds = 51 },
+            new(2, ReplayPlayer.Opponent, 4, 5) { Seconds = 30 },
+            new(3, ReplayPlayer.Local, 6, 7) { Seconds = 10 },
+            new(4, ReplayPlayer.Opponent, 8, 9) { Seconds = 50 },
+            new(5, ReplayPlayer.Local, 10, 11) { Seconds = 70 },
         ];
 
         var tile = MatchAnalysis.TurnTimeTile(turns)!;

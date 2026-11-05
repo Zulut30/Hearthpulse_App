@@ -187,6 +187,8 @@ public partial class MainView : UserControl
         if (e.KeyModifiers == KeyModifiers.Control && MainViewModel.NavPageForDigit(digit) is { } page)
         {
             ShowPage(page);
+            // Focus follows the page: the control it was on may sit on the page just hidden.
+            PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, page)].Focus(NavigationMethod.Tab);
             e.Handled = true;
         }
         else if (((e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None) || (e.Key == Key.Left && e.KeyModifiers == KeyModifiers.Alt))

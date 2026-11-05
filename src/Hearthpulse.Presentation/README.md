@@ -18,7 +18,7 @@ public member types and assembly identities therefore remain in place.
 | Deck details and match replay | `Main/Decks/DeckDetailsViewModel.cs` (its rows: `DeckDetailsRows.cs`), `Main/Match/MatchViewModel.cs` | Views and code-behind in each UI |
 | Overlay state and rows | `Overlay/OverlayViewModel*.cs`, `Overlay/OverlayModels*.cs` | `OverlayViewModel.Platform.cs`, `OverlayModels.Platform.cs` |
 | Hosts' shared pipeline (live snapshots to the screen, busy line, log import, debounce) | `Overlay/LiveFeed.cs`, `Main/MainViewModel.Host.cs`, `Infrastructure/Debounce.cs` | Each host wires its dispatcher, windows and tray |
-| Property notification | `Infrastructure/Observable.cs` | `RelayCommand` stays local because command notification semantics differ |
+| Property notification | `Infrastructure/Observable.cs` | `RelayCommand` stays local (CLAUDE.md): every command is always executable, so it carries no notification to share (Etalon Q6, X5) |
 | Value converter rules (shown or not, brush key, share width) | `Infrastructure/DisplayRules.cs` | The `IValueConverter` classes in `Infrastructure/Converters.cs`: brush lookup, `Visibility` / `bool` |
 | Tracking and statistics algorithms | `src/Hearthpulse.Core` (outside this directory) | Hosts dispatch completed snapshots/results to the UI |
 | Geometry of the custom controls (chart points, ticks, tags; card preview placement; match timeline) | `Controls/ChartGeometry.cs` (with `IChartValue`), `Controls/CardPreviewLayout.cs`, `Main/Match/MatchTimelineLayout.cs` | The controls themselves: properties, input, text measuring and drawing |

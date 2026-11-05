@@ -26,6 +26,101 @@ public partial class ReplayLibraryView : UserControl
         DetachedFromVisualTree += (_, _) => Attach(DataContext as ReplayLibraryViewModel, listen: false);
         // Tunnel: Esc reaches the search box's handler before the box itself.
         SearchBox.AddHandler(KeyDownEvent, OnSearchKey, RoutingStrategies.Tunnel);
+        // Tunnel: before the list, whose items take no focus, so it would not move between them.
+        List.AddHandler(KeyDownEvent, OnListKey, RoutingStrategies.Tunnel);
+        // Tab and Shift+Tab come into the list on a game, never on one of its small buttons.
+        List.GotFocus += (_, e) =>
+        {
+            if (e.NavigationMethod == NavigationMethod.Tab && e.Source is Button { DataContext: LibraryCard card } button && !button.Classes.Contains("libraryCard"))
+            {
+                (List.ContainerFromItem(card)?.GetVisualDescendants().OfType<Button>().FirstOrDefault())?.Focus(NavigationMethod.Tab);
+            }
+        };
+    }
+
+    /// <summary>
+    /// The keyboard in the list (review m3). The list is one Tab stop and its items take no focus: Up and Down move from
+    /// game to game (the next one scrolled into view), Right goes on to the game's own buttons, Left goes back, Esc returns
+    /// to the game; Enter opens it. S, Shift+S, Delete and O act on the game (<see cref="ReplayLibraryViewModel.HandleCardKey"/>);
+    /// Delete's question takes the focus on "No", Esc cancels it, and an answer (Enter) brings the focus back to the game.
+    /// </summary>
+    private void OnListKey(object? sender, KeyEventArgs e)
+    {
+        if (e.Source is not Button { DataContext: LibraryCard card } current || _model is not { } model
+            || (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) != 0)
+        {
+            return;
+        }
+
+        var plain = e.KeyModifiers == KeyModifiers.None;
+        var buttons = List.ContainerFromItem(card) is { } item
+            ? item.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible && b.IsEffectivelyEnabled).ToList()
+            : [];
+        var at = buttons.IndexOf(current);
+        switch (e.Key)
+        {
+            case Key.Up or Key.Down when plain:
+                MoveToGame(card, e.Key == Key.Down ? 1 : -1);
+                break;
+            case Key.Right when plain && at >= 0:
+                buttons[Math.Min(at + 1, buttons.Count - 1)].Focus(NavigationMethod.Directional);
+                break;
+            case Key.Left when plain && at > 0:
+                buttons[at - 1].Focus(NavigationMethod.Directional);
+                break;
+            case Key.Escape when plain && card.Confirming:
+                model.Cancel.Execute(card);
+                buttons.FirstOrDefault()?.Focus(NavigationMethod.Directional);
+                break;
+            case Key.Escape when plain && at > 0:
+                buttons[0].Focus(NavigationMethod.Directional);
+                break;
+            case Key.Enter or Key.Space when plain && card.Confirming && at >= buttons.Count - 2 && at > 0:
+                // "Yes" or "No" of the question: answered, the focus goes back to the game (or to the one now in its place).
+                var index = List.Items.IndexOf(card);
+                current.Command?.Execute(current.CommandParameter);
+                List.UpdateLayout();
+                FocusGameAt(List.Items.Contains(card) ? List.Items.IndexOf(card) : Math.Min(index, List.ItemCount - 1));
+                break;
+            default:
+                if (!model.HandleCardKey(card, e.Key.ToString(), shift: !plain))
+                {
+                    return;
+                }
+
+                if (card.Confirming)
+                {
+                    // The question shows in the card: focus goes to its "No", the safe answer.
+                    List.UpdateLayout();
+                    (List.ContainerFromItem(card)?.GetVisualDescendants().OfType<Button>().LastOrDefault(b => b.IsEffectivelyVisible))
+                        ?.Focus(NavigationMethod.Directional);
+                }
+
+                break;
+        }
+
+        e.Handled = true;
+    }
+
+    private void MoveToGame(LibraryCard card, int step)
+    {
+        var next = List.Items.IndexOf(card) + step;
+        if (next >= 0 && next < List.ItemCount)
+        {
+            FocusGameAt(next);
+        }
+    }
+
+    private void FocusGameAt(int index)
+    {
+        if (index < 0 || index >= List.ItemCount)
+        {
+            return;
+        }
+
+        List.ScrollIntoView(index);
+        List.UpdateLayout();
+        (List.ContainerFromIndex(index)?.GetVisualDescendants().OfType<Button>().FirstOrDefault())?.Focus(NavigationMethod.Directional);
     }
 
     /// <summary>Ctrl+F: the search box takes the focus with its text selected.</summary>

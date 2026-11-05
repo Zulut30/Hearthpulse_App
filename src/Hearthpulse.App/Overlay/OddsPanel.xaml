@@ -14,7 +14,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Border x:Name="OddsCard" Background="{StaticResource OverlayPanelSolid}" Padding="14,7,14,8" Width="250">
+    <Border x:Name="OddsCard" Background="{DynamicResource OverlayPanelSolid}" Padding="14,7,14,8" Width="250">
         <Border.Style>
             <!-- Red edge while the fight can kill the player -->
             <Style TargetType="Border" BasedOn="{StaticResource OverlayCard}">

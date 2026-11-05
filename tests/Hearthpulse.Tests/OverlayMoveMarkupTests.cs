@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using Hearthpulse.Core.Localization;
 
@@ -15,7 +14,7 @@ public sealed class OverlayMoveMarkupTests
     [InlineData("src/Hearthpulse.UI/Main/SettingsTabs/OverlaySettings.axaml", "Overlay.Move.SettingsWindows")]
     public void The_layout_card_names_ctrl_over_a_panel_and_the_layout_shortcut(string file, string key)
     {
-        var card = XDocument.Load(Path.Combine(RepoRoot(), file)).Root!.Descendants()
+        var card = XDocument.Load(Path.Combine(RepoFiles.Root, file)).Root!.Descendants()
             .Single(e => e.Name.LocalName == "StackPanel" && e.Elements().Any(c => (string?)c.Attribute("Text") == "{i:Loc Settings.Layout.Title}"))
             .Elements().ToList();
         var line = card.FindIndex(e => (string?)e.Attribute("Text") == $"{{i:Loc {key}}}");
@@ -40,7 +39,7 @@ public sealed class OverlayMoveMarkupTests
     [InlineData("src/Hearthpulse.UI/Main/SettingsTabs/OverlaySettings.axaml", "Overlay.Move.SettingsWindows", "Name")]
     public void The_layout_card_has_the_unlock_switch_under_its_line(string file, string key, string name)
     {
-        var card = XDocument.Load(Path.Combine(RepoRoot(), file)).Root!.Descendants()
+        var card = XDocument.Load(Path.Combine(RepoFiles.Root, file)).Root!.Descendants()
             .Single(e => e.Name.LocalName == "StackPanel" && e.Elements().Any(c => (string?)c.Attribute("Text") == "{i:Loc Settings.Layout.Title}"))
             .Elements().ToList();
         var line = card.FindIndex(e => (string?)e.Attribute("Text") == $"{{i:Loc {key}}}");
@@ -66,13 +65,13 @@ public sealed class OverlayMoveMarkupTests
     [Fact]
     public void The_lock_button_keeps_its_word_readable_under_the_mouse()
     {
-        var wpf = XDocument.Load(Path.Combine(RepoRoot(), "src/Hearthpulse.App/Overlay/OverlayPanels.xaml")).Root!;
+        var wpf = XDocument.Load(Path.Combine(RepoFiles.Root, "src/Hearthpulse.App/Overlay/OverlayPanels.xaml")).Root!;
         var style = wpf.Descendants().Single(e => e.Name.LocalName == "Style" && e.Attributes().Any(a => a.Name.LocalName == "Key" && a.Value == "LockButton"));
         var hover = style.Descendants().Single(e => e.Name.LocalName == "Trigger" && (string?)e.Attribute("Property") == "IsMouseOver").Elements().Single();
         Assert.Equal(("Plate", "Background", "{StaticResource PrimaryFillHover}"),
             ((string?)hover.Attribute("TargetName"), (string?)hover.Attribute("Property"), (string?)hover.Attribute("Value")));
 
-        var ava = XDocument.Load(Path.Combine(RepoRoot(), "src/Hearthpulse.UI/Overlay/OverlayPanelStyles.axaml")).Root!;
+        var ava = XDocument.Load(Path.Combine(RepoFiles.Root, "src/Hearthpulse.UI/Overlay/OverlayPanelStyles.axaml")).Root!;
         var pointer = ava.Descendants().Single(e => e.Name.LocalName == "Style" && (string?)e.Attribute("Selector") == "Button.lockButton:pointerover /template/ Border#Plate")
             .Elements().Single();
         Assert.Equal(("Background", "{StaticResource PrimaryFillHover}"), ((string?)pointer.Attribute("Property"), (string?)pointer.Attribute("Value")));
@@ -85,7 +84,4 @@ public sealed class OverlayMoveMarkupTests
             Assert.All(texts, t => Assert.Equal("{StaticResource OnAccent}", (string?)t.Attribute("Foreground")));
         }
     }
-
-    private static string RepoRoot([CallerFilePath] string source = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", ".."));
 }

@@ -164,7 +164,7 @@ public sealed class BgLobbyPanelTests
 
     /// <summary>The WPF row template with data: place, hero, tier and the main tribe; the player's name in the accent colour; the dead faded.</summary>
     [Fact]
-    public void Wpf_rows_bind_tier_and_main_tribe_and_fade_the_dead() => OnSta(() =>
+    public void Wpf_rows_bind_tier_and_main_tribe_and_fade_the_dead() => WpfThread.RunThemed(() =>
     {
         Loc.Instance.SetLanguage(Loc.English);
         var model = new WpfOverlay();
@@ -223,39 +223,6 @@ public sealed class BgLobbyPanelTests
             {
                 yield return nested;
             }
-        }
-    }
-
-    private static void OnSta(Action test)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-                if (app.Resources.MergedDictionaries.Count == 0)
-                {
-                    app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve("Tavern", 0, 0, 1)));
-                }
-
-                test();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException(failure.Message, failure);
         }
     }
 }

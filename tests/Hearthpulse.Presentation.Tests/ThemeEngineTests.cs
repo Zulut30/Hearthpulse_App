@@ -21,7 +21,7 @@ public sealed class ThemeEngineTests
     public void Preset_builds_frozen_with_its_own_motif(string name)
     {
         var theme = ThemePalette.Resolve(name, 330, 300, 0.9);
-        OnSta(() =>
+        WpfThread.Run(() =>
         {
             var dictionary = ThemeEngine.Build(theme);
             ThemeEngine.Freeze(dictionary);
@@ -42,35 +42,12 @@ public sealed class ThemeEngineTests
     [Fact]
     public void Second_accent_of_a_preset_is_recoloured_in_the_dictionary()
     {
-        OnSta(() =>
+        WpfThread.Run(() =>
         {
             var tavern = ((SolidColorBrush)ThemeEngine.Build(ThemePalette.Presets[0])["Accent2"]).Color;
             var frost = ((SolidColorBrush)ThemeEngine.Build(ThemePalette.Resolve("Frost", 0, 0, 1))["Accent2"]).Color;
             Assert.Equal(Color.FromRgb(0x4F, 0xC2, 0xA8), tavern);
             Assert.True(frost.B > frost.G, $"expected an aurora violet, got {frost}");
         });
-    }
-
-    private static void OnSta(Action test)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                test();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(failure);
-        }
     }
 }

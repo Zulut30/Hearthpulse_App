@@ -59,13 +59,13 @@
         </Border>
 
         <!-- Minion browser for the selected tier -->
-        <Border Classes="overlayCard" Background="{StaticResource OverlayPanelSolid}" Margin="0,6,0,0" Padding="10,7,10,8"
+        <Border Classes="overlayCard" Background="{DynamicResource OverlayPanelSolid}" Margin="0,6,0,0" Padding="10,7,10,8"
                 HorizontalAlignment="Left" MaxWidth="880" o:OverlayHit.Interactive="True"
                 IsVisible="{Binding Browser, Converter={StaticResource Truthy}}">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
                     <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0143;" Width="24" Height="24" Command="{Binding CloseBrowser}"
-                            ToolTip.Tip="{i:Loc Overlay.Browser.Collapse}" Focusable="False" />
+                            ToolTip.Tip="{i:Loc Overlay.Browser.Collapse}" AutomationProperties.Name="{i:Loc Overlay.Browser.Collapse}" Focusable="False" />
                     <TextBlock VerticalAlignment="Center"><Run Text="{Binding BrowserTitle, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" /><Run Text="  ·  " FontSize="11" Foreground="{StaticResource Faint}" /><Run Text="{Binding BrowserScope, Mode=OneWay}" FontSize="11.5" Foreground="{StaticResource Muted}" /></TextBlock>
                 </DockPanel>
                 <ScrollViewer MaxHeight="760" VerticalScrollBarVisibility="Auto">

@@ -13,7 +13,7 @@
         <SolidColorBrush x:Key="Ink" Color="{StaticResource BgColor}" />
 
         <DataTemplate x:Key="BadgeTemplate" DataType="{x:Type o:ArenaPickBadge}">
-            <Border x:Name="Badge" HorizontalAlignment="Center" Background="{StaticResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}"
+            <Border x:Name="Badge" HorizontalAlignment="Center" Background="{DynamicResource OverlayPanelSolid}" BorderBrush="{StaticResource OverlayBorder}"
                     BorderThickness="1.5" CornerRadius="14" Padding="6,5,14,5" MinWidth="146">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                     <!-- The tier letter is the badge's first read, as on the site's tier list -->

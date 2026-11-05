@@ -433,7 +433,7 @@ public sealed class DeckDetailsViewModel : Observable
         var winRecord = summary.Record.Games == 0
             ? Loc.T("Deck.WinRate.NoGames")
             : $"{summary.Record.Wins}–{summary.Record.Losses} · {Loc.P("Deck.Games", summary.Record.Games)}";
-        var winSign = deckRate is { } dr ? (dr >= 0.53 ? 1 : dr <= 0.47 ? -1 : 0) : 0;
+        var winSign = deckRate is { } dr ? MetaTiers.WinRateSign(dr) : 0;
         var winScale = deckRate is { } sr ? Math.Clamp((sr - ScaleLow) / (ScaleHigh - ScaleLow), 0, 1) : -1;
 
         IReadOnlyList<StatTile> tiles =
@@ -509,7 +509,6 @@ public sealed class DeckDetailsViewModel : Observable
                     card?.Name ?? c.CardId,
                     card?.Cost ?? 0,
                     c.Copies > 0 ? $"×{c.Copies}" : Loc.T("Deck.Mulligan.OtherVersion"),
-                    c.Copies > 0,
                     c.Offered < DeckDetails.SmallSample,
                     c.WhenDrawn.Games < DeckDetails.SmallSample,
                     c.Offered.ToString(CultureInfo.CurrentCulture),

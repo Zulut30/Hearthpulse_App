@@ -9,7 +9,7 @@ public sealed partial class GameSession
     public void ApplySettings(AppSettings settings)
     {
         // No game plan panel: no comp to choose or see, so the advisor plans around none (a comp saved by an older
-        // version stays in the settings, unused).
+        // version is no longer read from the settings).
         SetCompMode(CompMode.Manual, null);
         SetCardPoolEnabled(settings.ShowCardPool);
         SetArenaDraftEnabled(settings.ShowArenaDraft);

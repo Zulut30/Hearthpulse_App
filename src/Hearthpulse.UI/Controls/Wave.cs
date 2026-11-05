@@ -18,43 +18,22 @@ public sealed class Wave : Control
 
     public static readonly StyledProperty<IBrush?> StrokeProperty = AvaloniaProperty.Register<Wave, IBrush?>(nameof(Stroke));
 
-    public static readonly StyledProperty<double> AmplitudeProperty = AvaloniaProperty.Register<Wave, double>(nameof(Amplitude), 2.2);
-
-    public static readonly StyledProperty<double> WavelengthProperty = AvaloniaProperty.Register<Wave, double>(nameof(Wavelength), 11.0);
-
-    public static readonly StyledProperty<double> ThicknessProperty = AvaloniaProperty.Register<Wave, double>(nameof(Thickness), 1.5);
-
     static Wave()
     {
-        AffectsRender<Wave>(StrokeProperty, AmplitudeProperty, WavelengthProperty, ThicknessProperty);
-        AffectsMeasure<Wave>(AmplitudeProperty, ThicknessProperty);
+        AffectsRender<Wave>(StrokeProperty);
     }
 
     /// <summary>Colour of the rule at its left end (defaults to the theme's GoldTrim).</summary>
     public IBrush? Stroke { get => GetValue(StrokeProperty); set => SetValue(StrokeProperty, value); }
 
-    /// <summary>Kept for compatibility; the rule is straight.</summary>
-    public double Amplitude { get => GetValue(AmplitudeProperty); set => SetValue(AmplitudeProperty, value); }
-
-    /// <summary>Kept for compatibility; the rule is straight.</summary>
-    public double Wavelength { get => GetValue(WavelengthProperty); set => SetValue(WavelengthProperty, value); }
-
-    /// <summary>Kept for compatibility; the rule is always a 1 px hairline.</summary>
-    public double Thickness { get => GetValue(ThicknessProperty); set => SetValue(ThicknessProperty, value); }
-
+    /// <summary>As tall as the diamond, plus a pixel.</summary>
     protected override Size MeasureOverride(Size availableSize) =>
-        new(double.IsInfinity(availableSize.Width) ? 40 : availableSize.Width,
-            Math.Max((Amplitude * 2) + Thickness + 1, Math.Ceiling(DiamondHalf * 2) + 1));
+        new(double.IsInfinity(availableSize.Width) ? 40 : availableSize.Width, Math.Ceiling(DiamondHalf * 2) + 1);
 
     public override void Render(DrawingContext context)
     {
         Draw(context, Stroke ?? ThemeBrushes.Get("GoldTrim"), ThemeBrushes.Get("Accent"), 0, Bounds.Width, Bounds.Height / 2);
     }
-
-    /// <summary>Draws the rule from <paramref name="from"/> to <paramref name="to"/> centred on <paramref name="y"/>.</summary>
-    /// <remarks>Signature kept from the wavy version; amplitude, wavelength and thickness are ignored.</remarks>
-    public static void Draw(DrawingContext context, IBrush stroke, double from, double to, double y, double amplitude, double wavelength, double thickness) =>
-        Draw(context, stroke, stroke, from, to, y);
 
     /// <summary>Diamond in <paramref name="diamond"/> at the left end, then a hairline in <paramref name="stroke"/> fading to transparent.</summary>
     public static void Draw(DrawingContext context, IBrush stroke, IBrush diamond, double from, double to, double y)

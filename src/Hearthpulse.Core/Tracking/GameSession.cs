@@ -1042,7 +1042,6 @@ public sealed partial class GameSession : ILogConsumer, IPowerListener
             battlegrounds,
             _rating,
             session,
-            _lastOutcome,
             _logConfigMissing,
             _parseErrorTotal == 0 ? null : new ParseErrorSummary(_parseErrorTotal, ParseErrorText()))
         {

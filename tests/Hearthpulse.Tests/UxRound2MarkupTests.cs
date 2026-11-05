@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Xml;
 using System.Xml.Linq;
 using Hearthpulse.Core.Localization;
@@ -367,17 +366,14 @@ public sealed class UxRound2MarkupTests
         ((string?)element.Attribute("Classes") ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
 
     private static XElement Surface(string file) =>
-        XDocument.Load(Path.Combine(RepoRoot(), file), LoadOptions.SetLineInfo).Root!.Descendants().Single(e => NameOf(e) == "Surface");
+        XDocument.Load(Path.Combine(RepoFiles.Root, file), LoadOptions.SetLineInfo).Root!.Descendants().Single(e => NameOf(e) == "Surface");
 
     private static bool IsHeader(XElement element) =>
         element.Name.LocalName == "Border"
         && ((string?)element.Attribute("Style") == "{StaticResource OverlayHeader}" || ((string?)element.Attribute("Classes"))?.Split(' ').Contains("overlayHeader") == true);
 
-    private static XElement Markup(string file) => XDocument.Load(Path.Combine(RepoRoot(), file)).Root!;
+    private static XElement Markup(string file) => XDocument.Load(Path.Combine(RepoFiles.Root, file)).Root!;
 
     private static string? NameOf(XElement element) =>
         (string?)element.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) ?? (string?)element.Attribute("Name");
-
-    private static string RepoRoot([CallerFilePath] string source = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", ".."));
 }

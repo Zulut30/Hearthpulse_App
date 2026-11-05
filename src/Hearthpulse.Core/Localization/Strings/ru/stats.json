@@ -38,7 +38,6 @@
   "Stats.Hours": "{0}\u00a0ч {1:00}\u00a0мин",
   "Stats.Minutes": "{0}\u00a0мин",
 
-  "Stats.Bg.Placements": "Места",
   "Stats.Bg.PlacementsTip": "Доля ваших игр по итоговому месту; черта — ваше среднее",
   "Stats.Bg.PlacesTitle": "Где вы финишируете",
   "Stats.Bg.PlacesEmpty": "Места появятся после первой игры за этот период.",

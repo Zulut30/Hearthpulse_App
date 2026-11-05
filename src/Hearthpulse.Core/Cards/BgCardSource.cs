@@ -11,7 +11,6 @@ namespace Hearthpulse.Core.Cards;
 /// </summary>
 public sealed record BgCard(
     int Id,
-    string Slug,
     string ExternalId,
     string Name,
     string Text,
@@ -24,7 +23,6 @@ public sealed record BgCard(
     IReadOnlyList<string> MinionTypes,
     IReadOnlyList<string> Keywords,
     IReadOnlyList<string> Categories,
-    bool IsPool,
     bool IsTimewarped,
     bool IsHero,
     bool IsHeroSkin,
@@ -284,7 +282,6 @@ public sealed class BgCardDb
 
         card = new BgCard(
             id,
-            Str(e, "slug"),
             externalId,
             Str(e, "name").Trim(),
             Str(e, "text"),
@@ -297,7 +294,6 @@ public sealed class BgCardDb
             StrArray(e, "minionTypes"),
             StrArray(e, "keywords"),
             StrArray(e, "categories"),
-            Bool(e, "pool"),
             Bool(e, "isTimewarped"),
             Bool(e, "isHero"),
             Bool(e, "isHeroSkin"),

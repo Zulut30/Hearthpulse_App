@@ -179,7 +179,7 @@
             <StackPanel Grid.Column="1" Margin="16,0,16,0" VerticalAlignment="Center">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF03EB;" Margin="8,0,0,0" VerticalAlignment="Center" Click="OnRename"
-                            ToolTip.Tip="{i:Loc Deck.Versions.Rename}" />
+                            ToolTip.Tip="{i:Loc Deck.Versions.Rename}" AutomationProperties.Name="{i:Loc Deck.Versions.Rename}" />
                     <TextBlock Text="{Binding Name}" Classes="display" FontSize="{StaticResource FontSizeDisplay}" TextWrapping="Wrap" />
                 </DockPanel>
                 <!-- Class, format, versions; then the meta archetype -->
@@ -239,7 +239,7 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="&#xF0233;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Accent}" Margin="0,0,8,0" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding FilterText}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource OnSecondaryContainer}" />
-                <Button Classes="icon" Content="&#xF0156;" Width="24" Height="24" FontSize="{StaticResource FontSizeLead}" Margin="8,0,0,0" Command="{Binding ClearMatchup}" ToolTip.Tip="{i:Loc Deck.ClearFilterTip}" />
+                <Button Classes="icon" Content="&#xF0156;" Width="24" Height="24" FontSize="{StaticResource FontSizeLead}" Margin="8,0,0,0" Command="{Binding ClearMatchup}" ToolTip.Tip="{i:Loc Deck.ClearFilterTip}" AutomationProperties.Name="{i:Loc Deck.ClearFilterTip}" />
             </StackPanel>
         </Border>
 
@@ -369,7 +369,7 @@
                         <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
                             <c:Ornament Text="{i:Loc Deck.Versions.Title}" Icon="&#xF062C;" Size="13" />
                             <Button Grid.Column="1" Classes="icon" Content="&#xF03EB;" Width="30" Height="30" FontSize="{StaticResource FontSizeTitle}" Margin="8,0,0,0"
-                                    Command="{Binding StartRename}" ToolTip.Tip="{i:Loc Deck.Versions.Rename}" />
+                                    Command="{Binding StartRename}" ToolTip.Tip="{i:Loc Deck.Versions.Rename}" AutomationProperties.Name="{i:Loc Deck.Versions.Rename}" />
                         </Grid>
 
                         <!-- Rename: the deck's own name; empty goes back to the main version's name -->
@@ -415,7 +415,7 @@
                                                 </StackPanel>
                                                 <!-- ⋯ menu: make main, take out, show differences (only in a family of two or more) -->
                                                 <Button Grid.Column="3" Classes="icon" Content="&#xF01D8;" Width="28" Height="28" FontSize="{StaticResource FontSizeTitle}" Margin="4,0,-4,0"
-                                                        VerticalAlignment="Center" ToolTip.Tip="{i:Loc Deck.Versions.MoreTip}" IsVisible="{Binding CanManage}">
+                                                        VerticalAlignment="Center" ToolTip.Tip="{i:Loc Deck.Versions.MoreTip}" AutomationProperties.Name="{i:Loc Deck.Versions.MoreTip}" IsVisible="{Binding CanManage}">
                                                     <Button.Flyout>
                                                         <MenuFlyout Placement="BottomEdgeAlignedRight">
                                                             <MenuItem Header="{i:Loc Deck.Versions.MakeMain}" IsVisible="{Binding CanMakeMain}" Click="OnMakeMain">
@@ -525,7 +525,7 @@
                                 <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
                                     <TextBlock Text="{i:Loc Deck.Versions.PickerTitle}" Classes="label" VerticalAlignment="Center" />
                                     <Button Grid.Column="1" Classes="icon" Content="&#xF0156;" Width="26" Height="26" FontSize="{StaticResource FontSizeLead}"
-                                            Command="{Binding TogglePicker}" ToolTip.Tip="{i:Loc Deck.Versions.Cancel}" />
+                                            Command="{Binding TogglePicker}" ToolTip.Tip="{i:Loc Deck.Versions.Cancel}" AutomationProperties.Name="{i:Loc Deck.Versions.Cancel}" />
                                 </Grid>
                                 <TextBox Text="{Binding Search}" PlaceholderText="{i:Loc Deck.Versions.SearchPlaceholder}">
                                     <TextBox.InnerLeftContent>
@@ -701,7 +701,7 @@
                                     </StackPanel>
                                     <TextBlock Grid.Column="2" Text="{Binding ResultText}" FontWeight="Bold" MinWidth="60" TextAlignment="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
                                                Foreground="{Binding Result, Converter={StaticResource KeyBrush}}" />
-                                    <Button Grid.Column="3" Classes="icon" Content="&#xF02DA;" Margin="8,0,0,0" ToolTip.Tip="{i:Loc Deck.Recent.ShowInHistory}"
+                                    <Button Grid.Column="3" Classes="icon" Content="&#xF02DA;" Margin="8,0,0,0" ToolTip.Tip="{i:Loc Deck.Recent.ShowInHistory}" AutomationProperties.Name="{i:Loc Deck.Recent.ShowInHistory}"
                                             Command="{Binding $parent[ItemsControl].((d:DeckDetailsViewModel)DataContext).OpenGame}" CommandParameter="{Binding Key}" />
                                 </Grid>
                             </Border>

@@ -87,7 +87,7 @@ public sealed partial class BattlegroundsTracker
         var local = game.LocalHero;
         var lobby = LeaderboardHeroes(game)
             .Select(h => new BattlegroundsLobbyHero(h.CardId, h.GetInt(GameTag.PlayerLeaderboardPlace), h == local))
-            .OrderBy(h => h.Place == 0 ? 99 : h.Place)
+            .OrderBy(h => Places.SortKey(h.Place))
             .ToList();
         return new BattlegroundsReplayData { Rounds = rounds, Lobby = lobby };
     }

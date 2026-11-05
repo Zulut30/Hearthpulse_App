@@ -54,6 +54,7 @@ public partial class OverlayWindow : Window
     private string _guideKey = string.Empty;
     private readonly List<MovablePanel> _panels = new();
     private Size _layoutSize;
+    private double _backdropOpacity = -1;
     private readonly HoveredHeroReader _hoverReader = new();
 
     public OverlayWindow(OverlayViewModel viewModel, AppSettings settings)
@@ -228,13 +229,42 @@ public partial class OverlayWindow : Window
             ApplyLayout();
         }
 
-        Surface.Opacity = OverlayViewModel.SurfaceOpacity(_settings);
+        FadeBackdrops(OverlayViewModel.SurfaceOpacity(_settings));
 
         Native.GetCursorPos(out var cursor);
         UpdateClickThrough(cursor, r, now);
         UpdateLeaderboardHover(cursor, r);
         UpdateGuides(r);
         ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
+    }
+
+    /// <summary>
+    /// The opacity setting fades only the panels' backgrounds (R06): faded copies of the theme's backdrop brushes go into
+    /// this window's resources, and the overlay's markup takes them as dynamic resources. Text stays opaque.
+    /// </summary>
+    internal void FadeBackdrops(double opacity)
+    {
+        if (opacity.Equals(_backdropOpacity))
+        {
+            return;
+        }
+
+        _backdropOpacity = opacity;
+        foreach (var key in OverlayViewModel.BackdropBrushes)
+        {
+            // Fully opaque, the theme's own brush. A theme change recreates this window, so copies never go stale.
+            if (opacity >= 1)
+            {
+                Resources.Remove(key);
+            }
+            else if (Application.Current?.TryFindResource(key) is Brush brush)
+            {
+                var faded = brush.Clone();
+                faded.Opacity = brush.Opacity * opacity;
+                faded.Freeze();
+                Resources[key] = faded;
+            }
+        }
     }
 
     /// <summary>
@@ -441,6 +471,7 @@ public partial class OverlayWindow : Window
         Surface.Height = height / _scale;
         _layoutSize = new Size(Surface.Width, Surface.Height);
         ApplyLayout();
+        FadeBackdrops(OverlayViewModel.SurfaceOpacity(_settings));
         ViewModel.ArrangeLeaderboard(Surface.Width, Surface.Height, _settings);
         if (hoverSlot > 0)
         {
@@ -455,6 +486,10 @@ public partial class OverlayWindow : Window
             UpdateLayout();
         }
 
+        // Windows keeps the window within the screen (the CI runner's is 1024 x 768): lay the overlay out at the frame's
+        // size for the frame, or it is cut at the screen's edge.
+        Root.Measure(new Size(width, height));
+        Root.Arrange(new Rect(0, 0, width, height));
         var visual = new DrawingVisual();
         using (var dc = visual.RenderOpen())
         {

@@ -48,9 +48,6 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
 
     public static readonly StyledProperty<bool> OffersLockProperty = AvaloniaProperty.Register<MovablePanel, bool>(nameof(OffersLock));
 
-    public static readonly StyledProperty<bool> InteractiveContentProperty =
-        AvaloniaProperty.Register<MovablePanel, bool>(nameof(InteractiveContent));
-
     public static readonly StyledProperty<string> ScaleTextProperty = AvaloniaProperty.Register<MovablePanel, string>(nameof(ScaleText), string.Empty);
 
     public static readonly StyledProperty<HorizontalAlignment> PlaceholderAlignmentProperty =
@@ -104,7 +101,6 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
         IsDragArmedProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         IsUnlockedProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         OffersLockProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
-        InteractiveContentProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
         HintProperty.Changed.AddClassHandler<MovablePanel>((p, _) => p.UpdateState());
     }
 
@@ -169,9 +165,6 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
     public bool IsDragging => _dragging;
 
     private bool CanMove => IsEditing || IsDragArmed;
-
-    /// <summary>Whether the content has its own buttons and should receive the mouse outside layout mode.</summary>
-    public bool InteractiveContent { get => GetValue(InteractiveContentProperty); set => SetValue(InteractiveContentProperty, value); }
 
     /// <summary>The player's size for the layout-mode tag ("115%"); empty at the default size.</summary>
     public string ScaleText { get => GetValue(ScaleTextProperty); private set => SetValue(ScaleTextProperty, value); }
@@ -295,7 +288,7 @@ public sealed class MovablePanel : ContentControl, IArmablePanel
         Classes.Set("free", IsUnlocked && !IsEditing && !SitsOnGame);
         Classes.Set("unlocked", IsUnlocked);
         Classes.Set("offers", OffersLock && !IsEditing);
-        OverlayHit.SetInteractive(this, CanMove || InteractiveContent);
+        OverlayHit.SetInteractive(this, CanMove);
         Cursor = CanMove ? new Cursor(StandardCursorType.SizeAll) : null;
         UpdateChrome();
     }

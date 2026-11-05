@@ -40,6 +40,11 @@ internal static partial class OffscreenRenderer
             await RenderBrawlPageAsync(main, view, host, folder);
         }
 
+        if (RenderOnly("baseline"))
+        {
+            await RenderBaselineAsync(main, view, host, folder);
+        }
+
         if (RenderOnly("account"))
         {
             // The account center (Settings → Hearthpulse account) and the connection light, signed in as the in-memory

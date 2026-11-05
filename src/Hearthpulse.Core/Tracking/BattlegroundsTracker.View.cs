@@ -69,7 +69,7 @@ public sealed partial class BattlegroundsTracker
                     last is null ? 0 : last.Result == "Loss" ? last.DamageTaken : last.DamageDealt,
                     playerId == nextOpponent);
             })
-            .OrderBy(o => o.Place == 0 ? 99 : o.Place)
+            .OrderBy(o => Places.SortKey(o.Place))
             .ToList();
 
         var player = game.LocalPlayerEntity;

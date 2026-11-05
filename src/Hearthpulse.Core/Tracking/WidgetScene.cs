@@ -1,5 +1,6 @@
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Constructed;
+using Hearthpulse.Core.Memory;
 using Hearthpulse.Core.Stats;
 
 namespace Hearthpulse.Core.Tracking;
@@ -54,6 +55,6 @@ public static class WidgetScene
         var since = now.AddMinutes(-100);
         return new LadderSessions(
             new LadderSessionView(LadderSession.Standard, since, new LadderRank(46, null), new LadderRank(49, null), new WinLoss(7, 5, 2), 3),
-            new LadderSessionView(LadderSession.Wild, since, new LadderRank(51, 1520), new LadderRank(51, 1204), new WinLoss(3, 2, 1), -1));
+            new LadderSessionView(LadderSession.Wild, since, new LadderRank(RankInfo.LegendStarLevel, 1520), new LadderRank(RankInfo.LegendStarLevel, 1204), new WinLoss(3, 2, 1), -1));
     }
 }

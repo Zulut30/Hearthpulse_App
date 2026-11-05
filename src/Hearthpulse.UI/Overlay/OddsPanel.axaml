@@ -13,7 +13,7 @@
         <i:FractionWidth x:Key="Fraction" />
     </UserControl.Resources>
 
-    <Border x:Name="OddsCard" Classes="overlayCard" Classes.lethal="{Binding LethalDanger}" Background="{StaticResource OverlayPanelSolid}" Padding="14,7,14,8" Width="250">
+    <Border x:Name="OddsCard" Classes="overlayCard" Classes.lethal="{Binding LethalDanger}" Background="{DynamicResource OverlayPanelSolid}" Padding="14,7,14,8" Width="250">
         <Border.Styles>
             <!-- Red edge while the fight can kill the player -->
             <Style Selector="Border.lethal">

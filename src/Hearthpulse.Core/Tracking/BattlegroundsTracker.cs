@@ -4,6 +4,7 @@ using Hearthpulse.Core.Battlegrounds.Effects;
 using Hearthpulse.Core.Cards;
 using Hearthpulse.Core.Localization;
 using Hearthpulse.Core.Memory;
+using Hearthpulse.Core.Pool;
 using Hearthpulse.Core.Power;
 
 namespace Hearthpulse.Core.Tracking;
@@ -207,7 +208,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
         _openChoice = -1;
         _openOptions = Array.Empty<Entity>();
         var offered = options.Select(o => o.CardId).Where(id => id.Length > 0).ToList();
-        if (!game.IsBattlegrounds || choiceType == "MULLIGAN" || offered.Count == 0 || _choices.Count >= 120)
+        if (!game.IsBattlegrounds || choiceType == "MULLIGAN" || offered.Count == 0 || _choices.Count >= PoolDetails.MaxChoices)
         {
             return;
         }
@@ -282,7 +283,7 @@ public sealed partial class BattlegroundsTracker : IPowerListener
                 break;
 
             case GameTag.Zone when !_inCombat && previous == "HAND" && value == "PLAY" && entity.CardId.Length > 0 && entity.Controller == game.LocalPlayerId
-                                   && (entity.IsMinion || entity.CardType == "BATTLEGROUND_SPELL") && _plays.Count < 300:
+                                   && (entity.IsMinion || entity.CardType == "BATTLEGROUND_SPELL") && _plays.Count < PoolDetails.MaxPlays:
                 _plays.Add(new BgPlay(game.BattlegroundsTurn, entity.CardId));
                 break;
 

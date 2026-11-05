@@ -36,7 +36,7 @@
 
     <!-- Dark plate for a few key figures under a header -->
     <Style x:Key="OverlayStatPlate" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+        <Setter Property="Background" Value="{DynamicResource OverlayBadgeShade}" />
         <Setter Property="BorderBrush" Value="{StaticResource OverlayBorder}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="6" />
@@ -74,7 +74,7 @@
 
     <!-- Copy count on a dark plate at the right end of a card row, readable over bright art -->
     <Style x:Key="OverlayCountBadge" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource OverlayBadgeShade}" />
+        <Setter Property="Background" Value="{DynamicResource OverlayBadgeShade}" />
         <Setter Property="CornerRadius" Value="4" />
         <Setter Property="MinWidth" Value="20" />
         <Setter Property="Height" Value="18" />

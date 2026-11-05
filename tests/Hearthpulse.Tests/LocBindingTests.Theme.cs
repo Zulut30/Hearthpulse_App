@@ -15,6 +15,33 @@ public sealed partial class LocBindingTests
     [Fact]
     public void Avalonia_theme_engine_recolours_in_place_and_switches_back() => Headless.Run(ThemeSwitch);
 
+    /// <summary>
+    /// In the app the XAML compiler replaces App.axaml's StyleInclude with the loaded Styles themselves: the engine finds
+    /// the theme there too (it found nothing before, so the Avalonia app kept the Tavern colours whatever was chosen).
+    /// </summary>
+    [Fact]
+    public void Avalonia_theme_engine_finds_the_theme_compiled_into_the_app() => Headless.Run(() =>
+    {
+        var app = Application.Current!;
+        var compiled = (Styles)new StyleInclude(new Uri("avares://Hearthpulse.UI/")) { Source = new Uri("avares://Hearthpulse.UI/Themes/Theme.axaml") }.Loaded;
+        app.Styles.Add(compiled);
+        try
+        {
+            var accent = Assert.IsType<SolidColorBrush>(compiled.Resources["Accent"]);
+            var gold = accent.Color;
+            var frost = ThemePalette.Presets.Single(p => p.Name == "Frost");
+            Assert.True(ThemeEngine.Apply(app, frost));
+            Assert.Equal(Color.FromUInt32(ThemePalette.Map(gold.ToUInt32(), frost)), accent.Color);
+            Assert.True(ThemeEngine.Apply(app, ThemePalette.Presets[0]));
+            Assert.Equal(gold, accent.Color);
+        }
+        finally
+        {
+            app.Styles.Remove(compiled);
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
     private static void ThemeSwitch()
     {
         var theme = new StyleInclude(new Uri("avares://Hearthpulse.UI/"))

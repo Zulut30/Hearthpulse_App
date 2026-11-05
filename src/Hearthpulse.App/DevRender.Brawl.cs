@@ -37,6 +37,21 @@ public partial class App
             await RenderBrawlAsync(folder);
         }
 
+        if (RenderOnly("overlay"))
+        {
+            await RenderOverlayCheckAsync(folder);
+        }
+
+        if (RenderOnly("overlay-opacity"))
+        {
+            await RenderOpacityCheckAsync(folder);
+        }
+
+        if (RenderOnly("baseline"))
+        {
+            await RenderBaselineAsync(folder);
+        }
+
         if (RenderOnly("account"))
         {
             // The account center (Settings → Hearthpulse account) and the connection light, signed in as the in-memory

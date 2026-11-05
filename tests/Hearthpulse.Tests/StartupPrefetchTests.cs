@@ -50,4 +50,25 @@ public sealed class StartupPrefetchTests
         Assert.Equal(Hearthpulse.Core.Hearthstone.HearthstoneInstall.FindInstallDirectory(install), found);
         Assert.Equal(Hearthpulse.Core.Hearthstone.HearthstoneInstall.DetectLocale(found), client);
     }
+
+    /// <summary>
+    /// T3: with the card language and the interface language both "auto", the cards are the client's own language, read
+    /// off the found install (its Strings folder), and loaded once in it.
+    /// </summary>
+    [Fact]
+    public async Task Automatic_languages_load_the_cards_in_the_found_clients_locale()
+    {
+        Cache("tsCC", "Card C");
+        var install = TestDataFolder.Scratch("prefetch-client");
+        Directory.CreateDirectory(Path.Combine(install, "Strings", "enUS"));
+        Directory.CreateDirectory(Path.Combine(install, "Strings", "tsCC"));
+        File.WriteAllText(Path.Combine(install, "Hearthstone.exe"), string.Empty);
+        using var http = new HttpClient(new Offline());
+        var prefetch = StartupPrefetch.Start(new AppSettings { Locale = "auto", Language = "auto", HearthstonePath = install }, http);
+
+        Assert.Equal((install, "tsCC"), await prefetch.Game);
+        var cards = await prefetch.CardsAsync("tsCC");
+        Assert.Equal("Card C", cards.Get("TST_001")!.Name);
+        Assert.Same(cards, await prefetch.CardsAsync("tsCC"));
+    }
 }

@@ -93,9 +93,6 @@ public sealed class EffectRegistry
     /// <summary>Normal card ids with an effect for the normal version.</summary>
     public IReadOnlyCollection<string> NormalCardIds => _normal.Keys;
 
-    /// <summary>Normal card ids with an effect for the golden version.</summary>
-    public IReadOnlyCollection<string> GoldenCardIds => _golden.Keys;
-
     /// <summary>The effect for a card (normal or golden id), or null when none is registered.</summary>
     public CombatEffect? Get(string cardId, bool golden)
     {
