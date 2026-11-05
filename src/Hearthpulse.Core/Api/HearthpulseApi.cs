@@ -48,7 +48,10 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
 
     public const string Attribution = "Data: Hearthpulse API (api.kolodahearthstone.com)";
 
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(20);
+    internal static readonly TimeSpan Timeout = TimeSpan.FromSeconds(20);
+
+    /// <summary>The clock the 20-second limit runs on; a test hands in its own.</summary>
+    internal TimeProvider Time { get; init; } = TimeProvider.System;
 
     /// <summary>The server: <paramref name="baseUrl"/>, else the HEARTHPULSE_API variable (for a test server), else the public one.</summary>
     public Uri BaseUri { get; } = new(EnsureSlash(baseUrl is { Length: > 0 } ? baseUrl
@@ -64,8 +67,8 @@ public sealed class HearthpulseApi(HttpClient http, string? baseUrl = null)
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
         }
 
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(Timeout);
+        using var limit = new CancellationTokenSource(Timeout, Time);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, limit.Token);
         try
         {
             using var response = await http.SendAsync(request, timeout.Token).ConfigureAwait(false);
