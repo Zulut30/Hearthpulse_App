@@ -22,7 +22,7 @@ public sealed class VisibleWhen : IValueConverter
 public sealed class KeyBrush : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        Application.Current.TryFindResource(DisplayRules.BrushKey(value?.ToString())) as Brush ?? Brushes.Gray;
+        Application.Current.TryFindResource(DisplayRules.BrushKey(value?.ToString(), parameter)) as Brush ?? Brushes.Gray;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }

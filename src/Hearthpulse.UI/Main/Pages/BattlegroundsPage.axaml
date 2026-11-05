@@ -25,7 +25,10 @@
         <StackPanel>
             <Grid Classes="pageHead" RowDefinitions="Auto,Auto">
                 <StackPanel>
-                    <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Classes="display pageTitle" />
+                    <StackPanel Orientation="Horizontal">
+                        <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Battlegrounds}" />
+                        <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Classes="display pageTitle" />
+                    </StackPanel>
                     <c:Wave Classes="pageRule" />
                 </StackPanel>
                 <Border Classes="segmentBar headFilter"

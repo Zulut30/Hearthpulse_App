@@ -21,6 +21,7 @@
             <c:Ornament Text="{i:Loc Settings.About.Title}" Icon="&#xF02FD;" Size="13" Margin="0,0,0,10" />
             <TextBlock Text="{i:Loc Settings.About.Text}" TextWrapping="Wrap" Style="{StaticResource Caption}" />
             <TextBlock Text="{i:Loc Settings.About.Fonts}" Style="{StaticResource Caption}" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
+                <TextBlock Text="{i:Loc Settings.About.Icons}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" Margin="0,4,0,0" TextWrapping="Wrap" />
             <TextBlock Text="{i:Loc Settings.About.NotAffiliated}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,4,0,0" />
             <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" FontSize="11" Margin="0,10,0,0" />
             <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource Caption}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />

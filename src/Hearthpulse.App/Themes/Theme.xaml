@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                    xmlns:c="clr-namespace:Hearthpulse.App.Controls">
 
     <!-- ===== Palette: Hearthstone menus - dark wood and leather, parchment text, gold trim ===== -->
     <Color x:Key="BgColor">#140D08</Color>
@@ -105,15 +106,16 @@
         <GradientStop Color="#2A1C12" Offset="1" />
     </LinearGradientBrush>
     <!-- Plates are lit on top: a lighter band fades into the body, and the rim catches the accent -->
+    <!-- 90 % opaque: the page's hero shows faintly through a card (ThemeContrastTests checks text over its brightest art) -->
     <LinearGradientBrush x:Key="CardFill" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#352516" Offset="0" />
-        <GradientStop Color="#2C1F13" Offset="0.45" />
-        <GradientStop Color="#23180F" Offset="1" />
+        <GradientStop Color="#E6352516" Offset="0" />
+        <GradientStop Color="#E62C1F13" Offset="0.45" />
+        <GradientStop Color="#E623180F" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="CardEdge" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#8A6436" Offset="0" />
-        <GradientStop Color="#4A331D" Offset="0.3" />
-        <GradientStop Color="#2E1F13" Offset="1" />
+        <GradientStop Color="#C9963F" Offset="0" />
+        <GradientStop Color="#7A5A2E" Offset="0.35" />
+        <GradientStop Color="#4A331D" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="GhostFill" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#47321C" Offset="0" />
@@ -152,9 +154,15 @@
         <GradientStop Color="#F01B120B" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="OverlayEdge" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#A6E9B949" Offset="0" />
-        <GradientStop Color="#45E9B949" Offset="0.35" />
-        <GradientStop Color="#2AE9B949" Offset="1" />
+        <GradientStop Color="#F2E9B949" Offset="0" />
+        <GradientStop Color="#C7E9B949" Offset="0.5" />
+        <GradientStop Color="#99C48E2C" Offset="1" />
+    </LinearGradientBrush>
+    <!-- Overlay panel header rule: a gold hairline that fades out at both ends (V3 "gold frame") -->
+    <LinearGradientBrush x:Key="OverlayHeaderRule" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#00E9B949" Offset="0" />
+        <GradientStop Color="#B3E9B949" Offset="0.5" />
+        <GradientStop Color="#00E9B949" Offset="1" />
     </LinearGradientBrush>
 
     <!-- ===== Character of the theme: a second accent, soft glows and a backdrop motif ===== -->
@@ -254,10 +262,100 @@
         </DrawingBrush.Drawing>
     </DrawingBrush>
 
+    <!-- ===== V3 direction A: the page's material and its hero (MainWindow's backdrop, docs/design-identity.md) ===== -->
+    <!-- Stone: seams and flecks in one tile, lit on top and shaded under each seam -->
+    <DrawingBrush x:Key="PageStone" TileMode="Tile" Viewport="0,0,220,140" ViewportUnits="Absolute" Stretch="None" RenderOptions.CachingHint="Cache">
+        <DrawingBrush.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="#00000000" Geometry="M0,0 H220 V140 H0 Z" />
+                <GeometryDrawing Geometry="M0,46 L74,44 L76,0 M74,44 L150,47 L148,0 M150,47 L220,45 M0,94 L36,92 L38,46 M36,92 L118,95 L116,46 M118,95 L190,93 L192,46 M190,93 L220,94 M60,140 L62,94 M146,140 L144,95">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#0FF4E7C9" Thickness="1.2" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <GeometryDrawing Geometry="M0,47.5 L74,45.5 M150,48.5 L220,46.5 M36,93.5 L118,96.5 M190,94.5 L220,95.5">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#26000000" Thickness="1.4" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#0AF4E7C9" Geometry="M20,20 h2 v2 h-2 Z M96,18 h1.5 v1.5 h-1.5 Z M170,30 h2 v2 h-2 Z M58,70 h1.5 v1.5 h-1.5 Z M140,66 h2 v2 h-2 Z M14,118 h1.5 v1.5 h-1.5 Z M92,120 h2 v2 h-2 Z M200,112 h1.5 v1.5 h-1.5 Z" />
+            </DrawingGroup>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <!-- The hero's art dissolves towards the text on the left (an opacity mask: only the alpha counts) -->
+    <LinearGradientBrush x:Key="PageHeroFade" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#00000000" Offset="0" />
+        <GradientStop Color="#00000000" Offset="0.3" />
+        <GradientStop Color="#B3000000" Offset="0.55" />
+        <GradientStop Color="#FF000000" Offset="0.8" />
+    </LinearGradientBrush>
+    <!-- ...and towards its bottom, so the square art never ends in an edge on a taller plate -->
+    <LinearGradientBrush x:Key="PageHeroFloor" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FF000000" Offset="0.55" />
+        <GradientStop Color="#00000000" Offset="1" />
+    </LinearGradientBrush>
+    <!-- Over the art: a light vignette and floor in the plate's own colour; the hero's own colours light the page
+         (CardArt.Glow through PageGlowMask) -->
+    <RadialGradientBrush x:Key="PageVignette" Center="0.72,0.32" GradientOrigin="0.72,0.32" RadiusX="0.85" RadiusY="1.05">
+        <GradientStop Color="#001D140C" Offset="0.35" />
+        <GradientStop Color="#8C1D140C" Offset="0.85" />
+        <GradientStop Color="#CC1D140C" Offset="1" />
+    </RadialGradientBrush>
+    <LinearGradientBrush x:Key="PageShade" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#001D140C" Offset="0.55" />
+        <GradientStop Color="#B31D140C" Offset="1" />
+    </LinearGradientBrush>
+    <RadialGradientBrush x:Key="PageGlowMask" Center="0.72,0.3" GradientOrigin="0.72,0.3" RadiusX="0.75" RadiusY="0.9">
+        <GradientStop Color="#99000000" Offset="0" />
+        <GradientStop Color="#40000000" Offset="0.55" />
+        <GradientStop Color="#00000000" Offset="1" />
+    </RadialGradientBrush>
+    <!-- A thin gold frame inside the page plate, bright on top and fading down -->
+    <LinearGradientBrush x:Key="PageFrame" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#99E9B949" Offset="0" />
+        <GradientStop Color="#33E9B949" Offset="0.5" />
+        <GradientStop Color="#1AE9B949" Offset="1" />
+    </LinearGradientBrush>
+    <!-- The open page's sidebar item glows round its icon -->
+    <RadialGradientBrush x:Key="NavSelectedGlow" Center="0.12,0.5" GradientOrigin="0.12,0.5" RadiusX="0.3" RadiusY="1.1">
+        <GradientStop Color="#4DE9B949" Offset="0" />
+        <GradientStop Color="#00E9B949" Offset="1" />
+    </RadialGradientBrush>
+
+    <!-- Engraved gold glyphs (V3 icons I1, Controls/GoldGlyph): gradient, the flat gold of small sizes, the lit item's
+         brighter gold, a dark outline and drop, the bevel's light and dark edges and the top gloss -->
+    <LinearGradientBrush x:Key="GlyphGold" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFE7A6" Offset="0" />
+        <GradientStop Color="#E9B949" Offset="0.5" />
+        <GradientStop Color="#A8742A" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="GlyphGoldFlat" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFEDB8" Offset="0" />
+        <GradientStop Color="#F0C254" Offset="0.55" />
+        <GradientStop Color="#C8913A" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="GlyphGoldLit" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFF8E2" Offset="0" />
+        <GradientStop Color="#FFD66E" Offset="0.5" />
+        <GradientStop Color="#D9A040" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="GlyphGoldEdge" Color="#F0C254" />
+    <SolidColorBrush x:Key="GlyphOutline" Color="#E60C0704" />
+    <SolidColorBrush x:Key="GlyphBevelLight" Color="#C8FFF6D2" />
+    <SolidColorBrush x:Key="GlyphBevelDark" Color="#99472A08" />
+    <LinearGradientBrush x:Key="GlyphGloss" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#40FFFFFF" Offset="0" />
+        <GradientStop Color="#00FFFFFF" Offset="1" />
+    </LinearGradientBrush>
     <SolidColorBrush x:Key="RarityCommon" Color="#D8CDB8" />
     <SolidColorBrush x:Key="RarityRare" Color="#5B9BFF" />
     <SolidColorBrush x:Key="RarityEpic" Color="#B98AF5" />
     <SolidColorBrush x:Key="RarityLegendary" Color="#FFB547" />
+    <!-- Rarity-lit edge of a card row (V3): the rarity colours at 85 % alpha, so the edge needs no Opacity layer -->
+    <SolidColorBrush x:Key="RarityCommonEdge" Color="#D9D8CDB8" />
+    <SolidColorBrush x:Key="RarityRareEdge" Color="#D95B9BFF" />
+    <SolidColorBrush x:Key="RarityEpicEdge" Color="#D9B98AF5" />
+    <SolidColorBrush x:Key="RarityLegendaryEdge" Color="#D9FFB547" />
 
     <SolidColorBrush x:Key="TierS" Color="#FFC857" />
     <SolidColorBrush x:Key="TierA" Color="#8CCF63" />
@@ -802,11 +900,10 @@
                                 <ColumnDefinition Width="24" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="Glyph" Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="20"
-                                       Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" />
+                            <!-- The page's engraved gold glyph (V3 icons I1, Tag = a GameIcons geometry), a little dimmer until its page opens -->
+                            <c:GoldGlyph x:Name="Glyph" Glyph="{TemplateBinding Tag}" Width="22" Height="22" Opacity="0.8" HorizontalAlignment="Center" />
                             <!-- The lit glyph fades in over the plain one when the item becomes the open page -->
-                            <TextBlock x:Name="GlyphLit" Text="{TemplateBinding Tag}" Style="{StaticResource Icon}" FontSize="20"
-                                       Foreground="{StaticResource Accent}" HorizontalAlignment="Center" Opacity="0" />
+                            <c:GoldGlyph x:Name="GlyphLit" Glyph="{TemplateBinding Tag}" Lit="True" Width="22" Height="22" HorizontalAlignment="Center" Opacity="0" />
                             <ContentPresenter Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" />
                         </Grid>
                     </Grid>

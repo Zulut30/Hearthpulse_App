@@ -8,10 +8,23 @@
     <Style Selector="TextBlock.display.pageTitle">
         <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
+    <!-- The page's engraved gold glyph left of its title (V3 icons I1), as large as the title's capitals -->
+    <Style Selector="c|GoldGlyph.pageGlyph">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Margin" Value="0,0,12,8" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
     <Style Selector="c|Wave.pageRule">
         <Setter Property="Width" Value="168" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="Margin" Value="2,0,0,22" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+
+    <!-- A layer of the page backdrop (MainView): fills the content plate inside its 1 px edge, rounded corners included -->
+    <Style Selector="Border.pageLayer">
+        <Setter Property="CornerRadius" Value="15" />
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 

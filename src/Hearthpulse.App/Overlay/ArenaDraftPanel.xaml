@@ -173,11 +173,9 @@
                                     <ColumnDefinition Width="26" />
                                     <ColumnDefinition Width="18" />
                                 </Grid.ColumnDefinitions>
-                                <!-- A plate behind name, copies and score, lifted by a hairline -->
-                                <Border Grid.Column="1" Grid.ColumnSpan="4" Background="{StaticResource Row}" CornerRadius="4">
-                                    <Border Style="{StaticResource OverlayRowSheen}" />
-                                </Border>
-                                <c:ManaCost Width="20" Height="20" Text="{Binding Cost}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                                <!-- A capsule behind the gem, name, copies and score (V3) -->
+                                <Border Grid.ColumnSpan="5" Style="{StaticResource OverlayCapsule}" />
+                                <c:ManaCost Width="20" Height="20" Text="{Binding Cost}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="1,0,0,0" />
                                 <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11.5" Margin="7,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Grid.Column="2" Text="{Binding Copies}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}" VerticalAlignment="Center" Margin="4,0,0,0" />
                                 <TextBlock Grid.Column="3" Text="{Binding Score}" FontFamily="{StaticResource DisplayFont}" FontSize="11.5" FontWeight="Bold" TextAlignment="Right"

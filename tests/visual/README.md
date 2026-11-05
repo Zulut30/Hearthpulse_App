@@ -34,7 +34,8 @@ pixels changed or its size did. The app version under the sidebar is masked (`MA
 
 ## After V3 (overlay and decks redesign)
 
-The overlay frames and `main-standard` are in `PENDING`: compared and reported, never failed, until V3 lands. Then:
+Done on 2026-11-05 (CI run 42067448048 on `claude/design`): every frame was taken again and `PENDING` is empty. For
+the next redesign the same steps apply: list its frames in `PENDING` while it is under way, then:
 
 1. dispatch CI on the branch with V3 (`gh workflow run ci.yml --ref <branch>`);
 2. download the artifact `visual-renders` (it is uploaded for pending frames too);

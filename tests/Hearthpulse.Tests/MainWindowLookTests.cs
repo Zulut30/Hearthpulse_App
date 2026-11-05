@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Hearthpulse.Core.Battlegrounds;
 using Hearthpulse.Core.CardPool;
@@ -48,19 +49,25 @@ public sealed class MainWindowLookTests
     }
 
     [Fact]
-    public void Every_page_title_has_the_gold_rule_under_it_in_both_UIs()
+    public void Every_page_title_has_its_glyph_and_the_gold_rule_under_it_in_both_UIs()
     {
         // The window and its page controls (Main/Pages), which hold the pages' trees.
         var wpf = Load("src/Hearthpulse.App/Main/MainWindow.xaml");
         var titles = WithPages(wpf, "src/Hearthpulse.App/Main/Pages", "*.xaml").Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Style") == "{StaticResource PageTitle}").ToList();
         Assert.Equal(7, titles.Count);
-        Assert.All(titles, t => Assert.Equal("{StaticResource PageRule}", (string?)Next(t)?.Attribute("Style")));
+        Assert.All(titles, t => Assert.Equal("{StaticResource PageRule}", (string?)Next(Head(t))?.Attribute("Style")));
+        Assert.All(titles, t => Assert.Contains(Head(t).Descendants(), e => e.Name.LocalName == "GoldGlyph"));
         Assert.DoesNotContain(wpf.Descendants(), e => (string?)e.Attribute("Style") == "{StaticResource Display}");
 
         var ava = Load("src/Hearthpulse.UI/Main/MainView.axaml");
         var avaTitles = WithPages(ava, "src/Hearthpulse.UI/Main/Pages", "*.axaml").Where(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Classes") == "display pageTitle").ToList();
         Assert.Equal(7, avaTitles.Count);
-        Assert.All(avaTitles, t => Assert.Equal("pageRule", (string?)Next(t)?.Attribute("Classes")));
+        Assert.All(avaTitles, t => Assert.Equal("pageRule", (string?)Next(Head(t))?.Attribute("Classes")));
+        Assert.All(avaTitles, t => Assert.Contains(Head(t).Descendants(), e => e.Name.LocalName == "GoldGlyph"));
+
+        // A title stands in a horizontal row after its page's gold glyph (V3 icons I1); the rule follows the row.
+        static XElement Head(XElement title) =>
+            title.Parent is { Name.LocalName: "StackPanel" } row && (string?)row.Attribute("Orientation") == "Horizontal" ? row : title;
     }
 
     [Fact]
@@ -168,6 +175,42 @@ public sealed class MainWindowLookTests
     private static IEnumerable<XElement> WithPages(XElement window, string folder, string pattern) =>
         window.Descendants().Concat(Directory.EnumerateFiles(Path.Combine(RepoFiles.Root, folder), pattern)
             .SelectMany(f => XDocument.Load(f).Root!.Descendants()));
+
+    /// <summary>CC BY 3.0 asks for the author of each glyph: every game-icons.net icon the app draws is credited, with its author, in each notice that ships.</summary>
+    [Fact]
+    public void Every_game_icons_glyph_is_credited_with_its_author_in_every_notice()
+    {
+        var data = File.ReadAllText(Path.Combine(RepoFiles.Root, "src/Hearthpulse.Presentation/Infrastructure/GameIconData.cs"));
+        var glyphs = Regex.Matches(data, "\"(?<icon>[a-z-]+)\" by (?<author>\\w+) \\(https://game-icons\\.net/1x1/").ToList();
+        Assert.Equal(Regex.Matches(data, "public const string ").Count, glyphs.Count);
+        foreach (var notice in new[] { "THIRD-PARTY-NOTICES.txt", "installer/windows/notice.txt", "installer/linux/README.txt", "installer/macos/README.txt" })
+        {
+            var text = File.ReadAllText(Path.Combine(RepoFiles.Root, notice));
+            Assert.Contains("game-icons.net", text, StringComparison.Ordinal);
+            Assert.Contains("CC BY 3.0", text.Replace("CC-BY-3.0", "CC BY 3.0", StringComparison.Ordinal), StringComparison.Ordinal);
+            Assert.All(glyphs, g =>
+            {
+                Assert.Contains($"\"{g.Groups["icon"].Value}\"", text, StringComparison.Ordinal);
+                Assert.Contains(g.Groups["author"].Value, text, StringComparison.OrdinalIgnoreCase);
+            });
+        }
+    }
+
+    /// <summary>"Background characters" (Settings > General > Theme) writes AppSettings.PageHeroes, and the page hero's art sits in a layer shown only with a hero, in both UIs.</summary>
+    [Fact]
+    public void Background_characters_switch_and_backdrop_are_bound_in_both_UIs()
+    {
+        foreach (var (settings, window) in new[]
+                 {
+                     ("src/Hearthpulse.App/Main/SettingsTabs/GeneralSettings.xaml", "src/Hearthpulse.App/Main/MainWindow.xaml"),
+                     ("src/Hearthpulse.UI/Main/SettingsTabs/GeneralSettings.axaml", "src/Hearthpulse.UI/Main/MainView.axaml"),
+                 })
+        {
+            Assert.Contains(Load(settings).Descendants(), e => e.Name.LocalName == "CheckBox" && (string?)e.Attribute("IsChecked") == "{Binding Settings.PageHeroes}");
+            var art = Load(window).Descendants().Single(e => e.Attributes().Any(a => a.Name.LocalName == "CardArt.Splash" && a.Value == "{Binding PageHero}"));
+            Assert.Contains(art.Ancestors(), a => a.Attributes().Any(x => x.Name.LocalName is "Visibility" or "IsVisible" && x.Value.Contains("Binding PageHero", StringComparison.Ordinal)));
+        }
+    }
 
     private static XElement Load(string relative) => XDocument.Load(Path.Combine(RepoFiles.Root, relative)).Root!;
 }

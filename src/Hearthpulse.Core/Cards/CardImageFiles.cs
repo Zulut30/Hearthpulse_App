@@ -15,7 +15,7 @@ public enum ArtKind
     /// <summary>Full Battlegrounds card render.</summary>
     BattlegroundsCard,
 
-    /// <summary>Full-size card art (512x512), used as a faded page banner (WPF only).</summary>
+    /// <summary>Full-size card art (512x512): the hero behind a main-window page (MainViewModel.PageHero).</summary>
     Splash,
 
     /// <summary>Full Constructed card render (256 px wide) in the card-data locale, shown by the hover preview.</summary>

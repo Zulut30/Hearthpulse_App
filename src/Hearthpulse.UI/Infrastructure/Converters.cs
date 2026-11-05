@@ -58,7 +58,7 @@ public sealed class Truthy : IValueConverter
 public sealed class KeyBrush : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        ThemeBrushes.Get(DisplayRules.BrushKey(value?.ToString()));
+        ThemeBrushes.Get(DisplayRules.BrushKey(value?.ToString(), parameter));
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }

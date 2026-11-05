@@ -46,11 +46,15 @@
                     <Border.RenderTransform>
                         <TranslateTransform x:Name="NavPillShift" />
                     </Border.RenderTransform>
-                    <Border Width="3" CornerRadius="2" Margin="0,8" HorizontalAlignment="Left" Background="{StaticResource Accent}">
-                        <Border.Effect>
-                            <DropShadowEffect Color="{StaticResource AccentColor}" BlurRadius="12" ShadowDepth="0" Opacity="0.9" />
-                        </Border.Effect>
-                    </Border>
+                    <Grid>
+                        <!-- A gold glow round the open page's icon -->
+                        <Border CornerRadius="{StaticResource RadiusMedium}" Background="{StaticResource NavSelectedGlow}" />
+                        <Border Width="3" CornerRadius="2" Margin="0,8" HorizontalAlignment="Left" Background="{StaticResource Accent}">
+                            <Border.Effect>
+                                <DropShadowEffect Color="{StaticResource AccentColor}" BlurRadius="12" ShadowDepth="0" Opacity="0.9" />
+                            </Border.Effect>
+                        </Border>
+                    </Grid>
                 </Border>
             </Canvas>
             <DockPanel>
@@ -66,7 +70,7 @@
                                    Margin="12,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
 
-                    <RadioButton x:Name="NavOverview" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Home}" Tag="&#xF02DC;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True" Checked="OnNavigate"
+                    <RadioButton x:Name="NavOverview" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.HomeTip}" />
 
                     <Grid Style="{StaticResource NavGroup}">
@@ -77,15 +81,15 @@
                         <TextBlock Text="{i:Loc Main.Nav.Modes}" Style="{StaticResource Label}" />
                         <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                     </Grid>
-                    <RadioButton x:Name="NavBattlegrounds" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="&#xF0787;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+2" Checked="OnNavigate"
+                    <RadioButton x:Name="NavBattlegrounds" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="{x:Static c:GameIcons.Battlegrounds}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+2" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.BattlegroundsTip}" />
-                    <RadioButton x:Name="NavStandard" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Standard}" Tag="&#xF063A;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+3" Checked="OnNavigate"
+                    <RadioButton x:Name="NavStandard" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Standard}" Tag="{x:Static c:GameIcons.Standard}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+3" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.StandardTip}" />
-                    <RadioButton x:Name="NavWild" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Wild}" Tag="&#xF06E4;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+4" Checked="OnNavigate"
+                    <RadioButton x:Name="NavWild" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Wild}" Tag="{x:Static c:GameIcons.Wild}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+4" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.WildTip}" />
-                    <RadioButton x:Name="NavArena" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Arena}" Tag="&#xF0538;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+5" Checked="OnNavigate"
+                    <RadioButton x:Name="NavArena" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Arena}" Tag="{x:Static c:GameIcons.Arena}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+5" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.ArenaTip}" />
-                    <RadioButton x:Name="NavBrawl" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Brawl}" Tag="&#xF1116;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+6" Checked="OnNavigate"
+                    <RadioButton x:Name="NavBrawl" Style="{StaticResource NavItem}" Content="{i:Loc Main.Mode.Brawl}" Tag="{x:Static c:GameIcons.Brawl}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+6" Checked="OnNavigate"
                                  ToolTip="{i:Loc Brawl.NavTip}" />
 
                     <Grid Style="{StaticResource NavGroup}">
@@ -96,12 +100,12 @@
                         <TextBlock Text="{i:Loc Main.Nav.Library}" Style="{StaticResource Label}" />
                         <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                     </Grid>
-                    <RadioButton x:Name="NavHistory" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.History}" Tag="&#xF02DA;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+7" Checked="OnNavigate"
+                    <RadioButton x:Name="NavHistory" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.History}" Tag="{x:Static c:GameIcons.History}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+7" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.HistoryTip}" />
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
-                    <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Settings}" Tag="&#xF08BB;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+8" Checked="OnNavigate"
+                    <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Settings}" Tag="{x:Static c:GameIcons.Settings}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+8" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.SettingsTip}" />
                     <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
                 </StackPanel>
@@ -119,24 +123,34 @@
                     </Grid.RowDefinitions>
 
 
-                    <!-- Your last hero, as faded card art behind the page titles -->
-                    <Border Grid.RowSpan="2" Width="640" Height="340" Margin="0,1,1,0" HorizontalAlignment="Right" VerticalAlignment="Top"
-                            IsHitTestVisible="False" Opacity="0.32">
-                        <Border.OpacityMask>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="#00000000" Offset="0" />
-                                <GradientStop Color="#FF000000" Offset="0.65" />
-                            </LinearGradientBrush>
-                        </Border.OpacityMask>
-                        <Border CornerRadius="0,15,0,0" i:CardArt.Splash="{Binding BannerHero}">
-                            <Border.OpacityMask>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#FF000000" Offset="0.3" />
-                                    <GradientStop Color="#00000000" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.OpacityMask>
-                        </Border>
-                    </Border>
+                    <!-- The page's material and hero (V3 direction A): stone, the page's hero dissolving towards the text, a vignette
+                         and a floor in the plate's colour, then a thin gold frame. Nothing moves; the hero follows the page
+                         (MainViewModel.PageHero) and is gone while "Background characters" is off. Same as the Avalonia MainView. -->
+                    <Grid Grid.RowSpan="2" IsHitTestVisible="False">
+                        <!-- Static while a page scrolls over it: cached as a bitmap instead of re-blending its masks on every frame -->
+                        <Grid.CacheMode>
+                            <BitmapCache SnapsToDevicePixels="True" />
+                        </Grid.CacheMode>
+                        <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageStone}" />
+                        <Grid Visibility="{Binding PageHero, Converter={StaticResource Vis}}">
+                            <!-- The hero's colours light the whole page; the art itself is square, top right, 0.8 of the plate wide and
+                                 at most 940 (the columns), so at the narrowest window it still clears the titles on the left -->
+                            <Border Style="{StaticResource PageLayer}" i:CardArt.Glow="{Binding PageHero}" Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="4*" MaxWidth="940" />
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="PageHeroArt" Grid.Column="1" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" VerticalAlignment="Top"
+                                        Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
+                                    <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" />
+                                </Border>
+                            </Grid>
+                            <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageVignette}" />
+                            <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageShade}" />
+                        </Grid>
+                        <Border Margin="8" CornerRadius="{StaticResource RadiusMedium}" BorderThickness="1" BorderBrush="{StaticResource PageFrame}" />
+                    </Grid>
 
                     <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
                     <!-- A dock, not a horizontal stack: the stack measures the line at infinite width, so the ellipsis never showed.
@@ -225,7 +239,10 @@
                     <!-- ===== Arena ===== -->
                     <ScrollViewer x:Name="PageArena" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource PageTitle}" />
+                            <StackPanel Orientation="Horizontal">
+                                <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Arena}" />
+                                <TextBlock Text="{i:Loc Main.Mode.Arena}" Style="{StaticResource PageTitle}" />
+                            </StackPanel>
                             <c:Wave Style="{StaticResource PageRule}" />
                             <s:ArenaStatsView />
                         </StackPanel>
@@ -234,7 +251,10 @@
                     <!-- ===== Tavern Brawl ===== -->
                     <ScrollViewer x:Name="PageBrawl" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120">
-                            <TextBlock Text="{i:Loc Main.Mode.Brawl}" Style="{StaticResource PageTitle}" />
+                            <StackPanel Orientation="Horizontal">
+                                <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Brawl}" />
+                                <TextBlock Text="{i:Loc Main.Mode.Brawl}" Style="{StaticResource PageTitle}" />
+                            </StackPanel>
                             <c:Wave Style="{StaticResource PageRule}" />
                             <s:BrawlView />
                         </StackPanel>
@@ -251,7 +271,10 @@
                     <!-- ===== Settings: tabs General / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                     <ScrollViewer x:Name="PageSettings" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                         <StackPanel Margin="40,0,40,120" MaxWidth="780" HorizontalAlignment="Left" ToggleButton.Checked="OnSettingChanged" ToggleButton.Unchecked="OnSettingChanged">
-                            <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource PageTitle}" />
+                            <StackPanel Orientation="Horizontal">
+                                <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Settings}" />
+                                <TextBlock Text="{i:Loc Settings.Title}" Style="{StaticResource PageTitle}" />
+                            </StackPanel>
                             <c:Wave Style="{StaticResource PageRule}" />
 
                             <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left" Margin="0,0,0,20">

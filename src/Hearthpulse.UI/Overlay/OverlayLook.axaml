@@ -5,13 +5,12 @@
     <!-- Overlay-only look shared by the overlay view and its panels (WPF: Overlay/OverlayLook.xaml, same names as keys).
          Theme tokens only, no hex. Nothing here loops, blurs or casts a shadow: the overlay draws over the game. The one motion is the row flash below. -->
 
-    <!-- Panel header: a warm gold band with a hairline under it, flush with the card's rounded top (card radius 8 - 1px edge) -->
+    <!-- Panel header (V3 "gold frame"): no plate, only a gold hairline under it that fades out at both ends -->
     <Style Selector="Border.overlayHeader">
-        <Setter Property="Background" Value="{StaticResource AccentSoft}" />
-        <Setter Property="BorderBrush" Value="{StaticResource AccentLine}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{StaticResource OverlayHeaderRule}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
-        <Setter Property="CornerRadius" Value="7,7,0,0" />
-        <Setter Property="Padding" Value="12,8,12,7" />
+        <Setter Property="Padding" Value="12,8" />
     </Style>
 
     <!-- Header content, the same in every panel: an optional gold glyph (with the icon class), the title, one muted line -->
@@ -22,9 +21,9 @@
         <Setter Property="Margin" Value="0,0,7,0" />
     </Style>
     <Style Selector="TextBlock.headerTitle">
-        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeLead}" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource Text}" />
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
@@ -56,26 +55,25 @@
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
-    <!-- Card rows: a gold hairline along the top edge lifts the row off the panel -->
-    <Style Selector="Border.rowSheen">
-        <Setter Property="Height" Value="1" />
-        <Setter Property="VerticalAlignment" Value="Top" />
-        <Setter Property="Margin" Value="4,0" />
-        <Setter Property="Background" Value="{StaticResource OverlayBorder}" />
+    <!-- Card row as a capsule (V3): the plate, the art and the flash are clipped to it (radius 12 on a 24 row) -->
+    <Style Selector="Border.capsule">
+        <Setter Property="Background" Value="{StaticResource Row}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+
+    <!-- Rarity-lit edge around a capsule row: KeyBrush with "edge" gives the rarity colour at 85 % alpha (a card
+         without a rarity gets the faint gold edge) -->
+    <Style Selector="Border.rarityEdge">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
-    <!-- Rarity colour along the left edge of a card row (the brush comes from the row) -->
-    <Style Selector="Border.rarityStrip">
-        <Setter Property="Width" Value="3" />
-        <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="IsHitTestVisible" Value="False" />
-    </Style>
-
-    <!-- Copy count on a dark plate at the right end of a card row, readable over bright art -->
+    <!-- Copy count on a dark pill at the right end of a card row, readable over bright art -->
     <Style Selector="Border.countBadge">
         <Setter Property="Background" Value="{DynamicResource OverlayBadgeShade}" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="9" />
         <Setter Property="MinWidth" Value="20" />
         <Setter Property="Height" Value="18" />
         <Setter Property="Padding" Value="5,0" />
@@ -152,8 +150,14 @@
     <Style Selector="Grid.tileRow.empty c|ManaCost.cost">
         <Setter Property="Opacity" Value="0.45" />
     </Style>
-    <Style Selector="Grid.tileRow.empty Border.rarityStrip">
-        <Setter Property="Opacity" Value="0.35" />
+    <Style Selector="TextBlock.countText">
+        <Setter Property="Foreground" Value="{StaticResource Accent}" />
+    </Style>
+    <Style Selector="Grid.tileRow.legendary TextBlock.tileName, Grid.tileRow.legendary TextBlock.countText">
+        <Setter Property="Foreground" Value="{StaticResource RarityLegendary}" />
+    </Style>
+    <Style Selector="Grid.tileRow.empty Border.rarityEdge">
+        <Setter Property="Opacity" Value="0.3" />
     </Style>
     <Style Selector="Grid.tileRow.empty Border.countBadge">
         <Setter Property="Opacity" Value="0.55" />

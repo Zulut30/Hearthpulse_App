@@ -74,16 +74,12 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type o:LikelyTile}">
                             <Grid Height="22" Margin="0,0,0,2" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="25" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <c:ManaCost Width="21" Height="21" Text="{Binding Cost}" HorizontalAlignment="Left" />
-                                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
+                                <Border Style="{StaticResource OverlayCapsule}" c:RoundClip.Radius="11">
                                     <Grid>
                                         <Image i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
                                         <Rectangle Fill="{StaticResource TileFade}" />
-                                        <DockPanel Margin="8,0,3,0">
+                                        <DockPanel Margin="1,0,3,0">
+                                            <c:ManaCost Width="21" Height="21" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,4,0" />
                                             <!-- The chance on a dark plate, like the copy counts of the deck and the played cards -->
                                             <Border DockPanel.Dock="Right" Background="{DynamicResource OverlayBadgeShade}" CornerRadius="4" Height="16" Padding="5,0"
                                                     Margin="4,0,0,0" VerticalAlignment="Center">

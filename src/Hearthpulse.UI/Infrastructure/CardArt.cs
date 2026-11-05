@@ -56,12 +56,28 @@ public static class CardArt
     public static readonly AttachedProperty<string?> CardProperty =
         AvaloniaProperty.RegisterAttached<Control, string?>("Card", typeof(CardArt));
 
+    /// <summary>Full-size art (512 px): the hero behind a main-window page.</summary>
+    public static readonly AttachedProperty<string?> SplashProperty =
+        AvaloniaProperty.RegisterAttached<Control, string?>("Splash", typeof(CardArt));
+
+    /// <summary>
+    /// A border's background in the hero's colours: a small patch of its splash art magnified across the border, which
+    /// smooths into a soft wash (the page backdrop's coloured light; no blur effect).
+    /// </summary>
+    public static readonly AttachedProperty<string?> GlowProperty =
+        AvaloniaProperty.RegisterAttached<Control, string?>("Glow", typeof(CardArt));
+
+    /// <summary>The patch of the art the glow magnifies: round the middle, where a hero's face and colours sit.</summary>
+    private static readonly RelativeRect GlowPatch = new(0.36, 0.22, 0.12, 0.12, RelativeUnit.Relative);
+
     static CardArt()
     {
+        GlowProperty.Changed.AddClassHandler<Control>((c, e) => ApplyGlowAsync(c, e.NewValue as string).Forget("Card art glow"));
         TileProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Tile, e.NewValue as string));
         PortraitProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Portrait, e.NewValue as string));
         BattlegroundsCardProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.BattlegroundsCard, e.NewValue as string));
         CardProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Card, e.NewValue as string));
+        SplashProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Splash, e.NewValue as string));
     }
 
     public static string? GetTile(Control c) => c.GetValue(TileProperty);
@@ -72,6 +88,10 @@ public static class CardArt
     public static void SetBattlegroundsCard(Control c, string? value) => c.SetValue(BattlegroundsCardProperty, value);
     public static string? GetCard(Control c) => c.GetValue(CardProperty);
     public static void SetCard(Control c, string? value) => c.SetValue(CardProperty, value);
+    public static string? GetGlow(Control c) => c.GetValue(GlowProperty);
+    public static void SetGlow(Control c, string? value) => c.SetValue(GlowProperty, value);
+    public static string? GetSplash(Control c) => c.GetValue(SplashProperty);
+    public static void SetSplash(Control c, string? value) => c.SetValue(SplashProperty, value);
 
     /// <summary>Number of image loads still in flight (the off-screen renderer waits for them).</summary>
     public static int InFlight => Pending.Count(p => !p.Value.IsCompleted);
@@ -106,11 +126,30 @@ public static class CardArt
         });
     }
 
+    private static async Task ApplyGlowAsync(Control target, string? cardId)
+    {
+        if (target is not Border border)
+        {
+            return;
+        }
+
+        var image = string.IsNullOrEmpty(cardId) ? null
+            : Memory.TryGetValue(Key(ArtKind.Splash, cardId), out var cached) ? cached : await GetAsync(ArtKind.Splash, cardId);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (Equals(border.GetValue(GlowProperty), cardId))
+            {
+                border.Background = image is null ? null : new ImageBrush(image) { SourceRect = GlowPatch, Stretch = Stretch.Fill };
+            }
+        });
+    }
+
     private static AttachedProperty<string?> PropertyFor(ArtKind kind) => kind switch
     {
         ArtKind.Tile => TileProperty,
         ArtKind.Portrait => PortraitProperty,
         ArtKind.Card => CardProperty,
+        ArtKind.Splash => SplashProperty,
         _ => BattlegroundsCardProperty,
     };
 
@@ -159,7 +198,9 @@ public static class CardArt
             // EnsureArtAsync makes is off the UI thread.
             if (Http is { } http)
             {
-                await Files.EnsureArtAsync(http, url, file, kind == ArtKind.Card ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
+                // A page hero's splash has no fallback: without HearthstoneJSON's art the page keeps its stone (a Battlegrounds
+                // card picture from another source would not fit the backdrop).
+                await Files.EnsureArtAsync(http, url, file, kind is ArtKind.Card or ArtKind.Splash ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
             }
 
             if (File.Exists(file))
@@ -168,10 +209,11 @@ public static class CardArt
                 try
                 {
                     await using var stream = File.OpenRead(file);
-                    image = Bitmap.DecodeToWidth(stream, kind is ArtKind.Tile or ArtKind.Card ? 256 : 200, BitmapInterpolationMode.HighQuality);
+                    image = Bitmap.DecodeToWidth(stream, kind switch { ArtKind.Tile or ArtKind.Card => 256, ArtKind.Splash => 512, _ => 200 },
+                        BitmapInterpolationMode.HighQuality);
                     image = kind switch
                     {
-                        ArtKind.Portrait => TrimMargins(image),
+                        ArtKind.Portrait or ArtKind.Splash => TrimMargins(image),
                         ArtKind.Tile => FadeTileMargin(image),
                         _ => image,
                     };

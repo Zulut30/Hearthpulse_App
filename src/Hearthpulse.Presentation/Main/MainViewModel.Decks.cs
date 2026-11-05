@@ -37,6 +37,7 @@ public sealed partial class MainViewModel
     /// </summary>
     private bool _decksStale;
     private IReadOnlyList<DeckFamily> _deckFamilies = [];
+    private IReadOnlyList<HomeDeck> _homeDecks = [];
     private IReadOnlyList<MergeSuggestion> _mergeSuggestions = [];
     private IReadOnlyList<DeckSuggestionRow> _deckSuggestions = [];
     private DeckDetailsViewModel? _deckPage;
@@ -58,6 +59,9 @@ public sealed partial class MainViewModel
 
     /// <summary>Decks that look like versions of one, for the Decks card.</summary>
     public IReadOnlyList<DeckSuggestionRow> DeckSuggestions { get => _deckSuggestions; private set => Set(ref _deckSuggestions, value); }
+
+    /// <summary>The home page's deck banners: the three decks played last, of any format.</summary>
+    public IReadOnlyList<HomeDeck> HomeDecks { get => _homeDecks; private set => Set(ref _homeDecks, value); }
 
     /// <summary>Opens the deck page of a <see cref="DeckRow"/> (or a family key).</summary>
     public RelayCommand OpenDeck => _openDeck ??= new RelayCommand(p =>
@@ -323,6 +327,7 @@ public sealed partial class MainViewModel
             }
 
             _deckFamilies = data.Families;
+            RaisePageHero();
             _mergeSuggestions = data.Suggestions;
             _decksStale = false;
             Decks = data.Shown.Select(f => new DeckRow(
@@ -341,6 +346,7 @@ public sealed partial class MainViewModel
                     DeckMeta(f.Main.DeckCode, f.PlayerClass, f.Format),
                     f.Versions.Count > 1 ? Loc.P("Deck.VersionCount", f.Versions.Count) : string.Empty))
                 .ToList();
+            HomeDecks = HomeDeck.Latest(data.Families, ClassHero);
             DeckSuggestions = data.ShownSuggestions.Select(s => new DeckSuggestionRow(
                     s.First.Key,
                     s.Second.Key,

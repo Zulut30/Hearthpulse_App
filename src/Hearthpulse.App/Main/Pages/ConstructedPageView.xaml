@@ -16,7 +16,14 @@
     </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="40,0,40,120">
-            <TextBlock Text="{Binding ConstructedTitle}" Style="{StaticResource PageTitle}" />
+            <StackPanel Orientation="Horizontal">
+                <Grid>
+                    <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Standard}"
+                                 Visibility="{Binding ConstructedWild, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Wild}" Visibility="{Binding ConstructedWild, Converter={StaticResource Vis}}" />
+                </Grid>
+                <TextBlock Text="{Binding ConstructedTitle}" Style="{StaticResource PageTitle}" />
+            </StackPanel>
             <c:Wave Style="{StaticResource PageRule}" />
 
             <Grid Margin="0,0,0,14">

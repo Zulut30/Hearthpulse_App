@@ -51,6 +51,24 @@ public sealed class DisplayRulesTests
     public void Tiers_rarities_and_results_take_their_brush(string? value, string key) =>
         Assert.Equal(key, DisplayRules.BrushKey(value));
 
+    /// <summary>A card row's rarity-lit edge: the rarity's own edge brush; no or an unknown rarity, the faint gold edge.</summary>
+    [Theory]
+    [InlineData("COMMON", "RarityCommonEdge")]
+    [InlineData("FREE", "RarityCommonEdge")]
+    [InlineData("RARE", "RarityRareEdge")]
+    [InlineData("EPIC", "RarityEpicEdge")]
+    [InlineData("LEGENDARY", "RarityLegendaryEdge")]
+    [InlineData("", "OverlayBorder")]
+    [InlineData(null, "OverlayBorder")]
+    [InlineData("MYTHIC", "OverlayBorder")]
+    [InlineData("Win", "OverlayBorder")]
+    public void Rarity_edges_take_their_brush(string? rarity, string key)
+    {
+        Assert.Equal(key, DisplayRules.EdgeKey(rarity));
+        Assert.Equal(key, DisplayRules.BrushKey(rarity, "edge"));
+        Assert.Equal(DisplayRules.BrushKey(rarity), DisplayRules.BrushKey(rarity, null));
+    }
+
     [Theory]
     [InlineData(1, "4", "Positive")]
     [InlineData(4, "4", "Positive")]

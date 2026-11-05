@@ -221,34 +221,34 @@
                     <TextBlock Classes="h2 wide" Text="Hearthpulse" FontSize="20" Margin="12,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
 
-                <RadioButton Name="NavOverview" Classes="nav" Content="{i:Loc Main.Nav.Home}" Tag="&#xF02DC;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True"
+                <RadioButton Name="NavOverview" Classes="nav" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True"
                              ToolTip.Tip="{i:Loc Main.Nav.HomeTip}" />
 
                 <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
                     <TextBlock Text="{i:Loc Main.Nav.Modes}" Classes="label" />
                     <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                 </Grid>
-                <RadioButton Name="NavBattlegrounds" Classes="nav" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="&#xF0787;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+2"
+                <RadioButton Name="NavBattlegrounds" Classes="nav" Content="{i:Loc Main.Mode.Battlegrounds}" Tag="{x:Static c:GameIcons.Battlegrounds}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+2"
                              ToolTip.Tip="{i:Loc Main.Nav.BattlegroundsTip}" />
-                <RadioButton Name="NavStandard" Classes="nav" Content="{i:Loc Main.Nav.Standard}" Tag="&#xF063A;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+3"
+                <RadioButton Name="NavStandard" Classes="nav" Content="{i:Loc Main.Nav.Standard}" Tag="{x:Static c:GameIcons.Standard}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+3"
                              ToolTip.Tip="{i:Loc Main.Nav.StandardTipShort}" />
-                <RadioButton Name="NavWild" Classes="nav" Content="{i:Loc Main.Nav.Wild}" Tag="&#xF06E4;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+4"
+                <RadioButton Name="NavWild" Classes="nav" Content="{i:Loc Main.Nav.Wild}" Tag="{x:Static c:GameIcons.Wild}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+4"
                              ToolTip.Tip="{i:Loc Main.Nav.WildTipShort}" />
-                <RadioButton Name="NavArena" Classes="nav" Content="{i:Loc Main.Mode.Arena}" Tag="&#xF0538;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+5"
+                <RadioButton Name="NavArena" Classes="nav" Content="{i:Loc Main.Mode.Arena}" Tag="{x:Static c:GameIcons.Arena}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+5"
                              ToolTip.Tip="{i:Loc Main.Nav.ArenaTip}" />
-                <RadioButton Name="NavBrawl" Classes="nav" Content="{i:Loc Main.Mode.Brawl}" Tag="&#xF1116;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+6"
+                <RadioButton Name="NavBrawl" Classes="nav" Content="{i:Loc Main.Mode.Brawl}" Tag="{x:Static c:GameIcons.Brawl}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+6"
                              ToolTip.Tip="{i:Loc Brawl.NavTip}" />
 
                 <Grid Classes="navGroup wide" ColumnDefinitions="Auto,*">
                     <TextBlock Text="{i:Loc Main.Nav.Library}" Classes="label" />
                     <c:Wave Grid.Column="1" Margin="10,1,0,0" VerticalAlignment="Center" />
                 </Grid>
-                <RadioButton Name="NavHistory" Classes="nav" Content="{i:Loc Main.Nav.History}" Tag="&#xF02DA;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+7"
+                <RadioButton Name="NavHistory" Classes="nav" Content="{i:Loc Main.Nav.History}" Tag="{x:Static c:GameIcons.History}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+7"
                              ToolTip.Tip="{i:Loc Main.Nav.HistoryTip}" />
             </StackPanel>
 
             <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
-                <RadioButton Name="NavSettings" Classes="nav" Content="{i:Loc Main.Nav.Settings}" Tag="&#xF08BB;" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+8"
+                <RadioButton Name="NavSettings" Classes="nav" Content="{i:Loc Main.Nav.Settings}" Tag="{x:Static c:GameIcons.Settings}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+8"
                              ToolTip.Tip="{i:Loc Main.Nav.SettingsTip}" />
                 <TextBlock Text="{Binding Version}" Classes="caption wide" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
             </StackPanel>
@@ -260,6 +260,32 @@
         <Border Grid.Column="1" Background="{StaticResource ContentFill}" BorderBrush="{StaticResource ContentEdge}" BorderThickness="1" CornerRadius="16"
                 Margin="0,10,10,10" ClipToBounds="True">
             <Grid RowDefinitions="52,*">
+
+                <!-- The page's material and hero (V3 direction A): stone, the page's hero dissolving towards the text, a vignette
+                     and a floor in the plate's colour, then a thin gold frame. Nothing moves; the hero follows the page
+                     (MainViewModel.PageHero) and is gone while "Background characters" is off. Same as the WPF MainWindow. -->
+                <Panel Grid.RowSpan="2" IsHitTestVisible="False">
+                    <Border Classes="pageLayer" Background="{StaticResource PageStone}" />
+                    <Panel IsVisible="{Binding PageHero, Converter={StaticResource Truthy}}">
+                        <!-- The hero's colours light the whole page; the art itself is square, top right, 0.8 of the plate wide and
+                             at most 940 (the columns), so at the narrowest window it still clears the titles on the left; compact (wide
+                             only) keeps the hero's colours without the art, which would sit under the title -->
+                        <Border Classes="pageLayer" i:CardArt.Glow="{Binding PageHero}" Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="4*" MaxWidth="940" />
+                            </Grid.ColumnDefinitions>
+                            <Border Name="PageHeroArt" Grid.Column="1" Classes="wide" Height="{Binding $self.Bounds.Width}" VerticalAlignment="Top"
+                                    Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
+                                <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" />
+                            </Border>
+                        </Grid>
+                        <Border Classes="pageLayer" Background="{StaticResource PageVignette}" />
+                        <Border Classes="pageLayer" Background="{StaticResource PageShade}" />
+                    </Panel>
+                    <Border Margin="8" CornerRadius="{StaticResource RadiusMedium}" BorderThickness="1" BorderBrush="{StaticResource PageFrame}" />
+                </Panel>
 
                 <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
                 <!-- A dock, not a horizontal stack: the stack measures the line at infinite width, so the ellipsis never showed.
@@ -318,7 +344,10 @@
                 <!-- ===== Arena ===== -->
                 <ScrollViewer Name="PageArena" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel>
-                        <TextBlock Text="{i:Loc Main.Mode.Arena}" Classes="display pageTitle" />
+                        <StackPanel Orientation="Horizontal">
+                            <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Arena}" />
+                            <TextBlock Text="{i:Loc Main.Mode.Arena}" Classes="display pageTitle" />
+                        </StackPanel>
                         <c:Wave Classes="pageRule" />
                         <s:ArenaStatsView Name="ArenaStats" />
                     </StackPanel>
@@ -327,7 +356,10 @@
                 <!-- ===== Tavern Brawl ===== -->
                 <ScrollViewer Name="PageBrawl" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel>
-                        <TextBlock Text="{i:Loc Main.Mode.Brawl}" Classes="display pageTitle" />
+                        <StackPanel Orientation="Horizontal">
+                            <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Brawl}" />
+                            <TextBlock Text="{i:Loc Main.Mode.Brawl}" Classes="display pageTitle" />
+                        </StackPanel>
                         <c:Wave Classes="pageRule" />
                         <s:BrawlView />
                     </StackPanel>
@@ -344,7 +376,10 @@
                 <!-- ===== Settings: tabs General / Overlay / Tracker / Stream / Account / Data / About (the last one shown is kept in AppSettings.SettingsTab) ===== -->
                 <ScrollViewer Name="PageSettings" Grid.Row="1" Classes="page" VerticalScrollBarVisibility="Auto" IsVisible="False">
                     <StackPanel MaxWidth="780" HorizontalAlignment="Left">
-                        <TextBlock Text="{i:Loc Settings.Title}" Classes="display pageTitle" />
+                        <StackPanel Orientation="Horizontal">
+                            <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Settings}" />
+                            <TextBlock Text="{i:Loc Settings.Title}" Classes="display pageTitle" />
+                        </StackPanel>
                         <c:Wave Classes="pageRule" />
 
                         <Border Classes="segmentBar" HorizontalAlignment="Left" Margin="0,0,0,20">
