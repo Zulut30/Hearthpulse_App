@@ -42,5 +42,11 @@
   "Match.Player.BookmarkTurn": "Step {0} · turn {1}",
   "Match.Player.BookmarkMulligan": "Step {0} · mulligan",
   "Match.Player.BookmarkStep": "Step {0}",
-  "Match.Player.BookmarkFailed": "Couldn't save the bookmark. Try again."
+  "Match.Player.BookmarkFailed": "Couldn't save the bookmark. Try again.",
+  "Match.Export.Tip": "Save the step as PNG",
+  "Match.Export.Title": "Save the step as a picture",
+  "Match.Export.Filter": "PNG picture",
+  "Match.Export.FileName": "Hearthpulse {0}",
+  "Match.Export.Saved": "Saved: {0}",
+  "Match.Export.Failed": "Couldn't save the picture. Pick another folder and try again."
 }

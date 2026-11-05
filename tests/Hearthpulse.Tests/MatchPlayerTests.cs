@@ -680,4 +680,52 @@ public sealed class MatchPlayerTests : IDisposable
         Assert.False(model.Playing);
         Assert.StartsWith(Loc.T("Match.Timeline.LegendBattlegrounds"), model.HelpText);
     }
+    [Fact]
+    public void The_step_picture_is_offered_on_either_table_and_reports_in_the_header()
+    {
+        var model = Model(out var clock);
+        model.Show(Page());
+        Assert.True(model.CanExportStep);
+        Assert.Equal("Hearthpulse Step 1.png", model.StepFileName);
+
+        // A turn's step names its turn; a name keeps no character a file name cannot hold.
+        model.GoFrame.Execute(model.FrameMax);
+        Assert.Matches(@"^Hearthpulse Step 10 · turn \d+\.png$", model.StepFileName);
+        Assert.DoesNotContain(model.StepFileName, c => Path.GetInvalidFileNameChars().Contains(c));
+
+        // The playback stops on the step being drawn; the last status goes.
+        model.GoFrame.Execute(0);
+        model.TogglePlay.Execute(null);
+        Assert.True(model.Playing);
+        model.BeginStepExport();
+        Assert.False(model.Playing);
+        Assert.Equal(0, model.Frame);
+        Assert.Single(clock.Waits);
+
+        model.StepExported(Path.Combine(_folder, "Hearthpulse Step 1.png"));
+        Assert.Equal("Saved: Hearthpulse Step 1.png", model.HeaderStatus);
+        Assert.Equal("Win", model.HeaderStatusKey);
+        model.StepExported(null);
+        Assert.Equal(Loc.T("Match.Export.Failed"), model.HeaderStatus);
+        Assert.Equal("Loss", model.HeaderStatusKey);
+
+        // Another tab has no table: no button; the next action clears the status.
+        model.ShowDecks = true;
+        Assert.False(model.CanExportStep);
+        Assert.Empty(model.HeaderStatus);
+
+        var battlegrounds = Model(out _);
+        battlegrounds.Show(BattlegroundsPage("bg-export", Bg.Game5th()));
+        Assert.True(battlegrounds.CanExportStep);
+        battlegrounds.ShowLobby = true;
+        Assert.False(battlegrounds.CanExportStep);
+    }
+
+    [Theory]
+    [InlineData(900, 700, 2)]
+    [InlineData(2048, 600, 2)]
+    [InlineData(4096, 900, 1)]
+    [InlineData(0, 0, 2)]
+    public void The_step_picture_is_twice_the_page_size_up_to_4096_pixels(double width, double height, double scale) =>
+        Assert.Equal(scale, MatchViewModel.StepExportScaleFor(width, height));
 }

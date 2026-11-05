@@ -882,6 +882,10 @@
                     <Button Style="{StaticResource IconButton}" Content="&#xF0497;" Margin="4,0,0,0" Command="{Binding ShareHeader}" ToolTip="{i:Loc Library.Share}"
                             AutomationProperties.Name="{i:Loc Library.Share}" />
                 </StackPanel>
+                <!-- The step on screen as a PNG picture (plan R4): either mode's table card, as the page shows it -->
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xF0100;" Margin="12,0,0,0" VerticalAlignment="Center" Click="OnExportStep"
+                        ToolTip="{i:Loc Match.Export.Tip}" AutomationProperties.Name="{i:Loc Match.Export.Tip}"
+                        Visibility="{Binding CanExportStep, Converter={StaticResource Vis}}" />
                 <StackPanel>
                     <TextBlock Text="{Binding Header.Title}" Style="{StaticResource PageTitle}" FontSize="30" TextTrimming="CharacterEllipsis" />
                     <c:Wave Style="{StaticResource PageRule}" Margin="2,0,0,10" />

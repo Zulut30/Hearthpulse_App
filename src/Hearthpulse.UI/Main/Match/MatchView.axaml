@@ -931,6 +931,9 @@
                     <Button Classes="icon" Content="&#xF0497;" Margin="4,0,0,0" Command="{Binding ShareHeader}" ToolTip.Tip="{i:Loc Library.Share}"
                             AutomationProperties.Name="{i:Loc Library.Share}" />
                 </StackPanel>
+                <!-- The step on screen as a PNG picture (plan R4): either mode's table card, as the page shows it -->
+                <Button DockPanel.Dock="Right" Classes="icon" Content="&#xF0100;" Margin="12,0,0,0" VerticalAlignment="Center" Click="OnExportStep"
+                        ToolTip.Tip="{i:Loc Match.Export.Tip}" AutomationProperties.Name="{i:Loc Match.Export.Tip}" IsVisible="{Binding CanExportStep}" />
                 <StackPanel>
                     <TextBlock Text="{Binding Header.Title}" Classes="display pageTitle" FontSize="30" TextWrapping="Wrap" />
                     <c:Wave Classes="pageRule" Margin="2,0,0,10" />
@@ -1189,7 +1192,7 @@
                 <!-- Battlegrounds (format 4): the step's table, ours at the bottom; the leaderboard and the stretch's events
                      (under the table at phone width) -->
                 <Grid x:Name="BattlegroundsTable" ColumnDefinitions="*,16,300" RowDefinitions="Auto,Auto" IsVisible="{Binding ShowBattlegroundsTable}">
-                    <Border Classes="card table" Padding="18,14" VerticalAlignment="Top">
+                    <Border x:Name="BattlegroundsCard" Classes="card table" Padding="18,14" VerticalAlignment="Top">
                         <StackPanel x:Name="BattlegroundsStepCard" DataContext="{Binding BattlegroundsStep}" x:DataType="r:MatchBgStepView">
                             <!-- Top: Bob's offer in the tavern, the combat opponent in combat, the hero choice before the first
                                  tavern (no Bob yet); one height, so the step bar stays put -->
