@@ -111,6 +111,8 @@
                           ToolTip.Tip="{i:Loc Settings.App.AutoUpdateTip}" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.App.StartWithSignIn}" IsChecked="{Binding Settings.StartWithWindows}" Margin="0,0,0,14" />
                 <CheckBox Classes="switch" Content="{i:Loc Settings.App.StartMinimized}" IsChecked="{Binding Settings.StartMinimized}" />
+                <Button Classes="ghost" Content="{i:Loc Setup.Open}" Command="{Binding OpenSetup}" ToolTip.Tip="{i:Loc Setup.OpenTip}"
+                        HorizontalAlignment="Left" Margin="0,16,0,0" />
             </StackPanel>
         </Border>
 

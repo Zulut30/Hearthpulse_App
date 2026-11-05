@@ -29,7 +29,7 @@ public partial class App
             _ => "connected",
         };
 
-    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>history</c> (History and a Battlegrounds match).</summary>
+    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>setup</c> (the setup wizard on each step), <c>history</c> (History and a Battlegrounds match).</summary>
     private async Task RenderOnlyAsync(string folder)
     {
         if (RenderOnly("brawl"))
@@ -80,6 +80,21 @@ public partial class App
             await Task.Delay(2500);
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, $"main-settings-account-{state}.png"));
+        }
+
+        if (RenderOnly("setup"))
+        {
+            // The setup wizard (D4) on each step, over Home; Start closes it (in the data copy) for the groups after it.
+            _main.ShowPage("Overview");
+            for (var step = 0; step < Hearthpulse.App.Main.MainViewModel.SetupStepKeys.Count; step++)
+            {
+                _mainViewModel.ShowSetup(step);
+                await Task.Delay(1500);
+                _main.UpdateLayout();
+                Save(_main, Path.Combine(folder, $"main-setup-{step + 1}.png"));
+            }
+
+            _mainViewModel.CloseSetup.Execute(null);
         }
 
         if (RenderOnly("ctmatch") || RenderOnly("steppng"))

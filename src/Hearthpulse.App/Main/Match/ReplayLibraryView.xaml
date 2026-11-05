@@ -343,6 +343,9 @@
             <Grid>
                 <StackPanel Visibility="{Binding IsEmpty, Converter={StaticResource Vis}}">
                     <ContentControl Style="{StaticResource EmptyState}" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}" />
+                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Setup.Open}" ToolTip="{i:Loc Setup.OpenTip}" HorizontalAlignment="Center" Margin="0,4,0,8"
+                            Command="{Binding DataContext.OpenSetup, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Visibility="{Binding DataContext.ShowGettingStarted, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource Vis}}" />
                     <!-- Nothing passes the search: one click back to every game of the tab -->
                     <Button Style="{StaticResource GhostButton}" Padding="12,4" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
                             Click="OnClearSearch" Visibility="{Binding IsSearchEmpty, Converter={StaticResource Vis}}" />

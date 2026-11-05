@@ -1,0 +1,174 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:Hearthpulse.UI.Main"
+             xmlns:c="using:Hearthpulse.UI.Controls"
+             xmlns:i="using:Hearthpulse.UI.Infrastructure"
+             xmlns:mg="using:Hearthpulse.UI.Main.Migration"
+             x:Class="Hearthpulse.UI.Main.Setup.SetupWizard"
+             x:DataType="m:MainViewModel">
+    <!-- The setup wizard (D4, MainViewModel.Setup.cs) over the page: a card with round gold step numbers, the step's
+         engraved glyph, its few words and one action, then Back / Next. Same tree as the WPF SetupWizard.xaml. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/MainPages.axaml" />
+                <!-- Built before the view takes it in: the view's logo is not found from here yet -->
+                <ResourceInclude Source="avares://Hearthpulse.UI/Main/Logo.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <!-- A step marker: muted until passed (ticked) or open (lit gold) -->
+        <Style Selector="Panel.stepDot TextBlock.tick">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Panel.stepDot.passed Ellipse">
+            <Setter Property="Fill" Value="{StaticResource AccentContainer}" />
+        </Style>
+        <Style Selector="Panel.stepDot.passed TextBlock.number">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Panel.stepDot.passed TextBlock.tick">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="Panel.stepDot.current Ellipse">
+            <Setter Property="Fill" Value="{StaticResource Accent}" />
+            <Setter Property="Stroke" Value="{StaticResource GlyphGoldLit}" />
+        </Style>
+        <Style Selector="Panel.stepDot.current TextBlock.number">
+            <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
+        </Style>
+        <Style Selector="TextBlock.stepName.current">
+            <Setter Property="Foreground" Value="{StaticResource Text}" />
+        </Style>
+    </UserControl.Styles>
+    <Panel Background="{StaticResource SetupScrim}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <Border Classes="card" MaxWidth="760" Margin="40,32" Padding="32,24" VerticalAlignment="Center">
+                <StackPanel>
+                    <!-- Header: the logo, the wizard's name and Skip -->
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="ghost" Content="{i:Loc Setup.Skip}" Command="{Binding CloseSetup}" VerticalAlignment="Top" />
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{StaticResource HearthpulseLogo}" Width="40" Height="40" VerticalAlignment="Center" />
+                            <StackPanel Margin="12,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Text="{i:Loc Setup.Title}" Classes="h2" Foreground="{StaticResource GildedText}" />
+                                <TextBlock Text="{i:Loc Setup.Subtitle}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Round gold step numbers on one hairline: the open one lit, the passed ones ticked; each opens its step -->
+                    <Panel Margin="0,24,0,24">
+                        <Border Height="36" Margin="40,0" VerticalAlignment="Top">
+                            <Border Height="1" VerticalAlignment="Center" Background="{StaticResource AccentLine}" />
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding SetupSteps}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:SetupStepItem">
+                                    <Button Classes="bare" HorizontalAlignment="Center" CommandParameter="{Binding Index}"
+                                            Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetupGo}"
+                                            AutomationProperties.Name="{Binding Title}">
+                                        <StackPanel>
+                                            <Panel Classes="stepDot" Classes.current="{Binding Current}" Classes.passed="{Binding Passed}" Width="36" Height="36"
+                                                   HorizontalAlignment="Center">
+                                                <Ellipse Fill="{StaticResource Surface3}" Stroke="{StaticResource AccentLine}" StrokeThickness="1.5" />
+                                                <TextBlock Classes="number" Text="{Binding Number}" FontWeight="Bold" Foreground="{StaticResource Muted}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <TextBlock Classes="icon tick" Text="&#xF012C;" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource OnAccentContainer}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Panel>
+                                            <TextBlock Classes="caption stepName" Classes.current="{Binding Current}" Text="{Binding Title}" HorizontalAlignment="Center"
+                                                       TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Panel>
+
+                    <!-- The step: its engraved glyph on a soft glow, then its words and action -->
+                    <Grid ColumnDefinitions="Auto,*" MinHeight="200">
+                        <Panel Width="96" Height="96" Margin="0,0,24,0" VerticalAlignment="Top">
+                            <Ellipse Fill="{StaticResource Glow}" />
+                            <c:GoldGlyph Width="64" Height="64" Glyph="{x:Static c:GameIcons.Settings}" IsVisible="{Binding SetupOnLogs}" />
+                            <c:GoldGlyph Width="64" Height="64" Glyph="{x:Static c:GameIcons.History}" IsVisible="{Binding SetupOnMigration}" />
+                            <c:GoldGlyph Width="64" Height="64" Glyph="{x:Static c:GameIcons.Standard}" IsVisible="{Binding SetupOnLayout}" />
+                            <c:GoldGlyph Width="64" Height="64" Glyph="{x:Static c:GameIcons.Wild}" IsVisible="{Binding SetupOnLook}" />
+                            <c:GoldGlyph Width="64" Height="64" Glyph="{x:Static c:GameIcons.Home}" IsVisible="{Binding SetupOnDone}" />
+                        </Panel>
+
+                        <!-- 1. Game logs: what they are for, whether they are on, one button that turns them on -->
+                        <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnLogs}">
+                            <TextBlock Text="{i:Loc Setup.Logs.Title}" Classes="h2" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Logs.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <TextBlock Text="&#xF05E0;" Classes="icon" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource Positive}" Margin="0,0,8,0" IsVisible="{Binding SetupLogsOk}" />
+                                <TextBlock Text="&#xF0028;" Classes="icon" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource Accent}" Margin="0,0,8,0" IsVisible="{Binding !SetupLogsOk}" />
+                                <TextBlock Text="{Binding SetupLogsStatus}" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <Button Classes="ghost primary" Content="{i:Loc Setup.Logs.Fix}" Command="{Binding FixLogs}" HorizontalAlignment="Left"
+                                    IsVisible="{Binding SetupCanFixLogs}" />
+                            <TextBlock Text="{Binding SetupLogsNote}" Classes="caption" TextWrapping="Wrap" Margin="0,12,0,0"
+                                       IsVisible="{Binding SetupLogsNote, Converter={StaticResource Truthy}}" />
+                        </StackPanel>
+
+                        <!-- 2. Moving from HDT or Firestone: the existing migration card, as in Settings > Data -->
+                        <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnMigration}">
+                            <TextBlock Text="{i:Loc Setup.Migration.Title}" Classes="h2" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Migration.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
+                            <mg:MigrationCard DataContext="{Binding Migration}" Full="True" />
+                        </StackPanel>
+
+                        <!-- 3. The overlay panels: what they show, one button into the layout mode -->
+                        <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnLayout}">
+                            <TextBlock Text="{i:Loc Setup.Layout.Title}" Classes="h2" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Layout.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
+                            <Button Name="ArrangeButton" Classes="ghost primary" Content="{i:Loc Settings.Layout.Arrange}" Click="OnArrange" HorizontalAlignment="Left" />
+                        </StackPanel>
+
+                        <!-- 4. The look: the theme presets and the background characters -->
+                        <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnLook}">
+                            <TextBlock Text="{i:Loc Setup.Look.Title}" Classes="h2" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Look.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
+                            <ItemsControl ItemsSource="{Binding Themes}" Margin="0,0,-10,8">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:ThemeChoice">
+                                        <Button Classes="themeSwatch" Content="{Binding}" ContentTemplate="{StaticResource ThemeTile}" ToolTip.Tip="{Binding Name}"
+                                                AutomationProperties.Name="{Binding Name}" CommandParameter="{Binding Key}"
+                                                Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SelectTheme}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <CheckBox Classes="switch" Content="{i:Loc Settings.Theme.PageHeroes}" IsChecked="{Binding SetupPageHeroes}"
+                                      ToolTip.Tip="{i:Loc Settings.Theme.PageHeroesTip}" />
+                        </StackPanel>
+
+                        <!-- 5. Done: what happens next -->
+                        <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnDone}">
+                            <TextBlock Text="{i:Loc Setup.Done.Title}" Classes="h2" TextWrapping="Wrap" />
+                            <TextBlock Text="{i:Loc Setup.Done.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Back / Next, and Start on the last step -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+                        <Button Classes="ghost" Content="{i:Loc Setup.Back}" Command="{Binding SetupBack}" Margin="0,0,8,0" IsVisible="{Binding SetupCanGoBack}" />
+                        <Button Classes="ghost primary" Content="{i:Loc Setup.Next}" Command="{Binding SetupNext}" IsVisible="{Binding !SetupOnDone}" />
+                        <Button Classes="ghost primary" Content="{i:Loc Setup.Start}" Command="{Binding CloseSetup}" IsVisible="{Binding SetupOnDone}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+    </Panel>
+</UserControl>

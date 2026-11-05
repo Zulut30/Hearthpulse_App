@@ -480,6 +480,7 @@ public sealed partial class MainViewModel : Observable
         _migration?.InputsChanged();
         HistoryCount = data.Total;
         ShowGettingStarted = data.Total == 0;
+        OfferSetup(data.Total == 0);
         Recent = data.Recent.Take(8).Select(Row).ToList();
         ApplyHistoryFilter();
         RatingPoints = data.Rating;

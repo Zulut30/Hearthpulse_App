@@ -387,6 +387,9 @@ public sealed class AppSettings
     /// <summary>A hero's art behind each main-window page ("Background characters"), from the card art cache.</summary>
     public bool PageHeroes { get; set; } = true;
 
+    /// <summary>The setup wizard was finished or skipped: it no longer opens by itself for a player with no games.</summary>
+    public bool SetupDone { get; set; }
+
     public static AppSettings Load() => Load(AppPaths.Settings);
 
     /// <summary>Reads a specific file without changing the process-wide data folder.</summary>

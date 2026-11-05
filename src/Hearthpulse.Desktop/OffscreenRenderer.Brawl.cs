@@ -72,6 +72,20 @@ internal static partial class OffscreenRenderer
             await Save(main, Path.Combine(folder, $"main-settings-account-{state}.png"));
         }
 
+        if (RenderOnly("setup"))
+        {
+            // The setup wizard (D4) on each step, over Home; Start closes it (in the data copy) for the groups after it.
+            view.ShowPage("Overview");
+            for (var step = 0; step < MainViewModel.SetupStepKeys.Count; step++)
+            {
+                host.Main.ShowSetup(step);
+                await Task.Delay(1500);
+                await Save(main, Path.Combine(folder, $"main-setup-{step + 1}.png"));
+            }
+
+            host.Main.CloseSetup.Execute(null);
+        }
+
         if (RenderOnly("steppng") && host.History.Recent(400).FirstOrDefault(g => g.Replay is not null && g.IsBattlegrounds) is { } stepGame
             && await host.Main.OpenMatchPageAsync(stepGame.Key))
         {

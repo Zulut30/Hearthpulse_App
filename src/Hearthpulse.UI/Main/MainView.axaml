@@ -12,6 +12,7 @@
              xmlns:cs="using:Hearthpulse.Core.Stats"
              xmlns:pg="using:Hearthpulse.UI.Main.Pages"
              xmlns:st="using:Hearthpulse.UI.Main.SettingsTabs"
+             xmlns:su="using:Hearthpulse.UI.Main.Setup"
              x:Class="Hearthpulse.UI.Main.MainView"
              x:DataType="m:MainViewModel"
              Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
@@ -417,6 +418,9 @@
 
                     </StackPanel>
                 </ScrollViewer>
+
+                <!-- ===== Setup wizard (D4): over the whole page and the live bar while open; it opens by itself once for a new player ===== -->
+                <su:SetupWizard Name="Setup" Grid.RowSpan="2" ZIndex="10" IsVisible="{Binding SetupOpen}" />
 
                 <!-- ===== Floating live bar (like a now-playing bar) ===== -->
                 <Border Name="LiveBar" Grid.Row="1" VerticalAlignment="Bottom" Margin="23,0,23,17" CornerRadius="12" Background="{StaticResource Surface3}"

@@ -70,7 +70,8 @@ public sealed class MainWindowXamlLoadTests
         root.UpdateLayout();
 
         var swatch = window.FindResource("ThemeSwatch");
-        var tiles = Descendants<Button>(root).Where(b => ReferenceEquals(b.Style, swatch)).ToList();
+        // The settings page's tiles (the setup wizard's look step has the same ones)
+        var tiles = Descendants<Button>((DependencyObject)window.FindName("SettingsGeneral")).Where(b => ReferenceEquals(b.Style, swatch)).ToList();
         Assert.Equal(ThemePalette.Presets.Count, tiles.Count);
         Assert.Equal(ThemePalette.Presets.Select(p => p.Name), tiles.Select(t => (string)t.CommandParameter));
         Assert.All(tiles, t => Assert.True(t.ActualWidth > 0));

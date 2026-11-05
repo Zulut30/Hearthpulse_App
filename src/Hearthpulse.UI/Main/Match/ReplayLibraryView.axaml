@@ -334,6 +334,9 @@
             <Panel>
                 <StackPanel IsVisible="{Binding IsEmpty}">
                     <ContentControl Classes="emptyState" Tag="{Binding EmptyGlyph}" Content="{Binding EmptyText}" />
+                    <Button Classes="ghost" Content="{i:Loc Setup.Open}" ToolTip.Tip="{i:Loc Setup.OpenTip}" HorizontalAlignment="Center" Margin="0,4,0,8"
+                            Command="{Binding $parent[m:MainView].((m:MainViewModel)DataContext).OpenSetup}"
+                            IsVisible="{Binding $parent[m:MainView].((m:MainViewModel)DataContext).ShowGettingStarted}" />
                     <!-- Nothing passes the search: one click back to every game of the tab -->
                     <Button Classes="ghost" Padding="12,4" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
                             Click="OnClearSearch" IsVisible="{Binding IsSearchEmpty}" />

@@ -24,6 +24,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
         PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
+        Setup.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
         PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
         PageBattlegrounds.TabChanged += OnBgTab;
         PageConstructed.TabChanged += OnCtTab;

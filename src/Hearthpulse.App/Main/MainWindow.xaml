@@ -12,6 +12,7 @@
         xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
         xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
         xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs"
+        xmlns:su="clr-namespace:Hearthpulse.App.Main.Setup"
         Title="Hearthpulse" Width="1260" Height="840" MinWidth="1040" MinHeight="660"
         Background="{StaticResource WindowFill}" Foreground="{StaticResource Text}"
         WindowStartupLocation="CenterScreen" UseLayoutRounding="True" Style="{StaticResource AppWindow}"
@@ -312,6 +313,9 @@
 
                         </StackPanel>
                     </ScrollViewer>
+
+                    <!-- ===== Setup wizard (D4): over the whole page and the live bar while open; it opens by itself once for a new player ===== -->
+                    <su:SetupWizard x:Name="Setup" Grid.RowSpan="2" Panel.ZIndex="10" Visibility="{Binding SetupOpen, Converter={StaticResource Vis}}" />
 
                     <!-- ===== First start: ask before sharing results with the stats pool ===== -->
                     <Border Grid.Row="1" VerticalAlignment="Top" Margin="24,2,24,0" CornerRadius="16" Background="{StaticResource Surface3}" Panel.ZIndex="5"

@@ -322,6 +322,8 @@
         <GradientStop Color="#00E9B949" Offset="1" />
     </RadialGradientBrush>
 
+    <!-- The setup wizard's veil over the page: the plate colour, so the page's hero still shows faintly through -->
+    <SolidColorBrush x:Key="SetupScrim" Color="#B8140D08" />
     <!-- Engraved gold glyphs (V3 icons I1, Controls/GoldGlyph): gradient, the flat gold of small sizes, the lit item's
          brighter gold, a dark outline and drop, the bevel's light and dark edges and the top gloss -->
     <LinearGradientBrush x:Key="GlyphGold" StartPoint="0,0" EndPoint="0,1">

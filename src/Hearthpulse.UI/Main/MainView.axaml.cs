@@ -32,6 +32,7 @@ public partial class MainView : UserControl
         InitializeComponent();
         PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
         PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
+        Setup.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
         PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
         // The Tracker tab's "overlay is off" banner follows the Overlay tab's switch (two controls now, one binding).
         SettingsTracker.Bind(global::Hearthpulse.UI.Main.SettingsTabs.TrackerSettings.OverlayOnProperty,

@@ -69,9 +69,11 @@
                         <TextBlock Grid.Column="1" Text="{i:Loc Main.Home.Start.Step3}" TextWrapping="Wrap" VerticalAlignment="Center" />
                     </Grid>
                     <StackPanel Orientation="Horizontal">
+                        <Button x:Name="GettingStartedSetup" Style="{StaticResource PrimaryButton}" Content="{i:Loc Setup.Open}" Command="{Binding OpenSetup}"
+                                ToolTip="{i:Loc Setup.OpenTip}" Margin="0,0,8,0" />
                         <Button x:Name="GettingStartedImport" Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Data.Import}" Click="OnImport" Margin="0,0,8,0"
                                 ToolTip="{i:Loc Settings.Data.ImportTip}" />
-                        <Button x:Name="GettingStartedArrange" Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Layout.Arrange}" Click="OnArrange" />
+                        <Button x:Name="GettingStartedArrange" Style="{StaticResource GhostButton}" Content="{i:Loc Settings.Layout.Arrange}" Click="OnArrange" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -171,6 +173,8 @@
                     <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
                     <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF02DA;" Content="{i:Loc Main.Home.NoGames}"
                                     Visibility="{Binding Recent, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                    <Button Style="{StaticResource GhostButton}" Content="{i:Loc Setup.Open}" Command="{Binding OpenSetup}" ToolTip="{i:Loc Setup.OpenTip}"
+                            HorizontalAlignment="Center" Margin="0,4,0,8" Visibility="{Binding ShowGettingStarted, Converter={StaticResource Vis}}" />
                 </StackPanel>
             </Border>
 
