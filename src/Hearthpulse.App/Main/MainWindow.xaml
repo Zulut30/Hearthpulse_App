@@ -12,6 +12,7 @@
         xmlns:cs="clr-namespace:Hearthpulse.Core.Stats;assembly=Hearthpulse.Core"
         xmlns:pg="clr-namespace:Hearthpulse.App.Main.Pages"
         xmlns:st="clr-namespace:Hearthpulse.App.Main.SettingsTabs"
+        xmlns:su="clr-namespace:Hearthpulse.App.Main.Setup"
         Title="Hearthpulse" Width="1260" Height="840" MinWidth="1040" MinHeight="660"
         Background="{StaticResource WindowFill}" Foreground="{StaticResource Text}"
         WindowStartupLocation="CenterScreen" UseLayoutRounding="True" Style="{StaticResource AppWindow}"
@@ -70,6 +71,36 @@
                                    Margin="12,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
 
+                    <!-- The game's status (owner's pick B, 2026-11-05): the dot (gold: Hearthstone runs, green: connected), the live
+                         line and its detail, two lines at most; the tip has the whole detail, the connection and this session -->
+                    <Border x:Name="StatusCard" Margin="14,0,14,14" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusMedium}" Padding="12,7" AutomationProperties.Name="{Binding LiveTitle}" AutomationProperties.HelpText="{Binding LiveDetail}">
+                        <Border.ToolTip>
+                            <StackPanel MaxWidth="360">
+                                <TextBlock Text="{Binding MemoryStatus}" FontWeight="SemiBold" />
+                                <TextBlock Text="{i:Loc Main.Status.Tip}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                <TextBlock Text="{i:Loc Main.Live.SessionTip}" Style="{StaticResource Caption}" Margin="0,8,0,0" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding SessionSummary}" />
+                                    <TextBlock Text="{Binding SessionDelta}" FontWeight="Bold" Margin="8,0,0,0" Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border.ToolTip>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" VerticalAlignment="Top" Margin="0,5,0,0" />
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="{Binding LiveTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <!-- The "deck not recognised" tail is the first to go: the tip has it all -->
+                                <TextBlock x:Name="LiveDetailLine" Text="{Binding LiveDetail}" Style="{StaticResource Caption}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                           MaxHeight="32" LineStackingStrategy="BlockLineHeight" LineHeight="16" ToolTip="{Binding LiveDetail}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
                     <RadioButton x:Name="NavOverview" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.HomeTip}" />
 
@@ -105,6 +136,113 @@
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
+                    <!-- The overlay (owner's pick B, 2026-11-05): its switch, the main panels as buttons and every panel in the ⋯ menu
+                         (the same settings as Settings -> Overlay / Tracker), arrange and streamer mode; the buttons wrap to a
+                         second line -->
+                    <Border x:Name="OverlayCard" Margin="12,0,12,10" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusMedium}" Padding="10,8,8,6">
+                        <Border.Resources>
+                            <Style x:Key="PanelToggle" TargetType="ToggleButton">
+                                <Setter Property="Foreground" Value="{StaticResource Faint}" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Width" Value="30" />
+                                <Setter Property="Height" Value="30" />
+                                <Setter Property="Margin" Value="1,0" />
+                                <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+                                <Setter Property="FontSize" Value="16" />
+                                <Setter Property="Cursor" Value="Hand" />
+                                <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRound}" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Grid>
+                                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="999" />
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Grid>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Hover}" />
+                                                </Trigger>
+                                                <MultiTrigger>
+                                                    <MultiTrigger.Conditions>
+                                                        <Condition Property="IsMouseOver" Value="True" />
+                                                        <Condition Property="IsChecked" Value="False" />
+                                                    </MultiTrigger.Conditions>
+                                                    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+                                                </MultiTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Border.Resources>
+                        <StackPanel>
+                            <CheckBox x:Name="OverlaySwitch" Style="{StaticResource Switch}" Content="{i:Loc Main.Live.Overlay}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                      IsChecked="{Binding Settings.OverlayEnabled, Mode=OneTime}" Click="OnOverlaySwitch" ToolTip="{i:Loc Main.Live.OverlayTip}" />
+                            <WrapPanel Margin="-2,6,0,0">
+                                <ItemsControl x:Name="QuickPanels" ItemsSource="{Binding QuickPanelToggles}" Focusable="False" VerticalAlignment="Center">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ToggleButton Style="{StaticResource PanelToggle}" Content="{Binding Icon}" IsChecked="{Binding IsOn}" ToolTip="{Binding Tip}"
+                                                          AutomationProperties.Name="{Binding Name}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Button Style="{StaticResource IconButton}" Content="&#xF01D8;" Width="28" Height="28" FontSize="15" Margin="0"
+                                        Click="OnPanelsMenu" ToolTip="{i:Loc Main.Live.PanelsTip}" AutomationProperties.Name="{i:Loc Main.Live.Panels}">
+                                    <Button.ContextMenu>
+                                        <ContextMenu ItemsSource="{Binding PanelToggles}">
+                                            <ContextMenu.ItemContainerStyle>
+                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                                    <Setter Property="Command" Value="{Binding Toggle}" />
+                                                    <Setter Property="StaysOpenOnClick" Value="True" />
+                                                    <Setter Property="ToolTip" Value="{Binding Tip}" />
+                                                </Style>
+                                            </ContextMenu.ItemContainerStyle>
+                                            <ContextMenu.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock x:Name="Glyph" Text="{Binding Icon}" Style="{StaticResource Icon}" FontSize="15" Width="26" Foreground="{StaticResource Accent}" />
+                                                        <TextBlock x:Name="Label" Text="{Binding Name}" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsOn}" Value="False">
+                                                            <Setter TargetName="Glyph" Property="Foreground" Value="{StaticResource Faint}" />
+                                                            <Setter TargetName="Label" Property="Foreground" Value="{StaticResource Muted}" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ContextMenu.ItemTemplate>
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                </Button>
+                                <Button Style="{StaticResource IconButton}" Content="&#xF01BE;" Width="28" Height="28" FontSize="15" Margin="0"
+                                        Click="OnArrangeOverlay" ToolTip="{i:Loc Main.Live.ArrangeTip}" AutomationProperties.Name="{i:Loc Main.Live.ArrangeTipShort}" />
+                                <!-- Streamer mode: on, the glyph sits on a filled circle so the state reads at a glance. Only here, the tray and
+                                     Settings: never on the overlay or in the OBS windows. -->
+                                <ToggleButton x:Name="StreamerModeButton" Content="&#xF05E9;" IsChecked="{Binding StreamerMode}" ToolTip="{Binding StreamerModeTip}"
+                                              AutomationProperties.Name="{i:Loc Stream.Mode.Switch}" AutomationProperties.HelpText="{Binding StreamerModeTip}">
+                                    <ToggleButton.Style>
+                                        <Style TargetType="ToggleButton" BasedOn="{StaticResource PanelToggle}">
+                                            <Style.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource AccentSoft}" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ToggleButton.Style>
+                                </ToggleButton>
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
                     <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" Content="{i:Loc Main.Nav.Settings}" Tag="{x:Static c:GameIcons.Settings}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+8" Checked="OnNavigate"
                                  ToolTip="{i:Loc Main.Nav.SettingsTip}" />
                     <TextBlock Text="{Binding Version}" Style="{StaticResource Caption}" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
@@ -133,17 +271,17 @@
                         </Grid.CacheMode>
                         <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageStone}" />
                         <Grid Visibility="{Binding PageHero, Converter={StaticResource Vis}}">
-                            <!-- The hero's colours light the whole page; the art itself is square, top right, 0.8 of the plate wide and
-                                 at most 940 (the columns), so at the narrowest window it still clears the titles on the left -->
+                            <!-- The hero's colours light the whole page; the art itself is square, top right, half the plate wide and
+                                 at most 640: HearthstoneJSON's largest art is 512, so 1.25 at most, smoothed (the columns), so at the narrowest window it still clears the titles on the left -->
                             <Border Style="{StaticResource PageLayer}" i:CardArt.Glow="{Binding PageHero}" Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="4*" MaxWidth="940" />
+                                    <ColumnDefinition Width="*" MaxWidth="640" />
                                 </Grid.ColumnDefinitions>
                                 <Border x:Name="PageHeroArt" Grid.Column="1" Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}}" VerticalAlignment="Top"
                                         Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
-                                    <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" />
+                                    <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapScalingMode="HighQuality" />
                                 </Border>
                             </Grid>
                             <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageVignette}" />
@@ -152,7 +290,7 @@
                         <Border Margin="8" CornerRadius="{StaticResource RadiusMedium}" BorderThickness="1" BorderBrush="{StaticResource PageFrame}" />
                     </Grid>
 
-                    <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
+                    <!-- Top bar: what runs in the background on the left (only while something does), the update and the site link on the right -->
                     <!-- A dock, not a horizontal stack: the stack measures the line at infinite width, so the ellipsis never showed.
                          A long message (Hearthstone not found, startup problem) is read in full in the tip. -->
                     <DockPanel x:Name="BusyLine" Margin="40,0,320,0" VerticalAlignment="Center" Visibility="{Binding Busy, Converter={StaticResource Vis}}">
@@ -212,14 +350,6 @@
                                 </ControlTemplate>
                             </Button.Template>
                         </Button>
-                        <Border Style="{StaticResource Pill}" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
-                                CornerRadius="999" Padding="12,5" WindowChrome.IsHitTestVisibleInChrome="True"
-                                ToolTip="{i:Loc Main.Status.Tip}">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" />
-                                <TextBlock Text="{Binding MemoryStatus}" FontSize="12" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="220" />
-                            </StackPanel>
-                        </Border>
                     </StackPanel>
 
                     <!-- ===== Home ===== -->
@@ -313,6 +443,9 @@
                         </StackPanel>
                     </ScrollViewer>
 
+                    <!-- ===== Setup wizard (D4): over the whole page and the live bar while open; it opens by itself once for a new player ===== -->
+                    <su:SetupWizard x:Name="Setup" Grid.RowSpan="2" Panel.ZIndex="10" Visibility="{Binding SetupOpen, Converter={StaticResource Vis}}" />
+
                     <!-- ===== First start: ask before sharing results with the stats pool ===== -->
                     <Border Grid.Row="1" VerticalAlignment="Top" Margin="24,2,24,0" CornerRadius="16" Background="{StaticResource Surface3}" Panel.ZIndex="5"
                             BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="12,12,16,12"
@@ -344,138 +477,6 @@
                         </Grid>
                     </Border>
 
-                    <!-- ===== Floating live bar (like a now-playing bar) ===== -->
-                    <Border x:Name="LiveBar" Grid.Row="1" VerticalAlignment="Bottom" Margin="24,0,24,18" CornerRadius="12" Background="{StaticResource Surface3}"
-                            BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="9,9,15,9" SizeChanged="OnLiveBarSizeChanged">
-                        <Border.Resources>
-                            <!-- Overlay panel show/hide: the glyph in Accent while the panel is on, Faint while it is off -->
-                            <Style x:Key="PanelToggle" TargetType="ToggleButton">
-                                <Setter Property="Foreground" Value="{StaticResource Faint}" />
-                                <Setter Property="Background" Value="Transparent" />
-                                <Setter Property="Width" Value="30" />
-                                <Setter Property="Height" Value="30" />
-                                <Setter Property="Margin" Value="1,0" />
-                                <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
-                                <Setter Property="FontSize" Value="16" />
-                                <Setter Property="Cursor" Value="Hand" />
-                                <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingRound}" />
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ToggleButton">
-                                            <Grid>
-                                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="999" />
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsChecked" Value="True">
-                                                    <Setter Property="Foreground" Value="{StaticResource Accent}" />
-                                                </Trigger>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Hover}" />
-                                                </Trigger>
-                                                <MultiTrigger>
-                                                    <MultiTrigger.Conditions>
-                                                        <Condition Property="IsMouseOver" Value="True" />
-                                                        <Condition Property="IsChecked" Value="False" />
-                                                    </MultiTrigger.Conditions>
-                                                    <Setter Property="Foreground" Value="{StaticResource Muted}" />
-                                                </MultiTrigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </Border.Resources>
-                        <Border.Effect>
-                            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.35" Color="Black" />
-                        </Border.Effect>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Grid Width="46" Height="46">
-                                <c:Scallop x:Name="LivePulse" Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
-                                <TextBlock Text="&#xF0EB7;" Style="{StaticResource Icon}" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
-                            </Grid>
-                            <StackPanel Grid.Column="1" Margin="14,0,12,0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding LiveTitle}" FontWeight="Bold" FontSize="14.5" TextTrimming="CharacterEllipsis" />
-                                <!-- Trimmed in a narrow bar (the "deck not recognised" tail is the first to go): the tip has it all -->
-                                <TextBlock x:Name="LiveDetailLine" Text="{Binding LiveDetail}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis"
-                                           ToolTip="{Binding LiveDetail}" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,20,0" ToolTip="{i:Loc Main.Live.SessionTip}">
-                                <TextBlock Text="{Binding SessionSummary}" Style="{StaticResource Caption}" HorizontalAlignment="Right" />
-                                <TextBlock Text="{Binding SessionDelta}" FontWeight="Bold" HorizontalAlignment="Right"
-                                           Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                                <!-- Overlay panels: the main ones as buttons, every panel in the ⋯ menu; the same settings as Settings -> Overlay / Tracker -->
-                                <ItemsControl x:Name="QuickPanels" ItemsSource="{Binding QuickPanelToggles}" Focusable="False" VerticalAlignment="Center">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <StackPanel Orientation="Horizontal" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <ToggleButton Style="{StaticResource PanelToggle}" Content="{Binding Icon}" IsChecked="{Binding IsOn}" ToolTip="{Binding Tip}"
-                                                          AutomationProperties.Name="{Binding Name}" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <Button Style="{StaticResource IconButton}" Content="&#xF01D8;" Width="30" Height="30" FontSize="16" Margin="1,0"
-                                        Click="OnPanelsMenu" ToolTip="{i:Loc Main.Live.PanelsTip}" AutomationProperties.Name="{i:Loc Main.Live.Panels}">
-                                    <Button.ContextMenu>
-                                        <ContextMenu ItemsSource="{Binding PanelToggles}">
-                                            <ContextMenu.ItemContainerStyle>
-                                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
-                                                    <Setter Property="Command" Value="{Binding Toggle}" />
-                                                    <Setter Property="StaysOpenOnClick" Value="True" />
-                                                    <Setter Property="ToolTip" Value="{Binding Tip}" />
-                                                </Style>
-                                            </ContextMenu.ItemContainerStyle>
-                                            <ContextMenu.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock x:Name="Glyph" Text="{Binding Icon}" Style="{StaticResource Icon}" FontSize="15" Width="26" Foreground="{StaticResource Accent}" />
-                                                        <TextBlock x:Name="Label" Text="{Binding Name}" VerticalAlignment="Center" />
-                                                    </StackPanel>
-                                                    <DataTemplate.Triggers>
-                                                        <DataTrigger Binding="{Binding IsOn}" Value="False">
-                                                            <Setter TargetName="Glyph" Property="Foreground" Value="{StaticResource Faint}" />
-                                                            <Setter TargetName="Label" Property="Foreground" Value="{StaticResource Muted}" />
-                                                        </DataTrigger>
-                                                    </DataTemplate.Triggers>
-                                                </DataTemplate>
-                                            </ContextMenu.ItemTemplate>
-                                        </ContextMenu>
-                                    </Button.ContextMenu>
-                                </Button>
-                                <Border Width="1" Height="18" Background="{StaticResource Outline}" Margin="6,0" VerticalAlignment="Center" />
-                                <!-- Streamer mode: its own button, always shown (a narrow bar hides the panels' quick buttons); on, the glyph sits on a
-                                     filled circle so the state reads at a glance. Only here, the tray and Settings: never on the overlay or in the OBS windows. -->
-                                <ToggleButton x:Name="StreamerModeButton" Content="&#xF05E9;" IsChecked="{Binding StreamerMode}" ToolTip="{Binding StreamerModeTip}"
-                                              AutomationProperties.Name="{i:Loc Stream.Mode.Switch}" AutomationProperties.HelpText="{Binding StreamerModeTip}">
-                                    <ToggleButton.Style>
-                                        <Style TargetType="ToggleButton" BasedOn="{StaticResource PanelToggle}">
-                                            <Style.Triggers>
-                                                <Trigger Property="IsChecked" Value="True">
-                                                    <Setter Property="Background" Value="{StaticResource AccentSoft}" />
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ToggleButton.Style>
-                                </ToggleButton>
-                                <Button Style="{StaticResource IconButton}" Content="&#xF01BE;" Width="30" Height="30" FontSize="16" Margin="1,0,14,0"
-                                        Click="OnArrangeOverlay" ToolTip="{i:Loc Main.Live.ArrangeTip}" AutomationProperties.Name="{i:Loc Main.Live.ArrangeTipShort}" />
-                                <CheckBox x:Name="OverlaySwitch" Style="{StaticResource Switch}" Content="{i:Loc Main.Live.Overlay}" IsChecked="{Binding Settings.OverlayEnabled, Mode=OneTime}"
-                                          Click="OnOverlaySwitch" ToolTip="{i:Loc Main.Live.OverlayTip}" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
                 </Grid>
             </Border>
 

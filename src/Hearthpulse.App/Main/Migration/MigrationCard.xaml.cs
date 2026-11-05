@@ -15,6 +15,9 @@ public partial class MigrationCard : UserControl
     public static readonly DependencyProperty FullProperty =
         DependencyProperty.Register(nameof(Full), typeof(bool), typeof(MigrationCard), new PropertyMetadata(false));
 
+    public static readonly DependencyProperty EmbeddedProperty =
+        DependencyProperty.Register(nameof(Embedded), typeof(bool), typeof(MigrationCard), new PropertyMetadata(false));
+
     private MigrationViewModel? _model;
 
     public MigrationCard()
@@ -30,6 +33,13 @@ public partial class MigrationCard : UserControl
     {
         get => (bool)GetValue(FullProperty);
         set => SetValue(FullProperty, value);
+    }
+
+    /// <summary>Inside the setup wizard: the whole card without its own heading and note (the wizard's step has them).</summary>
+    public bool Embedded
+    {
+        get => (bool)GetValue(EmbeddedProperty);
+        set => SetValue(EmbeddedProperty, value);
     }
 
     private void Attach(MigrationViewModel? model, bool listen)

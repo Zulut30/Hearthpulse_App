@@ -262,6 +262,8 @@
             <SolidColorBrush x:Key="Sheen" Color="#80FFF4D6" />
             <SolidColorBrush x:Key="GrooveFill" Color="#1A110B" />
             <SolidColorBrush x:Key="GrooveEdge" Color="#36261A" />
+            <!-- A segmented group's band: a soft shade behind its tabs, no edge, so the gold choice reads over a page hero too -->
+            <SolidColorBrush x:Key="SegmentBand" Color="#8C140D08" />
             <LinearGradientBrush x:Key="NavSelectedFill" StartPoint="0%,0%" EndPoint="100%,0%">
                 <GradientStop Color="#42E9B949" Offset="0" />
                 <GradientStop Color="#14E9B949" Offset="0.55" />
@@ -399,9 +401,8 @@
             <!-- The hero's art dissolves towards the text on the left (an opacity mask: only the alpha counts) -->
             <LinearGradientBrush x:Key="PageHeroFade" StartPoint="0%,0%" EndPoint="100%,0%">
                 <GradientStop Color="#00000000" Offset="0" />
-                <GradientStop Color="#00000000" Offset="0.3" />
-                <GradientStop Color="#B3000000" Offset="0.55" />
-                <GradientStop Color="#FF000000" Offset="0.8" />
+                <GradientStop Color="#B3000000" Offset="0.3" />
+                <GradientStop Color="#FF000000" Offset="0.6" />
             </LinearGradientBrush>
             <!-- ...and towards its bottom, so the square art never ends in an edge on a taller plate -->
             <LinearGradientBrush x:Key="PageHeroFloor" StartPoint="0%,0%" EndPoint="0%,100%">
@@ -436,6 +437,8 @@
                 <GradientStop Color="#00E9B949" Offset="1" />
             </RadialGradientBrush>
 
+            <!-- The setup wizard's veil over the page: the plate colour, so the page's hero still shows faintly through -->
+            <SolidColorBrush x:Key="SetupScrim" Color="#B8140D08" />
             <!-- Engraved gold glyphs (V3 icons I1, Controls/GoldGlyph): gradient, the flat gold of small sizes, the lit item's
                  brighter gold, a dark outline and drop, the bevel's light and dark edges and the top gloss -->
             <LinearGradientBrush x:Key="GlyphGold" StartPoint="0%,0%" EndPoint="0%,100%">
@@ -562,12 +565,13 @@
         <Setter Property="CornerRadius" Value="{StaticResource RadiusSmall}" />
         <Setter Property="Padding" Value="8,2" />
     </Style>
+    <!-- A segmented group: a thin common line under its tabs (see RadioButton.segment) -->
     <Style Selector="Border.segmentBar">
-        <Setter Property="Background" Value="{StaticResource GrooveFill}" />
-        <Setter Property="BorderBrush" Value="{StaticResource GrooveEdge}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="4" />
+        <Setter Property="Background" Value="{StaticResource SegmentBand}" />
+        <Setter Property="CornerRadius" Value="8,8,0,0" />
+        <Setter Property="BorderBrush" Value="{StaticResource Outline}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="0" />
     </Style>
 
     <!-- ===== Buttons: framed rectangles, gold for the primary action. States fade in (0.12 s) and a press
@@ -837,7 +841,9 @@
         <Setter Property="Foreground" Value="{StaticResource Text}" />
     </Style>
 
-    <!-- ===== Chips / segmented filter ===== -->
+    <!-- ===== Segmented choices: underline tabs (owner, 2026-11-05). No frame, no check mark: the group sits on a thin
+         common line on a soft band (Border.segmentBar), the choices in muted text; the chosen one is gold with a 2 px gold line over that
+         line. Hover lights the text and a soft tint; the width never changes. Same as the WPF Segment. ===== -->
     <Style Selector="RadioButton.segment">
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
@@ -851,20 +857,22 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <Panel>
-                    <Border Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1">
+                    <Border Name="Bd" CornerRadius="6,6,0,0" Padding="12,6,12,8" Background="Transparent">
                         <Border.Transitions>
                             <Transitions>
                                 <BrushTransition Property="Background" Duration="0:0:0.12" />
                             </Transitions>
                         </Border.Transitions>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Name="Check" Text="&#xF012C;" FontFamily="{DynamicResource IconFont}" FontSize="14" FontWeight="Normal"
-                                       Margin="0,0,5,0" VerticalAlignment="Center" Foreground="{StaticResource Accent}" IsVisible="False" />
-                            <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" />
-                        </StackPanel>
+                        <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" />
                     </Border>
-                    <!-- The selected chip is a raised plate: a lit hairline on its top edge -->
-                    <Border Name="Edge" Height="1" Margin="6,1,6,0" VerticalAlignment="Top" Background="{StaticResource EdgeLight}" IsVisible="False" />
+                    <Border Name="Underline" Height="2" CornerRadius="1" Margin="4,0,4,-1" VerticalAlignment="Bottom" Background="{StaticResource Accent}"
+                            RenderTransform="scaleX(0)">
+                        <Border.Transitions>
+                            <Transitions>
+                                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Border.Transitions>
+                    </Border>
                 </Panel>
             </ControlTemplate>
         </Setter>
@@ -878,15 +886,8 @@
     <Style Selector="RadioButton.segment:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{StaticResource Pressed}" />
     </Style>
-    <Style Selector="RadioButton.segment:checked /template/ Border#Bd">
-        <Setter Property="Background" Value="{StaticResource SelectedFill}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SelectedEdge}" />
-    </Style>
-    <Style Selector="RadioButton.segment:checked /template/ TextBlock#Check">
-        <Setter Property="IsVisible" Value="True" />
-    </Style>
-    <Style Selector="RadioButton.segment:checked /template/ Border#Edge">
-        <Setter Property="IsVisible" Value="True" />
+    <Style Selector="RadioButton.segment:checked /template/ Border#Underline">
+        <Setter Property="RenderTransform" Value="scaleX(1)" />
     </Style>
     <Style Selector="RadioButton.segment:checked">
         <Setter Property="Foreground" Value="{StaticResource Accent}" />
@@ -902,25 +903,24 @@
             <ControlTemplate>
                 <Grid ColumnDefinitions="*,Auto" Background="Transparent">
                     <ContentPresenter Name="Presenter" Content="{TemplateBinding Content}" VerticalAlignment="Center" Margin="0,0,16,0" />
-                    <!-- Same as the WPF switch: a Surface4 track with a Muted rim, gold when on; the knob slides and grows -->
-                    <Panel Grid.Column="1" Width="48" Height="28">
-                        <Border Name="Track" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
-                        <Border Name="OnFill" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource PrimaryFill}" Opacity="0">
+                    <!-- Same as the WPF switch: a slim pill track, gold with a dark knob when on, dark with a muted knob when off;
+                         a round knob that slides, no tick -->
+                    <Panel Grid.Column="1" Width="42" Height="24">
+                        <Border Name="Track" CornerRadius="{StaticResource RadiusLarge}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="1" />
+                        <Border Name="OnFill" CornerRadius="{StaticResource RadiusLarge}" Background="{StaticResource PrimaryFill}" Opacity="0">
                             <Border.Transitions>
                                 <Transitions>
                                     <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut" />
                                 </Transitions>
                             </Border.Transitions>
                         </Border>
-                        <Panel Name="Thumb" Width="24" Height="24" HorizontalAlignment="Left" Margin="2,0" RenderTransform="translate(0px,0px) scale(0.67)">
+                        <Panel Name="Thumb" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0" RenderTransform="translate(0px,0px)">
                             <Panel.Transitions>
                                 <Transitions>
                                     <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22" Easing="CubicEaseOut" />
                                 </Transitions>
                             </Panel.Transitions>
                             <Ellipse Name="Knob" Fill="{StaticResource Muted}" />
-                            <TextBlock Name="Tick" Text="&#xF012C;" FontFamily="{DynamicResource IconFont}" FontSize="17" FontWeight="Normal"
-                                       Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="False" />
                         </Panel>
                     </Panel>
                 </Grid>
@@ -940,10 +940,7 @@
         <Setter Property="Fill" Value="{StaticResource OnAccent}" />
     </Style>
     <Style Selector="CheckBox.switch:checked /template/ Panel#Thumb">
-        <Setter Property="RenderTransform" Value="translate(20px,0px) scale(0.83)" />
-    </Style>
-    <Style Selector="CheckBox.switch:checked /template/ TextBlock#Tick">
-        <Setter Property="IsVisible" Value="True" />
+        <Setter Property="RenderTransform" Value="translate(16px,0px)" />
     </Style>
     <Style Selector="CheckBox.switch:disabled">
         <Setter Property="Opacity" Value="0.45" />

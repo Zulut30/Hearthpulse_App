@@ -68,6 +68,13 @@ internal static partial class OffscreenRenderer
         await host.InitializeAsync(watchLogs: false);
         await host.LoadMetaAsync();
         await host.Main.RefreshAsync();
+        // A data folder with no games (the visual baselines start empty) opens the setup wizard over every page: the
+        // frames are of the pages; the "setup" group opens the wizard itself.
+        if (host.Main.SetupOpen)
+        {
+            host.Main.CloseSetup.Execute(null);
+        }
+
         host.Main.Busy = string.Empty;
 
         var view = new MainView { DataContext = host.Main };

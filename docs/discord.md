@@ -12,7 +12,7 @@ snapshot in `MainViewModel.Discord.cs` (Presentation). No third-party library.
 ## What the status shows
 
 Two lines (`details`, `state`), the time since the game began and the app's picture, in the player's interface
-language. Separator " · ", as on the live bar.
+language. Separator " · ", as in the sidebar's status card.
 
 | Situation | Line 1 | Line 2 | Timer |
 |---|---|---|---|

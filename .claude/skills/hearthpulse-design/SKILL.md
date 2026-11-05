@@ -113,7 +113,7 @@ with the motif), `Motif<Name>` geometries.
 | Primary (one per area) | `PrimaryButton` | `ghost primary` |
 | Round icon button | `IconButton` (32x32) | `icon` |
 | Sidebar item | `NavItem` (h46, glyph in `Tag`) | `nav` |
-| Filter chips | `Segment` inside `SegmentBar` | `segment` inside `segmentBar` |
+| Segmented choices (underline tabs: muted text on a thin line, the chosen one gold with a 2 px gold line; no frame, no check) | `Segment` / `Tab` inside `SegmentBar` | `segment` inside `segmentBar` |
 | Page tabs | `Tab` (Segment + 2px gold underline) | `segment` (no tab class) |
 | Toggle | `Switch` (CheckBox) | `switch` |
 | List row | `RowBorder` (MainWindow) | `row` |
@@ -158,7 +158,7 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
 
 - WPF pages: `ScrollViewer x:Name="Page<Name>"` > `StackPanel Margin="40,0,40,120"`; History is a `Grid` with
   `Margin="40,0,40,110"`. Avalonia: `ScrollViewer Classes="page"` (padding `40,0,40,120`; compact `16,0,16,120`).
-- Bottom 120 leaves room for the floating live bar ("now playing" bar at the bottom of the main window).
+- No bottom bar: the game's status is a card under the logo, the overlay switch and panel buttons a card at the sidebar's foot.
 - Settings content: `MaxWidth="780"` `HorizontalAlignment="Left"`.
 - Header: `Display` title, then `PageSubtitle` / `pageSubtitle` (horizontal, margin `2,6,0,24`) with a Caption at
   FontSize 14 (Avalonia adds a 26px Scallop + glyph). Filters (SegmentBar) sit top-right of the header grid.

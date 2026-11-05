@@ -12,6 +12,7 @@
              xmlns:cs="using:Hearthpulse.Core.Stats"
              xmlns:pg="using:Hearthpulse.UI.Main.Pages"
              xmlns:st="using:Hearthpulse.UI.Main.SettingsTabs"
+             xmlns:su="using:Hearthpulse.UI.Main.Setup"
              x:Class="Hearthpulse.UI.Main.MainView"
              x:DataType="m:MainViewModel"
              Background="{StaticResource Bg}" Foreground="{StaticResource Text}"
@@ -82,7 +83,53 @@
             <Setter Property="IsVisible" Value="False" />
         </Style>
 
-        <!-- Live bar: an overlay panel's show/hide button, the glyph in Accent while the panel is on, Faint while it is off -->
+        <!-- The sidebar's status and overlay cards: a groove like the search box. Margins and paddings are styles, not local
+             values, so compact can override them. -->
+        <Style Selector="Border.sideCard">
+            <Setter Property="Background" Value="{StaticResource GrooveFill}" />
+            <Setter Property="BorderBrush" Value="{StaticResource GrooveEdge}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+        </Style>
+        <Style Selector="Border#StatusCard">
+            <Setter Property="Margin" Value="14,0,14,14" />
+            <Setter Property="Padding" Value="12,7" />
+        </Style>
+        <Style Selector="Border#OverlayCard">
+            <Setter Property="Margin" Value="12,0,12,10" />
+            <Setter Property="Padding" Value="10,8,8,6" />
+        </Style>
+        <Style Selector="Border#OverlayCard WrapPanel">
+            <Setter Property="Margin" Value="-2,6,0,0" />
+        </Style>
+        <Style Selector="CheckBox.sideSwitch">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="m|MainView.compact Border#StatusCard, m|MainView.compact Border#OverlayCard">
+            <Setter Property="Margin" Value="8,0,8,10" />
+            <Setter Property="Padding" Value="4,8" />
+        </Style>
+        <Style Selector="m|MainView.compact Border#StatusCard Ellipse#StatusDot">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <Style Selector="m|MainView.compact Border#StatusCard > Grid">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="m|MainView.compact CheckBox.sideSwitch">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="m|MainView.compact CheckBox.sideSwitch /template/ ContentPresenter#Presenter">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="m|MainView.compact Border#OverlayCard WrapPanel">
+            <Setter Property="Margin" Value="0,6,0,0" />
+            <Setter Property="Orientation" Value="Vertical" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+
+        <!-- The overlay card: an overlay panel's show/hide button, the glyph in Accent while the panel is on, Faint while it is off -->
         <Style Selector="ToggleButton.panelToggle">
             <Setter Property="Foreground" Value="{StaticResource Faint}" />
             <Setter Property="Background" Value="Transparent" />
@@ -221,6 +268,33 @@
                     <TextBlock Classes="h2 wide" Text="Hearthpulse" FontSize="20" Margin="12,0,0,0" VerticalAlignment="Center" />
                 </StackPanel>
 
+                <!-- The game's status (owner's pick B, 2026-11-05): the dot (gold: Hearthstone runs, green: connected), the live
+                     line and its detail, two lines at most; the tip has the whole detail, the connection and this session.
+                     Compact keeps the dot. Same as the WPF MainWindow. -->
+                <Border Name="StatusCard" Classes="sideCard"
+                        AutomationProperties.Name="{Binding LiveTitle}" AutomationProperties.HelpText="{Binding LiveDetail}">
+                    <ToolTip.Tip>
+                        <StackPanel MaxWidth="360">
+                            <TextBlock Text="{Binding MemoryStatus}" FontWeight="SemiBold" />
+                            <TextBlock Text="{i:Loc Main.Status.Tip}" Classes="caption" TextWrapping="Wrap" Margin="0,2,0,0" />
+                            <TextBlock Text="{i:Loc Main.Live.SessionTip}" Classes="caption" Margin="0,8,0,0" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding SessionSummary}" />
+                                <TextBlock Text="{Binding SessionDelta}" FontWeight="Bold" Margin="8,0,0,0" Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ToolTip.Tip>
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Ellipse Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" VerticalAlignment="Top" Margin="0,5,0,0" />
+                        <StackPanel Grid.Column="1" Classes="wide" Margin="10,0,0,0">
+                            <TextBlock Text="{Binding LiveTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <!-- The "deck not recognised" tail is the first to go: the tip has it all -->
+                            <TextBlock Name="LiveDetailLine" Text="{Binding LiveDetail}" Classes="caption" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                                       ToolTip.Tip="{Binding LiveDetail}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
                 <RadioButton Name="NavOverview" Classes="nav" Content="{i:Loc Main.Nav.Home}" Tag="{x:Static c:GameIcons.Home}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+1" IsChecked="True"
                              ToolTip.Tip="{i:Loc Main.Nav.HomeTip}" />
 
@@ -248,6 +322,45 @@
             </StackPanel>
 
             <StackPanel DockPanel.Dock="Bottom" Margin="0,0,0,16">
+                <!-- The overlay (owner's pick B, 2026-11-05): its switch, the main panels as buttons and every panel in the ⋯ menu
+                     (the same settings as Settings -> Overlay / Tracker), arrange and streamer mode; the buttons wrap to a second
+                     line. Compact: the switch without its label, the ⋯ menu and streamer mode, one under the other. Same as WPF. -->
+                <Border Name="OverlayCard" Classes="sideCard">
+                    <StackPanel>
+                        <CheckBox Name="OverlaySwitch" Classes="switch sideSwitch" Content="{i:Loc Main.Live.Overlay}"
+                                  Click="OnOverlaySwitch" ToolTip.Tip="{i:Loc Main.Live.OverlayTipShort}" />
+                        <WrapPanel>
+                            <ItemsControl Name="QuickPanels" Classes="wide" ItemsSource="{Binding QuickPanelToggles}" VerticalAlignment="Center">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="m:PanelToggle">
+                                        <ToggleButton Classes="panelToggle" Content="{Binding Icon}" IsChecked="{Binding IsOn}" ToolTip.Tip="{Binding Tip}"
+                                                      AutomationProperties.Name="{Binding Name}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Name="PanelsMenuButton" Classes="icon" Content="&#xF01D8;" Width="28" Height="28" FontSize="15"
+                                    ToolTip.Tip="{i:Loc Main.Live.PanelsTip}" AutomationProperties.Name="{i:Loc Main.Live.Panels}">
+                                <Button.Flyout>
+                                    <!-- Filled from PanelToggles in code: one MenuItem per panel, its glyph and name dimmed while it is off -->
+                                    <MenuFlyout Placement="RightEdgeAlignedBottom" />
+                                </Button.Flyout>
+                            </Button>
+                            <!-- On Windows the tips name the global shortcuts (MainView.axaml.cs, UseShortcutTips) -->
+                            <Button Name="ArrangeButton" Classes="icon wide" Content="&#xF01BE;" Width="28" Height="28" FontSize="15"
+                                    Click="OnArrangeOverlay" ToolTip.Tip="{i:Loc Main.Live.ArrangeTipShort}" AutomationProperties.Name="{i:Loc Main.Live.ArrangeTipShort}" />
+                            <!-- Streamer mode: on, the glyph sits on a filled circle so the state reads at a glance. Only here, the tray and
+                                 Settings: never on the overlay or in the OBS windows. -->
+                            <ToggleButton Name="StreamerModeButton" Classes="panelToggle streamer" Content="&#xF05E9;" IsChecked="{Binding StreamerMode}"
+                                          ToolTip.Tip="{Binding StreamerModeTip}" AutomationProperties.Name="{i:Loc Stream.Mode.Switch}"
+                                          AutomationProperties.HelpText="{Binding StreamerModeTip}" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
                 <RadioButton Name="NavSettings" Classes="nav" Content="{i:Loc Main.Nav.Settings}" Tag="{x:Static c:GameIcons.Settings}" GroupName="Nav" AutomationProperties.AcceleratorKey="Ctrl+8"
                              ToolTip.Tip="{i:Loc Main.Nav.SettingsTip}" />
                 <TextBlock Text="{Binding Version}" Classes="caption wide" FontSize="11" Foreground="{StaticResource Muted}" Margin="28,8,0,0" />
@@ -267,18 +380,18 @@
                 <Panel Grid.RowSpan="2" IsHitTestVisible="False">
                     <Border Classes="pageLayer" Background="{StaticResource PageStone}" />
                     <Panel IsVisible="{Binding PageHero, Converter={StaticResource Truthy}}">
-                        <!-- The hero's colours light the whole page; the art itself is square, top right, 0.8 of the plate wide and
-                             at most 940 (the columns), so at the narrowest window it still clears the titles on the left; compact (wide
+                        <!-- The hero's colours light the whole page; the art itself is square, top right, half the plate wide and
+                             at most 640: HearthstoneJSON's largest art is 512, so 1.25 at most, smoothed (the columns), so at the narrowest window it still clears the titles on the left; compact (wide
                              only) keeps the hero's colours without the art, which would sit under the title -->
                         <Border Classes="pageLayer" i:CardArt.Glow="{Binding PageHero}" Opacity="0.6" OpacityMask="{StaticResource PageGlowMask}" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="4*" MaxWidth="940" />
+                                <ColumnDefinition Width="*" MaxWidth="640" />
                             </Grid.ColumnDefinitions>
                             <Border Name="PageHeroArt" Grid.Column="1" Classes="wide" Height="{Binding $self.Bounds.Width}" VerticalAlignment="Top"
                                     Opacity="0.8" OpacityMask="{StaticResource PageHeroFade}">
-                                <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" />
+                                <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" OpacityMask="{StaticResource PageHeroFloor}" RenderOptions.BitmapInterpolationMode="HighQuality" />
                             </Border>
                         </Grid>
                         <Border Classes="pageLayer" Background="{StaticResource PageVignette}" />
@@ -287,7 +400,7 @@
                     <Border Margin="8" CornerRadius="{StaticResource RadiusMedium}" BorderThickness="1" BorderBrush="{StaticResource PageFrame}" />
                 </Panel>
 
-                <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
+                <!-- Top bar: what runs in the background on the left (only while something does), the update and the site link on the right -->
                 <!-- A dock, not a horizontal stack: the stack measures the line at infinite width, so the ellipsis never showed.
                      A long message (Hearthstone not found, startup problem) is read in full in the tip. -->
                 <DockPanel Name="BusyLine" Margin="40,0,320,0" VerticalAlignment="Center" IsVisible="{Binding Busy, Converter={StaticResource Truthy}}">
@@ -318,13 +431,6 @@
                             </StackPanel>
                         </Border>
                     </Button>
-                    <Border Classes="pill" Background="{StaticResource GrooveFill}" BorderBrush="{StaticResource GrooveEdge}" BorderThickness="1"
-                            CornerRadius="999" Padding="12,5" ToolTip.Tip="{i:Loc Main.Status.Tip}">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Faint}" />
-                            <TextBlock Text="{Binding MemoryStatus}" FontSize="12" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="220" />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
 
                 <!-- ===== Home ===== -->
@@ -418,63 +524,9 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- ===== Floating live bar (like a now-playing bar) ===== -->
-                <Border Name="LiveBar" Grid.Row="1" VerticalAlignment="Bottom" Margin="23,0,23,17" CornerRadius="12" Background="{StaticResource Surface3}"
-                        BorderBrush="{StaticResource Outline}" BorderThickness="1" Padding="9,9,15,9"
-                        BoxShadow="0 4 24 0 #59000000">
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                        <!-- Compact: the pulse icon and the arrange button (also in Settings -> Overlay) give their room to the text -->
-                        <Panel Width="46" Height="46" Classes="wide">
-                            <c:Scallop Name="LivePulse" Fill="{StaticResource Surface4}" Lobes="9" Depth="0.1" />
-                            <TextBlock Text="&#xF0EB7;" Classes="icon" FontSize="22" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
-                        </Panel>
-                        <StackPanel Grid.Column="1" Margin="14,0,12,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding LiveTitle}" FontWeight="Bold" FontSize="14.5" TextTrimming="CharacterEllipsis" />
-                            <!-- Trimmed in a narrow bar (the "deck not recognised" tail is the first to go): the tip has it all -->
-                            <TextBlock Name="LiveDetailLine" Text="{Binding LiveDetail}" Classes="caption" TextTrimming="CharacterEllipsis"
-                                       ToolTip.Tip="{Binding LiveDetail}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Classes="wide" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,20,0" ToolTip.Tip="{i:Loc Main.Live.SessionTip}">
-                            <TextBlock Text="{Binding SessionSummary}" Classes="caption" HorizontalAlignment="Right" />
-                            <TextBlock Text="{Binding SessionDelta}" FontWeight="Bold" HorizontalAlignment="Right"
-                                       Foreground="{Binding SessionDeltaValue, Converter={StaticResource SignBrush}}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- Overlay panels: the main ones as buttons (not in compact), every panel in the ⋯ menu; the same settings as Settings -> Overlay / Tracker -->
-                            <ItemsControl Name="QuickPanels" Classes="wide" ItemsSource="{Binding QuickPanelToggles}" VerticalAlignment="Center">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="m:PanelToggle">
-                                        <ToggleButton Classes="panelToggle" Content="{Binding Icon}" IsChecked="{Binding IsOn}" ToolTip.Tip="{Binding Tip}"
-                                                      AutomationProperties.Name="{Binding Name}" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <Button Name="PanelsMenuButton" Classes="icon" Content="&#xF01D8;" Width="30" Height="30" FontSize="16" Margin="1,0"
-                                    ToolTip.Tip="{i:Loc Main.Live.PanelsTip}" AutomationProperties.Name="{i:Loc Main.Live.Panels}">
-                                <Button.Flyout>
-                                    <!-- Filled from PanelToggles in code: one MenuItem per panel, its glyph and name dimmed while it is off -->
-                                    <MenuFlyout Placement="TopEdgeAlignedRight" />
-                                </Button.Flyout>
-                            </Button>
-                            <Border Classes="wide" Width="1" Height="18" Background="{StaticResource Outline}" Margin="6,0" VerticalAlignment="Center" />
-                            <!-- Streamer mode: its own button, always shown (compact hides the panels' quick buttons); on, the glyph sits on a
-                                 filled circle so the state reads at a glance. Only here, the tray and Settings: never on the overlay or in the OBS windows. -->
-                            <ToggleButton Name="StreamerModeButton" Classes="panelToggle streamer" Content="&#xF05E9;" IsChecked="{Binding StreamerMode}"
-                                          ToolTip.Tip="{Binding StreamerModeTip}" AutomationProperties.Name="{i:Loc Stream.Mode.Switch}"
-                                          AutomationProperties.HelpText="{Binding StreamerModeTip}" />
-                            <!-- On Windows the tips name the global shortcuts (MainView.axaml.cs, UseShortcutTips) -->
-                            <Button Name="ArrangeButton" Classes="icon wide" Content="&#xF01BE;" Width="30" Height="30" FontSize="16" Margin="1,0,14,0"
-                                    Click="OnArrangeOverlay" ToolTip.Tip="{i:Loc Main.Live.ArrangeTipShort}" AutomationProperties.Name="{i:Loc Main.Live.ArrangeTipShort}" />
-                            <CheckBox Name="OverlaySwitch" Classes="switch" Content="{i:Loc Main.Live.Overlay}" HorizontalAlignment="Right"
-                                      Click="OnOverlaySwitch" ToolTip.Tip="{i:Loc Main.Live.OverlayTipShort}" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                <!-- ===== Setup wizard (D4): over the whole page while open; it opens by itself once for a new player ===== -->
+                <su:SetupWizard Name="Setup" Grid.RowSpan="2" ZIndex="10" IsVisible="{Binding SetupOpen}" />
+
             </Grid>
         </Border>
 

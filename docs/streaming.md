@@ -66,7 +66,7 @@ Two things for players who stream (plan 3.3, `TASK-2026-11-02-streamers`), in Se
 
 ## Streamer mode
 
-`AppSettings.StreamerMode`, off by default. One setting with three switches: Settings → Stream, the live bar's button
+`AppSettings.StreamerMode`, off by default. One setting with three switches: Settings → Stream, the sidebar overlay card's button
 (right, beside "Arrange panels", shown in compact too; on = the glyph on an `AccentSoft` circle) and the tray's
 "Streamer mode" check item (the tray icon's tooltip then reads "Hearthpulse · streamer mode"). No hotkey. The indicator
 is never on the overlay or in the OBS windows: viewers see those.
@@ -78,7 +78,7 @@ is never on the overlay or in the OBS windows: viewers see those.
 | Lobby panel and window, leaderboard badges, the player popup | heroes (no player names yet) | the same; once P4 shows names and MMR (`TASK-2026-10-29-bg-lobby-panel`), no name (the hero) and no MMR column (it folds, no "—") |
 | Combat odds, deck, `session`, `ladder-session`, end-of-game toast | own data | unchanged: no opponent names or ratings there; the player's own rank and rating stay |
 | Match page header (main window) | your name (BattleTag without `#`), opponent's name, both ranks | "You", the opponent's class (Battlegrounds: "Lobby", as always), no opponent rank; your rank or rating stays |
-| History, Home, live bar, My Stats, Arena | no names (opponent's class) | unchanged |
+| History, Home, sidebar status, My Stats, Arena | no names (opponent's class) | unchanged |
 | Settings → Account | the site account's name | "Signed in" (review M1, coordinator's decision): the name stays off the stream |
 
 - **Where.** In the overlay model (`OverlayViewModel.OpponentHeader`, `Streamer.cs`), so the OBS windows follow it with
@@ -97,7 +97,7 @@ is never on the overlay or in the OBS windows: viewers see those.
 | Panels | `Overlay/DeckPanel`, `LobbyPanel`, `OddsPanel` (`.xaml`) | `Overlay/DeckPanel`, `LobbyPanel`, `OddsPanel` (`.axaml`); row styles in `Overlay/OverlayLook.axaml` |
 | Window | `Overlay/StreamWindow.xaml` (`WindowChrome`, DWM: square corners, no border colour) | content `UI/Overlay/StreamView.axaml`, window `Desktop/StreamWindow.cs` |
 | Owner | `Overlay/StreamWindows.cs`, host lines in `App.Stream.cs` | `Desktop/StreamWindows.cs`, host lines in `DesktopApp.cs` |
-| Settings → Stream, live bar | `Main/MainWindow.xaml` | `Main/MainView.axaml` |
+| Settings → Stream, sidebar overlay card | `Main/MainWindow.xaml` | `Main/MainView.axaml` |
 | Shared | `Presentation/Overlay/OverlayViewModel.Streamer.cs`, `StreamWindowSpec.cs`; `Presentation/Main/MainViewModel.Streamer.cs`, `Main/Match/MatchViewModel.Streamer.cs` | same |
 | Texts | `Core/Localization/Strings/{en,ru}/stream.json` | same |
 | Renders | `DevRender.Stream.cs` | `OffscreenRenderer.Stream.cs` (+ `main-settings-stream-compact.png`) |

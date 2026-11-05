@@ -55,9 +55,11 @@
 
             <!-- Settings: every source, found or not -->
             <StackPanel Visibility="{Binding Full, ElementName=Root, Converter={StaticResource Vis}}">
-                <c:Ornament Text="{i:Loc Migration.Settings.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,12" />
+                <c:Ornament Text="{i:Loc Migration.Settings.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,12"
+                            Visibility="{Binding Embedded, ElementName=Root, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 <!-- The window's own CardNote, found once the card is in it: the settings page's notes are one style -->
-                <TextBlock Text="{i:Loc Migration.Settings.Note}" Style="{DynamicResource CardNote}" />
+                <TextBlock Text="{i:Loc Migration.Settings.Note}" Style="{DynamicResource CardNote}"
+                           Visibility="{Binding Embedded, ElementName=Root, Converter={StaticResource Vis}, ConverterParameter=!}" />
                 <TextBlock Text="{i:Loc Migration.NotAffiliated}" Style="{StaticResource Caption}" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap" Margin="0,-4,0,12" />
                 <Grid Margin="0,0,0,12" Visibility="{Binding IsScanning, Converter={StaticResource Vis}}">
                     <Grid.ColumnDefinitions>

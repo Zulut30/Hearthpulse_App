@@ -88,6 +88,25 @@ public sealed class LibraryViewModelTests : IDisposable
         return path;
     }
 
+    [Theory]
+    [InlineData(34, "34")]
+    [InlineData(999, "999")]
+    [InlineData(1373, "1.4k")]
+    [InlineData(12500, "12k")]
+    public void A_board_stat_badge_shortens_from_a_thousand_and_never_cuts(int value, string shown)
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+        try
+        {
+            Assert.Equal(shown, new LibraryMinion("m", $"{value}/1", false, false, false, "tip", value, 1).Attack);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+        }
+    }
+
     [Fact]
     public async Task Recent_cards_come_from_history_with_the_board_from_the_replay_header()
     {
@@ -183,9 +202,9 @@ public sealed class LibraryViewModelTests : IDisposable
     }
 
     /// <summary>
-    /// The final board never cuts a minion at the edge. Its room is the row less 543 px: at the default window (1260)
-    /// about 319 (WPF) to 329 (Avalonia), five whole minions and "+2"; at the minimum (1040) about 99 to 109, one and
-    /// "+6" whose tooltip names the rest, one per line; all seven take 343.
+    /// The final board never cuts a minion at the edge. In the views it has a line of its own (about 488 px at the minimum
+    /// window, all seven take 371), so "+N" only guards a narrower room: four whole minions and "+3" in about 289, only
+    /// "+7" whose tooltip names them, one per line, in about 69.
     /// </summary>
     [Fact]
     public void A_board_that_does_not_fit_shows_whole_minions_and_plus_n_for_the_rest()
@@ -193,22 +212,22 @@ public sealed class LibraryViewModelTests : IDisposable
         var board = Enumerable.Range(1, 7).Select(i => new LibraryMinion("m" + i, $"{i}/{i}", false, false, false, $"Minion {i} · {i}/{i}")).ToList();
         var summary = LibrarySummary.Of([], board);
 
-        var wide = summary.BoardAt(343);
+        var wide = summary.BoardAt(371);
         Assert.Equal(7, wide.Shown.Count);
         Assert.Equal((string.Empty, string.Empty), (wide.More, wide.MoreTip));
 
-        foreach (var room in new[] { 319.0, 329 })
+        foreach (var room in new[] { 289.0, 299 })
         {
             var fitted = summary.BoardAt(room);
-            Assert.Equal(5, fitted.Shown.Count);
-            Assert.Equal("+2", fitted.More);
+            Assert.Equal(4, fitted.Shown.Count);
+            Assert.Equal("+3", fitted.More);
         }
 
-        var narrow = summary.BoardAt(99);
-        Assert.Equal(["m1"], narrow.Shown.Select(m => m.CardId));
-        Assert.Equal("+6", narrow.More);
-        Assert.Equal(string.Join("\n", board.Skip(1).Select(m => m.Tooltip)), narrow.MoreTip);
-        Assert.Same(narrow, summary.BoardAt(109));
+        var narrow = summary.BoardAt(69);
+        Assert.Empty(narrow.Shown);
+        Assert.Equal("+7", narrow.More);
+        Assert.Equal(string.Join("\n", board.Select(m => m.Tooltip)), narrow.MoreTip);
+        Assert.Same(narrow, summary.BoardAt(79));
         // Whole minions and the pill always fit the room they were given.
         foreach (var width in new[] { 0.0, 20, 60, 135, 200, 314, 315, 400 })
         {
@@ -218,7 +237,7 @@ public sealed class LibraryViewModelTests : IDisposable
         }
 
         // A resize that fits as many minions keeps the same object: the view does not rebuild the board.
-        Assert.Same(narrow, summary.BoardAt(130));
+        Assert.Same(narrow, summary.BoardAt(88));
         Assert.Empty(LibrarySummary.Empty.BoardAt(300).Shown);
     }
 

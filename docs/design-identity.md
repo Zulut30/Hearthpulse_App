@@ -15,7 +15,7 @@ game-icons.net glyphs (CC BY 3.0, credited per glyph) in engraved gold (`GoldGly
 |---|---|
 | Overlay panel frame and header; every overlay card list (deck, played, pool, graveyard, likely deck, archetype, Secrets, Arena deck) as capsules | Gold glyphs beyond the sidebar and page titles (section headings keep the MDI ornament) |
 | Main window: deck page card list as capsules, brighter `CardEdge` on every card; home: recent games with the hero's art and result pills, deck banners | Other main-window lists (match page, meta decks, Arena page) |
-| Section headings without a trailing rule in both UIs; page backdrop A (hero per page, its colour glow, stone, frame, nav glow); icons I1 in the sidebar and page titles | First-run wizard (D4), overlay frame unification (D5), the UX round in seven themes (D3) |
+| Section headings without a trailing rule in both UIs; page backdrop A (hero per page, its colour glow, stone, frame, nav glow); icons I1 in the sidebar and page titles; setup wizard (D4: logs, moving from HDT/Firestone, overlay panels, look, done; opens once for a new player and from empty pages and Settings) | Overlay frame unification (D5), the UX round in seven themes (D3) |
 
 Task card with the render audit, all mockups and their sources:
 `../reference/tasks/TASK-2026-11-04-design-identity/` (`directions/` for A-C, `directions-v2/` for V1-V3, `directions-v3/`

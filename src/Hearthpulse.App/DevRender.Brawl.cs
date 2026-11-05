@@ -29,7 +29,7 @@ public partial class App
             _ => "connected",
         };
 
-    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>history</c> (History and a Battlegrounds match).</summary>
+    /// <summary>The groups of <see cref="RenderOnlyGroups"/>: <c>brawl</c> (the Brawl page), <c>home</c> (the whole home page), <c>pages</c> (Home and Battlegrounds at a width), <c>setup</c> (the setup wizard on each step), <c>history</c> (History and a Battlegrounds match).</summary>
     private async Task RenderOnlyAsync(string folder)
     {
         if (RenderOnly("brawl"))
@@ -80,6 +80,45 @@ public partial class App
             await Task.Delay(2500);
             _main.UpdateLayout();
             Save(_main, Path.Combine(folder, $"main-settings-account-{state}.png"));
+        }
+
+        if (RenderOnly("pages"))
+        {
+            // Home and Battlegrounds as the whole window at HEARTHPULSE_RENDER_WIDTH (1080 high from 1600 wide): the page
+            // hero and its art at a wide window.
+            var width = RenderWidth ?? 1260;
+            _main.Width = width;
+            _main.Height = width >= 1600 ? 1080 : 840;
+            foreach (var page in new[] { "Overview", "Battlegrounds" })
+            {
+                _main.ShowPage(page);
+                await Task.Delay(2500);
+                _main.UpdateLayout();
+                Save(_main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}-{width:0}.png"));
+            }
+        }
+
+        if (RenderOnly("setup"))
+        {
+            // The setup wizard (D4) on each step, over Home; Start closes it (in the data copy) for the groups after it.
+            _main.ShowPage("Overview");
+            for (var step = 0; step < Hearthpulse.App.Main.MainViewModel.SetupStepKeys.Count; step++)
+            {
+                _mainViewModel.ShowSetup(step);
+                await Task.Delay(1500);
+                _main.UpdateLayout();
+                Save(_main, Path.Combine(folder, $"main-setup-{step + 1}.png"));
+            }
+
+            // The logs step with the logs off: a log.config that does not exist (read, never written here)
+            _mainViewModel.SetupLogConfigFile = Path.Combine(folder, "absent", "log.config");
+            _mainViewModel.ShowSetup(0);
+            await Task.Delay(500);
+            _main.UpdateLayout();
+            Save(_main, Path.Combine(folder, "main-setup-1-off.png"));
+            _mainViewModel.SetupLogConfigFile = null;
+
+            _mainViewModel.CloseSetup.Execute(null);
         }
 
         if (RenderOnly("ctmatch") || RenderOnly("steppng"))

@@ -403,7 +403,7 @@ public static class LogConfig
         HearthstoneInstall.LogConfigPathFor(installDir) is { } path ? MissingSectionsIn(path) : Array.Empty<string>();
 
     /// <summary>Required sections missing from the log.config at <paramref name="path"/> (all of them when it does not exist).</summary>
-    internal static IReadOnlyList<string> MissingSectionsIn(string path)
+    public static IReadOnlyList<string> MissingSectionsIn(string path)
     {
         var sections = Read(path);
         return Required.Where(r => !sections.TryGetValue(r.Section, out var values) || !IsSatisfied(values, r.Verbose))
@@ -414,8 +414,11 @@ public static class LogConfig
     public static bool Ensure(string? installDir) =>
         HearthstoneInstall.LogConfigPathFor(installDir) is { } path && EnsureIn(path);
 
-    /// <summary>The same on the log.config at <paramref name="path"/> (created with its folder when missing).</summary>
-    internal static bool EnsureIn(string path)
+    /// <summary>
+    /// The same on the log.config at <paramref name="path"/> (created with its folder when missing). A section's other
+    /// keys are kept, and the file as it was is copied to log.config.bak before it is written.
+    /// </summary>
+    public static bool EnsureIn(string path)
     {
         var sections = Read(path);
         var changed = false;
@@ -426,14 +429,17 @@ public static class LogConfig
                 continue;
             }
 
-            sections[section] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            if (!sections.TryGetValue(section, out values))
             {
-                ["LogLevel"] = "1",
-                ["FilePrinting"] = "True",
-                ["ConsolePrinting"] = "False",
-                ["ScreenPrinting"] = "False",
-                ["Verbose"] = verbose ? "True" : "False",
-            };
+                values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                sections[section] = values;
+            }
+
+            values["LogLevel"] = "1";
+            values["FilePrinting"] = "True";
+            values["ConsolePrinting"] = "False";
+            values["ScreenPrinting"] = "False";
+            values["Verbose"] = verbose ? "True" : "False";
             changed = true;
         }
 
@@ -443,6 +449,11 @@ public static class LogConfig
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        if (File.Exists(path))
+        {
+            File.Copy(path, path + ".bak", overwrite: true);
+        }
+
         using var writer = new StreamWriter(path, append: false);
         foreach (var (name, values) in sections)
         {

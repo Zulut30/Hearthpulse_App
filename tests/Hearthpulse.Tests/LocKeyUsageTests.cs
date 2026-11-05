@@ -24,7 +24,7 @@ public sealed class LocKeyUsageTests
         "Arena.Type.", "Core.Account.Section.", "Core.Class.", "Core.Counter.", "Core.MetaOption.", "Core.MinionType.", "Core.MulliganRank.", "Core.MulliganRankSource.",
         "Core.SpellSchool.", "Core.Tribe.", "Library.ImportError.", "Library.Site.Error.", "Library.Site.DeleteError.", "Main.Live.Panel.", "Main.Mode.", "Main.Theme.", "Match.Format.", "Match.Keyword.", "Migration.Error.",
         "Match.Reveal.", "Mulligan.Arena.Basis.", "Overlay.Class.", "Pool.Excavate.Rarity.", "Pool.Mechanic.", "Pool.School.",
-        "Pool.Stat.",
+        "Pool.Stat.", "Setup.Step.",
     ];
 
     /// <summary>A dotted name as a whole: <c>Match.View.Next</c> must not count as used because <c>Match.View.NextTurn</c> is.</summary>

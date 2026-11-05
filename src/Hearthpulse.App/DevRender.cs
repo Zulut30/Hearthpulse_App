@@ -49,6 +49,13 @@ public partial class App
         await LoadMetaAsync();
         await _constructedLoader.ReloadAllAsync();
         await _mainViewModel.RefreshAsync();
+        // A data folder with no games (the visual baselines start empty) opens the setup wizard over every page: the
+        // frames are of the pages; the "setup" group opens the wizard itself.
+        if (_mainViewModel.SetupOpen)
+        {
+            _mainViewModel.CloseSetup.Execute(null);
+        }
+
         _session.Cards = _cards;
         _mainViewModel.Busy = string.Empty;
         try

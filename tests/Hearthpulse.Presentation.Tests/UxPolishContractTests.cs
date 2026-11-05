@@ -389,6 +389,48 @@ public sealed partial class UxPolishContractTests
         window.Close();
     });
 
+    /// <summary>
+    /// No bar floats over the pages (the owner's pick B, 2026-11-05): the status card under the logo and the overlay card
+    /// at the sidebar's foot hold the live line, the overlay switch and the panel buttons.
+    /// </summary>
+    [Fact]
+    public void Status_and_overlay_cards_live_in_the_sidebar() => Sta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var (window, root) = Open(model, "Home");
+        try
+        {
+            Assert.Null(window.FindName("LiveBar"));
+            var sidebar = Named<Grid>(window, "Sidebar");
+            foreach (var name in new[] { "StatusCard", "StatusDot", "LiveDetailLine", "OverlayCard", "OverlaySwitch", "QuickPanels", "StreamerModeButton" })
+            {
+                Assert.True(Inside(Named<FrameworkElement>(window, name), sidebar), name + " should sit in the sidebar");
+                Assert.True(Named<FrameworkElement>(window, name).ActualWidth > 0, name + " should be laid out");
+            }
+
+            var status = Named<Border>(window, "StatusCard");
+            Assert.Equal(model.LiveTitle, System.Windows.Automation.AutomationProperties.GetName(status));
+            Assert.True(status.ActualWidth <= sidebar.ActualWidth);
+        }
+        finally
+        {
+            window.Close();
+        }
+
+        static bool Inside(DependencyObject element, DependencyObject container)
+        {
+            for (var e = element; e is not null; e = LogicalTreeHelper.GetParent(e) ?? VisualTreeHelper.GetParent(e))
+            {
+                if (ReferenceEquals(e, container))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    });
+
     /// <summary>At the default width in Russian the live line is trimmed before its "deck not recognised" tail: the tip has it all.</summary>
     [Fact]
     public void Live_line_tip_carries_the_whole_line_when_the_bar_trims_it() => Sta(() =>

@@ -85,7 +85,8 @@ borderless text and icon buttons. Dense rows may use less as long as hit areas n
 
 ## Keep the reserved zones clear
 
-The main window reserves its bottom `120` for the floating live bar; page content ends above it. The overlay keeps the
+The main window has no bottom bar: the game's status and the overlay switch live in the sidebar (status card under
+the logo, overlay card at its foot). The overlay keeps the
 game's own UI clear: hero portraits, the hand, End Turn, Discover cards and the BG tavern row. Panels of the same mode
 never share a spot (`hearthpulse-overlay-panel`). See
 [spacing-and-adaptivity.md](spacing-and-adaptivity.md#keep-the-reserved-zones-clear).

@@ -116,6 +116,8 @@
                         </ItemsControl>
                         <TextBlock Text="{i:Loc Main.Ct.DecksEmpty}" Style="{StaticResource Caption}" Margin="0,8"
                                    Visibility="{Binding Decks, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                        <Button Style="{StaticResource GhostButton}" Content="{i:Loc Setup.Open}" Command="{Binding OpenSetup}" ToolTip="{i:Loc Setup.OpenTip}"
+                                HorizontalAlignment="Left" Margin="0,4,0,8" Visibility="{Binding ShowGettingStarted, Converter={StaticResource Vis}}" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top">

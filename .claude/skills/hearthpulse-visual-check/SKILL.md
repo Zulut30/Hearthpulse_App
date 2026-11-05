@@ -48,7 +48,7 @@ dotnet run --project src/Hearthpulse.Desktop --no-restore --artifacts-path "$TEM
   stops, in both UIs. The wrapper `render.py` would then report the mandatory scenes as missing, so run the built exe or
   `dotnet run` directly (the same goes for `HEARTHPULSE_RENDER_ONLY` below).
   Scene filter: `HEARTHPULSE_RENDER_ONLY=<group>[,<group>]` renders only those groups: `brawl` (`main-brawl`, Avalonia
-  also `main-brawl-compact`), `home` (`main-overview-full`, the whole home page), `history` (`main-history`, `main-match-bg-table`: the first step of the newest Battlegrounds
+  also `main-brawl-compact`), `home` (`main-overview-full`, the whole home page), `pages` (`main-overview-<width>`, `main-battlegrounds-<width>`: the whole window at `HEARTHPULSE_RENDER_WIDTH`, 1080 high from 1600), `setup` (`main-setup-1`..`-5`, the setup wizard on each step, and `main-setup-1-off` with the logs off), `history` (`main-history`, `main-match-bg-table`: the first step of the newest Battlegrounds
   replay), `historylist` (`main-history` alone), `account` (`main-settings-account-<state>`, the account center and the connection light signed in as an in-memory sample; `HEARTHPULSE_RENDER_ACCOUNT=connected|offline|ended`, default connected), `ctmatch` (WPF only: `main-match-table`, the newest Constructed
   replay's table two thirds in), `overlay` (the Battlegrounds moments `overlay-pick/-trinket/-discover/-game/-bg-counters`,
   `overlay-constructed` with its previews, `overlay-layout`), `overlay-opacity` (WPF only: one frame,
@@ -149,9 +149,9 @@ Open the PNGs with the Read tool (they are images). For each one touched by the 
 
 - **Clipping**: text cut at the right edge or ellipsized where it should wrap; numbers like "1,204" or long card
   names - check both English and Russian UI text, plus card/hero/deck names in the card locale. Cyrillic text can
-  be longer; also check tooltips leaving the 1920x1080 surface and the bottom 120 px reserved for the floating live bar.
+  be longer; also check tooltips leaving the 1920x1080 surface and the sidebar's status card (two lines at most).
 - **Overlap**: panels on top of each other in `overlay-layout.png` - fine only between panels that never show in the
-  same mode (e.g. `card-pool` vs `bgbar`); text over art; the live bar covering content.
+  same mode (e.g. `card-pool` vs `bgbar`); text over art.
 - **Contrast**: parchment `Text` on wood surfaces; `Muted` for secondary text (`Faint` only for separators, glyphs and disabled things); semantic colours
   (`Positive`/`Negative`/`Tier*`/`Rarity*`) still distinct.
 - **Spacing**: the same margins as neighbouring cards (24 between cards, page margin 40), aligned baselines in rows,

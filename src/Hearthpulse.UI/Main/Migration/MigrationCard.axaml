@@ -48,8 +48,8 @@
 
             <!-- Settings: every source, found or not -->
             <StackPanel IsVisible="{Binding #Root.Full}">
-                <c:Ornament Text="{i:Loc Migration.Settings.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,12" />
-                <TextBlock Text="{i:Loc Migration.Settings.Note}" Classes="caption cardNote" />
+                <c:Ornament Text="{i:Loc Migration.Settings.Title}" Icon="&#xF01BC;" Size="13" Margin="0,0,0,12" IsVisible="{Binding !#Root.Embedded}" />
+                <TextBlock Text="{i:Loc Migration.Settings.Note}" Classes="caption cardNote" IsVisible="{Binding !#Root.Embedded}" />
                 <TextBlock Text="{i:Loc Migration.NotAffiliated}" Classes="caption" FontSize="{StaticResource FontSizeSmall}" TextWrapping="Wrap" Margin="0,-4,0,12" />
                 <Grid ColumnDefinitions="28,*" Margin="0,0,0,12" IsVisible="{Binding IsScanning}">
                     <TextBlock Text="&#xF051F;" Classes="icon" FontSize="{StaticResource FontSizeTitle}" Foreground="{StaticResource Muted}" VerticalAlignment="Top" />

@@ -57,7 +57,7 @@ The theme already models light on every raised surface:
 | Effect | Token or style |
 | --- | --- |
 | Lit top rim on a card | `CardEdge` |
-| Raised plate (selected chip, live bar) | `EdgeLight` hairline + `SelectedFill` |
+| Raised plate (selected deck tile, a pressed plate) | `EdgeLight` hairline + `SelectedFill` |
 | Soft halo behind a highlighted element | `Glow`, `Accent2Glow`, `BestHalo` (gradients, overlay-safe) |
 | Content backdrop with the theme motif | `ContentFill` |
 

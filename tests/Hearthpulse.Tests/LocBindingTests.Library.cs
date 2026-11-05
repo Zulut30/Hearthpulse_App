@@ -34,11 +34,12 @@ public sealed partial class LocBindingTests
             Dispatcher.UIThread.RunJobs();
             window.UpdateLayout();
             var caption = row.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "BgCaption");
-            Assert.Equal((Avalonia.Media.TextWrapping.Wrap, 2, Avalonia.Media.TextTrimming.CharacterEllipsis), (caption.TextWrapping, caption.MaxLines, caption.TextTrimming));
+            Assert.Equal((Avalonia.Media.TextWrapping.NoWrap, Avalonia.Media.TextTrimming.CharacterEllipsis), (caption.TextWrapping, caption.TextTrimming));
             var chipsMore = row.GetVisualDescendants().OfType<Border>().Single(b => Equals(ToolTip.GetTip(b), "D, E"));
             Assert.Equal("D, E", Avalonia.Automation.AutomationProperties.GetName(chipsMore));
 
-            foreach (var (width, shown, more) in new[] { (676.0, 1, "+6"), (896.0, 5, "+2"), (914.0, 7, string.Empty) })
+            // The board has a line of its own under the name, as wide as the name, chips and result: all seven fit from the minimum window.
+            foreach (var (width, shown, more) in new[] { (676.0, 7, string.Empty), (896.0, 7, string.Empty), (978.0, 7, string.Empty) })
             {
                 window.Width = width;
                 Dispatcher.UIThread.RunJobs();
@@ -46,7 +47,7 @@ public sealed partial class LocBindingTests
                 Dispatcher.UIThread.RunJobs();
                 window.UpdateLayout();
 
-                var minions = row.GetVisualDescendants().OfType<StackPanel>().Where(p => p.DataContext is LibraryMinion && p.IsEffectivelyVisible).ToList();
+                var minions = row.GetVisualDescendants().OfType<StackPanel>().Where(p => p.DataContext is LibraryMinion && p.Orientation == Avalonia.Layout.Orientation.Vertical && p.IsEffectivelyVisible).ToList();
                 Assert.Equal(shown, minions.Count);
                 var pill = row.GetVisualDescendants().OfType<Border>().SingleOrDefault(b => b.DataContext is LibraryBoardView && b.Classes.Contains("pill"));
                 Assert.NotNull(pill);
@@ -61,9 +62,12 @@ public sealed partial class LocBindingTests
 
                 // Whole minions only: the last one ends inside the board's room.
                 var room = row.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "BoardRoom");
-                var last = minions[^1];
-                var end = last.TranslatePoint(new Point(last.Bounds.Width, 0), room)!.Value.X;
-                Assert.True(end <= room.Bounds.Width + 0.5, $"{width}: the last minion ends at {end}, the room is {room.Bounds.Width}");
+                if (minions.Count > 0)
+                {
+                    var last = minions[^1];
+                    var end = last.TranslatePoint(new Point(last.Bounds.Width, 0), room)!.Value.X;
+                    Assert.True(end <= room.Bounds.Width + 0.5, $"{width}: the last minion ends at {end}, the room is {room.Bounds.Width}");
+                }
             }
         }
         finally

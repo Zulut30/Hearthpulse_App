@@ -3,7 +3,7 @@
 > Source: [jakubkrehel/skills](https://github.com/jakubkrehel/skills) `skills/better-layout/spacing-and-adaptivity.md`
 > at `592aedc`, MIT, © 2026 Jakub Krehel, see [THIRD-PARTY-NOTICES](../THIRD-PARTY-NOTICES.md). Hearthpulse changes:
 > CSS breakpoints, container queries, safe areas and viewport units replaced by WPF/Avalonia panels, Avalonia compact
-> mode, the live bar and overlay zones, and Russian text growth.
+> mode, the sidebar's status and overlay cards, overlay zones, and Russian text growth.
 
 Recipes for control clearance, hidden content, reserved zones, adaptive structure and growth.
 
@@ -36,12 +36,12 @@ controls so they never overlap.
 
 ## Keep the reserved zones clear
 
-- **Main window:** the floating live bar covers the bottom `120` of every page; the page grid's bottom margin keeps
-  content above it. A new page or a page that grows a fixed footer checks the last row is not under the bar.
+- **Main window:** nothing floats over the pages; the sidebar holds the status card (two lines at most, the tip has
+  the rest) and the overlay card (its buttons wrap; Avalonia compact keeps the dot, the switch, ⋯ and streamer mode).
 - **Overlay:** keep clear the hero portraits, the hand, End Turn, Discover cards and the BG tavern row. Anchor a panel
   to the edge it belongs to so wide and narrow screens work: `HorizontalAlignment="Right" VerticalAlignment="Bottom"`
   for things near End Turn. Panels of the same mode never share a spot; `overlay-layout.png` shows every placeholder.
-- **Tooltips** stay inside the 1920×1080 surface and outside the live bar.
+- **Tooltips** stay inside the 1920×1080 surface.
 
 ## Hold structure until it breaks
 

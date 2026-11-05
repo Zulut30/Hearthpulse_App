@@ -2,7 +2,7 @@
 
 An overlay panel (MovablePanel `opponent-deck`, ranked and casual Constructed) with the opponent's likely deck: the
 most played meta list of the archetype its cards point to, the copies it already played marked. Setting "Likely deck"
-in Settings → Overlay (Constructed group) and in the live bar's "⋯" menu (`AppSettings.ShowLikelyDeck`), off until
+in Settings → Overlay (Constructed group) and in the sidebar overlay card's "⋯" menu (`AppSettings.ShowLikelyDeck`), off until
 turned on. Design: `reference/tasks/TASK-2026-11-01-opponent-deck/design.md`.
 
 - **Archetype:** the leader of the live archetype odds (`ArchetypeOdds.Build(...).Best`, the archetype the

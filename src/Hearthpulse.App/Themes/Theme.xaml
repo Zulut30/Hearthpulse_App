@@ -139,6 +139,8 @@
     <SolidColorBrush x:Key="Sheen" Color="#80FFF4D6" />
     <SolidColorBrush x:Key="GrooveFill" Color="#1A110B" />
     <SolidColorBrush x:Key="GrooveEdge" Color="#36261A" />
+    <!-- A segmented group's band: a soft shade behind its tabs, no edge, so the gold choice reads over a page hero too -->
+    <SolidColorBrush x:Key="SegmentBand" Color="#8C140D08" />
     <LinearGradientBrush x:Key="NavSelectedFill" StartPoint="0,0" EndPoint="1,0">
         <GradientStop Color="#42E9B949" Offset="0" />
         <GradientStop Color="#14E9B949" Offset="0.55" />
@@ -285,9 +287,8 @@
     <!-- The hero's art dissolves towards the text on the left (an opacity mask: only the alpha counts) -->
     <LinearGradientBrush x:Key="PageHeroFade" StartPoint="0,0" EndPoint="1,0">
         <GradientStop Color="#00000000" Offset="0" />
-        <GradientStop Color="#00000000" Offset="0.3" />
-        <GradientStop Color="#B3000000" Offset="0.55" />
-        <GradientStop Color="#FF000000" Offset="0.8" />
+        <GradientStop Color="#B3000000" Offset="0.3" />
+        <GradientStop Color="#FF000000" Offset="0.6" />
     </LinearGradientBrush>
     <!-- ...and towards its bottom, so the square art never ends in an edge on a taller plate -->
     <LinearGradientBrush x:Key="PageHeroFloor" StartPoint="0,0" EndPoint="0,1">
@@ -322,6 +323,8 @@
         <GradientStop Color="#00E9B949" Offset="1" />
     </RadialGradientBrush>
 
+    <!-- The setup wizard's veil over the page: the plate colour, so the page's hero still shows faintly through -->
+    <SolidColorBrush x:Key="SetupScrim" Color="#B8140D08" />
     <!-- Engraved gold glyphs (V3 icons I1, Controls/GoldGlyph): gradient, the flat gold of small sizes, the lit item's
          brighter gold, a dark outline and drop, the bevel's light and dark edges and the top gloss -->
     <LinearGradientBrush x:Key="GlyphGold" StartPoint="0,0" EndPoint="0,1">
@@ -967,7 +970,9 @@
         </Setter>
     </Style>
 
-    <!-- ===== Chips / segmented filter ===== -->
+    <!-- ===== Segmented choices: underline tabs (owner, 2026-11-05). No frame, no check mark: the group sits on a thin
+         common line on a soft band (SegmentBar), the choices in muted text; the chosen one is gold with a 2 px gold line over that
+         line, which grows from its middle. Hover lights the text and a soft tint; the width never changes. ===== -->
     <Style x:Key="Segment" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{StaticResource Muted}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeLabel}" />
@@ -978,86 +983,11 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Grid>
-                        <Border x:Name="HoverLayer" CornerRadius="6" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
-                        <Grid x:Name="Sel" Opacity="0">
-                            <Border CornerRadius="6" Background="{StaticResource SelectedFill}" BorderBrush="{StaticResource SelectedEdge}" BorderThickness="1"
-                                    SnapsToDevicePixels="True" />
-                            <Border Height="1" Margin="6,1,6,0" VerticalAlignment="Top" Background="{StaticResource EdgeLight}" SnapsToDevicePixels="True" />
-                        </Grid>
-                        <Border x:Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
-                                SnapsToDevicePixels="True">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="Check" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,5,0"
-                                           Foreground="{StaticResource Accent}" Visibility="Collapsed" />
-                                <ContentPresenter VerticalAlignment="Center" />
-                            </StackPanel>
+                        <Border x:Name="HoverLayer" CornerRadius="6,6,0,0" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
+                        <Border x:Name="Bd" Padding="12,6,12,8" Background="Transparent" SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="Center" />
                         </Border>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Trigger.EnterActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="HoverLayer" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.12" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.EnterActions>
-                            <Trigger.ExitActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="HoverLayer" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.ExitActions>
-                            <Setter Property="Foreground" Value="{StaticResource Text}" />
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Pressed}" />
-                        </Trigger>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Trigger.EnterActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="Sel" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.EnterActions>
-                            <Trigger.ExitActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="Sel" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.ExitActions>
-                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
-                            <Setter Property="Foreground" Value="{StaticResource Accent}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-    <!-- Tabs: the Segment look plus a 2px gold underline on the selected tab -->
-    <Style x:Key="Tab" TargetType="RadioButton" BasedOn="{StaticResource Segment}">
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="RadioButton">
-                    <Grid>
-                        <Border x:Name="HoverLayer" CornerRadius="6" Background="{StaticResource Hover}" Opacity="0" SnapsToDevicePixels="True" />
-                        <Grid x:Name="Sel" Opacity="0">
-                            <Border CornerRadius="6" Background="{StaticResource SelectedFill}" BorderBrush="{StaticResource SelectedEdge}" BorderThickness="1"
-                                    SnapsToDevicePixels="True" />
-                            <Border Height="1" Margin="6,1,6,0" VerticalAlignment="Top" Background="{StaticResource EdgeLight}" SnapsToDevicePixels="True" />
-                        </Grid>
-                        <Border x:Name="Bd" CornerRadius="6" Padding="12,5" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
-                                SnapsToDevicePixels="True">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="Check" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="14" Margin="0,0,5,0"
-                                           Foreground="{StaticResource Accent}" Visibility="Collapsed" />
-                                <ContentPresenter VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-                        <Border x:Name="Underline" Height="2" CornerRadius="1" Margin="6,0" VerticalAlignment="Bottom" Background="{StaticResource Accent}"
+                        <Border x:Name="Underline" Height="2" CornerRadius="1" Margin="4,0,4,-1" VerticalAlignment="Bottom" Background="{StaticResource Accent}"
                                 SnapsToDevicePixels="True" RenderTransformOrigin="0.5,0.5">
                             <Border.RenderTransform>
                                 <ScaleTransform ScaleX="0" />
@@ -1083,13 +1013,12 @@
                             <Setter Property="Foreground" Value="{StaticResource Text}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Pressed}" />
+                            <Setter TargetName="HoverLayer" Property="Background" Value="{StaticResource Pressed}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="Sel" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="Underline" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
@@ -1097,12 +1026,10 @@
                             <Trigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="Sel" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="Underline" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="0" Duration="0:0:0.160"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>
-                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
                             <Setter Property="Foreground" Value="{StaticResource Accent}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -1110,15 +1037,18 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- Page tabs (Settings, the match page): the same look -->
+    <Style x:Key="Tab" TargetType="RadioButton" BasedOn="{StaticResource Segment}" />
     <Style x:Key="SegmentBar" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource GrooveFill}" />
-        <Setter Property="BorderBrush" Value="{StaticResource GrooveEdge}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Padding" Value="4" />
+        <Setter Property="Background" Value="{StaticResource SegmentBand}" />
+        <Setter Property="CornerRadius" Value="8,8,0,0" />
+        <Setter Property="BorderBrush" Value="{StaticResource Outline}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="0" />
     </Style>
 
-    <!-- ===== Switch: the track stays rounded, gold when on ===== -->
+    <!-- ===== Switch: a slim pill track (radius half its height: WPF draws a larger one as an oval), a round knob that slides;
+         gold with a dark knob when on, dark with a muted knob when off. No tick: the side says it. ===== -->
     <Style x:Key="Switch" TargetType="CheckBox">
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRingSwitch}" />
@@ -1134,21 +1064,19 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <ContentPresenter VerticalAlignment="Center" Margin="0,0,16,0" />
-                        <Grid Grid.Column="1" Width="48" Height="28">
-                            <Border x:Name="Track" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="2" />
-                            <Border x:Name="OnFill" CornerRadius="{StaticResource RadiusPill}" Background="{StaticResource PrimaryFill}" Opacity="0" />
-                            <Grid x:Name="Thumb" Width="24" Height="24" HorizontalAlignment="Left" Margin="2,0,0,0" RenderTransformOrigin="0.5,0.5">
+                        <Grid Grid.Column="1" Width="42" Height="24">
+                            <Border x:Name="Track" CornerRadius="{StaticResource RadiusLarge}" Background="{StaticResource Surface4}" BorderBrush="{StaticResource Muted}" BorderThickness="1" />
+                            <Border x:Name="OnFill" CornerRadius="{StaticResource RadiusLarge}" Background="{StaticResource PrimaryFill}" Opacity="0" />
+                            <Grid x:Name="Thumb" Width="18" Height="18" HorizontalAlignment="Left" Margin="4,0,0,0" RenderTransformOrigin="0.5,0.5">
                                 <Grid.RenderTransform>
                                     <TransformGroup>
-                                        <ScaleTransform ScaleX="0.67" ScaleY="0.67" />
+                                        <ScaleTransform ScaleX="1" ScaleY="1" />
                                         <TranslateTransform X="0" />
                                     </TransformGroup>
                                 </Grid.RenderTransform>
-                                <Ellipse x:Name="Halo" Margin="-9" Fill="{StaticResource Hover}" Opacity="0" />
+                                <Ellipse x:Name="Halo" Margin="-8" Fill="{StaticResource Hover}" Opacity="0" />
                                 <Ellipse x:Name="KnobOff" Fill="{StaticResource Muted}" />
                                 <Ellipse x:Name="KnobOn" Fill="{StaticResource OnAccent}" Opacity="0" />
-                                <TextBlock x:Name="Tick" Text="&#xF012C;" Style="{StaticResource Icon}" FontSize="17" Foreground="{StaticResource Accent}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" />
                             </Grid>
                         </Grid>
                     </Grid>
@@ -1178,12 +1106,9 @@
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(TranslateTransform.X)" To="20" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)" To="0.83" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)" To="0.83" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(TranslateTransform.X)" To="16" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="OnFill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="KnobOn" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Tick" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.160" BeginTime="0:0:0.060"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.EnterActions>
@@ -1191,11 +1116,8 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[1].(TranslateTransform.X)" To="0" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)" To="0.67" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)" To="0.67" Duration="0:0:0.220"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="OnFill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetName="KnobOn" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.180"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
-                                        <DoubleAnimation Storyboard.TargetName="Tick" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.100"><DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction></DoubleAnimation>
                                     </Storyboard>
                                 </BeginStoryboard>
                             </Trigger.ExitActions>

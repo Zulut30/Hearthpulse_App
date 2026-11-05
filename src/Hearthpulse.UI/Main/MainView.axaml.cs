@@ -32,6 +32,7 @@ public partial class MainView : UserControl
         InitializeComponent();
         PageOverview.ImportRequested += () => ReimportRequested?.Invoke();
         PageOverview.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
+        Setup.ArrangeRequested += () => ArrangeOverlayRequested?.Invoke();
         PageOverview.HistoryRequested += () => NavHistory.IsChecked = true;
         // The Tracker tab's "overlay is off" banner follows the Overlay tab's switch (two controls now, one binding).
         SettingsTracker.Bind(global::Hearthpulse.UI.Main.SettingsTabs.TrackerSettings.OverlayOnProperty,
@@ -180,6 +181,21 @@ public partial class MainView : UserControl
     {
         if (e.Handled || _viewModel is null)
         {
+            return;
+        }
+
+        // The setup wizard covers the page: Esc closes it like Skip, and the page shortcuts (Ctrl+1..8) wait until it is closed.
+        if (_viewModel.SetupOpen)
+        {
+            if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None)
+            {
+                e.Handled = _viewModel.CloseSetupOnEscape();
+            }
+            else if (e.KeyModifiers == KeyModifiers.Control)
+            {
+                e.Handled = true;
+            }
+
             return;
         }
 
@@ -422,9 +438,6 @@ public partial class MainView : UserControl
             case nameof(MainViewModel.MemoryAttached):
                 // One chip, as in WPF: gold while Hearthstone runs, green once its memory is read.
                 StatusDot.Fill = ThemeBrushes.Get(_viewModel.MemoryAttached ? "Positive" : _viewModel.HearthstoneRunning ? "Accent" : "Faint");
-                break;
-            case nameof(MainViewModel.InGame):
-                LivePulse.Fill = ThemeBrushes.Get(_viewModel.InGame ? "AccentContainer" : "Surface4");
                 break;
             case nameof(MainViewModel.DeckOpen):
                 // A deck opened from the Overview's deck banners goes to its format's page, where the deck page lives.

@@ -72,6 +72,40 @@ internal static partial class OffscreenRenderer
             await Save(main, Path.Combine(folder, $"main-settings-account-{state}.png"));
         }
 
+        if (RenderOnly("pages"))
+        {
+            // Home and Battlegrounds as the whole window at HEARTHPULSE_RENDER_WIDTH (1080 high from 1600 wide): the page
+            // hero and its art at a wide window.
+            var width = RenderWidth ?? 1260;
+            main.Width = width;
+            main.Height = width >= 1600 ? 1080 : 840;
+            foreach (var page in new[] { "Overview", "Battlegrounds" })
+            {
+                view.ShowPage(page);
+                await Save(main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}-{width:0}.png"));
+            }
+        }
+
+        if (RenderOnly("setup"))
+        {
+            // The setup wizard (D4) on each step, over Home; Start closes it (in the data copy) for the groups after it.
+            view.ShowPage("Overview");
+            for (var step = 0; step < MainViewModel.SetupStepKeys.Count; step++)
+            {
+                host.Main.ShowSetup(step);
+                await Task.Delay(1500);
+                await Save(main, Path.Combine(folder, $"main-setup-{step + 1}.png"));
+            }
+
+            // The logs step with the logs off: a log.config that does not exist (read, never written here)
+            host.Main.SetupLogConfigFile = Path.Combine(folder, "absent", "log.config");
+            host.Main.ShowSetup(0);
+            await Save(main, Path.Combine(folder, "main-setup-1-off.png"));
+            host.Main.SetupLogConfigFile = null;
+
+            host.Main.CloseSetup.Execute(null);
+        }
+
         if (RenderOnly("steppng") && host.History.Recent(400).FirstOrDefault(g => g.Replay is not null && g.IsBattlegrounds) is { } stepGame
             && await host.Main.OpenMatchPageAsync(stepGame.Key))
         {

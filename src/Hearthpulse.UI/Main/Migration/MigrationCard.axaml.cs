@@ -16,6 +16,8 @@ public partial class MigrationCard : UserControl
 {
     public static readonly StyledProperty<bool> FullProperty = AvaloniaProperty.Register<MigrationCard, bool>(nameof(Full));
 
+    public static readonly StyledProperty<bool> EmbeddedProperty = AvaloniaProperty.Register<MigrationCard, bool>(nameof(Embedded));
+
     private MigrationViewModel? _model;
 
     public MigrationCard()
@@ -36,6 +38,13 @@ public partial class MigrationCard : UserControl
     {
         get => GetValue(FullProperty);
         set => SetValue(FullProperty, value);
+    }
+
+    /// <summary>Inside the setup wizard: the whole card without its own heading and note (the wizard's step has them).</summary>
+    public bool Embedded
+    {
+        get => GetValue(EmbeddedProperty);
+        set => SetValue(EmbeddedProperty, value);
     }
 
     private void Attach(MigrationViewModel? model, bool listen)

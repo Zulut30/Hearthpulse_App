@@ -56,10 +56,11 @@ public sealed class LibraryRowXamlTests
         var row = (FrameworkElement)((DataTemplate)view.Resources["LibraryCard"]).LoadContent();
         row.DataContext = card;
         // The width is the card's: its own 12 px padding on each side comes off the row's room.
-        foreach (var (width, shown, more) in new[] { (666.0, 1, "+6"), (886.0, 5, "+2"), (914.0, 7, string.Empty) })
+        // The board has a line of its own under the name, as wide as the name, chips and result: all seven fit from the minimum window.
+        foreach (var (width, shown, more) in new[] { (666.0, 7, string.Empty), (886.0, 7, string.Empty), (968.0, 7, string.Empty) })
         {
             Layout(row, width);
-            var minions = Descendants(row).OfType<StackPanel>().Where(p => p.DataContext is LibraryMinion && Shown(p, row)).ToList();
+            var minions = Descendants(row).OfType<StackPanel>().Where(p => p.DataContext is LibraryMinion && p.Orientation == Orientation.Vertical && Shown(p, row)).ToList();
             Assert.Equal(shown, minions.Count);
             var pill = Descendants(row).OfType<Border>().Single(b => b.DataContext is LibraryBoardView && b.ToolTip is not null);
             Assert.Equal(more.Length > 0, Shown(pill, row));
@@ -71,9 +72,10 @@ public sealed class LibraryRowXamlTests
                 Assert.Equal(rest, System.Windows.Automation.AutomationProperties.GetName(pill));
             }
 
-            // The Russian caption does not fit 108 px on one line: it takes two, whole.
+            // The Russian caption fits the 150 px name column on one line.
             var caption = Descendants(row).OfType<TextBlock>().Single(t => t.Name == "BgCaption");
-            Assert.Equal(32, caption.ActualHeight, 0.5);
+            Assert.Equal(TextWrapping.NoWrap, caption.TextWrapping);
+            Assert.True(caption.ActualHeight < 20, $"{caption.ActualHeight}");
 
             // The chips' "+N" is named for screen readers as its tooltip names the rest.
             var chipsMore = Descendants(row).OfType<Border>().Single(b => Equals(b.ToolTip, "D, E"));
@@ -81,9 +83,12 @@ public sealed class LibraryRowXamlTests
 
             // Whole minions only: the last one ends inside the board's room.
             var room = Descendants(row).OfType<Border>().Single(b => b.Name == "BoardRoom");
-            var last = minions[^1];
-            var end = last.TranslatePoint(new Point(last.ActualWidth, 0), room).X;
-            Assert.True(end <= room.ActualWidth + 0.5, $"{width}: the last minion ends at {end}, the room is {room.ActualWidth}");
+            if (minions.Count > 0)
+            {
+                var last = minions[^1];
+                var end = last.TranslatePoint(new Point(last.ActualWidth, 0), room).X;
+                Assert.True(end <= room.ActualWidth + 0.5, $"{width}: the last minion ends at {end}, the room is {room.ActualWidth}");
+            }
         }
     }
 

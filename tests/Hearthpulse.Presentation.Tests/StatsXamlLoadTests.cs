@@ -12,7 +12,7 @@ using Hearthpulse.Core.Stats;
 namespace Hearthpulse.Presentation.Tests;
 
 /// <summary>
-/// The WPF deck page and My Stats views resolve their resources only at run time: a missing key in a template builds
+/// The WPF deck page, My Stats views and setup wizard resolve their resources only at run time: a missing key in a template builds
 /// fine and fails when the page opens. This loads each view with the theme and Main/MainLook.xaml, with rows in its
 /// lists and empty lists, and lays it out off screen so every template is built once.
 /// </summary>
@@ -86,6 +86,14 @@ public sealed class StatsXamlLoadTests
             {
                 Lay(view, model);
             }
+        }
+
+        // The setup wizard on each step: built before the window takes it in, it must bring the dictionaries it uses (the
+        // logo is not in the app's resources; a missing one stopped the app at start behind an error window).
+        for (var step = 0; step < MainViewModel.SetupStepKeys.Count; step++)
+        {
+            main.ShowSetup(step);
+            Lay(new Hearthpulse.App.Main.Setup.SetupWizard(), main);
         }
 
         var page = new DeckDetailsView();
