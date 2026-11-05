@@ -111,5 +111,7 @@ public sealed class Ornament : FrameworkElement
         }
 
         dc.DrawText(text, new Point(x, mid - (text.Height / 2)));
+        // The rule runs on after the title, as in Avalonia (Etalon Q6, B7).
+        Wave.Draw(dc, trim, gold, x + text.Width + 12, w, mid + 1);
     }
 }
