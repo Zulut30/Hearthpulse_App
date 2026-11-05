@@ -486,6 +486,10 @@ public partial class OverlayWindow : Window
             UpdateLayout();
         }
 
+        // Windows keeps the window within the screen (the CI runner's is 1024 x 768): lay the overlay out at the frame's
+        // size for the frame, or it is cut at the screen's edge.
+        Root.Measure(new Size(width, height));
+        Root.Arrange(new Rect(0, 0, width, height));
         var visual = new DrawingVisual();
         using (var dc = visual.RenderOpen())
         {
