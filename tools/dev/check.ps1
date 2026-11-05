@@ -14,6 +14,7 @@
 .EXAMPLE
   powershell -File tools/dev/check.ps1              # the change against main
   powershell -File tools/dev/check.ps1 -All         # whole solution, every suite
+  powershell -File tools/dev/check.ps1 -Full        # as -All, the two test suites at the same time
   powershell -File tools/dev/check.ps1 -Fast        # no analyzers, warnings stay warnings: an edit-compile loop, not a final check
   powershell -File tools/dev/check.ps1 -Base HEAD~1 # only the last commit
 #>
@@ -21,6 +22,10 @@
 param(
     [string]$Base = '',
     [switch]$All,
+    # -All with Hearthpulse.Tests and Presentation.Tests in two processes at once. Safe: each test process has a data
+    # folder of its own (TestDataFolder: pid and guid, HEARTHPULSE_DATA), no test opens a port or a named mutex or
+    # writes into the repository, and only Presentation.Tests shows real windows. Each suite keeps its own collections.
+    [switch]$Full,
     [switch]$Fast,
     [switch]$NoTests,
     # MSBuild nodes; a quarter of the cores leaves room for the game and other sessions.
@@ -40,6 +45,7 @@ if ($Fast) { $env:HEARTHPULSE_FAST = 'true'; $env:HEARTHPULSE_STRICT = '' } else
 $coreTests = 'tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj'
 $presentationTests = 'tests/Hearthpulse.Presentation.Tests/Hearthpulse.Presentation.Tests.csproj'
 
+if ($Full) { $All = $true }
 if (-not $Base) { $Base = (git merge-base HEAD main).Trim() }
 $files = @(git diff --name-only $Base) + @(git ls-files --others --exclude-standard) |
     Where-Object { $_ } | ForEach-Object { $_ -replace '\\', '/' } | Sort-Object -Unique
@@ -101,7 +107,25 @@ foreach ($project in ($build | Sort-Object -Unique)) {
     }
 }
 
-if (-not $NoTests) {
+if (-not $NoTests -and $Full -and $built['Hearthpulse.slnx']) {
+    # Both suites at once, each into a log of its own; the logs are shown when both have ended.
+    $runs = foreach ($project in @($coreTests, $presentationTests)) {
+        if ($project -eq $presentationTests -and $IsWindows -eq $false) { continue }
+        $log = Join-Path ([IO.Path]::GetTempPath()) ("hearthpulse-check-" + [IO.Path]::GetFileNameWithoutExtension($project) + ".log")
+        $process = Start-Process dotnet -ArgumentList "test $project --no-build -c Debug --filter Category!=Timing --nologo -v q" `
+            -NoNewWindow -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err"
+        $null = $process.Handle  # keeps the exit code readable after the process ends
+        [pscustomobject]@{ Project = $project; Process = $process; Log = $log }
+    }
+    foreach ($run in $runs) {
+        $run.Process.WaitForExit()
+        Write-Host "== test $($run.Project) [Category!=Timing], in parallel" -ForegroundColor Cyan
+        Get-Content $run.Log, "$($run.Log).err" -ErrorAction SilentlyContinue | Out-Host
+        Write-Host ("   {0:n0} s" -f ($run.Process.ExitTime - $run.Process.StartTime).TotalSeconds)
+        if ($run.Process.ExitCode) { $failed.Add("test $($run.Project)") }
+    }
+}
+elseif (-not $NoTests) {
     foreach ($project in $suites.Keys) {
         if ($built.ContainsKey('Hearthpulse.slnx')) { $ok = $built['Hearthpulse.slnx'] } else { $ok = $built[$project] }
         if (-not $ok) { continue }
