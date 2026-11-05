@@ -8,11 +8,17 @@ namespace Hearthpulse.App;
 public partial class App
 {
     /// <summary>
-    /// Render group <c>baseline</c>: the main-window pages and the overlay's layout mode on 16:9, 16:10 and 4:3 screens
-    /// (<see cref="VisualBaseline"/>), as <c>tools/visual/visual_check.py</c> compares them.
+    /// Render group <c>baseline</c>: the main-window pages with the made-up games, and the overlay's moments on 16:9, 16:10
+    /// and 4:3 screens (<see cref="VisualBaseline"/>), as <c>tools/visual/visual_check.py</c> compares them.
     /// </summary>
     private async Task RenderBaselineAsync(string folder)
     {
+        foreach (var game in VisualBaseline.Games)
+        {
+            _history.Add(game);
+        }
+
+        await _mainViewModel.RefreshAsync();
         foreach (var page in VisualBaseline.Pages)
         {
             _main.ShowPage(page);
@@ -21,13 +27,15 @@ public partial class App
             Save(_main, Path.Combine(folder, $"main-{page.ToLowerInvariant()}.png"));
         }
 
-        _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
-        _overlayViewModel.LayoutEditing = true;
-        foreach (var (name, width, height) in VisualBaseline.Screens)
+        foreach (var (moment, snapshot) in VisualBaseline.Moments)
         {
-            await _overlay.RenderToFileAsync(Path.Combine(folder, $"overlay-layout-{name}.png"), width, height, 0);
+            _overlayViewModel.Update(snapshot(_cards), _cards, _settings, null, null);
+            foreach (var (name, width, height) in VisualBaseline.Screens)
+            {
+                await _overlay.RenderToFileAsync(Path.Combine(folder, $"overlay-{moment}-{name}.png"), width, height, 0);
+            }
         }
 
-        _overlayViewModel.LayoutEditing = false;
+        _overlayViewModel.Update(LiveSnapshot.Empty, _cards, _settings, null, null);
     }
 }

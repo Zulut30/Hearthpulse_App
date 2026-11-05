@@ -130,20 +130,18 @@ unavailable log moment may be explicitly reported as skipped; do not turn a mand
 
 ## Visual baselines (CI)
 
-`tools/visual/visual_check.py` keeps 28 frames under watch: both UIs, Tavern / Frost / Shadow, main pages and the
-overlay's layout mode on 16:9, 16:10 and 4:3 screens (render group `baseline`, `VisualBaseline` in Core). It renders on
-the fixture data folder `tests/visual/data`, isolated (`HEARTHPULSE_ISOLATED=1`: no network, no Hearthstone install),
-and compares with `tests/visual/baselines/<ui>/<theme>-<scene>.webp` (lossless WebP): over 0.2 % of pixels changed
-fails, the app version under the sidebar is masked. CI job "Visual baselines" runs it on Windows and uploads
-`visual-renders` (renders and diff sheets) on a failure.
+`tools/visual/visual_check.py` keeps the baseline frames under watch: both UIs, Tavern / Frost / Shadow, main pages with
+three made-up games and the overlay over two made-up moments on 16:9, 16:10 and 4:3 screens (render group `baseline`,
+`VisualBaseline` in Core). It renders on the fixture data folder `tests/visual/data`, isolated
+(`HEARTHPULSE_ISOLATED=1`: no network, no Hearthstone install, fixed text fonts), and compares with
+`tests/visual/baselines/<ui>/<theme>-<scene>.webp` (lossless WebP): a channel moved by more than 8 on over 0.02 % of the
+pixels fails; the app version under the sidebar is masked. CI job "Visual baselines" runs it on Windows and uploads
+`visual-renders` (renders and diff sheets) on any difference and on a manual run.
 
-- A wanted change of those screens: take the artifact, Read its `diff/` sheets, then
-  `python -B -I tools/visual/visual_check.py update <artifact-dir>` (or `--scene Tavern-main-overview` for one) and
-  commit the baselines in the same change. Baselines come from the CI runner: WPF draws with the system's fonts, and
-  the Avalonia app with Segoe UI on Windows.
-- Screens in `PENDING` (being redesigned) are reported, never failed; take their baselines again when the redesign
-  lands and drop them from `PENDING`.
-- Locally: `render <out> --artifacts <short-dir>` then `compare <out>`; a local PC's fonts may differ from the runner's.
+- Baselines are taken on the CI runner only. A wanted change: `gh workflow run ci.yml --ref <branch>`, download
+  `visual-renders`, Read its `diff/` sheets, `python -B -I tools/visual/visual_check.py update <dir>`, commit with the
+  change. Steps, the V3 round and local use: `tests/visual/README.md`.
+- Screens in `PENDING` (being redesigned) are reported, never failed.
 
 ## What to look at in each PNG
 

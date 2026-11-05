@@ -38,19 +38,17 @@ THRESHOLD = 8  # per-channel difference that counts as a change: renders on the 
 MAX_CHANGED = 0.0002  # share of changed pixels a frame may have and still pass (0.02 %)
 
 PAGES = ["main-overview", "main-battlegrounds", "main-standard", "main-history", "main-settings"]
-SCREENS = ["overlay-layout-16x9", "overlay-layout-16x10", "overlay-layout-4x3"]
+OVERLAY = ["overlay-counters-16x9", "overlay-counters-16x10", "overlay-counters-4x3", "overlay-odds-16x9"]
 # The default theme gets every frame; two more (a cold one and the darkest) the pages people see first and one overlay.
 THEMES = {
-    "Tavern": PAGES + SCREENS,
-    "Frost": ["main-overview", "main-settings", "overlay-layout-16x9"],
-    "Shadow": ["main-overview", "main-settings", "overlay-layout-16x9"],
+    "Tavern": PAGES + OVERLAY,
+    "Frost": ["main-overview", "main-settings", "overlay-counters-16x9"],
+    "Shadow": ["main-overview", "main-settings", "overlay-counters-16x9"],
 }
-# Screens being redesigned: compared and reported, never failed, until their baselines are taken again.
+# Screens being redesigned: compared and reported, never failed, until their baselines are taken again (README).
 PENDING = {
     "main-standard": "V3 (decks)",
-    "overlay-layout-16x9": "V3 (overlay)",
-    "overlay-layout-16x10": "V3 (overlay)",
-    "overlay-layout-4x3": "V3 (overlay)",
+    **{scene: "V3 (overlay)" for scene in OVERLAY},
 }
 # Areas left out of the comparison (left, top, right, bottom), by scene prefix: the app version under the sidebar
 # changes with every release.

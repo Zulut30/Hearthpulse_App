@@ -185,9 +185,9 @@ jobs:
           if-no-files-found: ignore
 
   # Visual regression (tools/visual, tests/visual/README.md): both UIs render the baseline frames in three themes on the
-  # fixture data folder, isolated (no network, no Hearthstone), and each is compared with its stored baseline. On a
-  # difference the renders and before | after | diff sheets go up as the artifact visual-renders; a manual run uploads
-  # them too, for taking new baselines.
+  # fixture data folder, isolated (no network, no Hearthstone, fixed fonts), and each is compared with its stored
+  # baseline. The renders and before | after | diff sheets go up as the artifact visual-renders on any difference
+  # (pending screens too) and on every manual run, for taking new baselines (tests/visual/README.md).
   visual:
     name: Visual baselines (Windows, both UIs)
     runs-on: windows-latest
@@ -233,7 +233,7 @@ jobs:
         if: steps.code.outputs.run == 'true'
         run: python -B -I tools/visual/visual_check.py compare visual-renders
       - name: Renders and diff sheets
-        if: steps.code.outputs.run == 'true' && (failure() || github.event_name == 'workflow_dispatch')
+        if: always() && steps.code.outputs.run == 'true' && (failure() || github.event_name == 'workflow_dispatch' || hashFiles('visual-renders/diff/**') != '')
         uses: actions/upload-artifact@v4
         with:
           name: visual-renders

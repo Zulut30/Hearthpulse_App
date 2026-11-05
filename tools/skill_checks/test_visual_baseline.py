@@ -31,12 +31,14 @@ class VisualBaselineTests(unittest.TestCase):
         source = (ROOT / "src/Hearthpulse.Core/Hosting/VisualBaseline.cs").read_text(encoding="utf-8")
         pages = re.search(r"Pages \{ get; \} = \[(.*?)\];", source).group(1)
         rendered = {f"main-{p.lower()}" for p in re.findall(r'"(\w+)"', pages)}
-        rendered |= {f"overlay-layout-{n}" for n in re.findall(r'\("(\w+)", \d+, \d+\)', source)}
+        screens = re.findall(r'\("(\w+)", \d+, \d+\)', source)
+        moments = re.findall(r'\("(\w+)", (?:cards|_) =>', source)
+        rendered |= {f"overlay-{m}-{n}" for m in moments for n in screens}
         wanted = {scene for scenes in visual.THEMES.values() for scene in scenes}
         self.assertLessEqual(wanted, rendered)
         self.assertLessEqual(set(visual.PENDING), wanted)
-        self.assertEqual({"overlay-layout-16x9", "overlay-layout-16x10", "overlay-layout-4x3"} & wanted,
-                         {"overlay-layout-16x9", "overlay-layout-16x10", "overlay-layout-4x3"})
+        # Every screen shape is watched (16:9, 16:10, 4:3).
+        self.assertEqual({"16x9", "16x10", "4x3"}, {s.rsplit("-", 1)[1] for s in wanted if s.startswith("overlay-")})
         self.assertGreaterEqual(len(visual.THEMES), 3)
         self.assertTrue(20 <= 2 * len(visual.frames()) <= 32, len(visual.frames()))
 
@@ -59,7 +61,7 @@ class VisualBaselineTests(unittest.TestCase):
         self.assertEqual(0, visual.difference(before, after, [(0, 0, 2, 1)])[0])
         self.assertEqual((1.0, None), visual.difference(before, Image.new("RGB", (100, 11))))
         self.assertEqual([(16, 800, 140, 832)], visual.masks("main-overview"))
-        self.assertEqual([], visual.masks("overlay-layout-16x9"))
+        self.assertEqual([], visual.masks("overlay-counters-16x9"))
 
     def compare(self, frames):
         """Baseline and render folders of one UI with the given (baseline, rendered) images per frame."""
@@ -79,10 +81,10 @@ class VisualBaselineTests(unittest.TestCase):
 
     def test_a_frame_over_the_tolerance_fails_with_a_sheet_and_a_pending_one_only_reports(self):
         grey, red = Image.new("RGB", (40, 40), (90, 90, 90)), Image.new("RGB", (40, 40), (200, 40, 40))
-        code, printed, out = self.compare({"Tavern-main-overview": (grey, red), "Tavern-overlay-layout-16x9": (grey, red)})
+        code, printed, out = self.compare({"Tavern-main-overview": (grey, red), "Tavern-overlay-counters-16x9": (grey, red)})
         self.assertEqual(1, code)
         self.assertIn("ava/Tavern-main-overview: changed 100.00% - FAIL", printed)
-        self.assertIn("ava/Tavern-overlay-layout-16x9: changed 100.00% - pending V3 (overlay)", printed)
+        self.assertIn("ava/Tavern-overlay-counters-16x9: changed 100.00% - pending V3 (overlay)", printed)
         self.assertTrue((out / "diff/ava/Tavern-main-overview.png").is_file())
 
     def test_identical_frames_pass_and_a_missing_baseline_or_render_fails(self):
