@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Hearthpulse.Core;
@@ -88,7 +87,7 @@ public sealed class OverlayLayoutTests
     public void Lobby_panel_default_spot_keeps_clear_of_the_leaderboard_bar_and_counters(double width)
     {
         var panelWidth = Assert.Single(new[] { "src/Hearthpulse.App/Overlay/BgLobbyPanel.xaml", "src/Hearthpulse.UI/Overlay/BgLobbyPanel.axaml" }
-            .Select(f => double.Parse(XDocument.Load(Path.Combine(RepoRoot(), f)).Root!.Descendants().First(e => e.Name.LocalName == "Border").Attribute("Width")!.Value,
+            .Select(f => double.Parse(XDocument.Load(Path.Combine(RepoFiles.Root, f)).Root!.Descendants().First(e => e.Name.LocalName == "Border").Attribute("Width")!.Value,
                 CultureInfo.InvariantCulture))
             .Distinct());
         var leaderboard = ((width - (SurfaceHeight * 4 / 3)) / 2, AppSettings.DefaultLeaderboardTop * SurfaceHeight,
@@ -112,7 +111,7 @@ public sealed class OverlayLayoutTests
 
     private static List<Panel> Panels(string file)
     {
-        var root = XDocument.Load(Path.Combine(RepoRoot(), file)).Root!;
+        var root = XDocument.Load(Path.Combine(RepoFiles.Root, file)).Root!;
         var surface = root.Descendants().Single(e => e.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml"))?.Value == "Surface"
                                                       || e.Attribute("Name")?.Value == "Surface");
         return surface.Elements()
@@ -171,7 +170,4 @@ public sealed class OverlayLayoutTests
 
     private static bool Intersects((double X, double Y, double W, double H) a, (double X, double Y, double W, double H) b) =>
         a.X < b.X + b.W && b.X < a.X + a.W && a.Y < b.Y + b.H && b.Y < a.Y + a.H;
-
-    private static string RepoRoot([CallerFilePath] string source = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", ".."));
 }

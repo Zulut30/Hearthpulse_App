@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Hearthpulse.Core;
 using Hearthpulse.Core.Localization;
@@ -56,7 +55,7 @@ public sealed class LocalizationTests
     [Fact]
     public void Every_key_used_in_the_code_exists()
     {
-        var root = RepoRoot();
+        var root = RepoFiles.Root;
         var used = new Regex(@"\{i:Loc\s+([A-Za-z0-9_.-]+)\s*\}|Loc\.(?:T|F|P|Or)\(\s*""([A-Za-z0-9_.-]+)""", RegexOptions.CultureInvariant);
         var missing = new List<string>();
         foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.*", SearchOption.AllDirectories)
@@ -80,7 +79,7 @@ public sealed class LocalizationTests
     [Fact]
     public void Keys_are_unique_across_files_and_no_text_is_empty()
     {
-        var root = RepoRoot();
+        var root = RepoFiles.Root;
         foreach (var language in Loc.Languages)
         {
             var seen = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -219,17 +218,4 @@ public sealed class LocalizationTests
 
     private static string Placeholders(string text) =>
         string.Join(",", Placeholder.Matches(text).Select(m => m.Groups[1].Value).Distinct().Order(StringComparer.Ordinal));
-
-    // From this source file's path rather than the test binaries: builds may put those outside the repository
-    // (--artifacts-path).
-    private static string RepoRoot([CallerFilePath] string source = "")
-    {
-        var dir = new DirectoryInfo(Path.GetDirectoryName(source)!);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Hearthpulse.slnx")))
-        {
-            dir = dir.Parent;
-        }
-
-        return dir?.FullName ?? throw new DirectoryNotFoundException("Repository root (Hearthpulse.slnx) not found above the test sources.");
-    }
 }

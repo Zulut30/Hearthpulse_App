@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -16,15 +15,12 @@ public sealed partial class AccessibleNameTests
 
     private static readonly string[] TextElements = ["TextBlock", "Run", "Label", "SelectableTextBlock", "AccessText"];
 
-    private static string RepoRoot([CallerFilePath] string source = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", ".."));
-
     [Theory]
     [InlineData("src/Hearthpulse.App")]
     [InlineData("src/Hearthpulse.UI")]
     public void Every_icon_only_button_has_an_accessible_name(string folder)
     {
-        var root = Path.Combine(RepoRoot(), folder);
+        var root = Path.Combine(RepoFiles.Root, folder);
         var unnamed = Directory.EnumerateFiles(root, "*.*xaml", SearchOption.AllDirectories)
             .Where(f => f.EndsWith(".xaml", StringComparison.Ordinal) || f.EndsWith(".axaml", StringComparison.Ordinal))
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
@@ -78,7 +74,7 @@ public sealed partial class AccessibleNameTests
     [InlineData("src/Hearthpulse.UI/Overlay")]
     public void Overlay_backdrops_are_dynamic_resources(string folder)
     {
-        var root = Path.Combine(RepoRoot(), folder);
+        var root = Path.Combine(RepoFiles.Root, folder);
         var keys = string.Join('|', Hearthpulse.UI.Overlay.OverlayViewModel.BackdropBrushes);
         var found = Directory.EnumerateFiles(root, "*.*xaml")
             .SelectMany(f => File.ReadLines(f).Select((line, i) => (f, i, line)))
