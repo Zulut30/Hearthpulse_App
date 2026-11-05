@@ -16,13 +16,14 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
-    <Grid Background="{StaticResource SetupScrim}">
+    <!-- Tab stays inside the wizard while it covers the page (Esc closes it: MainWindow.OnKeyDown) -->
+    <Grid Background="{StaticResource SetupScrim}" KeyboardNavigation.TabNavigation="Cycle" KeyboardNavigation.ControlTabNavigation="Cycle">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <Border Style="{StaticResource Card}" MaxWidth="760" Margin="40,32" Padding="32,24" VerticalAlignment="Center">
                 <StackPanel>
                     <!-- Header: the logo, the wizard's name and Skip -->
                     <DockPanel>
-                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="{i:Loc Setup.Skip}" Command="{Binding CloseSetup}" VerticalAlignment="Top" />
+                        <Button x:Name="SkipButton" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="{i:Loc Setup.Skip}" Command="{Binding CloseSetup}" VerticalAlignment="Top" />
                         <StackPanel Orientation="Horizontal">
                             <Image Source="{StaticResource HearthpulseLogo}" Width="40" Height="40" VerticalAlignment="Center" />
                             <StackPanel Margin="12,0,16,0" VerticalAlignment="Center">
@@ -47,7 +48,7 @@
                                 <DataTemplate DataType="{x:Type m:SetupStepItem}">
                                     <Button Style="{StaticResource BareRow}" HorizontalAlignment="Center" CommandParameter="{Binding Index}"
                                             Command="{Binding DataContext.SetupGo, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                            AutomationProperties.Name="{Binding Title}">
+                                            AutomationProperties.Name="{Binding AccessibleName}">
                                         <StackPanel>
                                             <Grid Width="36" Height="36" HorizontalAlignment="Center">
                                                 <Ellipse x:Name="Dot" Fill="{StaticResource Surface3}" Stroke="{StaticResource AccentLine}" StrokeThickness="1.5" />
@@ -61,7 +62,7 @@
                                         </StackPanel>
                                     </Button>
                                     <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding Passed}" Value="True">
+                                        <DataTrigger Binding="{Binding Done}" Value="True">
                                             <Setter TargetName="Dot" Property="Fill" Value="{StaticResource AccentContainer}" />
                                             <Setter TargetName="Number" Property="Visibility" Value="Collapsed" />
                                             <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
@@ -70,6 +71,9 @@
                                             <Setter TargetName="Dot" Property="Fill" Value="{StaticResource Accent}" />
                                             <Setter TargetName="Dot" Property="Stroke" Value="{StaticResource GlyphGoldLit}" />
                                             <Setter TargetName="Number" Property="Foreground" Value="{StaticResource OnAccent}" />
+                                            <!-- The open step shows its number, done or not -->
+                                            <Setter TargetName="Number" Property="Visibility" Value="Visible" />
+                                            <Setter TargetName="Tick" Property="Visibility" Value="Collapsed" />
                                             <Setter TargetName="Name" Property="Foreground" Value="{StaticResource Text}" />
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
@@ -79,7 +83,7 @@
                     </Grid>
 
                     <!-- The step: its engraved glyph on a soft glow, then its words and action -->
-                    <Grid MinHeight="200">
+                    <Grid Height="320">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -114,7 +118,7 @@
                         <StackPanel Grid.Column="1" Visibility="{Binding SetupOnMigration, Converter={StaticResource Vis}}">
                             <TextBlock Text="{i:Loc Setup.Migration.Title}" Style="{StaticResource H2}" TextWrapping="Wrap" />
                             <TextBlock Text="{i:Loc Setup.Migration.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
-                            <mg:MigrationCard DataContext="{Binding Migration}" Full="True" />
+                            <mg:MigrationCard DataContext="{Binding Migration}" Full="True" Embedded="True" />
                         </StackPanel>
 
                         <!-- 3. The overlay panels: what they show, one button into the layout mode -->

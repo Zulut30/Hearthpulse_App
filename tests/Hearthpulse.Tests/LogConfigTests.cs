@@ -28,6 +28,21 @@ public sealed class LogConfigTests : IDisposable
     }
 
     [Fact]
+    public void A_fixed_section_keeps_its_other_keys_and_the_file_as_it_was_goes_to_bak()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+        File.WriteAllLines(ConfigPath, ["[Power]", "LogLevel=1", "FilePrinting=True", "Verbose=False", "TimePrinting=True"]);
+        var before = File.ReadAllText(ConfigPath);
+
+        Assert.True(LogConfig.EnsureIn(ConfigPath));
+
+        var text = File.ReadAllText(ConfigPath);
+        Assert.Contains("TimePrinting=True", text, StringComparison.Ordinal);
+        Assert.Contains("Verbose=True", text, StringComparison.Ordinal);
+        Assert.Equal(before, File.ReadAllText(ConfigPath + ".bak"));
+    }
+
+    [Fact]
     public void Sections_of_other_trackers_stay_and_a_quiet_power_log_is_made_verbose()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);

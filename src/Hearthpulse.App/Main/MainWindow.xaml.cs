@@ -133,6 +133,21 @@ public partial class MainWindow : Window
         }
 
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        // The setup wizard covers the page: Esc closes it like Skip, and the page shortcuts (Ctrl+1..8) wait until it is closed.
+        if (_viewModel.SetupOpen)
+        {
+            if (key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None)
+            {
+                e.Handled = _viewModel.CloseSetupOnEscape();
+            }
+            else if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                e.Handled = true;
+            }
+
+            return;
+        }
+
         if (Keyboard.Modifiers == ModifierKeys.Control
             && MainViewModel.NavPageForDigit(key is >= Key.D1 and <= Key.D9 ? key - Key.D0 : key is >= Key.NumPad1 and <= Key.NumPad9 ? key - Key.NumPad0 : 0) is { } page)
         {

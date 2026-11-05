@@ -83,6 +83,12 @@ internal static partial class OffscreenRenderer
                 await Save(main, Path.Combine(folder, $"main-setup-{step + 1}.png"));
             }
 
+            // The logs step with the logs off: a log.config that does not exist (read, never written here)
+            host.Main.SetupLogConfigFile = Path.Combine(folder, "absent", "log.config");
+            host.Main.ShowSetup(0);
+            await Save(main, Path.Combine(folder, "main-setup-1-off.png"));
+            host.Main.SetupLogConfigFile = null;
+
             host.Main.CloseSetup.Execute(null);
         }
 

@@ -18,17 +18,25 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <UserControl.Styles>
-        <!-- A step marker: muted until passed (ticked) or open (lit gold) -->
+        <!-- A step marker: muted, ticked once its step is done, lit gold while open. The base values are styles too:
+             a local value would outrank .done and .current. -->
+        <Style Selector="Panel.stepDot Ellipse">
+            <Setter Property="Fill" Value="{StaticResource Surface3}" />
+            <Setter Property="Stroke" Value="{StaticResource AccentLine}" />
+        </Style>
+        <Style Selector="Panel.stepDot TextBlock.number">
+            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+        </Style>
         <Style Selector="Panel.stepDot TextBlock.tick">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <Style Selector="Panel.stepDot.passed Ellipse">
+        <Style Selector="Panel.stepDot.done Ellipse">
             <Setter Property="Fill" Value="{StaticResource AccentContainer}" />
         </Style>
-        <Style Selector="Panel.stepDot.passed TextBlock.number">
+        <Style Selector="Panel.stepDot.done TextBlock.number">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <Style Selector="Panel.stepDot.passed TextBlock.tick">
+        <Style Selector="Panel.stepDot.done TextBlock.tick">
             <Setter Property="IsVisible" Value="True" />
         </Style>
         <Style Selector="Panel.stepDot.current Ellipse">
@@ -38,17 +46,25 @@
         <Style Selector="Panel.stepDot.current TextBlock.number">
             <Setter Property="Foreground" Value="{StaticResource OnAccent}" />
         </Style>
+        <!-- The open step shows its number, done or not -->
+        <Style Selector="Panel.stepDot.current TextBlock.number">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="Panel.stepDot.current TextBlock.tick">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
         <Style Selector="TextBlock.stepName.current">
             <Setter Property="Foreground" Value="{StaticResource Text}" />
         </Style>
     </UserControl.Styles>
-    <Panel Background="{StaticResource SetupScrim}">
+    <!-- Tab stays inside the wizard while it covers the page (Esc closes it: MainView.OnWindowKeyDown) -->
+    <Panel Background="{StaticResource SetupScrim}" KeyboardNavigation.TabNavigation="Cycle">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <Border Classes="card" MaxWidth="760" Margin="40,32" Padding="32,24" VerticalAlignment="Center">
                 <StackPanel>
                     <!-- Header: the logo, the wizard's name and Skip -->
                     <DockPanel>
-                        <Button DockPanel.Dock="Right" Classes="ghost" Content="{i:Loc Setup.Skip}" Command="{Binding CloseSetup}" VerticalAlignment="Top" />
+                        <Button Name="SkipButton" DockPanel.Dock="Right" Classes="ghost" Content="{i:Loc Setup.Skip}" Command="{Binding CloseSetup}" VerticalAlignment="Top" />
                         <StackPanel Orientation="Horizontal">
                             <Image Source="{StaticResource HearthpulseLogo}" Width="40" Height="40" VerticalAlignment="Center" />
                             <StackPanel Margin="12,0,16,0" VerticalAlignment="Center">
@@ -73,12 +89,12 @@
                                 <DataTemplate x:DataType="m:SetupStepItem">
                                     <Button Classes="bare" HorizontalAlignment="Center" CommandParameter="{Binding Index}"
                                             Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).SetupGo}"
-                                            AutomationProperties.Name="{Binding Title}">
+                                            AutomationProperties.Name="{Binding AccessibleName}">
                                         <StackPanel>
-                                            <Panel Classes="stepDot" Classes.current="{Binding Current}" Classes.passed="{Binding Passed}" Width="36" Height="36"
+                                            <Panel Classes="stepDot" Classes.current="{Binding Current}" Classes.done="{Binding Done}" Width="36" Height="36"
                                                    HorizontalAlignment="Center">
-                                                <Ellipse Fill="{StaticResource Surface3}" Stroke="{StaticResource AccentLine}" StrokeThickness="1.5" />
-                                                <TextBlock Classes="number" Text="{Binding Number}" FontWeight="Bold" Foreground="{StaticResource Muted}"
+                                                <Ellipse StrokeThickness="1.5" />
+                                                <TextBlock Classes="number" Text="{Binding Number}" FontWeight="Bold"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 <TextBlock Classes="icon tick" Text="&#xF012C;" FontSize="{StaticResource FontSizeIcon}" Foreground="{StaticResource OnAccentContainer}"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -93,7 +109,7 @@
                     </Panel>
 
                     <!-- The step: its engraved glyph on a soft glow, then its words and action -->
-                    <Grid ColumnDefinitions="Auto,*" MinHeight="200">
+                    <Grid ColumnDefinitions="Auto,*" Height="320">
                         <Panel Width="96" Height="96" Margin="0,0,24,0" VerticalAlignment="Top">
                             <Ellipse Fill="{StaticResource Glow}" />
                             <c:GoldGlyph Width="64" Height="64" Glyph="{x:Static c:GameIcons.Settings}" IsVisible="{Binding SetupOnLogs}" />
@@ -122,7 +138,7 @@
                         <StackPanel Grid.Column="1" IsVisible="{Binding SetupOnMigration}">
                             <TextBlock Text="{i:Loc Setup.Migration.Title}" Classes="h2" TextWrapping="Wrap" />
                             <TextBlock Text="{i:Loc Setup.Migration.Text}" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,16" />
-                            <mg:MigrationCard DataContext="{Binding Migration}" Full="True" />
+                            <mg:MigrationCard DataContext="{Binding Migration}" Full="True" Embedded="True" />
                         </StackPanel>
 
                         <!-- 3. The overlay panels: what they show, one button into the layout mode -->

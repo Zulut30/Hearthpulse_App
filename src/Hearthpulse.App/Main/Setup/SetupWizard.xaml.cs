@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace Hearthpulse.App.Main.Setup;
 
@@ -9,10 +10,25 @@ namespace Hearthpulse.App.Main.Setup;
 /// </summary>
 public partial class SetupWizard : UserControl
 {
-    public SetupWizard() => InitializeComponent();
+    public SetupWizard()
+    {
+        InitializeComponent();
+        // Shown: the keyboard starts in the wizard (on Skip, its first control), not on the page under it.
+        IsVisibleChanged += (_, e) =>
+        {
+            if (e.NewValue is true)
+            {
+                _ = Dispatcher.BeginInvoke(DispatcherPriority.Input, () => SkipButton.Focus());
+            }
+        };
+    }
 
     /// <summary>"Arrange panels" on the overlay step.</summary>
     public event Action? ArrangeRequested;
 
-    private void OnArrange(object sender, RoutedEventArgs e) => ArrangeRequested?.Invoke();
+    private void OnArrange(object sender, RoutedEventArgs e)
+    {
+        (DataContext as MainViewModel)?.SetupArranged();
+        ArrangeRequested?.Invoke();
+    }
 }

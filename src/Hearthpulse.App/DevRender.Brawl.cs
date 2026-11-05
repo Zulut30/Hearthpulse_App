@@ -94,6 +94,14 @@ public partial class App
                 Save(_main, Path.Combine(folder, $"main-setup-{step + 1}.png"));
             }
 
+            // The logs step with the logs off: a log.config that does not exist (read, never written here)
+            _mainViewModel.SetupLogConfigFile = Path.Combine(folder, "absent", "log.config");
+            _mainViewModel.ShowSetup(0);
+            await Task.Delay(500);
+            _main.UpdateLayout();
+            Save(_main, Path.Combine(folder, "main-setup-1-off.png"));
+            _mainViewModel.SetupLogConfigFile = null;
+
             _mainViewModel.CloseSetup.Execute(null);
         }
 

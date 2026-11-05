@@ -12,26 +12,24 @@
   "Setup.Step.Layout": "Overlay",
   "Setup.Step.Look": "Look",
   "Setup.Step.Done": "Done",
-
+  "Setup.StepName": "Step {0} of {1}: {2}",
+  "Setup.StepNameCurrent": "Step {0} of {1}: {2}, current",
+  "Setup.StepNameDone": "Step {0} of {1}: {2}, done",
   "Setup.Logs.Title": "Hearthstone writes each game to its logs",
-  "Setup.Logs.Text": "Hearthpulse reads them: that is how it follows your games. It turns on the logs it needs in Hearthstone's log.config.",
+  "Setup.Logs.Text": "Hearthpulse reads them: that is how it follows your games. It turns on the logs it needs by itself.",
   "Setup.Logs.Ready": "Logs are on",
-  "Setup.Logs.Missing": "Not on yet: {0}",
+  "Setup.Logs.Missing": "Not all the logs it needs are on",
   "Setup.Logs.NotFound": "Hearthstone was not found. Start it once and Hearthpulse finds it.",
   "Setup.Logs.Fix": "Turn logs on",
   "Setup.Logs.Fixed": "Done. Hearthstone writes them from its next start.",
   "Setup.Logs.Restart": "Done. Restart Hearthstone once so it reads the new settings.",
-  "Setup.Logs.Failed": "log.config could not be changed. Check that the Hearthstone folder is not read-only.",
-
+  "Setup.Logs.Failed": "The logs could not be turned on: Hearthstone's log.config could not be changed. Check that its folder is not read-only.",
   "Setup.Migration.Title": "Bring your games from another tracker",
   "Setup.Migration.Text": "History, decks and replays from Hearthstone Deck Tracker or Firestone. Their files are only read.",
-
   "Setup.Layout.Title": "Place the overlay panels",
   "Setup.Layout.Text": "Over the game, panels show your deck, the opponent's cards and Battlegrounds tips. Drag them where they suit you; in a game Ctrl+Shift+L does the same.",
-
   "Setup.Look.Title": "Pick a look",
   "Setup.Look.Text": "A theme colours the app and the overlay.",
-
   "Setup.Done.Title": "All set",
   "Setup.Done.Text": "Start Hearthstone and play a game: the overlay appears by itself, and the game lands in History."
 }

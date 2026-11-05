@@ -184,6 +184,21 @@ public partial class MainView : UserControl
             return;
         }
 
+        // The setup wizard covers the page: Esc closes it like Skip, and the page shortcuts (Ctrl+1..8) wait until it is closed.
+        if (_viewModel.SetupOpen)
+        {
+            if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None)
+            {
+                e.Handled = _viewModel.CloseSetupOnEscape();
+            }
+            else if (e.KeyModifiers == KeyModifiers.Control)
+            {
+                e.Handled = true;
+            }
+
+            return;
+        }
+
         var digit = e.Key is >= Key.D1 and <= Key.D9 ? e.Key - Key.D0 : e.Key is >= Key.NumPad1 and <= Key.NumPad9 ? e.Key - Key.NumPad0 : 0;
         if (e.KeyModifiers == KeyModifiers.Control && MainViewModel.NavPageForDigit(digit) is { } page)
         {
