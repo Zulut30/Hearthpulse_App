@@ -6,7 +6,7 @@ namespace Hearthpulse.Core.Stats;
 /// <summary>A ranked step: star level 1-50 (Bronze 10 ... Diamond 1), 51 = Legend with its place when known.</summary>
 public sealed record LadderRank(int StarLevel, int? LegendRank)
 {
-    public bool IsLegend => StarLevel >= 51;
+    public bool IsLegend => StarLevel >= RankInfo.LegendStarLevel;
 
     /// <summary>The rank in the interface language ("Diamond 4", "Легенда 1 204").</summary>
     public string Display => new RankInfo(string.Empty, 0, StarLevel, LegendRank ?? 0, 0).Display;
@@ -90,7 +90,7 @@ public static class LadderSession
         var ranked = games.Where(g => g.Mode == "Ranked" && g.Format == format && !g.IsAbandoned && g.StartedAt >= since)
             .OrderBy(g => g.StartedAt)
             .ToList();
-        var liveRank = live is { StarLevel: > 0 } ? new LadderRank(Math.Min(live.StarLevel, 51), live.LegendRank > 0 ? live.LegendRank : null) : null;
+        var liveRank = live is { StarLevel: > 0 } ? new LadderRank(Math.Min(live.StarLevel, RankInfo.LegendStarLevel), live.LegendRank > 0 ? live.LegendRank : null) : null;
         if (ranked.Count == 0 && liveRank is null)
         {
             return null;

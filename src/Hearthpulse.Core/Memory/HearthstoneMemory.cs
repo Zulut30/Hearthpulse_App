@@ -15,7 +15,10 @@ public sealed record RankInfo(string Format, int LeagueId, int StarLevel, int Le
 {
     private static readonly string[] Leagues = ["Bronze", "Silver", "Gold", "Platinum", "Diamond"];
 
-    public bool IsLegend => LegendRank > 0 || StarLevel >= 51;
+    /// <summary>The star level the client gives Legend (Bronze 10 = 1 ... Diamond 1 = 50); it counts on past it.</summary>
+    public const int LegendStarLevel = 51;
+
+    public bool IsLegend => LegendRank > 0 || StarLevel >= LegendStarLevel;
 
     /// <summary>
     /// Rank as stored in the game history, culture-independent: "Diamond 4", "Legend 1,204" (invariant digit grouping).

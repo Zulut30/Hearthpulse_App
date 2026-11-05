@@ -265,7 +265,7 @@ public static class FirestoneImport
             WentFirst = Text(r, "coinPlay") switch { "play" => true, "coin" => false, _ => null },
             DeckName = Text(r, "playerDeckName") is { Length: > 0 } name ? name : null,
             DeckCode = code,
-            Rank = legend is { } number ? new RankInfo(string.Empty, 5, 51, number, 0).Text : null,
+            Rank = legend is { } number ? new RankInfo(string.Empty, 5, RankInfo.LegendStarLevel, number, 0).Text : null,
             RankLegend = legend,
             Source = Source,
         };

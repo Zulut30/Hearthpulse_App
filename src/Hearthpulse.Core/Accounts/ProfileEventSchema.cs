@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Hearthpulse.Core.Memory;
 
 namespace Hearthpulse.Core.Accounts;
 
@@ -188,9 +189,9 @@ public static partial class ProfileEventSchema
         }
 
         var rank = Obj(value, field);
-        var level = Int(rank["starLevel"], field + ".starLevel", 1, 51);
+        var level = Int(rank["starLevel"], field + ".starLevel", 1, RankInfo.LegendStarLevel);
         var legend = OptInt(rank["legendRank"], field + ".legendRank", 1, 1_000_000);
-        if (legend is not null && level != 51)
+        if (legend is not null && level != RankInfo.LegendStarLevel)
         {
             throw new Invalid(field + ".legendRank");
         }
