@@ -210,6 +210,10 @@ public sealed class MainNavigationContractTests
             Assert.Equal(Loc.T("Library.ConfirmNo"), ((System.Windows.Controls.Button)System.Windows.Input.Keyboard.FocusedElement).Content);
             Assert.Equal("2:game", Key(System.Windows.Input.Key.Escape));
             Assert.False(cards[2].Confirming);
+            // Answered with Enter on "No": the question goes, the focus is back on the game.
+            Key(System.Windows.Input.Key.Delete);
+            Assert.Equal("2:game", Key(System.Windows.Input.Key.Enter));
+            Assert.False(cards[2].Confirming);
 
             // S and O reach the game through the view's keys (no replay file here: the star says so).
             var opened = new List<Uri>();
@@ -223,6 +227,16 @@ public sealed class MainNavigationContractTests
             Assert.Equal([new Uri("https://hearthpulse.net/replay/abc")], opened);
             Key(System.Windows.Input.Key.S);
             Assert.Equal(Loc.T("Library.Star.Failed"), model.Library.Status);
+
+            // Shift+S shares (no replay file here: it says so). The view's key method takes the modifiers a test cannot press.
+            Assert.True(library.ListKey(games[2], System.Windows.Input.Key.S, System.Windows.Input.ModifierKeys.Shift));
+            var deadline = DateTime.UtcNow.AddMinutes(1);
+            while (model.Library.Status != Loc.T("Library.ShareFailed") && DateTime.UtcNow < deadline)
+            {
+                Pump();
+            }
+
+            Assert.Equal(Loc.T("Library.ShareFailed"), model.Library.Status);
         }
         finally
         {

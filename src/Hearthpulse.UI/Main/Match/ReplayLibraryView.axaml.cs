@@ -42,7 +42,7 @@ public partial class ReplayLibraryView : UserControl
     /// The keyboard in the list (review m3). The list is one Tab stop and its items take no focus: Up and Down move from
     /// game to game (the next one scrolled into view), Right goes on to the game's own buttons, Left goes back, Esc returns
     /// to the game; Enter opens it. S, Shift+S, Delete and O act on the game (<see cref="ReplayLibraryViewModel.HandleCardKey"/>);
-    /// Delete's question takes the focus on "No", and Esc cancels it.
+    /// Delete's question takes the focus on "No", Esc cancels it, and an answer (Enter) brings the focus back to the game.
     /// </summary>
     private void OnListKey(object? sender, KeyEventArgs e)
     {
@@ -75,6 +75,13 @@ public partial class ReplayLibraryView : UserControl
             case Key.Escape when plain && at > 0:
                 buttons[0].Focus(NavigationMethod.Directional);
                 break;
+            case Key.Enter or Key.Space when plain && card.Confirming && at >= buttons.Count - 2 && at > 0:
+                // "Yes" or "No" of the question: answered, the focus goes back to the game (or to the one now in its place).
+                var index = List.Items.IndexOf(card);
+                current.Command?.Execute(current.CommandParameter);
+                List.UpdateLayout();
+                FocusGameAt(List.Items.Contains(card) ? List.Items.IndexOf(card) : Math.Min(index, List.ItemCount - 1));
+                break;
             default:
                 if (!model.HandleCardKey(card, e.Key.ToString(), shift: !plain))
                 {
@@ -100,10 +107,20 @@ public partial class ReplayLibraryView : UserControl
         var next = List.Items.IndexOf(card) + step;
         if (next >= 0 && next < List.ItemCount)
         {
-            List.ScrollIntoView(next);
-            List.UpdateLayout();
-            (List.ContainerFromIndex(next)?.GetVisualDescendants().OfType<Button>().FirstOrDefault())?.Focus(NavigationMethod.Directional);
+            FocusGameAt(next);
         }
+    }
+
+    private void FocusGameAt(int index)
+    {
+        if (index < 0 || index >= List.ItemCount)
+        {
+            return;
+        }
+
+        List.ScrollIntoView(index);
+        List.UpdateLayout();
+        (List.ContainerFromIndex(index)?.GetVisualDescendants().OfType<Button>().FirstOrDefault())?.Focus(NavigationMethod.Directional);
     }
 
     /// <summary>Ctrl+F: the search box takes the focus with its text selected.</summary>

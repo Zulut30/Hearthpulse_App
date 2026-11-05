@@ -31,25 +31,34 @@ public partial class ReplayLibraryView : UserControl
     /// The keyboard in the list (review m3). The list is one Tab stop and its items take no focus: Up and Down move from
     /// game to game (the next one scrolled into view), Right goes on to the game's own buttons, Left goes back, Esc returns
     /// to the game; Enter opens it. S, Shift+S, Delete and O act on the game (<see cref="ReplayLibraryViewModel.HandleCardKey"/>);
-    /// Delete's question takes the focus on "No", and Esc cancels it.
+    /// Delete's question takes the focus on "No", Esc cancels it, and an answer (Enter) brings the focus back to the game.
     /// </summary>
     private void OnListKey(object sender, KeyEventArgs e)
     {
-        if (e.OriginalSource is not Button { DataContext: LibraryCard card } current || _model is not { } model
-            || (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0)
+        if (e.OriginalSource is Button current && ListKey(current, e.Key, Keyboard.Modifiers))
         {
-            return;
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>What <see cref="OnListKey"/> does with <paramref name="key"/> on <paramref name="current"/>; true when it took the key.</summary>
+    internal bool ListKey(Button current, Key key, ModifierKeys modifiers)
+    {
+        if (current is not { DataContext: LibraryCard card } || _model is not { } model
+            || (modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Windows)) != 0)
+        {
+            return false;
         }
 
-        var plain = Keyboard.Modifiers == ModifierKeys.None;
+        var plain = modifiers == ModifierKeys.None;
         var buttons = List.ItemContainerGenerator.ContainerFromItem(card) is DependencyObject item
             ? Buttons(item).Where(b => b.IsVisible && b.IsEnabled).ToList()
             : [];
         var at = buttons.IndexOf(current);
-        switch (e.Key)
+        switch (key)
         {
             case Key.Up or Key.Down when plain:
-                MoveToGame(card, e.Key == Key.Down ? 1 : -1);
+                MoveToGame(card, key == Key.Down ? 1 : -1);
                 break;
             case Key.Right when plain && at >= 0:
                 buttons[Math.Min(at + 1, buttons.Count - 1)].Focus();
@@ -64,10 +73,17 @@ public partial class ReplayLibraryView : UserControl
             case Key.Escape when plain && at > 0:
                 buttons[0].Focus();
                 break;
+            case Key.Enter or Key.Space when plain && card.Confirming && at >= buttons.Count - 2 && at > 0:
+                // "Yes" or "No" of the question: answered, the focus goes back to the game (or to the one now in its place).
+                var index = List.Items.IndexOf(card);
+                current.Command?.Execute(current.CommandParameter);
+                List.UpdateLayout();
+                FocusGameAt(List.Items.Contains(card) ? List.Items.IndexOf(card) : Math.Min(index, List.Items.Count - 1));
+                break;
             default:
-                if (!model.HandleCardKey(card, e.Key.ToString(), shift: !plain))
+                if (!model.HandleCardKey(card, key.ToString(), shift: !plain))
                 {
-                    return;
+                    return false;
                 }
 
                 if (card.Confirming)
@@ -83,7 +99,7 @@ public partial class ReplayLibraryView : UserControl
                 break;
         }
 
-        e.Handled = true;
+        return true;
     }
 
     private void MoveToGame(LibraryCard card, int step)
@@ -91,12 +107,22 @@ public partial class ReplayLibraryView : UserControl
         var next = List.Items.IndexOf(card) + step;
         if (next >= 0 && next < List.Items.Count)
         {
-            List.ScrollIntoView(List.Items[next]);
-            List.UpdateLayout();
-            if (List.ItemContainerGenerator.ContainerFromIndex(next) is DependencyObject item && Buttons(item).FirstOrDefault() is { } game)
-            {
-                game.Focus();
-            }
+            FocusGameAt(next);
+        }
+    }
+
+    private void FocusGameAt(int index)
+    {
+        if (index < 0 || index >= List.Items.Count)
+        {
+            return;
+        }
+
+        List.ScrollIntoView(List.Items[index]);
+        List.UpdateLayout();
+        if (List.ItemContainerGenerator.ContainerFromIndex(index) is DependencyObject item && Buttons(item).FirstOrDefault() is { } game)
+        {
+            game.Focus();
         }
     }
 

@@ -5,8 +5,8 @@ Paths are relative to each base URL. Cache files live under the data folder (`Ap
 ## Hearthpulse data API - `https://api.kolodahearthstone.com/`
 
 Transport: `HearthpulseApi(HttpClient http, string? baseUrl = null)` - base URL from the ctor, else `HEARTHPULSE_API`,
-else `DefaultBaseUrl`; `GetAsync(path, bearer?, ct)`, `PostAsync(path, body, bearer?, ct)`; `Accept: application/json`;
-20 s per call; result `ApiResult { Data, Meta, Error, Ok }`; POST bodies in snake_case, nulls omitted.
+else `DefaultBaseUrl`; `GetAsync(path, bearer?, ct)` only (no POST: nothing sends to this API); `Accept: application/json`;
+20 s per call (on the client's `Time`, a test clock in tests); result `ApiResult { Data, Meta, Error, Ok }`.
 
 Typed calls: `HearthpulseData(HearthpulseApi api, string? cacheDirectory = null)`, cache `cache/api/`, `MaxAge` 6 h.
 

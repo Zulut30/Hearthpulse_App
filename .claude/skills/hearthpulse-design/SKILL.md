@@ -137,8 +137,8 @@ Buttons are rounded rectangles (r8), never stretched ovals; icon buttons stay ci
   files hold no flat gem (on cards it is a lit 3D mesh, `GenFX_Gem_Mana_D` is only its dark diffuse). Shipping
   Blizzard art is a Blocker in `reference/reviews/LEGAL-HeartLens-claude-mana-assets.md`; the owner accepted that risk
   on 2026-10-27. Do not put the gem behind the paywall.
-- `Wave` - gold rule: diamond + fading hairline (`Stroke` defaults to `GoldTrim`; Amplitude/Wavelength/Thickness are
-  kept only for compatibility).
+- `Wave` - gold rule: diamond + fading hairline (`Stroke` defaults to `GoldTrim`), 9 px high; `Ornament` draws it
+  after a title.
 - `RatingChart` - rating curve (`Points`), min/max guides, latest value tag.
 - `StatsLineChart` - line of `IChartValue` points with a hover card (`HoverTemplate`, `HoverIndex`); `Sparkline` (You vs
   a dashed comparison), `MiniBars` (shares with comparison ticks, marker, 1..N labels). Used by the My Stats views in

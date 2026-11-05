@@ -79,6 +79,10 @@ public sealed partial class LocBindingTests
             Assert.Equal(Loc.T("Library.ConfirmNo"), (Focused(window) as Button)?.Content);
             Assert.Equal("1:game", Press(PhysicalKey.Escape));
             Assert.False(cards[1].Confirming);
+            // Answered with Enter on "No": the question goes, the focus is back on the game.
+            Press(PhysicalKey.Delete);
+            Assert.Equal("1:game", Press(PhysicalKey.Enter));
+            Assert.False(cards[1].Confirming);
 
             // S, Shift+S and O reach the game through the view's keys (no replay files here: star and share say so).
             var opened = new List<Uri>();

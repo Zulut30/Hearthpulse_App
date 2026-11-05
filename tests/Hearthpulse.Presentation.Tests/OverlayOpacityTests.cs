@@ -1,7 +1,5 @@
 using System.Windows;
 using System.Windows.Media;
-using System.Windows.Threading;
-using Hearthpulse.App.Infrastructure;
 using Hearthpulse.App.Overlay;
 using Hearthpulse.Core;
 
@@ -14,38 +12,11 @@ namespace Hearthpulse.Presentation.Tests;
 public sealed class OverlayOpacityTests
 {
     [Fact]
-    public void Wpf_overlay_opacity_fades_the_backdrops_and_keeps_the_surface_opaque()
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                Check();
-            }
-            catch (Exception ex)
-            {
-                failure = ex;
-            }
-            finally
-            {
-                Dispatcher.CurrentDispatcher.InvokeShutdown();
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure is not null)
-        {
-            throw new InvalidOperationException("Overlay opacity check failed: " + failure.Message, failure);
-        }
-    }
+    public void Wpf_overlay_opacity_fades_the_backdrops_and_keeps_the_surface_opaque() => WpfThread.RunFresh(Check);
 
     private static void Check()
     {
-        var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        app.Resources.MergedDictionaries.Clear();
-        app.Resources.MergedDictionaries.Add(ThemeEngine.Build(ThemePalette.Resolve(ThemePalette.DefaultName, 0, 0, 1)));
+        var app = Application.Current!;
         var window = new OverlayWindow(new OverlayViewModel(), new AppSettings { OverlayOpacity = 0.4 });
         var root = (FrameworkElement)window.Content;
 
