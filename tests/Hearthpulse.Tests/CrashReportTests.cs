@@ -97,8 +97,40 @@ public sealed class CrashReportTests : IDisposable
 
         // Part of a type name: the frame stays whole.
         Assert.Equal($"at Hearthpulse.Core.{user}ils.Parse(String text)", CrashReport.Scrub($"at Hearthpulse.Core.{user}ils.Parse(String text)", 300));
-        // The name itself: <user>, and the rest of the line stays.
+        // The name itself: <user>, and the rest of the line stays. In any case (T6, a mutation survivor).
         Assert.Equal("Signed in as <user> on this machine", CrashReport.Scrub($"Signed in as {user} on this machine", 300));
+        Assert.Equal("Signed in as <user> and <user>",
+            CrashReport.Scrub($"Signed in as {user.ToUpperInvariant()} and {user.ToLowerInvariant()}", 300));
+    }
+
+    /// <summary>T6 (mutation survivors): each kind of personal data has its own mark, so a report still reads.</summary>
+    [Fact]
+    public void Emails_addresses_and_long_numbers_leave_their_own_marks() =>
+        Assert.Equal("Mail <email> from <ip> account <number> code 123456",
+            CrashReport.Scrub("Mail ivan.petrov+hs@mail.example.org from 10.0.0.254 account 1234567 code 123456", 300));
+
+    /// <summary>T6: a message of exactly the limit stays whole; one character more is cut with an ellipsis.</summary>
+    [Fact]
+    public void A_message_is_cut_only_past_its_limit()
+    {
+        Assert.Equal(new string('a', 300), CrashReport.Scrub(new string('a', 300), 300));
+        Assert.Equal(new string('a', 300) + "…", CrashReport.Scrub(new string('a', 301), 300));
+    }
+
+    /// <summary>T6: a chain longer than five exceptions keeps the outermost five; no stack frame is an empty line.</summary>
+    [Fact]
+    public void A_report_keeps_five_exceptions_and_no_empty_frames()
+    {
+        Exception chain = new InvalidOperationException("level 0");
+        for (var i = 1; i < 8; i++)
+        {
+            chain = new InvalidOperationException($"level {i}", chain);
+        }
+
+        var report = CrashReport.Build("UI error", Thrown(chain), "wpf", "0.15.0", DateTime.UtcNow);
+
+        Assert.Equal(["level 7", "level 6", "level 5", "level 4", "level 3"], report.Errors.Select(e => e.Message));
+        Assert.All(report.Errors.SelectMany(e => e.Stack), line => Assert.False(string.IsNullOrWhiteSpace(line)));
     }
 
     [Fact]
