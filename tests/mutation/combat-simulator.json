@@ -5,6 +5,7 @@
     "test-projects": [ "tests/Hearthpulse.Tests/Hearthpulse.Tests.csproj" ],
     "configuration": "Release",
     "mutate": [ "**/Battlegrounds/CombatSimulator.cs", "**/Battlegrounds/CombatDamage.cs" ],
+    "test-case-filter": "(FullyQualifiedName~Hearthpulse.Tests.Sim.|FullyQualifiedName~CombatOddsTests|FullyQualifiedName~BgGiantsCharacterizationTests)&FullyQualifiedName!~FiftyCombat&FullyQualifiedName!~Multithreaded&Category!=Timing",
     "coverage-analysis": "perTest",
     "reporters": [ "html", "json", "markdown", "progress" ],
     "thresholds": { "high": 80, "low": 60, "break": 0 }

@@ -5,6 +5,8 @@
 name: Mutation tests
 
 on:
+  push:
+    branches: [claude/track-quality]
   workflow_dispatch:
     inputs:
       target:
@@ -30,7 +32,7 @@ jobs:
       - id: pick
         shell: bash
         env:
-          TARGET: ${{ inputs.target || 'all' }}
+          TARGET: ${{ inputs.target || 'combat-simulator' }}
         run: |
           if [ "$TARGET" = all ]; then
             echo 'list=["replay-share","replay-sanitize","crash-report","likely-deck","combat-simulator"]' >> "$GITHUB_OUTPUT"
@@ -43,7 +45,8 @@ jobs:
     needs: targets
     # Stryker builds the whole solution, the WPF app included: Windows only.
     runs-on: windows-latest
-    timeout-minutes: 150
+    # The simulator target runs only its own test classes (tests/mutation/combat-simulator.json): all of them took hours.
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
