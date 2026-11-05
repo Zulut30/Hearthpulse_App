@@ -557,7 +557,8 @@ public static class ClientConfig
         _ => true,
     };
 
-    private static DateTime? ClientStartTime() => GameProcess.StartTime();
+    /// <summary>When the running client started, or null. Tests put a time of their own here.</summary>
+    internal static Func<DateTime?> ClientStartTime { get; set; } = GameProcess.StartTime;
 
     /// <summary>Sets Log.FileSizeLimit.Int=-1 and keeps everything else in the file. True when the file changed.</summary>
     public static bool Ensure(string? installDir)

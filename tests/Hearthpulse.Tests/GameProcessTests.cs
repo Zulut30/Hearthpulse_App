@@ -73,6 +73,14 @@ public sealed class GameProcessTests
             Assert.False(GameProcess.IsRunning());
             Assert.Null(GameProcess.StartTime());
             Assert.Equal(IntPtr.Zero, GameProcess.MainWindow());
+
+            // The game starts again: its window is up, and the new process is found on the first look.
+            using var again = StartStandIn(game.StartInfo.FileName);
+            GameProcess.MayBeRunning = () => true;
+            Assert.True(GameProcess.IsRunning());
+            Assert.Equal(again.StartTime, GameProcess.StartTime());
+            again.Kill();
+            again.WaitForExit();
         }
         finally
         {
@@ -87,13 +95,18 @@ public sealed class GameProcessTests
         }
     }
 
-    private static Process StartStandIn()
+    /// <summary>A sleeping copy of a system program under a name of its own; <paramref name="copy"/> starts that copy again.</summary>
+    private static Process StartStandIn(string? copy = null)
     {
         var windows = OperatingSystem.IsWindows();
-        var source = windows ? Path.Combine(Environment.SystemDirectory, "PING.EXE") : "/bin/sleep";
-        var copy = TestDataFolder.Scratch("hpgame") + (windows ? ".exe" : string.Empty);
-        Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
-        File.Copy(source, copy);
+        if (copy is null)
+        {
+            var source = windows ? Path.Combine(Environment.SystemDirectory, "PING.EXE") : "/bin/sleep";
+            copy = TestDataFolder.Scratch("hpgame") + (windows ? ".exe" : string.Empty);
+            Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
+            File.Copy(source, copy);
+        }
+
         var info = new ProcessStartInfo(copy, windows ? "-n 120 127.0.0.1" : "120")
         {
             CreateNoWindow = true,

@@ -12,13 +12,7 @@ public sealed class LogConfigTests : IDisposable
 
     private string ConfigPath => Path.Combine(_dir, "Blizzard", "Hearthstone", "log.config");
 
-    public void Dispose()
-    {
-        if (Directory.Exists(_dir))
-        {
-            Directory.Delete(_dir, recursive: true);
-        }
-    }
+    public void Dispose() => TestDataFolder.TryDelete(_dir);
 
     [Fact]
     public void A_missing_file_misses_every_section_and_the_fix_writes_them_all_once()
@@ -87,5 +81,25 @@ public sealed class LogConfigTests : IDisposable
         Assert.False(ClientConfig.LimitActive(null));
         Directory.CreateDirectory(_dir);
         Assert.True(ClientConfig.LimitActive(_dir));
+
+        var startTime = ClientConfig.ClientStartTime;
+        try
+        {
+            // Unlimited (-1): the limit still holds while the client that runs started before the file was fixed.
+            Assert.True(ClientConfig.Ensure(_dir));
+            var fixedAt = File.GetLastWriteTime(ClientConfig.PathFor(_dir)!);
+            ClientConfig.ClientStartTime = () => fixedAt.AddMinutes(-5);
+            Assert.True(ClientConfig.LimitActive(_dir));
+
+            // A client started after the fix read it; no client running: nothing to limit.
+            ClientConfig.ClientStartTime = () => fixedAt.AddMinutes(5);
+            Assert.False(ClientConfig.LimitActive(_dir));
+            ClientConfig.ClientStartTime = () => null;
+            Assert.False(ClientConfig.LimitActive(_dir));
+        }
+        finally
+        {
+            ClientConfig.ClientStartTime = startTime;
+        }
     }
 }

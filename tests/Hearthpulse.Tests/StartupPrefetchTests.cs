@@ -53,7 +53,7 @@ public sealed class StartupPrefetchTests
 
     /// <summary>
     /// T3: with the card language and the interface language both "auto", the cards are the client's own language, read
-    /// off the found install (its Strings folder), and loaded ahead in it.
+    /// off the found install (its Strings folder), and loaded once in it.
     /// </summary>
     [Fact]
     public async Task Automatic_languages_load_the_cards_in_the_found_clients_locale()

@@ -16,27 +16,14 @@ namespace Hearthpulse.Tests;
 /// </summary>
 public sealed class ApiLoadTests : IDisposable
 {
-    private readonly string _cache = Path.Combine(Path.GetTempPath(), "hp-apiload-" + Guid.NewGuid().ToString("N"));
+    /// <summary>Marks the flow of the lookup a test holds back (see <see cref="FixtureServer.Holds"/>).</summary>
+    private static readonly AsyncLocal<bool> FirstDeck = new();
 
-    public void Dispose()
-    {
-        // A lookup a test no longer waits for (a held answer let go at the end) may still be writing its cache file.
-        for (var attempt = 0; Directory.Exists(_cache); attempt++)
-        {
-            try
-            {
-                Directory.Delete(_cache, recursive: true);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException && attempt < 20)
-            {
-                Thread.Sleep(50);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                return;
-            }
-        }
-    }
+    private readonly string _cache = TestDataFolder.Scratch("apiload");
+
+    // A lookup a test no longer waits for (a held answer let go at the end) may still be writing its cache file: then
+    // the folder goes with the run's.
+    public void Dispose() => TestDataFolder.TryDelete(_cache);
 
     [Fact]
     public async Task Standard_meta_shows_the_tier_list_first_then_mulligan_from_hsreplay_and_hsguru()
@@ -340,25 +327,31 @@ public sealed class ApiLoadTests : IDisposable
         var priestList = HearthpulseData.ParseArchetypeDecks(FixtureServer.Json("56-decks.json"))[0].Cards;
         var deck = new DeckDefinition("Quest", 1, string.Empty, "Standard", [], priestList);
         var other = deck with { Cards = new Dictionary<int, int>(priestList) { [1] = 1 } };
-        // No answer before both decks were asked for: the first lookup could otherwise land before the second began.
+        // The first deck's lookup (marked through its flow) waits until the second deck's guide has landed.
         server.Hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        server.Holds = () => FirstDeck.Value;
         var source = new MulliganGuideSource(Data(server));
         var changed = 0;
         var landed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var again = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         source.Changed += () =>
         {
-            Interlocked.Increment(ref changed);
-            landed.TrySetResult();
+            (Interlocked.Increment(ref changed) == 1 ? landed : again).TrySetResult();
         };
 
+        // The bounds only end a hang: under a full parallel run at low priority a lookup's pool thread can start late
+        // (as DiscoverPicksTests found on CI).
+        FirstDeck.Value = true;
         Assert.Null(source.For("PRIEST", deck, "FT_STANDARD", CardDb.Empty));
+        FirstDeck.Value = false;
+        await server.Waiting.Task.WaitAsync(TimeSpan.FromMinutes(1));
         Assert.Null(source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty));
-        server.Hold.SetResult();
-
-        // Only the second deck's lookup may land. The bound only ends a hang: under a full parallel run at low priority
-        // the lookup's pool thread can start late (as DiscoverPicksTests found on CI).
         await landed.Task.WaitAsync(TimeSpan.FromMinutes(1));
         Assert.Equal("Quest Priest", source.For("PRIEST", other, "FT_STANDARD", CardDb.Empty)?.Name);
+
+        // Now the first deck's answer arrives, late: it changes nothing.
+        server.Hold.SetResult();
+        await Task.WhenAny(again.Task, Task.Delay(TimeSpan.FromSeconds(2)));
         Assert.Equal(1, Volatile.Read(ref changed));
     }
 
@@ -518,8 +511,14 @@ public sealed class ApiLoadTests : IDisposable
 
         public List<string> Requests { get; } = [];
 
-        /// <summary>While set and not completed, every answer waits for it.</summary>
+        /// <summary>While set and not completed, every answer <see cref="Holds"/> picks waits for it.</summary>
         public TaskCompletionSource? Hold { get; set; }
+
+        /// <summary>Which requests <see cref="Hold"/> holds: all, or those asked from a flow the test marked.</summary>
+        public Func<bool> Holds { get; set; } = () => true;
+
+        /// <summary>Completes once a held request is waiting.</summary>
+        public TaskCompletionSource Waiting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public static System.Text.Json.JsonElement Json(string name)
         {
@@ -564,8 +563,9 @@ public sealed class ApiLoadTests : IDisposable
                 Requests.Add(path);
             }
 
-            if (Hold is { } hold)
+            if (Hold is { } hold && Holds())
             {
+                Waiting.TrySetResult();
                 await hold.Task.WaitAsync(cancellationToken);
             }
 
