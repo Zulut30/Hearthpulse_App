@@ -72,7 +72,7 @@
   "Settings.Overlay.Size": "Size",
   "Settings.Overlay.SizeTip": "Scales every overlay panel",
   "Settings.Overlay.Opacity": "Opacity",
-  "Settings.Overlay.OpacityTip": "How see-through the overlay panels are",
+  "Settings.Overlay.OpacityTip": "How see-through the overlay is. Text fades too: below 70 % it is hard to read over bright parts of the game.",
 
   "Settings.Layout.Title": "Panel layout",
   "Settings.Layout.Caption": "Drag every overlay panel where you want it in game. Scroll over a panel to resize it, right-click to reset it. Shortcut: Ctrl+Shift+L.",

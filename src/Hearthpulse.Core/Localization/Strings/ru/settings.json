@@ -72,7 +72,7 @@
   "Settings.Overlay.Size": "Размер",
   "Settings.Overlay.SizeTip": "Масштаб всех панелей оверлея",
   "Settings.Overlay.Opacity": "Непрозрачность",
-  "Settings.Overlay.OpacityTip": "Насколько прозрачны панели оверлея",
+  "Settings.Overlay.OpacityTip": "Насколько прозрачен оверлей. Текст тоже бледнеет: ниже 70 % его трудно читать на светлых участках игры.",
 
   "Settings.Layout.Title": "Расположение панелей",
   "Settings.Layout.Caption": "Перетащите каждую панель оверлея куда удобно. Прокрутка над панелью меняет размер, правый клик — сброс. Сочетание клавиш: Ctrl+Shift+L.",

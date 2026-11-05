@@ -58,6 +58,20 @@ public sealed partial class AccessibleNameTests
             Unnamed(doc).Select(e => (string?)e.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml"))));
     }
 
+    /// <summary>
+    /// R06: the overlay's opacity fades the text with the panels (40 % gives about 2.6:1 over a bright table), so the
+    /// slider's tip says so and names the 70 % below which text is hard to read.
+    /// </summary>
+    [Theory]
+    [InlineData("en", "Text fades")]
+    [InlineData("ru", "Текст тоже бледнеет")]
+    public void The_opacity_tip_says_text_fades_too(string language, string fades)
+    {
+        var tip = Hearthpulse.Core.Localization.Loc.Table(language)["Settings.Overlay.OpacityTip"];
+        Assert.Contains(fades, tip, StringComparison.Ordinal);
+        Assert.Contains("70 %", tip, StringComparison.Ordinal);
+    }
+
     private static IEnumerable<XElement> Unnamed(XElement root) =>
         root.DescendantsAndSelf().Where(e => Buttons.Contains(e.Name.LocalName) && IconOnly(e) && !Named(e));
 
