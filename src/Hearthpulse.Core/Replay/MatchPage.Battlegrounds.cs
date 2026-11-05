@@ -1,5 +1,6 @@
 using System.Globalization;
 using Hearthpulse.Core.Localization;
+using Hearthpulse.Core.Tracking;
 
 namespace Hearthpulse.Core.Replay;
 
@@ -51,7 +52,7 @@ public sealed partial class MatchPage
             Hand = Of(f, 'L', "HAND").Select(c => CardView(f, c)).ToList(),
             Choices = f.Choice is { } choice ? [ChoiceView(choice)] : [],
             Leaderboard = f.Leaderboard
-                .OrderBy(l => l.Place <= 0 ? 99 : l.Place)
+                .OrderBy(l => Places.SortKey(l.Place))
                 .Select(l => new MatchBgLeaderRow(l.HeroCardId, _cards.NameOf(l.HeroCardId), l.Place, l.Health, l.Armor, l.Tier, l.Local,
                     combat && !l.Local && (l.HeroCardId == opponent?.CardId || l.HeroCardId == partner?.CardId), l.Dead))
                 .ToList(),
