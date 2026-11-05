@@ -1,3 +1,4 @@
+using Hearthpulse.Core.Constructed;
 using Hearthpulse.Core.Tracking;
 
 #if HEARTHPULSE_WPF
@@ -30,14 +31,7 @@ public static class OverlayTiers
         var p = Math.Clamp(winRate, 0, 1);
         var z2 = MetaZ * MetaZ;
         var lower = (p + z2 / (2 * games) - MetaZ * Math.Sqrt(p * (1 - p) / games + z2 / (4.0 * games * games))) / (1 + z2 / games);
-        return lower switch
-        {
-            >= 0.53 => "S",
-            >= 0.51 => "A",
-            >= 0.49 => "B",
-            >= 0.47 => "C",
-            _ => "D",
-        };
+        return MetaTiers.Of(lower);
     }
 
     /// <summary>
