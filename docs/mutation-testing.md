@@ -22,18 +22,26 @@ dotnet dotnet-stryker -f tests/mutation/likely-deck.json -c 2
 | `likely-deck` | `Constructed/LikelyDeck.cs` | What the overlay tells the player about the opponent's deck |
 | `combat-simulator` | `Battlegrounds/CombatSimulator.cs`, `CombatDamage.cs` | The combat odds; runs only the simulator's own 405 tests (all 2,500 took more than two hours) |
 
-## First run (2026-11-05, before the tests below)
+## Runs (2026-11-05)
 
 Score = killed / (killed + survived + not covered); mutants that do not compile or sit in ignored code are left out.
+"Before" is the first run; "after" the re-run once the tests below were in (CI run 42072514527 for share, sanitize and
+the crash report; a local run for `likely-deck`).
 
-| Target | Killed | Survived | Not covered | Score | Of covered |
-|---|---|---|---|---|---|
-| `replay-share` | 13 | 5 | 11 | 45% | 72% |
-| `replay-sanitize` (filter methods) | 183 | 67 | 26 | 66% | 73% |
-| `crash-report` | 28 | 17 | 3 | 58% | 62% |
-| `likely-deck` | 23 | 10 | 30 | 37% | 70% |
-| `combat-simulator`: `CombatSimulator.cs` | 169 | 51 | 0 | 77% | 77% |
-| `combat-simulator`: `CombatDamage.cs` | 54 | 7 | 0 | 89% | 89% |
+| Target | Before: killed / survived / not covered | Score | After: killed / survived / not covered | Score |
+|---|---|---|---|---|
+| `replay-share` | 13 / 5 / 11 | 45% | 17 / 5 / 7 | 59% |
+| `replay-sanitize` (filter methods) | 183 / 67 / 26 | 66% | 201 / 52 / 23 | 73% |
+| `crash-report` | 28 / 17 / 3 | 58% | 36 / 10 / 2 | 75% |
+| `likely-deck` | 23 / 10 / 30 | 37% | 33 / 2 / 28 | 52% |
+| `combat-simulator`: `CombatSimulator.cs` | 169 / 51 / 0 | 77% | not re-run | |
+| `combat-simulator`: `CombatDamage.cs` | 54 / 7 / 0 | 89% | not re-run | |
+
+`combat-simulator` was not run again: of its 58 survivors, one is closed by a test (the time budget), the cancellation
+ones are covered once `HardeningTests` is in its filter, and the rest are equivalent or the seed (below).
+What survives after the re-run and is equivalent: `crash-report`'s GUID and time formats, `ReplaceLineEndings(" ")`
+on a one-line message, and the empty-frame filter that `RemoveEmptyEntries` already covers (each guards the other);
+`replay-share`'s folder name length and the clean-up count; `likely-deck`'s `> 0` inside a sum.
 
 `likely-deck`'s "not covered" are all in `Sample`, the render scene's fixed list. `replay-share`'s are the error paths
 of writing and cleaning up (`IOException`), `replay-sanitize`'s the summary rebuilt for an old Battlegrounds file.
