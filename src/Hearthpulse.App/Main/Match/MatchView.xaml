@@ -245,7 +245,7 @@
                         <Border Margin="5" CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
                                 i:CardArt.Portrait="{Binding CardId}" />
                     </Grid>
-                    <TextBlock x:Name="NameText" Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center"
+                    <TextBlock x:Name="NameText" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center"
                                TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="34" LineStackingStrategy="BlockLineHeight" LineHeight="16" Margin="0,4,0,0" />
                 </StackPanel>
                 <DataTemplate.Triggers>
@@ -351,15 +351,15 @@
                             <Ellipse x:Name="HeroRing" Margin="-4" StrokeThickness="2.5" Stroke="{StaticResource Accent2}" Visibility="Collapsed" />
                             <Border CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="2" i:CardArt.Portrait="{Binding HeroCardId}" />
                             <!-- Health by a heart and armor by a shield, apart (as on the Battlegrounds table): "30 + 5" read as a sum -->
-                            <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="5,1,6,1"
+                            <Border CornerRadius="8" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="4,1,4,1"
                                     HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-40,0,-40,-8" ToolTip="{Binding HealthTip}"
                                     AutomationProperties.Name="{Binding HealthTip}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xF02D1;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
-                                    <TextBlock Text="{Binding HealthText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
-                                    <TextBlock Text="&#xF0498;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="6,0,2,0"
+                                    <TextBlock Text="&#xF02D1;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
+                                    <TextBlock Text="{Binding HealthText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xF0498;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="4,0,2,0"
                                                Visibility="{Binding ArmorText, Converter={StaticResource Vis}}" />
-                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"
+                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                                Visibility="{Binding ArmorText, Converter={StaticResource Vis}}" />
                                 </StackPanel>
                             </Border>
@@ -753,15 +753,15 @@
                             <Border x:Name="Portrait" CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="2"
                                     i:CardArt.Portrait="{Binding HeroCardId}" />
                             <!-- Health by a heart and armor by a shield, apart: "30 + 15" read as a sum -->
-                            <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="5,1,6,1"
+                            <Border CornerRadius="8" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="4,1,4,1"
                                     HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-40,0,-40,-8" ToolTip="{Binding HealthTip}"
                                     AutomationProperties.Name="{Binding HealthTip}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xF02D1;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
-                                    <TextBlock Text="{Binding HealthText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
-                                    <TextBlock Text="&#xF0498;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="6,0,2,0"
+                                    <TextBlock Text="&#xF02D1;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
+                                    <TextBlock Text="{Binding HealthText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xF0498;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="4,0,2,0"
                                                Visibility="{Binding ArmorText, Converter={StaticResource Vis}}" />
-                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"
+                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                                Visibility="{Binding ArmorText, Converter={StaticResource Vis}}" />
                                 </StackPanel>
                             </Border>
@@ -822,10 +822,10 @@
                         <!-- Health, then armor by a shield; the tooltip says both in words -->
                         <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent" ToolTip="{Binding HealthTip}"
                                     AutomationProperties.Name="{Binding HealthTip}">
-                            <TextBlock Text="{Binding Health}" FontFamily="{StaticResource DisplayFont}" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center" />
-                            <TextBlock Text="&#xF0498;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="5,0,2,0"
+                            <TextBlock Text="{Binding Health}" FontFamily="{StaticResource DisplayFont}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xF0498;" Style="{StaticResource Icon}" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="4,0,2,0"
                                        Visibility="{Binding Armor, Converter={StaticResource Vis}}" />
-                            <TextBlock Text="{Binding Armor}" FontFamily="{StaticResource DisplayFont}" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource Muted}"
+                            <TextBlock Text="{Binding Armor}" FontFamily="{StaticResource DisplayFont}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}"
                                        VerticalAlignment="Center" Visibility="{Binding Armor, Converter={StaticResource Vis}}" />
                         </StackPanel>
                     </Grid>

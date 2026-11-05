@@ -126,7 +126,7 @@
                         <Border Margin="5" CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1.5"
                                 ClipToBounds="True" i:CardArt.Portrait="{Binding CardId}" />
                     </Panel>
-                    <TextBlock Classes="heroName" Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center"
+                    <TextBlock Classes="heroName" Text="{Binding Name}" FontSize="{StaticResource FontSizeLabel}" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center"
                                TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2" Margin="0,4,0,0" />
                 </StackPanel>
             </DataTemplate>
@@ -195,15 +195,15 @@
                             <Border CornerRadius="31" Background="{StaticResource Surface4}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="2" ClipToBounds="True"
                                     i:CardArt.Portrait="{Binding HeroCardId}" />
                             <!-- Health by a heart and armor by a shield, apart (as on the Battlegrounds table): "30 + 5" read as a sum -->
-                            <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="5,1,6,1"
+                            <Border CornerRadius="8" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="4,1,4,1"
                                     HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-40,0,-40,-8" ToolTip.Tip="{Binding HealthTip}"
                                     AutomationProperties.Name="{Binding HealthTip}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xF02D1;" Classes="icon" FontSize="11" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
-                                    <TextBlock Text="{Binding HealthText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
-                                    <TextBlock Text="&#xF0498;" Classes="icon" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="6,0,2,0"
+                                    <TextBlock Text="&#xF02D1;" Classes="icon" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
+                                    <TextBlock Text="{Binding HealthText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xF0498;" Classes="icon" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="4,0,2,0"
                                                IsVisible="{Binding ArmorText, Converter={StaticResource Truthy}}" />
-                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"
+                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                                IsVisible="{Binding ArmorText, Converter={StaticResource Truthy}}" />
                                 </StackPanel>
                             </Border>
@@ -440,15 +440,15 @@
                             <Border Classes="portrait" Classes.theirs="{Binding $parent[ContentControl].Tag, Converter={StaticResource Truthy}}" CornerRadius="31"
                                     Background="{StaticResource Surface4}" BorderThickness="2" ClipToBounds="True" i:CardArt.Portrait="{Binding HeroCardId}" />
                             <!-- Health by a heart and armor by a shield, apart: "30 + 15" read as a sum -->
-                            <Border CornerRadius="9" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="5,1,6,1"
+                            <Border CornerRadius="8" Background="{StaticResource Surface3}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" Padding="4,1,4,1"
                                     HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-40,0,-40,-8" ToolTip.Tip="{Binding HealthTip}"
                                     AutomationProperties.Name="{Binding HealthTip}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xF02D1;" Classes="icon" FontSize="11" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
-                                    <TextBlock Text="{Binding HealthText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
-                                    <TextBlock Text="&#xF0498;" Classes="icon" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="6,0,2,0"
+                                    <TextBlock Text="&#xF02D1;" Classes="icon" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Negative}" VerticalAlignment="Center" Margin="0,0,2,0" />
+                                    <TextBlock Text="{Binding HealthText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#xF0498;" Classes="icon" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="4,0,2,0"
                                                IsVisible="{Binding ArmorText, Converter={StaticResource Truthy}}" />
-                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"
+                                    <TextBlock Text="{Binding ArmorText}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center"
                                                IsVisible="{Binding ArmorText, Converter={StaticResource Truthy}}" />
                                 </StackPanel>
                             </Border>
@@ -498,10 +498,10 @@
                         <!-- Health, then armor by a shield; the tooltip says both in words -->
                         <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent" ToolTip.Tip="{Binding HealthTip}"
                                     AutomationProperties.Name="{Binding HealthTip}">
-                            <TextBlock Text="{Binding Health}" FontFamily="{DynamicResource DisplayFont}" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center" />
-                            <TextBlock Text="&#xF0498;" Classes="icon" FontSize="11" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="5,0,2,0"
+                            <TextBlock Text="{Binding Health}" FontFamily="{DynamicResource DisplayFont}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" VerticalAlignment="Center" />
+                            <TextBlock Text="&#xF0498;" Classes="icon" FontSize="{StaticResource FontSizeSmall}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="4,0,2,0"
                                        IsVisible="{Binding Armor, Converter={StaticResource Truthy}}" />
-                            <TextBlock Text="{Binding Armor}" FontFamily="{DynamicResource DisplayFont}" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource Muted}"
+                            <TextBlock Text="{Binding Armor}" FontFamily="{DynamicResource DisplayFont}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLabel}" Foreground="{StaticResource Muted}"
                                        VerticalAlignment="Center" IsVisible="{Binding Armor, Converter={StaticResource Truthy}}" />
                         </StackPanel>
                     </Grid>
@@ -1241,7 +1241,7 @@
                                 </DockPanel>
                             </Border>
                             <!-- The step's choice in the game: Discover, trinket, quest (the hero choice is on top) -->
-                            <ItemsControl ItemsSource="{Binding Choices}" ItemTemplate="{StaticResource ChoiceRow}" Margin="0,0,0,6" IsVisible="{Binding ChoicesBelow}" />
+                            <ItemsControl ItemsSource="{Binding Choices}" ItemTemplate="{StaticResource ChoiceRow}" Margin="0,0,0,4" IsVisible="{Binding ChoicesBelow}" />
                             <!-- Bottom: our board, hero and hand; in a Duos combat our partner's board and hero while their table fights -->
                             <StackPanel IsVisible="{Binding !PartnerFighting}">
                                 <Panel MinHeight="96">

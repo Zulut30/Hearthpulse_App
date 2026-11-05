@@ -45,6 +45,10 @@ class MigrateTokensTests(unittest.TestCase):
                   '<Border Margin="1.5" CornerRadius="17" /></Panel>')
         self.assertEqual(run(markup).decode(), markup.replace('Margin="1.5"', 'Margin="1"'))
 
+    def test_a_circle_keeps_the_margin_that_sizes_it(self):
+        markup = '<Grid Width="72" Height="72"><Border Margin="5" CornerRadius="31" BorderThickness="1.5" /></Grid>'
+        self.assertEqual(run(markup).decode(), markup)
+
     def test_a_circle_inside_a_bordered_parent_stays_round(self):
         markup = '<Border Width="36" Height="36" CornerRadius="18" BorderThickness="1.5"><Border CornerRadius="17" /></Border>'
         self.assertEqual(run(markup).decode(), markup)

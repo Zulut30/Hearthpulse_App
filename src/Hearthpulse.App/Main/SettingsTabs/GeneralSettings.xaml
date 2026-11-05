@@ -111,7 +111,7 @@
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.Tray}" IsChecked="{Binding Settings.MinimizeToTray}" Margin="0,0,0,14" />
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.AutoUpdate}" IsChecked="{Binding Settings.AutoUpdate}" Click="RaiseSettingClicked"
                           ToolTip="{i:Loc Settings.App.AutoUpdateTip}" Margin="0,0,0,14" />
-                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.StartWithWindows}" IsChecked="{Binding Settings.StartWithWindows}" Click="RaiseSettingClicked" Margin="0,0,0,14" />
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.StartWithWindows}" IsChecked="{Binding Settings.StartWithWindows}" Click="RaiseSettingClicked" Margin="0,0,0,12" />
                 <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.App.StartMinimized}" IsChecked="{Binding Settings.StartMinimized}" />
             </StackPanel>
         </Border>

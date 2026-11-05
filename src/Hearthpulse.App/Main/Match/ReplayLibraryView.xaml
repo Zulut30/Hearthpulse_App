@@ -87,7 +87,7 @@
                                   VerticalAlignment="Center" />
                     <Border Style="{StaticResource Pill}" Margin="4,0,0,0" VerticalAlignment="Center" ToolTip="{Binding MoreTip}" AutomationProperties.Name="{Binding MoreTip}"
                             Visibility="{Binding More, Converter={StaticResource Vis}}">
-                        <TextBlock Text="{Binding More}" FontSize="11" />
+                        <TextBlock Text="{Binding More}" FontSize="{StaticResource FontSizeSmall}" />
                     </Border>
                 </StackPanel>
             </DataTemplate>
@@ -132,7 +132,7 @@
                         <TextBlock Text="{Binding Rating}" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"
                                    Foreground="{Binding RatingValue, Converter={StaticResource SignBrush}}" ToolTip="{i:Loc Main.Game.RatingChange}" />
                     </StackPanel>
-                    <TextBlock Text="{Binding When}" Style="{StaticResource Caption}" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding When}" />
+                    <TextBlock Text="{Binding When}" Style="{StaticResource Caption}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding When}" />
                 </StackPanel>
             </DataTemplate>
 
@@ -162,7 +162,7 @@
                                 <Border Width="44" Height="44" Style="{StaticResource StatsPortrait}" HorizontalAlignment="Left" i:CardArt.Portrait="{Binding HeroCardId}"
                                         c:CardPreview.CardId="{Binding HeroCardId}" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
                                     <TextBlock x:Name="BgCaption" Text="{Binding Caption}" Style="{StaticResource Caption}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
                                                MaxHeight="32" LineStackingStrategy="BlockLineHeight" LineHeight="16" ToolTip="{Binding Caption}" />
                                 </StackPanel>
@@ -176,10 +176,10 @@
                                         <ItemsControl ItemsSource="{Binding Summary.Chips}" ItemTemplate="{StaticResource Chip}" ItemsPanel="{StaticResource RowPanel}" Focusable="False" />
                                         <Border Style="{StaticResource Pill}" ToolTip="{Binding Summary.ChipsMoreTip}" AutomationProperties.Name="{Binding Summary.ChipsMoreTip}"
                                                 VerticalAlignment="Center" Visibility="{Binding Summary.ChipsMore, Converter={StaticResource Vis}}">
-                                            <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="11" />
+                                            <TextBlock Text="{Binding Summary.ChipsMore}" FontSize="{StaticResource FontSizeSmall}" />
                                         </Border>
                                     </StackPanel>
-                                    <Border Grid.Column="1" Width="1" Height="28" Margin="5,0" Background="{StaticResource Border}" />
+                                    <Border Grid.Column="1" Width="1" Height="28" Margin="4,0" Background="{StaticResource Border}" />
                                     <!-- An empty border measures the board's room; the board itself never widens it -->
                                     <Border x:Name="BoardRoom" Grid.Column="2" />
                                     <ContentControl Grid.Column="2" ContentTemplate="{StaticResource BoardRow}" Focusable="False" IsTabStop="False">
@@ -215,11 +215,11 @@
                                             ToolTip="{Binding Opponent}" Visibility="{Binding OpponentHeroCardId, Converter={StaticResource Vis}}" />
                                 </Grid>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{StaticResource FontSizeLead}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Title}" />
                                     <TextBlock Text="{Binding Caption}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Caption}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" MaxWidth="120" VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="{Binding Opponent}" FontSize="13" TextTrimming="CharacterEllipsis" ToolTip="{Binding Opponent}" />
+                                    <TextBlock Text="{Binding Opponent}" FontSize="{StaticResource FontSizeBody}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Opponent}" />
                                     <TextBlock Text="{Binding OpponentArchetype}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" ToolTip="{Binding OpponentArchetype}" />
                                 </StackPanel>
                                 <ContentPresenter Grid.Column="3" Content="{Binding}" ContentTemplate="{StaticResource CardResult}" />
