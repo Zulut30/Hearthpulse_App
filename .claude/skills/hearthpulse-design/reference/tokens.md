@@ -78,11 +78,13 @@ Page backdrop (V3 direction A, both main windows, layers in this order over `Con
 | Key | Kind | Use |
 |---|---|---|
 | `PageStone` | tiled DrawingBrush 220x140 | stone seams and flecks, lit on top (#0FF4E7C9) and shaded under (#26000000) |
-| `PageHeroFade` | opacity mask | the page hero's splash (`CardArt.Splash` = `MainViewModel.PageHero`, 760 wide, opacity 0.62) dissolves to the left |
-| `PageVignette` / `PageShade` | radial / vertical | vignette and floor in the plate colour #1D140C over the hero; shown only with a hero |
-| `PageHeroGlow` | radial, Accent2 | faint second-accent light top right |
+| `PageGlowMask` | radial alpha mask | the hero's own colours light the page: `CardArt.Glow` magnifies a small patch of its splash into a soft wash (opacity 0.6) under this mask |
+| `PageHeroFade` | opacity mask | the page hero's splash (`CardArt.Splash` = `MainViewModel.PageHero`, 940 x 940 top right, opacity 0.8) dissolves to the left |
+| `PageVignette` / `PageShade` | radial / vertical | light vignette and floor in the plate colour #1D140C over the hero; shown only with a hero |
+| `CardFill` | 90 % opaque | the hero shows faintly through cards; `ThemeContrastTests` checks text over the brightest art |
 | `PageFrame` | vertical gold | 1 px frame 8 inside the plate, bright on top |
 | `NavSelectedGlow` | radial gold | glow round the open page's sidebar icon (WPF `NavPill`, Avalonia `NavItem` "Selected") |
+| `GlyphGold`, `GlyphGoldFlat`, `GlyphGoldLit`, `GlyphGoldEdge`, `GlyphOutline`, `GlyphBevelLight`, `GlyphBevelDark`, `GlyphGloss` | gold | `Controls/GoldGlyph`: game-icons.net glyphs (`GameIcons`, path data in shared `GameIconData`) in engraved gold from 24 px, flat gold in a dark outline below; the sidebar (`Tag` = a `GameIcons` geometry) and page titles (`PageGlyph` / `GoldGlyph.pageGlyph`, 32 px) |
 
 `ThemeChoice` (WPF picker) also carries each preset's `Secondary` brush and `Motif` geometry.
 
@@ -132,7 +134,7 @@ TextBlock style, so icon glyph TextBlocks inside templates are not restyled.
 | `IconButton` | `Button.icon` | 32x32 circle, IconFont 17, Muted |
 | `CaptionButton`, `CloseCaptionButton` | - | window controls (WPF only) |
 | - | `Button.bare` | unstyled button (Avalonia) |
-| `NavItem` (RadioButton) | `RadioButton.nav` | height 46, SemiBold 14, glyph in `Tag`; WPF selected look is the sliding `NavPill` in MainWindow |
+| `NavItem` (RadioButton) | `RadioButton.nav` | height 46, SemiBold 14, `Tag` = a `GameIcons` geometry drawn by `GoldGlyph` (22 px); WPF selected look is the sliding `NavPill` in MainWindow |
 | `Segment` (RadioButton) | `RadioButton.segment` | chip inside a SegmentBar, 12 SemiBold |
 | `Tab` (BasedOn Segment, 2px gold underline) | - (Avalonia tabs use `segment`) | page tabs |
 | `Switch` (CheckBox) | `CheckBox.switch` | Surface4 track with a Muted rim, `PrimaryFill` when on; the knob slides and grows |

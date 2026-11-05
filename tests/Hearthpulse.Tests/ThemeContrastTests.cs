@@ -57,6 +57,44 @@ public sealed class ThemeContrastTests
         Assert.Empty(failures);
     }
 
+    /// <summary>
+    /// Cards are 90 % opaque over the page's hero (V3 backdrop A): text still reads where the brightest art, white at the
+    /// hero's opacity over the plate, shows through a card.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Presets))]
+    public void Text_reads_on_cards_over_the_brightest_hero(string preset)
+    {
+        // The hero's Opacity in MainWindow.xaml / MainView.axaml
+        const double HeroOpacity = 0.8;
+        var theme = ThemePalette.Resolve(preset, 0, 0, 1);
+        var colours = Colours();
+        var behind = Over(0xFFFFFFFF, ThemePalette.Map(colours["Bg"][0], theme), HeroOpacity);
+        var failures = new List<string>();
+        foreach (var text in new[] { "Text", "Muted", "Accent" })
+        {
+            foreach (var stop in colours["CardFill"])
+            {
+                var card = ThemePalette.Map(stop, theme);
+                Assert.True(card >> 24 < 0xFF, "CardFill is meant to be translucent");
+                var ratio = Contrast(ThemePalette.Map(colours[text][0], theme), Over(card, behind, (card >> 24) / 255.0));
+                if (ratio < 4.5)
+                {
+                    failures.Add($"{text} on CardFill #{card:X8}: {ratio:0.00}");
+                }
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    /// <summary><paramref name="top"/> at <paramref name="alpha"/> over an opaque <paramref name="bottom"/>.</summary>
+    private static uint Over(uint top, uint bottom, double alpha)
+    {
+        uint Channel(int shift) => (uint)Math.Round((((top >> shift) & 0xFF) * alpha) + (((bottom >> shift) & 0xFF) * (1 - alpha)));
+        return 0xFF000000 | (Channel(16) << 16) | (Channel(8) << 8) | Channel(0);
+    }
+
     [Fact]
     public void Presets_differ_in_accent_second_accent_surface_and_motif()
     {

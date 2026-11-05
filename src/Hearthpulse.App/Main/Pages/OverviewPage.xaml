@@ -13,7 +13,10 @@
     </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="40,0,40,120">
-            <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource PageTitle}" />
+            <StackPanel Orientation="Horizontal">
+                <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Home}" />
+                <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource PageTitle}" />
+            </StackPanel>
             <c:Wave Style="{StaticResource PageRule}" />
 
             <Border x:Name="SetupBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"

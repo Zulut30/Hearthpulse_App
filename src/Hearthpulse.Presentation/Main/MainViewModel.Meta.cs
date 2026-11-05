@@ -342,7 +342,11 @@ public sealed partial class MainViewModel
         ? Loc.T("Stats.Ct.NoteNoMeta")
         : Loc.F("Stats.Ct.NoteSource", meta.Source, ConstructedMeta.Label(ConstructedMeta.Ranks, meta.Rank));
 
-    partial void OnConstructedFormatChanged() => RebuildConstructedMeta();
+    partial void OnConstructedFormatChanged()
+    {
+        RebuildConstructedMeta();
+        Raise(nameof(ConstructedWild));
+    }
 
     // The tier list and top decks follow the page; the overlay keeps the game's format.
     partial void OnConstructedFormatShown() => RequestPageMeta();

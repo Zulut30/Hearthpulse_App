@@ -57,6 +57,10 @@ DATA AND CREDITS
   HearthstoneJSON card render; it is (c) Blizzard Entertainment, Inc.
 - Fonts: Montserrat (SIL Open Font License 1.1), Inter (SIL Open Font
   License 1.1), Material Design Icons (Pictogrammers, Apache 2.0).
+- Navigation icons from game-icons.net (CC BY 3.0,
+  creativecommons.org/licenses/by/3.0), drawn in gold: "house" by Delapouite;
+  "beer-stein", "poker-hand", "vine-leaf", "crossed-swords",
+  "fist", "hourglass", "cog" and "hood" by Lorc.
 
 Hearthpulse is not affiliated with or endorsed by Blizzard Entertainment.
 Hearthstone is a trademark of Blizzard Entertainment, Inc.

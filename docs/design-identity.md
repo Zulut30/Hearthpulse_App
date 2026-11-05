@@ -5,15 +5,17 @@ control; the owner's decision of 2026-10-27, `LEGAL-HeartLens-claude-mana-assets
 of the mockups. Direction A "Hearth" was rejected earlier and reverted. The language: a thin bright gold panel edge, a
 header without a plate over a gold hairline, card rows as capsules with the gem in the left end and a rarity-lit edge
 (`Rarity*Edge` brushes through `KeyBrush` "edge"), counts on dark pills, legendary names in their rarity colour.
-Behind the pages, direction A "Portrait" (the owner's choice of 2026-11-05): each page's hero dissolving from the
-right over stone, a vignette, a thin gold frame and a glowing sidebar item (`MainViewModel.PageHero`, the
-"Background characters" switch in Settings > General > Theme, on by default; art from the HearthstoneJSON cache).
+Behind the pages, direction A "Portrait" (the owner's choice of 2026-11-05, then "brighter and larger"): each page's
+hero, large at the top right and dissolving over stone, lights the page in its own colours (`CardArt.Glow`); a light
+vignette, cards 90 % opaque, a thin gold frame and a glowing sidebar item (`MainViewModel.PageHero`, the "Background
+characters" switch in Settings > General > Theme, on by default; art from the HearthstoneJSON cache). Icons I1: own
+game-icons.net glyphs (CC BY 3.0, credited per glyph) in engraved gold (`GoldGlyph`) in the sidebar and page titles.
 
 | Done (both UIs) | Not yet |
 |---|---|
-| Overlay panel frame and header; every overlay card list (deck, played, pool, graveyard, likely deck, archetype, Secrets, Arena deck) as capsules | Own sidebar icons: three new directions in `directions-v3/icons-v2/` wait for the owner (both first sets were rejected) |
+| Overlay panel frame and header; every overlay card list (deck, played, pool, graveyard, likely deck, archetype, Secrets, Arena deck) as capsules | Gold glyphs beyond the sidebar and page titles (section headings keep the MDI ornament) |
 | Main window: deck page card list as capsules, brighter `CardEdge` on every card; home: recent games with the hero's art and result pills, deck banners | Other main-window lists (match page, meta decks, Arena page) |
-| Section headings without a trailing rule in both UIs; page backdrop A (hero per page, stone, frame, nav glow) | First-run wizard (D4), overlay frame unification (D5), the UX round in seven themes (D3) |
+| Section headings without a trailing rule in both UIs; page backdrop A (hero per page, its colour glow, stone, frame, nav glow); icons I1 in the sidebar and page titles | First-run wizard (D4), overlay frame unification (D5), the UX round in seven themes (D3) |
 
 Task card with the render audit, all mockups and their sources:
 `../reference/tasks/TASK-2026-11-04-design-identity/` (`directions/` for A-C, `directions-v2/` for V1-V3, `directions-v3/`
