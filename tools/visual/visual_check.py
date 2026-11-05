@@ -46,10 +46,7 @@ THEMES = {
     "Shadow": ["main-overview", "main-settings", "overlay-counters-16x9"],
 }
 # Screens being redesigned: compared and reported, never failed, until their baselines are taken again (README).
-PENDING = {
-    "main-standard": "V3 (decks)",
-    **{scene: "V3 (overlay)" for scene in OVERLAY},
-}
+PENDING: dict[str, str] = {}
 # Areas left out of the comparison (left, top, right, bottom), by scene prefix: the app version under the sidebar
 # changes with every release.
 MASKS = {
