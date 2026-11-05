@@ -273,6 +273,7 @@ public sealed partial class MainViewModel : Observable
             if (Set(ref _recent, value))
             {
                 OnRecentChanged();
+                RaisePageHero();
             }
         }
     }
@@ -289,6 +290,7 @@ public sealed partial class MainViewModel : Observable
         _historyGames = games;
         _historyRows = null;
         Raise(nameof(HistoryRows));
+        RaisePageHero();
     }
     public IReadOnlyList<StatTile> OverviewTiles { get => _overviewTiles; private set => Set(ref _overviewTiles, value); }
     public IReadOnlyList<RatingPoint> RatingPoints { get => _ratingPoints; private set => Set(ref _ratingPoints, value); }

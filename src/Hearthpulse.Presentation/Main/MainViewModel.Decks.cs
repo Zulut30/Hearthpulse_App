@@ -327,6 +327,7 @@ public sealed partial class MainViewModel
             }
 
             _deckFamilies = data.Families;
+            RaisePageHero();
             _mergeSuggestions = data.Suggestions;
             _decksStale = false;
             Decks = data.Shown.Select(f => new DeckRow(

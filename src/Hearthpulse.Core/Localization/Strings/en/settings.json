@@ -20,6 +20,8 @@
   "Settings.Theme.Tint": "Background tint",
   "Settings.Theme.TintTip": "Left is grey, right is strongly colored",
   "Settings.Theme.UseMine": "Use my theme",
+  "Settings.Theme.PageHeroes": "Background characters",
+  "Settings.Theme.PageHeroesTip": "A hero behind each page: your last game's, your best Battlegrounds hero, your most played class. The art loads from HearthstoneJSON once and stays on disk.",
 
   "Settings.App.Title": "App",
   "Settings.App.Tray": "Keep running in the tray when closed",

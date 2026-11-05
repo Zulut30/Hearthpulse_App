@@ -46,11 +46,15 @@
                     <Border.RenderTransform>
                         <TranslateTransform x:Name="NavPillShift" />
                     </Border.RenderTransform>
-                    <Border Width="3" CornerRadius="2" Margin="0,8" HorizontalAlignment="Left" Background="{StaticResource Accent}">
-                        <Border.Effect>
-                            <DropShadowEffect Color="{StaticResource AccentColor}" BlurRadius="12" ShadowDepth="0" Opacity="0.9" />
-                        </Border.Effect>
-                    </Border>
+                    <Grid>
+                        <!-- A gold glow round the open page's icon -->
+                        <Border CornerRadius="{StaticResource RadiusMedium}" Background="{StaticResource NavSelectedGlow}" />
+                        <Border Width="3" CornerRadius="2" Margin="0,8" HorizontalAlignment="Left" Background="{StaticResource Accent}">
+                            <Border.Effect>
+                                <DropShadowEffect Color="{StaticResource AccentColor}" BlurRadius="12" ShadowDepth="0" Opacity="0.9" />
+                            </Border.Effect>
+                        </Border>
+                    </Grid>
                 </Border>
             </Canvas>
             <DockPanel>
@@ -119,24 +123,21 @@
                     </Grid.RowDefinitions>
 
 
-                    <!-- Your last hero, as faded card art behind the page titles -->
-                    <Border Grid.RowSpan="2" Width="640" Height="340" Margin="0,1,1,0" HorizontalAlignment="Right" VerticalAlignment="Top"
-                            IsHitTestVisible="False" Opacity="0.32">
-                        <Border.OpacityMask>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="#00000000" Offset="0" />
-                                <GradientStop Color="#FF000000" Offset="0.65" />
-                            </LinearGradientBrush>
-                        </Border.OpacityMask>
-                        <Border CornerRadius="0,15,0,0" i:CardArt.Splash="{Binding BannerHero}">
-                            <Border.OpacityMask>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                    <GradientStop Color="#FF000000" Offset="0.3" />
-                                    <GradientStop Color="#00000000" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.OpacityMask>
-                        </Border>
-                    </Border>
+                    <!-- The page's material and hero (V3 direction A): stone, the page's hero dissolving towards the text, a vignette
+                         and a floor in the plate's colour, then a thin gold frame. Nothing moves; the hero follows the page
+                         (MainViewModel.PageHero) and is gone while "Background characters" is off. Same as the Avalonia MainView. -->
+                    <Grid Grid.RowSpan="2" IsHitTestVisible="False">
+                        <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageStone}" />
+                        <Grid Visibility="{Binding PageHero, Converter={StaticResource Vis}}">
+                            <Border Width="760" HorizontalAlignment="Right" Opacity="0.62" OpacityMask="{StaticResource PageHeroFade}">
+                                <Border Style="{StaticResource PageLayer}" i:CardArt.Splash="{Binding PageHero}" />
+                            </Border>
+                            <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageVignette}" />
+                            <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageShade}" />
+                            <Border Style="{StaticResource PageLayer}" Background="{StaticResource PageHeroGlow}" />
+                        </Grid>
+                        <Border Margin="8" CornerRadius="{StaticResource RadiusMedium}" BorderThickness="1" BorderBrush="{StaticResource PageFrame}" />
+                    </Grid>
 
                     <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
                     <!-- A dock, not a horizontal stack: the stack measures the line at infinite width, so the ellipsis never showed.

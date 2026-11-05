@@ -386,6 +386,9 @@ public sealed class AppSettings
 
     public double ThemeBaseTint { get; set; } = 1.0;
 
+    /// <summary>A hero's art behind each main-window page ("Background characters"), from the card art cache.</summary>
+    public bool PageHeroes { get; set; } = true;
+
     public static AppSettings Load() => Load(AppPaths.Settings);
 
     /// <summary>Reads a specific file without changing the process-wide data folder.</summary>

@@ -330,6 +330,7 @@ public sealed partial class MainViewModel
 
             _allGames = games;
             RebuildMyStats();
+            RaisePageHero();
         }
         else if (!ReferenceEquals(_statsCards, _cards))
         {

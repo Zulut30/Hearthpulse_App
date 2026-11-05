@@ -56,12 +56,17 @@ public static class CardArt
     public static readonly AttachedProperty<string?> CardProperty =
         AvaloniaProperty.RegisterAttached<Control, string?>("Card", typeof(CardArt));
 
+    /// <summary>Full-size art (512 px): the hero behind a main-window page.</summary>
+    public static readonly AttachedProperty<string?> SplashProperty =
+        AvaloniaProperty.RegisterAttached<Control, string?>("Splash", typeof(CardArt));
+
     static CardArt()
     {
         TileProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Tile, e.NewValue as string));
         PortraitProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Portrait, e.NewValue as string));
         BattlegroundsCardProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.BattlegroundsCard, e.NewValue as string));
         CardProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Card, e.NewValue as string));
+        SplashProperty.Changed.AddClassHandler<Control>((c, e) => Apply(c, ArtKind.Splash, e.NewValue as string));
     }
 
     public static string? GetTile(Control c) => c.GetValue(TileProperty);
@@ -72,6 +77,8 @@ public static class CardArt
     public static void SetBattlegroundsCard(Control c, string? value) => c.SetValue(BattlegroundsCardProperty, value);
     public static string? GetCard(Control c) => c.GetValue(CardProperty);
     public static void SetCard(Control c, string? value) => c.SetValue(CardProperty, value);
+    public static string? GetSplash(Control c) => c.GetValue(SplashProperty);
+    public static void SetSplash(Control c, string? value) => c.SetValue(SplashProperty, value);
 
     /// <summary>Number of image loads still in flight (the off-screen renderer waits for them).</summary>
     public static int InFlight => Pending.Count(p => !p.Value.IsCompleted);
@@ -111,6 +118,7 @@ public static class CardArt
         ArtKind.Tile => TileProperty,
         ArtKind.Portrait => PortraitProperty,
         ArtKind.Card => CardProperty,
+        ArtKind.Splash => SplashProperty,
         _ => BattlegroundsCardProperty,
     };
 
@@ -168,10 +176,11 @@ public static class CardArt
                 try
                 {
                     await using var stream = File.OpenRead(file);
-                    image = Bitmap.DecodeToWidth(stream, kind is ArtKind.Tile or ArtKind.Card ? 256 : 200, BitmapInterpolationMode.HighQuality);
+                    image = Bitmap.DecodeToWidth(stream, kind switch { ArtKind.Tile or ArtKind.Card => 256, ArtKind.Splash => 512, _ => 200 },
+                        BitmapInterpolationMode.HighQuality);
                     image = kind switch
                     {
-                        ArtKind.Portrait => TrimMargins(image),
+                        ArtKind.Portrait or ArtKind.Splash => TrimMargins(image),
                         ArtKind.Tile => FadeTileMargin(image),
                         _ => image,
                     };

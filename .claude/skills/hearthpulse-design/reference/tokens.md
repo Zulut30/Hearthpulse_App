@@ -72,6 +72,18 @@ Theme character (both files; `ThemeFileTests` keeps the colour, brush and geomet
 | `MotifBrush` | DrawingBrush, Uniform | the active theme's motif alone (lines in AccentLine, dots in Accent2) for a square decoration |
 | `ContentFill` | DrawingBrush, cached | content plate: lamplight top left, a second-accent wash and the motif carved faintly into the bottom right |
 
+Page backdrop (V3 direction A, both main windows, layers in this order over `ContentFill`; `Border.pageLayer` /
+`PageLayer` give them the plate's inner radius 15):
+
+| Key | Kind | Use |
+|---|---|---|
+| `PageStone` | tiled DrawingBrush 220x140 | stone seams and flecks, lit on top (#0FF4E7C9) and shaded under (#26000000) |
+| `PageHeroFade` | opacity mask | the page hero's splash (`CardArt.Splash` = `MainViewModel.PageHero`, 760 wide, opacity 0.62) dissolves to the left |
+| `PageVignette` / `PageShade` | radial / vertical | vignette and floor in the plate colour #1D140C over the hero; shown only with a hero |
+| `PageHeroGlow` | radial, Accent2 | faint second-accent light top right |
+| `PageFrame` | vertical gold | 1 px frame 8 inside the plate, bright on top |
+| `NavSelectedGlow` | radial gold | glow round the open page's sidebar icon (WPF `NavPill`, Avalonia `NavItem` "Selected") |
+
 `ThemeChoice` (WPF picker) also carries each preset's `Secondary` brush and `Motif` geometry.
 
 Avalonia-only: Fluent overrides `SystemAccentColor*`, `ScrollBar*`, `Slider*` so built-in Fluent controls use the

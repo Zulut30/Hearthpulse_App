@@ -261,6 +261,22 @@
                 Margin="0,10,10,10" ClipToBounds="True">
             <Grid RowDefinitions="52,*">
 
+                <!-- The page's material and hero (V3 direction A): stone, the page's hero dissolving towards the text, a vignette
+                     and a floor in the plate's colour, then a thin gold frame. Nothing moves; the hero follows the page
+                     (MainViewModel.PageHero) and is gone while "Background characters" is off. Same as the WPF MainWindow. -->
+                <Panel Grid.RowSpan="2" IsHitTestVisible="False">
+                    <Border Classes="pageLayer" Background="{StaticResource PageStone}" />
+                    <Panel IsVisible="{Binding PageHero, Converter={StaticResource Truthy}}">
+                        <Border Width="760" HorizontalAlignment="Right" Opacity="0.62" OpacityMask="{StaticResource PageHeroFade}">
+                            <Border Classes="pageLayer" i:CardArt.Splash="{Binding PageHero}" />
+                        </Border>
+                        <Border Classes="pageLayer" Background="{StaticResource PageVignette}" />
+                        <Border Classes="pageLayer" Background="{StaticResource PageShade}" />
+                        <Border Classes="pageLayer" Background="{StaticResource PageHeroGlow}" />
+                    </Panel>
+                    <Border Margin="8" CornerRadius="{StaticResource RadiusMedium}" BorderThickness="1" BorderBrush="{StaticResource PageFrame}" />
+                </Panel>
+
                 <!-- Top bar: what runs in the background on the left (only while something does), status chips on the right -->
                 <!-- A dock, not a horizontal stack: the stack measures the line at infinite width, so the ellipsis never showed.
                      A long message (Hearthstone not found, startup problem) is read in full in the tip. -->

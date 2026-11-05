@@ -258,6 +258,58 @@
         </DrawingBrush.Drawing>
     </DrawingBrush>
 
+    <!-- ===== V3 direction A: the page's material and its hero (MainWindow's backdrop, docs/design-identity.md) ===== -->
+    <!-- Stone: seams and flecks in one tile, lit on top and shaded under each seam -->
+    <DrawingBrush x:Key="PageStone" TileMode="Tile" Viewport="0,0,220,140" ViewportUnits="Absolute" Stretch="None" RenderOptions.CachingHint="Cache">
+        <DrawingBrush.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="#00000000" Geometry="M0,0 H220 V140 H0 Z" />
+                <GeometryDrawing Geometry="M0,46 L74,44 L76,0 M74,44 L150,47 L148,0 M150,47 L220,45 M0,94 L36,92 L38,46 M36,92 L118,95 L116,46 M118,95 L190,93 L192,46 M190,93 L220,94 M60,140 L62,94 M146,140 L144,95">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#0FF4E7C9" Thickness="1.2" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <GeometryDrawing Geometry="M0,47.5 L74,45.5 M150,48.5 L220,46.5 M36,93.5 L118,96.5 M190,94.5 L220,95.5">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#26000000" Thickness="1.4" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="#0AF4E7C9" Geometry="M20,20 h2 v2 h-2 Z M96,18 h1.5 v1.5 h-1.5 Z M170,30 h2 v2 h-2 Z M58,70 h1.5 v1.5 h-1.5 Z M140,66 h2 v2 h-2 Z M14,118 h1.5 v1.5 h-1.5 Z M92,120 h2 v2 h-2 Z M200,112 h1.5 v1.5 h-1.5 Z" />
+            </DrawingGroup>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <!-- The hero's art dissolves towards the text on the left (an opacity mask: only the alpha counts) -->
+    <LinearGradientBrush x:Key="PageHeroFade" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#00000000" Offset="0" />
+        <GradientStop Color="#A0000000" Offset="0.35" />
+        <GradientStop Color="#FF000000" Offset="0.7" />
+    </LinearGradientBrush>
+    <!-- Over the art: a vignette and a floor in the plate's own colour, and a faint light of the second accent -->
+    <RadialGradientBrush x:Key="PageVignette" Center="0.75,0.3" GradientOrigin="0.75,0.3" RadiusX="0.8" RadiusY="1">
+        <GradientStop Color="#001D140C" Offset="0.25" />
+        <GradientStop Color="#D91D140C" Offset="0.85" />
+        <GradientStop Color="#F21D140C" Offset="1" />
+    </RadialGradientBrush>
+    <LinearGradientBrush x:Key="PageShade" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#001D140C" Offset="0.45" />
+        <GradientStop Color="#E61D140C" Offset="1" />
+    </LinearGradientBrush>
+    <RadialGradientBrush x:Key="PageHeroGlow" Center="0.82,0.18" GradientOrigin="0.82,0.18" RadiusX="0.35" RadiusY="0.45">
+        <GradientStop Color="#1F4FC2A8" Offset="0" />
+        <GradientStop Color="#004FC2A8" Offset="1" />
+    </RadialGradientBrush>
+    <!-- A thin gold frame inside the page plate, bright on top and fading down -->
+    <LinearGradientBrush x:Key="PageFrame" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#99E9B949" Offset="0" />
+        <GradientStop Color="#33E9B949" Offset="0.5" />
+        <GradientStop Color="#1AE9B949" Offset="1" />
+    </LinearGradientBrush>
+    <!-- The open page's sidebar item glows round its icon -->
+    <RadialGradientBrush x:Key="NavSelectedGlow" Center="0.12,0.5" GradientOrigin="0.12,0.5" RadiusX="0.3" RadiusY="1.1">
+        <GradientStop Color="#4DE9B949" Offset="0" />
+        <GradientStop Color="#00E9B949" Offset="1" />
+    </RadialGradientBrush>
+
     <SolidColorBrush x:Key="RarityCommon" Color="#D8CDB8" />
     <SolidColorBrush x:Key="RarityRare" Color="#5B9BFF" />
     <SolidColorBrush x:Key="RarityEpic" Color="#B98AF5" />

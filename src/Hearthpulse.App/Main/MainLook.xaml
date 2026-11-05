@@ -15,6 +15,12 @@
         <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
+    <!-- A layer of the page backdrop (MainWindow): fills the content plate inside its 1 px edge, rounded corners included -->
+    <Style x:Key="PageLayer" TargetType="Border">
+        <Setter Property="CornerRadius" Value="15" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+
     <!-- Stat tiles: a card lifted off the page (neutral black shadow, not themed); the edge warms on hover -->
     <Style x:Key="TileCard" TargetType="Border" BasedOn="{StaticResource Card}">
         <Setter Property="Effect">

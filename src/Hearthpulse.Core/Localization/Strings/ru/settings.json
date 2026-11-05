@@ -20,6 +20,8 @@
   "Settings.Theme.Tint": "Насыщенность фона",
   "Settings.Theme.TintTip": "Слева — серый, справа — насыщенный цвет",
   "Settings.Theme.UseMine": "Применить мою тему",
+  "Settings.Theme.PageHeroes": "Фоновые персонажи",
+  "Settings.Theme.PageHeroesTip": "Герой за каждой страницей: из последней игры, лучший на полях сражений, самый играемый класс. Арт один раз загружается с HearthstoneJSON и хранится на диске.",
 
   "Settings.App.Title": "Приложение",
   "Settings.App.Tray": "Сворачивать в трей при закрытии",

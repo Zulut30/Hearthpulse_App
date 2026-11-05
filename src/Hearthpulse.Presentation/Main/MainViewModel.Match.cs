@@ -86,6 +86,8 @@ public sealed partial class MainViewModel
         }
 
         MatchPage.Show(page, keepPosition);
+        _openMatchHero = page.Header.Local.HeroCardId;
+        RaisePageHero();
         var (replay, card, built) = MatchReplayOf(key);
         MatchPage.SetReplay(replay, card, _history);
         if (built && card is { FileName: { } file })
@@ -144,7 +146,9 @@ public sealed partial class MainViewModel
     {
         _matchLoad++;
         _openMatchKey = null;
+        _openMatchHero = null;
         MatchOpen = false;
+        RaisePageHero();
         _matchPage?.Clear();
     }
 }
