@@ -26,7 +26,7 @@ public sealed record AccountSession(string AccountId, long Generation);
 /// What the client cannot cover is an answer lost on the wire after the site rotated; that needs a grace window on the
 /// site.
 /// </remarks>
-public sealed class AccountService(AccountClient client, TokenStore? store = null, Func<Uri, bool>? openBrowser = null)
+public sealed class AccountService(AccountClient client, TokenStore? store = null, Func<Uri, bool>? openBrowser = null, AccountActivity? activity = null)
 {
     /// <summary>A sign-in lasts 30 days from the token exchange; refreshing does not extend it.</summary>
     public static readonly TimeSpan SessionLifetime = TimeSpan.FromDays(30);
@@ -67,6 +67,18 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
     private int _phase;
     private AccountSession? _session;
     private long _sessionGeneration;
+
+    /// <summary>The journal of the app's contact with the site (the account center reads it); in memory when none was given.</summary>
+    public AccountActivity Activity { get; } = activity ?? new AccountActivity(null);
+
+    /// <summary>
+    /// Why the last check of the session failed (the restore at start or "Check now"); null when it worked. Kept so the
+    /// card can say what happened instead of silently showing "signed out".
+    /// </summary>
+    public AccountError? LastCheckError { get; private set; }
+
+    /// <summary>"Check now" in the account center ran: the host also re-reads the daily limits.</summary>
+    public event Action? CheckRequested;
 
     /// <summary>Identity for account-bound background work; null until the account has been named.</summary>
     public AccountSession? Session => Volatile.Read(ref _session);
@@ -129,6 +141,57 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
     public bool OpenSubscription() => (openBrowser ?? SystemBrowser.Open)(SubscriptionUrl);
 
+    /// <summary>The account page's replays section: the replays this account put on the site.</summary>
+    public Uri ReplaysUrl => new UriBuilder(ProfileUrl) { Fragment = "account-replays" }.Uri;
+
+    public bool OpenReplays() => (openBrowser ?? SystemBrowser.Open)(ReplaysUrl);
+
+    /// <summary>
+    /// Opens a link the site handed out (an uploaded replay's page): only https on the site's own host (or a subdomain
+    /// of it), never anything else a file could carry. False when refused or the browser did not open.
+    /// </summary>
+    public bool OpenSiteLink(string? url) =>
+        IsSiteLink(url, out var link) && (openBrowser ?? SystemBrowser.Open)(link);
+
+    /// <summary>Whether <paramref name="url"/> is https on the site's host or a subdomain of it.</summary>
+    public bool IsSiteLink(string? url, out Uri link)
+    {
+        link = null!;
+        var siteUri = new Uri(client.Site);
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var parsed) || parsed.Scheme != Uri.UriSchemeHttps || parsed.Port != siteUri.Port
+            || parsed.UserInfo.Length > 0)
+        {
+            return false;
+        }
+
+        var site = siteUri.IdnHost;
+        var host = parsed.IdnHost;
+        if (!host.Equals(site, StringComparison.OrdinalIgnoreCase) && !host.EndsWith("." + site, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        link = parsed;
+        return true;
+    }
+
+    /// <summary>
+    /// "Check now" in the account center: re-reads <c>/me</c> (the profile and the subscription) and asks the host to
+    /// re-read the daily limits. Null when it worked or there is no sign-in to check.
+    /// </summary>
+    public async Task<AccountError?> CheckNowAsync(CancellationToken cancellationToken = default)
+    {
+        CheckRequested?.Invoke();
+        if (_refreshToken is null || User is null)
+        {
+            return null;
+        }
+
+        var error = await RefreshAsync(withProfile: true, cancellationToken).ConfigureAwait(false);
+        LastCheckError = error;
+        return error;
+    }
+
     /// <summary>Opens the page where the player confirms <paramref name="device"/>, with the code filled in when the site allows.</summary>
     public bool OpenSignInPage(DeviceCode device) => (openBrowser ?? SystemBrowser.Open)(device.VerificationUriComplete ?? device.VerificationUri);
 
@@ -150,7 +213,13 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         SessionExpires = saved.Value.ExpiresAt;
         WatchSessionEnd();
         Changed?.Invoke();
-        await RefreshAsync(withProfile: true, cancellationToken).ConfigureAwait(false);
+        // Kept, not dropped: the account center and the indicator say why the saved session did not come back.
+        LastCheckError = await RefreshAsync(withProfile: true, cancellationToken).ConfigureAwait(false);
+        if (LastCheckError is { } error)
+        {
+            Diag.Info($"account: saved session not refreshed at start ({error.Code})");
+            Changed?.Invoke();
+        }
     }
 
     /// <summary>
@@ -217,6 +286,10 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             _gate.Release();
         }
 
+        // Signed out on purpose: an ended sign-in or an outage is no longer news.
+        LastCheckError = null;
+        Activity.ClearFailure(SiteService.Account);
+
         if (refresh is not null)
         {
             await TryRevokeAsync(refresh).ConfigureAwait(false);
@@ -254,22 +327,27 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             var (status, body) = await client.PostReplayAsync(token, gzipBase64, gameId, cancellationToken).ConfigureAwait(false);
             if (status == 201 && Replay.ReplayUploadResult.Parse(body) is { } result)
             {
+                Activity.Succeeded(SiteService.Replays);
                 return (result, null);
             }
 
             Diag.Info($"account: replay upload answered {status}");
-            return (null, status switch
+            var code = status switch
             {
                 401 or 403 => "SIGNED_OUT",
+                404 => "NOT_AVAILABLE",
                 409 => "QUOTA_EXCEEDED",
                 413 => "TOO_LARGE",
                 429 => "RATE_LIMITED",
                 400 => "REFUSED",
                 _ => "SERVER_ERROR",
-            });
+            };
+            Activity.Failed(SiteService.Replays, code);
+            return (null, code);
         }
         catch (AccountException ex)
         {
+            Activity.Failed(SiteService.Replays, ex.Code);
             return (null, ex.Code);
         }
     }
@@ -290,14 +368,17 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             var (status, body) = await client.PostUsageClaimAsync(token, feature, gameId, cancellationToken).ConfigureAwait(false);
             if (status == 200 && UsageClaim.Parse(body) is { } claim)
             {
+                Activity.Succeeded(SiteService.Limits);
                 return claim;
             }
 
             Diag.Info($"account: usage claim answered {status}");
+            Activity.Failed(SiteService.Limits, StatusCode(status));
             return null;
         }
-        catch (AccountException)
+        catch (AccountException ex)
         {
+            Activity.Failed(SiteService.Limits, ex.Code);
             return null;
         }
     }
@@ -315,6 +396,12 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             if (status is not (204 or 404))
             {
                 Diag.Info($"account: replay delete answered {status}");
+                Activity.Failed(SiteService.Replays, StatusCode(status));
+            }
+            else if (status == 204)
+            {
+                // A 404 is no proof either way: the replay is gone, or the site has no replays yet.
+                Activity.Succeeded(SiteService.Replays);
             }
 
             return status switch
@@ -327,6 +414,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         }
         catch (AccountException ex)
         {
+            Activity.Failed(SiteService.Replays, ex.Code);
             return ex.Code == "OFFLINE" ? "OFFLINE" : "SERVER_ERROR";
         }
     }
@@ -476,6 +564,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             {
                 // Revoked, expired or rotated away: the site will not take this session back.
                 Diag.Info($"account: saved session rejected ({ex.Code})");
+                Activity.Failed(SiteService.Account, ex.Code);
                 Forget();
                 return Describe(ex.Code);
             }
@@ -500,11 +589,13 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
             catch (AccountException ex) when (Transient.Contains(ex.Code))
             {
                 Diag.Info($"account: profile not refreshed ({ex.Code})");
+                Activity.Failed(SiteService.Account, ex.Code);
             }
             catch (AccountException ex)
             {
                 // The new pair refreshes but is not good for the profile: give it back instead of leaving it alive.
                 Diag.Info($"account: session dropped after /me ({ex.Code})");
+                Activity.Failed(SiteService.Account, ex.Code);
                 var refresh = _refreshToken;
                 Forget();
                 if (refresh is not null)
@@ -519,6 +610,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         }
         catch (AccountException ex)
         {
+            Activity.Failed(SiteService.Account, ex.Code);
             return Describe(ex.Code);
         }
         finally
@@ -559,6 +651,7 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
         _accessExpires = DateTime.UtcNow.AddSeconds(tokens.ExpiresIn);
         Volatile.Write(ref _accessToken, tokens.AccessToken);
         SetSession(user, newSignIn: sessionExpires is not null);
+        Activity.Succeeded(SiteService.Account);
 
         WatchSessionEnd();
         Changed?.Invoke();
@@ -603,6 +696,15 @@ public sealed class AccountService(AccountClient client, TokenStore? store = nul
 
     // 0 = fine, 1 = ending within two days, 2 = ended.
     private int Phase() => SessionExpires is not { } end ? 0 : UtcNow() >= end ? 2 : SessionEndingSoon ? 1 : 0;
+
+    /// <summary>An HTTP status as a journal code: 404 means the site has no such route yet (NOT_AVAILABLE).</summary>
+    internal static string StatusCode(int status) => status switch
+    {
+        404 => "NOT_AVAILABLE",
+        429 => "RATE_LIMITED",
+        >= 500 => "SERVER_ERROR",
+        _ => "HTTP " + status.ToString(CultureInfo.InvariantCulture),
+    };
 
     private static string Day(DateTime utc, string format) =>
         utc.ToLocalTime().ToString(format, Loc.IsRussian ? CultureInfo.GetCultureInfo("ru-RU") : CultureInfo.InvariantCulture);

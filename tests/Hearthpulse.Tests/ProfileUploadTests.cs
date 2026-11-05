@@ -40,10 +40,10 @@ public sealed class ProfileUploadTests : IDisposable
     private string QueuePath => Path.Combine(_dir, "profile-upload.json");
 
     private ProfileUploader Uploader(Func<bool>? enabled = null, int backfillPage = ProfileUploader.BackfillPage,
-        Func<AccountSession, CancellationToken, Task<string?>>? accessToken = null) =>
+        Func<AccountSession, CancellationToken, Task<string?>>? accessToken = null, AccountActivity? activity = null) =>
         new(new AccountClient(new HttpClient(_site), "https://site.test/api/v1/"),
             accessToken ?? ((expected, _) => Task.FromResult(expected == Session ? _token : null)),
-            () => Session, enabled ?? (() => _enabled), _history, new ProfileUploadQueue(QueuePath))
+            () => Session, enabled ?? (() => _enabled), _history, new ProfileUploadQueue(QueuePath), activity)
         {
             UtcNow = () => _now,
             BackfillPageSize = backfillPage,
@@ -215,6 +215,48 @@ public sealed class ProfileUploadTests : IDisposable
         Assert.Equal(0, restarted.PendingCount);
         Assert.Single(_site.Requests, r => r.Status == 202);
         Assert.Equal("All games are on your profile.", restarted.Status);
+    }
+
+    [Fact]
+    public async Task The_account_journal_keeps_sends_refusals_and_the_pause_with_its_reason_across_restarts()
+    {
+        var journalPath = Path.Combine(_dir, "account-activity.json");
+        var journal = new AccountActivity(journalPath) { UtcNow = () => _now };
+        var good = Saved(Ranked());
+        var bad = Saved(Ranked("Loss"));
+        var warned = Saved(Ranked());
+        var uploader = Uploader(activity: journal);
+        uploader.OnGameFinished(Outcome(good));
+
+        // An outage: the reason and the next try are journalled, and the uploader names the same time.
+        _site.Offline = true;
+        await uploader.PassAsync(CancellationToken.None);
+        var games = journal[SiteService.Games];
+        Assert.True(games.Failing);
+        Assert.Equal("OFFLINE", games.LastError);
+        Assert.Equal(_now + TimeSpan.FromSeconds(30), games.NextTry);
+        Assert.Equal(_now + TimeSpan.FromSeconds(30), uploader.RetryAt);
+
+        // Signed in but no token (offline refresh): its own code.
+        _site.Offline = false;
+        _now += TimeSpan.FromSeconds(30);
+        _token = null;
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.Equal("NO_TOKEN", journal[SiteService.Games].LastError);
+
+        // Back: sent, refused and stored without statistics are counted, and kept across a restart.
+        _token = "acc-1";
+        _now += TimeSpan.FromMinutes(5);
+        _site.Reject[ProfileEvents.GameEventId(bad)] = ("INVALID_EVENT", "opponentClass");
+        _site.Warn[ProfileEvents.GameEventId(warned)] = "turns";
+        uploader.OnGameFinished(Outcome(bad));
+        uploader.OnGameFinished(Outcome(warned));
+        await uploader.PassAsync(CancellationToken.None);
+        Assert.False(journal[SiteService.Games].Failing);
+        Assert.Null(uploader.RetryAt);
+        var restarted = new AccountActivity(journalPath);
+        Assert.Equal((2L, 1L, 1L), (restarted.GamesSent, restarted.GamesRefused, restarted.GamesWithoutStatistics));
+        Assert.Equal(_now, restarted.LastGameSentAt);
     }
 
     [Fact]

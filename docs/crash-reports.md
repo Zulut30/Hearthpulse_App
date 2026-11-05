@@ -8,8 +8,9 @@ written or sent without consent. Site side: HeartPulse `docs/specs/crash-reports
 - **"Send report"** in the error window (WPF `Infrastructure/CrashDialog.cs`, Avalonia `Desktop/CrashWindow.cs`): this one
   report, now; when the app has to close, it is queued and goes at the next start ("The report goes at the next start").
 - **Settings → Data → "Send crash reports automatically"** (`AppSettings.SendCrashReports`, off): every new kind of error
-  (the first time `CrashLog.Record` sees it) and every crash that ends the process; the window then says the report went
-  (or, for a crash that ends the app, that it will be sent at the next start). Turning it off deletes what waits
+  (the first time `CrashLog.Record` sees it) and every crash that ends the process; the window then says the report will
+  be sent (`Host.Crash.AutoSent`: the send runs in the background and may wait for the next start, so the window never
+  claims it went), or, for a crash that ends the app, that it goes at the next start. Turning it off deletes what waits
   (`CrashReporter.ClearPending`): consent withdrawn.
 - The switch's note and the installer notice (`installer/windows/notice.txt`, "CRASH REPORTS") say what is sent.
 
@@ -31,7 +32,10 @@ game logs or memory values.
 `App.xaml.cs`, Avalonia `DesktopApp`, before the history, the session and the windows), so a crash at start is reported
 too; never while rendering off-screen. It has its own HTTP client and sends no `Authorization`. A report is written to `crash-reports/` in the data folder first (at most 5 wait; older than 30 days are
 dropped), then sent; the app start sends what waits. Taken (2xx) or refused as malformed (400/413/422): deleted. Offline,
-throttled or down: it waits for the next start. The site keeps reports 90 days without IP or account.
+throttled or down: it waits for the next start. The site keeps reports 90 days without IP or account. Each send result
+goes to the account center's journal (`CrashReporter.Activity`, attached by the hosts once the services exist; a send
+before that is recorded on attach): Settings → Account → "Crash reports" shows the switch's state, that reports go to
+hearthpulse.net, the number waiting, and "Not available on the site yet." while the site answers 404.
 
 ## Tests
 

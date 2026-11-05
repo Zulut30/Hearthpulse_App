@@ -28,6 +28,16 @@ public partial class App
             await RenderBrawlAsync(folder);
         }
 
+        if (RenderOnly("account"))
+        {
+            // The account center (Settings → Hearthpulse account), as the data copy has it (no saved sign-in: signed out).
+            _main.ShowPage("Settings");
+            _main.ShowSettingsTab("Account");
+            await Task.Delay(2500);
+            _main.UpdateLayout();
+            Save(_main, Path.Combine(folder, "main-settings-account.png"));
+        }
+
         if (RenderOnly("ctmatch"))
         {
             await RenderConstructedTableOnlyAsync(folder);

@@ -503,6 +503,13 @@ public partial class MainWindow : Window
 
     private void OnOpenOverlayTab(object sender, RoutedEventArgs e) => ShowSettingsTab("Overlay");
 
+    /// <summary>The top bar's account indicator: Settings, Account (the account center).</summary>
+    private void OnOpenAccountCenter(object sender, RoutedEventArgs e)
+    {
+        ShowPage("Settings");
+        ShowSettingsTab("Account");
+    }
+
     private bool _syncingSettings;
 
     /// <summary>A live-bar button switched a panel: the settings page shows it too (its switches bind to AppSettings, which does not notify), then save and apply.</summary>

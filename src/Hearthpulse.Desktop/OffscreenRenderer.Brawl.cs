@@ -31,6 +31,14 @@ internal static partial class OffscreenRenderer
             await RenderBrawlPageAsync(main, view, host, folder);
         }
 
+        if (RenderOnly("account"))
+        {
+            // The account center (Settings → Hearthpulse account), as the data copy has it (no saved sign-in: signed out).
+            view.ShowPage("Settings");
+            view.ShowSettingsTab("Account");
+            await Save(main, Path.Combine(folder, "main-settings-account.png"));
+        }
+
         if (RenderOnly("history") || RenderOnly("historylist"))
         {
             if (RenderWidth is { } width)

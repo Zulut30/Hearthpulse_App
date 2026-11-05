@@ -364,6 +364,16 @@ public sealed class ReplayLibraryViewModel : Observable
                 }
             }
         });
+        // The uploaded replay's page in the browser: a separate action, so a click on the cloud never opens and a click
+        // here never deletes.
+        OpenOnSite = new RelayCommand(p =>
+        {
+            if (p is LibraryCard { OnSite: true } card)
+            {
+                ClearStatus();
+                _owner.OpenLibraryCardOnSite(card);
+            }
+        });
         Delete = new RelayCommand(p =>
         {
             if (p is LibraryCard { FileName: { } name, CanDelete: true } card)
@@ -593,6 +603,9 @@ public sealed class ReplayLibraryViewModel : Observable
     public RelayCommand Share { get; }
 
     public RelayCommand Delete { get; }
+
+    /// <summary>Opens an uploaded replay's page on the site (https on the site's host only).</summary>
+    public RelayCommand OpenOnSite { get; }
 
     public RelayCommand SiteAction { get; }
 

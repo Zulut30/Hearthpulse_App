@@ -46,6 +46,7 @@ public sealed class ProfileUploader : IDisposable
     private readonly Func<bool> _enabled;
     private readonly HistoryStore _history;
     private readonly ProfileUploadQueue _queue;
+    private readonly AccountActivity? _activity;
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Deliberately not disposed: the loop may still be using it while it winds down after Dispose cancels _stop.")]
     private readonly SemaphoreSlim _wake = new(0, int.MaxValue);
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Deliberately not disposed: the loop may still be using it while it winds down after Dispose cancels _stop.")]
@@ -68,9 +69,11 @@ public sealed class ProfileUploader : IDisposable
     /// <param name="enabled">Whether the player wants games sent (the setting).</param>
     /// <param name="history">The game history the events are built from.</param>
     /// <param name="queue">Where events wait (by default <c>profile-upload.json</c> in the data folder).</param>
+    /// <param name="activity">The account center's journal: sends, refusals, pauses and their reason (none: not recorded).</param>
     public ProfileUploader(AccountClient client, Func<AccountSession, CancellationToken, Task<string?>> accessToken, Func<AccountSession?> accountSession,
-        Func<bool> enabled, HistoryStore history, ProfileUploadQueue? queue = null)
+        Func<bool> enabled, HistoryStore history, ProfileUploadQueue? queue = null, AccountActivity? activity = null)
     {
+        _activity = activity;
         _client = client;
         _accessToken = accessToken;
         _accountSession = accountSession;
@@ -81,7 +84,7 @@ public sealed class ProfileUploader : IDisposable
 
     /// <summary>The account service's view of the same thing, for the hosts.</summary>
     public static ProfileUploader For(AccountClient client, AccountService account, Func<bool> enabled, HistoryStore history) =>
-        new(client, account.GetAccessTokenForSessionAsync, () => account.Session, enabled, history);
+        new(client, account.GetAccessTokenForSessionAsync, () => account.Session, enabled, history, activity: account.Activity);
 
     /// <summary>Hero skins to base heroes (<c>CardDb.BaseHeroId</c>), so the site's hero stats match the global ones.</summary>
     public Func<string, string>? BaseHero { get; set; }
@@ -106,6 +109,9 @@ public sealed class ProfileUploader : IDisposable
 
     /// <summary>Whether a backfill is still reading past games from the history.</summary>
     public bool Backfilling => _queue.BackfillAfter is not null;
+
+    /// <summary>When sending tries again after a failure (UTC); null while it is not paused.</summary>
+    public DateTime? RetryAt => _retryAt > UtcNow() ? _retryAt : null;
 
     /// <summary>Whether sending is possible right now (signed in to a named account and the setting on).</summary>
     public bool Active => _enabled() && _accountSession() is { AccountId.Length: > 0 };
@@ -325,7 +331,7 @@ public sealed class ProfileUploader : IDisposable
             if (!CanSend(session, generation)) return Idle;
             if (token is null)
             {
-                return Backoff("not signed in or offline");
+                return Backoff("NO_TOKEN");
             }
 
             TrackerBatchAnswer answer;
@@ -349,7 +355,7 @@ public sealed class ProfileUploader : IDisposable
                 _queue.Settle(batch.Where(b => named.Contains(b.Event.EventId)).Select(b => (b.Event.EventId, b.Version)), session.AccountId);
                 if (!batch.Any(b => named.Contains(b.Event.EventId)))
                 {
-                    return Backoff("answer named no event");
+                    return Backoff("BAD_RESPONSE");
                 }
 
                 sent += answer.Accepted.Count;
@@ -387,7 +393,7 @@ public sealed class ProfileUploader : IDisposable
             if (!CanSend(session, generation)) return Idle;
             var token = await _accessToken(session, cancellationToken).ConfigureAwait(false);
             if (!CanSend(session, generation)) return Idle;
-            if (token is null) return Backoff("not signed in or offline");
+            if (token is null) return Backoff("NO_TOKEN");
             TrackerBatchAnswer answer;
             try
             {
@@ -405,7 +411,7 @@ public sealed class ProfileUploader : IDisposable
                 if (!answer.Accepted.Contains(item.Event.EventId, StringComparer.OrdinalIgnoreCase)
                     && !answer.Rejected.Any(r => r.EventId.Equals(item.Event.EventId, StringComparison.OrdinalIgnoreCase)))
                 {
-                    return Backoff("answer named no event");
+                    return Backoff("BAD_RESPONSE");
                 }
                 Record(answer, [item]);
                 _queue.Settle([(item.Event.EventId, item.Version)], session.AccountId);
@@ -426,6 +432,8 @@ public sealed class ProfileUploader : IDisposable
     private void Refuse(QueuedEvent item, TrackerBatchAnswer answer, string owner)
     {
         _refused++;
+        _activity?.CountGames(0, 1, 0);
+        _activity?.Succeeded(SiteService.Games);
         Diag.Info($"profile upload: {item.Event.Type} {item.Event.EventId} refused: HTTP {answer.Status.ToString(CultureInfo.InvariantCulture)} {answer.ErrorCode}");
         _queue.Settle([(item.Event.EventId, item.Version)], owner);
     }
@@ -448,6 +456,10 @@ public sealed class ProfileUploader : IDisposable
             _withoutStatistics++;
             Diag.Info($"profile upload: {TypeOf(warning.EventId)} {warning.EventId} stored without statistics: {warning.Code}{Field(warning.Field)}");
         }
+
+        // Kept across restarts for the account center (the counts above are since the start only).
+        _activity?.CountGames(answer.Accepted.Count, answer.Rejected.Count, answer.Warnings.Count);
+        _activity?.Succeeded(SiteService.Games);
     }
 
     private static string Field(string? field) => field is { } f ? " (" + f + ")" : string.Empty;
@@ -487,6 +499,7 @@ public sealed class ProfileUploader : IDisposable
         _failures++;
         var wait = Min(TimeSpan.FromTicks(FirstRetry.Ticks << Math.Min(_failures - 1, 10)), MaxRetry);
         _retryAt = UtcNow() + wait;
+        _activity?.Failed(SiteService.Games, reason, _retryAt);
         Diag.Info($"profile upload: sending paused ({reason}), next try in {wait.TotalSeconds.ToString("0", CultureInfo.InvariantCulture)} s");
         SetStatus(StatusKind.Retrying);
         return wait;
@@ -557,7 +570,7 @@ public sealed class ProfileUploader : IDisposable
             catch (Exception ex)
             {
                 Diag.Error("profile upload: send pass failed", ex);
-                wait = Backoff(ex.GetType().Name);
+                wait = Backoff("ERROR " + ex.GetType().Name);
             }
 
             try
