@@ -7,6 +7,9 @@ namespace Hearthpulse.Core.Battlegrounds;
 /// <summary>Which comps the lobby and the patch allow and how they rank for this hero, with the reason shown.</summary>
 public sealed partial class BattlegroundsAdvisor
 {
+    /// <summary>Games a comp needs with a hero before its placement with that hero counts.</summary>
+    private const int MinHeroDataPoints = 40;
+
     /// <summary>
     /// A comp is worth showing when at least one of its cards is in this patch's pool (and, outside Duos, is not a
     /// Duos-exclusive card). Comps built only from cards the patch rotated out cannot be played.
@@ -21,7 +24,7 @@ public sealed partial class BattlegroundsAdvisor
     private static double HeroCompPlacement(MetaComp comp, string baseHeroId, int bracket)
     {
         var general = comp.PlacementAtMmr.TryGetValue(bracket, out var p) ? p : comp.AveragePlacement;
-        if (comp.HeroPlacement.TryGetValue(baseHeroId, out var hero) && hero.DataPoints >= 40)
+        if (comp.HeroPlacement.TryGetValue(baseHeroId, out var hero) && hero.DataPoints >= MinHeroDataPoints)
         {
             // Shrink small hero samples toward the comp's general placement.
             var weight = Math.Min(1.0, hero.DataPoints / 200.0);
@@ -128,7 +131,7 @@ public sealed partial class BattlegroundsAdvisor
                 x.Comp.PowerLevel,
                 x.Comp.Difficulty,
                 x.Comp.PlacementAtMmr.TryGetValue(bracket, out var p) ? p : x.Comp.AveragePlacement,
-                x.Comp.HeroPlacement.TryGetValue(baseHero, out var h) && h.DataPoints >= 40 ? h.Placement : null,
+                x.Comp.HeroPlacement.TryGetValue(baseHero, out var h) && h.DataPoints >= MinHeroDataPoints ? h.Placement : null,
                 x.Comp.Tribes,
                 x.Comp.Cards
                     .Where(card => Available(card.CardId, cards, view.IsDuos))
@@ -176,7 +179,7 @@ public sealed partial class BattlegroundsAdvisor
             return Loc.F("Core.Bg.Why.HaveSupport", addons);
         }
 
-        var hero = comp.HeroPlacement.TryGetValue(baseHero, out var h) && h.DataPoints >= 40 ? Loc.T("Core.Bg.Why.WithHero") : string.Empty;
+        var hero = comp.HeroPlacement.TryGetValue(baseHero, out var h) && h.DataPoints >= MinHeroDataPoints ? Loc.T("Core.Bg.Why.WithHero") : string.Empty;
         return lobbyKnown
             ? Loc.F("Core.Bg.Why.BestLobby", hero)
             : Loc.F("Core.Bg.Why.BestUnknownLobby", hero);

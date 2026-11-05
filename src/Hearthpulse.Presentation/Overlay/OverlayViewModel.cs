@@ -851,7 +851,7 @@ public sealed partial class OverlayViewModel : Observable
             return OverlayFormat.Percent(value);
         }
 
-        if (value < 0.0005)
+        if (value < OverlayFormat.HalfStep)
         {
             return OverlayFormat.Below(0.001, 1);
         }

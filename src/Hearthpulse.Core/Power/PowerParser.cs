@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Hearthpulse.Core.Logs;
 
 namespace Hearthpulse.Core.Power;
 
@@ -201,7 +202,7 @@ public sealed partial class PowerParser
             return;
         }
 
-        if (_lastTime != TimeSpan.MinValue && time < _lastTime - TimeSpan.FromHours(12))
+        if (_lastTime != TimeSpan.MinValue && time < _lastTime - DecksLog.NewDayJump)
         {
             _date = _date.AddDays(1);
         }

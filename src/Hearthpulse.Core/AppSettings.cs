@@ -131,6 +131,11 @@ public sealed class AppSettings
 
     public const double DefaultCardPoolBrowserWidth = 350;
 
+    /// <summary>The card pool browser's narrowest and widest width (its edge drag).</summary>
+    public const double MinCardPoolBrowserWidth = 280;
+
+    public const double MaxCardPoolBrowserWidth = 640;
+
     /// <summary>Width of the card pool browser (the full-height list of a pool's cards), in overlay units.</summary>
     public double CardPoolBrowserWidth { get; set; } = DefaultCardPoolBrowserWidth;
 
@@ -558,7 +563,7 @@ public sealed class AppSettings
         if (!Enum.IsDefined(PickHints)) PickHints = PickHints.StatsOnly;
         OverlayScale = Bounded(OverlayScale, MinScale, MaxScale, 1);
         OverlayOpacity = Bounded(OverlayOpacity, 0.3, 1, 1);
-        CardPoolBrowserWidth = Bounded(CardPoolBrowserWidth, 280, 640, DefaultCardPoolBrowserWidth);
+        CardPoolBrowserWidth = Bounded(CardPoolBrowserWidth, MinCardPoolBrowserWidth, MaxCardPoolBrowserWidth, DefaultCardPoolBrowserWidth);
         LadderSessionBreakHours = Bounded(LadderSessionBreakHours, 1, 12, 2);
         LeaderboardTop = Bounded(LeaderboardTop, 0, 1, DefaultLeaderboardTop);
         LeaderboardSlotHeight = Bounded(LeaderboardSlotHeight, 0.01, 1, DefaultLeaderboardSlotHeight);

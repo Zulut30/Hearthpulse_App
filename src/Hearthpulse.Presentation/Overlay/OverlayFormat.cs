@@ -12,6 +12,9 @@ namespace Hearthpulse.UI.Overlay;
 /// </summary>
 public static class OverlayFormat
 {
+    /// <summary>Half the 0.1 % step the finest overlay numbers show: a difference below it reads as none.</summary>
+    public const double HalfStep = 0.0005;
+
     /// <summary>0.552 → "55%" (or "55.2%" with <paramref name="decimals"/> 1).</summary>
     public static string Percent(double share, int decimals = 0) =>
         share.ToString(decimals == 0 ? "P0" : "P" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.CurrentCulture);
