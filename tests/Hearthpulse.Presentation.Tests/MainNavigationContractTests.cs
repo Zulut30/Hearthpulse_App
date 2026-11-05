@@ -123,6 +123,38 @@ public sealed class MainNavigationContractTests
         }
     });
 
+    /// <summary>
+    /// Etalon D2: the sidebar items name their Ctrl+1…8 to screen readers, game rows and History cards show a focus ring,
+    /// and the History list is one Tab stop with the arrows inside (R13). The Avalonia twin is in LocBindingTests.Keyboard.
+    /// </summary>
+    [Fact]
+    public void The_wpf_sidebar_names_its_shortcuts_and_game_rows_show_focus() => OnSta(() =>
+    {
+        var model = new WpfMain(History(), new AppSettings(), TestApp.Data);
+        var window = OffScreen(new WpfWindow(model));
+        window.Show();
+        Pump();
+        try
+        {
+            var items = new[] { "NavOverview", "NavBattlegrounds", "NavStandard", "NavWild", "NavArena", "NavBrawl", "NavHistory", "NavSettings" }
+                .Select(n => (DependencyObject)window.FindName(n)).ToList();
+            Assert.Equal(WpfMain.NavPages.Count, items.Count);
+            Assert.Equal(Enumerable.Range(1, items.Count).Select(i => $"Ctrl+{i}"), items.Select(System.Windows.Automation.AutomationProperties.GetAcceleratorKey));
+
+            Assert.NotNull(((Style)window.FindResource("BareRow")).Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.FocusVisualStyleProperty).Value);
+            var library = window.PageHistory.LibraryView;
+            Assert.NotNull(((Style)library.Resources["CardButton"]).Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.FocusVisualStyleProperty).Value);
+            var list = (System.Windows.Controls.ListBox)library.FindName("List");
+            Assert.Equal(System.Windows.Input.KeyboardNavigationMode.Once, System.Windows.Input.KeyboardNavigation.GetTabNavigation(list));
+            Assert.Equal(System.Windows.Input.KeyboardNavigationMode.Contained, System.Windows.Input.KeyboardNavigation.GetDirectionalNavigation(list));
+        }
+        finally
+        {
+            window.CloseForReal();
+            Pump();
+        }
+    });
+
     private static void OnSta(Action body)
     {
         Loc.Instance.SetLanguage(Loc.English);

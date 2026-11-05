@@ -136,6 +136,8 @@ public partial class MainWindow : Window
             && MainViewModel.NavPageForDigit(key is >= Key.D1 and <= Key.D9 ? key - Key.D0 : key is >= Key.NumPad1 and <= Key.NumPad9 ? key - Key.NumPad0 : 0) is { } page)
         {
             ShowPage(page);
+            // Focus follows the page: the control it was on may sit on the page just hidden.
+            PageButtons[MainViewModel.NavIndex(MainViewModel.NavPages, page)].Focus();
             e.Handled = true;
         }
         else if (((key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None) || (key == Key.Left && Keyboard.Modifiers == ModifierKeys.Alt))

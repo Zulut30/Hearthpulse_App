@@ -19,7 +19,7 @@
             <Style x:Key="CardButton" TargetType="Button">
                 <Setter Property="Cursor" Value="Hand" />
                 <Setter Property="Foreground" Value="{StaticResource Text}" />
-                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                 <Setter Property="Template">
                     <Setter.Value>
@@ -340,7 +340,7 @@
                     <Button Style="{StaticResource GhostButton}" Padding="12,4" Margin="0,4,0,8" HorizontalAlignment="Center" Content="{i:Loc Library.Search.Clear}"
                             Click="OnClearSearch" Visibility="{Binding IsSearchEmpty, Converter={StaticResource Vis}}" />
                 </StackPanel>
-                <ListBox x:Name="List" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}" SelectedItem="{Binding SelectedCard, Mode=OneWay}"
+                <ListBox x:Name="List" KeyboardNavigation.TabNavigation="Once" KeyboardNavigation.DirectionalNavigation="Contained" ItemsSource="{Binding Cards}" ItemTemplate="{StaticResource LibraryCard}" SelectedItem="{Binding SelectedCard, Mode=OneWay}"
                          SelectionChanged="OnSelectionChanged" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" HorizontalContentAlignment="Stretch">
                     <ListBox.ItemContainerStyle>
