@@ -86,8 +86,9 @@ public sealed class GoldenReplayTests : IDisposable
     {
         "constructed-win" =>
         [
-            .. ReplayRecorderTests.Setup,
-            "DebugPrintPower() - TAG_CHANGE Entity=velox#21276 tag=PLAYSTATE value=WON ",
+            // The test setup's real-looking name replaced by the suite's placeholder one (review m11).
+            .. ReplayRecorderTests.Setup.Select(line => line.Replace("velox#21276", "Me#1234", StringComparison.Ordinal)),
+            "DebugPrintPower() - TAG_CHANGE Entity=Me#1234 tag=PLAYSTATE value=WON ",
             "DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=STATE value=COMPLETE ",
         ],
         "battlegrounds-5th" => Game5th(),

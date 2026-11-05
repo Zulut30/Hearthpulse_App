@@ -9,6 +9,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
+    <!-- The Avalonia step picture (MatchStepExportAvaloniaTests): a headless platform that really draws, with Skia. -->
+    <PackageReference Include="Avalonia.Headless" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Skia" Version="12.1.4" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <!-- Code coverage: dotnet test with the "XPlat Code Coverage" collector writes cobertura XML (CI, hearthpulse-testing). -->
     <PackageReference Include="coverlet.collector" Version="10.1.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />

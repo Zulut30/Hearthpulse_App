@@ -19,7 +19,19 @@ public partial class MatchView
         }
 
         model.BeginStepExport();
-        var card = ExportCard(model);
+        // Drawn now, before the dialog: the step the button was pressed on.
+        byte[] png;
+        try
+        {
+            png = Encode(ExportCard(model));
+        }
+        catch (Exception ex) when (Failure(ex))
+        {
+            Diag.Error("Drawing the step picture failed", ex);
+            model.StepExported(null);
+            return;
+        }
+
         var dialog = new SaveFileDialog
         {
             Title = Loc.T("Match.Export.Title"),
@@ -36,25 +48,30 @@ public partial class MatchView
 
         try
         {
-            using var stream = File.Create(dialog.FileName);
-            Encode(card).Save(stream);
+            // The whole picture is ready: a failed write leaves no half-drawn file behind a good name.
+            File.WriteAllBytes(dialog.FileName, png);
             model.StepExported(dialog.FileName);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        catch (Exception ex) when (Failure(ex))
         {
             Diag.Error("Saving the step picture failed", ex);
             model.StepExported(null);
         }
     }
 
+    private static bool Failure(Exception ex) =>
+        ex is IOException or UnauthorizedAccessException or NotSupportedException or InvalidOperationException or ArgumentException
+            or System.Runtime.InteropServices.ExternalException;
+
     /// <summary>The table card of the mode on screen.</summary>
     internal FrameworkElement ExportCard(MatchViewModel model) => model.ShowBattlegroundsTable ? BattlegroundsStepCard : TableCard;
 
     /// <summary>
-    /// The card at <see cref="MatchViewModel.StepExportScaleFor"/>, its round corners transparent (as in Avalonia). A brush
-    /// of the card, not the card itself: that would be drawn at its place in the page.
+    /// The card as PNG at <see cref="MatchViewModel.StepExportScaleFor"/>, its round corners transparent (as in Avalonia).
+    /// A brush of the card, not the card itself: that would be drawn at its place in the page. The brush shows exactly the
+    /// card's box (absolute view box), not its content's bounds, which the arrow layer or a margin could widen.
     /// </summary>
-    internal static PngBitmapEncoder Encode(FrameworkElement card)
+    internal static byte[] Encode(FrameworkElement card)
     {
         card.UpdateLayout();
         var size = new Rect(0, 0, card.ActualWidth, card.ActualHeight);
@@ -62,7 +79,8 @@ public partial class MatchView
         var visual = new DrawingVisual();
         using (var context = visual.RenderOpen())
         {
-            context.DrawRectangle(new VisualBrush(card) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, size);
+            var brush = new VisualBrush(card) { Stretch = Stretch.None, Viewbox = size, ViewboxUnits = BrushMappingMode.Absolute, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top };
+            context.DrawRectangle(brush, null, size);
         }
 
         var bitmap = new RenderTargetBitmap(
@@ -70,6 +88,8 @@ public partial class MatchView
         bitmap.Render(visual);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        return encoder;
+        using var output = new MemoryStream();
+        encoder.Save(output);
+        return output.ToArray();
     }
 }

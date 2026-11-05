@@ -55,8 +55,12 @@ public sealed class ReplayFuzzTests : IDisposable
             });
         }
 
-        // The mutations are small enough that some files still pass: the accepted path is fuzzed too.
-        Assert.True(accepted > 0, "no mutated file passed the filter");
+        // The mutations are small enough that some files still pass: the accepted path is fuzzed too (checked only over
+        // enough rounds, so a short run with another seed does not fail on chance).
+        if (Rounds >= 100)
+        {
+            Assert.True(accepted > 0, $"no mutated file passed the filter (seed {Seed}, {Rounds} rounds)");
+        }
     }
 
     [Fact]
@@ -117,17 +121,32 @@ public sealed class ReplayFuzzTests : IDisposable
         _ = MatchReplay.Parse(text);
     }
 
+    /// <summary>A round: its exceptions and failed checks name the seed and round, and one that hangs fails (a loop on a damaged line).</summary>
     private static void Run(int round, Action body)
     {
+        var task = Task.Run(body);
+        bool finished;
         try
         {
-            body();
+            finished = task.Wait(RoundTimeout);
         }
-        catch (Exception ex) when (ex is not Xunit.Sdk.XunitException)
+        catch (AggregateException wrapped) when (wrapped.InnerException is Xunit.Sdk.XunitException failed)
+        {
+            throw new Xunit.Sdk.XunitException($"Fuzz round {round} (seed {Seed}): {failed.Message}", failed);
+        }
+        catch (AggregateException wrapped) when (wrapped.InnerException is { } ex)
         {
             throw new InvalidOperationException($"Fuzz round {round} (seed {Seed}) threw", ex);
         }
+
+        if (!finished)
+        {
+            throw new Xunit.Sdk.XunitException($"Fuzz round {round} (seed {Seed}) ran over {RoundTimeout.TotalSeconds:F0} s");
+        }
     }
+
+    /// <summary>A round takes milliseconds; the limit leaves room for a loaded runner.</summary>
+    private static readonly TimeSpan RoundTimeout = TimeSpan.FromSeconds(20);
 
     /// <summary>One to four edits of the text: lines dropped, doubled, swapped or cut, tokens and numbers replaced, bytes flipped, the end cut off.</summary>
     internal static string Mutate(string text, Random random)

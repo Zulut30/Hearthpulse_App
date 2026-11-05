@@ -209,7 +209,13 @@ public sealed class MatchReplay
     public bool HasPostGame { get; private set; }
 
     /// <summary>Reads a Constructed replay file's text; null for another kind or an unreadable file.</summary>
-    public static MatchReplay? Parse(string text)
+    public static MatchReplay? Parse(string text) => Parse(text, reference: false);
+
+    /// <summary>
+    /// <paramref name="reference"/>: every frame walks all the game's cards and builds each card anew, as before the
+    /// index and the shared cards (plan R5); tests check the frames are the same both ways.
+    /// </summary>
+    internal static MatchReplay? Parse(string text, bool reference)
     {
         if (ReplayFile.Read(text) is not { } file || file.Header.Kind != ReplayFile.Constructed)
         {
@@ -217,12 +223,12 @@ public sealed class MatchReplay
         }
 
         var replay = new MatchReplay(file.Header);
-        new Folder(replay).Run(file.Body);
+        new Folder(replay, reference).Run(file.Body);
         return replay;
     }
 
     /// <summary>Folds the event lines into frames.</summary>
-    private sealed class Folder(MatchReplay replay)
+    private sealed class Folder(MatchReplay replay, bool reference)
     {
         private readonly Dictionary<int, CardState> _cards = new();
 
@@ -494,10 +500,13 @@ public sealed class MatchReplay
 
         private void ApplyEntity(string[] t)
         {
+            // Every number and field first: a damaged line is skipped whole, not half applied.
             var id = Int(t[1]);
             var player = Side(t[2]) ?? ReplayPlayer.Opponent;
             var zone = t[3];
+            var position = Int(t[4]);
             var card = t[5] == "-" ? null : t[5];
+            var type = t[6];
             _cards.TryGetValue(id, out var state);
             if (state is not null && state.Zone == "PLAY" && zone == "GRAVEYARD" && state.CardId is { } dead
                 && state.Type is "MINION" or "WEAPON" or "LOCATION" or "HERO")
@@ -510,9 +519,9 @@ public sealed class MatchReplay
             state.View = null;
             state.Player = player;
             state.Zone = zone;
-            state.Position = Int(t[4]);
+            state.Position = position;
             state.CardId = card;
-            state.Type = t[6];
+            state.Type = type;
             state.Tags.Clear();
             foreach (var pair in t.Skip(7))
             {
@@ -590,8 +599,11 @@ public sealed class MatchReplay
 
         private ReplayBoard Board(ReplayPlayer player)
         {
-            // In the order the cards were first seen, as the whole list was walked before.
-            var mine = _shown.Values.Where(c => c.Player == player).OrderBy(c => c.Order).ToList();
+            // In the order the cards were first seen: the order of the whole list walked before, except that a slot an
+            // X line freed was reused by the next new card (it came early, now it comes last).
+            var mine = reference
+                ? _cards.Values.Where(c => c.Player == player).ToList()
+                : _shown.Values.Where(c => c.Player == player).OrderBy(c => c.Order).ToList();
             var tags = _players[player == ReplayPlayer.Local ? 0 : 1];
             return new ReplayBoard
             {
@@ -615,7 +627,7 @@ public sealed class MatchReplay
             card.CardId is null && _entities.TryGetValue(card.Id, out var entity) ? _reveals.GetValueOrDefault(entity) : null;
 
         /// <summary>The card as a frame shows it, made again only after the card changed: frames share it (memory of a long game).</summary>
-        private ReplayCard ToCard(CardState c) => c.View ??= NewCard(c);
+        private ReplayCard ToCard(CardState c) => reference ? NewCard(c) : c.View ??= NewCard(c);
 
         private ReplayCard NewCard(CardState c)
         {
