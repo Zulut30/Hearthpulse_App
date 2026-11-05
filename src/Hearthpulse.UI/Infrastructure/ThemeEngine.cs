@@ -125,6 +125,10 @@ public static class ThemeEngine
     public static Geometry? Motif(string name) =>
         Application.Current is { } app && app.TryGetResource("Motif" + name, app.ActualThemeVariant, out var value) ? value as Geometry : null;
 
+    /// <summary>
+    /// The theme's own dictionary: a StyleInclude of Theme.axaml (tests), or the Styles the XAML compiler puts in its place
+    /// in the app (App.axaml's include is compiled away), told by the default motif only the theme defines.
+    /// </summary>
     private static IResourceDictionary? Find(IEnumerable<IStyle> styles)
     {
         foreach (var style in styles)
@@ -132,6 +136,11 @@ public static class ThemeEngine
             if (style is StyleInclude include && include.Source?.ToString().EndsWith(Source, StringComparison.Ordinal) == true)
             {
                 return (include.Loaded as Styles)?.Resources;
+            }
+
+            if (style is Styles { Resources: { } own } && own.ContainsKey("Motif" + ThemePalette.DefaultName))
+            {
+                return own;
             }
 
             if (style is Styles nested && Find(nested) is { } found)
