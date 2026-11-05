@@ -4,77 +4,17 @@ using Hearthpulse.Core.Localization;
 namespace Hearthpulse.Core.Stats;
 
 /// <summary>
-/// Every string of the deck page's Versions card (versions, merge suggestions, adding a deck, undo), in one place for
-/// both UIs: views read the <c>Deck.Versions.*</c> keys directly (i:Loc), view models call the formatters. The texts
-/// are in the interface language of the moment they are read.
+/// The strings of the deck page's Versions card that view models build (versions, merge suggestions, adding a deck),
+/// for both UIs; the fixed labels are <c>Deck.Versions.*</c> keys the views read directly (i:Loc). The texts are in the
+/// interface language of the moment they are read.
 /// </summary>
 public static class DeckVersionsText
 {
-    public static string Title => Loc.T("Deck.Versions.Title");
-
-    public static string MainChip => Loc.T("Deck.Versions.MainChip");
-
-    public static string MainChipTip => Loc.T("Deck.Versions.MainChipTip");
-
-    public static string MoreTip => Loc.T("Deck.Versions.MoreTip");
-
-    public static string MakeMain => Loc.T("Deck.Versions.MakeMain");
-
-    public static string SplitOff => Loc.T("Deck.Versions.SplitOff");
-
-    public static string SplitOffTip => Loc.T("Deck.Versions.SplitOffTip");
-
     public static string ShowDiff => Loc.T("Deck.Versions.ShowDiff");
 
     public static string HideDiff => Loc.T("Deck.Versions.HideDiff");
 
-    public static string DiffTip => Loc.T("Deck.Versions.DiffTip");
-
-    public static string FewGames => Loc.T("Deck.Versions.FewGames");
-
     public static string FewGamesTip => Loc.F("Deck.Versions.FewGamesTip", DeckDetails.SmallSample);
-
-    public static string WinRateTip => Loc.T("Deck.Versions.WinRateTip");
-
-    public static string Rename => Loc.T("Deck.Versions.Rename");
-
-    public static string RenameTip => Loc.T("Deck.Versions.RenameTip");
-
-    public static string NamePlaceholder => Loc.T("Deck.Versions.NamePlaceholder");
-
-    public static string Save => Loc.T("Deck.Versions.Save");
-
-    public static string Cancel => Loc.T("Deck.Versions.Cancel");
-
-    public static string SuggestionsTitle => Loc.T("Deck.Versions.SuggestionsTitle");
-
-    public static string Merge => Loc.T("Deck.Versions.Merge");
-
-    public static string MergeTip => Loc.T("Deck.Versions.MergeTip");
-
-    public static string NotSame => Loc.T("Deck.Versions.NotSame");
-
-    public static string NotSameTip => Loc.T("Deck.Versions.NotSameTip");
-
-    public static string ShowCards => Loc.T("Deck.Versions.ShowCards");
-
-    public static string AddDeck => Loc.T("Deck.Versions.AddDeck");
-
-    public static string AddDeckTip => Loc.T("Deck.Versions.AddDeckTip");
-
-    public static string PickerTitle => Loc.T("Deck.Versions.PickerTitle");
-
-    public static string SearchPlaceholder => Loc.T("Deck.Versions.SearchPlaceholder");
-
-    public static string AddChosen => Loc.T("Deck.Versions.AddChosen");
-
-    public static string PickFirst => Loc.T("Deck.Versions.PickFirst");
-
-    public static string SharedTip => Loc.T("Deck.Versions.SharedTip");
-
-    public static string MarkedDifferent => Loc.T("Deck.Versions.MarkedDifferent");
-
-    public static string Undo => Loc.T("Deck.Versions.Undo");
 
     public static string Games(int games) => Loc.P("Deck.Games", games);
 
