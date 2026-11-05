@@ -53,7 +53,7 @@ now comes from, and what stays empty until the pool runs: `docs/bg-meta-sources.
    data. Everything from the data API is called **"Hearthpulse data"** (`HearthpulseData.Attribution`) in anything
    the player reads - UI, tooltips, attributions, installer texts; never HSReplay or HSGuru (internal names, endpoint
    paths and these developer docs may keep them; `LocalizationTests` checks the string tables). The installer notices
-   (`installer/windows/notice.txt`, `installer/*/README.txt`) credit Hearthpulse data, HearthstoneJSON and the fonts -
+   (`installer/windows/notice.txt`, `installer/*/README.txt`) credit Hearthpulse data, HearthstoneJSON, the fonts and the game-icons.net glyphs -
    update them when you add a source. UI texts are localized: `docs/localization.md`.
 7. **No secrets in the repo**; tokens only through `TokenStore`; never log tokens or e-mail.
 
@@ -98,6 +98,7 @@ schema (`server/modules/playerGames/schema/gameSchema.ts`), update `ProfileEvent
 | bgtracker (`reference/repos/ideas/bgtracker`) | MIT, (c) 2026 the bgtracker contributors | Same as above: reuse with the MIT notice and credit. |
 | tavern-ledger (`reference/repos/ideas/tavern-ledger`) | AGPL-3.0-only | **Ideas only.** Copying code would put Hearthpulse under AGPL. |
 | HeartLens upstream (`Dev-NotAqua/HeartLens`, git remote `upstream`) | the original project | Port commits **only with the author's permission** (the `upstream-heartlens-sync` session does this); keep authorship in commit messages. |
+| game-icons.net (Lorc, Delapouite, others) | CC BY 3.0 | Icons may be used and changed **with attribution**: the author and icon name of each glyph in `THIRD-PARTY-NOTICES.txt`, `installer/windows/notice.txt` and `installer/*/README.txt`, and in the code (`Presentation/Infrastructure/GameIconData.cs`). Used for the navigation and page-title glyphs (V3 icons I1). |
 | python-hearthstone (HearthSim) | MIT | Tag/enum names; cite it (`BattlegroundsCounters.cs`, `docs/counters-battlegrounds.md` do). |
 | unity-spy | MIT | Mono memory offsets idea, cited in `Core/Memory/MonoOffsets.cs`. |
 | HearthstoneJSON, hsbg.cards, our API | game data / owner's services | Data with attribution. |

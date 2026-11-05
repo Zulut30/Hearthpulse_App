@@ -14,6 +14,13 @@ Montserrat (font)
   Licence: OFL-1.1
   https://github.com/JulietaUla/Montserrat
 
+game-icons.net icons (the navigation and page-title glyphs)
+  "house" by Delapouite; "beer-stein", "poker-hand", "vine-leaf", "crossed-swords",
+  "fist", "hourglass" and "cog" by Lorc
+  Licence: CC-BY-3.0 (https://creativecommons.org/licenses/by/3.0/)
+  https://game-icons.net (https://game-icons.net/1x1/<author>/<name>.html)
+  Changed: drawn in engraved gold (outline, bevel, gloss) instead of white on black.
+
 Inter (font, Avalonia version)
   Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
   Licence: OFL-1.1

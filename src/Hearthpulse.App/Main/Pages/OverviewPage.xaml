@@ -13,7 +13,10 @@
     </UserControl.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="40,0,40,120">
-            <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource PageTitle}" />
+            <StackPanel Orientation="Horizontal">
+                <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Home}" />
+                <TextBlock Text="{i:Loc Main.Nav.Home}" Style="{StaticResource PageTitle}" />
+            </StackPanel>
             <c:Wave Style="{StaticResource PageRule}" />
 
             <Border x:Name="SetupBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
@@ -168,6 +171,39 @@
                     <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
                     <ContentControl Style="{StaticResource EmptyState}" Tag="&#xF02DA;" Content="{i:Loc Main.Home.NoGames}"
                                     Visibility="{Binding Recent, Converter={StaticResource Vis}, ConverterParameter=!}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Your decks (V3): the three decks played last as banners over their class hero's art; a click opens the deck -->
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="{Binding HomeDecks, Converter={StaticResource Vis}}">
+                <StackPanel>
+                    <c:Ornament Text="{i:Loc Main.Home.YourDecks}" Icon="&#xF063A;" Size="13" Margin="0,0,0,12" />
+                    <ItemsControl ItemsSource="{Binding HomeDecks}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type m:HomeDeck}">
+                                <Button Style="{StaticResource BareRow}" Margin="0,0,12,0" ToolTip="{i:Loc Main.Home.OpenDeckTip}" AutomationProperties.Name="{Binding Name}"
+                                        Command="{Binding DataContext.OpenDeck, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Key}">
+                                    <Border Height="96" CornerRadius="8" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" Background="{StaticResource Surface3}">
+                                        <Grid>
+                                            <Border CornerRadius="8" i:CardArt.Portrait="{Binding HeroCardId}" />
+                                            <Border VerticalAlignment="Bottom" CornerRadius="0,0,8,8" Padding="12,8" Background="{StaticResource OverlayBadgeShade}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Line}" Style="{StaticResource Caption}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </Border>
         </StackPanel>

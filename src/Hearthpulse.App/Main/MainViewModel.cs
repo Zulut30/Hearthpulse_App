@@ -63,8 +63,6 @@ public sealed partial class MainViewModel
 
     private int CountHistory(IReadOnlyList<GameRecord> recent) => _history.GameCount();
 
-    partial void OnRecentChanged() => Raise(nameof(BannerHero));
-
     partial void OnCompTiersChanged() => Raise(nameof(HasCompTiers));
 
     partial void RestoreRatingFromHistory(string mode, IReadOnlyList<RatingPoint> rating)

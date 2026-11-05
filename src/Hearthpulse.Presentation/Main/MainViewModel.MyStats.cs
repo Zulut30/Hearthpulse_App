@@ -213,6 +213,9 @@ public sealed partial class MainViewModel
     /// <summary>The FormatType the Standard or Wild page shows: "FT_STANDARD" or "FT_WILD".</summary>
     public string ConstructedFormat => _ctFormat;
 
+    /// <summary>The Constructed page shows Wild: its title takes the Wild glyph.</summary>
+    public bool ConstructedWild => _ctFormat == "FT_WILD";
+
     /// <summary>The page title: Standard or Wild.</summary>
     public string ConstructedTitle => Loc.T(_ctFormat == "FT_WILD" ? "Main.Nav.Wild" : "Main.Nav.Standard");
 
@@ -330,6 +333,7 @@ public sealed partial class MainViewModel
 
             _allGames = games;
             RebuildMyStats();
+            RaisePageHero();
         }
         else if (!ReferenceEquals(_statsCards, _cards))
         {

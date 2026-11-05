@@ -120,6 +120,10 @@ public static partial class ThemeEngine
         using var stream = typeof(ThemeEngine).Assembly.GetManifestResourceStream("Hearthpulse.Theme.xaml")
             ?? throw new InvalidOperationException("Theme source is missing from the app.");
         using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
+        // The app's own controls (GoldGlyph in the NavItem template) are named without an assembly, as the markup compiler
+        // needs; XamlReader needs the assembly.
+        return reader.ReadToEnd().Replace(ControlsNamespace + "\"", ControlsNamespace + ";assembly=Hearthpulse\"", StringComparison.Ordinal);
     }
+
+    private const string ControlsNamespace = "clr-namespace:Hearthpulse.App.Controls";
 }

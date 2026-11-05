@@ -23,7 +23,13 @@
     </UserControl.Resources>
     <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
         <StackPanel>
-            <TextBlock Text="{Binding ConstructedTitle}" Classes="display pageTitle" />
+            <StackPanel Orientation="Horizontal">
+                <Panel>
+                    <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Standard}" IsVisible="{Binding !ConstructedWild}" />
+                    <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Wild}" IsVisible="{Binding ConstructedWild}" />
+                </Panel>
+                <TextBlock Text="{Binding ConstructedTitle}" Classes="display pageTitle" />
+            </StackPanel>
             <c:Wave Classes="pageRule" />
 
             <Border HorizontalAlignment="Left" Classes="segmentBar" Margin="0,0,0,14">

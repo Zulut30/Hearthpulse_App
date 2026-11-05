@@ -140,7 +140,10 @@ LangString NeedsWin11Arm ${LANG_ITALIAN} "Sui PC con processore ARM, Hearthpulse
   DetailPrint "$(ClosingApp)"
   nsExec::Exec '"$SYSDIR\taskkill.exe" /F /IM "${APP_EXE}"'
   Pop $0
-  Sleep 800
+  ; Only when a copy was running (0); 128 means none was, as when an update installs after the app has closed.
+  ${If} $0 == 0
+    Sleep 800
+  ${EndIf}
 !macroend
 
 Function .onInit
@@ -176,6 +179,10 @@ Section "$(SecAppName)" SecApp
   Delete "$INSTDIR\Hearthpulse.pdb"
   Delete "$INSTDIR\Hearthpulse.Core.pdb"
   File /r "${SOURCE_DIR}\*.*"
+  ; Every file is this version's now: a backup or copy a failed delta update left next to the folder (DeltaUpdate.cs)
+  ; is no longer needed.
+  RMDir /r "$INSTDIR.update-old"
+  RMDir /r "$INSTDIR.update-new"
   WriteUninstaller "$INSTDIR\${UNINSTALLER}"
 
   ; Apps & features entry.
@@ -214,6 +221,38 @@ Section "un.$(UnSecAppName)" UnSecApp
   Delete "$DESKTOP\Hearthpulse.lnk"
   Delete "$SMPROGRAMS\Hearthpulse.lnk"
   DeleteRegValue HKCU "${RUN_KEY}" "Hearthpulse"
+
+  ; Files a delta update added after this setup ran (DeltaUpdate.cs writes the list): one path a line, relative to
+  ; the app folder; a line ending in "\" is a folder the delta made, listed after its files.
+  ClearErrors
+  FileOpen $0 "$INSTDIR\uninstall-extra.txt" r
+  ${IfNot} ${Errors}
+    ${Do}
+      ClearErrors
+      FileRead $0 $1
+      ${If} ${Errors}
+        ${ExitDo}
+      ${EndIf}
+      StrCpy $2 $1 1 -1
+      ${If} $2 == "$\n"
+        StrCpy $1 $1 -1
+      ${EndIf}
+      StrCpy $2 $1 1 -1
+      ${If} $2 == "$\r"
+        StrCpy $1 $1 -1
+      ${EndIf}
+      ${If} $1 != ""
+        StrCpy $2 $1 1 -1
+        ${If} $2 == "\"
+          RMDir "$INSTDIR\$1"
+        ${Else}
+          Delete "$INSTDIR\$1"
+        ${EndIf}
+      ${EndIf}
+    ${Loop}
+    FileClose $0
+  ${EndIf}
+  Delete "$INSTDIR\uninstall-extra.txt"
 
   ; Only the files this setup installed (generated at build time), never the whole folder blindly.
   !include "${UNINSTALL_LIST}"

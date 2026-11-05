@@ -6,7 +6,8 @@ Usage (repository root):  python -I tools/design/migrate_tokens.py <file.xaml|fi
 - FontSize="N" and <Setter Property="FontSize" Value="N"> become {StaticResource FontSize<Role>} (the ramp below);
   off-ramp sizes go to the nearest ramp step listed in FONT.
 - CornerRadius and RoundClip.Radius values snap to RADII; a fully rounded corner (2r >= the element's size, or its
-  parent's size less the element's margin) is kept, so circles and pills stay round.
+  parent's size less the element's margin) is kept, so circles and pills stay round; so is the margin of such a
+  circle when snapping it would make the circle stop being one.
 - Margin/Padding values snap to the spacing scale: 0, 1, 2, 4, 8, 12, 16, 24, 32 and multiples of 4 from 40 up.
 - Ties go down (6 -> 4, 10 -> 8): a migrated row never grows wider than it was.
 - Nothing inside a ControlTemplate changes: template geometry (tracks, knobs, underlines) is drawn to its own size.
@@ -105,8 +106,17 @@ def rounded(attrs, parent, value):
     return own is not None and 2 * r >= own
 
 
+def keeps_circle(attrs, parent):
+    """A circle sized by its parent stays round only if its margin does: snapping that margin would resize it."""
+    r = attrs.get("CornerRadius")
+    if r is None or size(attrs) is not None or not rounded(attrs, parent, r):
+        return True
+    return rounded(dict(attrs, Margin=thickness(attrs.get("Margin", "0"), snap_spacing)), parent, r)
+
+
 def rewrite(attrs, parent, body):
     setter = attrs.get("Property") if "Setter" in attrs.get("#tag", "") else None
+    circle_margin = not keeps_circle(attrs, parent)
 
     def fix(a):
         key, value = local(a.group(1)), a.group(3)
@@ -118,7 +128,7 @@ def rewrite(attrs, parent, body):
         elif kind in RADIUS_KEYS or (setter is None and a.group(1).endswith("RoundClip.Radius")):
             new = value if (not setter and rounded(attrs, parent, value)) else thickness(value, snap_radius)
         elif kind in ("Margin", "Padding"):
-            new = thickness(value, snap_spacing)
+            new = value if (kind == "Margin" and circle_margin) else thickness(value, snap_spacing)
         else:
             return a.group(0)
         return a.group(1) + a.group(2) + new + a.group(4)

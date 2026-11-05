@@ -29,6 +29,9 @@ memory on Windows only; on Linux those values stay empty.
 Community stats: Hearthpulse data (api.kolodahearthstone.com). Russian archetype names: the Hearthpulse archetype
 dictionary (api.blizzcore.ru). Card data and art: HearthstoneJSON. The Brawl page's article: hs-manacost.ru (its
 "Потасовка" posts and cover pictures, opened in the browser).
+Navigation icons from game-icons.net (CC BY 3.0, https://creativecommons.org/licenses/by/3.0/), drawn in gold:
+"house" by Delapouite; "beer-stein", "poker-hand", "vine-leaf", "crossed-swords", "fist", "hourglass"
+and "cog" by Lorc. Fonts and libraries: THIRD-PARTY-NOTICES.txt.
 Not affiliated with Blizzard Entertainment.
 
 CRASH REPORTS

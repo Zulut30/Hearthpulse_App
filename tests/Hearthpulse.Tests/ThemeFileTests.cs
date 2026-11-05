@@ -40,6 +40,21 @@ public sealed class ThemeFileTests
         Assert.Empty(keys.GroupBy(k => k).Where(g => g.Count() > 1).Select(g => g.Key));
     }
 
+    /// <summary>
+    /// Avalonia reads a gradient's "0,0" / "1,0" as pixels, not as WPF's fractions of the box: such a brush draws a
+    /// one-pixel ramp and the rest in its last colour. Theme gradients give their points in percent.
+    /// </summary>
+    [Fact]
+    public void Avalonia_theme_gradients_use_relative_points()
+    {
+        var absolute = XDocument.Load(RepoFile("src/Hearthpulse.UI/Themes/Theme.axaml")).Root!.Descendants()
+            .Where(e => e.Name.LocalName is "LinearGradientBrush" or "RadialGradientBrush")
+            .SelectMany(e => e.Attributes().Where(a => a.Name.LocalName is "StartPoint" or "EndPoint" or "GradientOrigin" or "Center")
+                .Where(a => !a.Value.Contains('%', StringComparison.Ordinal))
+                .Select(a => $"{(string?)e.Attribute(X + "Key") ?? e.Parent?.Name.LocalName}.{a.Name.LocalName}={a.Value}"));
+        Assert.Empty(absolute);
+    }
+
     private static readonly string[] TokenTypes =
         ["Color", "SolidColorBrush", "LinearGradientBrush", "RadialGradientBrush", "DrawingBrush", "Geometry", "StreamGeometry"];
 

@@ -88,13 +88,15 @@ public sealed partial class MainViewModel
     /// <summary>The ones with a button of their own in the bar.</summary>
     public IReadOnlyList<PanelToggle> QuickPanelToggles => PanelToggles.Where(t => t.Quick).ToList();
 
-    /// <summary>Call after the settings page changed a setting: the bar's buttons show it at once.</summary>
+    /// <summary>Call after the settings page changed a setting: the bar's buttons (and the page's background hero) show it at once.</summary>
     public void RefreshPanelToggles()
     {
         foreach (var toggle in PanelToggles)
         {
             toggle.Refresh();
         }
+
+        RaisePageHero();
     }
 
     private IReadOnlyList<PanelToggle> BuildPanelToggles()

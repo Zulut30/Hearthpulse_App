@@ -75,8 +75,12 @@ SH
 SUMMARY="Hearthstone companion: deck tracker, Battlegrounds advisor and in-game overlay"
 DESCRIPTION="Hearthpulse reads Hearthstone's own log files (the game runs under Wine, Lutris, Bottles or Steam/Proton) and shows a deck tracker, Battlegrounds advice, combat odds and your match history, plus an in-game overlay on X11 and XWayland. It never changes the game and never shows hidden information."
 
+# Every package below reads the same published app and writes its own folder and file: they are built at the same
+# time (one after another they took about 80 s, most of it the .rpm and .deb compression), and all are waited for.
+PIDS=()
+
 # ---- .deb ------------------------------------------------------------------------------------
-if command -v dpkg-deb >/dev/null; then
+if command -v dpkg-deb >/dev/null; then (
   echo "== Building .deb"
   DEB="$WORK/deb"
   cp -a "$SYS" "$DEB"
@@ -101,10 +105,10 @@ CONTROL
   chmod 755 "$DEB/DEBIAN/postinst" "$DEB/DEBIAN/prerm" "$DEB/DEBIAN/postrm"
   dpkg-deb --root-owner-group -Zxz --build "$DEB" "$DIST/hearthpulse_${VERSION}_${DEB_ARCH}.deb" >/dev/null
   echo "wrote $DIST/hearthpulse_${VERSION}_${DEB_ARCH}.deb"
-fi
+) & PIDS+=("$!"); fi
 
 # ---- .rpm ------------------------------------------------------------------------------------
-if command -v rpmbuild >/dev/null; then
+if command -v rpmbuild >/dev/null; then (
   echo "== Building .rpm"
   TOP="$WORK/rpm"
   mkdir -p "$TOP"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
@@ -151,9 +155,10 @@ SPEC
   rpmbuild --quiet --define "_topdir $TOP" --target "$RPM_ARCH" -bb "$TOP/SPECS/hearthpulse.spec" >/dev/null
   cp "$TOP/RPMS/$RPM_ARCH/hearthpulse-$VERSION-1.$RPM_ARCH.rpm" "$DIST/"
   echo "wrote $DIST/hearthpulse-$VERSION-1.$RPM_ARCH.rpm"
-fi
+) & PIDS+=("$!"); fi
 
 # ---- Portable .tar.gz with install / uninstall scripts ---------------------------------------
+(
 echo "== Building .tar.gz"
 NAME="Hearthpulse-$VERSION-linux-$ARCH"
 PKG="$WORK/$NAME"
@@ -165,8 +170,10 @@ cp "$HERE/README.txt" "$PKG/README.txt"
 chmod +x "$PKG/install.sh" "$PKG/uninstall.sh"
 tar -C "$WORK" -czf "$DIST/$NAME.tar.gz" "$NAME"
 echo "wrote $DIST/$NAME.tar.gz"
+) & PIDS+=("$!")
 
 # ---- Portable .tar.gz: unpack anywhere and run ./Hearthpulse; data stays in ./data ---------------
+(
 echo "== Building portable .tar.gz"
 PNAME="Hearthpulse-Portable-$VERSION-linux-$ARCH"
 PPKG="$WORK/$PNAME"
@@ -176,9 +183,10 @@ echo "Portable copy: settings and history are kept in the data folder next to th
 chmod +x "$PPKG/Hearthpulse"
 tar -C "$WORK" -czf "$DIST/$PNAME.tar.gz" "$PNAME"
 echo "wrote $DIST/$PNAME.tar.gz"
+) & PIDS+=("$!")
 
 # ---- AppImage (optional) ---------------------------------------------------------------------
-if command -v appimagetool >/dev/null; then
+if command -v appimagetool >/dev/null; then (
   echo "== Building AppImage"
   APPDIR="$WORK/Hearthpulse.AppDir"
   mkdir -p "$APPDIR/usr"
@@ -195,9 +203,18 @@ SH
   # 0744): everyone reads everything, and whatever is executable is executable for everyone.
   chmod -R a+rX "$APPDIR"
   # Optional extra: a failure here (e.g. no network for the AppImage runtime) must not lose the other packages.
-  if ARCH="$APPIMAGE_ARCH" appimagetool --no-appstream "$APPDIR" "$DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage" >/dev/null; then
+  # appimagetool fetches the runtime itself with no second try, and one failed request (2026-11-05) lost the AppImage
+  # the release requires: it is fetched here with retries and handed over.
+  RUNTIME="$WORK/appimage-runtime-$APPIMAGE_ARCH"
+  if curl -fsSL --retry 4 --retry-all-errors -o "$RUNTIME" \
+       "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-$APPIMAGE_ARCH" \
+     && ARCH="$APPIMAGE_ARCH" appimagetool --no-appstream --runtime-file "$RUNTIME" "$APPDIR" "$DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage" >/dev/null; then
     echo "wrote $DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage"
   else
     echo "AppImage not built (appimagetool failed)" >&2
   fi
-fi
+) & PIDS+=("$!"); fi
+
+FAILED=0
+for pid in "${PIDS[@]}"; do wait "$pid" || FAILED=1; done
+[ "$FAILED" -eq 0 ] || { echo "a Linux package was not built" >&2; exit 1; }

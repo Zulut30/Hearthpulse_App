@@ -20,6 +20,8 @@
   "Settings.Theme.Tint": "Насыщенность фона",
   "Settings.Theme.TintTip": "Слева — серый, справа — насыщенный цвет",
   "Settings.Theme.UseMine": "Применить мою тему",
+  "Settings.Theme.PageHeroes": "Фоновые персонажи",
+  "Settings.Theme.PageHeroesTip": "Герой за каждой страницей: из последней игры, лучший на полях сражений, самый играемый класс. Арт один раз загружается с HearthstoneJSON и хранится на диске.",
 
   "Settings.App.Title": "Приложение",
   "Settings.App.Tray": "Сворачивать в трей при закрытии",
@@ -142,6 +144,7 @@
   "Settings.About.TextCrossPlatform": "Hearthpulse читает собственные лог-файлы Hearthstone и, в Windows, несколько значений из памяти игры, только для чтения (ваш рейтинг, ранг и расы лобби). Он никогда не показывает скрытую информацию, например руку или колоду соперника.",
   "Settings.About.Fonts": "Шрифты: Montserrat (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0).",
   "Settings.About.FontsCrossPlatform": "Шрифты: Montserrat (SIL Open Font License) · Inter (SIL Open Font License) · Material Design Icons (Pictogrammers, Apache 2.0).",
+  "Settings.About.Icons": "Значки навигации: game-icons.net, авторы Lorc и Delapouite (CC BY 3.0), в золоте.",
   "Settings.About.NotAffiliated": "Не связано с Blizzard Entertainment.",
   "Settings.Data.CrashReports": "Отправлять отчёты о сбоях автоматически",
   "Settings.Data.CrashReportsNote": "Уходят версия приложения и системы, язык, тип и текст ошибки и место в коде. Из текста вырезаются имена, BattleTag, e-mail, пути, значения в кавычках и длинные числа; аккаунт, история и логи игры не отправляются. Выключено: отчёт уходит, только если нажать «Отправить отчёт» в окне ошибки; при выключении ждущие отчёты удаляются."

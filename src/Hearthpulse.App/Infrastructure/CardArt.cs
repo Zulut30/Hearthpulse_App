@@ -95,6 +95,45 @@ public static class CardArt
     public static string? GetCard(DependencyObject d) => (string?)d.GetValue(CardProperty);
     public static void SetCard(DependencyObject d, string? value) => d.SetValue(CardProperty, value);
 
+    /// <summary>
+    /// A border's background in the hero's colours: a small patch of its splash art magnified across the border, which
+    /// smooths into a soft wash (the page backdrop's coloured light; no blur effect).
+    /// </summary>
+    public static readonly DependencyProperty GlowProperty = DependencyProperty.RegisterAttached("Glow", typeof(string), typeof(CardArt),
+        new PropertyMetadata(null, (d, e) => ApplyGlowAsync(d, e.NewValue as string).Forget("Card art glow")));
+
+    public static string? GetGlow(DependencyObject d) => (string?)d.GetValue(GlowProperty);
+    public static void SetGlow(DependencyObject d, string? value) => d.SetValue(GlowProperty, value);
+
+    /// <summary>The patch of the art the glow magnifies: round the middle, where a hero's face and colours sit.</summary>
+    private static readonly Rect GlowPatch = new(0.36, 0.22, 0.12, 0.12);
+
+    private static async Task ApplyGlowAsync(DependencyObject target, string? cardId)
+    {
+        if (target is not Border border)
+        {
+            return;
+        }
+
+        var image = string.IsNullOrEmpty(cardId) ? null
+            : Memory.TryGetValue(Key(ArtKind.Splash, cardId), out var cached) ? cached : await GetAsync(ArtKind.Splash, cardId);
+        if (!Equals(border.GetValue(GlowProperty), cardId))
+        {
+            return;
+        }
+
+        if (image is null)
+        {
+            border.Background = null;
+            return;
+        }
+
+        var brush = new ImageBrush(image) { Viewbox = GlowPatch, Stretch = Stretch.Fill };
+        RenderOptions.SetBitmapScalingMode(brush, BitmapScalingMode.Linear);
+        brush.Freeze();
+        border.Background = brush;
+    }
+
     private static DependencyProperty Register(string name, ArtKind kind) =>
         DependencyProperty.RegisterAttached(name, typeof(string), typeof(CardArt),
             new PropertyMetadata(null, (d, e) => Apply(d, kind, e.NewValue as string)));
@@ -229,7 +268,9 @@ public static class CardArt
             // list of 300 games does not wait on 300 file checks before its first frame.
             if (Http is { } http && !await Task.Run(() => File.Exists(file)).ConfigureAwait(false))
             {
-                await Files.EnsureArtAsync(http, url, file, kind == ArtKind.Card ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
+                // A page hero's splash has no fallback: without HearthstoneJSON's art the page keeps its stone (a Battlegrounds
+                // card picture from another source would not fit the backdrop).
+                await Files.EnsureArtAsync(http, url, file, kind is ArtKind.Card or ArtKind.Splash ? null : () => FallbackUrl?.Invoke(cardId)).ConfigureAwait(false);
             }
 
             if (File.Exists(file))

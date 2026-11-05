@@ -8,4 +8,59 @@
     </ItemGroup>
   </Target>
 
+  <!-- Avalonia.BuildServices reports build statistics to Avalonia before every compile of each project that uses it
+       (0.3-1.2 s each, also when nothing is compiled). Builds send nothing: this empty target replaces it (this file is
+       imported after the package's targets, so its definition wins). -->
+  <Target Name="AvaloniaStats" />
+
+  <!-- Incremental builds. A project that references another recompiles when that project's reference assembly (obj/ref,
+       its public surface) is newer than its own output; the SDK keeps the file's timestamp when a change leaves the
+       surface as it was, so an edit inside a method rebuilds one project, not the chain. Two build tasks defeat that.
+       Both workarounds below keep a full rebuild exactly as it was: they only stop rebuilds of unchanged inputs. -->
+
+  <!-- Avalonia rewrites the reference assembly with Cecil and deletes obj/ref before the SDK copies it, so after any
+       XAML compile of Hearthpulse.UI the copy is new and Desktop and both test projects compile again. When the new
+       copy has the same bytes as the old one, the old timestamp is put back. -->
+  <Target Name="HearthpulseRememberRefAssembly" BeforeTargets="AvaloniaDeleteRefAssemblyBeforeOutputCopy"
+          Condition="'$(TargetRefPath)' != '' and Exists('$(TargetRefPath)')">
+    <GetFileHash Files="$(TargetRefPath)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_HearthpulseOldRefHash" />
+    </GetFileHash>
+    <PropertyGroup>
+      <_HearthpulseOldRefTime>$([System.IO.File]::GetLastWriteTime('$(TargetRefPath)').ToString('o'))</_HearthpulseOldRefTime>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="HearthpulseKeepUnchangedRefAssemblyTime" AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'$(_HearthpulseOldRefHash)' != '' and Exists('$(TargetRefPath)')">
+    <GetFileHash Files="$(TargetRefPath)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_HearthpulseNewRefHash" />
+    </GetFileHash>
+    <Touch Files="$(TargetRefPath)" Time="$(_HearthpulseOldRefTime)" Condition="'$(_HearthpulseNewRefHash)' == '$(_HearthpulseOldRefHash)'" />
+  </Target>
+
+  <!-- WPF markup compile compares the implementation assemblies of referenced projects with its last run, so an edit
+       inside Hearthpulse.Core recompiled every XAML page of the app, its temporary assembly and the app itself. During
+       the two markup passes the referenced projects are given by their reference assemblies instead: XAML sees only
+       their public surface, and a change to it still recompiles every page. -->
+  <Target Name="HearthpulseMarkupUsesRefAssemblies" BeforeTargets="MarkupCompilePass1" Condition="'$(UseWPF)' == 'true'">
+    <ItemGroup>
+      <_HearthpulseImplementationReference Include="@(ReferencePath)"
+          Condition="'%(ReferencePath.ReferenceAssembly)' != '' and '%(ReferencePath.ReferenceAssembly)' != '%(ReferencePath.FullPath)' and Exists('%(ReferencePath.ReferenceAssembly)')" />
+      <ReferencePath Remove="@(_HearthpulseImplementationReference)" />
+      <ReferencePath Include="@(_HearthpulseImplementationReference->'%(ReferenceAssembly)')" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Two hooks, so the restore never depends on Pass2: after MarkupCompilePass2 (which also fires when its condition
+       skips it), and in any case before CoreCompile. MSBuild runs a target once per build: whichever comes first
+       restores, the other finds the list empty and is skipped. -->
+  <Target Name="HearthpulseMarkupRestoresReferences" AfterTargets="MarkupCompilePass2" BeforeTargets="CoreCompile" Condition="'@(_HearthpulseImplementationReference)' != ''">
+    <ItemGroup>
+      <ReferencePath Remove="@(_HearthpulseImplementationReference->'%(ReferenceAssembly)')" />
+      <ReferencePath Include="@(_HearthpulseImplementationReference)" />
+      <_HearthpulseImplementationReference Remove="@(_HearthpulseImplementationReference)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

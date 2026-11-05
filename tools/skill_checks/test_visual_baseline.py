@@ -81,10 +81,12 @@ class VisualBaselineTests(unittest.TestCase):
 
     def test_a_frame_over_the_tolerance_fails_with_a_sheet_and_a_pending_one_only_reports(self):
         grey, red = Image.new("RGB", (40, 40), (90, 90, 90)), Image.new("RGB", (40, 40), (200, 40, 40))
-        code, printed, out = self.compare({"Tavern-main-overview": (grey, red), "Tavern-overlay-counters-16x9": (grey, red)})
+        # PENDING is empty between redesigns: the test lists a frame of its own as one under way
+        with patch.object(visual, "PENDING", {"overlay-counters-16x9": "a redesign"}):
+            code, printed, out = self.compare({"Tavern-main-overview": (grey, red), "Tavern-overlay-counters-16x9": (grey, red)})
         self.assertEqual(1, code)
         self.assertIn("ava/Tavern-main-overview: changed 100.00% - FAIL", printed)
-        self.assertIn("ava/Tavern-overlay-counters-16x9: changed 100.00% - pending V3 (overlay)", printed)
+        self.assertIn("ava/Tavern-overlay-counters-16x9: changed 100.00% - pending a redesign", printed)
         self.assertTrue((out / "diff/ava/Tavern-main-overview.png").is_file())
 
     def test_identical_frames_pass_and_a_missing_baseline_or_render_fails(self):

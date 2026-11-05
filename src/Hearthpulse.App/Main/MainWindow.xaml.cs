@@ -203,6 +203,11 @@ public partial class MainWindow : Window
                 {
                     OnNavigate(this, new RoutedEventArgs());
                 }
+                else if (_viewModel.DeckOpen)
+                {
+                    // A deck opened from the Overview's deck banners goes to its format's page, where the deck page lives.
+                    ShowPage(ConstructedPage.PageOf(_viewModel.ConstructedFormat));
+                }
 
                 break;
             case nameof(MainViewModel.ConstructedFormat):

@@ -101,6 +101,8 @@
                         <Button Style="{StaticResource PrimaryButton}" Content="{i:Loc Settings.Theme.UseMine}" Command="{Binding ApplyCustomTheme}" HorizontalAlignment="Left" />
                     </StackPanel>
                 </Grid>
+                <CheckBox Style="{StaticResource Switch}" Content="{i:Loc Settings.Theme.PageHeroes}" IsChecked="{Binding Settings.PageHeroes}" Margin="0,24,0,0"
+                          ToolTip="{i:Loc Settings.Theme.PageHeroesTip}" />
             </StackPanel>
         </Border>
 

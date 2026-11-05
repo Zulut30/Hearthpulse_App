@@ -70,6 +70,8 @@ public sealed partial class MainViewModel
             return;
         }
 
+        _shownPage = page;
+        RaisePageHero();
         if (MatchOpen && page != "History")
         {
             CloseMatch();

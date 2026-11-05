@@ -18,7 +18,10 @@
         <StackPanel Margin="40,0,40,120">
             <Grid>
                 <StackPanel>
-                    <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Style="{StaticResource PageTitle}" />
+                    <StackPanel Orientation="Horizontal">
+                        <c:GoldGlyph Style="{StaticResource PageGlyph}" Glyph="{x:Static c:GameIcons.Battlegrounds}" />
+                        <TextBlock Text="{i:Loc Main.Mode.Battlegrounds}" Style="{StaticResource PageTitle}" />
+                    </StackPanel>
                     <c:Wave Style="{StaticResource PageRule}" />
                 </StackPanel>
                 <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,0,0" Style="{StaticResource SegmentBar}"

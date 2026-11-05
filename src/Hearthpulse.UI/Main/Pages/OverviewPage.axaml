@@ -18,7 +18,10 @@
     </UserControl.Resources>
     <ScrollViewer Classes="page" VerticalScrollBarVisibility="Auto">
         <StackPanel>
-            <TextBlock Text="{i:Loc Main.Nav.Home}" Classes="display pageTitle" />
+            <StackPanel Orientation="Horizontal">
+                <c:GoldGlyph Classes="pageGlyph" Glyph="{x:Static c:GameIcons.Home}" />
+                <TextBlock Text="{i:Loc Main.Nav.Home}" Classes="display pageTitle" />
+            </StackPanel>
             <c:Wave Classes="pageRule" />
 
             <Border Name="SetupBanner" Background="{StaticResource AccentContainer}" BorderBrush="{StaticResource GoldTrim}" BorderThickness="1" CornerRadius="12" Padding="17,13" Margin="0,0,0,16"
@@ -134,9 +137,44 @@
                         <c:Ornament Text="{i:Loc Main.Home.RecentGames}" Icon="&#xF02DA;" Size="13" Margin="0,0,120,0" VerticalAlignment="Center" />
                         <Button Content="{i:Loc Main.Home.ViewAll}" Classes="ghost" Padding="14,6" FontSize="12" HorizontalAlignment="Right" Click="OnViewHistory" />
                     </Grid>
-                    <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" />
+                    <ItemsControl ItemsSource="{Binding Recent}" ItemTemplate="{StaticResource OpenGameRow}" ClipToBounds="False" />
                     <ContentControl Classes="emptyState" Tag="&#xF02DA;" Content="{i:Loc Main.Home.NoGames}"
                                     IsVisible="{Binding Recent, Converter={StaticResource Truthy}, ConverterParameter=!}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Your decks (V3): the three decks played last as banners over their class hero's art; a click opens the deck -->
+            <Border Classes="card" Margin="0,16,0,0" IsVisible="{Binding HomeDecks, Converter={StaticResource Truthy}}">
+                <StackPanel>
+                    <c:Ornament Text="{i:Loc Main.Home.YourDecks}" Icon="&#xF063A;" Size="13" Margin="0,0,0,12" />
+                    <ItemsControl ItemsSource="{Binding HomeDecks}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="m:HomeDeck">
+                                <Button Classes="bare" Margin="0,0,12,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                        ToolTip.Tip="{i:Loc Main.Home.OpenDeckTip}" AutomationProperties.Name="{Binding Name}"
+                                        Command="{Binding $parent[ItemsControl].((m:MainViewModel)DataContext).OpenDeck}" CommandParameter="{Binding Key}">
+                                    <Border Height="96" CornerRadius="8" BorderBrush="{StaticResource CardEdge}" BorderThickness="1" Background="{StaticResource Surface3}"
+                                            ClipToBounds="True">
+                                        <Panel>
+                                            <Border i:CardArt.Portrait="{Binding HeroCardId}" />
+                                            <Border VerticalAlignment="Bottom" Padding="12,8" Background="{StaticResource OverlayBadgeShade}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" FontFamily="{DynamicResource DisplayFont}" FontWeight="Bold" FontSize="{StaticResource FontSizeLead}"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding Line}" Classes="caption" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Panel>
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </Border>
         </StackPanel>

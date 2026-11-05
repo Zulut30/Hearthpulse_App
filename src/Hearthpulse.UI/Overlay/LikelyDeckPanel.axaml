@@ -15,24 +15,23 @@
 
         <!-- A card of the list: cost gem, name over the art with its rarity strip, "1/2" or "★"; dimmed once all copies are played -->
         <DataTemplate x:Key="LikelyRow" x:DataType="o:LikelyDeckTile">
-            <Grid Classes="tileRow cardRow short" Classes.empty="{Binding Done}" Margin="0,0,0,2" ColumnDefinitions="25,*" Background="Transparent"
+            <Grid Classes="tileRow cardRow short" Classes.empty="{Binding Done}" Margin="0,0,0,2" Background="Transparent"
                   o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
-                <c:ManaCost Classes="cost short" Text="{Binding Cost}" HorizontalAlignment="Left" />
-                <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" ClipToBounds="True">
+                <Border Classes="capsule">
                     <Panel>
                         <Image Classes="tileArt" i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
                         <Rectangle Classes="tileFade" Fill="{StaticResource TileFade}" />
-                        <Border Classes="rarityStrip" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                        <DockPanel Margin="8,0,3,0">
+                        <DockPanel Margin="1,0,3,0">
+                            <c:ManaCost Classes="cost short" Text="{Binding Cost}" DockPanel.Dock="Left" Margin="0,0,4,0" />
                             <Border Classes="countBadge" DockPanel.Dock="Right" Height="16" IsVisible="{Binding Mark, Converter={StaticResource Truthy}}">
                                 <TextBlock Text="{Binding Mark}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <TextBlock Classes="tileName" Text="{Binding Name}" FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                         </DockPanel>
-                        <Border Classes="rowSheen" />
                     </Panel>
                 </Border>
+                <Border Classes="rarityEdge" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
             </Grid>
         </DataTemplate>
     </UserControl.Resources>

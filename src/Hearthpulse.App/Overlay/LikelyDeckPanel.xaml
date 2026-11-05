@@ -18,26 +18,21 @@
             <!-- A card of the list: cost gem, name over the art with its rarity strip, "1/2" or "★"; dimmed once all copies are played -->
             <DataTemplate x:Key="LikelyRow" DataType="{x:Type o:LikelyDeckTile}">
                 <Grid x:Name="RowRoot" Height="22" Margin="0,0,0,2" Background="Transparent" o:OverlayHit.Interactive="True" c:CardPreview.CardId="{Binding CardId}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="25" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <c:ManaCost x:Name="Gem" Text="{Binding Cost}" Width="21" Height="21" HorizontalAlignment="Left" VerticalAlignment="Center" />
-                    <Border Grid.Column="1" Background="{StaticResource Row}" CornerRadius="5" c:RoundClip.Radius="5">
+                    <Border Style="{StaticResource OverlayCapsule}" c:RoundClip.Radius="11">
                         <Grid>
                             <Image x:Name="Art" i:CardArt.Tile="{Binding CardId}" Width="120" HorizontalAlignment="Right" Stretch="UniformToFill" />
                             <Rectangle x:Name="Fade" Fill="{StaticResource TileFade}" />
-                            <Border x:Name="Strip" Style="{StaticResource OverlayRarityStrip}" Background="{Binding Rarity, Converter={StaticResource KeyBrush}}" />
-                            <DockPanel Margin="8,0,3,0">
+                            <DockPanel Margin="1,0,3,0">
+                                <c:ManaCost x:Name="Gem" Text="{Binding Cost}" Width="21" Height="21" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,4,0" />
                                 <Border x:Name="Copies" DockPanel.Dock="Right" Style="{StaticResource OverlayCountBadge}" Height="16" Visibility="{Binding Mark, Converter={StaticResource Vis}}">
                                     <TextBlock Text="{Binding Mark}" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </Border>
                                 <TextBlock x:Name="CardName" Text="{Binding Name}" FontSize="11.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                             </DockPanel>
-                            <Border Style="{StaticResource OverlayRowSheen}" />
                         </Grid>
                     </Border>
+                    <Border x:Name="Strip" Style="{StaticResource OverlayRarityEdge}" BorderBrush="{Binding Rarity, Converter={StaticResource KeyBrush}, ConverterParameter=edge}" />
                 </Grid>
                 <DataTemplate.Triggers>
                     <Trigger SourceName="RowRoot" Property="o:MovablePanel.Compact" Value="True">
@@ -51,7 +46,7 @@
                     <DataTrigger Binding="{Binding Done}" Value="True">
                         <Setter TargetName="Art" Property="Opacity" Value="0.22" />
                         <Setter TargetName="Gem" Property="Opacity" Value="0.45" />
-                        <Setter TargetName="Strip" Property="Opacity" Value="0.35" />
+                        <Setter TargetName="Strip" Property="Opacity" Value="0.3" />
                         <Setter TargetName="Copies" Property="Opacity" Value="0.55" />
                         <Setter TargetName="CardName" Property="Foreground" Value="{StaticResource Faint}" />
                     </DataTrigger>

@@ -97,6 +97,8 @@
                         <Button Classes="ghost primary" Content="{i:Loc Settings.Theme.UseMine}" Command="{Binding ApplyCustomTheme}" HorizontalAlignment="Left" />
                     </StackPanel>
                 </Grid>
+                <CheckBox Classes="switch" Content="{i:Loc Settings.Theme.PageHeroes}" IsChecked="{Binding Settings.PageHeroes}" Margin="0,24,0,0"
+                          ToolTip.Tip="{i:Loc Settings.Theme.PageHeroesTip}" />
             </StackPanel>
         </Border>
 

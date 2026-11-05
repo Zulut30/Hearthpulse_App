@@ -5,7 +5,11 @@ namespace Hearthpulse.UI.Overlay;
 #endif
 
 /// <param name="Changed">The card's count moved in the latest deck change (drawn, returned, shuffled in): the row flashes once.</param>
-public sealed record DeckTile(string CardId, string Name, int Cost, string Count, bool ShowCount, bool Empty, string Rarity, string Chance, bool Created, bool Changed = false);
+public sealed record DeckTile(string CardId, string Name, int Cost, string Count, bool ShowCount, bool Empty, string Rarity, string Chance, bool Created, bool Changed = false)
+{
+    /// <summary>Legendary rows draw the name and the star in the legendary colour.</summary>
+    public bool Legendary => Rarity == "LEGENDARY";
+}
 
 public sealed record PlayedTile(string CardId, string Name, int Cost, string Count, string Turn, bool Created);
 

@@ -3,6 +3,8 @@
 #   dist/Hearthpulse-Setup-<version>-win-x64.exe        setup wizard for the Windows app
 #   dist/Hearthpulse-Portable-<version>-win-x64.zip     the Windows app as a zip: no setup, data kept next to it
 #   dist/Hearthpulse-Preview-<version>-win-x64.zip      portable build of the cross-platform app, to try on Windows
+#   dist/Hearthpulse-Files-<version>-win-x64.json       every file of the Windows app with its SHA-256 (delta updates)
+#   dist/Hearthpulse-Delta-<prev>-<version>-win-x64.zip the files changed since release <prev>, when <prev> has a manifest
 # Usage: build.sh [version] [all|app|preview]; app is the setup and portable zip, preview the cross-platform zip
 # (the release workflow builds the two on separate runners at the same time).
 set -euo pipefail
@@ -41,13 +43,32 @@ with open(out, "w", encoding="utf-8") as f:
 print(f"uninstall list: {len(files)} files, {len(dirs)} folders")
 PY
 
-echo "== Building the setup wizard"
-SETUP="$DIST/Hearthpulse-Setup-$VERSION-win-x64.exe"
-makensis -V2 -DVERSION="$VERSION" -DSOURCE_DIR="$WORK/app" -DOUT_FILE="$SETUP" \
-  -DUNINSTALL_LIST="$WORK/uninstall-files.nsh" "$ROOT/installer/windows/hearthpulse.nsi"
-echo "wrote $SETUP"
+# Delta updates (src/Hearthpulse.Core/Updates/DeltaUpdate.cs): this version's file list, and the files changed since
+# the previous release when that release has a list too (CI only: previous.sh asks GitHub).
+echo "== Manifest and delta package"
+MANIFEST="$DIST/Hearthpulse-Files-$VERSION-win-x64.json"
+python3 "$ROOT/installer/windows/delta.py" manifest "$WORK/app" "$VERSION" "$MANIFEST"
+PREV=""
+if [ -n "${GITHUB_REPOSITORY:-}" ]; then
+  PREV="$("$ROOT/installer/windows/previous.sh" "$VERSION" "$WORK/previous")"
+fi
+if [ -n "$PREV" ]; then
+  PREV_MANIFEST="$WORK/previous/Hearthpulse-Files-$PREV-win-x64.json"
+  if [ "${SIMULATE_PREVIOUS:-}" = "true" ]; then
+    mkdir -p "$WORK/previous"
+    python3 "$ROOT/installer/windows/delta.py" simulate "$MANIFEST" "$PREV" "$PREV_MANIFEST"
+  fi
+  python3 "$ROOT/installer/windows/delta.py" delta "$PREV_MANIFEST" "$MANIFEST" "$WORK/app" \
+    "$DIST/Hearthpulse-Delta-$PREV-$VERSION-win-x64.zip"
+else
+  echo "no previous release with a manifest: only the full setup"
+fi
+# For the release job's check (not a release file): which delta this build made, empty for none.
+printf '%s\n' "$PREV" > "$DIST/work/delta-previous.txt"
 
+# The setup (about a minute of LZMA) and the portable zip read the same published folder: built at the same time.
 echo "== Packing the portable Windows app"
+(
 rm -rf "$WORK/portable"
 mkdir -p "$WORK/portable"
 cp -r "$WORK/app" "$WORK/portable/Hearthpulse"
@@ -57,6 +78,15 @@ PORTABLE="$DIST/Hearthpulse-Portable-$VERSION-win-x64.zip"
 rm -f "$PORTABLE"
 (cd "$WORK/portable" && zip -qr -9 "$PORTABLE" Hearthpulse)
 echo "wrote $PORTABLE"
+) &
+PORTABLE_PID=$!
+
+echo "== Building the setup wizard"
+SETUP="$DIST/Hearthpulse-Setup-$VERSION-win-x64.exe"
+makensis -V2 -DVERSION="$VERSION" -DSOURCE_DIR="$WORK/app" -DOUT_FILE="$SETUP" \
+  -DUNINSTALL_LIST="$WORK/uninstall-files.nsh" "$ROOT/installer/windows/hearthpulse.nsi"
+echo "wrote $SETUP"
+wait "$PORTABLE_PID" || { echo "the portable zip was not built" >&2; exit 1; }
 fi
 
 if [ "$PART" != app ]; then
