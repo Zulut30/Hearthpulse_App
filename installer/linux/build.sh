@@ -203,7 +203,12 @@ SH
   # 0744): everyone reads everything, and whatever is executable is executable for everyone.
   chmod -R a+rX "$APPDIR"
   # Optional extra: a failure here (e.g. no network for the AppImage runtime) must not lose the other packages.
-  if ARCH="$APPIMAGE_ARCH" appimagetool --no-appstream "$APPDIR" "$DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage" >/dev/null; then
+  # appimagetool fetches the runtime itself with no second try, and one failed request (2026-11-05) lost the AppImage
+  # the release requires: it is fetched here with retries and handed over.
+  RUNTIME="$WORK/appimage-runtime-$APPIMAGE_ARCH"
+  if curl -fsSL --retry 4 --retry-all-errors -o "$RUNTIME" \
+       "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-$APPIMAGE_ARCH" \
+     && ARCH="$APPIMAGE_ARCH" appimagetool --no-appstream --runtime-file "$RUNTIME" "$APPDIR" "$DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage" >/dev/null; then
     echo "wrote $DIST/Hearthpulse-$VERSION-linux-$ARCH.AppImage"
   else
     echo "AppImage not built (appimagetool failed)" >&2

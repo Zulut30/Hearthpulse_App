@@ -8,6 +8,11 @@
     </ItemGroup>
   </Target>
 
+  <!-- Avalonia.BuildServices reports build statistics to Avalonia before every compile of each project that uses it
+       (0.3-1.2 s each, also when nothing is compiled). Builds send nothing: this empty target replaces it (this file is
+       imported after the package's targets, so its definition wins). -->
+  <Target Name="AvaloniaStats" />
+
   <!-- Incremental builds. A project that references another recompiles when that project's reference assembly (obj/ref,
        its public surface) is newer than its own output; the SDK keeps the file's timestamp when a change leaves the
        surface as it was, so an edit inside a method rebuilds one project, not the chain. Two build tasks defeat that.
